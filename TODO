@@ -1,0 +1,53 @@
+TODO Items
+-----------------------------------------------------------------
+
+version 0.1:
+  x Cycle texture images with right-click
+  x Complete PlotPoint so it handles floating rows and columns
+  x Implement right and left directions of FollowEdge
+  x Call right and left edge following scans started from vertical step scans
+  x Implement 2D vector and matrix functions
+  x Trace lines with actual line object (2D ray)
+  x Turn corners when encountering the end of a followed line
+  x Build 2d transformation to wrap around region, assuming parallelogram
+  x Display pane 4 with reverse-transformed image capture
+  x Enhance dmtxCapturePixel to use "area averaging" instead of nearest neighbor
+  x Figure out why squares are 3 pixels off (to start: draw white gl lines over follower paths)
+  x Add callback function for PlotEventPoint(x, y, event_type)
+  x Improve follower logic (weighted line fit)
+  x dmtxGetPixel: do averaged interpolation followed by a tMin/tMid/tMax cutoff
+  x Add in de-skew transformation
+  x Refactor vector libraries to consistently list target parameter first
+  x Calibrate based on calibration lines
+  x Shrink-fit transformation around region
+
+version 0.2:
+  x Move dmtxCapturePixel routine to library code
+  x Initial restructuring of code for architectural goodness
+  x Improve API for real-world use (and not just dumping results to STDOUT)
+  x Add "dmtxread" command line utility
+  x Add "dmtxwrite" command line utility
+  x Implement error detection
+  x Create "simpletest.c" for full-circle processing
+  x Use libpng(3) in library to read Data Matrix images
+  x Slap together some basic documentation
+
+version 0.3:
+  x Add 'make tarball' to root Makefile that does make clean+tar+bz2
+  x Use preprocessor to pull code into one big file before compiling (static handling)
+  x Rename DmtxInfo struct and variables to DmtxDecode (for consistency with DmtxEncode)
+  o Split pure decode functions from dmtxScanLine
+  o Fix the regressions (specifically crash bugs) introduced during structural rework
+  o Implement error correction
+  o Implement consistent and robust error handling (errno.h + custom)
+  o Fully implement other encoding schemes (X12, Base 256, etc...)
+
+future versions:
+  o Use libpng(3) to write Data Matrix images
+  o Use libtool
+  o Integrate placement algorithm to work in both encoding and decoding mode
+  o Tune region detection to work better with captured (non-generated) images
+  o Implement structured append symbols
+  o Try bi-linear approximation (instead of linear) in follower edge detection
+  o Implement fixed point math functions for use on mobile platforms
+  o Implement pre-ECC200 Data Matrix standards (big effort/low demand)

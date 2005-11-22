@@ -1,0 +1,49 @@
+Installing libdmtx
+-----------------------------------------------------------------
+
+I haven't taken the time to get autoconf(1) set up for this
+package, and it's not designed to install in the normal library
+locations (/usr/lib, /usr/local/lib, etc...).  Instead, it will
+build in the source directory and you can run the test program
+from its own source directory.
+
+To build libdmtx:
+   $ make
+
+(that was easy)
+
+You may get an error from the chcon command in the Makefile.  It
+is there due to an SELinux issue that I ran into when I first
+upgraded to Fedora Core 5.  It doesn't seem to be necessary
+anymore, but I'm leaving it in until I have more time to
+experiment.  For now, just ignore the error.
+
+The test program is located in the "libdmtx/test/gltest"
+directory.  Like before, just run "make" to build it.  The gltest
+program uses OpenGL (Mesa) to simulate raw camera input.  If it
+successfully finds and decodes a Data Matrix symbol then it will
+write the decoded stream to STDOUT.
+
+Note that if you want to run the gltest binary directly you first
+have to point LD_LIBRARY_PATH to the directory where libdmtx.so
+was built.  You can do it like this:
+
+   $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:}../..
+
+or simply run the script "run_gltest.sh", which does it for you
+automatically.
+
+The gltest program is somewhat boring if you don't know that you
+can right-click to cycle through the test images.  To add your
+own images, just overwrite any image in the
+libdmtx/test/test_images directory with another 256x256 PNG file.
+If you want to add new images (instead of overwriting) then you
+will have to update the gFilename[] and gFileCount variables at
+the top of gltest.c to include them.
+
+I have only tried running this on Fedora 4 & 5, and have no
+reason to believe that it will work anywhere else.  In fact, if
+you try it and have a minute to spare, please drop me an email at
+mike@dragonflylogic.com to let me know how it went.  I don't need
+much information, but if you could let me know about your
+experience it would be incredibly helpful.

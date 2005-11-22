@@ -1,0 +1,15 @@
+Changes for libdmtx
+-----------------------------------------------------------------
+
+version 0.1 [April 2006]
+  Initial release
+
+version 0.2 [June 2006]
+  Cleaned up program structure surrounding decoding process
+  Improved API for real-world use (no longer just dumping results to STDOUT)
+  Added "dmtxread" command line utility
+  Added "dmtxwrite" command line utility
+  Implemented Reed-Solomon error detection
+  Created "simpletest.c" for full circle processing test
+  Now using libpng(3) in library to read Data Matrix images
+  Improved documentation (somewhat)

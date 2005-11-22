@@ -1,0 +1,40 @@
+.\" $Id: dmtxread.1,v 1.1.1.1 2006-09-14 03:22:11 mblaughton Exp $
+.\"
+.\" Man page for the dmtxread utility (libdmtx project).
+.\"
+.\" $Log: not supported by cvs2svn $
+.\"
+.\" $ groff -man -T ascii libdmtx.3
+.\"
+.TH DMTXREAD 1 "June 11, 2006"
+.SH NAME
+dmtxread \- read data matrix barcodes from PNG image
+.SH SYNOPSIS
+\fBdmtxread\fP [\fIoptions\fP] [\fIFILE\fP...]
+
+.SH DESCRIPTION
+Reads data matrix barcodes from PNG image and writes decoded data to standard output.
+
+.SH OPTIONS
+ \fB-c\fP \fINUM\fP, \fB--count\fP=\fINUM\fP
+        Stop after finding \fINUM\fP barcodes
+
+ \fB-v\fP \fINUM\fP, \fB--vertical\fP=\fINUM\fP
+        Use \fINUM\fP vertical scan lines in scan pattern
+
+ \fB-h\fP \fINUM\fP, \fB--horizontal\fP=\fINUM\fP
+        Use \fINUM\fP horizontal scan lines in scan pattern
+
+ \fB-V\fP,     \fB--verbose\fP
+        Use verbose messages
+
+         \fB--help\fP
+        Display help message and quit
+
+.SH BUGS
+Email bug reports to \fImike@dragonflylogic.com\fP
+
+.SH AUTHOR
+Copyright (C) 2006 Mike Laughton
+
+.\" end of man page
