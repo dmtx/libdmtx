@@ -8,7 +8,7 @@ SOURCES=dmtx.h dmtxstatic.h dmtx.c dmtxregion.c dmtxdecode.c dmtxencode.c \
 libdmtx.so: libdmtx.so.0.3.0
 	ln -sf libdmtx.so.0.3.0 libdmtx.so.1
 	ln -sf libdmtx.so.1 libdmtx.so
-	#chcon -t textrel_shlib_t libdmtx.so
+	chcon -t textrel_shlib_t libdmtx.so
 
 libdmtx.so.0.3.0: $(SOURCES)
 	$(CC) $(CFLAGS) -shared -Wl,-soname,libdmtx.so.1 -Wl,-export-dynamic \
@@ -36,4 +36,4 @@ tarball:
 clean:
 	rm -f *.o *.d lib*.so*
 
-.PHONY: all test util clean tarball clean
+.PHONY: all test util tarball clean
