@@ -1,8 +1,11 @@
-.\" $Id: libdmtx.3,v 1.1.1.1 2006-09-14 03:22:06 mblaughton Exp $
+.\" $Id: libdmtx.3,v 1.2 2006-09-14 03:49:57 mblaughton Exp $
 .\"
 .\" Man page for the libdmtx project.
 .\"
 .\" $Log: not supported by cvs2svn $
+.\" Revision 1.1.1.1  2006/09/14 03:22:06  mblaughton
+.\" Initial Import
+.\"
 .\"
 .\" $ groff -man -T ascii libdmtx.3
 .\"
@@ -20,19 +23,19 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.2.0
 
 \fBDmtxDecode *dmtxDecodeStructCreate(\fIvoid\fP);\fP
 
-\fBvoid dmtxDecodeStructDestroy(DmtxDecode **\fIinfo\fP);\fP
+\fBvoid dmtxDecodeStructDestroy(DmtxDecode **\fIdecode\fP);\fP
 
 \fBint dmtxImageInit(DmtxImage *\fIimage\fP);\fP
 
 \fBint dmtxImageDeInit(DmtxImage *\fIimage\fP);\fP
 
-\fBvoid dmtxScanStartNew(DmtxDecode *\fIinfo\fP);\fP
+\fBvoid dmtxScanStartNew(DmtxDecode *\fIdecode\fP);\fP
 
-\fBvoid dmtxScanLine(DmtxDecode *\fIinfo\fP, int \fIline\fP, DmtxDirection \fIdirection\fP);\fP
+\fBvoid dmtxScanLine(DmtxDecode *\fIdecode\fP, int \fIline\fP, DmtxDirection \fIdirection\fP);\fP
 
-\fBint dmtxDecodeGetMatrixCount(DmtxDecode *\fIinfo\fP);\fP
+\fBint dmtxDecodeGetMatrixCount(DmtxDecode *\fIdecode\fP);\fP
 
-\fBDmtxMatrixRegion *dmtxDecodeGetMatrix(DmtxDecode *\fIinfo\fP, int \fIindex\fP);\fP
+\fBDmtxMatrixRegion *dmtxDecodeGetMatrix(DmtxDecode *\fIdecode\fP, int \fIindex\fP);\fP
 
 .SH DESCRIPTION
 \fIlibdmtx\fP is a shared library for Linux that encodes and decodes ECC200 Data Matrix barcodes.  It is released under the LGPL and can be used and distributed freely under these terms.
@@ -73,7 +76,7 @@ Resets the counters and lists before a new scan begins.  This is necessary becau
 
 4. Call \fBdmtxScanLine()\fP
 
-Performs the actual scan of a row or column (1 pixel wide) from the source image.  It returns number of Data Matrix barcodes that were found, and stores the barcode information in a list from the info struct.  Multiple calls to \fBdmtxScanLine()\fP can happen between \fBdmtxScanStartNew()\fP (for example, to make the familiar "cross pattern" like in the supermarket checkout lane).
+Performs the actual scan of a row or column (1 pixel wide) from the source image.  It returns number of Data Matrix barcodes that were found, and stores the barcode information in a list from the decode struct.  Multiple calls to \fBdmtxScanLine()\fP can happen between \fBdmtxScanStartNew()\fP (for example, to make the familiar "cross pattern" like in the supermarket checkout lane).
 
 5. Call \fBdmtxDecodeGetMatrixCount()\fP
 
@@ -108,7 +111,7 @@ This program demonstrates both directions of \fIlibdmtx\fP functionality by firs
      unsigned char testString[] = "30Q324343430794<OQQ";
      DmtxImage image;
      DmtxEncode *encode;
-     DmtxDecode *info;
+     DmtxDecode *decode;
 
      /*
       * 1) Write a new Data Matrix barcode (in memory)
@@ -133,21 +136,21 @@ This program demonstrates both directions of \fIlibdmtx\fP functionality by firs
       * 2) Read the Data Matrix barcode from above
       */
 
-     info = dmtxDecodeStructCreate();
-     info->option = DmtxSingleScanOnly;
-     info->image = image;
+     decode = dmtxDecodeStructCreate();
+     decode->option = DmtxSingleScanOnly;
+     decode->image = image;
 
-     count += dmtxScanLine(info, DmtxDirUp, info->image.width/2);
-     count += dmtxScanLine(info, DmtxDirRight, info->image.height/2);
+     count += dmtxScanLine(decode, DmtxDirUp, decode->image.width/2);
+     count += dmtxScanLine(decode, DmtxDirRight, decode->image.height/2);
 
      if(count > 0) {
         fprintf(stdout, "output: \\"");
-        fwrite(info->matrix[0].output, sizeof(unsigned char),
-              info->matrix[0].outputIdx, stdout);
+        fwrite(decode->matrix[0].output, sizeof(unsigned char),
+              decode->matrix[0].outputIdx, stdout);
         fprintf(stdout, "\\"\\n\\n");
      }
 
-     dmtxDecodeStructDestroy(&info);
+     dmtxDecodeStructDestroy(&decode);
 
      exit(0);
   }
