@@ -33,12 +33,12 @@ version 0.2:
   x Slap together some basic documentation
 
 version 0.3:
-  x Add 'make tarball' to root Makefile that does make clean+tar+bz2
-  x Use preprocessor to pull code into one big file before compiling (static handling)
+  x Use preprocessor to pull code into one big file before compiling
+  x Update Makefile to handle monolythic approach; add targets for test, util, tarball
   x Rename DmtxInfo struct and variables to DmtxDecode (for consistency with DmtxEncode)
-  x Integrate placement algorithm to work in both encoding and decoding mode
+  x Merge placement logic into single implementation for both encoding and decoding
   x Deploy codebase to SourceForge CVS
-  o Split pure decode functions from dmtxScanLine
+  o Move pure decode calls from dmtxScanLine into a dmtxdecode.c function
   o Fix the regressions (specifically crash bugs) introduced during structural rework
   o Implement error correction
   o Implement consistent and robust error handling (errno.h + custom)
