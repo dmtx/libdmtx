@@ -51,6 +51,7 @@ version 0.3:
   o Implement consistent and robust error handling (errno.h + custom)
   o Implement remaining encodation schemes in dmtxdecode.c (X12, Base 256, etc...)
   o Implement remaining encodation schemes in dmtxencode.c (X12, Base 256, etc...)
+  o Investigate option of embedding decoded text into PNG test image comments
 
 future versions:
   o Use libpng(3) to write Data Matrix images
