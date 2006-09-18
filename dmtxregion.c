@@ -19,6 +19,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
+/* $Id: dmtxregion.c,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+
 /**
  * Scans through a line (vertical or horizontal) of the source image to
  * find and decode valid Data Matrix barcode regions.
@@ -28,7 +30,7 @@ Contact: mike@dragonflylogic.com
  * @param lineNbr  number of image row or column to be scanned
  * @return         number of barcodes scanned
  */
-int
+extern int
 dmtxScanLine(DmtxDecode *decode, DmtxDirection dir, int lineNbr)
 {
    int              success;

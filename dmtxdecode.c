@@ -19,6 +19,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
+/* $Id: dmtxdecode.c,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+
 /**
  *
  * @param XXX
@@ -552,11 +554,8 @@ DataStreamDecode(DmtxMatrixRegion *matrixRegion)
             break;
 
          case DmtxSchemeC40:
-            ptr = DecodeSchemeC40(matrixRegion, ptr, dataEnd);
-            break;
-
          case DmtxSchemeText:
-            ptr = DecodeSchemeText(matrixRegion, ptr, dataEnd);
+            ptr = DecodeSchemeTextC40(matrixRegion, ptr, dataEnd, encScheme);
             break;
 
          case DmtxSchemeX12:
@@ -605,7 +604,7 @@ NextEncodationScheme(unsigned char c, DmtxEncScheme currentScheme)
  * @param XXX
  * @return XXX
  */
-unsigned char *
+static unsigned char *
 DecodeSchemeAsciiStd(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
 {
    int digits;
@@ -630,7 +629,7 @@ DecodeSchemeAsciiStd(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigne
  * @param XXX
  * @return XXX
  */
-unsigned char *
+static unsigned char *
 DecodeSchemeAsciiExt(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
 {
    return ptr + 1;
@@ -641,13 +640,15 @@ DecodeSchemeAsciiExt(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigne
  * @param XXX
  * @return XXX
  */
-unsigned char *
-DecodeSchemeC40(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
+static unsigned char *
+DecodeSchemeTextC40(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd, DmtxEncScheme encScheme)
 {
    int c40Value;
    unsigned char c40Values[3];
    int shift;
    unsigned char *c40Ptr;
+
+   assert(encScheme == DmtxSchemeC40 || encScheme == DmtxSchemeText);
 
    // XXX unlatch test goes here
 
@@ -666,90 +667,26 @@ DecodeSchemeC40(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned cha
       }
 
       if(shift == 0) { // Basic set
-         if(*c40Ptr <= 2)
+         if(*c40Ptr <= 2) {
             shift = *c40Ptr + 1;
-         else if(*c40Ptr == 3)
-            matrixRegion->output[matrixRegion->outputIdx++] = ' '; // space
-         else if(*c40Ptr <= 13)
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + '9' - 13; // 0-9
-         else // *c40Ptr <= 39
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 'Z' - 39; // A-Z
-      }
-      else if(shift == 1) { // XXX identical to text -- merge together
-         matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr; // ASCII 0 - 31
-         shift = 0;
-      }
-      else if(shift == 2) { // XXX identical to text -- merge together
-         if(*c40Ptr <= 14)
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 33; // ASCII 33 - 47
-         else if(*c40Ptr <= 21)
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 43; // ASCII 58 - 64
-         else if(*c40Ptr <= 26)
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 69; // ASCII 91 - 95
-         else if(*c40Ptr == 27)
-            fprintf(stdout, "FNC1 (?)"); // FNC1 (eh?)
-         else if(*c40Ptr == 30)
-            fprintf(stdout, "Upper Shift (?)"); // Upper Shift (eh?)
-
-         shift = 0;
-      }
-      else if(shift == 3) { // Shift 3 set
-         if(*c40Ptr == 0)
-            matrixRegion->output[matrixRegion->outputIdx++] = ' ';
-         else
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 96;
-
-         shift = 0;
-      }
-
-      c40Ptr++;
-   }
-
-   return ptr;
-}
-
-/**
- *
- * @param XXX
- * @return XXX
- */
-unsigned char *
-DecodeSchemeText(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
-{
-   int c40Value;
-   unsigned char c40Values[3];
-   int shift;
-   unsigned char *c40Ptr;
-
-   // XXX unlatch test goes here
-
-   shift = 0;
-   c40Ptr = c40Values + 3; // Initial case -- will prompt recaching of array
-   while(ptr < dataEnd) {
-
-      if(c40Ptr == c40Values + 3) {
-         // FIXME Also check that ptr+1 is safe to access
-         c40Value = (*ptr << 8) | *(ptr+1);
-         c40Values[0] = ((c40Value - 1)/1600);
-         c40Values[1] = ((c40Value - 1)/40) % 40;
-         c40Values[2] =  (c40Value - 1) % 40;
-         c40Ptr = c40Values;
-         ptr += 2;
-      }
-
-      if(shift == 0) { // Basic set
-         if(*c40Ptr <= 2)
-            shift = *c40Ptr + 1;
-         else if(*c40Ptr == 3)
+         }
+         else if(*c40Ptr == 3) {
             matrixRegion->output[matrixRegion->outputIdx++] = ' '; // Space
-         else if(*c40Ptr <= 13)
+         }
+         else if(*c40Ptr <= 13) {
             matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + '9' - 13; // 0-9
-         else // *c40Ptr <= 39
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 'z' - 39; // a-z
+         }
+         else { // *c40Ptr <= 39
+            if(encScheme == DmtxSchemeC40) {
+               matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 'Z' - 39; // A-Z
+            }
+            else if(encScheme == DmtxSchemeText) {
+               matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 'z' - 39; // a-z
+            }
+         }
       }
       else if(shift == 1) {
          matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr; // ASCII 0 - 31
-
          shift = 0;
       }
       else if(shift == 2) {
@@ -767,12 +704,21 @@ DecodeSchemeText(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned ch
          shift = 0;
       }
       else if(shift == 3) { // Shift 3 set
-         if(*c40Ptr == 0)
+
+         if(*c40Ptr == 0) {
             matrixRegion->output[matrixRegion->outputIdx++] = ' ';
-         else if(*c40Ptr <= 26)
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 64; // A-Z
-         else
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 126; // { | } ~ DEL
+         }
+         else {
+            if(encScheme == DmtxSchemeC40) {
+               matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 96;
+            }
+            else if(encScheme == DmtxSchemeText) {
+               if(*c40Ptr <= 26)
+                  matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 64; // A-Z
+               else
+                  matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 126; // { | } ~ DEL
+            }
+         }
 
          shift = 0;
       }
@@ -788,7 +734,7 @@ DecodeSchemeText(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned ch
  * @param XXX
  * @return XXX
  */
-unsigned char *
+static unsigned char *
 DecodeSchemeX12(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
 {
    int c40Value;
@@ -844,7 +790,7 @@ DecodeSchemeX12(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned cha
  * @param XXX
  * @return XXX
  */
-unsigned char *
+static unsigned char *
 DecodeSchemeEdifact(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
 {
    // XXX unlatch test goes here
@@ -857,7 +803,7 @@ DecodeSchemeEdifact(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned
  * @param XXX
  * @return XXX
  */
-unsigned char *
+static unsigned char *
 DecodeSchemeBase256(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
 {
    // XXX unlatch test goes here

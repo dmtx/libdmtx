@@ -38,6 +38,13 @@ version 0.3:
   x Rename DmtxInfo struct and variables to DmtxDecode (for consistency with DmtxEncode)
   x Merge placement logic into single implementation for both encoding and decoding
   x Deploy codebase to SourceForge CVS
+  x Add revision control keywords to source files
+  o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
+  o Capture high-level design into documentation
+    o Data flow and alternative module options
+    o Module analogies
+      o image  => dmtxregion  => dmtxdecode  => data
+      o image <=  dmtxprint  <=  dmtxencode <=  data
   o Move pure decode calls from dmtxScanLine into a dmtxdecode.c function
   o Fix the regressions (specifically crash bugs) introduced during structural rework
   o Implement error correction
@@ -53,3 +60,4 @@ future versions:
   o Try bi-linear approximation (instead of linear) in follower edge detection
   o Implement fixed point math functions for use on mobile platforms
   o Implement pre-ECC200 Data Matrix standards (big effort/low demand)
+  o Build test suite (regression/accuracy/performance/etc...)
