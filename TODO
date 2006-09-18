@@ -40,6 +40,7 @@ version 0.3:
   x Deploy codebase to SourceForge CVS
   x Add revision control keywords to source files
   o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
+  o Create separate module for callback functions (and make it optional)
   o Capture high-level design into documentation
     o Data flow and alternative module options
     o Module analogies
