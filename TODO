@@ -39,6 +39,7 @@ version 0.3:
   x Merge placement logic into single implementation for both encoding and decoding
   x Deploy codebase to SourceForge CVS
   x Add revision control keywords to source files
+  / Implement remaining encodation schemes in dmtxdecode.c (X12, Base 256, etc...)
   o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
   o Create separate module for callback functions (and make it optional)
   o Capture high-level design into documentation
@@ -50,7 +51,6 @@ version 0.3:
   o Fix the regressions (specifically crash bugs) introduced during structural rework
   o Implement error correction
   o Implement consistent and robust error handling (errno.h + custom)
-  o Implement remaining encodation schemes in dmtxdecode.c (X12, Base 256, etc...)
   o Implement remaining encodation schemes in dmtxencode.c (X12, Base 256, etc...)
   o Investigate option of embedding decoded text into PNG test image comments
 
