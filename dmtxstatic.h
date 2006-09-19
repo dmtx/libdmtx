@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxstatic.h,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+/* $Id: dmtxstatic.h,v 1.3 2006-09-19 05:28:53 mblaughton Exp $ */
 
 #define DMTX_END_OF_RANGE      5
 #define DMTX_EDGE_FOUND        6
@@ -100,10 +100,10 @@ static int PatternReadNonDataModules(DmtxMatrixRegion *matrixRegion, DmtxDecode 
 static void PopulateArrayFromImage(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
 static int CheckErrors(DmtxMatrixRegion *matrixRegion);
 static void DataStreamDecode(DmtxMatrixRegion *matrixRegion);
-static DmtxEncScheme NextEncodationScheme(unsigned char c, DmtxEncScheme currentScheme);
+static unsigned char *NextEncodationScheme(DmtxEncScheme *encScheme, unsigned char *ptr);
 static unsigned char *DecodeSchemeAsciiStd(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeAsciiExt(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
-static unsigned char *DecodeSchemeTextC40(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd, DmtxEncScheme encScheme);
+static unsigned char *DecodeSchemeC40Text(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd, DmtxEncScheme encScheme);
 static unsigned char *DecodeSchemeX12(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeEdifact(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeBase256(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
