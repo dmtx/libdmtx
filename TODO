@@ -41,18 +41,19 @@ version 0.3:
   x Add revision control keywords to source files
   / Implement remaining encodation schemes in dmtxdecode.c (X12, Base 256, etc...)
   o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
-  o Create separate module for callback functions (and make it optional)
+  o Create separate module for callback functions (allows them to be optional)
+  o Move pure decode calls from dmtxScanLine into a dmtxdecode.c function
+  o Implement overlap detection to avoid rescanning in successfully decoded regions
+  o Fix the regressions (crash bugs) introduced during v0.2 structural rework
+  o Implement error correction
+  o Implement consistent and robust error handling (errno.h + custom)
+  o Implement remaining encodation schemes in dmtxencode.c (X12, Base 256, etc...)
+  o Investigate option of embedding decoded text into PNG test image comments
   o Capture high-level design into documentation
     o Data flow and alternative module options
     o Module analogies
       o image  => dmtxregion  => dmtxdecode  => data
       o image <=  dmtxprint  <=  dmtxencode <=  data
-  o Move pure decode calls from dmtxScanLine into a dmtxdecode.c function
-  o Fix the regressions (specifically crash bugs) introduced during structural rework
-  o Implement error correction
-  o Implement consistent and robust error handling (errno.h + custom)
-  o Implement remaining encodation schemes in dmtxencode.c (X12, Base 256, etc...)
-  o Investigate option of embedding decoded text into PNG test image comments
 
 future versions:
   o Use libpng(3) to write Data Matrix images
