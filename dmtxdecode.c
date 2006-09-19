@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxdecode.c,v 1.4 2006-09-19 05:27:36 mblaughton Exp $ */
+/* $Id: dmtxdecode.c,v 1.5 2006-09-19 18:18:54 mblaughton Exp $ */
 
 /**
  *
@@ -799,7 +799,64 @@ DecodeSchemeEdifact(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned
 static unsigned char *
 DecodeSchemeBase256(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
 {
-   // XXX unlatch test goes here
+   int i;
+   int length;
 
-   return ptr + 1;
+   if(*ptr == 0) {
+      length = dataEnd - ptr++;
+   }
+   else if(*ptr <= 249) {
+      length = *(ptr++);
+   }
+   else {
+      length = (*ptr - 249) * 250 + *(ptr+1);
+      ptr += 2;
+   }
+
+   if(ptr + length > dataEnd) {
+      // XXX throw an error instead
+      length = dataEnd - ptr;
+   }
+
+   for(i = 0; i < length; i++) {
+      matrixRegion->output[matrixRegion->outputIdx++] = UnRandomize255State(i, ptr[i]);
+   }
+
+   return ptr + i;
+}
+
+/**
+ *
+ * @param XXX
+ * @return XXX
+ */
+/*
+static unsigned char
+UnRandomize253State(unsigned char codewordValue, int codewordPosition)
+{
+   int pseudoRandom;
+   int tmp;
+
+   pseudoRandom = ((149 * codewordPosition) % 253) + 1;
+   tmp = codewordValue - pseudoRandom;
+
+   return (tmp >= 1) ? tmp : tmp + 254;
+}
+*/
+
+/**
+ *
+ * @param XXX
+ * @return XXX
+ */
+static unsigned char
+UnRandomize255State(unsigned char codewordValue, int codewordPosition)
+{
+   int pseudoRandom;
+   int tmp;
+
+   pseudoRandom = ((149 * codewordPosition) % 255) + 1;
+   tmp = codewordValue - pseudoRandom;
+
+   return (tmp >= 0) ? tmp : tmp + 256;
 }
