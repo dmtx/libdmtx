@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxstatic.h,v 1.3 2006-09-19 05:28:53 mblaughton Exp $ */
+/* $Id: dmtxstatic.h,v 1.4 2006-09-19 18:15:35 mblaughton Exp $ */
 
 #define DMTX_END_OF_RANGE      5
 #define DMTX_EDGE_FOUND        6
@@ -107,6 +107,8 @@ static unsigned char *DecodeSchemeC40Text(DmtxMatrixRegion *matrixRegion, unsign
 static unsigned char *DecodeSchemeX12(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeEdifact(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeBase256(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
+/* static unsigned char UnRandomize253State(unsigned char codewordValue, int codewordPosition); XXX need later */
+static unsigned char UnRandomize255State(unsigned char codewordValue, int codewordPosition);
 
 /* dmtxencode.c */
 static void EncodeText(DmtxMatrixRegion *matrixRegion, unsigned char *inputText);
@@ -114,6 +116,7 @@ static unsigned char *WriteAscii2Digit(unsigned char **dest, unsigned char *src,
 static unsigned char *WriteAsciiChar(unsigned char **dest, unsigned char *src);
 static void AddPadChars(DmtxMatrixRegion *matrix);
 static unsigned char Randomize253State(unsigned char codewordValue, int codewordPosition);
+/* static unsigned char Randomize255State(unsigned char codewordValue, int codewordPosition); XXX need later */
 static void PatternInit(DmtxMatrixRegion *matrixRegion);
 static void PrintPattern(DmtxEncode *encode);
 
