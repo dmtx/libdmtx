@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxencode.c,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+/* $Id: dmtxencode.c,v 1.3 2006-09-19 18:17:02 mblaughton Exp $ */
 
 /**
  *
@@ -263,6 +263,25 @@ Randomize253State(unsigned char codewordValue, int codewordPosition)
 
    return (tmp <= 254) ? tmp : tmp - 254;
 }
+
+/**
+ *
+ * @param XXX
+ * @return XXX
+ */
+/* XXX uncomment this function later -- will need for encoding Base256
+static unsigned char
+Randomize255State(unsigned char codewordValue, int codewordPosition)
+{
+   int pseudoRandom;
+   int tmp;
+
+   pseudoRandom = ((149 * codewordPosition) % 255) + 1;
+   tmp = codewordValue + pseudoRandom;
+
+   return (tmp <= 255) ? tmp : tmp - 256;
+}
+*/
 
 /**
  *
