@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxdecode.c,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+/* $Id: dmtxdecode.c,v 1.3 2006-09-19 03:58:22 mblaughton Exp $ */
 
 /**
  *
@@ -556,6 +556,7 @@ DataStreamDecode(DmtxMatrixRegion *matrixRegion)
          case DmtxSchemeC40:
          case DmtxSchemeText:
             ptr = DecodeSchemeTextC40(matrixRegion, ptr, dataEnd, encScheme);
+            encScheme = DmtxSchemeAsciiStd;
             break;
 
          case DmtxSchemeX12:
@@ -582,18 +583,18 @@ static DmtxEncScheme
 NextEncodationScheme(unsigned char c, DmtxEncScheme currentScheme)
 {
    switch(c) {
-      case 235:
-         return DmtxSchemeAsciiExt;
       case 230:
          return DmtxSchemeC40;
-      case 239:
-         return DmtxSchemeText;
-      case 238:
-         return DmtxSchemeX12;
-      case 240:
-         return DmtxSchemeEdifact;
       case 231:
          return DmtxSchemeBase256;
+      case 235:
+         return DmtxSchemeAsciiExt;
+      case 238:
+         return DmtxSchemeX12;
+      case 239:
+         return DmtxSchemeText;
+      case 240:
+         return DmtxSchemeEdifact;
    }
 
    return currentScheme;
@@ -632,6 +633,8 @@ DecodeSchemeAsciiStd(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigne
 static unsigned char *
 DecodeSchemeAsciiExt(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
 {
+   matrixRegion->output[matrixRegion->outputIdx++] = *ptr + 128;
+
    return ptr + 1;
 }
 
@@ -643,87 +646,87 @@ DecodeSchemeAsciiExt(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigne
 static unsigned char *
 DecodeSchemeTextC40(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd, DmtxEncScheme encScheme)
 {
-   int c40Value;
+   int i;
+   int packed;
+   int shift = 0;
    unsigned char c40Values[3];
-   int shift;
-   unsigned char *c40Ptr;
 
    assert(encScheme == DmtxSchemeC40 || encScheme == DmtxSchemeText);
 
-   // XXX unlatch test goes here
-
-   shift = 0;
-   c40Ptr = c40Values + 3; // Initial case -- will prompt recaching of array
    while(ptr < dataEnd) {
 
-      if(c40Ptr == c40Values + 3) {
-         // FIXME Also check that ptr+1 is safe to access
-         c40Value = (*ptr << 8) | *(ptr+1);
-         c40Values[0] = ((c40Value - 1)/1600);
-         c40Values[1] = ((c40Value - 1)/40) % 40;
-         c40Values[2] =  (c40Value - 1) % 40;
-         c40Ptr = c40Values;
-         ptr += 2;
-      }
+      // FIXME Also check that ptr+1 is safe to access
+      packed = (*ptr << 8) | *(ptr+1);
+      c40Values[0] = ((packed - 1)/1600);
+      c40Values[1] = ((packed - 1)/40) % 40;
+      c40Values[2] =  (packed - 1) % 40;
+      ptr += 2;
 
-      if(shift == 0) { // Basic set
-         if(*c40Ptr <= 2) {
-            shift = *c40Ptr + 1;
+      for(i = 0; i < 3; i++) {
+         if(shift == 0) { // Basic set
+            if(c40Values[i] <= 2) {
+               shift = c40Values[i] + 1;
+            }
+            else if(c40Values[i] == 3) {
+               matrixRegion->output[matrixRegion->outputIdx++] = ' '; // Space
+            }
+            else if(c40Values[i] <= 13) {
+               matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] - 13 + '9'; // 0-9
+            }
+            else if(c40Values[i] <= 39) {
+               if(encScheme == DmtxSchemeC40) {
+                  matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] - 39 + 'Z'; // A-Z
+               }
+               else if(encScheme == DmtxSchemeText) {
+                  matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] - 39 + 'z'; // a-z
+               }
+            }
          }
-         else if(*c40Ptr == 3) {
-            matrixRegion->output[matrixRegion->outputIdx++] = ' '; // Space
+         else if(shift == 1) { // Shift 1 set
+            matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i]; // ASCII 0 - 31
+
+            shift = 0;
          }
-         else if(*c40Ptr <= 13) {
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + '9' - 13; // 0-9
+         else if(shift == 2) { // Shift 2 set
+            if(c40Values[i] <= 14)
+               matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] + 33; // ASCII 33 - 47
+            else if(c40Values[i] <= 21)
+               matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] + 43; // ASCII 58 - 64
+            else if(c40Values[i] <= 26)
+               matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] + 69; // ASCII 91 - 95
+            else if(c40Values[i] == 27)
+               fprintf(stdout, "FNC1 (?)"); // FNC1 (eh?)
+            else if(c40Values[i] == 30)
+               fprintf(stdout, "Upper Shift (?)"); // Upper Shift (eh?)
+
+            shift = 0;
          }
-         else { // *c40Ptr <= 39
+         else if(shift == 3) { // Shift 3 set
             if(encScheme == DmtxSchemeC40) {
-               matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 'Z' - 39; // A-Z
+               matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] + 96;
             }
             else if(encScheme == DmtxSchemeText) {
-               matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 'z' - 39; // a-z
-            }
-         }
-      }
-      else if(shift == 1) {
-         matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr; // ASCII 0 - 31
-         shift = 0;
-      }
-      else if(shift == 2) {
-         if(*c40Ptr <= 14)
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 33; // ASCII 33 - 47
-         else if(*c40Ptr <= 21)
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 43; // ASCII 58 - 64
-         else if(*c40Ptr <= 26)
-            matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 69; // ASCII 91 - 95
-         else if(*c40Ptr == 27)
-            fprintf(stdout, "FNC1 (?)"); // FNC1 (eh?)
-         else if(*c40Ptr == 30)
-            fprintf(stdout, "Upper Shift (?)"); // Upper Shift (eh?)
-
-         shift = 0;
-      }
-      else if(shift == 3) { // Shift 3 set
-
-         if(*c40Ptr == 0) {
-            matrixRegion->output[matrixRegion->outputIdx++] = ' ';
-         }
-         else {
-            if(encScheme == DmtxSchemeC40) {
-               matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 96;
-            }
-            else if(encScheme == DmtxSchemeText) {
-               if(*c40Ptr <= 26)
-                  matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 64; // A-Z
+               if(c40Values[i] == 0)
+                  matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] + 96;
+               else if(c40Values[i] <= 26)
+                  matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] - 26 + 'Z'; // A-Z
                else
-                  matrixRegion->output[matrixRegion->outputIdx++] = *c40Ptr + 126; // { | } ~ DEL
+                  matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] - 31 + 127; // { | } ~ DEL
             }
-         }
 
-         shift = 0;
+            shift = 0;
+         }
       }
 
-      c40Ptr++;
+      // Unlatch if codeword 254 follows 2 codewords in C40/Text encodation
+      if(*ptr == 254) {
+         return ptr + 1;
+      }
+
+      // Unlatch is implied if only one codeword remains
+      if(dataEnd - ptr == 1) {
+         return ptr;
+      }
    }
 
    return ptr;
