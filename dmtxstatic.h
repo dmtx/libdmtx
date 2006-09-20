@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxstatic.h,v 1.4 2006-09-19 18:15:35 mblaughton Exp $ */
+/* $Id: dmtxstatic.h,v 1.5 2006-09-20 05:37:15 mblaughton Exp $ */
 
 #define DMTX_END_OF_RANGE      5
 #define DMTX_EDGE_FOUND        6
@@ -108,7 +108,7 @@ static unsigned char *DecodeSchemeX12(DmtxMatrixRegion *matrixRegion, unsigned c
 static unsigned char *DecodeSchemeEdifact(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeBase256(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
 /* static unsigned char UnRandomize253State(unsigned char codewordValue, int codewordPosition); XXX need later */
-static unsigned char UnRandomize255State(unsigned char codewordValue, int codewordPosition);
+static unsigned char UnRandomize255State(unsigned char *value, int idx);
 
 /* dmtxencode.c */
 static void EncodeText(DmtxMatrixRegion *matrixRegion, unsigned char *inputText);
