@@ -26,14 +26,14 @@ util: libdmtx.so
 
 tarball:
 	make clean
-	make -C test/gltest clean
-	make -C test/simpletest clean
-	make -C util/dmtxread clean
-	make -C util/dmtxwrite clean
 	tar -cvf ../libdmtx.tar -C .. libdmtx
 	bzip2 -f ../libdmtx.tar
 
 clean:
 	rm -f *.o *.d lib*.so*
+	make -C test/gltest clean
+	make -C test/simpletest clean
+	make -C util/dmtxread clean
+	make -C util/dmtxwrite clean
 
 .PHONY: all test util tarball clean
