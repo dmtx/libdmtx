@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxdecode.c,v 1.5 2006-09-19 18:18:54 mblaughton Exp $ */
+/* $Id: dmtxdecode.c,v 1.6 2006-09-20 05:35:05 mblaughton Exp $ */
 
 /**
  *
@@ -799,30 +799,35 @@ DecodeSchemeEdifact(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned
 static unsigned char *
 DecodeSchemeBase256(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
 {
-   int i;
-   int length;
+   int d0, d1;
+   int i, iBeg, iEnd;
+   unsigned char *code;
 
-   if(*ptr == 0) {
-      length = dataEnd - ptr++;
+   code = matrixRegion->code;
+   i = iBeg = ptr - code;
+
+   d0 = UnRandomize255State(code, i++);
+   if(d0 == 0) {
+      iEnd = dataEnd - code;
    }
-   else if(*ptr <= 249) {
-      length = *(ptr++);
+   else if(d0 <= 249) {
+      iEnd = iBeg + d0;
    }
    else {
-      length = (*ptr - 249) * 250 + *(ptr+1);
-      ptr += 2;
+      d1 = UnRandomize255State(code, i++);
+      iEnd = iBeg + (d0 - 249) * 250 + d1;
    }
 
-   if(ptr + length > dataEnd) {
+   if(iEnd > dataEnd - code) {
       // XXX throw an error instead
-      length = dataEnd - ptr;
+      iEnd = dataEnd - code;
    }
 
-   for(i = 0; i < length; i++) {
-      matrixRegion->output[matrixRegion->outputIdx++] = UnRandomize255State(i, ptr[i]);
+   while(i < iEnd) {
+      matrixRegion->output[matrixRegion->outputIdx++] = UnRandomize255State(code, i++);
    }
 
-   return ptr + i;
+   return code + i;
 }
 
 /**
@@ -850,13 +855,12 @@ UnRandomize253State(unsigned char codewordValue, int codewordPosition)
  * @return XXX
  */
 static unsigned char
-UnRandomize255State(unsigned char codewordValue, int codewordPosition)
+UnRandomize255State(unsigned char *value, int idx)
 {
    int pseudoRandom;
    int tmp;
-
-   pseudoRandom = ((149 * codewordPosition) % 255) + 1;
-   tmp = codewordValue - pseudoRandom;
+   pseudoRandom = ((149 * (idx+1)) % 255) + 1;
+   tmp = value[idx] - pseudoRandom;
 
    return (tmp >= 0) ? tmp : tmp + 256;
 }
