@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtx.c,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+/* $Id: dmtx.c,v 1.3 2006-09-21 05:16:49 mblaughton Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -43,3 +43,4 @@ Contact: mike@dragonflylogic.com
 #include "dmtxmatrix3.c"
 #include "dmtxcolor.c"
 #include "dmtximage.c"
+#include "dmtxcallback.c"
