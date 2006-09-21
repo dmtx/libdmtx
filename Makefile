@@ -1,14 +1,18 @@
+SHELL=/bin/sh
 CC=gcc
 CFLAGS=-Wall -g -pg
 LIBFLAGS=-fPIC
 SOURCES=dmtx.h dmtxstatic.h dmtx.c dmtxregion.c dmtxdecode.c dmtxencode.c \
       dmtxplacemod.c dmtxgalois.c dmtxreedsol.c dmtxvector2.c dmtxvector3.c \
-      dmtxmatrix3.c dmtxcolor.c dmtximage.c
+      dmtxmatrix3.c dmtxcolor.c dmtximage.c dmtxcallback.c
+CHCON=/usr/bin/chcon
 
 libdmtx.so: libdmtx.so.0.3.0
 	ln -sf libdmtx.so.0.3.0 libdmtx.so.1
 	ln -sf libdmtx.so.1 libdmtx.so
-	chcon -t textrel_shlib_t libdmtx.so
+	if [ -x $(CHCON) ]; then $(CHCON) -t textrel_shlib_t libdmtx.so; fi
+	# I haven't found a good solution for the chcon problem yet.  It will
+	# go away when we start installing the library to a valid lib dir.
 
 libdmtx.so.0.3.0: $(SOURCES)
 	$(CC) $(CFLAGS) -shared -Wl,-soname,libdmtx.so.1 -Wl,-export-dynamic \
