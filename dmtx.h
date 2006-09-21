@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtx.h,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+/* $Id: dmtx.h,v 1.3 2006-09-21 05:17:44 mblaughton Exp $ */
 
 #ifndef __DMTX_H__
 #define __DMTX_H__
@@ -53,7 +53,7 @@ typedef enum {
 } DmtxDirection;
 
 typedef enum {
-   DmtxSingleScanOnly = 0x00
+   DmtxSingleScanOnly = 0x01
 } DmtxOptions;
 
 typedef float DmtxMatrix3[3][3];
@@ -279,6 +279,11 @@ extern void dmtxDecodeStructDestroy(DmtxDecode **decode);
 extern DmtxMatrixRegion *dmtxDecodeGetMatrix(DmtxDecode *decode, int index);
 extern int dmtxDecodeGetMatrixCount(DmtxDecode *decode);
 extern void dmtxScanStartNew(DmtxDecode *decode);
+
+extern DmtxEncode *dmtxEncodeCreate(void);
+extern void dmtxEncodeDestroy(DmtxEncode **encode);
+extern int dmtxEncodeData(DmtxEncode *encode, unsigned char *inputString);
+
 extern void dmtxSetStepScanCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxScanRange *, DmtxJumpScan *));
 extern void dmtxSetCrossScanCallback(DmtxDecode *decode, void (* func)(DmtxScanRange *, DmtxGradient *, DmtxEdgeScan *));
 extern void dmtxSetFollowScanCallback(DmtxDecode *decode, void (* func)(DmtxEdgeFollower *));
@@ -290,9 +295,5 @@ extern void dmtxSetPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVecto
 extern void dmtxSetXfrmPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVector2, DmtxMatrix3, int, int));
 extern void dmtxSetFinalCallback(DmtxDecode *decode, void (* func)(DmtxMatrixRegion *));
 extern void dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixRegion *, int, int, DmtxVector3));
-
-extern DmtxEncode *dmtxEncodeCreate(void);
-extern void dmtxEncodeDestroy(DmtxEncode **encode);
-extern int dmtxEncodeData(DmtxEncode *encode, unsigned char *inputString);
 
 #endif
