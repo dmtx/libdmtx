@@ -1,5 +1,5 @@
 INCLUDE=-I../..
-LIBS=-L../.. -ldmtx
+LIBS=-lpng -ltiff -L../.. -ldmtx
 CFLAGS=-Wall -ggdb
 
 all: dmtxread.bin
