@@ -16,7 +16,7 @@ libdmtx.so: libdmtx.so.0.3.0
 
 libdmtx.so.0.3.0: $(SOURCES)
 	$(CC) $(CFLAGS) -shared -Wl,-soname,libdmtx.so.1 -Wl,-export-dynamic \
-		-o libdmtx.so.0.3.0 dmtx.c -lc -lm -lpng
+		-o libdmtx.so.0.3.0 dmtx.c -lc -lm
 
 all: test util
 
