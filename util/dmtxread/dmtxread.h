@@ -37,4 +37,9 @@ typedef struct {
    int verbose;
 } ScanOptions;
 
+typedef enum {
+   ImageFormatPng,
+   ImageFormatTiff
+} ImageFormat;
+
 #endif
