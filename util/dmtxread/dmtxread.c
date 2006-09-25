@@ -26,6 +26,8 @@ Contact: mike@dragonflylogic.com
 #include <errno.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <png.h>
+#include <tiffio.h>
 #include <dmtx.h>
 #include "dmtxread.h"
 
@@ -38,7 +40,11 @@ static int HandleArgs(ScanOptions *options, int *argcp, char **argvp[], int *fil
 static long StringToLong(char *numberString);
 static void ShowUsage(int status);
 static void FatalError(int errorCode, char *fmt, ...);
-static int ScanImage(ScanOptions *options, DmtxDecode *info, char *imageFile);
+static ImageFormat GetImageFormat(char *imagePath);
+static int LoadImage(DmtxImage *image, char *imagePath);
+static int LoadPngImage(DmtxImage *image, char *imagePath);
+static int LoadTiffImage(DmtxImage *image, char *imagePath);
+static int ScanImage(ScanOptions *options, DmtxDecode *decode);
 
 char *programName;
 
@@ -54,24 +60,36 @@ main(int argc, char *argv[])
 {
    int err;
    int fileIndex;
-   DmtxDecode *info;
+   int success;
+   DmtxDecode *decode;
    ScanOptions options;
+   char *imagePath;
 
    err = HandleArgs(&options, &argc, &argv, &fileIndex);
    if(err)
       ShowUsage(err);
 
-   info = dmtxDecodeStructCreate();
-
-   info->option = DmtxSingleScanOnly;
+   decode = dmtxDecodeStructCreate();
+   decode->option = DmtxSingleScanOnly;
 
    while(fileIndex < argc) {
-      ScanImage(&options, info, argv[fileIndex]);
+
+      imagePath = argv[fileIndex];
+      dmtxImageInit(&(decode->image));
+
+      success = LoadImage(&(decode->image), imagePath);
+
+      if(options.verbose)
+         fprintf(stdout, _("%s: "), imagePath);
+
+      ScanImage(&options, decode);
+
+      dmtxImageDeInit(&(decode->image));
 
       fileIndex++;
    }
 
-   dmtxDecodeStructDestroy(&info);
+   dmtxDecodeStructDestroy(&decode);
 
    exit(0);
 }
@@ -234,49 +252,201 @@ FatalError(int errorCode, char *fmt, ...)
 }
 
 /**
+ *
+ */
+static ImageFormat
+GetImageFormat(char *imagePath)
+{
+   return ImageFormatPng;
+}
+
+/**
+ *
+ */
+static int
+LoadImage(DmtxImage *image, char *imagePath)
+{
+   int success;
+   ImageFormat imageFormat;
+
+   imageFormat = GetImageFormat(imagePath);
+
+   switch(imageFormat) {
+      case ImageFormatPng:
+         success = LoadPngImage(image, imagePath);
+         break;
+      case ImageFormatTiff:
+         success = LoadTiffImage(image, imagePath);
+         break;
+   }
+
+   if(success != DMTX_SUCCESS)
+      FatalError(3, _("Unable to load image \"%s\""), imagePath);
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ * Load data from PNG file into DmtxImage format.
+ *
+ * @param image     pointer to DmtxImage structure to be populated
+ * @param imagePath path/name of PNG image
+ * @return          DMTX_SUCCESS | DMTX_FAILURE
+ */
+static int
+LoadPngImage(DmtxImage *image, char *imagePath)
+{
+   png_byte        pngHeader[8];
+   FILE            *fp;
+   int             isPng;
+   int             bitDepth, colorType, interlaceType, compressionType, filterMethod;
+   int             row;
+   png_uint_32     width, height;
+   png_structp     pngPtr;
+   png_infop       infoPtr;
+   png_infop       endInfo;
+   png_bytepp      rowPointers;
+
+   fp = fopen(imagePath, "rb");
+   if(fp == NULL)
+      return DMTX_FAILURE;
+
+   fread(pngHeader, 1, sizeof(pngHeader), fp);
+   isPng = !png_sig_cmp(pngHeader, 0, sizeof(pngHeader));
+   if(!isPng)
+      return DMTX_FAILURE;
+
+   pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+
+   if(pngPtr == NULL)
+      return DMTX_FAILURE;
+
+   infoPtr = png_create_info_struct(pngPtr);
+   if(infoPtr == NULL) {
+      png_destroy_read_struct(&pngPtr, (png_infopp)NULL, (png_infopp)NULL);
+      return DMTX_FAILURE;
+   }
+
+   endInfo = png_create_info_struct(pngPtr);
+   if(endInfo == NULL) {
+      png_destroy_read_struct(&pngPtr, &infoPtr, (png_infopp)NULL);
+      return DMTX_FAILURE;
+   }
+
+   if(setjmp(png_jmpbuf(pngPtr))) {
+      png_destroy_read_struct(&pngPtr, &infoPtr, &endInfo);
+      fclose(fp);
+      return DMTX_FAILURE;
+   }
+
+   png_init_io(pngPtr, fp);
+   png_set_sig_bytes(pngPtr, sizeof(pngHeader));
+
+   png_read_info(pngPtr, infoPtr);
+   png_get_IHDR(pngPtr, infoPtr, &width, &height, &bitDepth, &colorType,
+         &interlaceType, &compressionType, &filterMethod);
+
+   png_set_strip_16(pngPtr);
+   png_set_strip_alpha(pngPtr);
+   png_set_packswap(pngPtr);
+
+   if(colorType == PNG_COLOR_TYPE_PALETTE)
+      png_set_palette_to_rgb(pngPtr);
+
+   if (colorType == PNG_COLOR_TYPE_GRAY || PNG_COLOR_TYPE_GRAY_ALPHA)
+      png_set_gray_to_rgb(pngPtr);
+
+   png_read_update_info(pngPtr, infoPtr);
+
+   png_get_IHDR(pngPtr, infoPtr, &width, &height, &bitDepth, &colorType,
+         &interlaceType, &compressionType, &filterMethod);
+
+   rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * height);
+   if(rowPointers == NULL) {
+      perror("Error while during malloc for rowPointers");
+      exit(7);
+   }
+
+   for(row = 0; row < height; row++) {
+      rowPointers[row] = (png_bytep)png_malloc(pngPtr,
+            png_get_rowbytes(pngPtr, infoPtr));
+   }
+
+   png_read_image(pngPtr, rowPointers);
+   png_read_end(pngPtr, infoPtr);
+
+   png_destroy_read_struct(&pngPtr, &infoPtr, &endInfo);
+
+   // Use PNG information to populate DmtxImage information
+   image->width = width;
+   image->height = height;
+
+   image->pxl = (DmtxPixel *)malloc(image->width * image->height *
+         sizeof(DmtxPixel));
+   if(image->pxl == NULL)
+      return DMTX_FAILURE;
+
+   // This copy reverses row order top-to-bottom so image coordinate system
+   // corresponds with normal "right-handed" 2D space
+   for(row = 0; row < image->height; row++) {
+      memcpy(image->pxl + (row * image->width), rowPointers[image->height - row - 1], image->width * sizeof(DmtxPixel));
+   }
+
+   for(row = 0; row < height; row++) {
+      png_free(pngPtr, rowPointers[row]);
+   }
+   png_free(pngPtr, rowPointers);
+
+   fclose(fp);
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ * Load data from TIFF file into DmtxImage format.
+ *
+ * @param image    pointer to DmtxImage structure to be populated
+ * @param filename path/name of PNG image
+ * @return         DMTX_SUCCESS | DMTX_FAILURE
+ */
+static int
+LoadTiffImage(DmtxImage *image, char *imagePath)
+{
+   return DMTX_SUCCESS;
+}
+
+/**
  * Scan image for Data Matrix barcodes and print decoded data to STDOUT.
  *
  * @param options   runtime options from defaults or command line
- * @param info      pointer to DmtxDecode struct
- * @param imageFile path/name of PNG image
+ * @param decode    pointer to DmtxDecode struct
  * @return          DMTXREAD_SUCCESS | DMTXREAD_ERROR
  */
 static int
-ScanImage(ScanOptions *options, DmtxDecode *info, char *imageFile)
+ScanImage(ScanOptions *options, DmtxDecode *decode)
 {
-   int success;
    int row, col;
    int hScanGap, vScanGap;
    unsigned char outputString[1024];
    DmtxMatrixRegion *matrixRegion;
 
-   if(options->verbose)
-      fprintf(stdout, _("Scanning \"%s\"\n"), imageFile);
+   dmtxScanStartNew(decode);
 
-   dmtxImageInit(&(info->image));
-   dmtxScanStartNew(info);
+   hScanGap = (int)((double)decode->image.width/options->hScanCount + 0.5);
+   vScanGap = (int)((double)decode->image.height/options->vScanCount + 0.5);
 
-   success = dmtxImageLoadPng(&(info->image), imageFile);
-   if(success != DMTX_SUCCESS)
-      FatalError(3, _("Unable to load image \"%s\""), imageFile);
+   for(col = hScanGap; col < decode->image.width; col += hScanGap)
+      dmtxScanLine(decode, DmtxDirUp, col);
 
-   hScanGap = (int)((double)info->image.width/options->hScanCount + 0.5);
-   vScanGap = (int)((double)info->image.height/options->vScanCount + 0.5);
+   for(row = vScanGap; row < decode->image.height; row += vScanGap)
+      dmtxScanLine(decode, DmtxDirRight, row);
 
-   for(col = hScanGap; col < info->image.width; col += hScanGap)
-      dmtxScanLine(info, DmtxDirUp, col);
-
-   for(row = vScanGap; row < info->image.height; row += vScanGap)
-      dmtxScanLine(info, DmtxDirRight, row);
-
-   if(dmtxDecodeGetMatrixCount(info) > 0) {
-      matrixRegion = dmtxDecodeGetMatrix(info, 0);
+   if(dmtxDecodeGetMatrixCount(decode) > 0) {
+      matrixRegion = dmtxDecodeGetMatrix(decode, 0);
       memset(outputString, 0x00, 1024);
       strncpy((char *)outputString, (const char *)matrixRegion->output, MIN(matrixRegion->outputIdx, 1023));
       fprintf(stdout, "%s\n", outputString);
    }
-
-   dmtxImageDeInit(&(info->image));
 
    return DMTXREAD_SUCCESS;
 }
