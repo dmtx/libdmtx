@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtx.h,v 1.3 2006-09-21 05:17:44 mblaughton Exp $ */
+/* $Id: dmtx.h,v 1.4 2006-09-25 19:13:38 mblaughton Exp $ */
 
 #ifndef __DMTX_H__
 #define __DMTX_H__
@@ -269,7 +269,6 @@ extern int dmtxImageDeInit(DmtxImage *image);
 extern int dmtxImageGetWidth(DmtxImage *image);
 extern int dmtxImageGetHeight(DmtxImage *image);
 extern int dmtxImageGetOffset(DmtxImage *image, DmtxDirection dir, int lineNbr, int offset);
-extern int dmtxImageLoadPng(DmtxImage *image, char *filename);
 
 extern int dmtxScanLine(DmtxDecode *decode, DmtxDirection dir, int lineNbr);
 extern void dmtxMatrixRegionDeInit(DmtxMatrixRegion *matrixRegion);
