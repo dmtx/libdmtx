@@ -41,6 +41,7 @@ version 0.3:
   x Add revision control keywords to source files
   x Implement remaining encodation schemes in dmtxdecode.c (X12, Base 256, etc...)
   x Create separate file for callback functions (allows them to be optional)
+  x Move PNG (and other format) logic and dependencies to dmtxread, dmtxwrite, etc...
   o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
   o Move pure decode calls from dmtxScanLine into a dmtxdecode.c function
   o Implement overlap detection to avoid rescanning in successfully decoded regions
