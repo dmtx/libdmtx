@@ -38,6 +38,7 @@ typedef struct {
 } ScanOptions;
 
 typedef enum {
+   ImageFormatUnknown,
    ImageFormatPng,
    ImageFormatTiff
 } ImageFormat;
