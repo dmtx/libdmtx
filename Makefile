@@ -1,6 +1,6 @@
 SHELL=/bin/sh
 CC=gcc
-CFLAGS=-Wall -g -pg
+CFLAGS=-Wall -ggdb -pg
 LIBFLAGS=-fPIC
 SOURCES=dmtx.h dmtxstatic.h dmtx.c dmtxregion.c dmtxdecode.c dmtxencode.c \
       dmtxplacemod.c dmtxgalois.c dmtxreedsol.c dmtxvector2.c dmtxvector3.c \
@@ -19,6 +19,9 @@ libdmtx.so.0.3.0: $(SOURCES)
 		-o libdmtx.so.0.3.0 dmtx.c -lc -lm
 
 all: test util
+
+static: $(SOURCES)
+	$(CC) $(CFLAGS) dmtx.c -c
 
 test: libdmtx.so
 	make -C test/gltest
@@ -40,4 +43,4 @@ clean:
 	make -C util/dmtxread clean
 	make -C util/dmtxwrite clean
 
-.PHONY: all test util tarball clean
+.PHONY: all static test util tarball clean
