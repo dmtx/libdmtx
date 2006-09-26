@@ -8,7 +8,7 @@ all: dmtxread.bin
 
 static: dmtxread.c dmtx.o
 	$(CC) $(INCLUDE) $(CFLAGS) dmtxread.c -c
-	$(CC) -pg -lm -lpng dmtx.o dmtxread.o -o dmtxread
+	$(CC) -pg -lm -lpng -ltiff dmtx.o dmtxread.o -o dmtxread.bin
 
 clean:
 	rm -f *.o dmtxread.bin gmon.out
