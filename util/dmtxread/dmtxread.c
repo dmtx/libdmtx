@@ -257,7 +257,22 @@ FatalError(int errorCode, char *fmt, ...)
 static ImageFormat
 GetImageFormat(char *imagePath)
 {
-   return ImageFormatPng;
+   char *extension;
+
+   // XXX Right now this determines file type based on filename extension.
+   // XXX This is not ideal -- but it is just temporary.
+   extension = imagePath;
+   if(extension && strrchr(extension, '.'))
+      extension = strrchr(extension, '.') + 1;
+
+   if(strncmp(extension, "png", 3) == 0 || strncmp(extension, "PNG", 3) == 0) {
+      return ImageFormatPng;
+   }
+   else if(strncmp(extension, "tif", 3) == 0 || strncmp(extension, "TIF", 3) == 0) {
+      return ImageFormatTiff;
+   }
+
+   return ImageFormatUnknown;
 }
 
 /**
@@ -277,6 +292,8 @@ LoadImage(DmtxImage *image, char *imagePath)
          break;
       case ImageFormatTiff:
          success = LoadTiffImage(image, imagePath);
+         break;
+      default:
          break;
    }
 
@@ -308,8 +325,10 @@ LoadPngImage(DmtxImage *image, char *imagePath)
    png_bytepp      rowPointers;
 
    fp = fopen(imagePath, "rb");
-   if(fp == NULL)
+   if(fp == NULL) {
+      perror(programName);
       return DMTX_FAILURE;
+   }
 
    fread(pngHeader, 1, sizeof(pngHeader), fp);
    isPng = !png_sig_cmp(pngHeader, 0, sizeof(pngHeader));
@@ -363,8 +382,9 @@ LoadPngImage(DmtxImage *image, char *imagePath)
 
    rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * height);
    if(rowPointers == NULL) {
-      perror("Error while during malloc for rowPointers");
-      exit(7);
+//    perror("Error while during malloc for rowPointers"); // XXX shouldn't programName be passed instead?
+      perror(programName);
+      return DMTX_FAILURE;
    }
 
    for(row = 0; row < height; row++) {
@@ -383,8 +403,10 @@ LoadPngImage(DmtxImage *image, char *imagePath)
 
    image->pxl = (DmtxPixel *)malloc(image->width * image->height *
          sizeof(DmtxPixel));
-   if(image->pxl == NULL)
+   if(image->pxl == NULL) {
+      perror(programName);
       return DMTX_FAILURE;
+   }
 
    // This copy reverses row order top-to-bottom so image coordinate system
    // corresponds with normal "right-handed" 2D space
@@ -412,6 +434,62 @@ LoadPngImage(DmtxImage *image, char *imagePath)
 static int
 LoadTiffImage(DmtxImage *image, char *imagePath)
 {
+   int dirIndex = 0;
+   TIFF* tif;
+   int row, col;
+   uint32 w, h;
+   uint32* raster;
+   size_t npixels;
+
+   tif = TIFFOpen(imagePath, "r");
+   if(tif == NULL) {
+      perror(programName);
+      return DMTX_FAILURE;
+   }
+
+   do {
+      TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w);
+      TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h);
+      npixels = w * h;
+
+      raster = (uint32*) _TIFFmalloc(npixels * sizeof (uint32));
+      if(raster == NULL) {
+      }
+
+      if(TIFFReadRGBAImage(tif, w, h, raster, 0)) {
+
+         // Use TIFF information to populate DmtxImage information
+         image->width = w;
+         image->height = h;
+
+         image->pxl = (DmtxPixel *)malloc(image->width * image->height * sizeof(DmtxPixel));
+         if(image->pxl == NULL) {
+            perror(programName);
+            return DMTX_FAILURE;
+         }
+
+         // This copy reverses row order top-to-bottom so image coordinate system
+         // corresponds with normal "right-handed" 2D space
+         for(row = 0; row < image->height; row++) {
+            for(col = 0; col < image->width; col++) {
+               // XXX TIFF uses ABGR packed
+               image->pxl[row * image->width + col].R = raster[row * image->width + col] & 0x000000ff;
+               image->pxl[row * image->width + col].G = (raster[row * image->width + col] & 0x0000ff00) >> 8;
+               image->pxl[row * image->width + col].B = (raster[row * image->width + col] & 0x00ff0000) >> 16;
+            }
+         }
+      }
+
+      _TIFFfree(raster);
+
+      dirIndex++;
+
+      break; // XXX temporary -- only read first page / directory for now
+
+   } while(TIFFReadDirectory(tif));
+
+   TIFFClose(tif);
+
    return DMTX_SUCCESS;
 }
 
