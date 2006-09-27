@@ -44,7 +44,7 @@ static ImageFormat GetImageFormat(char *imagePath);
 static int LoadImage(DmtxImage *image, char *imagePath, int imageIndex);
 static int LoadPngImage(DmtxImage *image, char *imagePath);
 static int LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex);
-static int ScanImage(ScanOptions *options, DmtxDecode *decode);
+static int ScanImage(ScanOptions *options, DmtxDecode *decode, char *prefix);
 
 char *programName;
 
@@ -63,6 +63,7 @@ main(int argc, char *argv[])
    DmtxDecode *decode;
    ScanOptions options;
    char *imagePath;
+   char prefix[16];
    int imageCount;
    int imageIndex;
 
@@ -82,10 +83,13 @@ main(int argc, char *argv[])
          dmtxImageInit(&(decode->image));
          imageCount = LoadImage(&(decode->image), imagePath, imageIndex++);
 
+         memset(prefix, 0x00, 16);
          if(options.pageNumber)
-            fprintf(stdout, "%d:", imageIndex);
+            snprintf(prefix, 15, "%d:", imageIndex);
+         else
+            *prefix = '\0';
 
-         ScanImage(&options, decode);
+         ScanImage(&options, decode, prefix);
 
          dmtxImageDeInit(&(decode->image));
       } while(imageIndex < imageCount);
@@ -453,24 +457,24 @@ LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex)
          TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w);
          TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h);
          npixels = w * h;
-   
+
          raster = (uint32*) _TIFFmalloc(npixels * sizeof (uint32));
          if(raster == NULL) {
             perror(programName);
             exit(2);
          }
-   
+
          if(TIFFReadRGBAImage(tif, w, h, raster, 0)) {
             // Use TIFF information to populate DmtxImage information
             image->width = w;
             image->height = h;
-   
+
             image->pxl = (DmtxPixel *)malloc(image->width * image->height * sizeof(DmtxPixel));
             if(image->pxl == NULL) {
                perror(programName);
                return DMTX_FAILURE;
             }
-   
+
             // This copy reverses row order top-to-bottom so image coordinate system
             // corresponds with normal "right-handed" 2D space
             for(row = 0; row < image->height; row++) {
@@ -502,7 +506,7 @@ LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex)
  * @return          DMTXREAD_SUCCESS | DMTXREAD_ERROR
  */
 static int
-ScanImage(ScanOptions *options, DmtxDecode *decode)
+ScanImage(ScanOptions *options, DmtxDecode *decode, char *prefix)
 {
    int row, col;
    int hScanGap, vScanGap;
@@ -524,7 +528,7 @@ ScanImage(ScanOptions *options, DmtxDecode *decode)
       matrixRegion = dmtxDecodeGetMatrix(decode, 0);
       memset(outputString, 0x00, 1024);
       strncpy((char *)outputString, (const char *)matrixRegion->output, MIN(matrixRegion->outputIdx, 1023));
-      fprintf(stdout, "%s\n", outputString);
+      fprintf(stdout, "%s%s\n", prefix, outputString);
    }
 
    return DMTXREAD_SUCCESS;
