@@ -34,7 +34,7 @@ typedef struct {
    int maxCount;
    int hScanCount;
    int vScanCount;
-   int verbose;
+   int pageNumber;
 } ScanOptions;
 
 typedef enum {
