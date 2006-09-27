@@ -41,9 +41,9 @@ static long StringToLong(char *numberString);
 static void ShowUsage(int status);
 static void FatalError(int errorCode, char *fmt, ...);
 static ImageFormat GetImageFormat(char *imagePath);
-static int LoadImage(DmtxImage *image, char *imagePath);
+static int LoadImage(DmtxImage *image, char *imagePath, int imageIndex);
 static int LoadPngImage(DmtxImage *image, char *imagePath);
-static int LoadTiffImage(DmtxImage *image, char *imagePath);
+static int LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex);
 static int ScanImage(ScanOptions *options, DmtxDecode *decode);
 
 char *programName;
@@ -60,10 +60,11 @@ main(int argc, char *argv[])
 {
    int err;
    int fileIndex;
-   int success;
    DmtxDecode *decode;
    ScanOptions options;
    char *imagePath;
+   int imageCount;
+   int imageIndex;
 
    err = HandleArgs(&options, &argc, &argv, &fileIndex);
    if(err)
@@ -75,16 +76,19 @@ main(int argc, char *argv[])
    while(fileIndex < argc) {
 
       imagePath = argv[fileIndex];
-      dmtxImageInit(&(decode->image));
 
-      success = LoadImage(&(decode->image), imagePath);
+      imageIndex = 0;
+      do {
+         dmtxImageInit(&(decode->image));
+         imageCount = LoadImage(&(decode->image), imagePath, imageIndex++);
 
-      if(options.verbose)
-         fprintf(stdout, _("%s: "), imagePath);
+         if(options.pageNumber)
+            fprintf(stdout, "%d:", imageIndex);
 
-      ScanImage(&options, decode);
+         ScanImage(&options, decode);
 
-      dmtxImageDeInit(&(decode->image));
+         dmtxImageDeInit(&(decode->image));
+      } while(imageIndex < imageCount);
 
       fileIndex++;
    }
@@ -110,11 +114,11 @@ HandleArgs(ScanOptions *options, int *argcp, char **argvp[], int *fileIndex)
    int longIndex;
 
    struct option longOptions[] = {
-         {"count",      required_argument, NULL, 'c'},
-         {"vertical",   required_argument, NULL, 'v'},
-         {"horizontal", required_argument, NULL, 'h'},
-         {"verbose",    no_argument,       NULL, 'V'},
-         {"help",       no_argument,       NULL,  0 },
+         {"count",       required_argument, NULL, 'c'},
+         {"vertical",    required_argument, NULL, 'v'},
+         {"horizontal",  required_argument, NULL, 'h'},
+         {"page-number", no_argument,       NULL, 'n'},
+         {"help",        no_argument,       NULL,  0 },
          {0, 0, 0, 0}
    };
 
@@ -127,12 +131,12 @@ HandleArgs(ScanOptions *options, int *argcp, char **argvp[], int *fileIndex)
    options->maxCount = 0; // Unlimited
    options->hScanCount = 5;
    options->vScanCount = 5;
-   options->verbose = 0;
+   options->pageNumber = 0;
 
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "c:v:h:V", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "c:v:h:n", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -149,8 +153,8 @@ HandleArgs(ScanOptions *options, int *argcp, char **argvp[], int *fileIndex)
          case 'h':
             options->hScanCount = StringToLong(optarg);
             break;
-         case 'V':
-            options->verbose = 1;
+         case 'n':
+            options->pageNumber = 1;
             break;
          default:
             return DMTXREAD_ERROR;
@@ -221,7 +225,7 @@ OPTIONS:\n"), programName, programName);
   -c NUM, --count=NUM       stop after finding NUM barcodes\n\
   -v NUM, --vertical=NUM    use NUM vertical scan lines in scan pattern\n\
   -h NUM, --horizontal=NUM  use NUM horizontal scan lines in scan pattern\n\
-  -V,     --verbose         use verbose messages\n\
+  -n,     --page-number     prefix decoded messages with corresponding page number\n\
           --help            display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
    }
@@ -279,28 +283,25 @@ GetImageFormat(char *imagePath)
  *
  */
 static int
-LoadImage(DmtxImage *image, char *imagePath)
+LoadImage(DmtxImage *image, char *imagePath, int imageIndex)
 {
-   int success;
+   int imageCount;
    ImageFormat imageFormat;
 
    imageFormat = GetImageFormat(imagePath);
 
    switch(imageFormat) {
       case ImageFormatPng:
-         success = LoadPngImage(image, imagePath);
+         imageCount = LoadPngImage(image, imagePath);
          break;
       case ImageFormatTiff:
-         success = LoadTiffImage(image, imagePath);
+         imageCount = LoadTiffImage(image, imagePath, imageIndex);
          break;
       default:
          break;
    }
 
-   if(success != DMTX_SUCCESS)
-      FatalError(3, _("Unable to load image \"%s\""), imagePath);
-
-   return DMTX_SUCCESS;
+   return imageCount;
 }
 
 /**
@@ -432,7 +433,7 @@ LoadPngImage(DmtxImage *image, char *imagePath)
  * @return         DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-LoadTiffImage(DmtxImage *image, char *imagePath)
+LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex)
 {
    int dirIndex = 0;
    TIFF* tif;
@@ -448,49 +449,49 @@ LoadTiffImage(DmtxImage *image, char *imagePath)
    }
 
    do {
-      TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w);
-      TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h);
-      npixels = w * h;
-
-      raster = (uint32*) _TIFFmalloc(npixels * sizeof (uint32));
-      if(raster == NULL) {
-      }
-
-      if(TIFFReadRGBAImage(tif, w, h, raster, 0)) {
-
-         // Use TIFF information to populate DmtxImage information
-         image->width = w;
-         image->height = h;
-
-         image->pxl = (DmtxPixel *)malloc(image->width * image->height * sizeof(DmtxPixel));
-         if(image->pxl == NULL) {
+      if(dirIndex == imageIndex) {
+         TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w);
+         TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h);
+         npixels = w * h;
+   
+         raster = (uint32*) _TIFFmalloc(npixels * sizeof (uint32));
+         if(raster == NULL) {
             perror(programName);
-            return DMTX_FAILURE;
+            exit(2);
          }
-
-         // This copy reverses row order top-to-bottom so image coordinate system
-         // corresponds with normal "right-handed" 2D space
-         for(row = 0; row < image->height; row++) {
-            for(col = 0; col < image->width; col++) {
-               // XXX TIFF uses ABGR packed
-               image->pxl[row * image->width + col].R = raster[row * image->width + col] & 0x000000ff;
-               image->pxl[row * image->width + col].G = (raster[row * image->width + col] & 0x0000ff00) >> 8;
-               image->pxl[row * image->width + col].B = (raster[row * image->width + col] & 0x00ff0000) >> 16;
+   
+         if(TIFFReadRGBAImage(tif, w, h, raster, 0)) {
+            // Use TIFF information to populate DmtxImage information
+            image->width = w;
+            image->height = h;
+   
+            image->pxl = (DmtxPixel *)malloc(image->width * image->height * sizeof(DmtxPixel));
+            if(image->pxl == NULL) {
+               perror(programName);
+               return DMTX_FAILURE;
+            }
+   
+            // This copy reverses row order top-to-bottom so image coordinate system
+            // corresponds with normal "right-handed" 2D space
+            for(row = 0; row < image->height; row++) {
+               for(col = 0; col < image->width; col++) {
+                  // XXX TIFF uses ABGR packed
+                  image->pxl[row * image->width + col].R = raster[row * image->width + col] & 0x000000ff;
+                  image->pxl[row * image->width + col].G = (raster[row * image->width + col] & 0x0000ff00) >> 8;
+                  image->pxl[row * image->width + col].B = (raster[row * image->width + col] & 0x00ff0000) >> 16;
+               }
             }
          }
+
+         _TIFFfree(raster);
       }
 
-      _TIFFfree(raster);
-
       dirIndex++;
-
-      break; // XXX temporary -- only read first page / directory for now
-
    } while(TIFFReadDirectory(tif));
 
    TIFFClose(tif);
 
-   return DMTX_SUCCESS;
+   return dirIndex;
 }
 
 /**
