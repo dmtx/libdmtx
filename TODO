@@ -42,10 +42,11 @@ version 0.3:
   x Implement remaining encodation schemes in dmtxdecode.c (X12, Base 256, etc...)
   x Create separate file for callback functions (allows them to be optional)
   x Move PNG (and other format) logic and dependencies to dmtxread, dmtxwrite, etc...
+  x Fix the regressions (crash bugs) introduced during v0.2 structural rework
+  x Add multi-page TIFF capabilities to dmtxread
   o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
   o Move pure decode calls from dmtxScanLine into a dmtxdecode.c function
   o Implement overlap detection to avoid rescanning in successfully decoded regions
-  o Fix the regressions (crash bugs) introduced during v0.2 structural rework
   o Implement error correction
   o Implement consistent and robust error handling (errno.h + custom)
   o Implement remaining encodation schemes in dmtxencode.c (X12, Base 256, etc...)
