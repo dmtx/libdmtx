@@ -26,6 +26,7 @@ Contact: mike@dragonflylogic.com
 #include <errno.h>
 #include <ctype.h>
 #include <stdarg.h>
+#include <assert.h>
 #include <png.h>
 #include <tiffio.h>
 #include <dmtx.h>
@@ -82,6 +83,9 @@ main(int argc, char *argv[])
       do {
          dmtxImageInit(&(decode->image));
          imageCount = LoadImage(&(decode->image), imagePath, imageIndex++);
+
+         if(imageCount == 0)
+            break;
 
          memset(prefix, 0x00, 16);
          if(options.pageNumber)
@@ -265,20 +269,24 @@ FatalError(int errorCode, char *fmt, ...)
 static ImageFormat
 GetImageFormat(char *imagePath)
 {
-   char *extension;
+   char *extension, *ptr;
 
    // XXX Right now this determines file type based on filename extension.
-   // XXX This is not ideal -- but it is just temporary.
-   extension = imagePath;
-   if(extension && strrchr(extension, '.'))
-      extension = strrchr(extension, '.') + 1;
+   // XXX Not ideal -- but only temporary.
+   assert(imagePath != NULL);
 
-   if(strncmp(extension, "png", 3) == 0 || strncmp(extension, "PNG", 3) == 0) {
+   ptr = strrchr(imagePath, '/');
+   extension = (ptr == NULL) ? imagePath : ptr + 1;
+
+   ptr = strrchr(extension, '.');
+   extension = (ptr == NULL) ? NULL : ptr + 1;
+
+   if(extension == NULL)
+      return ImageFormatUnknown;
+   else if(strncmp(extension, "png", 3) == 0 || strncmp(extension, "PNG", 3) == 0)
       return ImageFormatPng;
-   }
-   else if(strncmp(extension, "tif", 3) == 0 || strncmp(extension, "TIF", 3) == 0) {
+   else if(strncmp(extension, "tif", 3) == 0 || strncmp(extension, "TIF", 3) == 0)
       return ImageFormatTiff;
-   }
 
    return ImageFormatUnknown;
 }
@@ -302,6 +310,7 @@ LoadImage(DmtxImage *image, char *imagePath, int imageIndex)
          imageCount = LoadTiffImage(image, imagePath, imageIndex);
          break;
       default:
+         imageCount = 0;
          break;
    }
 
