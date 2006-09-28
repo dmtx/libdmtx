@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.3 2006-09-28 04:56:31 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -793,16 +793,12 @@ Matrix3ChainXfrm(DmtxMatrix3 m, DmtxChain *chain)
  * @return XXX
  */
 static void
-Matrix3ChainInvXfrm(DmtxMatrix3 m, DmtxChain *chain)
+Matrix3ChainXfrmInv(DmtxMatrix3 m, DmtxChain *chain)
 {
-   // XXX currently skipping line skew xfrm
    DmtxMatrix3 msky, mskx, mscxy, mshy, mshx, mtxy;
-   DmtxMatrix3 test;
 
-   dmtxMatrix3LineSkewSide(test, chain->bx0, chain->bx1, 100.0);
-   dmtxMatrix3Inverse(mskx, test); // XXX todo: create LineSkewInv function to avoid this call
-   dmtxMatrix3LineSkewTop(test, chain->by0, chain->by1, 100.0);
-   dmtxMatrix3Inverse(msky, test); // XXX todo: create LineSkewInv function to avoid this call
+   dmtxMatrix3LineSkewSideInv(mskx, chain->bx0, chain->bx1, 100.0);
+   dmtxMatrix3LineSkewTopInv(msky, chain->by0, chain->by1, 100.0);
    dmtxMatrix3Scale(mscxy, 1.0/chain->scx, 1.0/chain->scy);
    dmtxMatrix3Shear(mshy, 0.0, -chain->shy);
    dmtxMatrix3Shear(mshx, -chain->shx, 0.0);
@@ -826,7 +822,7 @@ static void
 MatrixRegionUpdateXfrms(DmtxMatrixRegion *matrixRegion)
 {
    Matrix3ChainXfrm(matrixRegion->raw2fit, &(matrixRegion->chain));
-   Matrix3ChainInvXfrm(matrixRegion->fit2raw, &(matrixRegion->chain));
+   Matrix3ChainXfrmInv(matrixRegion->fit2raw, &(matrixRegion->chain));
 }
 
 /**
@@ -974,6 +970,10 @@ count   1st    2nd
       bar.p2 = pTmp;
    }
 
+   // Check denominator before dividing
+   if((bar.p1.Y - bar.p0.Y) < DMTX_ALMOST_ZERO)
+      return DMTX_FALSE;
+
    phi = (bar.p0.X - bar.p1.X)/(bar.p1.Y - bar.p0.Y);
    at = (bar.p2.X - bar.p0.X) + (bar.p2.Y - bar.p0.Y)*phi;
 
@@ -1109,6 +1109,10 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    matrixRegion->chain.by0 = (m * -prevHit.X) + prevHit.Y;
    matrixRegion->chain.by1 = (m * (100.0 - prevHit.X)) + prevHit.Y;
 
+   if(matrixRegion->chain.by0 < 0 || matrixRegion->chain.by1 < 0) {
+      return DMTX_FALSE;
+   }
+
    MatrixRegionUpdateXfrms(matrixRegion);
 
    if(decode && decode->xfrmPlotPointCallback) {
@@ -1187,6 +1191,10 @@ MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    m = (highHit.X - prevHit.X)/(highHit.Y - prevHit.Y);
    matrixRegion->chain.bx0 = (m * -prevHit.Y) + prevHit.X;
    matrixRegion->chain.bx1 = (m * (100.0 - prevHit.Y)) + prevHit.X;
+
+   if(matrixRegion->chain.bx0 < 0 || matrixRegion->chain.bx1 < 0) {
+      return DMTX_FALSE;
+   }
 
    MatrixRegionUpdateXfrms(matrixRegion);
 
