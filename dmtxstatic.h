@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxstatic.h,v 1.5 2006-09-20 05:37:15 mblaughton Exp $ */
+/* $Id: dmtxstatic.h,v 1.6 2006-09-28 04:57:25 mblaughton Exp $ */
 
 #define DMTX_END_OF_RANGE      5
 #define DMTX_EDGE_FOUND        6
@@ -87,7 +87,7 @@ static int EdgeFollowerFollow(DmtxEdgeFollower *follow, DmtxDecode *decode);
 static int EdgeFollowerIncrement(DmtxEdgeFollower *follow, DmtxDecode *decode);
 static void MatrixRegionInit(DmtxMatrixRegion *matrixRegion, DmtxGradient *gradient);
 static void Matrix3ChainXfrm(DmtxMatrix3 m, DmtxChain *chain);
-static void Matrix3ChainInvXfrm(DmtxMatrix3 m, DmtxChain *chain);
+static void Matrix3ChainXfrmInv(DmtxMatrix3 m, DmtxChain *chain);
 static void MatrixRegionUpdateXfrms(DmtxMatrixRegion *matrixRegion);
 static int MatrixRegionAlignFinderBars(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode, DmtxEdgeFollower *f0, DmtxEdgeFollower *f1);
 static int MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
