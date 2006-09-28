@@ -19,13 +19,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxmatrix3.c,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+/* $Id: dmtxmatrix3.c,v 1.3 2006-09-28 04:55:30 mblaughton Exp $ */
 
 /*
- *
- *
- *
- *
  *
  */
 void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1)
@@ -59,73 +55,6 @@ void dmtxMatrix3Identity(DmtxMatrix3 m)
 }
 
 /*
- *
- *
- *
- *
- *
- */
-void dmtxMatrix3Transpose(DmtxMatrix3 mOut, DmtxMatrix3 mIn)
-{
-   int i, j;
-
-   for(i = 0; i < 3; i++) {
-      for(j = 0; j < 3; j++) {
-         mOut[i][j] = mIn[j][i];
-      }
-   }
-}
-
-/*
- *
- *
- *
- *
- *
- */
-double dmtxMatrix3Determinate(DmtxMatrix3 m)
-{
-   double det;
-
-   det = (double)m[0][0] * ((double)m[1][1]*m[2][2] - (double)m[2][1]*m[1][2])
-       - (double)m[0][1] * ((double)m[1][0]*m[2][2] - (double)m[2][0]*m[1][2])
-       + (double)m[0][2] * ((double)m[1][0]*m[2][1] - (double)m[2][0]*m[1][1]);
-
-   return(det);
-}
-
-/*
- *
- *
- *
- *
- *
- */
-int dmtxMatrix3Inverse(DmtxMatrix3 mOut, DmtxMatrix3 mIn)
-{
-   double det = dmtxMatrix3Determinate(mIn);
-
-   if(fabs(det) < DMTX_ALMOST_ZERO) {
-      fprintf(stdout, "det: %10.10f\n", det);
-      dmtxMatrix3Print(mIn);
-      dmtxMatrix3Identity(mOut);
-      return 0;
-   }
-
-   mOut[0][0] =  (mIn[1][1]*mIn[2][2] - mIn[1][2]*mIn[2][1]) / det;
-   mOut[0][1] = -(mIn[0][1]*mIn[2][2] - mIn[2][1]*mIn[0][2]) / det;
-   mOut[0][2] =  (mIn[0][1]*mIn[1][2] - mIn[1][1]*mIn[0][2]) / det;
-   mOut[1][0] = -(mIn[1][0]*mIn[2][2] - mIn[1][2]*mIn[2][0]) / det;
-   mOut[1][1] =  (mIn[0][0]*mIn[2][2] - mIn[2][0]*mIn[0][2]) / det;
-   mOut[1][2] = -(mIn[0][0]*mIn[1][2] - mIn[1][0]*mIn[0][2]) / det;
-   mOut[2][0] =  (mIn[1][0]*mIn[2][1] - mIn[2][0]*mIn[1][1]) / det;
-   mOut[2][1] = -(mIn[0][0]*mIn[2][1] - mIn[2][0]*mIn[0][1]) / det;
-   mOut[2][2] =  (mIn[0][0]*mIn[1][1] - mIn[0][1]*mIn[1][0]) / det;
-
-   return 1;
-}
-
-/*
  * Translate Transformation
  *
  *      | 1  0  0 |
@@ -133,10 +62,10 @@ int dmtxMatrix3Inverse(DmtxMatrix3 mOut, DmtxMatrix3 mIn)
  *      | tx ty 1 |
  *
  *                  Transform "m"
- *                      _____    (tx,1+ty)  +----+  (1+tx,1+ty)
+ *                      _____    (tx,1+ty)  x----o  (1+tx,1+ty)
  *                      \   |               |    |
  *  (0,1)  x----o       /   |      (0,1)  +-|--+ |
- *         |    |      /  /\|             | +----+  (1+tx,ty)
+ *         |    |      /  /\|             | +----*  (1+tx,ty)
  *         |    |      \ /                |    |
  *         +----*       `                 +----+
  *  (0,0)     (1,0)                (0,0)     (1,0)
@@ -205,9 +134,6 @@ void dmtxMatrix3Scale(DmtxMatrix3 m, float sx, float sy)
 
 /*
  * Shear Transformation
- *
- *
- *
  */
 void dmtxMatrix3Shear(DmtxMatrix3 m, float shx, float shy)
 {
@@ -217,10 +143,6 @@ void dmtxMatrix3Shear(DmtxMatrix3 m, float shx, float shy)
 }
 
 /*
- *
- *
- *
- *
  *
  */
 DmtxVector2 *dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m)
@@ -235,10 +157,6 @@ DmtxVector2 *dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m)
 
 /*
  *
- *
- *
- *
- *
  */
 DmtxVector2 *dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m)
 {
@@ -248,22 +166,14 @@ DmtxVector2 *dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatri
    vOut->Y = vIn->X*m[0][1] + vIn->Y*m[1][1] + m[2][1];
    w = vIn->X*m[0][2] + vIn->Y*m[1][2] + m[2][2];
 
-if(fabs(w) <= DMTX_ALMOST_ZERO) {
-   fprintf(stdout, "w: %g\n", w); fflush(stdout);
-}
    assert(fabs(w) > DMTX_ALMOST_ZERO);
-   if(fabs(w) > DMTX_ALMOST_ZERO) {
-      dmtxVector2ScaleBy(vOut, 1/w);
-   }
+
+   dmtxVector2ScaleBy(vOut, 1/w);
 
    return vOut;
 }
 
 /*
- *
- *
- *
- *
  *
  */
 void dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1)
@@ -284,10 +194,6 @@ void dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1)
 
 /*
  *
- *
- *
- *
- *
  */
 void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
 {
@@ -300,9 +206,9 @@ void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
 /*
  * Line Skew (Remove Perspective) Transformation
  *
- *     | b1/b0  0      0               |
- * m = | 0      sz/b0  (b1-b0)/(sz*b0) |
- *     | 0      0      1               |
+ *     | b1/b0    0    (b1-b0)/(sz*b0) |
+ * m = |   0    sz/b0         1        |
+ *     |   0      0           1        |
  *
  *     (sz,b1)  o
  *             /|    Transform "m"
@@ -320,9 +226,6 @@ void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
  */
 void dmtxMatrix3LineSkewTop(DmtxMatrix3 m, float b0, float b1, float sz)
 {
-   if(b0 <= DMTX_ALMOST_ZERO)
-      fprintf(stdout, "b0: %g\n", b0);
-
    assert(b0 > DMTX_ALMOST_ZERO);
 
    dmtxMatrix3Identity(m);
@@ -334,21 +237,43 @@ void dmtxMatrix3LineSkewTop(DmtxMatrix3 m, float b0, float b1, float sz)
 /*
  *
  */
+void dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, float b0, float b1, float sz)
+{
+   assert(b1 > DMTX_ALMOST_ZERO);
+
+   dmtxMatrix3Identity(m);
+   m[0][0] = b0/b1;
+   m[1][1] = b0/sz;
+   m[0][2] = (b0 - b1)/(sz*b1);
+}
+
+/*
+ *
+ */
 void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz)
 {
    assert(b0 > DMTX_ALMOST_ZERO);
 
    dmtxMatrix3Identity(m);
-   m[1][1] = b1/b0;
    m[0][0] = sz/b0;
+   m[1][1] = b1/b0;
    m[1][2] = (b1 - b0)/(sz*b0);
 }
 
 /*
  *
- *
- *
- *
+ */
+void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, float b0, float b1, float sz)
+{
+   assert(b1 > DMTX_ALMOST_ZERO);
+
+   dmtxMatrix3Identity(m);
+   m[0][0] = b0/sz;
+   m[1][1] = b0/b1;
+   m[1][2] = (b0 - b1)/(sz*b1);
+}
+
+/*
  *
  */
 void dmtxMatrix3Print(DmtxMatrix3 m)
