@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.3 2006-09-28 04:56:31 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.4 2006-09-28 05:12:48 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -778,8 +778,7 @@ Matrix3ChainXfrm(DmtxMatrix3 m, DmtxChain *chain)
    dmtxMatrix3LineSkewTop(msky, chain->by0, chain->by1, 100.0);
    dmtxMatrix3LineSkewSide(mskx, chain->bx0, chain->bx1, 100.0);
 
-   dmtxMatrix3Copy(m, mtxy);
-   dmtxMatrix3MultiplyBy(m, mshx);
+   dmtxMatrix3Multiply(m, mtxy, mshx);
    dmtxMatrix3MultiplyBy(m, mshy);
    dmtxMatrix3MultiplyBy(m, mscxy);
    dmtxMatrix3MultiplyBy(m, msky);
@@ -804,8 +803,7 @@ Matrix3ChainXfrmInv(DmtxMatrix3 m, DmtxChain *chain)
    dmtxMatrix3Shear(mshx, -chain->shx, 0.0);
    dmtxMatrix3Translate(mtxy, -chain->tx, -chain->ty);
 
-   dmtxMatrix3Copy(m, mskx);
-   dmtxMatrix3MultiplyBy(m, msky);
+   dmtxMatrix3Multiply(m, mskx, msky);
    dmtxMatrix3MultiplyBy(m, mscxy);
    dmtxMatrix3MultiplyBy(m, mshy);
    dmtxMatrix3MultiplyBy(m, mshx);
