@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtx.h,v 1.4 2006-09-25 19:13:38 mblaughton Exp $ */
+/* $Id: dmtx.h,v 1.5 2006-09-28 04:54:19 mblaughton Exp $ */
 
 #ifndef __DMTX_H__
 #define __DMTX_H__
@@ -243,9 +243,6 @@ extern int dmtxPointAlongRay2(DmtxVector2 *point, DmtxRay2 *r, float t);
 
 extern void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1);
 extern void dmtxMatrix3Identity(DmtxMatrix3 m);
-extern void dmtxMatrix3Transpose(DmtxMatrix3 mIn, DmtxMatrix3 mOut);
-extern double dmtxMatrix3Determinate(DmtxMatrix3 m);
-extern int dmtxMatrix3Inverse(DmtxMatrix3 mr, DmtxMatrix3 ma);
 extern void dmtxMatrix3Translate(DmtxMatrix3 m, float tx, float ty);
 extern void dmtxMatrix3Rotate(DmtxMatrix3 m, float angle);
 extern void dmtxMatrix3Scale(DmtxMatrix3 m, float sx, float sy);
@@ -255,7 +252,9 @@ extern DmtxVector2 *dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, Dm
 extern void dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1);
 extern void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1);
 extern void dmtxMatrix3LineSkewTop(DmtxMatrix3 m, float b0, float b1, float sz);
+extern void dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, float b0, float b1, float sz);
 extern void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz);
+extern void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, float b0, float b1, float sz);
 extern void dmtxMatrix3Print(DmtxMatrix3 m);
 
 extern void dmtxColorFromImage(DmtxVector3 *color, DmtxImage *image, int x, int y);
