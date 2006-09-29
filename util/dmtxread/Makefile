@@ -1,23 +1,21 @@
 SHELL=/bin/sh
 CC=gcc
 INCLUDE=-I../..
-LIBS=-lpng -ltiff -L../.. -ldmtx
+LIBS=-lpng -ltiff -lm
 CFLAGS=-Wall -ggdb -pg
-
-all: dmtxread.bin
 
 static: dmtxread.c dmtx.o
 	$(CC) $(INCLUDE) $(CFLAGS) dmtxread.c -c
-	$(CC) -pg -lm -lpng -ltiff dmtx.o dmtxread.o -o dmtxread.bin
-
-clean:
-	rm -f *.o dmtxread.bin gmon.out
+	$(CC) $(CFLAGS) $(LIBS) dmtx.o dmtxread.o -o dmtxread
 
 dmtx.o:
 	make -C ../.. static
 	mv ../../dmtx.o .
 
-dmtxread.bin: dmtxread.c
-	$(CC) $(INCLUDE) $(CFLAGS) $(LIBS) dmtxread.c -o dmtxread.bin
+dynamic: dmtxread.c
+	$(CC) $(INCLUDE) $(CFLAGS) $(LIBS) -L../.. -ldmtx dmtxread.c -o dmtxread
 
-.PHONY: all clean static
+clean:
+	rm -f *.o dmtxread gmon.out
+
+.PHONY: static dynamic clean

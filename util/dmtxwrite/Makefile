@@ -1,13 +1,21 @@
+SHELL=/bin/sh
+CC=gcc
 INCLUDE=-I../..
-LIBS=-L../.. -ldmtx -lpng
-CFLAGS=-Wall -ggdb
+LIBS=-lm
+CFLAGS=-Wall -ggdb -pg
 
-all: dmtxwrite.bin
+static: dmtxwrite.c dmtx.o
+	$(CC) $(INCLUDE) $(CFLAGS) dmtxwrite.c -c
+	$(CC) $(CFLAGS) $(LIBS) dmtx.o dmtxwrite.o -o dmtxwrite
+
+dmtx.o:
+	make -C ../.. static
+	mv ../../dmtx.o .
+
+dynamic: dmtxwrite.c
+	$(CC) $(INCLUDE) $(CFLAGS) $(LIBS) -L../.. -ldmtx dmtxwrite.c -o dmtxwrite
 
 clean:
-	rm -f *.o dmtxwrite.bin gmon.out *.pnm
+	rm -f *.o dmtxwrite gmon.out output.pnm
 
-dmtxwrite.bin: dmtxwrite.c
-	gcc $(INCLUDE) $(CFLAGS) $(LIBS) dmtxwrite.c -o dmtxwrite.bin
-
-.PHONY: all clean
+.PHONY: static dynamic clean
