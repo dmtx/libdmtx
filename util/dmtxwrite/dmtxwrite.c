@@ -151,6 +151,16 @@ HandleArgs(ScanOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
       }
    }
 
+   // Message not provided
+   if(optind == *argcp) {
+      // XXX not sure if this is defined behavior -- optind only
+      // XXX defined when non-option parameter is present?
+      if(*argcp == 1)
+         return DMTXWRITE_ERROR;
+      else
+         FatalError(1, _("Must provide message to be encoded\n"));
+   }
+
    options->inputString = (unsigned char *)(*argvp)[optind];
 
    return DMTXWRITE_SUCCESS;
