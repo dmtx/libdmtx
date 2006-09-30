@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtx.h,v 1.5 2006-09-28 04:54:19 mblaughton Exp $ */
+/* $Id: dmtx.h,v 1.6 2006-09-30 06:19:59 mblaughton Exp $ */
 
 #ifndef __DMTX_H__
 #define __DMTX_H__
@@ -140,10 +140,11 @@ typedef struct {
 
 typedef struct {
    float tx, ty;
-   float shx, shy;
+   float phi, shx;
    float scx, scy;
    float bx0, bx1;
    float by0, by1;
+   float sz;
 } DmtxChain;
 
 typedef struct {
@@ -244,7 +245,7 @@ extern int dmtxPointAlongRay2(DmtxVector2 *point, DmtxRay2 *r, float t);
 extern void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1);
 extern void dmtxMatrix3Identity(DmtxMatrix3 m);
 extern void dmtxMatrix3Translate(DmtxMatrix3 m, float tx, float ty);
-extern void dmtxMatrix3Rotate(DmtxMatrix3 m, float angle);
+extern void dmtxMatrix3Rotate(DmtxMatrix3 m, double angle);
 extern void dmtxMatrix3Scale(DmtxMatrix3 m, float sx, float sy);
 extern void dmtxMatrix3Shear(DmtxMatrix3 m, float shx, float shy);
 extern DmtxVector2 *dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m);
