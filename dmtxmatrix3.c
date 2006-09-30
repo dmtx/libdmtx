@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxmatrix3.c,v 1.3 2006-09-28 04:55:30 mblaughton Exp $ */
+/* $Id: dmtxmatrix3.c,v 1.4 2006-09-30 06:21:22 mblaughton Exp $ */
 
 /*
  *
@@ -94,9 +94,9 @@ void dmtxMatrix3Translate(DmtxMatrix3 m, float tx, float ty)
  *  (0,0)     (1,0)                     (0,0)
  *
  */
-void dmtxMatrix3Rotate(DmtxMatrix3 m, float angle)
+void dmtxMatrix3Rotate(DmtxMatrix3 m, double angle)
 {
-   float sinAngle, cosAngle;
+   double sinAngle, cosAngle;
 
    sinAngle = sin(angle);
    cosAngle = cos(angle);
@@ -207,7 +207,7 @@ void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
  * Line Skew (Remove Perspective) Transformation
  *
  *     | b1/b0    0    (b1-b0)/(sz*b0) |
- * m = |   0    sz/b0         1        |
+ * m = |   0    sz/b0         0        |
  *     |   0      0           1        |
  *
  *     (sz,b1)  o
