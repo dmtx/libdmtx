@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.4 2006-09-28 05:12:48 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.5 2006-09-30 06:22:28 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -724,16 +724,18 @@ MatrixRegionInit(DmtxMatrixRegion *matrixRegion, DmtxGradient *gradient)
 
    matrixRegion->gradient = *gradient;
 
+   // XXX this stuff just became a lot less important since I'm initializing it locally in "chain" and then copying
    matrixRegion->chain.tx = 0.0;
    matrixRegion->chain.ty = 0.0;
+   matrixRegion->chain.phi = 0.0;
    matrixRegion->chain.shx = 0.0;
-   matrixRegion->chain.shy = 0.0;
    matrixRegion->chain.scx = 1.0;
    matrixRegion->chain.scy = 1.0;
    matrixRegion->chain.bx0 = 100.0;
    matrixRegion->chain.bx1 = 100.0;
    matrixRegion->chain.by0 = 100.0;
    matrixRegion->chain.by1 = 100.0;
+   matrixRegion->chain.sz = 100.0;
 
    MatrixRegionUpdateXfrms(matrixRegion);
 }
@@ -769,17 +771,17 @@ dmtxMatrixRegionDeInit(DmtxMatrixRegion *matrixRegion)
 static void
 Matrix3ChainXfrm(DmtxMatrix3 m, DmtxChain *chain)
 {
-   DmtxMatrix3 mtxy, mshx, mshy, mscxy, msky, mskx;
+   DmtxMatrix3 mtxy, mphi, mshx, mscxy, msky, mskx;
 
    dmtxMatrix3Translate(mtxy, chain->tx, chain->ty);
+   dmtxMatrix3Rotate(mphi, chain->phi);
    dmtxMatrix3Shear(mshx, chain->shx, 0.0);
-   dmtxMatrix3Shear(mshy, 0.0, chain->shy);
-   dmtxMatrix3Scale(mscxy, chain->scx, chain->scy);
-   dmtxMatrix3LineSkewTop(msky, chain->by0, chain->by1, 100.0);
-   dmtxMatrix3LineSkewSide(mskx, chain->bx0, chain->bx1, 100.0);
+   dmtxMatrix3Scale(mscxy, chain->scx * chain->sz, chain->scy * chain->sz);
+   dmtxMatrix3LineSkewTop(msky, chain->by0, chain->by1, chain->sz);
+   dmtxMatrix3LineSkewSide(mskx, chain->bx0, chain->bx1, chain->sz);
 
-   dmtxMatrix3Multiply(m, mtxy, mshx);
-   dmtxMatrix3MultiplyBy(m, mshy);
+   dmtxMatrix3Multiply(m, mtxy, mphi);
+   dmtxMatrix3MultiplyBy(m, mshx);
    dmtxMatrix3MultiplyBy(m, mscxy);
    dmtxMatrix3MultiplyBy(m, msky);
    dmtxMatrix3MultiplyBy(m, mskx);
@@ -794,19 +796,19 @@ Matrix3ChainXfrm(DmtxMatrix3 m, DmtxChain *chain)
 static void
 Matrix3ChainXfrmInv(DmtxMatrix3 m, DmtxChain *chain)
 {
-   DmtxMatrix3 msky, mskx, mscxy, mshy, mshx, mtxy;
+   DmtxMatrix3 mskx, msky, mscxy, mshx, mphi, mtxy;
 
-   dmtxMatrix3LineSkewSideInv(mskx, chain->bx0, chain->bx1, 100.0);
-   dmtxMatrix3LineSkewTopInv(msky, chain->by0, chain->by1, 100.0);
-   dmtxMatrix3Scale(mscxy, 1.0/chain->scx, 1.0/chain->scy);
-   dmtxMatrix3Shear(mshy, 0.0, -chain->shy);
+   dmtxMatrix3LineSkewSideInv(mskx, chain->bx0, chain->bx1, chain->sz);
+   dmtxMatrix3LineSkewTopInv(msky, chain->by0, chain->by1, chain->sz);
+   dmtxMatrix3Scale(mscxy, 1.0/(chain->scx * chain->sz), 1.0/(chain->scy * chain->sz));
    dmtxMatrix3Shear(mshx, -chain->shx, 0.0);
+   dmtxMatrix3Rotate(mphi, -chain->phi);
    dmtxMatrix3Translate(mtxy, -chain->tx, -chain->ty);
 
    dmtxMatrix3Multiply(m, mskx, msky);
    dmtxMatrix3MultiplyBy(m, mscxy);
-   dmtxMatrix3MultiplyBy(m, mshy);
    dmtxMatrix3MultiplyBy(m, mshx);
+   dmtxMatrix3MultiplyBy(m, mphi);
    dmtxMatrix3MultiplyBy(m, mtxy);
 }
 
@@ -834,7 +836,6 @@ MatrixRegionAlignFinderBars(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode,
       DmtxEdgeFollower *f0, DmtxEdgeFollower *f1)
 {
    int             success;
-   float           phi, at;
    float           v1Length;
    float           v2Length;
    DmtxFinderBar   bar;
@@ -842,6 +843,8 @@ MatrixRegionAlignFinderBars(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode,
    DmtxRay2        rPrimary, rSecondary;
    DmtxVector2     pMin, pTmp;
    DmtxVector2     v1, v2;
+   DmtxMatrix3     m;
+   DmtxChain       chain;
 
 /* XXX comment these cases better
 count   1st    2nd
@@ -968,25 +971,33 @@ count   1st    2nd
       bar.p2 = pTmp;
    }
 
-   // Check denominator before dividing
-   if((bar.p1.Y - bar.p0.Y) < DMTX_ALMOST_ZERO)
-      return DMTX_FALSE;
+   chain.tx = -bar.p0.X;
+   chain.ty = -bar.p0.Y;
+   chain.phi = 0.0;
+   chain.shx = 0.0;
+   chain.scx = chain.scy = 1.0;
+   chain.bx0 = chain.bx1 = chain.by0 = chain.by1 = chain.sz = 1.0;
 
-   phi = (bar.p0.X - bar.p1.X)/(bar.p1.Y - bar.p0.Y);
-   at = (bar.p2.X - bar.p0.X) + (bar.p2.Y - bar.p0.Y)*phi;
+   Matrix3ChainXfrm(m, &chain);
+   dmtxMatrix3VMultiply(&pTmp, &bar.p2, m);
 
-   matrixRegion->chain.tx = -bar.p0.X;
-   matrixRegion->chain.ty = -bar.p0.Y;
-   matrixRegion->chain.shx = phi;
-   matrixRegion->chain.shy = (bar.p0.Y - bar.p2.Y)/at;
-   matrixRegion->chain.scx = 100.0/at;
-   matrixRegion->chain.scy = 100.0/(bar.p1.Y - bar.p0.Y);
+   chain.phi = -atan2(pTmp.Y, pTmp.X);
 
-   // Passing deltaX, deltaY to atan2() instead of deltaY, deltaX on purpose
-   if(bar.p2.X < DMTX_ALMOST_ZERO || bar.p1.Y < DMTX_ALMOST_ZERO)
-      return DMTX_FALSE;
+   Matrix3ChainXfrm(m, &chain);
+   dmtxMatrix3VMultiply(&pTmp, &bar.p1, m);
+
+   assert(pTmp.Y > DMTX_ALMOST_ZERO);
+   chain.shx = -pTmp.X / pTmp.Y;
+   chain.scy = 1.0/pTmp.Y;
+
+   Matrix3ChainXfrm(m, &chain);
+   dmtxMatrix3VMultiply(&pTmp, &bar.p2, m);
+   chain.scx = 1.0/pTmp.X;
+
+   chain.bx0 = chain.bx1 = chain.by0 = chain.by1 = chain.sz = 100.0;
 
    // Always update transformations after altering chain
+   matrixRegion->chain = chain;
    MatrixRegionUpdateXfrms(matrixRegion);
 
    // Now matrixRegion contains our best guess.  Next tighten it up.
