@@ -450,7 +450,7 @@ LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex)
 {
    int dirIndex = 0;
    TIFF* tif;
-   int row, col;
+   int row, col, offset;
    uint32 w, h;
    uint32* raster;
    size_t npixels;
@@ -489,9 +489,10 @@ LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex)
             for(row = 0; row < image->height; row++) {
                for(col = 0; col < image->width; col++) {
                   // XXX TIFF uses ABGR packed
-                  image->pxl[row * image->width + col].R = raster[row * image->width + col] & 0x000000ff;
-                  image->pxl[row * image->width + col].G = (raster[row * image->width + col] & 0x0000ff00) >> 8;
-                  image->pxl[row * image->width + col].B = (raster[row * image->width + col] & 0x00ff0000) >> 16;
+                  offset = row * image->width + col;
+                  image->pxl[offset].R = raster[offset] & 0x000000ff;
+                  image->pxl[offset].G = (raster[offset] & 0x0000ff00) >> 8;
+                  image->pxl[offset].B = (raster[offset] & 0x00ff0000) >> 16;
                }
             }
          }
