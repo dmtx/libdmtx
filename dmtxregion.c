@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.5 2006-09-30 06:22:28 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.6 2006-10-02 03:10:15 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -508,7 +508,7 @@ EdgeFollowerFollow(DmtxEdgeFollower *follow, DmtxDecode *decode)
       fStep[i] = EdgeFollowerGetLoc(follow);
    }
    dmtxVector2Sub(&vTmp, &(fStep[DMTX_FOLLOW_STEPS-1]), &(fStep[0]));
-   dmtxVector2Norm(&vTmp);
+   dmtxVector2Norm(&vTmp); // XXX potential problem here if follower ends up in starting point (div/0)
    rayAnchor.p = fStep[0];
    rayAnchor.v = vTmp;
 
@@ -980,23 +980,19 @@ count   1st    2nd
 
    Matrix3ChainXfrm(m, &chain);
    dmtxMatrix3VMultiply(&pTmp, &bar.p2, m);
-
    chain.phi = -atan2(pTmp.Y, pTmp.X);
-
-   Matrix3ChainXfrm(m, &chain);
-   dmtxMatrix3VMultiply(&pTmp, &bar.p1, m);
-
-   assert(pTmp.Y > DMTX_ALMOST_ZERO);
-   chain.shx = -pTmp.X / pTmp.Y;
-   chain.scy = 1.0/pTmp.Y;
 
    Matrix3ChainXfrm(m, &chain);
    dmtxMatrix3VMultiply(&pTmp, &bar.p2, m);
    chain.scx = 1.0/pTmp.X;
+   dmtxMatrix3VMultiply(&pTmp, &bar.p1, m);
+   assert(pTmp.Y > DMTX_ALMOST_ZERO);
+   chain.shx = -pTmp.X / pTmp.Y;
+   chain.scy = 1.0/pTmp.Y;
 
    chain.bx0 = chain.bx1 = chain.by0 = chain.by1 = chain.sz = 100.0;
 
-   // Always update transformations after altering chain
+   // Update transformations now that finders are set
    matrixRegion->chain = chain;
    MatrixRegionUpdateXfrms(matrixRegion);
 
