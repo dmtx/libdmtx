@@ -59,6 +59,7 @@ version 0.3:
       o image <=  dmtxprint  <=  dmtxencode <=  data
 
 future versions:
+  o Add calibration functionality to remove sperical distortion
   o Use libpng(3) to write Data Matrix images
   o Use libtool
   o Tune region detection to work better with captured (non-generated) images
