@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxvector2.c,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+/* $Id: dmtxvector2.c,v 1.3 2006-10-02 03:13:56 mblaughton Exp $ */
 
 /****************************************************************************/
 extern DmtxVector2 *
@@ -93,13 +93,9 @@ dmtxVector2Norm(DmtxVector2 *v)
 
    mag = dmtxVector2Mag(v);
 
-   if(mag < DMTX_ALMOST_ZERO) {
-      perror("magnitude of zero"); // Avoid divide-by-zero
-   }
+   assert(mag > DMTX_ALMOST_ZERO);
 
    dmtxVector2ScaleBy(v, 1/mag);
-
-   assert(fabs(1.0 - dmtxVector2Mag(v)) < DMTX_ALMOST_ZERO);
 
    return mag;
 }
