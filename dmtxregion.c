@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.6 2006-10-02 03:10:15 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.7 2006-10-03 05:59:33 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -103,8 +103,6 @@ dmtxScanLine(DmtxDecode *decode, DmtxDirection dir, int lineNbr)
          if(!success)
             continue;
 
-         // XXX Consider splitting remaining functionality into function stored in dmtxdecode.c
-
          // XXX When adding clipping functionality against previously
          // scanned barcodes, this is a good place to add a test for
          // collisions.  Although we tested for this early on in the jump
@@ -112,21 +110,17 @@ dmtxScanLine(DmtxDecode *decode, DmtxDirection dir, int lineNbr)
          // have moved us into a collision with another matrix region.  A
          // collision at this point is grounds for immediate failure.
 
-         success = MatrixRegionRead(&matrixRegion, decode);
+         success = MatrixRegionFindSize(&matrixRegion, decode);
          if(!success)
             continue;
 
-         PopulateArrayFromImage(&matrixRegion, decode);
-
-         ModulePlacementEcc200(&matrixRegion);
-
-         success = CheckErrors(&matrixRegion);
-         if(!success) {
-            fprintf(stderr, "Rejected due to ECC validation\n");
+         success = PopulateArrayFromImage(&matrixRegion, decode);
+         if(!success)
             continue;
-         }
 
-         DataStreamDecode(&matrixRegion);
+         success = DecodeRegion(&matrixRegion);
+         if(!success)
+            continue;
 
          // We are now holding a valid, fully decoded Data Matrix barcode.
          // Add this to the list of valid barcodes and continue searching
@@ -1234,4 +1228,222 @@ MatrixRegionEstimateSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
       matrixSize = 8;
 
    return matrixSize;
+}
+
+/**
+ * XXX
+ *
+ * @param
+ * @return XXX
+ */
+static int
+MatrixRegionFindSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
+{
+   int i;
+   int status = DMTX_FAILURE;
+   int sizeIdx;
+   int sizeEstimate;
+   int adjust[] = { 0, -2, +2, -4, +4, -6, +6 };
+   int adjustAttempts = 7;
+   int rowColAttempts[24];
+
+   sizeEstimate = MatrixRegionEstimateSize(matrixRegion, decode);
+
+   memset(rowColAttempts, 0x00, sizeof(rowColAttempts));
+   assert(sizeof(symbolSize) / sizeof(int) == 24);
+
+   for(i = 0; i < adjustAttempts; i++) {
+      matrixRegion->dataRows = matrixRegion->dataCols = sizeEstimate - 2 + adjust[i];
+
+      if(matrixRegion->dataRows < 8 || matrixRegion->dataRows > 132)
+         continue;
+
+      status = PatternReadNonDataModules(matrixRegion, decode);
+      if(status == DMTX_SUCCESS)
+         break;
+   }
+
+   // If we try all adjustments and still can't get a good read then just give up
+   if(status == DMTX_FAILURE)
+      return status; // XXX bad read
+
+   // Determine how many data words and error words will be stored in this size of grid
+   // First loop determines matrix size and data/error counts
+   for(sizeIdx = 0; sizeIdx < 9; sizeIdx++) { // XXX this will not work for structured append arrays
+      if(symbolSize[sizeIdx] == matrixRegion->dataRows + 2) {
+         matrixRegion->sizeIdx = sizeIdx;
+         break;
+      }
+   }
+
+   matrixRegion->arraySize = sizeof(unsigned char) * matrixRegion->dataRows * matrixRegion->dataCols;
+   matrixRegion->array = (unsigned char *)malloc(matrixRegion->arraySize);
+   memset(matrixRegion->array, 0x00, matrixRegion->arraySize);
+   if(matrixRegion->array == NULL) {
+      perror("Malloc failed");
+      exit(2); // XXX find better error handling here
+   }
+
+   matrixRegion->codeSize = sizeof(unsigned char) * dataWordLength[sizeIdx] + errorWordLength[sizeIdx];
+   matrixRegion->code = (unsigned char *)malloc(matrixRegion->codeSize);
+   memset(matrixRegion->code, 0x00, matrixRegion->codeSize);
+   if(matrixRegion->code == NULL) {
+      perror("Malloc failed");
+      exit(2); // XXX find better error handling here
+   }
+
+   // XXX not sure if this is the right place or even the right approach.
+   // Trying to allocate memory for the decoded data stream and will
+   // initially assume that decoded data will not be larger than 2x encoded data
+   matrixRegion->outputSize = sizeof(unsigned char) * matrixRegion->codeSize * 10;
+   matrixRegion->output = (unsigned char *)malloc(matrixRegion->outputSize);
+   memset(matrixRegion->output, 0x00, matrixRegion->outputSize);
+   if(matrixRegion->output == NULL) {
+      perror("Malloc failed");
+      exit(2); // XXX find better error handling here
+   }
+
+   return DMTX_SUCCESS; // XXX good read
+}
+
+/**
+ * XXX
+ *
+ * @param
+ * @return XXX
+ */
+static DmtxVector3
+ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *decode)
+{
+   int i;
+   double sampleX[] = { 1.5, 1.3, 1.5, 1.7, 1.5 };
+   double sampleY[] = { 1.5, 1.5, 1.3, 1.5, 1.7 };
+   DmtxVector2 p, p0;
+   DmtxVector3 cPoint, cAverage;
+   
+   cAverage.X = cAverage.Y = cAverage.Z = 0.0;
+
+   for(i = 0; i < 5; i++) {
+
+      // The "+ 2" adjustment allows for the Finder and Calibration bars
+      p.X = (100.0/(matrixRegion->dataCols + 2)) * (col + sampleX[i]);
+      p.Y = (100.0/(matrixRegion->dataRows + 2)) * (row + sampleY[i]);
+
+      dmtxMatrix3VMultiply(&p0, &p, matrixRegion->fit2raw);
+      dmtxColorFromImage(&cPoint, &(decode->image), p0.X, p0.Y);
+
+      dmtxVector3AddTo(&cAverage, &cPoint);
+
+      if(decode && decode->plotPointCallback)
+         (*(decode->plotPointCallback))(p0, 1, 1, DMTX_DISPLAY_POINT);
+   }
+   dmtxVector3ScaleBy(&cAverage, 0.2);
+
+   return cAverage;
+}
+
+/**
+ * XXX
+ *
+ * @param
+ * @return XXX
+ */
+static int
+PatternReadNonDataModules(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
+{
+   int row, col;
+   int errors = 0;
+   float t, tRatio;
+   DmtxVector3 color;
+
+   for(row = matrixRegion->dataRows; row >= -1; row--) {
+      for(col = matrixRegion->dataCols; col >= -1; col--) {
+
+         if(row > -1 && row < matrixRegion->dataRows) {
+            if(col > -1 && col < matrixRegion->dataCols) {
+               continue;
+            }
+         }
+
+         color = ReadModuleColor(matrixRegion, row, col, decode);
+//       color = ReadModuleColor(matrixRegion, matrixRegion->dataRows - row - 1, col, decode);
+         t = dmtxDistanceAlongRay3(&(matrixRegion->gradient.ray), &color);
+         tRatio = (t - matrixRegion->gradient.tMin)/(matrixRegion->gradient.tMax - matrixRegion->gradient.tMin);
+
+//       if(decode && decode->plotPointCallback)
+//          (*(decode->plotPointCallback))(p0, 5, 1, DMTX_DISPLAY_POINT);
+
+         if(decode && decode->plotModuleCallback)
+            (*(decode->plotModuleCallback))(decode, matrixRegion, row, col, color);
+
+         // Check that finder and calibration bar modules have correct colors
+         if(col == -1 || row == -1) {
+            if(tRatio < 0.5) {
+//             fprintf(stdout, "Error: %g < 0.5\n", tRatio);
+//             if(decode && decode->plotPointCallback)
+//                (*(decode->plotPointCallback))(p0, 1, 1, DMTX_DISPLAY_SQUARE);
+               errors++;
+            }
+         }
+         else if(row == matrixRegion->dataRows || col == matrixRegion->dataCols) {
+            if((row + col) % 2) {
+               if(tRatio < 0.5) {
+//                fprintf(stdout, "Error: %g < 0.5\n", tRatio);
+//                if(decode && decode->plotPointCallback)
+//                   (*(decode->plotPointCallback))(p0, 1, 1, DMTX_DISPLAY_SQUARE);
+                  errors++;
+               }
+            }
+            else {
+               if(tRatio > 0.5) {
+//                fprintf(stdout, "Error: %g > 0.5\n", tRatio);
+//                if(decode && decode->plotPointCallback)
+//                   (*(decode->plotPointCallback))(p0, 1, 1, DMTX_DISPLAY_SQUARE);
+                  errors++;
+               }
+            }
+         }
+
+         if(errors > 4)
+            return DMTX_FAILURE; // Too many errors detected
+      }
+   }
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ * XXX
+ *
+ * @param
+ * @return XXX
+ */
+static int
+PopulateArrayFromImage(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
+{
+   int row, col;
+   float t, tRatio;
+   DmtxVector3 color;
+
+   memset(matrixRegion->array, 0x00, matrixRegion->arraySize);
+
+   for(row = 0; row < matrixRegion->dataRows; row++) {
+      for(col = 0; col < matrixRegion->dataCols; col++) {
+
+         // Swap row because the array's origin is top-left and everything else is bottom-left
+         color = ReadModuleColor(matrixRegion, matrixRegion->dataRows - row - 1, col, decode);
+         t = dmtxDistanceAlongRay3(&(matrixRegion->gradient.ray), &color);
+         tRatio = (t - matrixRegion->gradient.tMin)/(matrixRegion->gradient.tMax - matrixRegion->gradient.tMin);
+
+         // Value has been assigned, but not visited
+         matrixRegion->array[row*matrixRegion->dataCols+col] |= (tRatio < 0.5) ? DMTX_MODULE_ON : DMTX_MODULE_OFF;
+         matrixRegion->array[row*matrixRegion->dataCols+col] |= DMTX_MODULE_ASSIGNED;
+
+         // Draw "ideal" barcode
+         if(decode && decode->plotModuleCallback)
+            (*(decode->plotModuleCallback))(decode, matrixRegion, matrixRegion->dataRows - row - 1, col, color);
+      }
+   }
+
+   return DMTX_SUCCESS;
 }
