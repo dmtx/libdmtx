@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxstatic.h,v 1.6 2006-09-28 04:57:25 mblaughton Exp $ */
+/* $Id: dmtxstatic.h,v 1.7 2006-10-03 06:00:20 mblaughton Exp $ */
 
 #define DMTX_END_OF_RANGE      5
 #define DMTX_EDGE_FOUND        6
@@ -93,13 +93,15 @@ static int MatrixRegionAlignFinderBars(DmtxMatrixRegion *matrixRegion, DmtxDecod
 static int MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
 static int MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
 static int MatrixRegionEstimateSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
+static int MatrixRegionFindSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
+static DmtxVector3 ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *decode);
+static int PatternReadNonDataModules(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
+static int PopulateArrayFromImage(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
 
 /* dmtxdecode.c */
-static int MatrixRegionRead(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
-static int PatternReadNonDataModules(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
-static void PopulateArrayFromImage(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
-static int CheckErrors(DmtxMatrixRegion *matrixRegion);
-static void DataStreamDecode(DmtxMatrixRegion *matrixRegion);
+static int DecodeRegion(DmtxMatrixRegion *matrixRegion);
+static int DecodeCheckErrors(DmtxMatrixRegion *matrixRegion);
+static void DecodeDataStream(DmtxMatrixRegion *matrixRegion);
 static unsigned char *NextEncodationScheme(DmtxEncScheme *encScheme, unsigned char *ptr);
 static unsigned char *DecodeSchemeAsciiStd(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeAsciiExt(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
