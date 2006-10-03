@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtx.h,v 1.6 2006-09-30 06:19:59 mblaughton Exp $ */
+/* $Id: dmtx.h,v 1.7 2006-10-03 05:57:27 mblaughton Exp $ */
 
 #ifndef __DMTX_H__
 #define __DMTX_H__
@@ -63,14 +63,14 @@ typedef struct {
 } DmtxMatrix3Struct;
 
 typedef struct {
-   float X;
-   float Y;
-   float Z;
+   double X;
+   double Y;
+   double Z;
 } DmtxVector3;
 
 typedef struct {
-   float X;
-   float Y;
+   double X;
+   double Y;
 } DmtxVector2;
 
 typedef struct {
