@@ -44,8 +44,9 @@ version 0.3:
   x Move PNG (and other format) logic and dependencies to dmtxread, dmtxwrite, etc...
   x Fix the regressions (crash bugs) introduced during v0.2 structural rework
   x Add multi-page TIFF capabilities to dmtxread
+  x Move pure decode calls from dmtxScanLine into a dmtxdecode.c function
+  x Sample module color from more than one pixel location
   o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
-  o Move pure decode calls from dmtxScanLine into a dmtxdecode.c function
   o Implement overlap detection to avoid rescanning in successfully decoded regions
   o Implement error correction
   o Implement consistent and robust error handling (errno.h + custom)
