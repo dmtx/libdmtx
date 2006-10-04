@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.7 2006-10-03 05:59:33 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.8 2006-10-04 19:02:25 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -1320,7 +1320,7 @@ ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *de
    double sampleY[] = { 1.5, 1.5, 1.3, 1.5, 1.7 };
    DmtxVector2 p, p0;
    DmtxVector3 cPoint, cAverage;
-   
+
    cAverage.X = cAverage.Y = cAverage.Z = 0.0;
 
    for(i = 0; i < 5; i++) {
