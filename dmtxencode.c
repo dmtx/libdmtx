@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxencode.c,v 1.3 2006-09-19 18:17:02 mblaughton Exp $ */
+/* $Id: dmtxencode.c,v 1.4 2006-10-05 05:20:19 mblaughton Exp $ */
 
 /**
  *
@@ -45,16 +45,16 @@ dmtxEncodeCreate(void)
    encode->matrix.gradient.isDefined = DMTX_TRUE;
 
    // Initialize background color to white
-   encode->matrix.gradient.ray.p.X = 255.0;
-   encode->matrix.gradient.ray.p.Y = 255.0;
-   encode->matrix.gradient.ray.p.Z = 255.0;
+   encode->matrix.gradient.ray.p.R = 255.0;
+   encode->matrix.gradient.ray.p.G = 255.0;
+   encode->matrix.gradient.ray.p.B = 255.0;
 
    // Initialize foreground color to black
    encode->matrix.gradient.tMin = 0.0;
-   encode->matrix.gradient.tMax = dmtxVector3Mag(&(encode->matrix.gradient.ray.p));
+   encode->matrix.gradient.tMax = dmtxColor3Mag(&(encode->matrix.gradient.ray.p));
    encode->matrix.gradient.tMid = (encode->matrix.gradient.tMin + encode->matrix.gradient.tMax)/2.0;
 
-   dmtxVector3Scale(&(encode->matrix.gradient.ray.v),
+   dmtxColor3Scale(&(encode->matrix.gradient.ray.c),
          &(encode->matrix.gradient.ray.p), -1.0/encode->matrix.gradient.tMax);
 
    dmtxMatrix3Identity(encode->xfrm);

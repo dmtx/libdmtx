@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.8 2006-10-04 19:02:25 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.9 2006-10-05 05:20:19 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -237,7 +237,7 @@ JumpScanNextRegion(DmtxJumpScan *jumpScan, DmtxDecode *decode)
    int             anchor1Offset, anchor2Offset;
    float           colorDist;
    float           offGradient, alongGradient;
-   DmtxVector3     vDist;
+   DmtxColor3      cDist;
    int             minMaxFlag;
    float           aThird;
 
@@ -266,8 +266,8 @@ JumpScanNextRegion(DmtxJumpScan *jumpScan, DmtxDecode *decode)
       dmtxColorFromPixel(&(region->gradient.color), &(decode->image.pxl[anchor2Offset]));
 
       // Measure color distance from previous pixel color
-      dmtxVector3Sub(&vDist, &(region->gradient.color), &(region->gradient.colorPrev));
-      colorDist = dmtxVector3Mag(&vDist);
+      dmtxColor3Sub(&cDist, &(region->gradient.color), &(region->gradient.colorPrev));
+      colorDist = dmtxColor3Mag(&cDist);
 
       // If color distance is larger than image noise
       if(colorDist > DMTX_MIN_JUMP_DISTANCE) {
@@ -277,8 +277,8 @@ JumpScanNextRegion(DmtxJumpScan *jumpScan, DmtxDecode *decode)
 
             // Create gradient line
             region->gradient.ray.p = region->gradient.colorPrev;
-            region->gradient.ray.v = vDist;
-            dmtxVector3Norm(&(region->gradient.ray.v));
+            region->gradient.ray.c = cDist;
+            dmtxColor3Norm(&(region->gradient.ray.c));
 
             // Update tMax, tMin, and derived values
             region->gradient.isDefined = 1;
@@ -612,7 +612,7 @@ EdgeFollowerIncrement(DmtxEdgeFollower *follow, DmtxDecode *decode)
    int dir;
    float t0, t1;
    float tmpOffset;
-   DmtxVector3 color0, color1;
+   DmtxColor3 color0, color1;
 
    // XXX this first calc of offset0 might be done smarter by extrapolating current "line"
    offset0 = (int)(follow->perpOffset + 0.5);
@@ -1010,7 +1010,7 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    float currentCalibGap, maxCalibGap;
    DmtxVector2 p0, px0, pTmp;
    DmtxVector2 calibTopP0, calibTopP1;
-   DmtxVector3 color;
+   DmtxColor3 color;
    DmtxMatrix3 s, sInv, sReg, sRegInv, m0, m1;
    DmtxVector2 prevHit, prevStep, highHit, highHitX, prevCalibHit;
 
@@ -1132,7 +1132,7 @@ MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 {
    float t, m;
    DmtxVector2 p0, px0;
-   DmtxVector3 color;
+   DmtxColor3 color;
    DmtxMatrix3 s, sInv, sReg, sRegInv, m0, m1;
    DmtxVector2 prevHit, prevStep, highHit, highHitX;
 
@@ -1312,16 +1312,16 @@ MatrixRegionFindSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
  * @param
  * @return XXX
  */
-static DmtxVector3
+static DmtxColor3
 ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *decode)
 {
    int i;
    double sampleX[] = { 1.5, 1.3, 1.5, 1.7, 1.5 };
    double sampleY[] = { 1.5, 1.5, 1.3, 1.5, 1.7 };
    DmtxVector2 p, p0;
-   DmtxVector3 cPoint, cAverage;
+   DmtxColor3 cPoint, cAverage;
 
-   cAverage.X = cAverage.Y = cAverage.Z = 0.0;
+   cAverage.R = cAverage.G = cAverage.B = 0.0;
 
    for(i = 0; i < 5; i++) {
 
@@ -1332,12 +1332,12 @@ ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *de
       dmtxMatrix3VMultiply(&p0, &p, matrixRegion->fit2raw);
       dmtxColorFromImage(&cPoint, &(decode->image), p0.X, p0.Y);
 
-      dmtxVector3AddTo(&cAverage, &cPoint);
+      dmtxColor3AddTo(&cAverage, &cPoint);
 
       if(decode && decode->plotPointCallback)
          (*(decode->plotPointCallback))(p0, 1, 1, DMTX_DISPLAY_POINT);
    }
-   dmtxVector3ScaleBy(&cAverage, 0.2);
+   dmtxColor3ScaleBy(&cAverage, 0.2);
 
    return cAverage;
 }
@@ -1354,7 +1354,7 @@ PatternReadNonDataModules(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    int row, col;
    int errors = 0;
    float t, tRatio;
-   DmtxVector3 color;
+   DmtxColor3 color;
 
    for(row = matrixRegion->dataRows; row >= -1; row--) {
       for(col = matrixRegion->dataCols; col >= -1; col--) {
@@ -1423,7 +1423,7 @@ PopulateArrayFromImage(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 {
    int row, col;
    float t, tRatio;
-   DmtxVector3 color;
+   DmtxColor3 color;
 
    memset(matrixRegion->array, 0x00, matrixRegion->arraySize);
 

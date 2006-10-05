@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxcallback.c,v 1.1 2006-09-21 05:22:12 mblaughton Exp $ */
+/* $Id: dmtxcallback.c,v 1.2 2006-10-05 05:18:40 mblaughton Exp $ */
 
 /**
  *
@@ -177,7 +177,7 @@ dmtxSetFinalCallback(DmtxDecode *decode, void (* func)(DmtxMatrixRegion *))
  * @return XXX
  */
 extern void
-dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixRegion *, int, int, DmtxVector3))
+dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixRegion *, int, int, DmtxColor3))
 {
    if(decode == NULL) {
       exit(1); // XXX better error handling strategy

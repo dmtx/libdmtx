@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxstatic.h,v 1.7 2006-10-03 06:00:20 mblaughton Exp $ */
+/* $Id: dmtxstatic.h,v 1.8 2006-10-05 05:19:27 mblaughton Exp $ */
 
 #define DMTX_END_OF_RANGE      5
 #define DMTX_EDGE_FOUND        6
@@ -94,7 +94,7 @@ static int MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *deco
 static int MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
 static int MatrixRegionEstimateSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
 static int MatrixRegionFindSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
-static DmtxVector3 ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *decode);
+static DmtxColor3 ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *decode);
 static int PatternReadNonDataModules(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
 static int PopulateArrayFromImage(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
 

@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtx.h,v 1.7 2006-10-03 05:57:27 mblaughton Exp $ */
+/* $Id: dmtx.h,v 1.8 2006-10-05 05:17:18 mblaughton Exp $ */
 
 #ifndef __DMTX_H__
 #define __DMTX_H__
@@ -63,10 +63,10 @@ typedef struct {
 } DmtxMatrix3Struct;
 
 typedef struct {
-   double X;
-   double Y;
-   double Z;
-} DmtxVector3;
+   double R;
+   double G;
+   double B;
+} DmtxColor3;
 
 typedef struct {
    double X;
@@ -74,8 +74,8 @@ typedef struct {
 } DmtxVector2;
 
 typedef struct {
-   DmtxVector3 p;
-   DmtxVector3 v;
+   DmtxColor3 p;
+   DmtxColor3 c;
 } DmtxRay3;
 
 typedef struct {
@@ -89,7 +89,7 @@ typedef struct {
    char        isDefined;
    float       tMin, tMax, tMid;
    DmtxRay3    ray;
-   DmtxVector3 color, colorPrev; // XXX maybe these aren't appropriate variables for a gradient?
+   DmtxColor3 color, colorPrev; // XXX maybe these aren't appropriate variables for a gradient?
 } DmtxGradient;
 
 typedef struct {
@@ -128,7 +128,7 @@ typedef struct {
 typedef struct {
    int             offset;
    float           t;
-   DmtxVector3     color;
+   DmtxColor3     color;
 } DmtxEdge;
 
 typedef struct {
@@ -200,7 +200,7 @@ struct _DmtxDecode {
    void (* plotPointCallback)(DmtxVector2, int, int, int);
    void (* xfrmPlotPointCallback)(DmtxVector2, DmtxMatrix3, int, int);
    void (* finalCallback)(DmtxMatrixRegion *);
-   void (* plotModuleCallback)(DmtxDecode *, DmtxMatrixRegion *, int, int, DmtxVector3);
+   void (* plotModuleCallback)(DmtxDecode *, DmtxMatrixRegion *, int, int, DmtxColor3);
 };
 
 typedef struct {
@@ -213,19 +213,19 @@ typedef struct {
    DmtxMatrixRegion matrix;
 } DmtxEncode;
 
-extern DmtxVector3 *dmtxVector3AddTo(DmtxVector3 *v1, DmtxVector3 *v2);
-extern DmtxVector3 *dmtxVector3Add(DmtxVector3 *vOut, DmtxVector3 *v1, DmtxVector3 *v2);
-extern DmtxVector3 *dmtxVector3SubFrom(DmtxVector3 *v1, DmtxVector3 *v2);
-extern DmtxVector3 *dmtxVector3Sub(DmtxVector3 *vOut, DmtxVector3 *v1, DmtxVector3 *v2);
-extern DmtxVector3 *dmtxVector3ScaleBy(DmtxVector3 *v, float s);
-extern DmtxVector3 *dmtxVector3Scale(DmtxVector3 *vOut, DmtxVector3 *v, float s);
-extern DmtxVector3 *dmtxVector3Cross(DmtxVector3 *vOut, DmtxVector3 *v1, DmtxVector3 *v2);
-extern float dmtxVector3Norm(DmtxVector3 *v);
-extern float dmtxVector3Dot(DmtxVector3 *v1, DmtxVector3 *v2);
-extern float dmtxVector3Mag(DmtxVector3 *v);
-extern float dmtxDistanceFromRay3(DmtxRay3 *r, DmtxVector3 *q);
-extern float dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxVector3 *q);
-extern int dmtxPointAlongRay3(DmtxVector3 *point, DmtxRay3 *r, float t);
+extern DmtxColor3 *dmtxColor3AddTo(DmtxColor3 *v1, DmtxColor3 *v2);
+extern DmtxColor3 *dmtxColor3Add(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
+extern DmtxColor3 *dmtxColor3SubFrom(DmtxColor3 *v1, DmtxColor3 *v2);
+extern DmtxColor3 *dmtxColor3Sub(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
+extern DmtxColor3 *dmtxColor3ScaleBy(DmtxColor3 *v, float s);
+extern DmtxColor3 *dmtxColor3Scale(DmtxColor3 *vOut, DmtxColor3 *v, float s);
+extern DmtxColor3 *dmtxColor3Cross(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
+extern float dmtxColor3Norm(DmtxColor3 *v);
+extern float dmtxColor3Dot(DmtxColor3 *v1, DmtxColor3 *v2);
+extern float dmtxColor3Mag(DmtxColor3 *v);
+extern float dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
+extern float dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
+extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, float t);
 
 extern DmtxVector2 *dmtxVector2AddTo(DmtxVector2 *v1, DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2Add(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2);
@@ -258,11 +258,11 @@ extern void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz)
 extern void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, float b0, float b1, float sz);
 extern void dmtxMatrix3Print(DmtxMatrix3 m);
 
-extern void dmtxColorFromImage(DmtxVector3 *color, DmtxImage *image, int x, int y);
-extern void dmtxColorFromImage2(DmtxVector3 *color, DmtxImage *image, DmtxVector2 p);
-extern void dmtxColorFromPixel(DmtxVector3 *color, DmtxPixel *pxl);
-extern void dmtxPixelFromColor(DmtxPixel *pxl, DmtxVector3 *color);
-extern DmtxVector3 dmtxColorAlongRay3(DmtxRay3 *ray, float dist);
+extern void dmtxColorFromImage(DmtxColor3 *color, DmtxImage *image, int x, int y);
+extern void dmtxColorFromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p);
+extern void dmtxColorFromPixel(DmtxColor3 *color, DmtxPixel *pxl);
+extern void dmtxPixelFromColor(DmtxPixel *pxl, DmtxColor3 *color);
+extern DmtxColor3 dmtxColorAlongRay3(DmtxRay3 *ray, float dist);
 
 extern int dmtxImageInit(DmtxImage *image);
 extern int dmtxImageDeInit(DmtxImage *image);
@@ -293,6 +293,6 @@ extern void dmtxSetBuildMatrixCallback4(DmtxDecode *decode, void (* func)(DmtxMa
 extern void dmtxSetPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVector2, int, int, int));
 extern void dmtxSetXfrmPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVector2, DmtxMatrix3, int, int));
 extern void dmtxSetFinalCallback(DmtxDecode *decode, void (* func)(DmtxMatrixRegion *));
-extern void dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixRegion *, int, int, DmtxVector3));
+extern void dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixRegion *, int, int, DmtxColor3));
 
 #endif
