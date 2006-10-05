@@ -47,7 +47,7 @@ version 0.3:
   x Move pure decode calls from dmtxScanLine into a dmtxdecode.c function
   x Sample module color from more than one pixel location
   o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
-  o Replace DmtxVector3 with DmtxColor3 (only being used as a color anyway)
+  o Rename DmtxVector3 to DmtxColor3 and merge into dmtxcolor.c
   o Implement overlap detection to avoid rescanning in successfully decoded regions
   o Implement error correction
   o Implement consistent and robust error handling (errno.h + custom)
