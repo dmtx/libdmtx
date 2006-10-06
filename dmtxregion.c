@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.9 2006-10-05 05:20:19 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.10 2006-10-06 02:59:14 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -1019,7 +1019,7 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    dmtxMatrix3Multiply(s, m0, m1);
    dmtxMatrix3Multiply(sReg, matrixRegion->raw2fit, s);
 
-   dmtxMatrix3LineSkewTop(m0, 100.0, 400.0/3.0, 100.0);
+   dmtxMatrix3LineSkewTopInv(m0, 100.0, 75.0, 100.0);
    dmtxMatrix3Scale(m1, 0.8, 1.0);
    dmtxMatrix3Multiply(sInv, m1, m0);
    dmtxMatrix3Multiply(sRegInv, sInv, matrixRegion->fit2raw);
@@ -1141,7 +1141,7 @@ MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    dmtxMatrix3Multiply(s, m0, m1);
    dmtxMatrix3Multiply(sReg, matrixRegion->raw2fit, s);
 
-   dmtxMatrix3LineSkewSide(m0, 100.0, 400.0/3.0, 100.0);
+   dmtxMatrix3LineSkewSideInv(m0, 100.0, 75.0, 100.0);
    dmtxMatrix3Scale(m1, 1.0, 0.8);
    dmtxMatrix3Multiply(sInv, m1, m0);
    dmtxMatrix3Multiply(sRegInv, sInv, matrixRegion->fit2raw);
