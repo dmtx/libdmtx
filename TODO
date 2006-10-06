@@ -47,6 +47,9 @@ version 0.3:
   x Move pure decode calls from dmtxScanLine into a dmtxdecode.c function
   x Sample module color from more than one pixel location
   x Rename DmtxVector3 to DmtxColor3 and merge into dmtxcolor.c
+  o Fix LoadPngImage() in dmtxread.c to return count (and indicate error)
+  o Begin building basic tests against code (trailing whitespace, cvs keywords, style rules, etc...)
+  o Investigate reported memory leak
   o Try new approach to replace follower algorithm
     x Replace current calibration size estimate with new approach
     x Size step size dynamically according to pixel size
@@ -75,3 +78,26 @@ future versions:
   o Implement fixed point math functions for use on mobile platforms
   o Implement pre-ECC200 Data Matrix standards (big effort/low demand)
   o Build test suite (regression/accuracy/performance/etc...)
+
+
+Notes on new follower algorithm replacement:
+   Scrap the whole follower concept as we know it.  Everything is based on the
+   following approach:
+
+   1) Scanning in any of the 4 cardinal directions, find a line (any straight
+      line will do)
+   2) Follow the line as far as you can in both directions (this is one of the
+      finder bars)
+   3) Rotate and scale line boundaries to stretch from origin (0,0) to (0,1)
+   4) Use MatrixRegionAlignTop() to find line that defines top edge (whether
+      finder or timing) and scale top to line y=1
+   5) Calculate intersection of 2 known lines
+
+   *  Corner (0,1) is now known, but we don't know if this is the intersection
+      of a finder bar and: A) the other finder bar, or B) a timing bar.  Next:
+
+   5) Use MatrixRegionAlignBottom() to find and align bottom line
+   6) Determine which line (top vs. bottom) is the other finder bar (how?)
+   7) Rotate intersection of finder bars to origin (if not already there)
+   8) Use MatrixRegionAlignSide() to align side
+   9) Reject if any side is shorter than minModuleSize * smallestModuleCount
