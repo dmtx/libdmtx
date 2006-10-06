@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxcolor3.c,v 1.1 2006-10-06 05:23:54 mblaughton Exp $ */
+/* $Id: dmtxcolor3.c,v 1.2 2006-10-06 21:34:22 mblaughton Exp $ */
 
 /*
  *
@@ -77,9 +77,9 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
 extern void
 dmtxColor3FromPixel(DmtxColor3 *color, DmtxPixel *pxl)
 {
-   color->R = (float)pxl->R;
-   color->G = (float)pxl->G;
-   color->B = (float)pxl->B;
+   color->R = pxl->R;
+   color->G = pxl->G;
+   color->B = pxl->B;
 }
 
 /*
