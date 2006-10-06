@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtx.h,v 1.8 2006-10-05 05:17:18 mblaughton Exp $ */
+/* $Id: dmtx.h,v 1.9 2006-10-06 04:17:05 mblaughton Exp $ */
 
 #ifndef __DMTX_H__
 #define __DMTX_H__
@@ -152,8 +152,8 @@ typedef struct {
    DmtxChain       chain;
    DmtxMatrix3     raw2fit;
    DmtxMatrix3     fit2raw;
-   DmtxVector2     calibTopP0;
-   DmtxVector2     calibTopP1;
+   DmtxVector2     highHit;
+   int             gapCount;
    int             sizeIdx;
    int             dataRows;
    int             dataCols;
