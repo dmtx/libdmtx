@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.10 2006-10-06 02:59:14 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.11 2006-10-06 04:17:46 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -1007,12 +1007,11 @@ static int
 MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 {
    float t, m;
-   float currentCalibGap, maxCalibGap;
-   DmtxVector2 p0, px0, pTmp;
-   DmtxVector2 calibTopP0, calibTopP1;
+   int gapCount = 0, gapLength = 0, maxGapLength = 0;
+   DmtxVector2 p0, px0;
    DmtxColor3 color;
    DmtxMatrix3 s, sInv, sReg, sRegInv, m0, m1;
-   DmtxVector2 prevHit, prevStep, highHit, highHitX, prevCalibHit;
+   DmtxVector2 prevHit, prevStep, highHit, highHitX;
 
    dmtxMatrix3LineSkewTop(m0, 100.0, 75.0, 100.0);
    dmtxMatrix3Scale(m1, 1.25, 1.0);
@@ -1029,8 +1028,7 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 
    p0.X = 0.0;
    p0.Y = 100.0;
-   prevStep = prevHit = prevCalibHit = p0;
-   currentCalibGap = maxCalibGap = 0;
+   prevStep = prevHit = p0;
 
    highHit.X = highHit.Y = 100.0; // XXX add this for safety in case it's not found
 
@@ -1039,8 +1037,8 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
       dmtxColorFromImage(&color, &(decode->image), px0.X, px0.Y);
       t = dmtxDistanceAlongRay3(&(matrixRegion->gradient.ray), &color);
 
-//    if(decode && decode->xfrmPlotPointCallback)
-//       (*(decode->xfrmPlotPointCallback))(px0, sReg, 4, DMTX_DISPLAY_POINT);
+      if(decode && decode->xfrmPlotPointCallback)
+         (*(decode->xfrmPlotPointCallback))(px0, sReg, 4, DMTX_DISPLAY_POINT);
 
       // Bad notation whereby:
       //    prevStep captures every little step
@@ -1049,23 +1047,18 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
       // Need to move upward
       if(t > matrixRegion->gradient.tMid) {
 
-         if(p0.X - prevStep.X < DMTX_ALMOST_ZERO) {
+         // Need to move up, and previous move was right
+         if(p0.X - prevStep.X > DMTX_ALMOST_ZERO) {
 
-            currentCalibGap = p0.X - prevCalibHit.X;
-            if(currentCalibGap > maxCalibGap) {
-               maxCalibGap = currentCalibGap;
-
-               calibTopP0 = prevCalibHit;
-               calibTopP1 = p0;
-
-               dmtxMatrix3VMultiply(&pTmp, &prevCalibHit, sRegInv);
-               if(decode && decode->xfrmPlotPointCallback)
-                  (*(decode->xfrmPlotPointCallback))(pTmp, sReg, 4, DMTX_DISPLAY_POINT);
-
-               if(decode && decode->xfrmPlotPointCallback)
-                  (*(decode->xfrmPlotPointCallback))(px0, sReg, 4, DMTX_DISPLAY_POINT);
+            if(gapLength > 2*maxGapLength) {
+               maxGapLength = gapLength;
+               gapCount = 1;
             }
-            prevCalibHit = p0;
+            else if(gapLength > maxGapLength/2) {
+               gapCount++;
+            }
+
+            gapLength = 0; // no matter what, reset gapLength
          }
 
          prevStep = p0;
@@ -1073,18 +1066,22 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
       }
       // Need to advance to the right
       else {
-         // If higher than previous step
+         // Need to move right, and previous step was up
          if(fabs(p0.Y - prevStep.Y) > DMTX_ALMOST_ZERO) {
 
             // If it has been a while since previous hit
             if(p0.X - prevHit.X >= 3) {
                highHit = p0;
-               highHitX = px0; // XXX note: capturing transformed point... not useful except for displaying
+               highHitX = px0;
             }
             // Recent had a hit
             else {
                prevHit = p0;
             }
+         }
+         // Need to move right, and previous step was right
+         else {
+            gapLength++;
          }
 
          prevStep = p0;
@@ -1092,17 +1089,11 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
       }
    }
 
+   matrixRegion->gapCount = gapCount;
+   matrixRegion->highHit = highHitX; // Image coordinates
+
    dmtxMatrix3VMultiplyBy(&prevHit, sInv);
    dmtxMatrix3VMultiplyBy(&highHit, sInv);
-
-   // Store calibration points in raw image coordinate system
-   dmtxMatrix3VMultiply(&(matrixRegion->calibTopP0), &calibTopP0, sRegInv);
-   dmtxMatrix3VMultiply(&(matrixRegion->calibTopP1), &calibTopP1, sRegInv);
-
-   if(decode && decode->xfrmPlotPointCallback) {
-      (*(decode->xfrmPlotPointCallback))(matrixRegion->calibTopP0, sReg, 4, DMTX_DISPLAY_SQUARE);
-      (*(decode->xfrmPlotPointCallback))(matrixRegion->calibTopP1, sReg, 4, DMTX_DISPLAY_SQUARE);
-   }
 
    m = (highHit.Y - prevHit.Y)/(highHit.X - prevHit.X);
    matrixRegion->chain.by0 = (m * -prevHit.X) + prevHit.Y;
@@ -1213,17 +1204,12 @@ static int
 MatrixRegionEstimateSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 {
    int matrixSize;
-   float gapX;
-   DmtxVector2 p0, p1;
+   DmtxVector2 p0;
 
-   dmtxMatrix3VMultiply(&p0, &(matrixRegion->calibTopP0), matrixRegion->raw2fit);
-   dmtxMatrix3VMultiply(&p1, &(matrixRegion->calibTopP1), matrixRegion->raw2fit);
-
-   gapX = 200.0/(p1.X - p0.X);
+   dmtxMatrix3VMultiply(&p0, &(matrixRegion->highHit), matrixRegion->raw2fit);
+   matrixSize = 2 * (int)((matrixRegion->gapCount * 100)/p0.X + 0.5);
 
    // Round to nearest even number
-   matrixSize = 2 * (int)(gapX/2.0 + 0.5);
-
    if(matrixSize < 8)
       matrixSize = 8;
 
