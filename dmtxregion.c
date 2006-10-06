@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.11 2006-10-06 04:17:46 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.12 2006-10-06 04:42:51 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -1006,7 +1006,8 @@ count   1st    2nd
 static int
 MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 {
-   float t, m;
+   double t, m;
+   double stepSize;
    int gapCount = 0, gapLength = 0, maxGapLength = 0;
    DmtxVector2 p0, px0;
    DmtxColor3 color;
@@ -1029,6 +1030,10 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    p0.X = 0.0;
    p0.Y = 100.0;
    prevStep = prevHit = p0;
+
+   // Determine step size (90% of rough pixel length)
+   dmtxMatrix3VMultiply(&px0, &p0, sRegInv);
+   stepSize = 0.9 * (100.0/px0.Y);
 
    highHit.X = highHit.Y = 100.0; // XXX add this for safety in case it's not found
 
@@ -1062,7 +1067,7 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
          }
 
          prevStep = p0;
-         p0.Y += 0.1;
+         p0.Y += stepSize;
       }
       // Need to advance to the right
       else {
@@ -1085,7 +1090,7 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
          }
 
          prevStep = p0;
-         p0.X += 0.1;
+         p0.X += stepSize;
       }
    }
 
