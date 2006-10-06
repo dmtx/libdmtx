@@ -3,8 +3,8 @@ CC=gcc
 CFLAGS=-Wall -ggdb -pg
 LIBFLAGS=-fPIC
 SOURCES=dmtx.h dmtxstatic.h dmtx.c dmtxregion.c dmtxdecode.c dmtxencode.c \
-      dmtxplacemod.c dmtxgalois.c dmtxreedsol.c dmtxvector2.c dmtxvector3.c \
-      dmtxmatrix3.c dmtxcolor.c dmtximage.c dmtxcallback.c
+      dmtxplacemod.c dmtxgalois.c dmtxreedsol.c dmtxvector2.c dmtxmatrix3.c \
+      dmtxcolor3.c dmtximage.c dmtxcallback.c
 CHCON=/usr/bin/chcon
 
 libdmtx.so: libdmtx.so.0.3.0
