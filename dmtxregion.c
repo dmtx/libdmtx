@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.12 2006-10-06 04:42:51 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.13 2006-10-06 05:30:37 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -254,7 +254,7 @@ JumpScanNextRegion(DmtxJumpScan *jumpScan, DmtxDecode *decode)
    JumpRegionIncrement(region);
 
    anchor1Offset = dmtxImageGetOffset(&(decode->image), jumpScan->range.dir, range->lineNbr, region->anchor1);
-   dmtxColorFromPixel(&(region->gradient.color), &(decode->image.pxl[anchor1Offset]));
+   dmtxColor3FromPixel(&(region->gradient.color), &(decode->image.pxl[anchor1Offset]));
 
    // For each pixel in the range
    for(region->anchor2 = region->anchor1 + 1; region->anchor2 != range->lastPos; region->anchor2++) {
@@ -263,7 +263,7 @@ JumpScanNextRegion(DmtxJumpScan *jumpScan, DmtxDecode *decode)
 
       // Capture previous and current pixel color
       region->gradient.colorPrev = region->gradient.color;
-      dmtxColorFromPixel(&(region->gradient.color), &(decode->image.pxl[anchor2Offset]));
+      dmtxColor3FromPixel(&(region->gradient.color), &(decode->image.pxl[anchor2Offset]));
 
       // Measure color distance from previous pixel color
       dmtxColor3Sub(&cDist, &(region->gradient.color), &(region->gradient.colorPrev));
@@ -387,13 +387,13 @@ EdgeScanNextEdge(DmtxEdgeScan *edgeScan, DmtxDecode *decode, DmtxGradient *gradi
       if(edgeScan->edge.offset == edgeScan->range.firstPos) {
          pxlOffset = dmtxImageGetOffset(&(decode->image), edgeScan->range.dir,
                edgeScan->range.lineNbr, edgeScan->edge.offset);
-         dmtxColorFromPixel(&(edgeScan->edge.color), &(decode->image.pxl[pxlOffset]));
+         dmtxColor3FromPixel(&(edgeScan->edge.color), &(decode->image.pxl[pxlOffset]));
          edgeScan->edge.t = dmtxDistanceAlongRay3(&(gradient->ray), &(edgeScan->edge.color));
       }
 
       pxlOffset = dmtxImageGetOffset(&(decode->image), edgeScan->range.dir,
             edgeScan->range.lineNbr, edgeScan->edgeNext.offset);
-      dmtxColorFromPixel(&(edgeScan->edgeNext.color), &(decode->image.pxl[pxlOffset]));
+      dmtxColor3FromPixel(&(edgeScan->edgeNext.color), &(decode->image.pxl[pxlOffset]));
       edgeScan->edgeNext.t = dmtxDistanceAlongRay3(&(gradient->ray), &(edgeScan->edgeNext.color));
 
       // XXX This test should not be necessary, but loop boundaries are currently sketchy
@@ -631,9 +631,9 @@ EdgeFollowerIncrement(DmtxEdgeFollower *follow, DmtxDecode *decode)
       return DMTX_END_OF_RANGE;
 
    if(follow->dir & DmtxDirVertical)
-      dmtxColorFromPixel(&color0, &(decode->image.pxl[decode->image.width * follow->paraOffset + offset0]));
+      dmtxColor3FromPixel(&color0, &(decode->image.pxl[decode->image.width * follow->paraOffset + offset0]));
    else
-      dmtxColorFromPixel(&color0, &(decode->image.pxl[decode->image.width * offset0 + follow->paraOffset]));
+      dmtxColor3FromPixel(&color0, &(decode->image.pxl[decode->image.width * offset0 + follow->paraOffset]));
 
    t0 = dmtxDistanceAlongRay3(&(follow->ray), &color0);
 
@@ -649,9 +649,9 @@ EdgeFollowerIncrement(DmtxEdgeFollower *follow, DmtxDecode *decode)
          return DMTX_END_OF_RANGE;
 
       if(follow->dir & DmtxDirVertical)
-         dmtxColorFromPixel(&color1, &(decode->image.pxl[decode->image.width * follow->paraOffset + offset1]));
+         dmtxColor3FromPixel(&color1, &(decode->image.pxl[decode->image.width * follow->paraOffset + offset1]));
       else
-         dmtxColorFromPixel(&color1, &(decode->image.pxl[decode->image.width * offset1 + follow->paraOffset]));
+         dmtxColor3FromPixel(&color1, &(decode->image.pxl[decode->image.width * offset1 + follow->paraOffset]));
 
       t1 = dmtxDistanceAlongRay3(&(follow->ray), &color1);
 
@@ -1009,7 +1009,7 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    double t, m;
    double stepSize;
    int gapCount = 0, gapLength = 0, maxGapLength = 0;
-   DmtxVector2 p0, px0;
+   DmtxVector2 p0, px0, px1;
    DmtxColor3 color;
    DmtxMatrix3 s, sInv, sReg, sRegInv, m0, m1;
    DmtxVector2 prevHit, prevStep, highHit, highHitX;
@@ -1027,19 +1027,27 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    if(decode && decode->buildMatrixCallback3)
       (*(decode->buildMatrixCallback3))(sRegInv);
 
+   // Determine step size (90% of rough pixel length)
+   px0.X = 0.0;
+   px0.Y = 0.0;
+   px1.X = 0.0;
+   px1.Y = 100.0;
+   dmtxMatrix3VMultiplyBy(&px0, sRegInv);
+   dmtxMatrix3VMultiplyBy(&px1, sRegInv);
+   dmtxVector2SubFrom(&px1, &px0);
+   stepSize = dmtxVector2Mag(&px1);
+   assert(stepSize > DMTX_ALMOST_ZERO);
+   stepSize = 0.9 * (100.0/stepSize);
+
    p0.X = 0.0;
    p0.Y = 100.0;
    prevStep = prevHit = p0;
-
-   // Determine step size (90% of rough pixel length)
-   dmtxMatrix3VMultiply(&px0, &p0, sRegInv);
-   stepSize = 0.9 * (100.0/px0.Y);
 
    highHit.X = highHit.Y = 100.0; // XXX add this for safety in case it's not found
 
    while(p0.X < 100.0 && p0.Y < 300.0) { // XXX cap rise at 300.0 to prevent infinite loops
       dmtxMatrix3VMultiply(&px0, &p0, sRegInv);
-      dmtxColorFromImage(&color, &(decode->image), px0.X, px0.Y);
+      dmtxColor3FromImage(&color, &(decode->image), px0.X, px0.Y);
       t = dmtxDistanceAlongRay3(&(matrixRegion->gradient.ray), &color);
 
       if(decode && decode->xfrmPlotPointCallback)
@@ -1154,7 +1162,7 @@ MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    while(p0.Y < 100.0 && p0.X < 300.0) { // XXX 300.0 caps rise to prevent infinite loops
 // XXX infinite loop problem here... don't know why yet
       dmtxMatrix3VMultiply(&px0, &p0, sRegInv);
-      dmtxColorFromImage(&color, &(decode->image), px0.X, px0.Y);
+      dmtxColor3FromImage(&color, &(decode->image), px0.X, px0.Y);
       t = dmtxDistanceAlongRay3(&(matrixRegion->gradient.ray), &color);
 
       if(t >= matrixRegion->gradient.tMid) {
@@ -1321,7 +1329,7 @@ ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *de
       p.Y = (100.0/(matrixRegion->dataRows + 2)) * (row + sampleY[i]);
 
       dmtxMatrix3VMultiply(&p0, &p, matrixRegion->fit2raw);
-      dmtxColorFromImage(&cPoint, &(decode->image), p0.X, p0.Y);
+      dmtxColor3FromImage(&cPoint, &(decode->image), p0.X, p0.Y);
 
       dmtxColor3AddTo(&cAverage, &cPoint);
 
