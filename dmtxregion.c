@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.13 2006-10-06 05:30:37 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.14 2006-10-06 19:17:39 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -1220,11 +1220,18 @@ MatrixRegionEstimateSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    DmtxVector2 p0;
 
    dmtxMatrix3VMultiply(&p0, &(matrixRegion->highHit), matrixRegion->raw2fit);
+
    matrixSize = 2 * (int)((matrixRegion->gapCount * 100)/p0.X + 0.5);
 
-   // Round to nearest even number
+   // Round odd size estimates to next even number
+   if(matrixSize & 0x01)
+      matrixSize++;
+
+   // Clamp size estimate to acceptable range
    if(matrixSize < 8)
       matrixSize = 8;
+   else if(matrixSize > 144)
+      matrixSize = 144;
 
    return matrixSize;
 }
