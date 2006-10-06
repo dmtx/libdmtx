@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtx.h,v 1.9 2006-10-06 04:17:05 mblaughton Exp $ */
+/* $Id: dmtx.h,v 1.10 2006-10-06 05:29:51 mblaughton Exp $ */
 
 #ifndef __DMTX_H__
 #define __DMTX_H__
@@ -213,20 +213,6 @@ typedef struct {
    DmtxMatrixRegion matrix;
 } DmtxEncode;
 
-extern DmtxColor3 *dmtxColor3AddTo(DmtxColor3 *v1, DmtxColor3 *v2);
-extern DmtxColor3 *dmtxColor3Add(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
-extern DmtxColor3 *dmtxColor3SubFrom(DmtxColor3 *v1, DmtxColor3 *v2);
-extern DmtxColor3 *dmtxColor3Sub(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
-extern DmtxColor3 *dmtxColor3ScaleBy(DmtxColor3 *v, float s);
-extern DmtxColor3 *dmtxColor3Scale(DmtxColor3 *vOut, DmtxColor3 *v, float s);
-extern DmtxColor3 *dmtxColor3Cross(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
-extern float dmtxColor3Norm(DmtxColor3 *v);
-extern float dmtxColor3Dot(DmtxColor3 *v1, DmtxColor3 *v2);
-extern float dmtxColor3Mag(DmtxColor3 *v);
-extern float dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
-extern float dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
-extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, float t);
-
 extern DmtxVector2 *dmtxVector2AddTo(DmtxVector2 *v1, DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2Add(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2SubFrom(DmtxVector2 *v1, DmtxVector2 *v2);
@@ -258,11 +244,24 @@ extern void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz)
 extern void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, float b0, float b1, float sz);
 extern void dmtxMatrix3Print(DmtxMatrix3 m);
 
-extern void dmtxColorFromImage(DmtxColor3 *color, DmtxImage *image, int x, int y);
-extern void dmtxColorFromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p);
-extern void dmtxColorFromPixel(DmtxColor3 *color, DmtxPixel *pxl);
-extern void dmtxPixelFromColor(DmtxPixel *pxl, DmtxColor3 *color);
-extern DmtxColor3 dmtxColorAlongRay3(DmtxRay3 *ray, float dist);
+extern void dmtxColor3FromImage(DmtxColor3 *color, DmtxImage *image, int x, int y);
+extern void dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p);
+extern void dmtxColor3FromPixel(DmtxColor3 *color, DmtxPixel *pxl);
+extern void dmtxPixelFromColor3(DmtxPixel *pxl, DmtxColor3 *color);
+extern DmtxColor3 dmtxColor3AlongRay3(DmtxRay3 *ray, float dist);
+extern DmtxColor3 *dmtxColor3AddTo(DmtxColor3 *v1, DmtxColor3 *v2);
+extern DmtxColor3 *dmtxColor3Add(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
+extern DmtxColor3 *dmtxColor3SubFrom(DmtxColor3 *v1, DmtxColor3 *v2);
+extern DmtxColor3 *dmtxColor3Sub(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
+extern DmtxColor3 *dmtxColor3ScaleBy(DmtxColor3 *v, float s);
+extern DmtxColor3 *dmtxColor3Scale(DmtxColor3 *vOut, DmtxColor3 *v, float s);
+extern DmtxColor3 *dmtxColor3Cross(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
+extern float dmtxColor3Norm(DmtxColor3 *v);
+extern float dmtxColor3Dot(DmtxColor3 *v1, DmtxColor3 *v2);
+extern float dmtxColor3Mag(DmtxColor3 *v);
+extern float dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
+extern float dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
+extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, float t);
 
 extern int dmtxImageInit(DmtxImage *image);
 extern int dmtxImageDeInit(DmtxImage *image);
