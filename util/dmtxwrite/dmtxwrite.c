@@ -19,6 +19,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
+/* $Id: dmtxwrite.c,v 1.3 2006-10-09 23:22:33 mblaughton Exp $ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

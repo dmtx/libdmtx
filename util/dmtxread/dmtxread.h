@@ -19,6 +19,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
+/* $Id: dmtxread.h,v 1.5 2006-10-09 23:22:08 mblaughton Exp $ */
+
 #ifndef __DMTXREAD_H__
 #define __DMTXREAD_H__
 
