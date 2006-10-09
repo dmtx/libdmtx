@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxstatic.h,v 1.8 2006-10-05 05:19:27 mblaughton Exp $ */
+/* $Id: dmtxstatic.h,v 1.9 2006-10-09 17:19:15 mblaughton Exp $ */
 
 #define DMTX_END_OF_RANGE      5
 #define DMTX_EDGE_FOUND        6
@@ -100,7 +100,6 @@ static int PopulateArrayFromImage(DmtxMatrixRegion *matrixRegion, DmtxDecode *de
 
 /* dmtxdecode.c */
 static int DecodeRegion(DmtxMatrixRegion *matrixRegion);
-static int DecodeCheckErrors(DmtxMatrixRegion *matrixRegion);
 static void DecodeDataStream(DmtxMatrixRegion *matrixRegion);
 static unsigned char *NextEncodationScheme(DmtxEncScheme *encScheme, unsigned char *ptr);
 static unsigned char *DecodeSchemeAsciiStd(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
@@ -131,14 +130,13 @@ static void PatternShapeSpecial3(DmtxMatrixRegion *matrixRegion, unsigned char *
 static void PatternShapeSpecial4(DmtxMatrixRegion *matrixRegion, unsigned char *codeword);
 static void PlaceModule(DmtxMatrixRegion *matrixRegion, int row, int col, unsigned char *codeword, DmtxBitMask mask);
 
-/* dmtxgalois.c */
-static int GfSum(int a, int b);
-static int GfProduct(int a, int b);
-static int GfDoublify(int a, int b);
-
 /* dmtxreedsol.c */
 static void GenReedSolEcc(DmtxMatrixRegion *matrixRegion);
 static void SetEccPoly(unsigned char *g, int errorWordCount);
+static int DecodeCheckErrors(DmtxMatrixRegion *matrixRegion);
+static int GfSum(int a, int b);
+static int GfProduct(int a, int b);
+static int GfDoublify(int a, int b);
 
 /* Galois Field log values */
 static int logVal[] =
