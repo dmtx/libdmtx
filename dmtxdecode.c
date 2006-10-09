@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxdecode.c,v 1.8 2006-10-03 05:58:30 mblaughton Exp $ */
+/* $Id: dmtxdecode.c,v 1.9 2006-10-09 17:16:52 mblaughton Exp $ */
 
 /**
  *
@@ -120,31 +120,6 @@ DecodeRegion(DmtxMatrixRegion *matrixRegion)
    }
 
    DecodeDataStream(matrixRegion);
-
-   return DMTX_SUCCESS;
-}
-
-/**
- * XXX
- *
- * @param
- * @return XXX
- */
-static int
-DecodeCheckErrors(DmtxMatrixRegion *matrixRegion)
-{
-   int i, j;
-   unsigned char reg, a;
-
-   for(i = 0; i < errorWordLength[matrixRegion->sizeIdx]; i++) {
-      a = aLogVal[i+1];
-
-      for(j = 0, reg = 0; j < matrixRegion->codeSize; j++)
-         reg = GfSum(matrixRegion->code[j], GfProduct(a, reg));
-
-      if(reg != 0)
-         return DMTX_FAILURE;
-   }
 
    return DMTX_SUCCESS;
 }
