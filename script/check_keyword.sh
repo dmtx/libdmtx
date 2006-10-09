@@ -3,7 +3,7 @@
 TOTAL_COUNT=0
 FILES=$(find . -type f -name "*.[ch]")
 
-TEST="^\/\* \$Id: check_keyword.sh,v 1.1 2006-10-09 23:24:25 mblaughton Exp $ \*\/$"
+TEST="^\/\* \$\Id: .* \\$ \*\/\$"
 
 for file in $FILES; do
 
