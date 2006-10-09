@@ -31,8 +31,16 @@ util: libdmtx.so
 	make -C util/dmtxread
 	make -C util/dmtxwrite
 
-tarball:
-	make clean
+style:
+	scripts/check_comments.sh
+	scripts/check_copyright.sh
+	scripts/check_keyword.sh
+	scripts/check_license.sh
+	scripts/check_spacing.sh
+	scripts/check_todo.sh
+	scripts/check_whitespace.sh
+
+tarball: style clean
 	tar -cvf ../libdmtx.tar -C .. libdmtx
 	bzip2 -f ../libdmtx.tar
 
@@ -43,4 +51,4 @@ clean:
 	make -C util/dmtxread clean
 	make -C util/dmtxwrite clean
 
-.PHONY: all static test util tarball clean
+.PHONY: all static test util style tarball clean
