@@ -48,7 +48,14 @@ version 0.3:
   x Sample module color from more than one pixel location
   x Rename DmtxVector3 to DmtxColor3 and merge into dmtxcolor.c
   o Fix LoadPngImage() in dmtxread.c to return count (and indicate error)
-  o Begin building basic tests against code (trailing whitespace, cvs keywords, style rules, etc...)
+  o Build coding style test scripts
+    x check_keyword.sh
+    x check_license.sh
+    x check_whitespace.sh
+    o check_spacing.sh   (first N lines of files should match certain spacing pattern)
+    o check_comments.sh  (no solid lines of asterisks
+    o check_copyright.sh (verify copyright year reflects current year)
+    o check_todo.sh      (warning only: count number of todo/XXX notes in code)
   o Investigate reported memory leak
   o Try new approach to replace follower algorithm
     x Replace current calibration size estimate with new approach
@@ -69,7 +76,7 @@ version 0.3:
       o image <=  dmtxprint  <=  dmtxencode <=  data
 
 future versions:
-  o Add calibration functionality to remove sperical distortion
+  o Add calibration functionality to remove spherical distortion
   o Use libpng(3) to write Data Matrix images
   o Use libtool
   o Tune region detection to work better with captured (non-generated) images
@@ -78,7 +85,6 @@ future versions:
   o Implement fixed point math functions for use on mobile platforms
   o Implement pre-ECC200 Data Matrix standards (big effort/low demand)
   o Build test suite (regression/accuracy/performance/etc...)
-
 
 Notes on new follower algorithm replacement:
    Scrap the whole follower concept as we know it.  Everything is based on the
