@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxreedsol.c,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+/* $Id: dmtxreedsol.c,v 1.3 2006-10-09 17:18:10 mblaughton Exp $ */
 
 /**
  *
@@ -78,4 +78,70 @@ SetEccPoly(unsigned char *g, int errorWordCount)
             g[j] = GfSum(g[j], g[j-1]);  // g[j] += g[j-1]
       }
    }
+}
+
+/**
+ * XXX
+ *
+ * @param
+ * @return XXX
+ */
+static int
+DecodeCheckErrors(DmtxMatrixRegion *matrixRegion)
+{
+   int i, j;
+   unsigned char reg, a;
+
+   for(i = 0; i < errorWordLength[matrixRegion->sizeIdx]; i++) {
+      a = aLogVal[i+1];
+
+      for(j = 0, reg = 0; j < matrixRegion->codeSize; j++)
+         reg = GfSum(matrixRegion->code[j], GfProduct(a, reg));
+
+      if(reg != 0)
+         return DMTX_FAILURE;
+   }
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ *
+ * @param XXX
+ * @return XXX
+ */
+static int
+GfSum(int a, int b)
+{
+   return a ^ b;
+}
+
+/**
+ * a times b
+ * @param XXX
+ * @return XXX
+ */
+static int
+GfProduct(int a, int b)
+{
+   if(a == 0 || b == 0)
+      return 0;
+   else
+      return aLogVal[(logVal[a] + logVal[b]) % 255];
+}
+
+/**
+ *
+ * @param XXX
+ * @return XXX
+ */
+static int
+GfDoublify(int a, int b)
+{
+   if(a == 0) // XXX this is right, right?
+      return 0;
+   else if(b == 0)
+      return a; // XXX this is right, right?
+   else
+      return aLogVal[(logVal[a] + b) % 255];
 }
