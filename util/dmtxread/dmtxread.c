@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxread.c,v 1.8 2006-10-09 23:22:08 mblaughton Exp $ */
+/* $Id: dmtxread.c,v 1.9 2006-10-10 03:18:16 mblaughton Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -343,35 +343,37 @@ LoadPngImage(DmtxImage *image, char *imagePath)
    fp = fopen(imagePath, "rb");
    if(fp == NULL) {
       perror(programName);
-      return DMTX_FAILURE;
+      return 0;
    }
 
    fread(pngHeader, 1, sizeof(pngHeader), fp);
    isPng = !png_sig_cmp(pngHeader, 0, sizeof(pngHeader));
    if(!isPng)
-      return DMTX_FAILURE;
+      return 0;
 
    pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
-   if(pngPtr == NULL)
-      return DMTX_FAILURE;
+   if(pngPtr == NULL) {
+      png_destroy_read_struct(&pngPtr, (png_infopp)NULL, (png_infopp)NULL);
+      return 0;
+   }
 
    infoPtr = png_create_info_struct(pngPtr);
    if(infoPtr == NULL) {
       png_destroy_read_struct(&pngPtr, (png_infopp)NULL, (png_infopp)NULL);
-      return DMTX_FAILURE;
+      return 0;
    }
 
    endInfo = png_create_info_struct(pngPtr);
    if(endInfo == NULL) {
       png_destroy_read_struct(&pngPtr, &infoPtr, (png_infopp)NULL);
-      return DMTX_FAILURE;
+      return 0;
    }
 
    if(setjmp(png_jmpbuf(pngPtr))) {
       png_destroy_read_struct(&pngPtr, &infoPtr, &endInfo);
       fclose(fp);
-      return DMTX_FAILURE;
+      return 0;
    }
 
    png_init_io(pngPtr, fp);
@@ -398,9 +400,9 @@ LoadPngImage(DmtxImage *image, char *imagePath)
 
    rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * height);
    if(rowPointers == NULL) {
-//    perror("Error while during malloc for rowPointers"); // XXX shouldn't programName be passed instead?
       perror(programName);
-      return DMTX_FAILURE;
+      // free first?
+      return 0;
    }
 
    for(row = 0; row < height; row++) {
@@ -421,7 +423,8 @@ LoadPngImage(DmtxImage *image, char *imagePath)
          sizeof(DmtxPixel));
    if(image->pxl == NULL) {
       perror(programName);
-      return DMTX_FAILURE;
+      // free first?
+      return 0;
    }
 
    // This copy reverses row order top-to-bottom so image coordinate system
@@ -437,7 +440,7 @@ LoadPngImage(DmtxImage *image, char *imagePath)
 
    fclose(fp);
 
-   return DMTX_SUCCESS;
+   return 1;
 }
 
 /**
@@ -445,7 +448,7 @@ LoadPngImage(DmtxImage *image, char *imagePath)
  *
  * @param image    pointer to DmtxImage structure to be populated
  * @param filename path/name of PNG image
- * @return         DMTX_SUCCESS | DMTX_FAILURE
+ * @return         number of images loaded
  */
 static int
 LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex)
@@ -460,7 +463,7 @@ LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex)
    tif = TIFFOpen(imagePath, "r");
    if(tif == NULL) {
       perror(programName);
-      return DMTX_FAILURE;
+      return 0;
    }
 
    do {
@@ -472,7 +475,8 @@ LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex)
          raster = (uint32*) _TIFFmalloc(npixels * sizeof (uint32));
          if(raster == NULL) {
             perror(programName);
-            exit(2);
+            // free before returning
+            return 0;
          }
 
          if(TIFFReadRGBAImage(tif, w, h, raster, 0)) {
@@ -483,7 +487,8 @@ LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex)
             image->pxl = (DmtxPixel *)malloc(image->width * image->height * sizeof(DmtxPixel));
             if(image->pxl == NULL) {
                perror(programName);
-               return DMTX_FAILURE;
+               // free before returning
+               return 0;
             }
 
             // This copy reverses row order top-to-bottom so image coordinate system
