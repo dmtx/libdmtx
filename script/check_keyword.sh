@@ -9,7 +9,7 @@ for file in $FILES; do
 
    grep --silent "$TEST" $file
    if [[ $? -ne 0 ]]; then
-      echo -e "\nMissing revision control keyword: $file"
+      echo -e "\nMissing revision control keyword in $file"
       TOTAL_COUNT=$(( TOTAL_COUNT + 1 ))
    fi
 

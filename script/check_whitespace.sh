@@ -7,7 +7,7 @@ for file in $FILES; do
 
    LINE=$(grep -n " $" $file)
    if [[ $? -eq 0 ]]; then
-      echo -e "\nTrailing whitespace found: $file line:\n$LINE"
+      echo -e "\nTrailing whitespace found in $file on line(s):\n$LINE"
       TOTAL_COUNT=$(( TOTAL_COUNT + 1 ))
    fi
 

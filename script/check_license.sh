@@ -21,7 +21,7 @@ for file in $FILES; do
    FILE_COUNT=$(( FILE_COUNT + $? ))
 
    if [[ "$FILE_COUNT" -ne 0 ]]; then
-      echo -e "\nMissing license text: $file"
+      echo -e "\nMissing license text in $file"
       TOTAL_COUNT=$(( TOTAL_COUNT + 1 ))
    fi
 
