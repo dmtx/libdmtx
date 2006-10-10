@@ -1,6 +1,20 @@
 #!/bin/sh
 
-echo "not implemented yet" > /dev/null
-ERR=$?
+TOTAL_COUNT=0
+FILES=$(find . -type f -name "*.[ch]" -o -name "*.sh")
 
-exit $ERR
+for file in $FILES; do
+
+   LINE=$(grep -n "\*\{10\}" $file)
+   if [[ $? -eq 0 ]]; then
+      echo -e "\nBad comment style found in $file on line(s):\n$LINE"
+      TOTAL_COUNT=$(( TOTAL_COUNT + 1 ))
+   fi
+
+done
+
+if [[ "$TOTAL_COUNT" -gt 0 ]]; then
+   echo -e "\nProblems found by \"$(basename $0)\".  Aborting."
+fi
+
+exit $TOTAL_COUNT
