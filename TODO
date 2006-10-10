@@ -52,14 +52,21 @@ version 0.3:
     x check_keyword.sh
     x check_license.sh
     x check_whitespace.sh
+    / check_comments.sh  (no solid lines of asterisks)
     o check_spacing.sh   (first N lines of files should match certain spacing pattern)
-    o check_comments.sh  (no solid lines of asterisks
     o check_copyright.sh (verify copyright year reflects current year)
     o check_todo.sh      (warning only: count number of todo/XXX notes in code)
   o Try new approach to replace follower algorithm
     x Replace current calibration size estimate with new approach
     x Size step size dynamically according to pixel size
     o Beef up Align() logic to replace follower approach
+  o Capture high-level design into documentation
+    o Data flow and alternative module options
+    o Module analogies
+      o image  => dmtxregion  => dmtxdecode  => data
+      o image <=  dmtxprint  <=  dmtxencode <=  data
+
+next version:
   o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
   o Investigate reported memory leak
   o Remove arbitrary sz scaling (100.0) since it doesn't matter
@@ -69,11 +76,6 @@ version 0.3:
   o Implement remaining encodation schemes in dmtxencode.c (X12, Base 256, etc...)
   o Investigate option of embedding decoded text into PNG test image comments
   o Fix chcon error in Makefile (right answer might be to use autoconf)
-  o Capture high-level design into documentation
-    o Data flow and alternative module options
-    o Module analogies
-      o image  => dmtxregion  => dmtxdecode  => data
-      o image <=  dmtxprint  <=  dmtxencode <=  data
 
 future versions:
   o Add calibration functionality to remove spherical distortion
