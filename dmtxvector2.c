@@ -19,9 +19,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxvector2.c,v 1.3 2006-10-02 03:13:56 mblaughton Exp $ */
+/* $Id: dmtxvector2.c,v 1.4 2006-10-11 01:45:50 mblaughton Exp $ */
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern DmtxVector2 *
 dmtxVector2AddTo(DmtxVector2 *v1, DmtxVector2 *v2)
 {
@@ -31,7 +34,10 @@ dmtxVector2AddTo(DmtxVector2 *v1, DmtxVector2 *v2)
    return v1;
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern DmtxVector2 *
 dmtxVector2Add(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2)
 {
@@ -40,7 +46,10 @@ dmtxVector2Add(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2)
    return dmtxVector2AddTo(vOut, v2);
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern DmtxVector2 *
 dmtxVector2SubFrom(DmtxVector2 *v1, DmtxVector2 *v2)
 {
@@ -50,7 +59,10 @@ dmtxVector2SubFrom(DmtxVector2 *v1, DmtxVector2 *v2)
    return v1;
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern DmtxVector2 *
 dmtxVector2Sub(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2)
 {
@@ -59,7 +71,10 @@ dmtxVector2Sub(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2)
    return dmtxVector2SubFrom(vOut, v2);
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern DmtxVector2 *
 dmtxVector2ScaleBy(DmtxVector2 *v, float s)
 {
@@ -69,7 +84,10 @@ dmtxVector2ScaleBy(DmtxVector2 *v, float s)
    return v;
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern DmtxVector2 *
 dmtxVector2Scale(DmtxVector2 *vOut, DmtxVector2 *v, float s)
 {
@@ -78,14 +96,20 @@ dmtxVector2Scale(DmtxVector2 *vOut, DmtxVector2 *v, float s)
    return dmtxVector2ScaleBy(vOut, s);
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern float
 dmtxVector2Cross(DmtxVector2 *v1, DmtxVector2 *v2)
 {
    return (v1->X * v2->Y) - (v1->Y * v2->X);
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern float
 dmtxVector2Norm(DmtxVector2 *v)
 {
@@ -100,21 +124,30 @@ dmtxVector2Norm(DmtxVector2 *v)
    return mag;
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern float
 dmtxVector2Dot(DmtxVector2 *v1, DmtxVector2 *v2)
 {
    return (v1->X * v2->X) + (v1->Y * v2->Y);
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern float
 dmtxVector2Mag(DmtxVector2 *v)
 {
    return sqrt(v->X * v->X + v->Y * v->Y);
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern float
 dmtxDistanceFromRay2(DmtxRay2 *r, DmtxVector2 *q)
 {
@@ -126,7 +159,10 @@ dmtxDistanceFromRay2(DmtxRay2 *r, DmtxVector2 *q)
    return dmtxVector2Cross(&(r->v), dmtxVector2Sub(&vSubTmp, q, &(r->p)));
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern float
 dmtxDistanceAlongRay2(DmtxRay2 *r, DmtxVector2 *q)
 {
@@ -142,7 +178,10 @@ dmtxDistanceAlongRay2(DmtxRay2 *r, DmtxVector2 *q)
    return dmtxVector2Dot(dmtxVector2Sub(&vSubTmp, q, &(r->p)), &(r->v));
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern int
 dmtxRay2Intersect(DmtxVector2 *point, DmtxRay2 *p0, DmtxRay2 *p1)
 {
@@ -159,7 +198,10 @@ dmtxRay2Intersect(DmtxVector2 *point, DmtxRay2 *p0, DmtxRay2 *p1)
    return dmtxPointAlongRay2(point, p0, numer/denom);
 }
 
-/****************************************************************************/
+/*
+ *
+ *
+ */
 extern int
 dmtxPointAlongRay2(DmtxVector2 *point, DmtxRay2 *r, float t)
 {
