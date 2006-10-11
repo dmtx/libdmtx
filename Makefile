@@ -15,7 +15,7 @@ libdmtx.so: libdmtx.so.0.3.0
 	# go away when we start installing the library to a valid lib dir.
 
 libdmtx.so.0.3.0: $(SOURCES)
-	$(CC) $(CFLAGS) -shared -Wl,-soname,libdmtx.so.1 -Wl,-export-dynamic \
+	$(CC) $(CFLAGS) $(LIBFLAGS) -shared -Wl,-soname,libdmtx.so.1 -Wl,-export-dynamic \
 		-o libdmtx.so.0.3.0 dmtx.c -lc -lm
 
 all: test util
