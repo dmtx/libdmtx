@@ -47,3 +47,34 @@ you try it and have a minute to spare, please drop me an email at
 mike@dragonflylogic.com to let me know how it went.  I don't need
 much information, but if you could let me know about your
 experience it would be incredibly helpful.
+
+DEPENDENCIES
+-----------------------------------------------------------------
+libdmtx:
+   none?
+
+gltest:
+   mesa-libGL
+   mesa-libGL-devel
+   mesa-libGLU
+   mesa-libGLU-devel
+   SDL
+   SDL-devel
+   libpng
+   libpng-devel
+
+simpletest:
+   none?
+
+dmtxread:
+   libpng
+   libpng-devel
+   libtiff
+   libtiff-devel
+
+dmtxwrite:
+   none?
+
+$ rpm -q libpng libpng-devel libtiff libtiff-devel mesa-libGL \
+         mesa-libGL-devel mesa-libGLU mesa-libGLU-devel SDL SDL-devel
+
