@@ -11,6 +11,12 @@ for file in $FILES; do
       TOTAL_COUNT=$(( TOTAL_COUNT + 1 ))
    fi
 
+   LINE=$(sed -n '2,$ p' $file | grep -n "^\/\*\$")
+   if [[ $? -eq 0 ]]; then
+      echo -e "\nBad comment style found in $file on line(s):\n$LINE"
+      TOTAL_COUNT=$(( TOTAL_COUNT + 1 ))
+   fi
+
 done
 
 if [[ "$TOTAL_COUNT" -gt 0 ]]; then
