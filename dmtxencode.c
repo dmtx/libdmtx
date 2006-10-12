@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxencode.c,v 1.4 2006-10-05 05:20:19 mblaughton Exp $ */
+/* $Id: dmtxencode.c,v 1.5 2006-10-12 20:49:40 mblaughton Exp $ */
 
 /**
  *
@@ -317,7 +317,6 @@ PrintPattern(DmtxEncode *encode)
    DmtxMatrix3 m1, m2, m3;
    DmtxVector2 vIn, vOut;
    DmtxPixel black, white;
-   FILE *output;
 
    // Print ASCII rendition of barcode pattern
    for(row = 0; row < encode->matrix.dataRows + 2; row++) {
@@ -398,21 +397,4 @@ PrintPattern(DmtxEncode *encode)
          }
       }
    }
-
-   // Print crude PNM-format image
-   // IMPORTANT: Must flip rows top-to-bottom to account for PNM "top-left" origin
-   output = fopen("output.pnm", "wb");
-   if(output == NULL) {
-      perror("Unable to open file");
-      exit(3);
-   }
-   fprintf(output, "P6 %d %d 255 ", encode->image.width, encode->image.height);
-   for(row = 0; row < encode->image.height; row++) {
-      for(col = 0; col < encode->image.width; col++) {
-         fprintf(output, "%c", encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].R);
-         fprintf(output, "%c", encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].G);
-         fprintf(output, "%c", encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].B);
-      }
-   }
-   fclose(output);
 }
