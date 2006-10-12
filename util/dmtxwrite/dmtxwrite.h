@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxwrite.h,v 1.2 2006-10-09 23:22:33 mblaughton Exp $ */
+/* $Id: dmtxwrite.h,v 1.3 2006-10-12 18:22:39 mblaughton Exp $ */
 
 #ifndef __DMTXWRITE_H__
 #define __DMTXWRITE_H__
@@ -43,6 +43,7 @@ typedef struct {
    DmtxPixel bgColor;   // RGB
    DmtxPixel fgColor;   // RGB
    int verbose;         // X
+   char *outputPath;
 } ScanOptions;          // X
 
 #endif
