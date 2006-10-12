@@ -19,9 +19,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxmatrix3.c,v 1.4 2006-09-30 06:21:22 mblaughton Exp $ */
+/* $Id: dmtxmatrix3.c,v 1.5 2006-10-12 18:05:16 mblaughton Exp $ */
 
-/*
+/**
  *
  */
 void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1)
@@ -29,7 +29,7 @@ void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1)
    *(DmtxMatrix3Struct *)m0 = *(DmtxMatrix3Struct *)m1;
 }
 
-/*
+/**
  * Create Identity Transformation
  *
  *      | 1  0  0 |
@@ -54,7 +54,7 @@ void dmtxMatrix3Identity(DmtxMatrix3 m)
    dmtxMatrix3Copy(m, tmp);
 }
 
-/*
+/**
  * Translate Transformation
  *
  *      | 1  0  0 |
@@ -78,7 +78,7 @@ void dmtxMatrix3Translate(DmtxMatrix3 m, float tx, float ty)
    m[2][1] = ty;
 }
 
-/*
+/**
  * Rotate Transformation
  *
  *     |  cos(a)  sin(a)  0 |
@@ -108,7 +108,7 @@ void dmtxMatrix3Rotate(DmtxMatrix3 m, double angle)
    m[1][1] = cosAngle;
 }
 
-/*
+/**
  * Scale Transformation
  *
  *     | sx 0  0 |
@@ -132,7 +132,7 @@ void dmtxMatrix3Scale(DmtxMatrix3 m, float sx, float sy)
    m[1][1] = sy;
 }
 
-/*
+/**
  * Shear Transformation
  */
 void dmtxMatrix3Shear(DmtxMatrix3 m, float shx, float shy)
@@ -142,7 +142,7 @@ void dmtxMatrix3Shear(DmtxMatrix3 m, float shx, float shy)
    m[0][1] = shy;
 }
 
-/*
+/**
  *
  */
 DmtxVector2 *dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m)
@@ -155,7 +155,7 @@ DmtxVector2 *dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m)
    return v;
 }
 
-/*
+/**
  *
  */
 DmtxVector2 *dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m)
@@ -173,7 +173,7 @@ DmtxVector2 *dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatri
    return vOut;
 }
 
-/*
+/**
  *
  */
 void dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1)
@@ -192,7 +192,7 @@ void dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1)
    }
 }
 
-/*
+/**
  *
  */
 void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
@@ -203,7 +203,7 @@ void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
    dmtxMatrix3Multiply(m0, mTmp, m1);
 }
 
-/*
+/**
  * Line Skew (Remove Perspective) Transformation
  *
  *     | b1/b0    0    (b1-b0)/(sz*b0) |
@@ -234,7 +234,7 @@ void dmtxMatrix3LineSkewTop(DmtxMatrix3 m, float b0, float b1, float sz)
    m[0][2] = (b1 - b0)/(sz*b0);
 }
 
-/*
+/**
  *
  */
 void dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, float b0, float b1, float sz)
@@ -247,7 +247,7 @@ void dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, float b0, float b1, float sz)
    m[0][2] = (b0 - b1)/(sz*b1);
 }
 
-/*
+/**
  *
  */
 void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz)
@@ -260,7 +260,7 @@ void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz)
    m[1][2] = (b1 - b0)/(sz*b0);
 }
 
-/*
+/**
  *
  */
 void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, float b0, float b1, float sz)
@@ -273,7 +273,7 @@ void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, float b0, float b1, float sz)
    m[1][2] = (b0 - b1)/(sz*b1);
 }
 
-/*
+/**
  *
  */
 void dmtxMatrix3Print(DmtxMatrix3 m)

@@ -19,9 +19,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxcolor3.c,v 1.2 2006-10-06 21:34:22 mblaughton Exp $ */
+/* $Id: dmtxcolor3.c,v 1.3 2006-10-12 18:04:27 mblaughton Exp $ */
 
-/*
+/**
  *
  *
  */
@@ -38,7 +38,7 @@ dmtxColor3FromImage(DmtxColor3 *color, DmtxImage *image, int x, int y)
    }
 }
 
-/*
+/**
  *
  *
  */
@@ -70,7 +70,7 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
    dmtxColor3AddTo(color, &clrUR);
 }
 
-/*
+/**
  *
  *
  */
@@ -82,7 +82,7 @@ dmtxColor3FromPixel(DmtxColor3 *color, DmtxPixel *pxl)
    color->B = pxl->B;
 }
 
-/*
+/**
  *
  *
  */
@@ -94,7 +94,7 @@ dmtxPixelFromColor3(DmtxPixel *pxl, DmtxColor3 *color)
    pxl->B = (int)(color->B + 0.5);
 }
 
-/*
+/**
  *
  *
  */
@@ -110,7 +110,7 @@ dmtxColor3AlongRay3(DmtxRay3 *ray, float dist)
    return(color);
 }
 
-/*
+/**
  *
  *
  */
@@ -124,7 +124,7 @@ dmtxColor3AddTo(DmtxColor3 *c1, DmtxColor3 *c2)
    return c1;
 }
 
-/*
+/**
  *
  *
  */
@@ -136,7 +136,7 @@ dmtxColor3Add(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
    return dmtxColor3AddTo(cOut, c2);
 }
 
-/*
+/**
  *
  *
  */
@@ -150,7 +150,7 @@ dmtxColor3SubFrom(DmtxColor3 *c1, DmtxColor3 *c2)
    return c1;
 }
 
-/*
+/**
  *
  *
  */
@@ -162,7 +162,7 @@ dmtxColor3Sub(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
    return dmtxColor3SubFrom(cOut, c2);
 }
 
-/*
+/**
  *
  *
  */
@@ -176,7 +176,7 @@ dmtxColor3ScaleBy(DmtxColor3 *c, float s)
    return c;
 }
 
-/*
+/**
  *
  *
  */
@@ -188,7 +188,7 @@ dmtxColor3Scale(DmtxColor3 *cOut, DmtxColor3 *c, float s)
    return dmtxColor3ScaleBy(cOut, s);
 }
 
-/*
+/**
  *
  *
  */
@@ -202,7 +202,7 @@ dmtxColor3Cross(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
    return cOut;
 }
 
-/*
+/**
  *
  *
  */
@@ -221,7 +221,7 @@ dmtxColor3Norm(DmtxColor3 *c)
    return mag;
 }
 
-/*
+/**
  *
  *
  */
@@ -232,7 +232,7 @@ dmtxColor3Dot(DmtxColor3 *c1, DmtxColor3 *c2)
    return (c1->R * c2->R) + (c1->G * c2->G) + (c1->B * c2->B);
 }
 
-/*
+/**
  *
  *
  */
@@ -242,7 +242,7 @@ dmtxColor3Mag(DmtxColor3 *c)
    return sqrt(c->R * c->R + c->G * c->G + c->B * c->B);
 }
 
-/*
+/**
  *
  *
  */
@@ -258,7 +258,7 @@ dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q)
    return dmtxColor3Mag(dmtxColor3Cross(&cCrossTmp, &(r->c), dmtxColor3Sub(&cSubTmp, q, &(r->p))));
 }
 
-/*
+/**
  *
  *
  */
@@ -273,7 +273,7 @@ dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q)
    return dmtxColor3Dot(dmtxColor3Sub(&cSubTmp, q, &(r->p)), &(r->c));
 }
 
-/*
+/**
  *
  *
  */

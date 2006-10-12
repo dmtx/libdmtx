@@ -19,9 +19,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxvector2.c,v 1.4 2006-10-11 01:45:50 mblaughton Exp $ */
+/* $Id: dmtxvector2.c,v 1.5 2006-10-12 18:05:37 mblaughton Exp $ */
 
-/*
+/**
  *
  *
  */
@@ -34,7 +34,7 @@ dmtxVector2AddTo(DmtxVector2 *v1, DmtxVector2 *v2)
    return v1;
 }
 
-/*
+/**
  *
  *
  */
@@ -46,7 +46,7 @@ dmtxVector2Add(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2)
    return dmtxVector2AddTo(vOut, v2);
 }
 
-/*
+/**
  *
  *
  */
@@ -59,7 +59,7 @@ dmtxVector2SubFrom(DmtxVector2 *v1, DmtxVector2 *v2)
    return v1;
 }
 
-/*
+/**
  *
  *
  */
@@ -71,7 +71,7 @@ dmtxVector2Sub(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2)
    return dmtxVector2SubFrom(vOut, v2);
 }
 
-/*
+/**
  *
  *
  */
@@ -84,7 +84,7 @@ dmtxVector2ScaleBy(DmtxVector2 *v, float s)
    return v;
 }
 
-/*
+/**
  *
  *
  */
@@ -96,7 +96,7 @@ dmtxVector2Scale(DmtxVector2 *vOut, DmtxVector2 *v, float s)
    return dmtxVector2ScaleBy(vOut, s);
 }
 
-/*
+/**
  *
  *
  */
@@ -106,7 +106,7 @@ dmtxVector2Cross(DmtxVector2 *v1, DmtxVector2 *v2)
    return (v1->X * v2->Y) - (v1->Y * v2->X);
 }
 
-/*
+/**
  *
  *
  */
@@ -124,7 +124,7 @@ dmtxVector2Norm(DmtxVector2 *v)
    return mag;
 }
 
-/*
+/**
  *
  *
  */
@@ -134,7 +134,7 @@ dmtxVector2Dot(DmtxVector2 *v1, DmtxVector2 *v2)
    return (v1->X * v2->X) + (v1->Y * v2->Y);
 }
 
-/*
+/**
  *
  *
  */
@@ -144,7 +144,7 @@ dmtxVector2Mag(DmtxVector2 *v)
    return sqrt(v->X * v->X + v->Y * v->Y);
 }
 
-/*
+/**
  *
  *
  */
@@ -159,7 +159,7 @@ dmtxDistanceFromRay2(DmtxRay2 *r, DmtxVector2 *q)
    return dmtxVector2Cross(&(r->v), dmtxVector2Sub(&vSubTmp, q, &(r->p)));
 }
 
-/*
+/**
  *
  *
  */
@@ -178,7 +178,7 @@ dmtxDistanceAlongRay2(DmtxRay2 *r, DmtxVector2 *q)
    return dmtxVector2Dot(dmtxVector2Sub(&vSubTmp, q, &(r->p)), &(r->v));
 }
 
-/*
+/**
  *
  *
  */
@@ -198,7 +198,7 @@ dmtxRay2Intersect(DmtxVector2 *point, DmtxRay2 *p0, DmtxRay2 *p1)
    return dmtxPointAlongRay2(point, p0, numer/denom);
 }
 
-/*
+/**
  *
  *
  */

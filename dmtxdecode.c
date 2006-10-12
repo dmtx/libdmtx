@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxdecode.c,v 1.9 2006-10-09 17:16:52 mblaughton Exp $ */
+/* $Id: dmtxdecode.c,v 1.10 2006-10-12 18:04:52 mblaughton Exp $ */
 
 /**
  *
@@ -466,7 +466,7 @@ DecodeSchemeBase256(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned
  * @param XXX
  * @return XXX
  */
-/*
+/**
 static unsigned char
 UnRandomize253State(unsigned char codewordValue, int codewordPosition)
 {
