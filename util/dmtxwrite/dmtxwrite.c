@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxwrite.c,v 1.3 2006-10-09 23:22:33 mblaughton Exp $ */
+/* $Id: dmtxwrite.c,v 1.4 2006-10-12 18:23:44 mblaughton Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,10 +36,12 @@ Contact: mike@dragonflylogic.com
 
 #define MIN(x,y) ((x < y) ? x : y)
 
+static void InitScanOptions(ScanOptions *options);
 static int HandleArgs(ScanOptions *options, int *argcp, char **argvp[], DmtxEncode *encode);
 static long StringToLong(char *numberString);
 static void ShowUsage(int status);
 static void FatalError(int errorCode, char *fmt, ...);
+static void WriteImagePnm(DmtxEncode *encode, char *path);
 
 char *programName;
 
@@ -59,16 +61,31 @@ main(int argc, char *argv[])
 
    encode = dmtxEncodeCreate();
 
-   err = HandleArgs(&options, &argc, &argv, encode);
+   InitScanOptions(&options);
 
+   err = HandleArgs(&options, &argc, &argv, encode);
    if(err)
       ShowUsage(err);
-   else
-      dmtxEncodeData(encode, options.inputString);
+
+   dmtxEncodeData(encode, options.inputString);
+
+   WriteImagePnm(encode, options.outputPath);
 
    dmtxEncodeDestroy(&encode);
 
    exit(0);
+}
+
+/**
+ *
+ *
+ */
+static void
+InitScanOptions(ScanOptions *options)
+{
+   memset(options, 0x00, sizeof(ScanOptions));
+
+   options->outputPath = "encode.pnm";
 }
 
 /**
@@ -105,8 +122,6 @@ HandleArgs(ScanOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
    if(programName && strrchr(programName, '/'))
       programName = strrchr(programName, '/') + 1;
 
-   memset(options, 0x00, sizeof(ScanOptions));
-
    for(;;) {
       opt = getopt_long(*argcp, *argvp, "o:f:e:s:tm:d:r:b:c:V", longOptions, &longIndex);
       if(opt == -1)
@@ -117,6 +132,8 @@ HandleArgs(ScanOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             ShowUsage(0);
             break;
          case 'o':
+            options->outputPath = optarg;
+            break;
          case 'f':
          case 'e':
          case 's':
@@ -269,4 +286,31 @@ FatalError(int errorCode, char *fmt, ...)
    fflush(stderr);
 
    exit(errorCode);
+}
+
+/**
+ *
+ */
+static void
+WriteImagePnm(DmtxEncode *encode, char *path)
+{
+   int row, col;
+   FILE *output;
+
+   // Flip rows top-to-bottom to account for PNM "top-left" origin
+   output = fopen(path, "wb");
+   if(output == NULL) {
+      perror(programName);
+      exit(3);
+   }
+
+   fprintf(output, "P6 %d %d 255 ", encode->image.width, encode->image.height);
+   for(row = 0; row < encode->image.height; row++) {
+      for(col = 0; col < encode->image.width; col++) {
+         fprintf(output, "%c", encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].R);
+         fprintf(output, "%c", encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].G);
+         fprintf(output, "%c", encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].B);
+      }
+   }
+   fclose(output);
 }
