@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxread.c,v 1.9 2006-10-10 03:18:16 mblaughton Exp $ */
+/* $Id: dmtxread.c,v 1.10 2006-10-12 18:18:52 mblaughton Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -45,8 +45,8 @@ static void ShowUsage(int status);
 static void FatalError(int errorCode, char *fmt, ...);
 static ImageFormat GetImageFormat(char *imagePath);
 static int LoadImage(DmtxImage *image, char *imagePath, int imageIndex);
-static int LoadPngImage(DmtxImage *image, char *imagePath);
-static int LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex);
+static int LoadImagePng(DmtxImage *image, char *imagePath);
+static int LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex);
 static int ScanImage(ScanOptions *options, DmtxDecode *decode, char *prefix);
 
 char *programName;
@@ -306,10 +306,10 @@ LoadImage(DmtxImage *image, char *imagePath, int imageIndex)
 
    switch(imageFormat) {
       case ImageFormatPng:
-         imageCount = LoadPngImage(image, imagePath);
+         imageCount = LoadImagePng(image, imagePath);
          break;
       case ImageFormatTiff:
-         imageCount = LoadTiffImage(image, imagePath, imageIndex);
+         imageCount = LoadImageTiff(image, imagePath, imageIndex);
          break;
       default:
          imageCount = 0;
@@ -327,7 +327,7 @@ LoadImage(DmtxImage *image, char *imagePath, int imageIndex)
  * @return          DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-LoadPngImage(DmtxImage *image, char *imagePath)
+LoadImagePng(DmtxImage *image, char *imagePath)
 {
    png_byte        pngHeader[8];
    FILE            *fp;
@@ -451,7 +451,7 @@ LoadPngImage(DmtxImage *image, char *imagePath)
  * @return         number of images loaded
  */
 static int
-LoadTiffImage(DmtxImage *image, char *imagePath, int imageIndex)
+LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex)
 {
    int dirIndex = 0;
    TIFF* tif;
