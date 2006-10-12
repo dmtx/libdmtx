@@ -2,7 +2,8 @@ SHELL=/bin/sh
 CC=gcc
 INCLUDE=-I../..
 LIBS=-lpng -ltiff -lm
-CFLAGS=-Wall -ggdb -pg
+#CFLAGS=-Wall -ggdb -pg
+CFLAGS=-Wall -ggdb
 
 static: dmtxread.c dmtx.o
 	$(CC) $(INCLUDE) $(CFLAGS) dmtxread.c -c
