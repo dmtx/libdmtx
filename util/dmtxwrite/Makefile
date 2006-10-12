@@ -2,7 +2,8 @@ SHELL=/bin/sh
 CC=gcc
 INCLUDE=-I../..
 LIBS=-lm
-CFLAGS=-Wall -ggdb -pg
+#CFLAGS=-Wall -ggdb -pg
+CFLAGS=-Wall -ggdb
 
 static: dmtxwrite.c dmtx.o
 	$(CC) $(INCLUDE) $(CFLAGS) dmtxwrite.c -c
@@ -16,6 +17,6 @@ dynamic: dmtxwrite.c
 	$(CC) $(INCLUDE) $(CFLAGS) $(LIBS) -L../.. -ldmtx dmtxwrite.c -o dmtxwrite
 
 clean:
-	rm -f *.o dmtxwrite gmon.out output.pnm
+	rm -f *.o dmtxwrite gmon.out *.pnm
 
 .PHONY: static dynamic clean
