@@ -21,14 +21,15 @@ for file in $FILES; do
    FILE_COUNT=$(( FILE_COUNT + $? ))
 
    if [[ "$FILE_COUNT" -ne 0 ]]; then
-      echo -e "\nMissing license text in $file"
+      echo "Missing license text in $file"
       TOTAL_COUNT=$(( TOTAL_COUNT + 1 ))
    fi
 
 done
 
 if [[ "$TOTAL_COUNT" -gt 0 ]]; then
-   echo -e "\nProblems found by \"$(basename $0)\".  Aborting."
+   echo "Problems found by \"$(basename $0)\".  Aborting."
+   exit 1
 fi
 
-exit $COUNT
+exit 0

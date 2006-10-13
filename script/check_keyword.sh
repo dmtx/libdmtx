@@ -9,14 +9,15 @@ for file in $FILES; do
 
    grep --silent "$TEST" $file
    if [[ $? -ne 0 ]]; then
-      echo -e "\nMissing revision control keyword in $file"
+      echo "Missing revision control keyword in $file"
       TOTAL_COUNT=$(( TOTAL_COUNT + 1 ))
    fi
 
 done
 
 if [[ "$TOTAL_COUNT" -gt 0 ]]; then
-   echo -e "\nProblems found by \"$(basename $0)\".  Aborting."
+   echo "Problems found by \"$(basename $0)\".  Aborting."
+   exit 1
 fi
 
-exit $COUNT
+exit 0
