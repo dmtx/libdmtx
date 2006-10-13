@@ -1,57 +1,98 @@
-Installing libdmtx
+Building and Installing libdmtx
 -----------------------------------------------------------------
+
+1. libdmtx - Building the Core Library
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 I haven't taken the time to get autoconf(1) set up for this
-package, and it's not designed to install in the normal library
-locations (/usr/lib, /usr/local/lib, etc...).  Instead, it will
-build in the source directory and you can run the test program
-from its own source directory.
+package, and it's not currently designed to install to the
+normal library locations (/usr/lib, /usr/local/lib, etc...).
+Instead, it will build in the source directory and the test
+and utility programs will reference it from their own source
+directories.
 
-To build libdmtx:
-   $ make
+Because of this oversimplification, however, the build process
+can be quite straightforward.  To build libdmtx, simply:
 
-(that was easy)
+   $ make all
 
-You may get an error from the chcon command in the Makefile.  It
-is there due to an SELinux issue that I ran into when I first
-upgraded to Fedora Core 5.  It doesn't seem to be necessary
-anymore, but I'm leaving it in until I have more time to
-experiment.  For now, just ignore the error.
+But how often does that actually work on the first try,
+right?  WHEN you get build errors, you should:
 
-The test program is located in the "libdmtx/test/gltest"
-directory.  Like before, just run "make" to build it.  The gltest
-program uses OpenGL (Mesa) to simulate raw camera input.  If it
-successfully finds and decodes a Data Matrix symbol then it will
-write the decoded stream to STDOUT.
+a) Try "make all" again.  I know, this is stupid.  But
+   sometimes it works because there is a problem with the
+   SELinux context that causes the build to break in some
+   distos.  Usually the actual compile works fine though,
+   so the error is just an annoyance that is skipped the
+   second time around.
 
-Note that if you want to run the gltest binary directly you first
-have to point LD_LIBRARY_PATH to the directory where libdmtx.so
-was built.  You can do it like this:
+b) If that doesn't work then next you should check that you
+   have all the necessary packages installed.  See the
+   "Dependencies" section below for details.
 
-   $ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:}../..
+c) If you have done these steps and it still won't build then
+   please post a message to the libdmtx "Help" forum at
+   http://sourceforge.net/forum/forum.php?forum_id=513654
+   so that we can review your issue and the solution can be
+   found by others who are experiencing the same problem.
 
-or simply run the script "run_gltest.sh", which does it for you
-automatically.
+Other make targets include:
+   $ make static   Build an object file for static linking
+   $ make test     Build test programs
+   $ make util     Build utility programs
+   $ make style    Test code for style issues
+   $ make tarball  Build a clean & pressed tarball
+   $ make clean    Remove non-permanent files
 
-The gltest program is somewhat boring if you don't know that you
-can right-click to cycle through the test images.  To add your
-own images, just overwrite any image in the
-libdmtx/test/test_images directory with another 256x256 PNG file.
-If you want to add new images (instead of overwriting) then you
-will have to update the gFilename[] and gFileCount variables at
-the top of gltest.c to include them.
 
-I have only tried running this on Fedora 4 & 5, and have no
-reason to believe that it will work anywhere else.  In fact, if
-you try it and have a minute to spare, please drop me an email at
-mike@dragonflylogic.com to let me know how it went.  I don't need
-much information, but if you could let me know about your
-experience it would be incredibly helpful.
+2. Building the Test Programs: gltest and simpletest
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-DEPENDENCIES
------------------------------------------------------------------
+The test program directories are located under libdmtx/test.
+You can just run "make" in either directory to build either
+program.  If you already ran "make all" above, then it will
+tell you there is nothing left to do.  Again, if there are
+any problems during the build then be sure to check your
+packages against the dependencies listed in the section below.
+
+The gltest program uses OpenGL (Mesa) to simulate raw camera
+input.  If it successfully finds and decodes a Data Matrix
+symbol then it will write the decoded stream to STDOUT.  The
+program uses the images from the libdmtx/test/test_images
+directory, and you can cycle through them by right-clicking
+anywhere on the open gltest window.
+
+The simpletest program is a simple test program.
+
+Both programs build dynamically linked to the libdmtx library
+so I provided "run_gltest.sh" and "run_simpletest.sh" scripts
+to save you from having to set and export the LD_LIBRARY_PATH
+every time.
+
+
+3. Building the Utilities: dmtxread and dmtxwrite
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+The whole "run_program.sh" wrapper script approach doesn't work
+very well for dmtxread and dmtxwrite, since they both accept
+arguments from the command line.  For this reason they are
+currently built as statically linked executables, unless you
+specify otherwise by using the appropriate make target.  Both
+dmtxread and dmtxwrite have similar make rules:
+
+   $ make static   Build it statically linked
+   $ make dmtx.o   Build libdmtx as an object file
+   $ make dynamic  Build it dynamically linked
+   $ make clean    Remove non-permanent files
+
+
+4. Dependencies
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+Required packages:
+
 libdmtx:
-   none?
+   (none)
 
 gltest:
    mesa-libGL
@@ -64,7 +105,7 @@ gltest:
    libpng-devel
 
 simpletest:
-   none?
+   (none)
 
 dmtxread:
    libpng
@@ -73,8 +114,18 @@ dmtxread:
    libtiff-devel
 
 dmtxwrite:
-   none?
+   (none)
 
-$ rpm -q libpng libpng-devel libtiff libtiff-devel mesa-libGL \
+If you have an RPM-based system and you want to test for all of
+these in one shot, you can give it one of these:
+
+   $ rpm -q libpng libpng-devel libtiff libtiff-devel mesa-libGL \
          mesa-libGL-devel mesa-libGLU mesa-libGLU-devel SDL SDL-devel
 
+
+5. Anything Else?
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+Did I leave anything out?  If you spent hours searching for a
+solution that you feel should be included in this file, then
+please drop me an email at mike@dragonflylogic.com.
