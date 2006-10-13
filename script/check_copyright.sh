@@ -1,6 +1,31 @@
 #!/bin/sh
 
-echo "not implemented yet" > /dev/null
-ERR=$?
+TOTAL_COUNT=0
+FILES=$(find . -type f -name "*.[ch]")
 
-exit $ERR
+for file in $FILES; do
+
+   # Every source file must include a copyright line
+   COPYRIGHT=$(grep Copyright $file)
+   if [[ $? -ne 0 ]]; then
+      echo "Missing copyright text in $file"
+      TOTAL_COUNT=$(( TOTAL_COUNT + 1 ))
+      continue;
+   fi
+
+   # Copyright line must contain the current year
+   echo "$COPYRIGHT" | grep --silent $(date '+%Y')
+   if [[ $? -ne 0 ]]; then
+      echo "Missing or incorrect copyright year in $file"
+      TOTAL_COUNT=$(( TOTAL_COUNT + 1 ))
+      continue;
+   fi
+
+done
+
+if [[ "$TOTAL_COUNT" -gt 0 ]]; then
+   echo "Problems found by \"$(basename $0)\".  Aborting."
+   exit 1
+fi
+
+exit 0
