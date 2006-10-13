@@ -19,8 +19,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtximage.c,v 1.3 2006-09-25 19:14:19 mblaughton Exp $ */
+/* $Id: dmtximage.c,v 1.4 2006-10-13 20:16:28 mblaughton Exp $ */
 
+/**
+ *
+ *
+ */
 extern int
 dmtxImageInit(DmtxImage *image)
 {
@@ -30,6 +34,10 @@ dmtxImageInit(DmtxImage *image)
    return 0;
 }
 
+/**
+ *
+ *
+ */
 extern int
 dmtxImageDeInit(DmtxImage *image)
 {
@@ -44,6 +52,10 @@ dmtxImageDeInit(DmtxImage *image)
    return 0;
 }
 
+/**
+ *
+ *
+ */
 extern int
 dmtxImageGetWidth(DmtxImage *image)
 {
@@ -53,6 +65,10 @@ dmtxImageGetWidth(DmtxImage *image)
    return image->width;
 }
 
+/**
+ *
+ *
+ */
 extern int
 dmtxImageGetHeight(DmtxImage *image)
 {
@@ -62,6 +78,10 @@ dmtxImageGetHeight(DmtxImage *image)
    return image->height;
 }
 
+/**
+ *
+ *
+ */
 extern int
 dmtxImageGetOffset(DmtxImage *image, DmtxDirection dir, int lineNbr, int offset)
 {
