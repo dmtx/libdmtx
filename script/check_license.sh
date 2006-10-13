@@ -1,7 +1,13 @@
 #!/bin/sh
 
+LIBDMTX="$1"
+if [[ -z "$LIBDMTX" ]]; then
+   echo "Missing LIBDMTX paramter"
+   exit 1
+fi
+
 TOTAL_COUNT=0
-FILES=$(find . -type f -name "*.[ch]")
+FILES=$(find "$LIBDMTX" -type f -name "*.[ch]")
 
 TEST1="^modify it under the terms of the GNU Lesser General Public\$"
 TEST2="^MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE\.  See the GNU\$"
@@ -28,8 +34,8 @@ for file in $FILES; do
 done
 
 if [[ "$TOTAL_COUNT" -gt 0 ]]; then
-   echo "Problems found by \"$(basename $0)\".  Aborting."
-   exit 1
+   echo "Problems found by \"$(basename $0)\"."
+   exit 2
 fi
 
 exit 0

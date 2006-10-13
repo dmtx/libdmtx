@@ -1,6 +1,12 @@
 #!/bin/sh
 
-FILES=$(find . -type f -name "*.[ch]" -o -name "*.sh")
+LIBDMTX="$1"
+if [[ -z "$LIBDMTX" ]]; then
+   echo "Missing LIBDMTX paramter"
+   exit 1
+fi
+
+FILES=$(find "$LIBDMTX" -type f -name "*.[ch]" -o -name "*.sh")
 
 for file in $FILES; do
 
@@ -10,5 +16,10 @@ for file in $FILES; do
    fi
 
 done
+
+if [[ "$TODO_COUNT" -gt 0 ]]; then
+#  echo "Problems found by \"$(basename $0)\"."
+   exit 2
+fi
 
 exit 0
