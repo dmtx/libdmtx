@@ -53,10 +53,10 @@ version 0.3:
     x check_keyword.sh
     x check_license.sh
     x check_whitespace.sh
-    / check_comments.sh  (no solid lines of asterisks)
+    x check_comments.sh  (no solid lines of asterisks)
     o check_spacing.sh   (first N lines of files should match certain spacing pattern)
-    o check_copyright.sh (verify copyright year reflects current year)
-    o check_todo.sh      (warning only: count number of todo/XXX notes in code)
+    x check_copyright.sh (verify copyright year reflects current year)
+    x check_todo.sh      (warning only: count number of todo/XXX notes in code)
   o Try new approach to replace follower algorithm
     x Replace current calibration size estimate with new approach
     x Size step size dynamically according to pixel size
