@@ -37,11 +37,11 @@ style:
 	script/check_keyword.sh
 	script/check_license.sh
 	script/check_spacing.sh
-	script/check_todo.sh
 	script/check_whitespace.sh
+	script/check_todo.sh
 
 tarball: style clean
-	tar -cvf ../libdmtx.tar -C .. libdmtx
+	tar --exclude CVS -cvf ../libdmtx.tar -C .. libdmtx
 	bzip2 -f ../libdmtx.tar
 
 clean:
