@@ -48,7 +48,7 @@ version 0.3:
   x Sample module color from more than one pixel location
   x Rename DmtxVector3 to DmtxColor3 and merge into dmtxcolor.c
   x Fix LoadPngImage() in dmtxread.c to return image count
-  o Add package/build dependencies to INSTALL file
+  x Add package/build dependencies to INSTALL file
   o Build coding style test scripts
     x check_keyword.sh
     x check_license.sh
