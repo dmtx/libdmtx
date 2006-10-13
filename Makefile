@@ -32,13 +32,7 @@ util: libdmtx.so
 	make -C util/dmtxwrite
 
 style:
-	script/check_comments.sh
-	script/check_copyright.sh
-	script/check_keyword.sh
-	script/check_license.sh
-	script/check_spacing.sh
-	script/check_whitespace.sh
-	script/check_todo.sh
+	script/check_style.sh .
 
 tarball: style clean
 	tar --exclude CVS -cvf ../libdmtx.tar -C .. libdmtx
