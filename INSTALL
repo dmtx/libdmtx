@@ -74,11 +74,11 @@ every time.
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 The whole "run_program.sh" wrapper script approach doesn't work
-very well for dmtxread and dmtxwrite, since they both accept
+very well for dmtxread and dmtxwrite, since they both expect
 arguments from the command line.  For this reason they are
-currently built as statically linked executables, unless you
-specify otherwise by using the appropriate make target.  Both
-dmtxread and dmtxwrite have similar make rules:
+currently built with statically linking, unless you specify
+otherwise by using the appropriate make target.  Both programs
+have similar make rules:
 
    $ make static   Build it statically linked
    $ make dmtx.o   Build libdmtx as an object file
@@ -89,7 +89,8 @@ dmtxread and dmtxwrite have similar make rules:
 4. Dependencies
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-Required packages:
+The following packages are required to build libdmtx and its
+associated programs:
 
 libdmtx:
    (none)
