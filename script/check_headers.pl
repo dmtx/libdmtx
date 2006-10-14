@@ -1,11 +1,13 @@
 #!/usr/bin/perl -w
 
 use strict;
+use File::Basename;
 
 # TODO: Test still misses first function of each file
 
 my $errorCount = 0;
 undef my $closeLineNbr;
+undef my $lineNbrs;
 
 while(<>) {
    chomp;
@@ -20,13 +22,16 @@ while(<>) {
       undef $closeLineNbr;
    }
    else {
-      print "$. "; # XXX fix this later
+      $lineNbrs .= "$. ";
       $errorCount++;
       undef $closeLineNbr;
    }
 }
 
-# Since this script exists to find errors, an exit code of zero means that
-# errors were successfully found (this is consistent with other scripts
-# that use grep for this purpose)
-exit(($errorCount > 0) ? 0 : 1);
+if($errorCount > 0) {
+   print "Missing header comment in file \"" . basename($ARGV) .
+         "\" at line(s) $lineNbrs\n";
+   exit(1);
+}
+
+exit(0);

@@ -1,27 +1,47 @@
 #!/bin/sh
 
+function RunTest()
+{
+   SCRIPT="$1"
+   SCRIPT_TYPE=$(echo "$SCRIPT" | awk -F'.' '{print $NF}')
+
+   echo "   $SCRIPT"
+
+   ERRORS=0
+   FILES=$(find "$LIBDMTX" -name "*.[ch]")
+   for file in $FILES; do
+
+      if [[ "$SCRIPT_TYPE" = "sh" ]]; then
+         $LIBDMTX/script/$SCRIPT $file
+         ERRORS=$(( ERRORS + $? ))
+      elif [[ "$SCRIPT_TYPE" = "pl" ]]; then
+         PERL=$(which perl)
+         if [[ $? -ne 0 ]]; then
+            echo "No perl interpreter found.  Skipping $SCRIPT test."
+         else
+            $PERL $LIBDMTX/script/$SCRIPT $file
+            ERRORS=$(( ERRORS + $? ))
+         fi
+      fi
+
+   done
+
+   return $ERRORS
+}
+
 LIBDMTX="$1"
-if [[ -z "$LIBDMTX" ]]; then
-   echo "Missing LIBDMTX paramter"
+if [[ -z "$LIBDMTX" || ! -d "$LIBDMTX/script" ]]; then
+   echo "Must provide valid LIBDMTX directory"
    exit 1
 fi
 
-if [[ ! -d "$LIBDMTX/script" ]]; then
-   echo "Invalid LIBDMTX directory passed"
-   exit 2
-fi
-
-set -x
-
-$LIBDMTX/script/check_comments.sh "$LIBDMTX" || exit 1
-$LIBDMTX/script/check_copyright.sh "$LIBDMTX" || exit 1
-$LIBDMTX/script/check_keyword.sh "$LIBDMTX" || exit 1
-$LIBDMTX/script/check_license.sh "$LIBDMTX" || exit 1
-$LIBDMTX/script/check_spacing.sh "$LIBDMTX" || exit 1
-$LIBDMTX/script/check_whitespace.sh "$LIBDMTX" || exit 1
-$LIBDMTX/script/run_perl.sh check_headers.pl "$LIBDMTX" || exit 1
-$LIBDMTX/script/check_todo.sh "$LIBDMTX"
-
-set +x
+RunTest check_comments.sh || exit 1
+RunTest check_copyright.sh || exit 1
+RunTest check_keyword.sh || exit 1
+RunTest check_license.sh || exit 1
+RunTest check_spacing.sh || exit 1
+RunTest check_whitespace.sh || exit 1
+RunTest check_headers.pl || exit 1
+RunTest check_todo.sh
 
 exit 0
