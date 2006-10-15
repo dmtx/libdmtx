@@ -1,45 +1,26 @@
-README for libdmtx version 0.2.0 - June 11, 2006
+README for libdmtx version 0.3.0 - October 15, 2006
 -----------------------------------------------------------------
 
-libdmtx version 0.2.0 is a big step forward from version 0.1.0,
-since you can now actually call it from your application to
-read and write Data Matrix barcodes.  It still lacks stability
-and is only partially implemented when compared to the
-specification, but at least now we can pretend like it's useful.
+libdmtx version 0.3.0 doesn't have all the features I was hoping
+to add before the next release, but it's at a point where I need
+to break the library for a while in order to rip out and replace
+the region detection algorithm.
 
-The same disclaimers from before still apply:
+Before breaking the CVS version, though, I'm releasing v0.3 so
+everyone can continue using the latest code with all the
+restructuring, bug fixes, and enhancements that have happened
+since v0.2.
 
-   * It will crash
-   * It may even hang your system
-   * The API and ABI will change five minutes after I write this
+Revisiting the disclaimers from earlier releases, you might pick
+up on a more optimistic tone:
 
-Actually, I seem to have introduced a crash bug into the library
-during all the recent restructuring, but it is proving difficult
-to reproduce.  Rather than delay the release, I'm just going to
-let this thing go into the wild and then fix the bug when I get
-a chance.  After I get CVS (or Subversion) going I will be more
-picky about the official releases, but for now this is the only
-way people can get access to the newest code.
+   * It shouldn't crash very often anymore (please let me know)
+   * It definitely shouldn't hang your system
+   * The API will still change, but not as frequently
 
-Also, I'm hoping to lock down the API over the next couple of
-releases but this one is still in flux.
+I'm already working on the next release, so hopefully it won't
+take as long to get it out the door next time.  As always, if
+you have any questions or problems then please post a message
+to one of the libdmtx forums at:
 
-If you have a specific application that runs under controlled
-conditions then libdmtx might be sufficient for your needs.
-However, I would still caution you that it is still very much
-"pre-alpha" code.  We're making good progress, but we just
-haven't been at it for very long yet.
-
-I also added a couple of command line utilities, dmtxread and
-dmtxwrite, which I think will be handy for some people.  For one
-thing, they provide simple examples of how to interact with the
-library.  More significantly, you can now read and write Data
-Matrix barcodes from the command line without knowing anything
-about C programming.
-
-Please let me know if you find this library useful, or if you
-have a specific need that you would like to see addressed for
-the next release.
-
-Good luck!
-Mike Laughton
+   http://sourceforge.net/forum/?group_id=153603
