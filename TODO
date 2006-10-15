@@ -50,17 +50,15 @@ version 0.3:
   x Fix LoadPngImage() in dmtxread.c to return image count
   x Add package/build dependencies to INSTALL file
   x Build coding style test scripts
-  o Try new approach to replace follower algorithm
-    x Replace current calibration size estimate with new approach
-    x Size step size dynamically according to pixel size
-    o Beef up Align() logic to replace follower approach
-  o Capture high-level design into documentation
-    o Data flow and alternative module options
-    o Module analogies
-      o image  => dmtxregion  => dmtxdecode  => data
-      o image <=  dmtxprint  <=  dmtxencode <=  data
+  x Replace current calibration size estimate with new approach
+  x Size step size dynamically according to pixel size
+  x Improved dmtxwrite (fixed bugs, implemented -o option)
+  x Increase dmtxread default scanline count (feasible because of better stability)
+  o Add man page for dmtxwrite
 
 next version:
+  o Try new approach to replace follower algorithm (beefed up ...Align() logic
+  o Capture high-level design in documentation (data flow, module analogies)
   o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
   o Investigate reported memory leak
   o Remove arbitrary sz scaling (100.0) since it doesn't matter
