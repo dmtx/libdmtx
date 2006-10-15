@@ -1,17 +1,12 @@
-.\" $Id: libdmtx.3,v 1.2 2006-09-14 03:49:57 mblaughton Exp $
+.\" $Id: libdmtx.3,v 1.3 2006-10-15 19:42:52 mblaughton Exp $
 .\"
 .\" Man page for the libdmtx project.
 .\"
-.\" $Log: not supported by cvs2svn $
-.\" Revision 1.1.1.1  2006/09/14 03:22:06  mblaughton
-.\" Initial Import
-.\"
-.\"
 .\" $ groff -man -T ascii libdmtx.3
 .\"
-.TH LIBDMTX 3 "June 11, 2006"
+.TH LIBDMTX 3 "October 15, 2006"
 .SH NAME
-libdmtx \- Data Matrix Encoder/Decoder Library 0.2.0
+libdmtx \- Data Matrix Encoder/Decoder Library 0.3.0
 .SH SYNOPSIS
 \fB#include <dmtx.h>\fP
 
@@ -38,9 +33,7 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.2.0
 \fBDmtxMatrixRegion *dmtxDecodeGetMatrix(DmtxDecode *\fIdecode\fP, int \fIindex\fP);\fP
 
 .SH DESCRIPTION
-\fIlibdmtx\fP is a shared library for Linux that encodes and decodes ECC200 Data Matrix barcodes.  It is released under the LGPL and can be used and distributed freely under these terms.
-
-Data Matrix barcodes are two-dimensional patterns that hold a high density of data with built-in error correction.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
+\fIlibdmtx\fP is a shared library for Linux that encodes and decodes ECC200 Data Matrix barcodes.  Data Matrix barcodes are two-dimensional patterns that hold a high density of data with built-in error correction.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
 
 .SH ENCODING - Generating Data Matrix Barcodes
 Version 0.2 of \fIlibdmtx\fP provides a simple set of functions for the encoding process.  More functions will be added later to support other options, such as output format (ASCII, PNG, PNM, etc...) and others.
