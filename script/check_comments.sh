@@ -8,7 +8,7 @@ if [[ $? -eq 0 ]]; then
    exit 1
 fi
 
-LINE=$(sed -n '2,$ p' $FILE | grep -n "^\/\*\$")
+LINE=$(sed -n -e '1 =' -e '2,$ p' $FILE | grep -n "^\/\*\$")
 if [[ $? -eq 0 ]]; then
    echo -e "Bad comment style found in $FILE on line(s):\n$LINE"
    exit 2
