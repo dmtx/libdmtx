@@ -34,7 +34,7 @@ version 0.2:
 
 version 0.3:
   x Use preprocessor to pull code into one big file before compiling
-  x Update Makefile to handle monolythic approach; add targets for test, util, tarball
+  x Update Makefile to handle monolithic approach; add targets for test, util, tarball
   x Rename DmtxInfo struct and variables to DmtxDecode (for consistency with DmtxEncode)
   x Merge placement logic into single implementation for both encoding and decoding
   x Deploy codebase to SourceForge CVS
