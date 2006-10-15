@@ -1,37 +1,32 @@
-.\" $Id: dmtxread.1,v 1.2 2006-09-27 05:20:04 mblaughton Exp $
+.\" $Id: dmtxread.1,v 1.3 2006-10-15 19:39:08 mblaughton Exp $
 .\"
 .\" Man page for the dmtxread utility (libdmtx project).
 .\"
-.\" $Log: not supported by cvs2svn $
-.\" Revision 1.1.1.1  2006/09/14 03:22:11  mblaughton
-.\" Initial Import
-.\"
-.\"
 .\" $ groff -man -T ascii dmtxread.1
 .\"
-.TH DMTXREAD 1 "June 11, 2006"
+.TH DMTXREAD 1 "October 15, 2006"
 .SH NAME
-dmtxread \- read data matrix barcodes from PNG image
+dmtxread \- read data matrix barcodes contained in images
 .SH SYNOPSIS
 \fBdmtxread\fP [\fIoptions\fP] [\fIFILE\fP...]
 
 .SH DESCRIPTION
-Reads data matrix barcodes from PNG image and writes decoded data to standard output.
+Dmtxread decodes data matrix barcodes found in PNG or TIFF images and writes the decoded message to standard output.
 
 .SH OPTIONS
- \fB-c\fP \fINUM\fP, \fB--count\fP=\fINUM\fP
-        Stop after finding \fINUM\fP barcodes
+ \fB-c\fP, \fB--count\fP=\fINUM\fP
+        Stop after finding \fINUM\fP barcodes (not implemented yet)
 
- \fB-v\fP \fINUM\fP, \fB--vertical\fP=\fINUM\fP
+ \fB-v\fP, \fB--vertical\fP=\fINUM\fP
         Use \fINUM\fP vertical scan lines in scan pattern
 
- \fB-h\fP \fINUM\fP, \fB--horizontal\fP=\fINUM\fP
+ \fB-h\fP, \fB--horizontal\fP=\fINUM\fP
         Use \fINUM\fP horizontal scan lines in scan pattern
 
- \fB-n\fP,     \fB--page-number\fP
+ \fB-n\fP, \fB--page-number\fP
         Print page number with each decoded message
 
-         \fB--help\fP
+     \fB--help\fP
         Display help message and quit
 
 .SH BUGS
