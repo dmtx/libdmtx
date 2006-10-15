@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxread.c,v 1.10 2006-10-12 18:18:52 mblaughton Exp $ */
+/* $Id: dmtxread.c,v 1.11 2006-10-15 05:20:22 mblaughton Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -139,8 +139,8 @@ HandleArgs(ScanOptions *options, int *argcp, char **argvp[], int *fileIndex)
    memset(options, 0x00, sizeof(ScanOptions));
 
    options->maxCount = 0; // Unlimited
-   options->hScanCount = 5;
-   options->vScanCount = 5;
+   options->hScanCount = 10;
+   options->vScanCount = 10;
    options->pageNumber = 0;
 
    *fileIndex = 0;
