@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxwrite.c,v 1.4 2006-10-12 18:23:44 mblaughton Exp $ */
+/* $Id: dmtxwrite.c,v 1.5 2006-10-15 19:37:58 mblaughton Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -246,20 +246,20 @@ OPTIONS:\n"), programName);
         s = Auto square      [default]\n\
         r = Auto rectangle\n\
         Valid SIZE options for square symbols:\n\
-        10x10, 12x12,   14x14,   16x16,   18x18,   20x20,\n\
-        22x22, 24x24,   26x26,   32x32,   36x36,   40x40,\n\
-        44x44, 48x48,   52x52,   64x64,   72x72,   80x80,\n\
-        88x88, 96x96, 104x104, 120x120, 132x132, 144x144\n\
+        10x10,  12x12,   14x14,   16x16,   18x18,   20x20,\n\
+        22x22,  24x24,   26x26,   32x32,   36x36,   40x40,\n\
+        44x44,  48x48,   52x52,   64x64,   72x72,   80x80,\n\
+        88x88,  96x96, 104x104, 120x120, 132x132, 144x144\n\
         Valid SIZE options for rectangular symbols:\n\
-         8x18,  8x32,   12x26,   12x36,   16x36,   16x48\n\
-  -t, --tilde             process tilde\n\
-  -m, --margin=NUM        margin size (pixels)\n\
-  -d, --module=NUM        module size (pixels)\n\
-  -r, --rotate=NUM        rotation angle (degrees)\n\
-  -b, --bgcolor=COLOR     background color\n\
-  -c, --color=COLOR       rotation angle\n\
-  -V, --verbose           use verbose messages\n\
-      --help              display this help and exit\n"));
+         8x18,   8x32,   12x26,   12x36,   16x36,   16x48\n\
+  -t, --tilde                process tilde\n\
+  -m, --margin=NUM           margin size (in pixels)\n\
+  -d, --module=NUM           module size (in pixels)\n\
+  -r, --rotate=NUM           rotation angle (degrees)\n\
+  -b, --bgcolor=COLOR        background color\n\
+  -c, --color=COLOR          foreground color\n\
+  -V, --verbose              use verbose messages\n\
+      --help                 display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
    }
 
