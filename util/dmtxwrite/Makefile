@@ -17,6 +17,6 @@ dynamic: dmtxwrite.c
 	$(CC) $(INCLUDE) $(CFLAGS) $(LIBS) -L../.. -ldmtx dmtxwrite.c -o dmtxwrite
 
 clean:
-	rm -f *.o dmtxwrite gmon.out *.pnm
+	rm -f *.o dmtxwrite gmon.out *.pnm *.png
 
 .PHONY: static dynamic clean
