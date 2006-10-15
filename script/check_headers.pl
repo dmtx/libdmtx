@@ -22,7 +22,7 @@ while(<>) {
       undef $closeLineNbr;
    }
    else {
-      $lineNbrs .= "$. ";
+      $lineNbrs = (defined $lineNbrs) ? "$lineNbrs, $." : $.;
       $errorCount++;
       undef $closeLineNbr;
    }
