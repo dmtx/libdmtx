@@ -4,7 +4,7 @@ README for libdmtx version 0.3.0 - October 15, 2006
 libdmtx version 0.3.0 doesn't have all the features I was hoping
 to add before the next release, but it's at a point where I need
 to break the library for a while in order to rip out and replace
-the region detection algorithm.
+the main region detection algorithm.
 
 Before breaking the CVS version, though, I'm releasing v0.3 so
 everyone can continue using the latest code with all the
@@ -19,8 +19,11 @@ up on a more optimistic tone:
    * The API will still change, but not as frequently
 
 I'm already working on the next release, so hopefully it won't
-take as long to get it out the door next time.  As always, if
-you have any questions or problems then please post a message
-to one of the libdmtx forums at:
+take as long to get it out the door.  And a special thanks to
+everyone who has contributed questions, ideas, bug reports, and
+patches since the last release.
+
+As always, if you have any questions or problems then please post
+a message to one of the libdmtx forums at:
 
    http://sourceforge.net/forum/?group_id=153603

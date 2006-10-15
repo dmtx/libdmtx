@@ -2,13 +2,13 @@ Changes for libdmtx
 -----------------------------------------------------------------
 
 version 0.3 [October 2006]
-  Several project improvements: build process, naming consistency, file layout
+  Several high-level changes: build process, naming consistency, file layout
   Added new automatic style checks in script directory ("make style")
   Implemented remaining encodation schemes for decode (X12, Base 256, etc...)
   Fixed instability/regressions that were introduced in v0.2 release
   Color sampling now averaged from multiple pixel locations
   Size calibration accuracy improved with new approach
-  dmtxread: increased scanline default, added multi-page TIFF format
+  dmtxread: increased default scanline count, added multi-page TIFF format
   dmtxwrite: bug fixes, implemented -o option
   Improved documentation: deps listed in INSTALL, new man page for dmtxwrite
 
