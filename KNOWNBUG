@@ -1,4 +1,53 @@
 Bugs in libdmtx
 -----------------------------------------------------------------
 
-Answer: Yes
+1. libdtmx - Core Library
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+Makefile: There is still a problem with chcon throwing an
+error in some distros.  You should always be able to re-run
+the make command to get past it.
+
+The barcode region detection and tracing logic is currently
+the weakest point of the library.  I will be trying an
+experimental new approach in v0.4, but versions 0.3 and older
+will still occasionally get tripped up by seemingly trivial
+conditions.
+
+The encoding logic does not yet support all of the possible
+encodating schemes.
+
+
+2. dmtxread
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+The "-c, --count=NUM" option is still not implemented.
+
+
+3. dmtxwrite
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+The follow options are not implemented yet:
+  -f, --format=[pa]          barcode output format
+  -e, --encoding=[uact8]     encodation scheme
+  -s, --size=SIZE            symbol size in Rows x Cols
+  -t, --tilde                process tilde
+  -b, --bgcolor=COLOR        background color
+  -c, --color=COLOR          foreground color
+  -V, --verbose              use verbose messages
+
+
+4. Test Programs
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+gltest: No known issues
+simpletest: No known issues
+
+
+5. Scripts in $LIBDMTX/script directory
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+The check_headers.pl script verifies that every function has
+a correctly-formed header comment.  But the test condition is
+currently pretty simple, and does not test the first function
+appearing in each file.
