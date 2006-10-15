@@ -1,0 +1,62 @@
+.\" $Id: dmtxwrite.1,v 1.1 2006-10-15 19:36:27 mblaughton Exp $
+.\"
+.\" Man page for the dmtxwrite utility (libdmtx project).
+.\"
+.\" $ groff -man -T ascii dmtxwrite.1
+.\"
+.TH DMTXWRITE 1 "October 15, 2006"
+.SH NAME
+dmtxwrite \- create an image containing a data matrix barcode
+.SH SYNOPSIS
+\fBdmtxwrite\fP [\fIoptions\fP] message
+
+.SH DESCRIPTION
+Dmtxwrite writes an image containing a Data Matrix barcode created by encoding a message provided on the command line.
+
+.SH OPTIONS
+ \fB-o\fP, --output=\fIFILE\fP          barcode output filename
+ \fB-f\fP, --format=[pa]          barcode output format (not implemented yet)
+       p = PNG              [default]
+       a = ASCII
+
+ \fB-e\fP, --encoding=[uact8]     encodation scheme (not implemented yet)
+       u = Auto             [default]
+       a = ASCII
+       c = C40
+       t = Text
+       8 = Base 256
+
+ \fB-s\fP, --size=\fISIZE\fP            symbol size in ROWSxCOLS (not implemented)
+       s = Auto square      [default]
+       r = Auto rectangle
+       Valid \fISIZE\fP options for square symbols:
+       10x10,  12x12,   14x14,   16x16,   18x18,   20x20,
+       22x22,  24x24,   26x26,   32x32,   36x36,   40x40,
+       44x44,  48x48,   52x52,   64x64,   72x72,   80x80,
+       88x88,  96x96, 104x104, 120x120, 132x132, 144x144
+       Valid \fISIZE\fP options for rectangular symbols:
+        8x18,   8x32,   12x26,   12x36,   16x36,   16x48
+
+ \fB-t\fP, --tilde                process tilde (not implemented yet)
+
+ \fB-m\fP, --margin=\fINUM\fP           margin size (in pixels)
+
+ \fB-d\fP, --module=\fINUM\fP           module size (in pixels)
+
+ \fB-r\fP, --rotate=\fINUM\fP           rotation angle (degrees) (not implemented)
+
+ \fB-b\fP, --bgcolor=\fICOLOR\fP        background color (not implemented yet)
+
+ \fB-c\fP, --color=\fICOLOR\fP          foreground color (not implemented yet)
+
+ \fB-V\fP, --verbose              use verbose messages
+
+     --help                 display this help and exit
+
+.SH BUGS
+Email bug reports to \fImike@dragonflylogic.com\fP
+
+.SH AUTHOR
+Copyright (C) 2006 Mike Laughton
+
+.\" end of man page
