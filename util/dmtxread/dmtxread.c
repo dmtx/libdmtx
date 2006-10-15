@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxread.c,v 1.11 2006-10-15 05:20:22 mblaughton Exp $ */
+/* $Id: dmtxread.c,v 1.12 2006-10-15 19:39:44 mblaughton Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -232,11 +232,11 @@ Example: %s -v 4 -h 4 IMAGE001.png IMAGE002.png\n\
 \n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
-  -c NUM, --count=NUM       stop after finding NUM barcodes\n\
-  -v NUM, --vertical=NUM    use NUM vertical scan lines in scan pattern\n\
-  -h NUM, --horizontal=NUM  use NUM horizontal scan lines in scan pattern\n\
-  -n,     --page-number     prefix decoded messages with corresponding page number\n\
-          --help            display this help and exit\n"));
+  -c, --count=NUM            stop after finding NUM barcodes\n\
+  -v, --vertical=NUM         use NUM vertical scan lines in scan pattern\n\
+  -h, --horizontal=NUM       use NUM horizontal scan lines in scan pattern\n\
+  -n, --page-number          prefix decoded messages with corresponding page number\n\
+      --help                 display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
    }
 
