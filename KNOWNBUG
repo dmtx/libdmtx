@@ -27,6 +27,10 @@ The "-c, --count=NUM" option is still not implemented.
 3. dmtxwrite
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+libdmtx (and therefore dmtxwrite) does not yet support
+"structed append" barcodes, so the amount of data that can
+be encoded is currently limited.
+
 The follow options are not implemented yet:
   -f, --format=[pa]          barcode output format
   -e, --encoding=[uact8]     encodation scheme
