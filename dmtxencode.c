@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxencode.c,v 1.5 2006-10-12 20:49:40 mblaughton Exp $ */
+/* $Id: dmtxencode.c,v 1.6 2006-10-17 17:57:52 mblaughton Exp $ */
 
 /**
  *
@@ -179,6 +179,12 @@ EncodeText(DmtxMatrixRegion *matrixRegion, unsigned char *inputText)
    for(matrixRegion->sizeIdx = 0; matrixRegion->sizeIdx < 24; matrixRegion->sizeIdx++) {
       if(dataWordLength[matrixRegion->sizeIdx] >= unpaddedDataSize)
          break;
+   }
+
+   // XXX libdmtx currently doesn't support structured append -- stop
+   if(matrixRegion->sizeIdx > 8) {
+      fprintf(stderr, "Data exceeds size that libdmtx can currently encode\n");
+      exit(1);
    }
 
    matrixRegion->padSize = dataWordLength[matrixRegion->sizeIdx] - unpaddedDataSize;
