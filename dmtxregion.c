@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.14 2006-10-06 19:17:39 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.15 2006-10-23 16:13:05 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -725,11 +725,11 @@ MatrixRegionInit(DmtxMatrixRegion *matrixRegion, DmtxGradient *gradient)
    matrixRegion->chain.shx = 0.0;
    matrixRegion->chain.scx = 1.0;
    matrixRegion->chain.scy = 1.0;
-   matrixRegion->chain.bx0 = 100.0;
-   matrixRegion->chain.bx1 = 100.0;
-   matrixRegion->chain.by0 = 100.0;
-   matrixRegion->chain.by1 = 100.0;
-   matrixRegion->chain.sz = 100.0;
+   matrixRegion->chain.bx0 = 1.0;
+   matrixRegion->chain.bx1 = 1.0;
+   matrixRegion->chain.by0 = 1.0;
+   matrixRegion->chain.by1 = 1.0;
+   matrixRegion->chain.sz = 1.0;
 
    MatrixRegionUpdateXfrms(matrixRegion);
 }
@@ -951,7 +951,7 @@ count   1st    2nd
       return DMTX_FALSE;
    }
 
-   // XXX This is where we draw the 3 squares on the first pane: Replace with plotPoint callback
+   // XXX This is where we draw the 3 squares on the first pane
    if(decode && decode->plotPointCallback) {
       (*(decode->plotPointCallback))(bar.p0, 1, 1, DMTX_DISPLAY_SQUARE);
       (*(decode->plotPointCallback))(bar.p1, 1, 1, DMTX_DISPLAY_SQUARE);
@@ -984,7 +984,7 @@ count   1st    2nd
    chain.shx = -pTmp.X / pTmp.Y;
    chain.scy = 1.0/pTmp.Y;
 
-   chain.bx0 = chain.bx1 = chain.by0 = chain.by1 = chain.sz = 100.0;
+   chain.bx0 = chain.bx1 = chain.by0 = chain.by1 = chain.sz = 1.0;
 
    // Update transformations now that finders are set
    matrixRegion->chain = chain;
@@ -1014,12 +1014,12 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    DmtxMatrix3 s, sInv, sReg, sRegInv, m0, m1;
    DmtxVector2 prevHit, prevStep, highHit, highHitX;
 
-   dmtxMatrix3LineSkewTop(m0, 100.0, 75.0, 100.0);
+   dmtxMatrix3LineSkewTop(m0, 1.0, 0.75, 1.0);
    dmtxMatrix3Scale(m1, 1.25, 1.0);
    dmtxMatrix3Multiply(s, m0, m1);
    dmtxMatrix3Multiply(sReg, matrixRegion->raw2fit, s);
 
-   dmtxMatrix3LineSkewTopInv(m0, 100.0, 75.0, 100.0);
+   dmtxMatrix3LineSkewTopInv(m0, 1.0, 0.75, 1.0);
    dmtxMatrix3Scale(m1, 0.8, 1.0);
    dmtxMatrix3Multiply(sInv, m1, m0);
    dmtxMatrix3Multiply(sRegInv, sInv, matrixRegion->fit2raw);
@@ -1031,21 +1031,21 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    px0.X = 0.0;
    px0.Y = 0.0;
    px1.X = 0.0;
-   px1.Y = 100.0;
+   px1.Y = 1.0;
    dmtxMatrix3VMultiplyBy(&px0, sRegInv);
    dmtxMatrix3VMultiplyBy(&px1, sRegInv);
    dmtxVector2SubFrom(&px1, &px0);
    stepSize = dmtxVector2Mag(&px1);
    assert(stepSize > DMTX_ALMOST_ZERO);
-   stepSize = 0.9 * (100.0/stepSize);
+   stepSize = 0.9 * (1.0/stepSize);
 
    p0.X = 0.0;
-   p0.Y = 100.0;
+   p0.Y = 1.0;
    prevStep = prevHit = p0;
 
-   highHit.X = highHit.Y = 100.0; // XXX add this for safety in case it's not found
+   highHit.X = highHit.Y = 1.0; // XXX add this for safety in case it's not found
 
-   while(p0.X < 100.0 && p0.Y < 300.0) { // XXX cap rise at 300.0 to prevent infinite loops
+   while(p0.X < 1.0 && p0.Y < 3.0) { // XXX cap rise at 3.0 to prevent infinite loops
       dmtxMatrix3VMultiply(&px0, &p0, sRegInv);
       dmtxColor3FromImage(&color, &(decode->image), px0.X, px0.Y);
       t = dmtxDistanceAlongRay3(&(matrixRegion->gradient.ray), &color);
@@ -1083,7 +1083,7 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
          if(fabs(p0.Y - prevStep.Y) > DMTX_ALMOST_ZERO) {
 
             // If it has been a while since previous hit
-            if(p0.X - prevHit.X >= 3) {
+            if(p0.X - prevHit.X >= 3 * stepSize) {
                highHit = p0;
                highHitX = px0;
             }
@@ -1110,7 +1110,7 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 
    m = (highHit.Y - prevHit.Y)/(highHit.X - prevHit.X);
    matrixRegion->chain.by0 = (m * -prevHit.X) + prevHit.Y;
-   matrixRegion->chain.by1 = (m * (100.0 - prevHit.X)) + prevHit.Y;
+   matrixRegion->chain.by1 = (m * (1.0 - prevHit.X)) + prevHit.Y;
 
    if(matrixRegion->chain.by0 < 0 || matrixRegion->chain.by1 < 0) {
       return DMTX_FALSE;
@@ -1135,31 +1135,44 @@ static int
 MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 {
    float t, m;
-   DmtxVector2 p0, px0;
+   double stepSize;
+   DmtxVector2 p0, px0, px1;
    DmtxColor3 color;
    DmtxMatrix3 s, sInv, sReg, sRegInv, m0, m1;
    DmtxVector2 prevHit, prevStep, highHit, highHitX;
 
-   dmtxMatrix3LineSkewSide(m0, 100.0, 75.0, 100.0);
+   dmtxMatrix3LineSkewSide(m0, 1.0, 0.75, 1.0);
    dmtxMatrix3Scale(m1, 1.0, 1.25);
    dmtxMatrix3Multiply(s, m0, m1);
    dmtxMatrix3Multiply(sReg, matrixRegion->raw2fit, s);
 
-   dmtxMatrix3LineSkewSideInv(m0, 100.0, 75.0, 100.0);
+   dmtxMatrix3LineSkewSideInv(m0, 1.0, 0.75, 1.0);
    dmtxMatrix3Scale(m1, 1.0, 0.8);
    dmtxMatrix3Multiply(sInv, m1, m0);
    dmtxMatrix3Multiply(sRegInv, sInv, matrixRegion->fit2raw);
 
-// if(decode && decode->buildMatrixCallback4)
-//    (*(decode->buildMatrixCallback4))(sRegInv);
+   if(decode && decode->buildMatrixCallback4)
+      (*(decode->buildMatrixCallback4))(sRegInv);
 
-   p0.X = 100.0;
+   // Determine step size (90% of rough pixel length)
+   px0.X = 0.0;
+   px0.Y = 0.0;
+   px1.X = 1.0;
+   px1.Y = 0.0;
+   dmtxMatrix3VMultiplyBy(&px0, sRegInv);
+   dmtxMatrix3VMultiplyBy(&px1, sRegInv);
+   dmtxVector2SubFrom(&px1, &px0);
+   stepSize = dmtxVector2Mag(&px1);
+   assert(stepSize > DMTX_ALMOST_ZERO);
+   stepSize = 0.9 * (1.0/stepSize);
+
+   p0.X = 1.0;
    p0.Y = 0.0;
    prevStep = prevHit = p0;
 
-   highHit.X = highHit.Y = 100.0; // XXX add this for safety in case it's not found
+   highHit.X = highHit.Y = 1.0; // XXX add this for safety in case it's not found
 
-   while(p0.Y < 100.0 && p0.X < 300.0) { // XXX 300.0 caps rise to prevent infinite loops
+   while(p0.Y < 1.0 && p0.X < 3.0) { // XXX 3.0 caps rise to prevent infinite loops
 // XXX infinite loop problem here... don't know why yet
       dmtxMatrix3VMultiply(&px0, &p0, sRegInv);
       dmtxColor3FromImage(&color, &(decode->image), px0.X, px0.Y);
@@ -1167,11 +1180,11 @@ MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 
       if(t >= matrixRegion->gradient.tMid) {
          prevStep = p0;
-         p0.X += 0.1;
+         p0.X += stepSize;
       }
       else {
          if(fabs(p0.X - prevStep.X) > DMTX_ALMOST_ZERO) {
-            if(p0.Y - prevHit.Y < 3) {
+            if(p0.Y - prevHit.Y < 3 * stepSize) {
                prevHit = p0;
 
 //             if(decode && decode->xfrmPlotPointCallback)
@@ -1184,7 +1197,7 @@ MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
          }
 
          prevStep = p0;
-         p0.Y += 0.1;
+         p0.Y += stepSize;
       }
    }
 
@@ -1193,7 +1206,7 @@ MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 
    m = (highHit.X - prevHit.X)/(highHit.Y - prevHit.Y);
    matrixRegion->chain.bx0 = (m * -prevHit.Y) + prevHit.X;
-   matrixRegion->chain.bx1 = (m * (100.0 - prevHit.Y)) + prevHit.X;
+   matrixRegion->chain.bx1 = (m * (1.0 - prevHit.Y)) + prevHit.X;
 
    if(matrixRegion->chain.bx0 < 0 || matrixRegion->chain.bx1 < 0) {
       return DMTX_FALSE;
@@ -1221,7 +1234,7 @@ MatrixRegionEstimateSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 
    dmtxMatrix3VMultiply(&p0, &(matrixRegion->highHit), matrixRegion->raw2fit);
 
-   matrixSize = 2 * (int)((matrixRegion->gapCount * 100)/p0.X + 0.5);
+   matrixSize = 2 * (int)((matrixRegion->gapCount * 1)/p0.X + 0.5);
 
    // Round odd size estimates to next even number
    if(matrixSize & 0x01)
@@ -1332,8 +1345,8 @@ ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *de
    for(i = 0; i < 5; i++) {
 
       // The "+ 2" adjustment allows for the Finder and Calibration bars
-      p.X = (100.0/(matrixRegion->dataCols + 2)) * (col + sampleX[i]);
-      p.Y = (100.0/(matrixRegion->dataRows + 2)) * (row + sampleY[i]);
+      p.X = (1.0/(matrixRegion->dataCols + 2)) * (col + sampleX[i]);
+      p.Y = (1.0/(matrixRegion->dataRows + 2)) * (row + sampleY[i]);
 
       dmtxMatrix3VMultiply(&p0, &p, matrixRegion->fit2raw);
       dmtxColor3FromImage(&cPoint, &(decode->image), p0.X, p0.Y);
