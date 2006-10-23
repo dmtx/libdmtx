@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxstatic.h,v 1.9 2006-10-09 17:19:15 mblaughton Exp $ */
+/* $Id: dmtxstatic.h,v 1.10 2006-10-23 22:15:50 mblaughton Exp $ */
 
 #define DMTX_END_OF_RANGE      5
 #define DMTX_EDGE_FOUND        6
@@ -50,6 +50,13 @@ Contact: mike@dragonflylogic.com
 #ifndef max
 #define max(X,Y) ((X > Y) ? X : Y)
 #endif
+
+typedef enum {
+   DmtxEdgeTop    = 0x01 << 0,
+   DmtxEdgeBottom = 0x01 << 1,
+   DmtxEdgeLeft   = 0x01 << 2,
+   DmtxEdgeRight  = 0x01 << 3
+} DmtxEdgeLoc;
 
 typedef enum {
    DmtxMaskBit1 = 0x01 << 7,
@@ -90,8 +97,8 @@ static void Matrix3ChainXfrm(DmtxMatrix3 m, DmtxChain *chain);
 static void Matrix3ChainXfrmInv(DmtxMatrix3 m, DmtxChain *chain);
 static void MatrixRegionUpdateXfrms(DmtxMatrixRegion *matrixRegion);
 static int MatrixRegionAlignFinderBars(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode, DmtxEdgeFollower *f0, DmtxEdgeFollower *f1);
-static int MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
-static int MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
+static int MatrixRegionAlign(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
+static int MatrixRegionAlignEdge(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode, DmtxEdgeLoc edgeLoc);
 static int MatrixRegionEstimateSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
 static int MatrixRegionFindSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
 static DmtxColor3 ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *decode);
