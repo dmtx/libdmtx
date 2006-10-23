@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.15 2006-10-23 16:13:05 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.16 2006-10-23 22:14:27 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -95,11 +95,7 @@ dmtxScanLine(DmtxDecode *decode, DmtxDirection dir, int lineNbr)
          if(!success)
             continue;
 
-         success = MatrixRegionAlignTop(&matrixRegion, decode);
-         if(!success)
-            continue;
-
-         success = MatrixRegionAlignSide(&matrixRegion, decode);
+         success = MatrixRegionAlign(&matrixRegion, decode);
          if(!success)
             continue;
 
@@ -1004,28 +1000,96 @@ count   1st    2nd
  * @return XXX
  */
 static int
-MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
+MatrixRegionAlign(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
 {
-   double t, m;
+   int success;
+
+   // Align top edge
+   success = MatrixRegionAlignEdge(matrixRegion, decode, DmtxEdgeTop);
+   if(!success)
+      return DMTX_FAILURE;
+
+   // Align bottom edge
+// success = MatrixRegionAlignSide(matrixRegion, decode);
+   success = MatrixRegionAlignEdge(matrixRegion, decode, DmtxEdgeRight);
+   if(!success)
+      return DMTX_FAILURE;
+
+   // Align right edge
+// MatrixRegionAlignSide();
+// if(!success)
+//    return DMTX_FAILURE;
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ * XXX
+ *
+ * @param
+ * @return XXX
+ */
+static int
+MatrixRegionAlignEdge(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode, DmtxEdgeLoc edgeLoc)
+{
+   double t, slope;
    double stepSize;
+   double bTmp0, bTmp1;
    int gapCount = 0, gapLength = 0, maxGapLength = 0;
    DmtxVector2 p0, px0, px1;
    DmtxColor3 color;
    DmtxMatrix3 s, sInv, sReg, sRegInv, m0, m1;
+   DmtxMatrix3 mPre0, mPre1, mPre0Inv, mPre1Inv;
    DmtxVector2 prevHit, prevStep, highHit, highHitX;
+
+   // Function requires that operating edge be transformed to top of unit square
+   switch(edgeLoc) {
+      case DmtxEdgeTop:
+         dmtxMatrix3Identity(mPre0);
+         dmtxMatrix3Identity(mPre0Inv);
+         dmtxMatrix3Identity(mPre1);
+         dmtxMatrix3Identity(mPre1Inv);
+         break;
+      case DmtxEdgeBottom:
+         dmtxMatrix3Translate(mPre0, 0.0, -1.0);
+         dmtxMatrix3Translate(mPre0Inv, 0.0, 1.0);
+         dmtxMatrix3Scale(mPre1, 1.0, -1.0);
+         dmtxMatrix3Scale(mPre1Inv, 1.0, -1.0);
+         break;
+      case DmtxEdgeLeft:
+         dmtxMatrix3Translate(mPre0, -1.0, 0.0);
+         dmtxMatrix3Translate(mPre0Inv, 1.0, 0.0);
+         dmtxMatrix3Rotate(mPre1, -M_PI_2);
+         dmtxMatrix3Rotate(mPre1Inv, M_PI_2);
+         break;
+      case DmtxEdgeRight:
+         dmtxMatrix3Rotate(mPre0, -M_PI_2);
+         dmtxMatrix3Rotate(mPre0Inv, M_PI_2);
+         dmtxMatrix3Scale(mPre1, 1.0, -1.0);
+         dmtxMatrix3Scale(mPre1Inv, 1.0, -1.0);
+         break;
+   }
 
    dmtxMatrix3LineSkewTop(m0, 1.0, 0.75, 1.0);
    dmtxMatrix3Scale(m1, 1.25, 1.0);
    dmtxMatrix3Multiply(s, m0, m1);
-   dmtxMatrix3Multiply(sReg, matrixRegion->raw2fit, s);
+
+   dmtxMatrix3Multiply(sReg, matrixRegion->raw2fit, mPre0);
+   dmtxMatrix3MultiplyBy(sReg, mPre1);
+   dmtxMatrix3MultiplyBy(sReg, s);
 
    dmtxMatrix3LineSkewTopInv(m0, 1.0, 0.75, 1.0);
    dmtxMatrix3Scale(m1, 0.8, 1.0);
    dmtxMatrix3Multiply(sInv, m1, m0);
-   dmtxMatrix3Multiply(sRegInv, sInv, matrixRegion->fit2raw);
 
-   if(decode && decode->buildMatrixCallback3)
+   dmtxMatrix3Multiply(sRegInv, sInv, mPre1Inv);
+   dmtxMatrix3MultiplyBy(sRegInv, mPre0Inv);
+   dmtxMatrix3MultiplyBy(sRegInv, matrixRegion->fit2raw);
+
+   if(edgeLoc == DmtxEdgeTop && decode && decode->buildMatrixCallback3)
       (*(decode->buildMatrixCallback3))(sRegInv);
+   else if(edgeLoc == DmtxEdgeRight && decode && decode->buildMatrixCallback4)
+      (*(decode->buildMatrixCallback4))(sRegInv);
 
    // Determine step size (90% of rough pixel length)
    px0.X = 0.0;
@@ -1051,7 +1115,7 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
       t = dmtxDistanceAlongRay3(&(matrixRegion->gradient.ray), &color);
 
       if(decode && decode->xfrmPlotPointCallback)
-         (*(decode->xfrmPlotPointCallback))(px0, sReg, 4, DMTX_DISPLAY_POINT);
+         (*(decode->xfrmPlotPointCallback))(px0, sReg, (edgeLoc == DmtxEdgeTop) ? 4 : 5, DMTX_DISPLAY_POINT);
 
       // Bad notation whereby:
       //    prevStep captures every little step
@@ -1108,12 +1172,28 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    dmtxMatrix3VMultiplyBy(&prevHit, sInv);
    dmtxMatrix3VMultiplyBy(&highHit, sInv);
 
-   m = (highHit.Y - prevHit.Y)/(highHit.X - prevHit.X);
-   matrixRegion->chain.by0 = (m * -prevHit.X) + prevHit.Y;
-   matrixRegion->chain.by1 = (m * (1.0 - prevHit.X)) + prevHit.Y;
+   slope = (highHit.Y - prevHit.Y)/(highHit.X - prevHit.X);
 
-   if(matrixRegion->chain.by0 < 0 || matrixRegion->chain.by1 < 0) {
+   // XXX comment this well
+   bTmp0 = (slope * -prevHit.X) + prevHit.Y;
+   bTmp1 = (slope * (1.0 - prevHit.X)) + prevHit.Y;
+   if(bTmp0 < 0 || bTmp1 < 0) {
       return DMTX_FALSE;
+   }
+
+   switch(edgeLoc) {
+      case DmtxEdgeTop:
+         matrixRegion->chain.by0 = bTmp0;
+         matrixRegion->chain.by1 = bTmp1;
+         break;
+      case DmtxEdgeBottom:
+         break;
+      case DmtxEdgeLeft:
+         break;
+      case DmtxEdgeRight:
+         matrixRegion->chain.bx0 = bTmp0;
+         matrixRegion->chain.bx1 = bTmp1;
+         break;
    }
 
    MatrixRegionUpdateXfrms(matrixRegion);
@@ -1121,101 +1201,6 @@ MatrixRegionAlignTop(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
    if(decode && decode->xfrmPlotPointCallback) {
       (*(decode->xfrmPlotPointCallback))(highHitX, sReg, 4, DMTX_DISPLAY_SQUARE);
    }
-
-   return DMTX_TRUE;
-}
-
-/**
- * XXX
- *
- * @param
- * @return XXX
- */
-static int
-MatrixRegionAlignSide(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
-{
-   float t, m;
-   double stepSize;
-   DmtxVector2 p0, px0, px1;
-   DmtxColor3 color;
-   DmtxMatrix3 s, sInv, sReg, sRegInv, m0, m1;
-   DmtxVector2 prevHit, prevStep, highHit, highHitX;
-
-   dmtxMatrix3LineSkewSide(m0, 1.0, 0.75, 1.0);
-   dmtxMatrix3Scale(m1, 1.0, 1.25);
-   dmtxMatrix3Multiply(s, m0, m1);
-   dmtxMatrix3Multiply(sReg, matrixRegion->raw2fit, s);
-
-   dmtxMatrix3LineSkewSideInv(m0, 1.0, 0.75, 1.0);
-   dmtxMatrix3Scale(m1, 1.0, 0.8);
-   dmtxMatrix3Multiply(sInv, m1, m0);
-   dmtxMatrix3Multiply(sRegInv, sInv, matrixRegion->fit2raw);
-
-   if(decode && decode->buildMatrixCallback4)
-      (*(decode->buildMatrixCallback4))(sRegInv);
-
-   // Determine step size (90% of rough pixel length)
-   px0.X = 0.0;
-   px0.Y = 0.0;
-   px1.X = 1.0;
-   px1.Y = 0.0;
-   dmtxMatrix3VMultiplyBy(&px0, sRegInv);
-   dmtxMatrix3VMultiplyBy(&px1, sRegInv);
-   dmtxVector2SubFrom(&px1, &px0);
-   stepSize = dmtxVector2Mag(&px1);
-   assert(stepSize > DMTX_ALMOST_ZERO);
-   stepSize = 0.9 * (1.0/stepSize);
-
-   p0.X = 1.0;
-   p0.Y = 0.0;
-   prevStep = prevHit = p0;
-
-   highHit.X = highHit.Y = 1.0; // XXX add this for safety in case it's not found
-
-   while(p0.Y < 1.0 && p0.X < 3.0) { // XXX 3.0 caps rise to prevent infinite loops
-// XXX infinite loop problem here... don't know why yet
-      dmtxMatrix3VMultiply(&px0, &p0, sRegInv);
-      dmtxColor3FromImage(&color, &(decode->image), px0.X, px0.Y);
-      t = dmtxDistanceAlongRay3(&(matrixRegion->gradient.ray), &color);
-
-      if(t >= matrixRegion->gradient.tMid) {
-         prevStep = p0;
-         p0.X += stepSize;
-      }
-      else {
-         if(fabs(p0.X - prevStep.X) > DMTX_ALMOST_ZERO) {
-            if(p0.Y - prevHit.Y < 3 * stepSize) {
-               prevHit = p0;
-
-//             if(decode && decode->xfrmPlotPointCallback)
-//                (*(decode->xfrmPlotPointCallback))(px0, sReg, 5, DMTX_DISPLAY_POINT);
-            }
-            else {
-               highHit = p0;
-               highHitX = px0; // XXX note: capturing transformed point... not useful except for displaying
-            }
-         }
-
-         prevStep = p0;
-         p0.Y += stepSize;
-      }
-   }
-
-   dmtxMatrix3VMultiplyBy(&prevHit, sInv);
-   dmtxMatrix3VMultiplyBy(&highHit, sInv);
-
-   m = (highHit.X - prevHit.X)/(highHit.Y - prevHit.Y);
-   matrixRegion->chain.bx0 = (m * -prevHit.Y) + prevHit.X;
-   matrixRegion->chain.bx1 = (m * (1.0 - prevHit.Y)) + prevHit.X;
-
-   if(matrixRegion->chain.bx0 < 0 || matrixRegion->chain.bx1 < 0) {
-      return DMTX_FALSE;
-   }
-
-   MatrixRegionUpdateXfrms(matrixRegion);
-
-// if(decode && decode->xfrmPlotPointCallback)
-//    (*(decode->xfrmPlotPointCallback))(highHitX, sReg, 5, DMTX_DISPLAY_SQUARE);
 
    return DMTX_TRUE;
 }
