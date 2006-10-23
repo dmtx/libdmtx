@@ -56,12 +56,12 @@ version 0.3:
   x Increase dmtxread default scanline count (feasible because of better stability)
   x Add man page for dmtxwrite
 
-next version:
+version 0.4:
+  x Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
   o Try new approach to replace follower algorithm (beefed up ...Align() logic
   o Capture high-level design in documentation (data flow, module analogies)
   o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
   o Investigate reported memory leak
-  o Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
   o Implement overlap detection to avoid rescanning in successfully decoded regions
   o Implement error correction
   o Implement consistent and robust error handling (errno.h + custom)
