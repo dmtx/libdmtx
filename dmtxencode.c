@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxencode.c,v 1.6 2006-10-17 17:57:52 mblaughton Exp $ */
+/* $Id: dmtxencode.c,v 1.7 2006-10-25 17:46:32 mblaughton Exp $ */
 
 /**
  *
@@ -366,7 +366,7 @@ PrintPattern(DmtxEncode *encode)
    memset(&white, 0xff, sizeof(DmtxPixel));
 
    // Print raster version of barcode pattern
-   // IMPORTANT: DmtxImage is stored with its origin at bottom-right
+   // IMPORTANT: DmtxImage is stored with its origin at bottom-left
    // (unlike common image file formats) to preserve "right-handed" 2D space
    for(row = 0; row < encode->image.height; row++) {
       for(col = 0; col < encode->image.width; col++) {
