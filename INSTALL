@@ -1,130 +1,145 @@
 Building and Installing libdmtx
 -----------------------------------------------------------------
 
-1. libdmtx - Building the Core Library
+1. Unpackaging
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-I haven't taken the time to get autoconf(1) set up for this
-package, and it's not currently designed to install to the
-normal library locations (/usr/lib, /usr/local/lib, etc...).
-Instead, it will build in the source directory and the test
-and utility programs will reference it from their own source
-directories.
+libdmtx is distributed as 2 files: one for source code and
+another for additional test images.  The test images are
+optional, but can be useful for testing purposes.
 
-Because of this oversimplification, however, the build process
-can be quite straightforward.  To build libdmtx, simply:
+To install everything, place both files in the same directory
+and untar them as follows (example uses v0.4 filenames):
 
-   $ make all
+For .bz2 files:
+  $ tar jxvf libdmtx-0.4.0.tar.bz2
 
-But how often does that actually work on the first try,
-right?  WHEN you get build errors, you should:
+For .gz files:
+  $ tar zxvf libdmtx-0.4.0.tar.gz
 
-a) Try "make all" again.  I know, this is stupid.  But
-   sometimes it works because there is a problem with the
-   SELinux context that causes the build to break in some
-   distos.  Usually the actual compile works fine though,
-   so the error is just an annoyance that is skipped the
-   second time around.
+For .tar files:
+  $ tar xvf libdmtx-images-0.4.0.tar
 
-b) If that doesn't work then next you should check that you
-   have all the necessary packages installed.  See the
-   "Dependencies" section below for details.
+Note: If your system uses an older version of tar you might
+      need to do it in two steps, like this:
 
-c) If you have done these steps and it still won't build then
-   please post a message to the libdmtx "Help" forum at
-   http://sourceforge.net/forum/forum.php?forum_id=513654
-   so that we can review your issue and the solution can be
-   found by others who are experiencing the same problem.
-
-Other make targets include:
-   $ make static   Build an object file for static linking
-   $ make test     Build test programs
-   $ make util     Build utility programs
-   $ make style    Test code for style issues
-   $ make tarball  Build a clean & pressed tarball
-   $ make clean    Remove non-permanent files
+  $ gunzip libdmtx-0.4.0.tar.gz && tar xvf libdmtx-0.4.0.tar
 
 
-2. Building the Test Programs: gltest and simpletest
+2. libdmtx - Building and Installing the Core Library
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-The test program directories are located under libdmtx/test.
-You can just run "make" in either directory to build either
-program.  If you already ran "make all" above, then it will
-tell you there is nothing left to do.  Again, if there are
-any problems during the build then be sure to check your
-packages against the dependencies listed in the section below.
+libdmtx uses GNU Autotools so the installation should be
+familiar to veteran free software users:
 
-The gltest program uses OpenGL (Mesa) to simulate raw camera
+As yourself, first run:
+
+  $ ./configure
+
+and then run:
+
+  $ make
+
+If this throws any errors you probably want to check the
+Dependencies section below and install any missing software
+before trying again.
+
+If you're awesome then it built correctly on the first try and
+you can execute any of the resulting programs that were built
+in the subdirectories, including:
+
+  * test/test_simple/simpletest
+  * test/test_opengl/gltest
+  * util/dmtxread/dmtxread
+  * util/dmtxwrite/dmtxwrite
+
+Note: gltest must be executed from the gltest test directory
+      due to a relative path embedded in the code.
+
+If these appear to be working and you want to install the core
+library and utility programs system-wide (not including test
+programs), then log in as root and run:
+
+$ make install
+
+This installs the library files to /usr/local/lib, utilities to
+/usr/local/bin, and man pages to /usr/local/share/man (unless
+you specified a different "--prefix" during the configure step
+above).
+
+Did you encounter any problems?  If you have done these steps
+and it still won't build then please post a message to the
+libdmtx "Help" forum at
+
+  http://sourceforge.net/forum/forum.php?forum_id=513654
+
+so we can review your issue and the solution can be found by
+others might experiencing the same problem.
+
+
+3. Building and Installing the Python Bindings
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+If you wish to call libdmtx from programs written in Python
+then you must also install the Python binding located in the
+bindings/python directory.  See the INSTALL file in that
+directory for further instructions.
+
+
+4. Building the Test Programs: gltest and simpletest
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+The gltest program uses OpenGL (or Mesa) to simulate raw camera
 input.  If it successfully finds and decodes a Data Matrix
 symbol then it will write the decoded stream to STDOUT.  The
-program uses the images from the libdmtx/test/test_images
-directory, and you can cycle through them by right-clicking
-anywhere on the open gltest window.
+program uses the images from the libdmtx/test/images_opengl
+directory (the only images that are included in the non-
+optional source package), and you can cycle through them by
+right-clicking anywhere on the open gltest window.
 
 The simpletest program is a simple test program.
 
-Both programs build dynamically linked to the libdmtx library
-so I provided "run_gltest.sh" and "run_simpletest.sh" scripts
-to save you from having to set and export the LD_LIBRARY_PATH
-every time.
 
-
-3. Building the Utilities: dmtxread and dmtxwrite
-::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-The whole "run_program.sh" wrapper script approach doesn't work
-very well for dmtxread and dmtxwrite, since they both expect
-arguments from the command line.  For this reason they are
-currently built with statically linking, unless you specify
-otherwise by using the appropriate make target.  Both programs
-have similar make rules:
-
-   $ make static   Build it statically linked
-   $ make dmtx.o   Build libdmtx as an object file
-   $ make dynamic  Build it dynamically linked
-   $ make clean    Remove non-permanent files
-
-
-4. Dependencies
+5. Dependencies
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 The following packages are required to build libdmtx and its
 associated programs:
 
 libdmtx:
-   (none)
+  (none)
 
 gltest:
-   mesa-libGL
-   mesa-libGL-devel
-   mesa-libGLU
-   mesa-libGLU-devel
-   SDL
-   SDL-devel
-   libpng
-   libpng-devel
+  mesa-libGL
+  mesa-libGL-devel
+  mesa-libGLU
+  mesa-libGLU-devel
+  SDL
+  SDL-devel
+  libpng
+  libpng-devel
 
 simpletest:
-   (none)
+  (none)
 
 dmtxread:
-   libpng
-   libpng-devel
-   libtiff
-   libtiff-devel
+  libpng
+  libpng-devel
+  libtiff
+  libtiff-devel
 
 dmtxwrite:
-   (none)
+  libpng
+  libpng-devel
 
 If you have an RPM-based system and you want to test for all of
 these in one shot, you can give it one of these:
 
-   $ rpm -q libpng libpng-devel libtiff libtiff-devel mesa-libGL \
-         mesa-libGL-devel mesa-libGLU mesa-libGLU-devel SDL SDL-devel
+  $ rpm -q libpng libpng-devel libtiff libtiff-devel mesa-libGL \
+        mesa-libGL-devel mesa-libGLU mesa-libGLU-devel SDL SDL-devel
 
 
-5. Anything Else?
+6. Anything Else?
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 Did I leave anything out?  If you spent hours searching for a

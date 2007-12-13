@@ -3,7 +3,7 @@
 FILE="$1"
 
 # Every source file must include a copyright line
-COPYRIGHT=$(grep Copyright $FILE)
+COPYRIGHT=$(grep "Copyright (c) " $FILE)
 if [[ $? -ne 0 ]]; then
    echo "Missing copyright text in $FILE"
    exit 1

@@ -1,0 +1,9 @@
+This test program uses OpenGL (Mesa) to simulate camera input,
+and writes decoded Data Matrix streams to STDOUT.
+
+The program is somewhat boring if you don't know that you can
+right-click to cycle through the test images.  To add your own
+images, just overwrite any image in the libdmtx/test/test_images
+directory with another 256x256 PNG file.  If you want to add
+brand new images then you will have to update the gFilename[] and
+gFileCount variables at the top of gltest.c to include them.

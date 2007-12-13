@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,23 +20,22 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxcolor3.c,v 1.3 2006-10-12 18:04:27 mblaughton Exp $ */
+/* $Id: dmtxcolor3.c,v 1.3 2006/10/12 18:04:27 mblaughton Exp $ */
 
 /**
  *
  *
  */
-extern void
-dmtxColor3FromImage(DmtxColor3 *color, DmtxImage *image, int x, int y)
+extern DmtxPixel
+dmtxPixelFromImage(DmtxImage *image, int x, int y)
 {
+   DmtxPixel bad = {0,0,0};
+
    if(x >= 0 && x < image->width && y >= 0 && y < image->height) {
-      dmtxColor3FromPixel(color, &(image->pxl[y * image->width + x]));
+      return image->pxl[y * image->width + x];
    }
-   else { // XXX this isn't right.  library shouldn't have color to aid graphical visualization
-      color->R =  0.0;
-      color->G =  0.0;
-      color->B = 30.0;
-   }
+
+   return bad;
 }
 
 /**
@@ -48,21 +48,24 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
    int xInt, yInt;
    float xFrac, yFrac;
    DmtxColor3 clrLL, clrLR, clrUL, clrUR;
+   DmtxPixel pxlLL, pxlLR, pxlUL, pxlUR;
+
+/* p = dmtxRemoveLensDistortion(p, image, -0.000003, 0.0); */
 
    xInt = (int)p.X;
    yInt = (int)p.Y;
    xFrac = p.X - xInt;
    yFrac = p.Y - yInt;
 
-   dmtxColor3FromImage(&clrLL, image, xInt,   yInt);
-   dmtxColor3FromImage(&clrLR, image, xInt+1, yInt);
-   dmtxColor3FromImage(&clrUL, image, xInt,   yInt+1);
-   dmtxColor3FromImage(&clrUR, image, xInt+1, yInt+1);
+   pxlLL = dmtxPixelFromImage(image, xInt,   yInt);
+   pxlLR = dmtxPixelFromImage(image, xInt+1, yInt);
+   pxlUL = dmtxPixelFromImage(image, xInt,   yInt+1);
+   pxlUR = dmtxPixelFromImage(image, xInt+1, yInt+1);
 
-   dmtxColor3ScaleBy(&clrLL, (1 - xFrac) * (1 - yFrac));
-   dmtxColor3ScaleBy(&clrLR, xFrac * (1 - yFrac));
-   dmtxColor3ScaleBy(&clrUL, (1 - xFrac) * yFrac);
-   dmtxColor3ScaleBy(&clrUR, xFrac * yFrac);
+   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrLL, &pxlLL), (1 - xFrac) * (1 - yFrac));
+   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrLR, &pxlLR), xFrac * (1 - yFrac));
+   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrUL, &pxlUL), (1 - xFrac) * yFrac);
+   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrUR, &pxlUR), xFrac * yFrac);
 
    *color = clrLL;
    dmtxColor3AddTo(color, &clrLR);
@@ -74,12 +77,22 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
  *
  *
  */
-extern void
+extern DmtxColor3 *
 dmtxColor3FromPixel(DmtxColor3 *color, DmtxPixel *pxl)
 {
+ /*double Y;*/
+
+   /* XXX this probably isn't the appropriate place for color-to-grayscale
+      conversion but everyone references this function right now */
+
    color->R = pxl->R;
    color->G = pxl->G;
    color->B = pxl->B;
+
+ /*Y = 0.3*color->R + 0.59*color->G + 0.11*color->B;
+   color->R = color->G = color->B = Y;*/
+
+   return color;
 }
 
 /**
@@ -214,7 +227,7 @@ dmtxColor3Norm(DmtxColor3 *c)
    mag = dmtxColor3Mag(c);
 
    if(mag == 0)
-      ; // Div/0 Error
+      ; /* Div/0 Error */
 
    dmtxColor3ScaleBy(c, 1/mag);
 
@@ -228,7 +241,7 @@ dmtxColor3Norm(DmtxColor3 *c)
 extern float
 dmtxColor3Dot(DmtxColor3 *c1, DmtxColor3 *c2)
 {
-   // XXX double check that this is right
+   /* XXX double check that this is right */
    return (c1->R * c2->R) + (c1->G * c2->G) + (c1->B * c2->B);
 }
 
@@ -252,7 +265,7 @@ dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q)
    DmtxColor3 cSubTmp;
    DmtxColor3 cCrossTmp;
 
-   // Assume that ray has a unit length of 1
+   /* Assume that ray has a unit length of 1 */
    assert(fabs(1.0 - dmtxColor3Mag(&(r->c))) < DMTX_ALMOST_ZERO);
 
    return dmtxColor3Mag(dmtxColor3Cross(&cCrossTmp, &(r->c), dmtxColor3Sub(&cSubTmp, q, &(r->p))));
@@ -267,7 +280,7 @@ dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q)
 {
    DmtxColor3 cSubTmp;
 
-   // Assume that ray has a unit length of 1
+   /* Assume that ray has a unit length of 1 */
    assert(fabs(1.0 - dmtxColor3Mag(&(r->c))) < DMTX_ALMOST_ZERO);
 
    return dmtxColor3Dot(dmtxColor3Sub(&cSubTmp, q, &(r->p)), &(r->c));
@@ -282,7 +295,7 @@ dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, float t)
 {
    DmtxColor3 cTmp;
 
-   // Assume that ray has a unit length of 1
+   /* Assume that ray has a unit length of 1 */
    assert(fabs(1.0 - dmtxColor3Mag(&(r->c))) < DMTX_ALMOST_ZERO);
 
    dmtxColor3Scale(&cTmp, &(r->c), t);

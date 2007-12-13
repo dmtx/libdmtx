@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxcallback.c,v 1.2 2006-10-05 05:18:40 mblaughton Exp $ */
+/* $Id: dmtxcallback.c,v 1.2 2006/10/05 05:18:40 mblaughton Exp $ */
 
 /**
  *
@@ -27,70 +28,10 @@ Contact: mike@dragonflylogic.com
  * @return XXX
  */
 extern void
-dmtxSetStepScanCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxScanRange *, DmtxJumpScan *))
+dmtxSetBuildMatrixCallback2(DmtxDecode *decode, void (* func)(DmtxMatrixRegion *))
 {
    if(decode == NULL) {
-      exit(1); // XXX better error handling strategy
-   }
-
-   decode->stepScanCallback = func;
-}
-
-/**
- *
- * @param XXX
- * @return XXX
- */
-extern void
-dmtxSetCrossScanCallback(DmtxDecode *decode, void (* func)(DmtxScanRange *, DmtxGradient *, DmtxEdgeScan *))
-{
-   if(decode == NULL) {
-      exit(1); // XXX better error handling strategy
-   }
-
-   decode->crossScanCallback = func;
-}
-
-/**
- *
- * @param XXX
- * @return XXX
- */
-extern void
-dmtxSetFollowScanCallback(DmtxDecode *decode, void (* func)(DmtxEdgeFollower *))
-{
-   if(decode == NULL) {
-      exit(1); // XXX better error handling strategy
-   }
-
-   decode->followScanCallback = func;
-}
-
-/**
- *
- * @param XXX
- * @return XXX
- */
-extern void
-dmtxSetFinderBarCallback(DmtxDecode *decode, void (* func)(DmtxRay2 *))
-{
-   if(decode == NULL) {
-      exit(1); // XXX better error handling strategy
-   }
-
-   decode->finderBarCallback = func;
-}
-
-/**
- *
- * @param XXX
- * @return XXX
- */
-extern void
-dmtxSetBuildMatrixCallback2(DmtxDecode *decode, void (* func)(DmtxFinderBar *, DmtxMatrixRegion *))
-{
-   if(decode == NULL) {
-      exit(1); // XXX better error handling strategy
+      exit(1); /* XXX better error handling strategy */
    }
 
    decode->buildMatrixCallback2 = func;
@@ -105,7 +46,7 @@ extern void
 dmtxSetBuildMatrixCallback3(DmtxDecode *decode, void (* func)(DmtxMatrix3))
 {
    if(decode == NULL) {
-      exit(1); // XXX better error handling strategy
+      exit(1); /* XXX better error handling strategy */
    }
 
    decode->buildMatrixCallback3 = func;
@@ -120,7 +61,7 @@ extern void
 dmtxSetBuildMatrixCallback4(DmtxDecode *decode, void (* func)(DmtxMatrix3))
 {
    if(decode == NULL) {
-      exit(1); // XXX better error handling strategy
+      exit(1); /* XXX better error handling strategy */
    }
 
    decode->buildMatrixCallback4 = func;
@@ -135,7 +76,7 @@ extern void
 dmtxSetPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVector2, int, int, int))
 {
    if(decode == NULL) {
-      exit(1); // XXX better error handling strategy
+      exit(1); /* XXX better error handling strategy */
    }
 
    decode->plotPointCallback = func;
@@ -150,7 +91,7 @@ extern void
 dmtxSetXfrmPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVector2, DmtxMatrix3, int, int))
 {
    if(decode == NULL) {
-      exit(1); // XXX better error handling strategy
+      exit(1); /* XXX better error handling strategy */
    }
 
    decode->xfrmPlotPointCallback = func;
@@ -162,10 +103,10 @@ dmtxSetXfrmPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVector2, Dmtx
  * @return XXX
  */
 extern void
-dmtxSetFinalCallback(DmtxDecode *decode, void (* func)(DmtxMatrixRegion *))
+dmtxSetFinalCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixRegion *))
 {
    if(decode == NULL) {
-      exit(1); // XXX better error handling strategy
+      exit(1); /* XXX better error handling strategy */
    }
 
    decode->finalCallback = func;
@@ -180,7 +121,7 @@ extern void
 dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixRegion *, int, int, DmtxColor3))
 {
    if(decode == NULL) {
-      exit(1); // XXX better error handling strategy
+      exit(1); /* XXX better error handling strategy */
    }
 
    decode->plotModuleCallback = func;

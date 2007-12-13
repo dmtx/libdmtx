@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxvector2.c,v 1.5 2006-10-12 18:05:37 mblaughton Exp $ */
+/* $Id: dmtxvector2.c,v 1.5 2006/10/12 18:05:37 mblaughton Exp $ */
 
 /**
  *
@@ -153,7 +154,7 @@ dmtxDistanceFromRay2(DmtxRay2 *r, DmtxVector2 *q)
 {
    DmtxVector2 vSubTmp;
 
-   // Assumes that v is a unit vector
+   /* Assumes that v is a unit vector */
    assert(fabs(1.0 - dmtxVector2Mag(&(r->v))) < DMTX_ALMOST_ZERO);
 
    return dmtxVector2Cross(&(r->v), dmtxVector2Sub(&vSubTmp, q, &(r->p)));
@@ -168,10 +169,10 @@ dmtxDistanceAlongRay2(DmtxRay2 *r, DmtxVector2 *q)
 {
    DmtxVector2 vSubTmp;
 
-// Assumes that v is a unit vector
+/* Assumes that v is a unit vector */
 #ifdef DEBUG
    if(fabs(1.0 - dmtxVector2Mag(v)) > DMTX_ALMOST_ZERO) {
-      ; // XXX big error goes here
+      ; /* XXX big error goes here */
    }
 #endif
 
@@ -207,11 +208,39 @@ dmtxPointAlongRay2(DmtxVector2 *point, DmtxRay2 *r, float t)
 {
    DmtxVector2 vTmp;
 
-   // Ray should always have unit length of 1
+   /* Ray should always have unit length of 1 */
    assert(fabs(1.0 - dmtxVector2Mag(&(r->v))) < DMTX_ALMOST_ZERO);
 
    dmtxVector2Scale(&vTmp, &(r->v), t);
    dmtxVector2Add(point, &(r->p), &vTmp);
 
    return DMTX_SUCCESS;
+}
+
+/**
+ *
+ *
+ */
+extern DmtxVector2
+dmtxRemoveLensDistortion(DmtxVector2 point, DmtxImage *image, double k1, double k2)
+{
+   double radiusPow2, radiusPow4;
+   double factor;
+   DmtxVector2 pointShifted;
+   DmtxVector2 correctedPoint;
+
+   /* XXX this function can be rewritten using vector math notation */
+
+   pointShifted.X = point.X - image->width/2.0;
+   pointShifted.Y = point.Y - image->height/2.0;
+
+   radiusPow2 = pointShifted.X * pointShifted.X + pointShifted.Y * pointShifted.Y;
+   radiusPow4 = radiusPow2 * radiusPow2;
+
+   factor = 1 + (k1 * radiusPow2) + (k2 * radiusPow4);
+
+   correctedPoint.X = pointShifted.X * factor + image->width/2.0;
+   correctedPoint.Y = pointShifted.Y * factor + image->width/2.0;
+
+   return correctedPoint;
 }

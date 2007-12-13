@@ -1,29 +1,41 @@
-README for libdmtx version 0.3.0 - October 15, 2006
+README for libdmtx version 0.4.0 - December 7, 2007
 -----------------------------------------------------------------
 
-libdmtx version 0.3.0 doesn't have all the features I was hoping
-to add before the next release, but it's at a point where I need
-to break the library for a while in order to rip out and replace
-the main region detection algorithm.
+One year is a long time to wait for new software -- especially
+when the software is held out of reach by a single arbitrary
+decision.  I hope the new features in version 0.4 are significant
+enough to at least partially justify the wait, and useful enough
+to keep people involved while the last remaining pieces are
+written.
 
-Before breaking the CVS version, though, I'm releasing v0.3 so
-everyone can continue using the latest code with all the
-restructuring, bug fixes, and enhancements that have happened
-since v0.2.
+In addition to several minor improvements and bug fixes, version
+0.4 introduces some major pieces of the ECC200 Data Matrix
+specification:
 
-Revisiting the disclaimers from earlier releases, you might pick
-up on a more optimistic tone:
+  * Multi-Region Barcodes
+  * Rectangle Barcodes
+  * Optimized Encoding (beta)
+  * All Encodation Schemes Supported (partial Base 256)
 
-   * It shouldn't crash very often anymore (please let me know)
-   * It definitely shouldn't hang your system
-   * The API will still change, but not as frequently
+as well as some technical additions that should either improve
+things or at least make them interesting:
 
-I'm already working on the next release, so hopefully it won't
-take as long to get it out the door.  And a special thanks to
-everyone who has contributed questions, ideas, bug reports, and
-patches since the last release.
+  * GNU Autotools
+  * Regression testing suite (at least a start)
+  * Overhauled region detection
+  * Valid PNG output
+  * Python bindings (thanks Dan!)
+  * Data Mosaic experimental barcodes (non-standard)
 
-As always, if you have any questions or problems then please post
-a message to one of the libdmtx forums at:
+Almost none of this new code has been tested in the real world
+and we /will/ find regressions.  If you encounter problems then
+please let me know so we can work on stabilizing the release.
+The libdmtx "Help" forum at SourceForge is a great place for your
+questions and problems:
 
    http://sourceforge.net/forum/?group_id=153603
+
+I want to thank everyone who has contributed code, sample images,
+and comments over the last year.  In some cases I received code
+that didn't make it into this release, but I am eager to get it
+included for next time.

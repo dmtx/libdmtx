@@ -1,63 +1,83 @@
-.\" $Id: dmtxwrite.1,v 1.2 2006-10-16 01:46:35 mblaughton Exp $
+.\" $Id: dmtxwrite.1,v 1.1 2006/10/15 19:36:27 mblaughton Exp $
 .\"
 .\" Man page for the dmtxwrite utility (libdmtx project).
 .\"
 .\" To view: $ groff -man -T ascii dmtxwrite.1 | less
 .\" To text: $ groff -man -T ascii dmtxwrite.1 | col -b | expand
 .\"
-.TH DMTXWRITE 1 "October 15, 2006"
+.TH DMTXWRITE 1 "December 7, 2007"
 .SH NAME
-dmtxwrite \- create an image containing a data matrix barcode
+dmtxwrite \- create Data Matrix barcodes
 .SH SYNOPSIS
-\fBdmtxwrite\fP [\fIoptions\fP] message
-
+.B dmtxwrite
+[\fIOPTIONS\fP]... [FILE]
 .SH DESCRIPTION
-Dmtxwrite writes an image containing a Data Matrix barcode created by encoding a message provided on the command line.
-
+dmtxwrite creates an ECC200 Data Matrix barcode by encoding data from a file or standard input and writing the resulting barcode to an image file.
 .SH OPTIONS
- \fB-o\fP, --output=\fIFILE\fP          barcode output filename
- \fB-f\fP, --format=[pa]          barcode output format (not implemented yet)
-       p = PNG              [default]
-       a = ASCII
-
- \fB-e\fP, --encoding=[uact8]     encodation scheme (not implemented yet)
-       u = Auto             [default]
-       a = ASCII
-       c = C40
-       t = Text
-       8 = Base 256
-
- \fB-s\fP, --size=\fISIZE\fP            symbol size in ROWSxCOLS (not implemented)
-       s = Auto square      [default]
-       r = Auto rectangle
-       Valid \fISIZE\fP options for square symbols:
-       10x10,  12x12,   14x14,   16x16,   18x18,   20x20,
-       22x22,  24x24,   26x26,   32x32,   36x36,   40x40,
-       44x44,  48x48,   52x52,   64x64,   72x72,   80x80,
-       88x88,  96x96, 104x104, 120x120, 132x132, 144x144
-       Valid \fISIZE\fP options for rectangular symbols:
-        8x18,   8x32,   12x26,   12x36,   16x36,   16x48
-
- \fB-t\fP, --tilde                process tilde (not implemented yet)
-
- \fB-m\fP, --margin=\fINUM\fP           margin size (in pixels)
-
- \fB-d\fP, --module=\fINUM\fP           module size (in pixels)
-
- \fB-r\fP, --rotate=\fINUM\fP           rotation angle (degrees) (not implemented)
-
- \fB-b\fP, --bgcolor=\fICOLOR\fP        background color (not implemented yet)
-
- \fB-c\fP, --color=\fICOLOR\fP          foreground color (not implemented yet)
-
- \fB-V\fP, --verbose              use verbose messages
-
-     --help                 display this help and exit
-
+.TP
+\fB\-c\fP, \fB\-\-color\fP=\fICOLOR\fP
+Barcode color. (not implemented yet)
+.TP
+\fB\-b\fP, \fB\-\-bg-color\fP=\fICOLOR\fP
+Background color. (not implemented yet)
+.TP
+\fB\-d\fP, \fB\-\-module\fP=\fINUM\fP
+Module size. (in pixels)
+.TP
+\fB\-m\fP, \fB\-\-margin\fP=\fINUM\fP
+Margin size. (in pixels)
+.TP
+\fB\-e\fP, \fB\-\-encoding\fP=[bfactxe8]
+Encodation scheme.
+   b = Best optimized   best possible optimization (beta)
+   f = Fast optimized   basic optimization (not implemented)
+   a = ASCII [default]  digits and ASCII (standard & extended)
+   c = C40              digits and uppercase
+   t = Text             digits and lowercase
+   x = X12              ANSI X12 EDI
+   e = EDIFACT          ASCII values 32-94
+   8 = Base 256         all byte values 0-255
+.TP
+\fB\-f\fP, \fB\-\-format\fP=[pa]
+Barcode output format.
+   p = PNG              [default] PNG image
+   n = PNM              PNM image
+   a = ASCII            print ASCII representation to STDOUT
+   c = Codewords        print internal codewords to STDOUT
+.TP
+\fB\-o\fP, \fB\-\-output\fP=\fIFILE\fP
+Barcode output filename.
+.TP
+\fB\-r\fP, \fB\-\-rotate\fP=\fIDEGREES\fP
+Rotation angle. (degrees) (not implemented)
+.TP
+\fB\-s\fP, \fB\-\-symbol-size\fP=\fISIZE\fP
+Symbol size specified in Rows x Cols.
+   Automatic \fISIZE\fP options:
+      s = Auto square   [default]
+      r = Auto rectangle
+   Manually specified \fISIZE\fP options for square symbols:
+      10x10,  12x12,   14x14,   16x16,   18x18,   20x20,
+      22x22,  24x24,   26x26,   32x32,   36x36,   40x40,
+      44x44,  48x48,   52x52,   64x64,   72x72,   80x80,
+      88x88,  96x96, 104x104, 120x120, 132x132, 144x144
+   Manually specified \fISIZE\fP options for rectangular symbols:
+       8x18,   8x32,   12x26,   12x36,   16x36,   16x48
+.TP
+\fB\-v\fP, \fB\-\-verbose\fP
+Use verbose messages.
+.TP
+\fB\-M\fP, \fB\-\-mosaic\fP
+Create non-standard Data Mosaic barcode.
+.TP
+\fB\-\-help\fP
+Display this help message and quit.
+.SH STANDARDS
+ISO/IEC 16022:2000
+.PP
+ANSI/AIM BC11 ISS
 .SH BUGS
 Email bug reports to \fImike@dragonflylogic.com\fP
-
 .SH AUTHOR
-Copyright (C) 2006 Mike Laughton
-
+Copyright (c) 2007 Mike Laughton
 .\" end of man page

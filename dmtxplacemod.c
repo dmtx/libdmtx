@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,46 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxplacemod.c,v 1.2 2006-09-18 17:55:46 mblaughton Exp $ */
+/* $Id: dmtxplacemod.c,v 1.2 2006/09/18 17:55:46 mblaughton Exp $ */
+
+/**
+ * receives symbol row and col and returns status
+ * DMTX_MODULE_ON / !DMTX_MODULE_ON (DMTX_MODULE_OFF)
+ * DMTX_MODULE_ASSIGNED
+ * DMTX_MODULE_VISITED
+ * DMTX_MODULE_DATA / !DMTX_MODULE_DATA (DMTX_MODULE_ALIGNMENT)
+ * row and col are expressed in symbol coordinates, so (0,0) is the intersection of the "L"
+ */
+int
+dmtxSymbolModuleStatus(DmtxMatrixRegion *region, int symbolRow, int symbolCol)
+{
+   int symbolRowReverse;
+   int mappingRow, mappingCol;
+   int dataRegionRows, dataRegionCols;
+
+   dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
+   dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);
+
+   symbolRowReverse = region->symbolRows - symbolRow - 1;
+   mappingRow = symbolRowReverse - 1 - 2 * (symbolRowReverse / (dataRegionRows+2));
+   mappingCol = symbolCol - 1 - 2 * (symbolCol / (dataRegionCols+2));
+
+   /* Solid portion of alignment patterns */
+   if(symbolRow % (dataRegionRows+2) == 0 ||
+         symbolCol % (dataRegionCols+2) == 0)
+      return (DMTX_MODULE_ON_RGB | (!DMTX_MODULE_DATA));
+
+   /* Horinzontal calibration bars */
+   if((symbolRow+1) % (dataRegionRows+2) == 0)
+      return (((symbolCol & 0x01) ? 0 : DMTX_MODULE_ON_RGB) | (!DMTX_MODULE_DATA));
+
+   /* Vertical calibration bars */
+   if((symbolCol+1) % (dataRegionCols+2) == 0)
+      return (((symbolRow & 0x01) ? 0 : DMTX_MODULE_ON_RGB) | (!DMTX_MODULE_DATA));
+
+   /* Data modules */
+   return (region->array[mappingRow * region->mappingCols + mappingCol] | DMTX_MODULE_DATA);
+}
 
 /**
  * XXX
@@ -28,56 +68,66 @@ Contact: mike@dragonflylogic.com
  * @return XXX
  */
 static int
-ModulePlacementEcc200(DmtxMatrixRegion *matrixRegion)
+ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int sizeIdx, int moduleOnColor)
 {
-   unsigned char *codewords;
    int row, col, chr;
+   int mappingRows, mappingCols;
 
-   codewords = matrixRegion->code;
+   assert(moduleOnColor & (DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE));
 
-   // Start in the nominal location for the 8th bit of the first character
+   mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdx);
+   mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
+
+   /* Start in the nominal location for the 8th bit of the first character */
    chr = 0;
    row = 4;
    col = 0;
 
    do {
-      // Repeatedly first check for one of the special corner cases, then ...
-      if((row == matrixRegion->dataRows) && (col == 0))
-         PatternShapeSpecial1(matrixRegion, &(codewords[chr++]));
-      else if((row == matrixRegion->dataRows-2) && (col == 0) && (matrixRegion->dataCols%4))
-         PatternShapeSpecial2(matrixRegion, &(codewords[chr++]));
-      else if((row == matrixRegion->dataRows-2) && (col == 0) && (matrixRegion->dataCols%8 == 4))
-         PatternShapeSpecial3(matrixRegion, &(codewords[chr++]));
-      else if((row == matrixRegion->dataRows+4) && (col == 2) && (!(matrixRegion->dataCols%8)))
-         PatternShapeSpecial4(matrixRegion, &(codewords[chr++]));
+      /* Repeatedly first check for one of the special corner cases */
+      if((row == mappingRows) && (col == 0))
+         PatternShapeSpecial1(modules, mappingRows, mappingCols, &(codewords[chr++]), moduleOnColor);
+      else if((row == mappingRows-2) && (col == 0) && (mappingCols%4))
+         PatternShapeSpecial2(modules, mappingRows, mappingCols, &(codewords[chr++]), moduleOnColor);
+      else if((row == mappingRows-2) && (col == 0) && (mappingCols%8 == 4))
+         PatternShapeSpecial3(modules, mappingRows, mappingCols, &(codewords[chr++]), moduleOnColor);
+      else if((row == mappingRows+4) && (col == 2) && (!(mappingCols%8)))
+         PatternShapeSpecial4(modules, mappingRows, mappingCols, &(codewords[chr++]), moduleOnColor);
 
-      // Sweep upward diagonally, inserting successive characters, ...
+      /* Sweep upward diagonally, inserting successive characters */
       do {
-         if((row < matrixRegion->dataRows) && (col >= 0) &&
-               !(matrixRegion->array[row*matrixRegion->dataCols+col] & DMTX_MODULE_VISITED))
-            PatternShapeStandard(matrixRegion, row, col, &(codewords[chr++]));
+         if((row < mappingRows) && (col >= 0) &&
+               !(modules[row*mappingCols+col] & DMTX_MODULE_VISITED))
+            PatternShapeStandard(modules, mappingRows, mappingCols, row, col, &(codewords[chr++]), moduleOnColor);
          row -= 2;
          col += 2;
-      } while ((row >= 0) && (col < matrixRegion->dataCols));
+      } while ((row >= 0) && (col < mappingCols));
       row += 1;
       col += 3;
 
-      // And then sweep downward diagonally, inserting successive characters, ...
+      /* Sweep downward diagonally, inserting successive characters */
       do {
-         if((row >= 0) && (col < matrixRegion->dataCols) &&
-               !(matrixRegion->array[row*matrixRegion->dataCols+col] & DMTX_MODULE_VISITED))
-            PatternShapeStandard(matrixRegion, row, col, &(codewords[chr++]));
+         if((row >= 0) && (col < mappingCols) &&
+               !(modules[row*mappingCols+col] & DMTX_MODULE_VISITED))
+            PatternShapeStandard(modules, mappingRows, mappingCols, row, col, &(codewords[chr++]), moduleOnColor);
          row += 2;
          col -= 2;
-      } while ((row < matrixRegion->dataRows) && (col >= 0));
+      } while ((row < mappingRows) && (col >= 0));
       row += 3;
       col += 1;
-      // ... until the entire array is scanned
-   } while ((row < matrixRegion->dataRows) || (col < matrixRegion->dataCols));
+      /* ... until the entire modules array is scanned */
+   } while ((row < mappingRows) || (col < mappingCols));
 
-   // XXX compare that chr == matrixRegion->dataSize here
+   /* If lower righthand corner is untouched then fill in the fixed pattern */
+   if(!(modules[mappingRows * mappingCols - 1] &
+         DMTX_MODULE_VISITED)) {
 
-   return chr; // XXX number of codewords read off
+      modules[mappingRows * mappingCols - 1] |= moduleOnColor;
+      modules[(mappingRows * mappingCols) - mappingCols - 2] |= moduleOnColor;
+   } /* XXX should this fixed pattern also be used in reading somehow? */
+
+   /* XXX compare that chr == region->dataSize here */
+   return chr; /* XXX number of codewords read off */
 }
 
 /**
@@ -87,16 +137,16 @@ ModulePlacementEcc200(DmtxMatrixRegion *matrixRegion)
  * @return XXX
  */
 static void
-PatternShapeStandard(DmtxMatrixRegion *matrixRegion, int row, int col, unsigned char *codeword)
+PatternShapeStandard(unsigned char *modules, int mappingRows, int mappingCols, int row, int col, unsigned char *codeword, int moduleOnColor)
 {
-   PlaceModule(matrixRegion, row-2, col-2, codeword, DmtxMaskBit1);
-   PlaceModule(matrixRegion, row-2, col-1, codeword, DmtxMaskBit2);
-   PlaceModule(matrixRegion, row-1, col-2, codeword, DmtxMaskBit3);
-   PlaceModule(matrixRegion, row-1, col-1, codeword, DmtxMaskBit4);
-   PlaceModule(matrixRegion, row-1, col,   codeword, DmtxMaskBit5);
-   PlaceModule(matrixRegion, row,   col-2, codeword, DmtxMaskBit6);
-   PlaceModule(matrixRegion, row,   col-1, codeword, DmtxMaskBit7);
-   PlaceModule(matrixRegion, row,   col,   codeword, DmtxMaskBit8);
+   PlaceModule(modules, mappingRows, mappingCols, row-2, col-2, codeword, DmtxMaskBit1, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, row-2, col-1, codeword, DmtxMaskBit2, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, row-1, col-2, codeword, DmtxMaskBit3, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, row-1, col-1, codeword, DmtxMaskBit4, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, row-1, col,   codeword, DmtxMaskBit5, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, row,   col-2, codeword, DmtxMaskBit6, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, row,   col-1, codeword, DmtxMaskBit7, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, row,   col,   codeword, DmtxMaskBit8, moduleOnColor);
 }
 
 /**
@@ -106,16 +156,16 @@ PatternShapeStandard(DmtxMatrixRegion *matrixRegion, int row, int col, unsigned 
  * @return XXX
  */
 static void
-PatternShapeSpecial1(DmtxMatrixRegion *matrixRegion, unsigned char *codeword)
+PatternShapeSpecial1(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
 {
-   PlaceModule(matrixRegion, matrixRegion->dataRows-1, 0, codeword, DmtxMaskBit1);
-   PlaceModule(matrixRegion, matrixRegion->dataRows-1, 1, codeword, DmtxMaskBit2);
-   PlaceModule(matrixRegion, matrixRegion->dataRows-1, 2, codeword, DmtxMaskBit3);
-   PlaceModule(matrixRegion, 0, matrixRegion->dataCols-2, codeword, DmtxMaskBit4);
-   PlaceModule(matrixRegion, 0, matrixRegion->dataCols-1, codeword, DmtxMaskBit5);
-   PlaceModule(matrixRegion, 1, matrixRegion->dataCols-1, codeword, DmtxMaskBit6);
-   PlaceModule(matrixRegion, 2, matrixRegion->dataCols-1, codeword, DmtxMaskBit7);
-   PlaceModule(matrixRegion, 3, matrixRegion->dataCols-1, codeword, DmtxMaskBit8);
+   PlaceModule(modules, mappingRows, mappingCols, mappingRows-1, 0, codeword, DmtxMaskBit1, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, mappingRows-1, 1, codeword, DmtxMaskBit2, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, mappingRows-1, 2, codeword, DmtxMaskBit3, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 0, mappingCols-2, codeword, DmtxMaskBit4, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 0, mappingCols-1, codeword, DmtxMaskBit5, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 1, mappingCols-1, codeword, DmtxMaskBit6, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 2, mappingCols-1, codeword, DmtxMaskBit7, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 3, mappingCols-1, codeword, DmtxMaskBit8, moduleOnColor);
 }
 
 /**
@@ -125,16 +175,16 @@ PatternShapeSpecial1(DmtxMatrixRegion *matrixRegion, unsigned char *codeword)
  * @return XXX
  */
 static void
-PatternShapeSpecial2(DmtxMatrixRegion *matrixRegion, unsigned char *codeword)
+PatternShapeSpecial2(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
 {
-   PlaceModule(matrixRegion, matrixRegion->dataRows-3, 0, codeword, DmtxMaskBit1);
-   PlaceModule(matrixRegion, matrixRegion->dataRows-2, 0, codeword, DmtxMaskBit2);
-   PlaceModule(matrixRegion, matrixRegion->dataRows-1, 0, codeword, DmtxMaskBit3);
-   PlaceModule(matrixRegion, 0, matrixRegion->dataCols-4, codeword, DmtxMaskBit4);
-   PlaceModule(matrixRegion, 0, matrixRegion->dataCols-3, codeword, DmtxMaskBit5);
-   PlaceModule(matrixRegion, 0, matrixRegion->dataCols-2, codeword, DmtxMaskBit6);
-   PlaceModule(matrixRegion, 0, matrixRegion->dataCols-1, codeword, DmtxMaskBit7);
-   PlaceModule(matrixRegion, 1, matrixRegion->dataCols-1, codeword, DmtxMaskBit8);
+   PlaceModule(modules, mappingRows, mappingCols, mappingRows-3, 0, codeword, DmtxMaskBit1, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, mappingRows-2, 0, codeword, DmtxMaskBit2, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, mappingRows-1, 0, codeword, DmtxMaskBit3, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 0, mappingCols-4, codeword, DmtxMaskBit4, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 0, mappingCols-3, codeword, DmtxMaskBit5, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 0, mappingCols-2, codeword, DmtxMaskBit6, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 0, mappingCols-1, codeword, DmtxMaskBit7, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 1, mappingCols-1, codeword, DmtxMaskBit8, moduleOnColor);
 }
 
 /**
@@ -144,16 +194,16 @@ PatternShapeSpecial2(DmtxMatrixRegion *matrixRegion, unsigned char *codeword)
  * @return XXX
  */
 static void
-PatternShapeSpecial3(DmtxMatrixRegion *matrixRegion, unsigned char *codeword)
+PatternShapeSpecial3(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
 {
-   PlaceModule(matrixRegion, matrixRegion->dataRows-3, 0, codeword, DmtxMaskBit1);
-   PlaceModule(matrixRegion, matrixRegion->dataRows-2, 0, codeword, DmtxMaskBit2);
-   PlaceModule(matrixRegion, matrixRegion->dataRows-1, 0, codeword, DmtxMaskBit3);
-   PlaceModule(matrixRegion, 0, matrixRegion->dataCols-2, codeword, DmtxMaskBit4);
-   PlaceModule(matrixRegion, 0, matrixRegion->dataCols-1, codeword, DmtxMaskBit5);
-   PlaceModule(matrixRegion, 1, matrixRegion->dataCols-1, codeword, DmtxMaskBit6);
-   PlaceModule(matrixRegion, 2, matrixRegion->dataCols-1, codeword, DmtxMaskBit7);
-   PlaceModule(matrixRegion, 3, matrixRegion->dataCols-1, codeword, DmtxMaskBit8);
+   PlaceModule(modules, mappingRows, mappingCols, mappingRows-3, 0, codeword, DmtxMaskBit1, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, mappingRows-2, 0, codeword, DmtxMaskBit2, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, mappingRows-1, 0, codeword, DmtxMaskBit3, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 0, mappingCols-2, codeword, DmtxMaskBit4, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 0, mappingCols-1, codeword, DmtxMaskBit5, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 1, mappingCols-1, codeword, DmtxMaskBit6, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 2, mappingCols-1, codeword, DmtxMaskBit7, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 3, mappingCols-1, codeword, DmtxMaskBit8, moduleOnColor);
 }
 
 /**
@@ -163,16 +213,16 @@ PatternShapeSpecial3(DmtxMatrixRegion *matrixRegion, unsigned char *codeword)
  * @return XXX
  */
 static void
-PatternShapeSpecial4(DmtxMatrixRegion *matrixRegion, unsigned char *codeword)
+PatternShapeSpecial4(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
 {
-   PlaceModule(matrixRegion, matrixRegion->dataRows-1, 0, codeword, DmtxMaskBit1);
-   PlaceModule(matrixRegion, matrixRegion->dataRows-1, matrixRegion->dataCols-1, codeword, DmtxMaskBit2);
-   PlaceModule(matrixRegion, 0, matrixRegion->dataCols-3, codeword, DmtxMaskBit3);
-   PlaceModule(matrixRegion, 0, matrixRegion->dataCols-2, codeword, DmtxMaskBit4);
-   PlaceModule(matrixRegion, 0, matrixRegion->dataCols-1, codeword, DmtxMaskBit5);
-   PlaceModule(matrixRegion, 1, matrixRegion->dataCols-3, codeword, DmtxMaskBit6);
-   PlaceModule(matrixRegion, 1, matrixRegion->dataCols-2, codeword, DmtxMaskBit7);
-   PlaceModule(matrixRegion, 1, matrixRegion->dataCols-1, codeword, DmtxMaskBit8);
+   PlaceModule(modules, mappingRows, mappingCols, mappingRows-1, 0, codeword, DmtxMaskBit1, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, mappingRows-1, mappingCols-1, codeword, DmtxMaskBit2, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 0, mappingCols-3, codeword, DmtxMaskBit3, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 0, mappingCols-2, codeword, DmtxMaskBit4, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 0, mappingCols-1, codeword, DmtxMaskBit5, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 1, mappingCols-3, codeword, DmtxMaskBit6, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 1, mappingCols-2, codeword, DmtxMaskBit7, moduleOnColor);
+   PlaceModule(modules, mappingRows, mappingCols, 1, mappingCols-1, codeword, DmtxMaskBit8, moduleOnColor);
 }
 
 /**
@@ -182,31 +232,31 @@ PatternShapeSpecial4(DmtxMatrixRegion *matrixRegion, unsigned char *codeword)
  * @return XXX
  */
 static void
-PlaceModule(DmtxMatrixRegion *matrixRegion, int row, int col, unsigned char *codeword, DmtxBitMask mask)
+PlaceModule(unsigned char *modules, int mappingRows, int mappingCols, int row, int col, unsigned char *codeword, DmtxBitMask mask, int moduleOnColor)
 {
    if(row < 0) {
-      row += matrixRegion->dataRows;
-      col += 4 - ((matrixRegion->dataRows+4)%8);
+      row += mappingRows;
+      col += 4 - ((mappingRows+4)%8);
    }
    if(col < 0) {
-      col += matrixRegion->dataCols;
-      row += 4 - ((matrixRegion->dataCols+4)%8);
+      col += mappingCols;
+      row += 4 - ((mappingCols+4)%8);
    }
 
-   // If module has already been assigned then we are decoding the pattern into codewords
-   if(matrixRegion->array[row*matrixRegion->dataCols+col] & DMTX_MODULE_ASSIGNED) {
-      if(!(matrixRegion->array[row*matrixRegion->dataCols+col] & DMTX_MODULE_ON))
+   /* If module has already been assigned then we are decoding the pattern into codewords */
+   if(modules[row*mappingCols+col] & DMTX_MODULE_ASSIGNED) {
+      if(modules[row*mappingCols+col] & moduleOnColor)
          *codeword |= mask;
       else
          *codeword &= (0xff ^ mask);
    }
-   // Otherwise we are encoding the codewords into a pattern
+   /* Otherwise we are encoding the codewords into a pattern */
    else {
       if(*codeword & mask)
-         matrixRegion->array[row*matrixRegion->dataCols+col] |= DMTX_MODULE_ON;
+         modules[row*mappingCols+col] |= moduleOnColor;
 
-      matrixRegion->array[row*matrixRegion->dataCols+col] |= DMTX_MODULE_ASSIGNED;
+      modules[row*mappingCols+col] |= DMTX_MODULE_ASSIGNED;
    }
 
-   matrixRegion->array[row*matrixRegion->dataCols+col] |= DMTX_MODULE_VISITED;
+   modules[row*mappingCols+col] |= DMTX_MODULE_VISITED;
 }

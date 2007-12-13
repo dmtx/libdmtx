@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtx.c,v 1.6 2006-10-09 17:16:06 mblaughton Exp $ */
+/* $Id: dmtx.c,v 1.6 2006/10/09 17:16:06 mblaughton Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,14 +29,15 @@ Contact: mike@dragonflylogic.com
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
-
 #include "dmtx.h"
 #include "dmtxstatic.h"
+
 #include "dmtxregion.c"
 #include "dmtxdecode.c"
 #include "dmtxencode.c"
 #include "dmtxplacemod.c"
 #include "dmtxreedsol.c"
+#include "dmtxsymbol.c"
 #include "dmtxvector2.c"
 #include "dmtxmatrix3.c"
 #include "dmtxcolor3.c"

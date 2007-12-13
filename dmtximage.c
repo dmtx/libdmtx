@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtximage.c,v 1.4 2006-10-13 20:16:28 mblaughton Exp $ */
+/* $Id: dmtximage.c,v 1.4 2006/10/13 20:16:28 mblaughton Exp $ */
 
 /**
  *
@@ -42,12 +43,13 @@ extern int
 dmtxImageDeInit(DmtxImage *image)
 {
    if(image == NULL)
-      return 0; // Error
+      return 0; /* Error */
 
    if(image->pxl != NULL) {
       free(image->pxl);
-      image->pxl = NULL;
    }
+
+   memset(image, 0x00, sizeof(DmtxImage));
 
    return 0;
 }
@@ -60,7 +62,7 @@ extern int
 dmtxImageGetWidth(DmtxImage *image)
 {
    if(image == NULL)
-      ; // Error
+      ; /* Error */
 
    return image->width;
 }
@@ -73,7 +75,7 @@ extern int
 dmtxImageGetHeight(DmtxImage *image)
 {
    if(image == NULL)
-      ; // Error
+      ; /* Error */
 
    return image->height;
 }

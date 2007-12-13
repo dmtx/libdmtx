@@ -4,48 +4,49 @@ Bugs in libdmtx
 1. libdtmx - Core Library
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-Makefile: There is still a problem with chcon throwing an
-error in some distros.  You should always be able to re-run
-the make command to get past it.
+The encoding optimizer still occasionally generates codeword
+sequences that are not 100% legal according to the ISO
+specification.  Everything still appears to decode properly, but
+until I have time to go through every corner case and validate
+the behavior I will be treating the encoding optimizer as an
+experimental feature.  For now dmtxwrite will encode using a
+straight ASCII scheme by default.
 
-The barcode region detection and tracing logic is currently
-the weakest point of the library.  I will be trying an
-experimental new approach in v0.4, but versions 0.3 and older
-will still occasionally get tripped up by seemingly trivial
-conditions.
-
-The encoding logic does not yet support all of the possible
-encodating schemes.
+Base256 encoding doesn't always work right (implementation is
+not complete yet).
 
 
 2. dmtxread
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-The "-c, --count=NUM" option is still not implemented.
+The follow options are not implemented yet:
+  -d, --distortion=K1,K2     radial distortion coefficients
+  -r, --region=REGION        only scan portion of image
+  -M, --mosaic               (partial implementation)
+
+When using --verbose output the Data Codeword capacity is often
+reported incorrectly.
 
 
 3. dmtxwrite
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-libdmtx (and therefore dmtxwrite) does not yet support
-"structed append" barcodes, so the amount of data that can
-be encoded is currently limited.
-
 The follow options are not implemented yet:
-  -f, --format=[pa]          barcode output format
-  -e, --encoding=[uact8]     encodation scheme
-  -s, --size=SIZE            symbol size in Rows x Cols
-  -t, --tilde                process tilde
+  -c, --color=COLOR          barcode color
   -b, --bgcolor=COLOR        background color
-  -c, --color=COLOR          foreground color
-  -V, --verbose              use verbose messages
+  -r, --rotate=DEGREES       rotation angle
+  -M, --mosaic               (partial implementation)
 
 
 4. Test Programs
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-gltest: No known issues
-simpletest: No known issues
+gltest:
+  * Performance can be slow sometimes (unoptimized logic)
+  * Occasionally hangs
+
+simpletest:
+  * No known issues
 
 
 5. Scripts in $LIBDMTX/script directory

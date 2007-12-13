@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxread.h,v 1.5 2006-10-09 23:22:08 mblaughton Exp $ */
+/* $Id: dmtxread.h,v 1.5 2006/10/09 23:22:08 mblaughton Exp $ */
 
 #ifndef __DMTXREAD_H__
 #define __DMTXREAD_H__
@@ -33,11 +34,15 @@ Contact: mike@dragonflylogic.com
 #define N_(String) String
 
 typedef struct {
-   int maxCount;
-   int hScanCount;
-   int vScanCount;
+   int codewords;
+   int scanGap;
+   int newline;
+   char *region;
+   int verbose;
+   int coordinates;
+   int mosaic;
    int pageNumber;
-} ScanOptions;
+} UserOptions;
 
 typedef enum {
    ImageFormatUnknown,

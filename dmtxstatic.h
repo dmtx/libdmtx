@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxstatic.h,v 1.10 2006-10-23 22:15:50 mblaughton Exp $ */
+/* $Id: dmtxstatic.h,v 1.9 2006/10/09 17:19:15 mblaughton Exp $ */
+
+#ifdef CALLBACKS
+#define CALLBACK_DECODE_FUNC1(f,d,p1)             if(d && d->f) (*(d->f))(p1)
+#define CALLBACK_DECODE_FUNC2(f,d,p1,p2)          if(d && d->f) (*(d->f))(p1,p2)
+#define CALLBACK_DECODE_FUNC3(f,d,p1,p2,p3)       if(d && d->f) (*(d->f))(p1,p2,p3)
+#define CALLBACK_DECODE_FUNC4(f,d,p1,p2,p3,p4)    if(d && d->f) (*(d->f))(p1,p2,p3,p4)
+#define CALLBACK_DECODE_FUNC5(f,d,p1,p2,p3,p4,p5) if(d && d->f) (*(d->f))(p1,p2,p3,p4,p5)
+#else
+#define CALLBACK_DECODE_FUNC1(f,d,p1)
+#define CALLBACK_DECODE_FUNC2(f,d,p1,p2)
+#define CALLBACK_DECODE_FUNC3(f,d,p1,p2,p3)
+#define CALLBACK_DECODE_FUNC4(f,d,p1,p2,p3,p4)
+#define CALLBACK_DECODE_FUNC5(f,d,p1,p2,p3,p4,p5)
+#endif
 
 #define DMTX_END_OF_RANGE      5
 #define DMTX_EDGE_FOUND        6
@@ -32,16 +47,11 @@ Contact: mike@dragonflylogic.com
 #define DMTX_FALSE             0
 #define DMTX_TRUE              1
 
-#define DMTX_ENCODING_AUTO     1
-#define DMTX_ENCODING_ASCII    2
-#define DMTX_ENCODING_C40      3
-#define DMTX_ENCODING_TEXT     4
-#define DMTX_ENCODING_BASE256  5
-
-#define DMTX_MODULE_OFF        0x00
-#define DMTX_MODULE_ON         0x01
-#define DMTX_MODULE_ASSIGNED   0x02
-#define DMTX_MODULE_VISITED    0x04
+#define DMTX_EDGE_STEP_TOO_WEAK       1
+#define DMTX_EDGE_STEP_PERPENDICULAR  2
+#define DMTX_EDGE_STEP_NOT_QUITE      3
+#define DMTX_EDGE_STEP_TOO_FAR        4
+#define DMTX_EDGE_STEP_EXACT          5
 
 #ifndef min
 #define min(X,Y) ((X < Y) ? X : Y)
@@ -70,80 +80,108 @@ typedef enum {
 } DmtxBitMask;
 
 typedef enum {
-   DmtxSchemeAsciiStd,
-   DmtxSchemeAsciiExt,
-   DmtxSchemeC40,
-   DmtxSchemeText,
-   DmtxSchemeX12,
-   DmtxSchemeEdifact,
-   DmtxSchemeBase256
-} DmtxEncScheme;
+   DmtxCompassDirNeg45 = 0x01,
+   DmtxCompassDir0     = 0x02,
+   DmtxCompassDir45    = 0x04,
+   DmtxCompassDir90    = 0x08
+} DmtxCompassDir;
+
+#define DMTX_ALL_COMPASS_DIRS 0x0f
+
+typedef struct DmtxCompassEdge_struct {
+   double          magnitude;  /* sqrt(R^2 + G^2 + B^2) */
+   DmtxColor3      intensity;
+   DmtxCompassDir  edgeDir;
+   DmtxCompassDir  scanDir;    /* DmtxCompassDir0 | DmtxCompassDir90 */
+} DmtxCompassEdge;
+
+typedef struct DmtxEdgeSubPixel_struct {
+   int             isEdge;
+   int             xInt;
+   int             yInt;
+   double          xFrac;
+   double          yFrac;
+   DmtxCompassEdge compass;
+} DmtxEdgeSubPixel;
 
 /* dmtxregion.c */
-static void ScanRangeSet(DmtxScanRange *range, DmtxDirection dir, int lineNbr, int firstPos, int lastPos);
-static DmtxDirection TurnCorner(DmtxDirection dir, int turn);
-static void JumpScanInit(DmtxJumpScan *jump, DmtxDirection dir, int lineNbr, int start, int length);
-static int  JumpScanNextRegion(DmtxJumpScan *jumpScan, DmtxDecode *decode);
-static void JumpRegionIncrement(DmtxJumpRegion *jumpRegion);
-static int  JumpRegionValid(DmtxJumpRegion *jumpRegion);
-static void EdgeScanInit(DmtxEdgeScan *edgeScan, DmtxJumpScan *jumpScan);
-static int  EdgeScanNextEdge(DmtxEdgeScan *edgeScan, DmtxDecode *decode, DmtxGradient *gradient);
-static void EdgeFollowerInit(DmtxEdgeFollower *follow, DmtxEdgeScan *edgeScan, DmtxGradient *gradient, DmtxDirection dir);
-static DmtxVector2 EdgeFollowerGetLoc(DmtxEdgeFollower *follow);
-static int EdgeFollowerFollow(DmtxEdgeFollower *follow, DmtxDecode *decode);
-static int EdgeFollowerIncrement(DmtxEdgeFollower *follow, DmtxDecode *decode);
-static void MatrixRegionInit(DmtxMatrixRegion *matrixRegion, DmtxGradient *gradient);
-static void Matrix3ChainXfrm(DmtxMatrix3 m, DmtxChain *chain);
-static void Matrix3ChainXfrmInv(DmtxMatrix3 m, DmtxChain *chain);
-static void MatrixRegionUpdateXfrms(DmtxMatrixRegion *matrixRegion);
-static int MatrixRegionAlignFinderBars(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode, DmtxEdgeFollower *f0, DmtxEdgeFollower *f1);
-static int MatrixRegionAlign(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
-static int MatrixRegionAlignEdge(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode, DmtxEdgeLoc edgeLoc);
-static int MatrixRegionEstimateSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
-static int MatrixRegionFindSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
-static DmtxColor3 ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *decode);
-static int PatternReadNonDataModules(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
-static int PopulateArrayFromImage(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode);
+static void ClampIntRange(int *value, int min, int max);
+static DmtxCompassEdge GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs);
+static DmtxEdgeSubPixel FindZeroCrossing(DmtxImage *image, int x, int y, DmtxCompassEdge compassStart);
+static DmtxRay2 FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forward, DmtxDecode *decode);
+static int MatrixRegion2UpdateXfrms(DmtxMatrixRegion *region, DmtxImage *image);
+static int MatrixRegion2AlignFirstEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1);
+static void SetCornerLoc(DmtxMatrixRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point);
+static int MatrixRegion2AlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode);
+static int MatrixRegion2AlignRightEdge(DmtxMatrixRegion *region, DmtxDecode *decode);
+static int MatrixRegion2AlignTopEdge(DmtxMatrixRegion *region, DmtxDecode *decode);
+static int MatrixRegion2AlignCalibEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit);
+static int MatrixRegion2AlignEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0, DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount);
+static int StepAlongEdge(DmtxImage *image, DmtxMatrixRegion *region, DmtxVector2 *pProgress, DmtxVector2 *pExact, DmtxVector2 forward, DmtxVector2 lateral, DmtxDecode *decode);
+static int AllocateStorage(DmtxMatrixRegion *region, DmtxDecode *decode);
+static DmtxColor3 ReadModuleColor(DmtxDecode *decode, int symbolRow, int symbolCol, int sizeIdx, DmtxMatrix3 fit2raw);
+static int MatrixRegion2FindSize(DmtxMatrixRegion *region, DmtxDecode *decode);
+static int PopulateArrayFromImage2(DmtxMatrixRegion *region, DmtxDecode *decode);
 
 /* dmtxdecode.c */
-static int DecodeRegion(DmtxMatrixRegion *matrixRegion);
-static void DecodeDataStream(DmtxMatrixRegion *matrixRegion);
-static unsigned char *NextEncodationScheme(DmtxEncScheme *encScheme, unsigned char *ptr);
-static unsigned char *DecodeSchemeAsciiStd(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
-static unsigned char *DecodeSchemeAsciiExt(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
-static unsigned char *DecodeSchemeC40Text(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd, DmtxEncScheme encScheme);
-static unsigned char *DecodeSchemeX12(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
-static unsigned char *DecodeSchemeEdifact(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
-static unsigned char *DecodeSchemeBase256(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd);
+static int DecodeRegion(DmtxMatrixRegion *region);
+static void DecodeDataStream(DmtxMatrixRegion *region);
+static unsigned char *NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr);
+static unsigned char *DecodeSchemeAsciiStd(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd);
+static unsigned char *DecodeSchemeAsciiExt(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd);
+static unsigned char *DecodeSchemeC40Text(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme);
+static unsigned char *DecodeSchemeX12(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd);
+static unsigned char *DecodeSchemeEdifact(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd);
+static unsigned char *DecodeSchemeBase256(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd);
 /* static unsigned char UnRandomize253State(unsigned char codewordValue, int codewordPosition); XXX need later */
-static unsigned char UnRandomize255State(unsigned char *value, int idx);
+static unsigned char UnRandomize255State(unsigned char value, int idx);
 
 /* dmtxencode.c */
-static void EncodeText(DmtxMatrixRegion *matrixRegion, unsigned char *inputText);
-static unsigned char *WriteAscii2Digit(unsigned char **dest, unsigned char *src, unsigned char *srcEnd);
-static unsigned char *WriteAsciiChar(unsigned char **dest, unsigned char *src);
-static void AddPadChars(DmtxMatrixRegion *matrix);
+static void AddPadChars(unsigned char *buf, int *bufSize, int paddedSize);
 static unsigned char Randomize253State(unsigned char codewordValue, int codewordPosition);
-/* static unsigned char Randomize255State(unsigned char codewordValue, int codewordPosition); XXX need later */
-static void PatternInit(DmtxMatrixRegion *matrixRegion);
+static unsigned char Randomize255State(unsigned char codewordValue, int codewordPosition);
+static void PatternInit(DmtxMatrixRegion *region);
 static void PrintPattern(DmtxEncode *encode);
+static void InitChannel(DmtxChannel *channel, unsigned char *codewords, int length);
+static int EncodeSingleScheme(unsigned char *buf, unsigned char *codewords, int length, DmtxSchemeEncode scheme);
+static int EncodeAutoBest(unsigned char *buf, unsigned char *codewords, int length);
+/*static int EncodeAutoFast(unsigned char *buf, unsigned char *codewords, int length); */
+static DmtxChannel FindBestChannel(DmtxChannelGroup group, DmtxSchemeEncode targetScheme);
+static void EncodeNextWord(DmtxChannel *channel, DmtxSchemeEncode targetScheme);
+static void EncodeAsciiCodeword(DmtxChannel *channel);
+static void EncodeTripletCodeword(DmtxChannel *channel);
+static void EncodeEdifactCodeword(DmtxChannel *channel);
+static void EncodeBase256Codeword(DmtxChannel *channel);
+static void ChangeEncScheme(DmtxChannel *channel, DmtxSchemeEncode targetScheme, int unlatchType);
+static void PushInputWord(DmtxChannel *channel, unsigned char codeword);
+static void PushTriplet(DmtxChannel *channel, DmtxTriplet *triplet);
+static void IncrementProgress(DmtxChannel *channel, int encodedUnits);
+static void ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int tripletCount, int inputCount);
+static void ProcessEndOfSymbolEdifact(DmtxChannel *channel);
+static int GetC40TextX12Words(int *outputWords, int inputWord, DmtxSchemeEncode encScheme);
+static DmtxTriplet GetTripletValues(unsigned char cw1, unsigned char cw2);
+static DmtxQuadruplet GetQuadrupletValues(unsigned char cw1, unsigned char cw2, unsigned char cw3);
+/*static void DumpChannel(DmtxChannel *channel);*/
+/*static void DumpChannelGroup(DmtxChannelGroup *group, int encTarget);*/
 
 /* dmtxplacemod.c */
-static int ModulePlacementEcc200(DmtxMatrixRegion *matrixRegion);
-static void PatternShapeStandard(DmtxMatrixRegion *matrixRegion, int row, int col, unsigned char *codeword);
-static void PatternShapeSpecial1(DmtxMatrixRegion *matrixRegion, unsigned char *codeword);
-static void PatternShapeSpecial2(DmtxMatrixRegion *matrixRegion, unsigned char *codeword);
-static void PatternShapeSpecial3(DmtxMatrixRegion *matrixRegion, unsigned char *codeword);
-static void PatternShapeSpecial4(DmtxMatrixRegion *matrixRegion, unsigned char *codeword);
-static void PlaceModule(DmtxMatrixRegion *matrixRegion, int row, int col, unsigned char *codeword, DmtxBitMask mask);
+static int ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int sizeIdx, int moduleOnColor);
+static void PatternShapeStandard(unsigned char *modules, int mappingRows, int mappingCols, int row, int col, unsigned char *codeword, int moduleOnColor);
+static void PatternShapeSpecial1(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor);
+static void PatternShapeSpecial2(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor);
+static void PatternShapeSpecial3(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor);
+static void PatternShapeSpecial4(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor);
+static void PlaceModule(unsigned char *modules, int mappingRows, int mappingCols, int row, int col,
+      unsigned char *codeword, DmtxBitMask mask, int moduleOnColor);
 
 /* dmtxreedsol.c */
-static void GenReedSolEcc(DmtxMatrixRegion *matrixRegion);
-static void SetEccPoly(unsigned char *g, int errorWordCount);
-static int DecodeCheckErrors(DmtxMatrixRegion *matrixRegion);
-static int GfSum(int a, int b);
+static void GenReedSolEcc(DmtxMatrixRegion *region);
+static int DecodeCheckErrors(DmtxMatrixRegion *region);
 static int GfProduct(int a, int b);
 static int GfDoublify(int a, int b);
+
+/* dmtxsymbol.c */
+static int FindCorrectBarcodeSize(int symbolShape, int dataWords);
 
 /* Galois Field log values */
 static int logVal[] =
@@ -182,24 +220,3 @@ static int aLogVal[] =
       222, 145,  15,  30,  60, 120, 240, 205, 183,  67, 134,  33,  66, 132,  37,  74,
       148,   5,  10,  20,  40,  80, 160, 109, 218, 153,  31,  62, 124, 248, 221, 151,
         3,   6,  12,  24,  48,  96, 192, 173, 119, 238, 241, 207, 179,  75, 150,   1 };
-
-/* Data Matrix ECC200 valid sizes */
-static int symbolSize[] = { 10, 12, 14, 16, 18, 20,  22,  24,  26,
-                                        32, 36, 40,  44,  48,  52,
-                                        64, 72, 80,  88,  96, 104,
-                                               120, 132, 144 };
-
-static int dataWordLength[] = { 3, 5, 8, 12,  18,  22,   30,   36,  44,
-                                         62,  86, 114,  144,  174, 204,
-                                        280, 368, 456,  576,  696, 816,
-                                                 1050, 1304, 1558 };
-
-static int errorWordLength[] = { 5, 7, 10, 12,  14,  18,  20,  24,  28,
-                                           36,  42,  48,  56,  68,  84,
-                                          112, 144, 192, 224, 272, 336,
-                                                    408, 496, 620 };
-
-static int dataRegionSize[] = {  8, 10, 12, 14, 16, 18, 20, 22, 24,
-                                            14, 16, 18, 20, 22, 24,
-                                            14, 16, 18, 20, 22, 24,
-                                                    18, 20, 22 };

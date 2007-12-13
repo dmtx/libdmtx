@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxdecode.c,v 1.10 2006-10-12 18:04:52 mblaughton Exp $ */
+/* $Id: dmtxdecode.c,v 1.10 2006/10/12 18:04:52 mblaughton Exp $ */
 
 /**
  *
@@ -33,7 +34,7 @@ dmtxDecodeStructCreate(void)
 
    decode = (DmtxDecode *)malloc(sizeof(DmtxDecode));
    if(decode == NULL) {
-      exit(1); // XXX better error strategy required here
+      exit(1); /*/*XX better error strategy required here */
    }
 
    memset(decode, 0x00, sizeof(DmtxDecode));
@@ -49,7 +50,7 @@ dmtxDecodeStructCreate(void)
 extern void
 dmtxDecodeStructDestroy(DmtxDecode **decode)
 {
-   // Call this to free the scanned Data Matrix list from memory
+   /* Call this to free the scanned Data Matrix list from memory */
    dmtxScanStartNew(*decode);
 
    if(*decode != NULL) {
@@ -107,19 +108,20 @@ dmtxScanStartNew(DmtxDecode *decode)
  * @return XXX
  */
 static int
-DecodeRegion(DmtxMatrixRegion *matrixRegion)
+DecodeRegion(DmtxMatrixRegion *region)
 {
    int success;
 
-   ModulePlacementEcc200(matrixRegion);
+   ModulePlacementEcc200(region->array, region->code,
+         region->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
 
-   success = DecodeCheckErrors(matrixRegion);
+   success = DecodeCheckErrors(region);
    if(!success) {
       fprintf(stderr, "Rejected due to ECC validation\n");
       return DMTX_FAILURE;
    }
 
-   DecodeDataStream(matrixRegion);
+   DecodeDataStream(region);
 
    return DMTX_SUCCESS;
 }
@@ -131,42 +133,42 @@ DecodeRegion(DmtxMatrixRegion *matrixRegion)
  * @return XXX
  */
 static void
-DecodeDataStream(DmtxMatrixRegion *matrixRegion)
+DecodeDataStream(DmtxMatrixRegion *region)
 {
-   DmtxEncScheme encScheme;
+   DmtxSchemeDecode encScheme;
    unsigned char *ptr, *dataEnd;
 
-   ptr = matrixRegion->code;
-   dataEnd = ptr + dataWordLength[matrixRegion->sizeIdx];
+   ptr = region->code;
+   dataEnd = ptr + dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, region->sizeIdx);
 
    while(ptr < dataEnd) {
 
       ptr = NextEncodationScheme(&encScheme, ptr);
 
       switch(encScheme) {
-         case DmtxSchemeAsciiStd:
-            ptr = DecodeSchemeAsciiStd(matrixRegion, ptr, dataEnd);
+         case DmtxSchemeDecodeAsciiStd:
+            ptr = DecodeSchemeAsciiStd(region, ptr, dataEnd);
             break;
 
-         case DmtxSchemeAsciiExt:
-            ptr = DecodeSchemeAsciiExt(matrixRegion, ptr, dataEnd);
+         case DmtxSchemeDecodeAsciiExt:
+            ptr = DecodeSchemeAsciiExt(region, ptr, dataEnd);
             break;
 
-         case DmtxSchemeC40:
-         case DmtxSchemeText:
-            ptr = DecodeSchemeC40Text(matrixRegion, ptr, dataEnd, encScheme);
+         case DmtxSchemeDecodeC40:
+         case DmtxSchemeDecodeText:
+            ptr = DecodeSchemeC40Text(region, ptr, dataEnd, encScheme);
             break;
 
-         case DmtxSchemeX12:
-            ptr = DecodeSchemeX12(matrixRegion, ptr, dataEnd);
+         case DmtxSchemeDecodeX12:
+            ptr = DecodeSchemeX12(region, ptr, dataEnd);
             break;
 
-         case DmtxSchemeEdifact:
-            ptr = DecodeSchemeEdifact(matrixRegion, ptr, dataEnd);
+         case DmtxSchemeDecodeEdifact:
+            ptr = DecodeSchemeEdifact(region, ptr, dataEnd);
             break;
 
-         case DmtxSchemeBase256:
-            ptr = DecodeSchemeBase256(matrixRegion, ptr, dataEnd);
+         case DmtxSchemeDecodeBase256:
+            ptr = DecodeSchemeBase256(region, ptr, dataEnd);
             break;
       }
    }
@@ -178,29 +180,29 @@ DecodeDataStream(DmtxMatrixRegion *matrixRegion)
  * @return XXX
  */
 static unsigned char *
-NextEncodationScheme(DmtxEncScheme *encScheme, unsigned char *ptr)
+NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr)
 {
    switch(*ptr) {
       case 230:
-         *encScheme = DmtxSchemeC40;
+         *encScheme = DmtxSchemeDecodeC40;
          break;
       case 231:
-         *encScheme = DmtxSchemeBase256;
+         *encScheme = DmtxSchemeDecodeBase256;
          break;
       case 235:
-         *encScheme = DmtxSchemeAsciiExt;
+         *encScheme = DmtxSchemeDecodeAsciiExt;
          break;
       case 238:
-         *encScheme = DmtxSchemeX12;
+         *encScheme = DmtxSchemeDecodeX12;
          break;
       case 239:
-         *encScheme = DmtxSchemeText;
+         *encScheme = DmtxSchemeDecodeText;
          break;
       case 240:
-         *encScheme = DmtxSchemeEdifact;
+         *encScheme = DmtxSchemeDecodeEdifact;
          break;
       default:
-         *encScheme = DmtxSchemeAsciiStd;
+         *encScheme = DmtxSchemeDecodeAsciiStd;
          return ptr;
    }
 
@@ -213,20 +215,20 @@ NextEncodationScheme(DmtxEncScheme *encScheme, unsigned char *ptr)
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeAsciiStd(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeAsciiStd(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd)
 {
    int digits;
 
    if(*ptr <= 128) {
-      matrixRegion->output[matrixRegion->outputIdx++] = *ptr - 1;
+      region->output[region->outputIdx++] = *ptr - 1;
    }
    else if(*ptr == 129) {
       return dataEnd;
    }
    else if(*ptr <= 229) {
       digits = *ptr - 130;
-      matrixRegion->output[matrixRegion->outputIdx++] = digits/10 + '0';
-      matrixRegion->output[matrixRegion->outputIdx++] = digits - (digits/10)*10 + '0';
+      region->output[region->outputIdx++] = digits/10 + '0';
+      region->output[region->outputIdx++] = digits - (digits/10)*10 + '0';
    }
 
    return ptr + 1;
@@ -238,9 +240,9 @@ DecodeSchemeAsciiStd(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigne
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeAsciiExt(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeAsciiExt(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd)
 {
-   matrixRegion->output[matrixRegion->outputIdx++] = *ptr + 128;
+   region->output[region->outputIdx++] = *ptr + 128;
 
    return ptr + 1;
 }
@@ -251,18 +253,18 @@ DecodeSchemeAsciiExt(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigne
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeC40Text(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd, DmtxEncScheme encScheme)
+DecodeSchemeC40Text(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme)
 {
    int i;
    int packed;
    int shift = 0;
    unsigned char c40Values[3];
 
-   assert(encScheme == DmtxSchemeC40 || encScheme == DmtxSchemeText);
+   assert(encScheme == DmtxSchemeDecodeC40 || encScheme == DmtxSchemeDecodeText);
 
    while(ptr < dataEnd) {
 
-      // FIXME Also check that ptr+1 is safe to access
+      /* FIXME Also check that ptr+1 is safe to access */
       packed = (*ptr << 8) | *(ptr+1);
       c40Values[0] = ((packed - 1)/1600);
       c40Values[1] = ((packed - 1)/40) % 40;
@@ -270,66 +272,66 @@ DecodeSchemeC40Text(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned
       ptr += 2;
 
       for(i = 0; i < 3; i++) {
-         if(shift == 0) { // Basic set
+         if(shift == 0) { /* Basic set */
             if(c40Values[i] <= 2) {
                shift = c40Values[i] + 1;
             }
             else if(c40Values[i] == 3) {
-               matrixRegion->output[matrixRegion->outputIdx++] = ' '; // Space
+               region->output[region->outputIdx++] = ' '; /* Space */
             }
             else if(c40Values[i] <= 13) {
-               matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] - 13 + '9'; // 0-9
+               region->output[region->outputIdx++] = c40Values[i] - 13 + '9'; /* 0-9 */
             }
             else if(c40Values[i] <= 39) {
-               if(encScheme == DmtxSchemeC40) {
-                  matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] - 39 + 'Z'; // A-Z
+               if(encScheme == DmtxSchemeDecodeC40) {
+                  region->output[region->outputIdx++] = c40Values[i] - 39 + 'Z'; /* A-Z */
                }
-               else if(encScheme == DmtxSchemeText) {
-                  matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] - 39 + 'z'; // a-z
+               else if(encScheme == DmtxSchemeDecodeText) {
+                  region->output[region->outputIdx++] = c40Values[i] - 39 + 'z'; /* a-z */
                }
             }
          }
-         else if(shift == 1) { // Shift 1 set
-            matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i]; // ASCII 0 - 31
+         else if(shift == 1) { /* Shift 1 set */
+            region->output[region->outputIdx++] = c40Values[i]; /* ASCII 0 - 31 */
 
             shift = 0;
          }
-         else if(shift == 2) { // Shift 2 set
+         else if(shift == 2) { /* Shift 2 set */
             if(c40Values[i] <= 14)
-               matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] + 33; // ASCII 33 - 47
+               region->output[region->outputIdx++] = c40Values[i] + 33; /* ASCII 33 - 47 */
             else if(c40Values[i] <= 21)
-               matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] + 43; // ASCII 58 - 64
+               region->output[region->outputIdx++] = c40Values[i] + 43; /* ASCII 58 - 64 */
             else if(c40Values[i] <= 26)
-               matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] + 69; // ASCII 91 - 95
+               region->output[region->outputIdx++] = c40Values[i] + 69; /* ASCII 91 - 95 */
             else if(c40Values[i] == 27)
-               fprintf(stdout, "FNC1 (?)"); // FNC1 (eh?)
+               fprintf(stdout, "FNC1 (?)"); /* FNC1 (eh?) */
             else if(c40Values[i] == 30)
-               fprintf(stdout, "Upper Shift (?)"); // Upper Shift (eh?)
+               fprintf(stdout, "Upper Shift (?)"); /* Upper Shift (eh?) */
 
             shift = 0;
          }
-         else if(shift == 3) { // Shift 3 set
-            if(encScheme == DmtxSchemeC40) {
-               matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] + 96;
+         else if(shift == 3) { /* Shift 3 set */
+            if(encScheme == DmtxSchemeDecodeC40) {
+               region->output[region->outputIdx++] = c40Values[i] + 96;
             }
-            else if(encScheme == DmtxSchemeText) {
+            else if(encScheme == DmtxSchemeDecodeText) {
                if(c40Values[i] == 0)
-                  matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] + 96;
+                  region->output[region->outputIdx++] = c40Values[i] + 96;
                else if(c40Values[i] <= 26)
-                  matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] - 26 + 'Z'; // A-Z
+                  region->output[region->outputIdx++] = c40Values[i] - 26 + 'Z'; /* A-Z */
                else
-                  matrixRegion->output[matrixRegion->outputIdx++] = c40Values[i] - 31 + 127; // { | } ~ DEL
+                  region->output[region->outputIdx++] = c40Values[i] - 31 + 127; /* { | } ~ DEL */
             }
 
             shift = 0;
          }
       }
 
-      // Unlatch if codeword 254 follows 2 codewords in C40/Text encodation
+      /* Unlatch if codeword 254 follows 2 codewords in C40/Text encodation */
       if(*ptr == 254)
          return ptr + 1;
 
-      // Unlatch is implied if only one codeword remains
+      /* Unlatch is implied if only one codeword remains */
       if(dataEnd - ptr == 1)
          return ptr;
    }
@@ -343,7 +345,7 @@ DecodeSchemeC40Text(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeX12(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeX12(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd)
 {
    int i;
    int packed;
@@ -351,7 +353,7 @@ DecodeSchemeX12(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned cha
 
    while(ptr < dataEnd) {
 
-      // FIXME Also check that ptr+1 is safe to access
+      /* FIXME Also check that ptr+1 is safe to access */
       packed = (*ptr << 8) | *(ptr+1);
       x12Values[0] = ((packed - 1)/1600);
       x12Values[1] = ((packed - 1)/40) % 40;
@@ -360,24 +362,24 @@ DecodeSchemeX12(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned cha
 
       for(i = 0; i < 3; i++) {
          if(x12Values[i] == 0)
-            matrixRegion->output[matrixRegion->outputIdx++] = 13;
+            region->output[region->outputIdx++] = 13;
          else if(x12Values[i] == 1)
-            matrixRegion->output[matrixRegion->outputIdx++] = 42;
+            region->output[region->outputIdx++] = 42;
          else if(x12Values[i] == 2)
-            matrixRegion->output[matrixRegion->outputIdx++] = 62;
+            region->output[region->outputIdx++] = 62;
          else if(x12Values[i] == 3)
-            matrixRegion->output[matrixRegion->outputIdx++] = 32;
+            region->output[region->outputIdx++] = 32;
          else if(x12Values[i] <= 13)
-            matrixRegion->output[matrixRegion->outputIdx++] = x12Values[i] + 44;
+            region->output[region->outputIdx++] = x12Values[i] + 44;
          else if(x12Values[i] <= 90)
-            matrixRegion->output[matrixRegion->outputIdx++] = x12Values[i] + 51;
+            region->output[region->outputIdx++] = x12Values[i] + 51;
       }
 
-      // Unlatch if codeword 254 follows 2 codewords in C40/Text encodation
+      /* Unlatch if codeword 254 follows 2 codewords in C40/Text encodation */
       if(*ptr == 254)
          return ptr + 1;
 
-      // Unlatch is implied if only one codeword remains
+      /* Unlatch is implied if only one codeword remains */
       if(dataEnd - ptr == 1)
          return ptr;
    }
@@ -391,29 +393,37 @@ DecodeSchemeX12(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned cha
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeEdifact(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeEdifact(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd)
 {
    int i;
    unsigned char unpacked[4];
 
    while(ptr < dataEnd) {
 
-      // FIXME Also check that ptr+2 is safe to access
+      /* FIXME Also check that ptr+2 is safe to access -- shouldn't be a
+         problem because I'm guessing you can guarantee there will always
+         be at least 3 error codewords */
       unpacked[0] = (*ptr & 0xfc) >> 2;
       unpacked[1] = (*ptr & 0x03) << 4 | (*(ptr+1) & 0xf0) >> 4;
       unpacked[2] = (*(ptr+1) & 0x0f) << 2 | (*(ptr+2) & 0xc0) >> 6;
       unpacked[3] = *(ptr+2) & 0x3f;
-      ptr += 3;
 
       for(i = 0; i < 4; i++) {
-         // Test for unlatch condition
-         if(unpacked[i] == 0x1f)
-            return ptr;
 
-         matrixRegion->output[matrixRegion->outputIdx++] = unpacked[i] ^ (((unpacked[i] & 0x20) ^ 0x20) << 1);
+         /* Advance input ptr (4th value comes from already-read 3rd byte) */
+         if(i < 3)
+            ptr++;
+
+         /* Test for unlatch condition */
+         if(unpacked[i] == 0x1f) {
+            assert(region->output[region->outputIdx] == 0); /* XXX dirty why? */
+            return ptr;
+         }
+
+         region->output[region->outputIdx++] = unpacked[i] ^ (((unpacked[i] & 0x20) ^ 0x20) << 1);
       }
 
-      // Unlatch is implied if fewer than 3 codewords remain
+      /* Unlatch is implied if fewer than 3 codewords remain */
       if(dataEnd - ptr < 3) {
          return ptr;
       }
@@ -428,37 +438,36 @@ DecodeSchemeEdifact(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeBase256(DmtxMatrixRegion *matrixRegion, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeBase256(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd)
 {
    int d0, d1;
-   int i, iBeg, iEnd;
-   unsigned char *code;
+   int i;
+   unsigned char *ptrEnd;
 
-   code = matrixRegion->code;
-   i = iBeg = ptr - code;
+   /* XXX i is the positional index used for unrandomizing */
+   i = ptr - region->code + 1;
 
-   d0 = UnRandomize255State(code, i++);
+   d0 = UnRandomize255State(*(ptr++), i++);
    if(d0 == 0) {
-      iEnd = dataEnd - code; // XXX not verifed
+      ptrEnd = dataEnd;
    }
    else if(d0 <= 249) {
-      iEnd = iBeg + d0 + 1; // XXX verifed
+      ptrEnd = ptr + d0; /* XXX not verifed */
    }
    else {
-      d1 = UnRandomize255State(code, i++);
-      iEnd = iBeg + (d0 - 249) * 250 + d1; // XXX not verified
+      d1 = UnRandomize255State(*(ptr++), i++);
+      ptrEnd = ptr + (d0 - 249) * 250 + d1; /* XXX not verified */
    }
 
-   if(iEnd > dataEnd - code) {
-      // XXX throw an error instead
-      iEnd = dataEnd - code;
+   if(ptrEnd > dataEnd) {
+      exit(40); /* XXX needs cleaner error handling */
    }
 
-   while(i < iEnd) {
-      matrixRegion->output[matrixRegion->outputIdx++] = UnRandomize255State(code, i++);
+   while(ptr < ptrEnd) {
+      region->output[region->outputIdx++] = UnRandomize255State(*(ptr++), i++);
    }
 
-   return code + i;
+   return ptr;
 }
 
 /**
@@ -486,12 +495,13 @@ UnRandomize253State(unsigned char codewordValue, int codewordPosition)
  * @return XXX
  */
 static unsigned char
-UnRandomize255State(unsigned char *value, int idx)
+UnRandomize255State(unsigned char value, int idx)
 {
    int pseudoRandom;
    int tmp;
-   pseudoRandom = ((149 * (idx+1)) % 255) + 1;
-   tmp = value[idx] - pseudoRandom;
+
+   pseudoRandom = ((149 * idx) % 255) + 1;
+   tmp = value - pseudoRandom;
 
    return (tmp >= 0) ? tmp : tmp + 256;
 }

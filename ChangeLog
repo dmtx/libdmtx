@@ -1,0 +1,47 @@
+Changes for libdmtx
+-----------------------------------------------------------------
+
+version 0.4 [December 2007]
+  Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
+  Fix 4 bottom-right modules in sizes where they are not used (thanks Matthias R.!)
+  Replace callback references with preprocessor macros
+  Implement remaining encodation schemes for encoding (X12, Base 256, etc...)
+  Implement remaining encodation schemes for decoding (X12, Base 256, etc...)
+  Implement --auto-best option for best possible encoding efficiency
+  Implement multi-region symbols
+  Read and write rectangle barcodes
+  Use GNU autotools (autoconf, automake, libtool)
+  New region detection overhaul
+  Include initial version of Python bindings from pydmtx project (thanks Dan!)
+  Add decoding functionality through Python
+  Add marathon images to project (thanks john@sportcam.net!)
+  Fix dmtxread crash when same barcode is found more than 16 times
+  Verbose messages describing traits of detected barcodes
+  --codewords option to print codewords instead of decoded message
+  --newline option to insert newline character at end of output
+  Additional output formats (PNG, ASCII, codewords)
+  'make test' executes regression tests for encodation
+
+version 0.3 [October 2006]
+  Several high-level changes: build process, naming consistency, file layout
+  Added new automatic style checks in script directory ("make style")
+  Implemented remaining encodation schemes for decode (X12, Base 256, etc...)
+  Fixed instability/regressions that were introduced in v0.2 release
+  Color sampling now averaged from multiple pixel locations
+  Size calibration accuracy improved with new approach
+  dmtxread: increased default scanline count, added multi-page TIFF format
+  dmtxwrite: bug fixes, implemented -o option
+  Improved documentation: deps listed in INSTALL, new man page for dmtxwrite
+
+version 0.2 [June 2006]
+  Cleaned up program structure surrounding decoding process
+  Improved API for real-world use (no longer just dumping results to STDOUT)
+  Added "dmtxread" command line utility
+  Added "dmtxwrite" command line utility
+  Implemented Reed-Solomon error detection
+  Created "simpletest.c" for full circle processing test
+  Now using libpng(3) in library to read Data Matrix images
+  Improved documentation (somewhat)
+
+version 0.1 [April 2006]
+  Initial release

@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxwrite.h,v 1.3 2006-10-12 18:22:39 mblaughton Exp $ */
+/* $Id: dmtxwrite.h,v 1.3 2006/10/12 18:22:39 mblaughton Exp $ */
 
 #ifndef __DMTXWRITE_H__
 #define __DMTXWRITE_H__
@@ -33,17 +34,15 @@ Contact: mike@dragonflylogic.com
 #define N_(String) String
 
 typedef struct {
-   unsigned char *inputString;
-   int format;          // FormatPng | FormatAscii
-   int encoding;        // EncAuto | EncAscii | EncC40 | EncText | EncBase256
-   int rowCount;        // X
-   int colCount;        // X
-   int processTilde;    // X
-   int rotate;          // degrees
-   DmtxPixel bgColor;   // RGB
-   DmtxPixel fgColor;   // RGB
-   int verbose;         // X
+   DmtxPixel color;
+   DmtxPixel bgColor;
+   char format;
+   char *inputPath;
    char *outputPath;
-} ScanOptions;          // X
+   int rotate;
+   int sizeIdx;
+   int verbose;
+   int mosaic;
+} UserOptions;
 
 #endif

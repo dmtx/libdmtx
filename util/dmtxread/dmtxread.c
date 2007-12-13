@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxread.c,v 1.12 2006-10-15 19:39:44 mblaughton Exp $ */
+/* $Id: dmtxread.c,v 1.12 2006/10/15 19:39:44 mblaughton Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -39,7 +40,8 @@ Contact: mike@dragonflylogic.com
 
 #define MIN(x,y) ((x < y) ? x : y)
 
-static int HandleArgs(ScanOptions *options, int *argcp, char **argvp[], int *fileIndex);
+static void InitUserOptions(UserOptions *options);
+static int HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, DmtxDecode *decode);
 static long StringToLong(char *numberString);
 static void ShowUsage(int status);
 static void FatalError(int errorCode, char *fmt, ...);
@@ -47,16 +49,17 @@ static ImageFormat GetImageFormat(char *imagePath);
 static int LoadImage(DmtxImage *image, char *imagePath, int imageIndex);
 static int LoadImagePng(DmtxImage *image, char *imagePath);
 static int LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex);
-static int ScanImage(ScanOptions *options, DmtxDecode *decode, char *prefix);
+static int ScanImage(UserOptions *options, DmtxDecode *decode);
+static int PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int imageIndex);
 
 char *programName;
 
 /**
  * Main function for the dmtxread Data Matrix scanning utility.
  *
- * @param  argc count of arguments passed from command line
- * @param  argv list of argument passed strings from command line
- * @return      numeric success / failure exit code
+ * @param argc count of arguments passed from command line
+ * @param argv list of argument passed strings from command line
+ * @return     numeric success / failure exit code
  */
 int
 main(int argc, char *argv[])
@@ -64,18 +67,19 @@ main(int argc, char *argv[])
    int err;
    int fileIndex;
    DmtxDecode *decode;
-   ScanOptions options;
+   UserOptions options;
    char *imagePath;
-   char prefix[16];
    int imageCount;
    int imageIndex;
 
-   err = HandleArgs(&options, &argc, &argv, &fileIndex);
-   if(err)
-      ShowUsage(err);
+   InitUserOptions(&options);
 
    decode = dmtxDecodeStructCreate();
    decode->option = DmtxSingleScanOnly;
+
+   err = HandleArgs(&options, &argc, &argv, &fileIndex, decode);
+   if(err)
+      ShowUsage(err);
 
    while(fileIndex < argc) {
 
@@ -84,21 +88,19 @@ main(int argc, char *argv[])
       imageIndex = 0;
       do {
          dmtxImageInit(&(decode->image));
-         imageCount = LoadImage(&(decode->image), imagePath, imageIndex++);
+
+         imageCount = LoadImage(&(decode->image), imagePath, imageIndex);
 
          if(imageCount == 0)
             break;
 
-         memset(prefix, 0x00, 16);
-         if(options.pageNumber)
-            snprintf(prefix, 15, "%d:", imageIndex);
-         else
-            *prefix = '\0';
+         ScanImage(&options, decode);
 
-         ScanImage(&options, decode, prefix);
+         PrintDecodedOutput(&options, decode, imageIndex);
 
          dmtxImageDeInit(&(decode->image));
-      } while(imageIndex < imageCount);
+
+      } while(++imageIndex < imageCount);
 
       fileIndex++;
    }
@@ -109,25 +111,49 @@ main(int argc, char *argv[])
 }
 
 /**
+ *
+ *
+ */
+static void
+InitUserOptions(UserOptions *options)
+{
+   memset(options, 0x00, sizeof(UserOptions));
+
+   // Set default options
+   options->codewords = 0;
+   options->scanGap = 2;
+   options->newline = 0;
+   options->region = NULL;
+   options->verbose = 0;
+   options->coordinates = 0;
+   options->mosaic = 0;
+   options->pageNumber = 0;
+}
+
+/**
  * Sets and validates user-requested options from command line arguments.
  *
  * @param options    runtime options from defaults or command line
- * @param  argcp     pointer to argument count
- * @param  argvp     pointer to argument list
- * @param  fileIndex pointer to index of first non-option arg (if successful)
+ * @param argcp      pointer to argument count
+ * @param argvp      pointer to argument list
+ * @param fileIndex  pointer to index of first non-option arg (if successful)
  * @return           DMTXREAD_SUCCESS | DMTXREAD_ERROR
  */
 static int
-HandleArgs(ScanOptions *options, int *argcp, char **argvp[], int *fileIndex)
+HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, DmtxDecode *decode)
 {
    int opt;
    int longIndex;
 
    struct option longOptions[] = {
-         {"count",       required_argument, NULL, 'c'},
-         {"vertical",    required_argument, NULL, 'v'},
-         {"horizontal",  required_argument, NULL, 'h'},
-         {"page-number", no_argument,       NULL, 'n'},
+         {"codewords",   no_argument,       NULL, 'c'},
+         {"gap",         required_argument, NULL, 'g'},
+         {"newline",     no_argument,       NULL, 'n'},
+         {"region",      required_argument, NULL, 'r'},
+         {"verbose",     no_argument,       NULL, 'v'},
+         {"coordinates", no_argument,       NULL, 'C'},
+         {"mosaic",      no_argument,       NULL, 'M'},
+         {"page-number", no_argument,       NULL, 'P'},
          {"help",        no_argument,       NULL,  0 },
          {0, 0, 0, 0}
    };
@@ -136,17 +162,10 @@ HandleArgs(ScanOptions *options, int *argcp, char **argvp[], int *fileIndex)
    if(programName && strrchr(programName, '/'))
       programName = strrchr(programName, '/') + 1;
 
-   memset(options, 0x00, sizeof(ScanOptions));
-
-   options->maxCount = 0; // Unlimited
-   options->hScanCount = 10;
-   options->vScanCount = 10;
-   options->pageNumber = 0;
-
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "c:v:h:n", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "cg:nr:vCMP", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -155,15 +174,28 @@ HandleArgs(ScanOptions *options, int *argcp, char **argvp[], int *fileIndex)
             ShowUsage(0);
             break;
          case 'c':
-            options->maxCount = StringToLong(optarg);
+            options->codewords = 1;
             break;
-         case 'v':
-            options->vScanCount = StringToLong(optarg);
-            break;
-         case 'h':
-            options->hScanCount = StringToLong(optarg);
+         case 'g':
+            options->scanGap = StringToLong(optarg);
             break;
          case 'n':
+            options->newline = 1;
+            break;
+         case 'r':
+            options->region = optarg;
+            break;
+         case 'v':
+            options->verbose = 1;
+            break;
+         case 'C':
+            options->coordinates = 1;
+            break;
+         case 'M':
+            options->mosaic = 1;
+            decode->mosaic = 1;
+            break;
+         case 'P':
             options->pageNumber = 1;
             break;
          default:
@@ -175,10 +207,12 @@ HandleArgs(ScanOptions *options, int *argcp, char **argvp[], int *fileIndex)
 
    // File not specified
    if(*fileIndex == *argcp) {
-      if(*argcp == 1)
+
+      if(*argcp == 1) // program called without arguments
          return DMTXREAD_ERROR;
       else
-         FatalError(1, _("Must specify image file\n"));
+         FatalError(1, _("Must specify image file"));
+
    }
 
    return DMTXREAD_SUCCESS;
@@ -225,18 +259,24 @@ ShowUsage(int status)
    else {
       fprintf(stdout, _("Usage: %s [OPTION]... [FILE]...\n"), programName);
       fprintf(stdout, _("\
-Scan FILE (a PNG image) for Data Matrix barcodes and print decoded results\n\
+Scan FILE (PNG or TIFF image) for Data Matrix barcodes and print decoded results\n\
 to STDOUT.  Note that %s may find multiple barcodes in one image.\n\
 \n\
-Example: %s -v 4 -h 4 IMAGE001.png IMAGE002.png\n\
+Example: %s -r10,10:200,200 -g10 IMAGE001.png IMAGE002.png\n\
 \n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
-  -c, --count=NUM            stop after finding NUM barcodes\n\
-  -v, --vertical=NUM         use NUM vertical scan lines in scan pattern\n\
-  -h, --horizontal=NUM       use NUM horizontal scan lines in scan pattern\n\
-  -n, --page-number          prefix decoded messages with corresponding page number\n\
-      --help                 display this help and exit\n"));
+  -c, --codewords        print codewords extracted from barcode pattern\n\
+  -g, --gap=NUM          use scan grid with gap of NUM pixels between scanlines\n\
+  -n, --newline          insert newline character at the end of decoded data\n\
+  -d, --distortion=K1,K2 radial distortion coefficients (not implemented yet)\n\
+  -r, --region=REGION    only scan portion of image; specify REGION by listing\n\
+        x1,y1:x2,y2      two opposing corners of a rectangular region\n\
+  -v, --verbose          use verbose messages\n\
+  -C, --coordinates      prefix decoded message with barcode corner locations\n\
+  -M, --mosaic           interpret detected regions as Data Mosaic barcodes\n\
+  -P, --page-number      prefix decoded message with corresponding page number\n\
+      --help             display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
    }
 
@@ -312,7 +352,7 @@ LoadImage(DmtxImage *image, char *imagePath, int imageIndex)
          imageCount = LoadImageTiff(image, imagePath, imageIndex);
          break;
       default:
-         imageCount = 0;
+         FatalError(1, _("Unrecognized file type"));
          break;
    }
 
@@ -339,6 +379,9 @@ LoadImagePng(DmtxImage *image, char *imagePath)
    png_infop       infoPtr;
    png_infop       endInfo;
    png_bytepp      rowPointers;
+   png_color_16p   image_background;
+
+   // TODO: set_jmpbuf
 
    fp = fopen(imagePath, "rb");
    if(fp == NULL) {
@@ -383,6 +426,18 @@ LoadImagePng(DmtxImage *image, char *imagePath)
    png_get_IHDR(pngPtr, infoPtr, &width, &height, &bitDepth, &colorType,
          &interlaceType, &compressionType, &filterMethod);
 
+   if(colorType == PNG_COLOR_TYPE_PALETTE && bitDepth <= 8)
+      png_set_expand(pngPtr);
+
+   if(colorType == PNG_COLOR_TYPE_GRAY && bitDepth < 8)
+      png_set_expand(pngPtr);
+
+   if(png_get_valid(pngPtr, infoPtr, PNG_INFO_tRNS))
+      png_set_expand(pngPtr);
+
+   if(bitDepth < 8)
+      png_set_packing(pngPtr);
+
    png_set_strip_16(pngPtr);
    png_set_strip_alpha(pngPtr);
    png_set_packswap(pngPtr);
@@ -390,8 +445,11 @@ LoadImagePng(DmtxImage *image, char *imagePath)
    if(colorType == PNG_COLOR_TYPE_PALETTE)
       png_set_palette_to_rgb(pngPtr);
 
-   if (colorType == PNG_COLOR_TYPE_GRAY || PNG_COLOR_TYPE_GRAY_ALPHA)
+   if(colorType == PNG_COLOR_TYPE_GRAY || PNG_COLOR_TYPE_GRAY_ALPHA)
       png_set_gray_to_rgb(pngPtr);
+
+   if(png_get_bKGD(pngPtr, infoPtr, &image_background))
+      png_set_background(pngPtr, image_background, PNG_BACKGROUND_GAMMA_FILE, 1, 1.0);
 
    png_read_update_info(pngPtr, infoPtr);
 
@@ -437,6 +495,7 @@ LoadImagePng(DmtxImage *image, char *imagePath)
       png_free(pngPtr, rowPointers[row]);
    }
    png_free(pngPtr, rowPointers);
+   rowPointers = NULL;
 
    fclose(fp);
 
@@ -516,36 +575,110 @@ LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex)
 }
 
 /**
- * Scan image for Data Matrix barcodes and print decoded data to STDOUT.
+ * Scan image for Data Matrix barcodes within image.
  *
  * @param options   runtime options from defaults or command line
  * @param decode    pointer to DmtxDecode struct
  * @return          DMTXREAD_SUCCESS | DMTXREAD_ERROR
  */
 static int
-ScanImage(ScanOptions *options, DmtxDecode *decode, char *prefix)
+ScanImage(UserOptions *options, DmtxDecode *decode)
 {
    int row, col;
-   int hScanGap, vScanGap;
-   unsigned char outputString[1024];
-   DmtxMatrixRegion *matrixRegion;
 
    dmtxScanStartNew(decode);
 
-   hScanGap = (int)((double)decode->image.width/options->hScanCount + 0.5);
-   vScanGap = (int)((double)decode->image.height/options->vScanCount + 0.5);
+   for(row = options->scanGap; row < decode->image.height; row += options->scanGap) {
+      if(dmtxDecodeGetMatrixCount(decode) > 0)
+         break;
+      else
+         dmtxScanLine(decode, DmtxDirRight, row);
+   }
 
-   for(col = hScanGap; col < decode->image.width; col += hScanGap)
-      dmtxScanLine(decode, DmtxDirUp, col);
+   for(col = options->scanGap; col < decode->image.width; col += options->scanGap) {
+      if(dmtxDecodeGetMatrixCount(decode) > 0)
+         break;
+      else
+         dmtxScanLine(decode, DmtxDirUp, col);
+   }
 
-   for(row = vScanGap; row < decode->image.height; row += vScanGap)
-      dmtxScanLine(decode, DmtxDirRight, row);
+   if(dmtxDecodeGetMatrixCount(decode) == 0)
+      return DMTXREAD_ERROR; // XXX maybe this should return the number of barcodes instead of ERROR?
 
-   if(dmtxDecodeGetMatrixCount(decode) > 0) {
-      matrixRegion = dmtxDecodeGetMatrix(decode, 0);
-      memset(outputString, 0x00, 1024);
-      strncpy((char *)outputString, (const char *)matrixRegion->output, MIN(matrixRegion->outputIdx, 1023));
-      fprintf(stdout, "%s%s\n", prefix, outputString);
+   return DMTXREAD_SUCCESS;
+}
+
+/**
+ * XXX
+ *
+ * @param options   runtime options from defaults or command line
+ * @param decode    pointer to DmtxDecode struct
+ * @return          DMTXREAD_SUCCESS | DMTXREAD_ERROR
+ */
+static int
+PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int imageIndex)
+{
+   int i;
+   int dataWordLength;
+   DmtxMatrixRegion *region;
+
+   region = dmtxDecodeGetMatrix(decode, 0);
+   if(region == NULL)
+      return DMTXREAD_ERROR;
+
+   dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, region->sizeIdx);
+
+   if(options->verbose) {
+      fprintf(stdout, "--------------------------------------------------\n");
+      fprintf(stdout, "       Matrix Size: %d x %d\n",
+            dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx),
+            dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx));
+      fprintf(stdout, "    Data Codewords: %d (capacity %d)\n",
+            region->outputIdx, dataWordLength);
+      fprintf(stdout, "   Error Codewords: %d\n",
+            dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, region->sizeIdx));
+      fprintf(stdout, "      Data Regions: %d x %d\n",
+            dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions, region->sizeIdx),
+            dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, region->sizeIdx));
+      fprintf(stdout, "Interleaved Blocks: %d\n",
+            dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, region->sizeIdx));
+      fprintf(stdout, "          Corner 0: (%0.1f, %0.1f)\n",
+            region->corners.c00.X, region->corners.c00.Y);
+      fprintf(stdout, "          Corner 1: (%0.1f, %0.1f)\n",
+            region->corners.c10.X, region->corners.c10.Y);
+      fprintf(stdout, "          Corner 2: (%0.1f, %0.1f)\n",
+            region->corners.c11.X, region->corners.c11.Y);
+      fprintf(stdout, "          Corner 3: (%0.1f, %0.1f)\n",
+            region->corners.c01.X, region->corners.c01.Y);
+      fprintf(stdout, "--------------------------------------------------\n");
+   }
+
+   if(options->pageNumber)
+      fprintf(stdout, "%d:", imageIndex + 1);
+
+   if(options->coordinates) {
+      fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
+            decode->image.height - (int)(region->corners.c00.Y + 0.5));
+      fprintf(stdout, "%d,%d:", (int)(region->corners.c10.X + 0.5),
+            decode->image.height - (int)(region->corners.c10.Y + 0.5));
+      fprintf(stdout, "%d,%d:", (int)(region->corners.c11.X + 0.5),
+            decode->image.height - (int)(region->corners.c11.Y + 0.5));
+      fprintf(stdout, "%d,%d:", (int)(region->corners.c01.X + 0.5),
+            decode->image.height - (int)(region->corners.c01.Y + 0.5));
+      fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
+            decode->image.height - (int)(region->corners.c00.Y + 0.5));
+   }
+
+   if(options->codewords) {
+      for(i = 0; i < region->codeSize; i++) {
+         fprintf(stdout, "%c:%03d\n", (i < dataWordLength) ?
+               'd' : 'e', region->code[i]);
+      }
+   }
+   else {
+      fwrite(region->output, sizeof(char), region->outputIdx, stdout);
+      if(options->newline)
+         fputc('\n', stdout);
    }
 
    return DMTXREAD_SUCCESS;

@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.16 2006-10-23 22:14:27 mblaughton Exp $ */
+/* $Id: dmtxregion.c,v 1.16 2006/10/23 22:14:27 mblaughton Exp $ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -33,701 +34,98 @@ Contact: mike@dragonflylogic.com
 extern int
 dmtxScanLine(DmtxDecode *decode, DmtxDirection dir, int lineNbr)
 {
-   int              success;
-   DmtxJumpScan     jumpScan;
-   DmtxEdgeScan     edgeScan;
-   DmtxEdgeFollower followLeft, followRight;
-   DmtxMatrixRegion matrixRegion;
+   int lineOffset, travelLimit;
+   int *x, *y;
+   int success;
+   DmtxEdgeSubPixel edgeStart;
+   DmtxRay2 ray0, ray1;
+   DmtxCompassEdge compassEdge;
+   DmtxMatrixRegion region;
 
-   assert(decode->image.width > 0 && decode->image.height > 0);
-   assert(dir == DmtxDirUp || dir == DmtxDirRight);
+   /* XXX rethink about which direction we should scan in, and how this can be controlled by user */
+   assert(dir == DmtxDirRight || dir == DmtxDirUp);
 
-   // The outer loop steps through a full row or column of the source
-   // image looking for regions that alternate between 2 colors.  This
-   // alternating pattern is what you would expect if you took a pixel-wide
-   // slice of a Data Matrix barcode image.  libdmtx refers to these
-   // regions as "jump regions" since the color value is seen as jumping
-   // back and forth across an imaginary middle color (or "edge").
+   travelLimit = (dir == DmtxDirRight) ? decode->image.width : decode->image.height;
 
-   // Initialize jump scan to cover entire line
-   JumpScanInit(&jumpScan, dir, lineNbr, 0, (dir & DmtxDirHorizontal) ?
-         decode->image.width : decode->image.height);
+   if(dir == DmtxDirRight) {
+      x = &lineOffset;
+      y = &lineNbr;
+   }
+   else {
+      x = &lineNbr;
+      y = &lineOffset;
+   }
 
-   // Loop once for each jump region candidate found on this line
-   while(JumpScanNextRegion(&jumpScan, decode) != DMTX_END_OF_RANGE) {
+   /* Loop through each pixel in the scanline */
+   for(lineOffset = 0; lineOffset < travelLimit; lineOffset++) {
 
-      // Does this jump region meet necessary requirements?
-      if(!JumpRegionValid(&jumpScan.region))
+      /* Test whether this pixel is sitting on an edge of any direction */
+      compassEdge = GetCompassEdge(&(decode->image), *x, *y, DMTX_ALL_COMPASS_DIRS);
+      if(compassEdge.magnitude < 60)
          continue;
 
-      // We now have a sufficiently-long region of 2 alternating colors.
-      // Next inspect each color boundary (or "edge") in this region to
-      // uncover finder bar candidates.
+      /* If the edge is strong then find its subpixel location */
+      edgeStart = FindZeroCrossing(&(decode->image), *x, *y, compassEdge);
+      edgeStart.compass = compassEdge; /* XXX for now ... need to preserve scanDir */
+      if(!edgeStart.isEdge)
+         continue;
 
-      // Initialize edge scan to search within current jump region
-      EdgeScanInit(&edgeScan, &jumpScan);
+      /* Next follow it to the end in both directions */
+      ray0 = FollowEdge(&(decode->image), *x, *y, edgeStart, 1, decode);
+      ray1 = FollowEdge(&(decode->image), *x, *y, edgeStart, -1, decode);
 
-      // Loop once for each color edge found in this jump region
-      while(EdgeScanNextEdge(&edgeScan, decode, &(jumpScan.region.gradient)) != DMTX_END_OF_RANGE) {
+      memset(&region, 0x00, sizeof(DmtxMatrixRegion));
 
-         // Finder bars are detected by tracing (or "following") an edge to
-         // the left and to the right of the current scan direction.  If
-         // the followers find edges that are sufficiently straight and
-         // long then they are pursued as valid finder bar candidates.
+      success = MatrixRegion2AlignFirstEdge(&region, decode, &edgeStart, ray0, ray1);
+      if(!success)
+         continue;
 
-         EdgeFollowerInit(&followLeft, &edgeScan, &(jumpScan.region.gradient), TurnCorner(dir, DMTX_TURN_CCW));
-         EdgeFollowerInit(&followRight, &edgeScan, &(jumpScan.region.gradient), TurnCorner(dir, DMTX_TURN_CW));
+      success = MatrixRegion2AlignSecondEdge(&region, decode);
+      if(!success)
+         continue;
 
-         EdgeFollowerFollow(&followLeft, decode);
-         EdgeFollowerFollow(&followRight, decode);
+      success = MatrixRegion2AlignRightEdge(&region, decode);
+      if(!success)
+         continue;
 
-         // We now hold a rough trace of the finder bars that border 2
-         // adjacent sides of a Data Matrix region.  The following steps
-         // will refine that region by building a transformation matrix
-         // that maps input pixel coordinates to a rectangular (usually
-         // square) 2D space of predetermined dimensions.  This is done
-         // by capturing and tweaking a "chain" of input values that are
-         // inputs to the transformation matrix and its inverse.
+      success = MatrixRegion2AlignTopEdge(&region, decode);
+      if(!success)
+         continue;
 
-         MatrixRegionInit(&matrixRegion, &(jumpScan.region.gradient));
+      /* XXX When adding clipping functionality against previously
+         scanned barcodes, this is a good place to add a test for
+         collisions.  Although we tested for this early on in the jump
+         region scan, the subsequent follower and alignment steps may
+         have moved us into a collision with another matrix region.  A
+         collision at this point is grounds for immediate failure. */
 
-         success = MatrixRegionAlignFinderBars(&matrixRegion, decode, &followLeft, &followRight);
-         if(!success)
-            continue;
+      success = MatrixRegion2FindSize(&region, decode);
+      if(!success)
+         continue;
 
-         success = MatrixRegionAlign(&matrixRegion, decode);
-         if(!success)
-            continue;
+      success = AllocateStorage(&region, decode);
+      if(!success)
+         continue;
 
-         // XXX When adding clipping functionality against previously
-         // scanned barcodes, this is a good place to add a test for
-         // collisions.  Although we tested for this early on in the jump
-         // region scan, the subsequent follower and alignment steps may
-         // have moved us into a collision with another matrix region.  A
-         // collision at this point is grounds for immediate failure.
+      success = PopulateArrayFromImage2(&region, decode);
+      if(!success)
+         continue;
 
-         success = MatrixRegionFindSize(&matrixRegion, decode);
-         if(!success)
-            continue;
+      success = DecodeRegion(&region);
+      if(!success)
+         continue;
 
-         success = PopulateArrayFromImage(&matrixRegion, decode);
-         if(!success)
-            continue;
+      /* We are now holding a valid, fully decoded Data Matrix barcode.
+         Add this to the list of valid barcodes and continue searching
+         for more. */
 
-         success = DecodeRegion(&matrixRegion);
-         if(!success)
-            continue;
+      decode->matrix[decode->matrixCount++] = region;
 
-         // We are now holding a valid, fully decoded Data Matrix barcode.
-         // Add this to the list of valid barcodes and continue searching
-         // for more.
-
-         if(decode && decode->finalCallback)
-            (*(decode->finalCallback))(&matrixRegion);
-
-         decode->matrix[decode->matrixCount++] = matrixRegion;
-
-         if((decode->option & DmtxSingleScanOnly) && decode->matrixCount > 0)
-            break;
-      }
+      if(decode->matrixCount > 0)
+         break;
    }
 
    return decode->matrixCount;
-}
-
-/**
- * Sets the location and boundaries of a region to be scanned.
- *
- * @param range    Pointer to target DmtxScanRange
- * @param dir      Line direction (DmtxDirUp|DmtxDirLeft|DmtxDirDown|DmtxDirRight)
- * @param lineNbr  Number of row or column in image
- * @param firstPos Offset of first pixel in scan range
- * @param lastPos  Offset of last pixel in scan range
- * @return void
- */
-static void
-ScanRangeSet(DmtxScanRange *range, DmtxDirection dir, int lineNbr, int firstPos, int lastPos)
-{
-   memset(range, 0x00, sizeof(DmtxScanRange));
-
-   range->dir = dir;
-   range->lineNbr = lineNbr;
-   range->firstPos = firstPos;
-   range->lastPos = lastPos;
-}
-
-/**
- * XXX
- * @param dir XXX
- * @param turn XXX
- * @return XXX
- */
-static DmtxDirection
-TurnCorner(DmtxDirection dir, int turn)
-{
-   DmtxDirection newDir;
-
-   newDir = (turn == DMTX_TURN_CW) ? 0x0f & (dir >> 1) : 0x0f & (dir << 1);
-
-   return (newDir) ? newDir : (dir ^ 0x0f) & 0x09;
-}
-
-/**
- * Initializes jump scan variable boundaries and starting point.  Should
- * be called once per input line (row or column) prior to searching for
- * jump regions.
- *
- * @param jumpScan XXX
- * @param dir      XXX
- * @param lineNbr  XXX
- * @param start    XXX
- * @param length   XXX
- * @return void
- */
-static void
-JumpScanInit(DmtxJumpScan *jumpScan, DmtxDirection dir, int lineNbr, int start, int length)
-{
-   memset(jumpScan, 0x00, sizeof(DmtxJumpScan));
-   ScanRangeSet(&(jumpScan->range), dir, lineNbr, start, start + length - 1);
-
-   // Initialize "current" region to end at start of range
-   jumpScan->region.anchor2 = start;
-}
-
-/**
- * Zeros out *jumpRegion and repoints location to start the next region.
- * JumpScanInit() must be called before first call to JumpRegionIncrement();
- *
- * @param jumpRegion XXX
- * @param range Pass range if initializing, NULL if incrementing
- * @return void
- */
-static void
-JumpRegionIncrement(DmtxJumpRegion *jumpRegion)
-{
-   int anchorTmp;
-
-   // NOTE: First time here will show jump->region.gradient.isDefined ==
-   // DMTX_FALSE due to initialization in JumpScanInit()
-
-   // Reuse the trailing same-colored pixels from the previous region as
-   // the leading part of this region if a gradient was established
-   anchorTmp = (jumpRegion->gradient.isDefined) ? jumpRegion->lastJump : jumpRegion->anchor2;
-   memset(jumpRegion, 0x00, sizeof(DmtxJumpRegion));
-   jumpRegion->anchor1 = anchorTmp;
-}
-
-/**
- * XXX
- *
- * @param jumpScan XXX
- * @param decode   XXX
- * @return offset | DMTX_END_OF_RANGE
- */
-// XXX THIS FUNCTION HAS NOT BEEN REWRITTEN YET
-static int
-JumpScanNextRegion(DmtxJumpScan *jumpScan, DmtxDecode *decode)
-{
-   DmtxJumpRegion  *region;
-   DmtxScanRange   *range;
-   int             anchor1Offset, anchor2Offset;
-   float           colorDist;
-   float           offGradient, alongGradient;
-   DmtxColor3      cDist;
-   int             minMaxFlag;
-   float           aThird;
-
-   // XXX When adding clipping against previously scanned barcodes you will do a check:
-   // if first point is in an existing region then fast forward to after the existing region
-   // if non-first point hits a region then this defines the end of your jump region
-
-   region = &(jumpScan->region);
-   range = &(jumpScan->range);
-
-   if(region->anchor2 == range->lastPos)
-      return DMTX_END_OF_RANGE;
-
-   JumpRegionIncrement(region);
-
-   anchor1Offset = dmtxImageGetOffset(&(decode->image), jumpScan->range.dir, range->lineNbr, region->anchor1);
-   dmtxColor3FromPixel(&(region->gradient.color), &(decode->image.pxl[anchor1Offset]));
-
-   // For each pixel in the range
-   for(region->anchor2 = region->anchor1 + 1; region->anchor2 != range->lastPos; region->anchor2++) {
-
-      anchor2Offset = dmtxImageGetOffset(&(decode->image), jumpScan->range.dir, range->lineNbr, region->anchor2);
-
-      // Capture previous and current pixel color
-      region->gradient.colorPrev = region->gradient.color;
-      dmtxColor3FromPixel(&(region->gradient.color), &(decode->image.pxl[anchor2Offset]));
-
-      // Measure color distance from previous pixel color
-      dmtxColor3Sub(&cDist, &(region->gradient.color), &(region->gradient.colorPrev));
-      colorDist = dmtxColor3Mag(&cDist);
-
-      // If color distance is larger than image noise
-      if(colorDist > DMTX_MIN_JUMP_DISTANCE) {
-
-         // If gradient line does not exist then
-         if(!region->gradient.isDefined) {
-
-            // Create gradient line
-            region->gradient.ray.p = region->gradient.colorPrev;
-            region->gradient.ray.c = cDist;
-            dmtxColor3Norm(&(region->gradient.ray.c));
-
-            // Update tMax, tMin, and derived values
-            region->gradient.isDefined = 1;
-            region->gradient.tMin = 0; // XXX technically this is not necessary (already initialized)
-            region->gradient.tMax = dmtxDistanceAlongRay3(&(region->gradient.ray), &(region->gradient.color));
-            region->gradient.tMid = (region->gradient.tMin + region->gradient.tMax)/2.0;
-            minMaxFlag = 1; // Latest hit was on the high side
-            region->lastJump = region->anchor2; // XXX see, this is why the logic shouldn't be in two places
-         }
-         else { // Gradient line does exist
-            // Measure distance from current gradient line
-            offGradient = dmtxDistanceFromRay3(&(region->gradient.ray), &(region->gradient.color));
-
-            // If distance from gradient line is large
-            if(offGradient > DMTX_MAX_COLOR_DEVN) {
-
-               if(decode && decode->stepScanCallback)
-                  (*(decode->stepScanCallback))(decode, range, jumpScan);
-
-               return DMTX_SUCCESS;
-            }
-            else { // Distance from gradient line is small
-               // Update tMax, tMin (distance along gradient lines), and derived values if necessary
-               alongGradient = dmtxDistanceAlongRay3(&(region->gradient.ray), &(region->gradient.color));
-
-               if(alongGradient < region->gradient.tMin)
-                  region->gradient.tMin = alongGradient;
-               else if(alongGradient > region->gradient.tMax)
-                  region->gradient.tMax = alongGradient;
-               region->gradient.tMid = (region->gradient.tMin + region->gradient.tMax)/2.0;
-
-               // Record that another big jump occurred
-               // XXX this should probably record gradient direction shifts rather than big jumps
-               aThird = (region->gradient.tMax - region->gradient.tMin)/2.0;
-               if(((minMaxFlag == 1 && alongGradient < region->gradient.tMin + aThird) ||
-                     (minMaxFlag == -1 && alongGradient > region->gradient.tMax - aThird)) &&
-                     aThird > 5.0) {
-                  region->jumpCount++;
-                  region->lastJump = region->anchor2;
-                  minMaxFlag *= -1;
-               }
-            }
-         }
-      }
-   }
-
-   if(decode && decode->stepScanCallback)
-      (*(decode->stepScanCallback))(decode, range, jumpScan);
-
-   return DMTX_SUCCESS;
-}
-
-/**
- * Returns true if a jump region is determined to be valid, else false.
- *
- * @param jumpRegion XXX
- * @return jump region validity (true|false)
- */
-static int
-JumpRegionValid(DmtxJumpRegion *jumpRegion)
-{
-   return (jumpRegion->jumpCount > DMTX_MIN_JUMP_COUNT &&
-           abs(jumpRegion->anchor2 - jumpRegion->anchor1) > DMTX_MIN_STEP_RANGE);
-}
-
-/**
- * XXX
- *
- * @param
- * @return void
- */
-static void
-EdgeScanInit(DmtxEdgeScan *edgeScan, DmtxJumpScan *jumpScan)
-{
-   memset(edgeScan, 0x00, sizeof(DmtxEdgeScan));
-
-   // Set edge scan range by starting with a copy of the jump scan's range
-   edgeScan->range = jumpScan->range;
-   edgeScan->range.firstPos = jumpScan->region.anchor1;
-   edgeScan->range.lastPos = jumpScan->region.anchor2 - 1;
-
-   // Initialize "current" edge to end at start of full jump scan range
-   edgeScan->edge.offset = edgeScan->edgeNext.offset = edgeScan->range.firstPos;
-}
-
-/**
- * XXX
- *
- * @param
- * @return XXX
- */
-static int
-EdgeScanNextEdge(DmtxEdgeScan *edgeScan, DmtxDecode *decode, DmtxGradient *gradient)
-{
-   int pxlOffset;
-   float lower, upper;
-
-   if(edgeScan->edge.offset == edgeScan->range.lastPos)
-      return DMTX_END_OF_RANGE;
-
-   while(edgeScan->edge.offset != edgeScan->range.lastPos) {
-      edgeScan->edge = edgeScan->edgeNext;
-      (edgeScan->edgeNext.offset)++;
-
-      // XXX pretty ugly test... should happen as part of structure with no test needed
-      if(edgeScan->edge.offset == edgeScan->range.firstPos) {
-         pxlOffset = dmtxImageGetOffset(&(decode->image), edgeScan->range.dir,
-               edgeScan->range.lineNbr, edgeScan->edge.offset);
-         dmtxColor3FromPixel(&(edgeScan->edge.color), &(decode->image.pxl[pxlOffset]));
-         edgeScan->edge.t = dmtxDistanceAlongRay3(&(gradient->ray), &(edgeScan->edge.color));
-      }
-
-      pxlOffset = dmtxImageGetOffset(&(decode->image), edgeScan->range.dir,
-            edgeScan->range.lineNbr, edgeScan->edgeNext.offset);
-      dmtxColor3FromPixel(&(edgeScan->edgeNext.color), &(decode->image.pxl[pxlOffset]));
-      edgeScan->edgeNext.t = dmtxDistanceAlongRay3(&(gradient->ray), &(edgeScan->edgeNext.color));
-
-      // XXX This test should not be necessary, but loop boundaries are currently sketchy
-      if(dmtxDistanceFromRay3(&(gradient->ray), &(edgeScan->edgeNext.color)) > 10.0)
-         return DMTX_END_OF_RANGE;
-
-      lower = gradient->tMid - edgeScan->edge.t;
-      upper = gradient->tMid - edgeScan->edgeNext.t;
-
-      // edge and edgeNext have the same color
-      if(fabs(lower - upper) < DMTX_ALMOST_ZERO) {
-         continue;
-      }
-      // Boundary color falls between edge and edgeNext
-      else if(lower * upper <= 0) {
-         edgeScan->subPixelOffset = lower / (lower - upper);
-
-         if(decode && decode->crossScanCallback)
-            (*(decode->crossScanCallback))(&(edgeScan->range), gradient, edgeScan);
-
-         return DMTX_SUCCESS;
-      }
-   }
-
-   if(decode && decode->crossScanCallback)
-      (*(decode->crossScanCallback))(&(edgeScan->range), gradient, edgeScan);
-
-   return DMTX_SUCCESS;
-}
-
-/**
- * XXX
- *
- * @param follow   XXX
- * @param edgeScan XXX
- * @param gradient XXX
- * @param dir      XXX
- * @return XXX
- */
-static void
-EdgeFollowerInit(DmtxEdgeFollower *follow, DmtxEdgeScan *edgeScan, DmtxGradient *gradient, DmtxDirection dir)
-{
-   memset(follow, 0x00, sizeof(DmtxEdgeFollower));
-
-   follow->slope = (edgeScan->edgeNext.t > edgeScan->edge.t) ? 1 : -1;
-   follow->paraOffset = edgeScan->range.lineNbr;
-   follow->perpOffset = edgeScan->edge.offset + edgeScan->subPixelOffset;
-   follow->tMin = gradient->tMin;
-   follow->tMid = gradient->tMid;
-   follow->tMax = gradient->tMax;
-   follow->ray = gradient->ray;
-   follow->dir = dir;
-}
-
-/**
- * XXX
- *
- * @param follow XXX
- * @return XXX
- */
-static DmtxVector2
-EdgeFollowerGetLoc(DmtxEdgeFollower *follow)
-{
-   DmtxVector2 loc;
-
-   if(follow->dir & DmtxDirVertical) {
-      loc.X = follow->perpOffset;
-      loc.Y = follow->paraOffset;
-   }
-   else {
-      loc.X = follow->paraOffset;
-      loc.Y = follow->perpOffset;
-   }
-
-   return loc;
-}
-
-/**
- * XXX
- *
- * @param follow XXX
- * @param decode XXX
- * @return XXX
- */
-static int
-EdgeFollowerFollow(DmtxEdgeFollower *follow, DmtxDecode *decode)
-{
-   // initialize line0 and line1 to "unset" and zero strength
-   int i;
-   int anchorStrength = 0;
-   float offPath, offAngle;
-   DmtxVector2 vTmp, anchorStep, fStep[DMTX_FOLLOW_STEPS];
-   DmtxRay2 rayAnchor, rayNext;
-
-   memset(&(follow->line0), 0x00, sizeof(DmtxRay2));
-   memset(&(follow->line1), 0x00, sizeof(DmtxRay2));
-
-   // Build first vector by incrementing 5 steps
-   anchorStep = fStep[0] = EdgeFollowerGetLoc(follow);
-   for(i = 1; i < DMTX_FOLLOW_STEPS; i++) {
-      if(EdgeFollowerIncrement(follow, decode) != DMTX_EDGE_FOUND) {
-         if(decode && decode->plotPointCallback)
-            (*(decode->plotPointCallback))(EdgeFollowerGetLoc(follow), 1, 2, DMTX_DISPLAY_SQUARE);
-         return 0; // Lost edge before completing first vector
-      }
-      fStep[i] = EdgeFollowerGetLoc(follow);
-   }
-   dmtxVector2Sub(&vTmp, &(fStep[DMTX_FOLLOW_STEPS-1]), &(fStep[0]));
-   dmtxVector2Norm(&vTmp); // XXX potential problem here if follower ends up in starting point (div/0)
-   rayAnchor.p = fStep[0];
-   rayAnchor.v = vTmp;
-
-   // Continue while we can still find an edge
-   while(EdgeFollowerIncrement(follow, decode) == DMTX_EDGE_FOUND) {
-
-      if(follow->turnCount > 2) { // Reached maximum number of turns
-
-         if(decode && decode->plotPointCallback) // Plot a red X where edge was lost
-            (*(decode->plotPointCallback))(fStep[0], 1, 2, DMTX_DISPLAY_SQUARE);
-
-          return 0; // XXX this should probably reflect the edge status (e.g. lost, max_turns, etc...)
-      }
-
-      // incrementProgress(follow, anchorVector); (using current followVector)
-      for(i = 0; i < DMTX_FOLLOW_STEPS - 1; i++) {
-         fStep[i] = fStep[i+1]; // XXX innefficient, but simple
-      }
-      fStep[i] = EdgeFollowerGetLoc(follow);
-      dmtxVector2Sub(&vTmp, &(fStep[DMTX_FOLLOW_STEPS-1]), &(fStep[0]));
-      dmtxVector2Norm(&vTmp);
-      rayNext.p = fStep[0];
-      rayNext.v = vTmp;
-
-      offPath = fabs(dmtxDistanceFromRay2(&rayAnchor, &(fStep[0])));
-      offAngle = fabs(dmtxVector2Dot(&(rayAnchor.v), &(rayNext.v)));
-
-      // Step is in direction of predicted path
-      if(offAngle > 0.984) {
-         anchorStrength++;
-      }
-      else { // Step is in wrong direction
-
-         // Current line is done -- fixate
-         if(anchorStrength > 10) { // if line reached strength threshhold, but is now turning a corner
-
-            // line0 gets set first
-            if(follow->line0.isDefined == 0) {
-
-               if(decode && decode->plotPointCallback)
-                  (*(decode->plotPointCallback))(fStep[0], 2, 2, DMTX_DISPLAY_SQUARE);
-
-               // Update should build ray based on min/max points on the edge, NOT anchorVector
-               // XXXXXXXXX IMPORTANT: Revisit this... results should be adequate using anchorVector here
-               follow->line0.isDefined = 1;
-
-               dmtxVector2Sub(&vTmp, &(fStep[0]), &anchorStep);
-               dmtxVector2Norm(&vTmp);
-               follow->line0.v = vTmp;
-               follow->line0.p = anchorStep;
-
-               follow->line0.tMin = 0;
-               follow->line0.tMax = dmtxDistanceAlongRay2(&(follow->line0), &(fStep[0]));
-            }
-            // line1 gets set if line0 is already set
-            else {
-
-               if(decode && decode->plotPointCallback)
-                  (*(decode->plotPointCallback))(fStep[0], 3, 2, DMTX_DISPLAY_SQUARE);
-
-               // Update should build ray based on min/max points on the edge, NOT anchorVector
-               // XXXXXXXXX IMPORTANT: Revisit this... results should be adequate using anchorVector here
-               follow->line1.isDefined = 1;
-
-               dmtxVector2Sub(&vTmp, &(fStep[0]), &anchorStep);
-               dmtxVector2Norm(&vTmp);
-               follow->line1.v = vTmp;
-               follow->line1.p = anchorStep;
-
-               follow->line1.tMin = 0;
-               follow->line1.tMax = dmtxDistanceAlongRay2(&(follow->line1), &(fStep[0]));
-
-               return 0; // return "full"
-            }
-         }
-         else {
-            // line never reached strength threshhold
-            if(decode && decode->plotPointCallback)
-               (*(decode->plotPointCallback))(fStep[0], 4, 2, DMTX_DISPLAY_SQUARE);
-         }
-
-         rayAnchor = rayNext;
-         anchorStep = fStep[0];
-         anchorStrength = 0;
-      }
-   }
-
-   // return edge_lost condition (range/right/left)
-   if(decode && decode->plotPointCallback)
-      (*(decode->plotPointCallback))(EdgeFollowerGetLoc(follow), 5, 2, DMTX_DISPLAY_SQUARE);
-
-   return 0;
-}
-
-/**
- * XXX
- *
- * @param
- * @return XXX
- */
-static int
-EdgeFollowerIncrement(DmtxEdgeFollower *follow, DmtxDecode *decode)
-{
-   int turnDir;
-   int increment;
-   int offset0, offset1, endOffset;
-   int dir;
-   float t0, t1;
-   float tmpOffset;
-   DmtxColor3 color0, color1;
-
-   // XXX this first calc of offset0 might be done smarter by extrapolating current "line"
-   offset0 = (int)(follow->perpOffset + 0.5);
-
-   if(((follow->dir & DmtxDirHorizontal) && (offset0 + 1 >= decode->image.height - 1)) ||
-         ((follow->dir & DmtxDirVertical) && (offset0 + 1 >= decode->image.width - 1)) ||
-         offset0 - 1 <= 0)
-      return DMTX_END_OF_RANGE;
-
-   increment = (follow->dir & DmtxDirRightUp) ? 1 : -1;
-   follow->paraOffset += increment;
-
-   if(((follow->dir & DmtxDirHorizontal) && (follow->paraOffset >= decode->image.width)) ||
-         ((follow->dir & DmtxDirVertical) && (follow->paraOffset >= decode->image.height)) ||
-         follow->paraOffset <= 0)
-      return DMTX_END_OF_RANGE;
-
-   if(follow->dir & DmtxDirVertical)
-      dmtxColor3FromPixel(&color0, &(decode->image.pxl[decode->image.width * follow->paraOffset + offset0]));
-   else
-      dmtxColor3FromPixel(&color0, &(decode->image.pxl[decode->image.width * offset0 + follow->paraOffset]));
-
-   t0 = dmtxDistanceAlongRay3(&(follow->ray), &color0);
-
-   dir = (follow->slope * (follow->tMid - t0) >= 0) ? 1 : -1;
-
-   // Find adjacent pixels whose values "surround" tMid
-   endOffset = offset0 + 3*dir;
-   for(offset1 = offset0; offset1 != endOffset; offset1 += dir) {
-
-      if(((follow->dir & DmtxDirHorizontal) && (offset1 + 1 >= decode->image.height - 1)) ||
-            ((follow->dir & DmtxDirVertical) && (offset1 + 1 >= decode->image.width - 1)) ||
-            offset1 - 1 <= 0)
-         return DMTX_END_OF_RANGE;
-
-      if(follow->dir & DmtxDirVertical)
-         dmtxColor3FromPixel(&color1, &(decode->image.pxl[decode->image.width * follow->paraOffset + offset1]));
-      else
-         dmtxColor3FromPixel(&color1, &(decode->image.pxl[decode->image.width * offset1 + follow->paraOffset]));
-
-      t1 = dmtxDistanceAlongRay3(&(follow->ray), &color1);
-
-      // Check that follower hasn't wandered off of edge following unlike colors
-      if(dmtxDistanceFromRay3(&(follow->ray), &color1) > DMTX_MAX_COLOR_DEVN) {
-         return DMTX_END_OF_RANGE; // XXX not really DMTX_END_OF_RANGE, but works for now
-      }
-
-      if(fabs(t1 - follow->tMid) < DMTX_ALMOST_ZERO ||
-            ((follow->tMid - t0) * (follow->tMid - t1) < 0)) {
-
-         if(fabs(t1 - follow->tMid) < DMTX_ALMOST_ZERO) {
-            follow->perpOffset = offset1;
-         }
-         else if(fabs(follow->tMid - t0) < fabs(follow->tMid - t1)) {
-            follow->perpOffset = offset0 + follow->slope * ((follow->tMid - t0)/fabs(t0 - t1));
-         }
-         else {
-            follow->perpOffset = offset1 + follow->slope * ((follow->tMid - t1)/fabs(t0 - t1));
-         }
-
-         if(decode && decode->followScanCallback)
-            (*(decode->followScanCallback))(follow);
-
-         return DMTX_EDGE_FOUND;
-      }
-      else {
-         offset0 = offset1;
-         t0 = t1;
-      }
-   }
-
-   tmpOffset = follow->paraOffset;
-   follow->paraOffset = follow->perpOffset;
-   follow->perpOffset = tmpOffset;
-
-   if(follow->dir & (DmtxDirUp | DmtxDirLeft))
-      turnDir = (dir > 0) ? DMTX_TURN_CW : DMTX_TURN_CCW;
-   else
-      turnDir = (dir > 0) ? DMTX_TURN_CCW : DMTX_TURN_CW;
-
-   // XXX Whoa, this one was hard to figure out
-   if(follow->dir & DmtxDirVertical && turnDir == DMTX_TURN_CW)
-      follow->slope *= -1;
-   else if(follow->dir & DmtxDirHorizontal && turnDir == DMTX_TURN_CCW)
-      follow->slope *= -1;
-
-   follow->turnCount++;
-   follow->dir = TurnCorner(follow->dir, turnDir);
-
-   return DMTX_EDGE_FOUND;
-}
-
-/**
- * XXX
- *
- * @param
- * @return XXX
- */
-static void
-MatrixRegionInit(DmtxMatrixRegion *matrixRegion, DmtxGradient *gradient)
-{
-   memset(matrixRegion, 0x00, sizeof(DmtxMatrixRegion));
-
-   matrixRegion->gradient = *gradient;
-
-   // XXX this stuff just became a lot less important since I'm initializing it locally in "chain" and then copying
-   matrixRegion->chain.tx = 0.0;
-   matrixRegion->chain.ty = 0.0;
-   matrixRegion->chain.phi = 0.0;
-   matrixRegion->chain.shx = 0.0;
-   matrixRegion->chain.scx = 1.0;
-   matrixRegion->chain.scy = 1.0;
-   matrixRegion->chain.bx0 = 1.0;
-   matrixRegion->chain.bx1 = 1.0;
-   matrixRegion->chain.by0 = 1.0;
-   matrixRegion->chain.by1 = 1.0;
-   matrixRegion->chain.sz = 1.0;
-
-   MatrixRegionUpdateXfrms(matrixRegion);
 }
 
 /**
@@ -738,18 +136,273 @@ MatrixRegionInit(DmtxMatrixRegion *matrixRegion, DmtxGradient *gradient)
  * @return XXX
  */
 extern void
-dmtxMatrixRegionDeInit(DmtxMatrixRegion *matrixRegion)
+dmtxMatrixRegionDeInit(DmtxMatrixRegion *region)
 {
-   if(matrixRegion->array != NULL)
-      free(matrixRegion->array);
+   if(region->array != NULL)
+      free(region->array);
 
-   if(matrixRegion->code != NULL)
-      free(matrixRegion->code);
+   if(region->code != NULL)
+      free(region->code);
 
-   if(matrixRegion->output != NULL)
-      free(matrixRegion->output);
+   if(region->output != NULL)
+      free(region->output);
 
-   memset(matrixRegion, 0x00, sizeof(DmtxMatrixRegion));
+   memset(region, 0x00, sizeof(DmtxMatrixRegion));
+}
+
+/**
+ *
+ *
+ */
+static void
+ClampIntRange(int *value, int min, int max)
+{
+   assert(*value >= min - 1);
+   assert(*value <= max + 1);
+
+   if(*value < min)
+      *value = min;
+   else if(*value > max)
+      *value = max;
+}
+
+/**
+ *
+ *
+ */
+static DmtxCompassEdge
+GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
+{
+   int dirIdx, dirVal[] = { DmtxCompassDirNeg45, DmtxCompassDir0, DmtxCompassDir45, DmtxCompassDir90 };
+   int patternIdx, coefficientIdx;
+   int xAdjust, yAdjust;
+   double mag0, mag90;
+   static const double coefficient[] = {  0,  1,  2,  1,  0, -1, -2, -1 };
+   static const int patternX[] =       { -1,  0,  1,  1,  1,  0, -1, -1 };
+   static const int patternY[] =       { -1, -1, -1,  0,  1,  1,  1,  0 };
+   DmtxPixel pixel;
+   DmtxCompassEdge edge, maxEdge;
+   DmtxColor3 color, black = { 0.0, 0.0, 0.0 }; /* XXX move black to a global scope later */
+
+   assert(edgeScanDirs);
+
+   /* Set maxEdge to invalid state */
+   maxEdge.edgeDir = -1;
+   maxEdge.scanDir = -1;
+   maxEdge.intensity = black;
+   maxEdge.magnitude = 0.0;
+
+   mag0 = mag90 = -1.0;
+
+   if(x <= 0 || x >= image->width - 1 || y <= 0 || y >= image->height - 1)
+      return maxEdge; /* XXX should really communicate failure with a dedicated value instead */
+
+   /* Calculate this pixel's edge intensity for each direction (-45, 0, 45, 90) */
+   for(dirIdx = 0; dirIdx <= 3; dirIdx++) {
+
+      /* Only scan for edge if this direction was requested */
+      if(!(dirVal[dirIdx] & edgeScanDirs))
+         continue;
+
+      edge.edgeDir = dirVal[dirIdx];
+      edge.scanDir = -1;
+      edge.intensity = black;
+      edge.magnitude = 0.0;
+
+      /* Set maxEdge on the first iteration */
+      if(maxEdge.edgeDir == -1)
+         maxEdge = edge;
+
+      /* Add portion from each position in the convolution matrix pattern */
+      for(patternIdx = 0; patternIdx < 8; patternIdx++) {
+         xAdjust = x + patternX[patternIdx];
+         yAdjust = y + patternY[patternIdx];
+
+         /* Accomodate 1 pixel beyond edge of image with nearest neighbor value */
+         ClampIntRange(&xAdjust, 0, image->width - 1);
+         ClampIntRange(&yAdjust, 0, image->height - 1);
+
+         /* Weight pixel value by appropriate coefficient in convolution matrix */
+         coefficientIdx = (patternIdx - dirIdx + 8) % 8;
+         pixel = dmtxPixelFromImage(image, xAdjust, yAdjust);
+         dmtxColor3FromPixel(&color, &pixel);
+         dmtxColor3AddTo(&edge.intensity, dmtxColor3ScaleBy(&color, coefficient[coefficientIdx]));
+      }
+      edge.magnitude = dmtxColor3Mag(&edge.intensity);
+
+      if(edge.edgeDir == DmtxCompassDir0)
+         mag0 = edge.magnitude;
+      else if(edge.edgeDir == DmtxCompassDir90)
+         mag90 = edge.magnitude;
+
+      /* Capture the strongest edge direction and its intensity */
+      if(edge.magnitude > maxEdge.magnitude)
+         maxEdge = edge;
+   }
+   if(mag0 > -1.0 && mag90 > -1.0)
+      maxEdge.scanDir = (mag0 > mag90) ? DmtxCompassDir0 : DmtxCompassDir90;
+
+   return maxEdge;
+}
+
+/**
+ * We have found an edge candidate whenever we find 3 pixels in a
+ * row that share the same strongest direction and the middle one
+ * had the highest intensity (or a first-place tie with one of its
+ * neighbors)
+ */
+static DmtxEdgeSubPixel
+FindZeroCrossing(DmtxImage *image, int x, int y, DmtxCompassEdge compassStart)
+{
+   double accelPrev, accelNext, frac;
+   DmtxCompassEdge compassPrev, compassNext;
+   DmtxEdgeSubPixel subPixel;
+
+   assert(compassStart.scanDir == DmtxCompassDir0 || compassStart.scanDir == DmtxCompassDir90);
+
+   subPixel.isEdge = 0;
+   subPixel.xInt = x;
+   subPixel.yInt = y;
+   subPixel.xFrac = 0.0;
+   subPixel.yFrac = 0.0;
+   subPixel.compass = GetCompassEdge(image, x, y, compassStart.edgeDir);
+
+   if(subPixel.compass.magnitude < 60)
+      return subPixel;
+
+   if(dmtxColor3Dot(&subPixel.compass.intensity, &compassStart.intensity) < 0)
+      return subPixel;
+
+   if(compassStart.scanDir == DmtxCompassDir0) {
+      compassPrev = GetCompassEdge(image, x-1, y, compassStart.edgeDir);
+      compassNext = GetCompassEdge(image, x+1, y, compassStart.edgeDir);
+   }
+   else { /* DmtxCompassDir90 */
+      compassPrev = GetCompassEdge(image, x, y-1, compassStart.edgeDir);
+      compassNext = GetCompassEdge(image, x, y+1, compassStart.edgeDir);
+   }
+
+   /* Calculate 2nd derivatives left and right of center */
+   accelPrev = subPixel.compass.magnitude - compassPrev.magnitude;
+   accelNext = compassNext.magnitude - subPixel.compass.magnitude;
+
+   /* If it looks like an edge then interpolate subpixel loc based on 0 crossing */
+   if(accelPrev * accelNext < DMTX_ALMOST_ZERO) {
+      frac = (fabs(accelNext - accelPrev) > DMTX_ALMOST_ZERO) ?
+            (accelPrev / (accelPrev - accelNext)) - 0.5 : 0.0;
+
+      subPixel.isEdge = 1;
+      subPixel.xFrac = (compassStart.scanDir == DmtxCompassDir0) ? frac : 0.0;
+      subPixel.yFrac = (compassStart.scanDir == DmtxCompassDir90) ? frac : 0.0;
+   }
+
+   return subPixel;
+}
+
+/**
+ *
+ *
+ */
+static DmtxRay2
+FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forward, DmtxDecode *decode)
+{
+   int xFollow, yFollow;
+   int xIncrement, yIncrement;
+   DmtxEdgeSubPixel edge, edge0, edge1;
+   DmtxVector2 p, pStart, pSoft, pHard, pStep;
+   double strong0, strong1;
+   DmtxCompassEdge compass;
+   DmtxRay2 ray;
+
+   memset(&ray, 0x00, sizeof(DmtxRay2));
+
+   /* No edge here, thanks for playing */
+   if(!edgeStart.isEdge)
+      return ray;
+
+   pStart.X = edgeStart.xInt + edgeStart.xFrac;
+   pStart.Y = edgeStart.yInt + edgeStart.yFrac;
+   pSoft = pHard = pStart;
+
+   edge = edgeStart;
+   compass = edgeStart.compass;
+
+   /* If we have a true edge then continue to follow it forward */
+   if(compass.scanDir == DmtxCompassDir0) {
+      xIncrement = 0;
+      yIncrement = forward;
+   }
+   else {
+      xIncrement = forward;
+      yIncrement = 0;
+   }
+
+   xFollow = x + xIncrement;
+   yFollow = y + yIncrement;
+
+   while(edge.isEdge &&
+         xFollow >= 0 && xFollow < image->width &&
+         yFollow >= 0 && yFollow < image->height) {
+
+      edge = FindZeroCrossing(image, xFollow, yFollow, compass);
+
+      if(!edge.isEdge) {
+         edge0 = FindZeroCrossing(image, xFollow + yIncrement, yFollow + xIncrement, compass);
+         edge1 = FindZeroCrossing(image, xFollow - yIncrement, yFollow - xIncrement, compass);
+         if(edge0.isEdge && edge1.isEdge) {
+            strong0 = dmtxColor3Dot(&edge0.compass.intensity, &compass.intensity);
+            strong1 = dmtxColor3Dot(&edge1.compass.intensity, &compass.intensity);
+            edge = (strong0 > strong1) ? edge0 : edge1;
+         }
+         else {
+            edge = (edge0.isEdge) ? edge0 : edge1;
+         }
+
+         if(!edge.isEdge) {
+            edge0 = FindZeroCrossing(image, xFollow + 2*yIncrement, yFollow + 2*xIncrement, compass);
+            edge1 = FindZeroCrossing(image, xFollow - 2*yIncrement, yFollow - 2*xIncrement, compass);
+            if(edge0.isEdge && edge1.isEdge) {
+               strong0 = dmtxColor3Dot(&edge0.compass.intensity, &compass.intensity);
+               strong1 = dmtxColor3Dot(&edge1.compass.intensity, &compass.intensity);
+               edge = (strong0 > strong1) ? edge0 : edge1;
+            }
+            else {
+               edge = (edge0.isEdge) ? edge0 : edge1;
+            }
+         }
+      }
+
+      if(edge.isEdge) {
+         p.X = edge.xInt + edge.xFrac;
+         p.Y = edge.yInt + edge.yFrac;
+
+         /* Outline of follower in 2nd pane */
+/*       CALLBACK_DECODE_FUNC4(plotPointCallback, decode, p, 1, 1, DMTX_DISPLAY_POINT); */
+
+         if(edge.compass.magnitude > 0.50 * compass.magnitude)
+            pSoft = p;
+         if(edge.compass.magnitude > 0.90 * compass.magnitude)
+            pHard = p;
+      }
+
+      xFollow = (int)(edge.xInt + edge.xFrac + 0.5) + xIncrement;
+      yFollow = (int)(edge.yInt + edge.yFrac + 0.5) + yIncrement;
+   }
+
+/* CALLBACK_DECODE_FUNC4(plotPointCallback, decode, pHard, 1, 1, DMTX_DISPLAY_SQUARE); */
+
+   dmtxVector2Sub(&pStep, &pHard, &pStart);
+   if(dmtxVector2Mag(&pStep) < 4)
+      return ray;
+
+   ray.isDefined = 1;
+   ray.tMin = 0;
+   ray.p = pStart;
+   dmtxVector2Norm(&pStep);
+   ray.v = pStep;
+   ray.tMax = dmtxDistanceAlongRay2(&ray, &pSoft);
+
+   return ray;
 }
 
 /**
@@ -758,267 +411,131 @@ dmtxMatrixRegionDeInit(DmtxMatrixRegion *matrixRegion)
  * @param
  * @return XXX
  */
-static void
-Matrix3ChainXfrm(DmtxMatrix3 m, DmtxChain *chain)
+static int
+MatrixRegion2UpdateXfrms(DmtxMatrixRegion *region, DmtxImage *image)
 {
-   DmtxMatrix3 mtxy, mphi, mshx, mscxy, msky, mskx;
+   DmtxVector2 v01, vTmp, vCenter, pCenter;
+   double tx, ty, phi, shx, scx, scy, skx, sky;
+   double dimOT, dimOX, dimOR, dimRT, dimTX, dimRX;
+   DmtxMatrix3 m, mtxy, mphi, mshx, mscxy, msky, mskx;
+   DmtxCorners corners;
 
-   dmtxMatrix3Translate(mtxy, chain->tx, chain->ty);
-   dmtxMatrix3Rotate(mphi, chain->phi);
-   dmtxMatrix3Shear(mshx, chain->shx, 0.0);
-   dmtxMatrix3Scale(mscxy, chain->scx * chain->sz, chain->scy * chain->sz);
-   dmtxMatrix3LineSkewTop(msky, chain->by0, chain->by1, chain->sz);
-   dmtxMatrix3LineSkewSide(mskx, chain->bx0, chain->bx1, chain->sz);
+   assert((region->corners.known & DmtxCorner00) && (region->corners.known & DmtxCorner01));
 
+   /* Make copy of known corners to update with temporary values */
+   corners = region->corners;
+
+   if(corners.c00.X < 0.0 || corners.c00.Y < 0.0 ||
+      corners.c01.X < 0.0 || corners.c01.Y < 0.0)
+      return DMTX_FAILURE;
+
+   if(corners.c00.X > image->width - 1 || corners.c00.Y > image->height - 1 ||
+      corners.c01.X > image->width - 1 || corners.c01.Y > image->height - 1)
+      return DMTX_FAILURE;
+
+   dimOT = dmtxVector2Mag(dmtxVector2Sub(&v01, &corners.c01, &corners.c00)); /* XXX could use MagSquared() */
+   if(dimOT < 8)
+      return DMTX_FAILURE;
+
+   /* Bottom-right corner -- validate if known or create temporary value */
+   if(corners.known & DmtxCorner10) {
+      if(corners.c10.X < 0.0 || corners.c10.Y < 0.0 ||
+            corners.c10.X > image->width - 1 ||
+            corners.c10.Y > image->height - 1)
+         return DMTX_FAILURE;
+   }
+   else {
+      vTmp.X = v01.Y;
+      vTmp.Y = -v01.X;
+      dmtxVector2Add(&corners.c10, &corners.c00, &vTmp);
+
+      /* Choose direction that points toward center of image */
+      pCenter.X = image->width/2.0;
+      pCenter.Y = image->height/2.0;
+      dmtxVector2Sub(&vCenter, &pCenter, &corners.c00);
+
+      if(dmtxVector2Dot(&vTmp, &vCenter) < 0.0)
+         dmtxVector2ScaleBy(&vTmp, -1.0);
+   }
+
+   /* Top-right corner -- validate if known or create temporary value */
+   if(corners.known & DmtxCorner11) {
+      if(corners.c11.X < 0.0 || corners.c11.Y < 0.0 ||
+            corners.c11.X > image->width - 1 ||
+            corners.c11.Y > image->height - 1)
+         return DMTX_FAILURE;
+   }
+   else {
+      dmtxVector2Add(&corners.c11, &corners.c10, &v01);
+   }
+
+   /* Verify that the 4 corners define a reasonably fat quadrilateral */
+   dimOX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c00)); /* XXX could use MagSquared() */
+   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c10, &corners.c00)); /* XXX could use MagSquared() */
+   dimRT = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c01, &corners.c10)); /* XXX could use MagSquared() */
+   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c01)); /* XXX could use MagSquared() */
+   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c10)); /* XXX could use MagSquared() */
+
+   if(dimOR < 8 || dimTX < 8 || dimRX < 8 || dimOX < 11 || dimRT < 11)
+      return DMTX_FAILURE;
+
+   if(min(dimOX,dimRT)/max(dimOX,dimRT) < 0.5 ||
+      min(dimOT,dimRX)/max(dimOT,dimRX) < 0.5 ||
+      min(dimOR,dimTX)/max(dimOR,dimTX) < 0.5)
+      return DMTX_FAILURE;
+
+   /* Calculate values needed for transformations */
+   tx = -1 * corners.c00.X;
+   ty = -1 * corners.c00.Y;
+   dmtxMatrix3Translate(mtxy, tx, ty);
+
+   phi = atan2(v01.X, v01.Y);
+   dmtxMatrix3Rotate(mphi, phi);
+
+   /* Update transformation with values known so far */
    dmtxMatrix3Multiply(m, mtxy, mphi);
+
+   dmtxMatrix3VMultiply(&vTmp, &corners.c10, m);
+   assert(vTmp.X > DMTX_ALMOST_ZERO);
+   shx = -vTmp.Y / vTmp.X;
+   dmtxMatrix3Shear(mshx, 0.0, shx);
+
+   scx = 1.0/vTmp.X;
+   scy = 1.0/dmtxVector2Mag(&v01);
+   dmtxMatrix3Scale(mscxy, scx, scy);
+
+   /* Update transformation with values known so far */
    dmtxMatrix3MultiplyBy(m, mshx);
    dmtxMatrix3MultiplyBy(m, mscxy);
-   dmtxMatrix3MultiplyBy(m, msky);
+
+   dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
+   skx = vTmp.X;
+   dmtxMatrix3LineSkewSide(mskx, 1.0, skx, 1.0);
+
+   /* Update transformation with values known so far */
    dmtxMatrix3MultiplyBy(m, mskx);
-}
 
-/**
- * XXX
- *
- * @param
- * @return XXX
- */
-static void
-Matrix3ChainXfrmInv(DmtxMatrix3 m, DmtxChain *chain)
-{
-   DmtxMatrix3 mskx, msky, mscxy, mshx, mphi, mtxy;
+   /* Update transformation with values known so far */
+   dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
+   sky = vTmp.Y;
+   dmtxMatrix3LineSkewTop(msky, 1.0, sky, 1.0);
 
-   dmtxMatrix3LineSkewSideInv(mskx, chain->bx0, chain->bx1, chain->sz);
-   dmtxMatrix3LineSkewTopInv(msky, chain->by0, chain->by1, chain->sz);
-   dmtxMatrix3Scale(mscxy, 1.0/(chain->scx * chain->sz), 1.0/(chain->scy * chain->sz));
-   dmtxMatrix3Shear(mshx, -chain->shx, 0.0);
-   dmtxMatrix3Rotate(mphi, -chain->phi);
-   dmtxMatrix3Translate(mtxy, -chain->tx, -chain->ty);
+   /* Update region with final update */
+   dmtxMatrix3Multiply(region->raw2fit, m, msky);
 
-   dmtxMatrix3Multiply(m, mskx, msky);
+   /* Create inverse tranformation fit2raw (true matrix inverse is unnecessary) */
+   dmtxMatrix3LineSkewTopInv(msky, 1.0, sky, 1.0);
+   dmtxMatrix3LineSkewSideInv(mskx, 1.0, skx, 1.0);
+   dmtxMatrix3Scale(mscxy, 1.0/scx, 1.0/scy);
+   dmtxMatrix3Shear(mshx, 0.0, -shx);
+   dmtxMatrix3Rotate(mphi, -phi);
+   dmtxMatrix3Translate(mtxy, -tx, -ty);
+
+   dmtxMatrix3Multiply(m, msky, mskx);
    dmtxMatrix3MultiplyBy(m, mscxy);
    dmtxMatrix3MultiplyBy(m, mshx);
    dmtxMatrix3MultiplyBy(m, mphi);
-   dmtxMatrix3MultiplyBy(m, mtxy);
-}
-
-/**
- * XXX
- *
- * @param
- * @return XXX
- */
-static void
-MatrixRegionUpdateXfrms(DmtxMatrixRegion *matrixRegion)
-{
-   Matrix3ChainXfrm(matrixRegion->raw2fit, &(matrixRegion->chain));
-   Matrix3ChainXfrmInv(matrixRegion->fit2raw, &(matrixRegion->chain));
-}
-
-/**
- * XXX
- *
- * @param
- * @return XXX
- */
-static int
-MatrixRegionAlignFinderBars(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode,
-      DmtxEdgeFollower *f0, DmtxEdgeFollower *f1)
-{
-   int             success;
-   float           v1Length;
-   float           v2Length;
-   DmtxFinderBar   bar;
-   DmtxEdgeFollower *fTmp;
-   DmtxRay2        rPrimary, rSecondary;
-   DmtxVector2     pMin, pTmp;
-   DmtxVector2     v1, v2;
-   DmtxMatrix3     m;
-   DmtxChain       chain;
-
-/* XXX comment these cases better
-count   1st    2nd
-         0      0
-            return false
-
-         1      1
-            colinear?
-            yes: decide which is primary (longer secondary)
-                 verify other finder bar is co-linear
-            no:  finder bars are known
-
-         1      0
-         11     0
-            primary is known
-            verify that secondary is long enough
-
-         0      1
-         0     11
-            primary is known
-            verify that secondary is long enough
-*/
-   // Ensure that no secondary line is defined unless primary line is also defined
-   assert((f0->line1.isDefined) ? f0->line0.isDefined : 1);
-   assert((f1->line1.isDefined) ? f1->line0.isDefined : 1);
-
-   // We need at least 2 finder bar candidates to proceed
-   if(f0->line0.isDefined + f0->line1.isDefined + f1->line0.isDefined + f1->line1.isDefined < 2) {
-      return DMTX_FALSE;
-   }
-   // One direction contains both possible finder bar candidates (rare)
-   else if(f0->line0.isDefined + f1->line0.isDefined == 1) {
-      fTmp = (f0->line0.isDefined) ? f0 : f1;
-      rPrimary = fTmp->line0;   // Set primary to the defined one
-      rSecondary = fTmp->line1; // Set secondary to the defined one's dog-leg
-   }
-   // Each direction contains a finder bar candidate
-   else {
-      // Close to -1.0 means colinear (but opposite)
-      if(dmtxVector2Dot(&(f0->line0.v), &(f1->line0.v)) < -0.99) {
-
-         if(f0->line1.isDefined * (f0->line1.tMax - f0->line1.tMin) >
-               f1->line1.isDefined * (f1->line1.tMax - f1->line1.tMin)) {
-            // Primary is combination of both line0's (careful about direction / tMax handling)
-            rPrimary = f1->line0;
-            dmtxPointAlongRay2(&pMin, &(f0->line0), f0->line0.tMax);
-            rPrimary.tMin = dmtxDistanceAlongRay2(&rPrimary, &pMin);
-            rSecondary = f0->line1;
-         }
-         else {
-            // Primary is combination of both line0's (careful about direction / tMax handling)
-            rPrimary = f0->line0;
-            dmtxPointAlongRay2(&pMin, &(f1->line0), f1->line0.tMax);
-            rPrimary.tMin = dmtxDistanceAlongRay2(&rPrimary, &pMin);
-            rSecondary = f1->line1;
-         }
-      }
-      else {
-         // Set primary and secondary to line0's arbitrarily
-         rPrimary = f0->line0;
-         rSecondary = f1->line0;
-      }
-   }
-
-   // Check if we have to valid lines
-   if(rPrimary.isDefined == 0 || rSecondary.isDefined == 0) {
-      return DMTX_FALSE;
-   }
-   else if(rPrimary.tMax - rPrimary.tMin < 15 || rSecondary.tMax - rSecondary.tMin < 15) {
-      return DMTX_FALSE;
-   }
-
-   // Can't check lengths yet because length should be calculated from the
-   // true intersection of both lines
-
-   // Find intersection of 2 chosen rays
-   success = dmtxRay2Intersect(&(bar.p0), &rPrimary, &rSecondary);
-   if(!success) {
-      return DMTX_FALSE;
-   }
-
-   dmtxPointAlongRay2(&(bar.p2), &rPrimary, rPrimary.tMax);
-   dmtxPointAlongRay2(&(bar.p1), &rSecondary, rSecondary.tMax);
-
-   dmtxVector2Sub(&v1, &bar.p1, &bar.p0);
-   dmtxVector2Sub(&v2, &bar.p2, &bar.p0);
-
-   v1Length = dmtxVector2Mag(&v1);
-   v2Length = dmtxVector2Mag(&v2);
-
-   // Check that both lines are at least 10 pixels in length
-   if(v1Length < 10 || v2Length < 10) {
-//    fprintf(stdout, "Reject: At least one finder bar is too short.\n");
-      return DMTX_FALSE;
-   }
-   // Check matrix is not too "flat"
-   else if(min(v1Length, v2Length) / max(v1Length, v2Length) < 0.2) {
-//    fprintf(stdout, "Reject: Candidate region is too \"flat\" (%g).\n",
-//          min(v1Length, v2Length) / max(v1Length, v2Length));
-      return DMTX_FALSE;
-   }
-
-   // normalize(dir1) and normalize(dir2)
-   dmtxVector2Norm(&v1);
-   dmtxVector2Norm(&v2);
-
-   // Check that finder bars are not colinear
-   if(fabs(dmtxVector2Dot(&v1, &v2)) > cos(20.0*M_PI/180.0)) {
-//    fprintf(stdout, "Reject: Finder bars are too colinear.\n");
-      return DMTX_FALSE;
-   }
-
-   // XXX This is where we draw the 3 squares on the first pane
-   if(decode && decode->plotPointCallback) {
-      (*(decode->plotPointCallback))(bar.p0, 1, 1, DMTX_DISPLAY_SQUARE);
-      (*(decode->plotPointCallback))(bar.p1, 1, 1, DMTX_DISPLAY_SQUARE);
-      (*(decode->plotPointCallback))(bar.p2, 1, 1, DMTX_DISPLAY_SQUARE);
-   }
-
-   // Check for clockwise/ccw order of points and flip if necessary
-   if(dmtxVector2Cross(&v2, &v1) < 0.0) {
-      pTmp = bar.p1;
-      bar.p1 = bar.p2;
-      bar.p2 = pTmp;
-   }
-
-   chain.tx = -bar.p0.X;
-   chain.ty = -bar.p0.Y;
-   chain.phi = 0.0;
-   chain.shx = 0.0;
-   chain.scx = chain.scy = 1.0;
-   chain.bx0 = chain.bx1 = chain.by0 = chain.by1 = chain.sz = 1.0;
-
-   Matrix3ChainXfrm(m, &chain);
-   dmtxMatrix3VMultiply(&pTmp, &bar.p2, m);
-   chain.phi = -atan2(pTmp.Y, pTmp.X);
-
-   Matrix3ChainXfrm(m, &chain);
-   dmtxMatrix3VMultiply(&pTmp, &bar.p2, m);
-   chain.scx = 1.0/pTmp.X;
-   dmtxMatrix3VMultiply(&pTmp, &bar.p1, m);
-   assert(pTmp.Y > DMTX_ALMOST_ZERO);
-   chain.shx = -pTmp.X / pTmp.Y;
-   chain.scy = 1.0/pTmp.Y;
-
-   chain.bx0 = chain.bx1 = chain.by0 = chain.by1 = chain.sz = 1.0;
-
-   // Update transformations now that finders are set
-   matrixRegion->chain = chain;
-   MatrixRegionUpdateXfrms(matrixRegion);
-
-   // Now matrixRegion contains our best guess.  Next tighten it up.
-   if(decode && decode->buildMatrixCallback2)
-      (*(decode->buildMatrixCallback2))(&bar, matrixRegion);
-
-   return DMTX_TRUE;
-}
-
-/**
- * XXX
- *
- * @param
- * @return XXX
- */
-static int
-MatrixRegionAlign(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
-{
-   int success;
-
-   // Align top edge
-   success = MatrixRegionAlignEdge(matrixRegion, decode, DmtxEdgeTop);
-   if(!success)
-      return DMTX_FAILURE;
-
-   // Align bottom edge
-// success = MatrixRegionAlignSide(matrixRegion, decode);
-   success = MatrixRegionAlignEdge(matrixRegion, decode, DmtxEdgeRight);
-   if(!success)
-      return DMTX_FAILURE;
-
-   // Align right edge
-// MatrixRegionAlignSide();
-// if(!success)
-//    return DMTX_FAILURE;
+   dmtxMatrix3Multiply(region->fit2raw, m, mtxy);
 
    return DMTX_SUCCESS;
 }
@@ -1030,179 +547,259 @@ MatrixRegionAlign(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
  * @return XXX
  */
 static int
-MatrixRegionAlignEdge(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode, DmtxEdgeLoc edgeLoc)
+MatrixRegion2AlignFirstEdge(DmtxMatrixRegion *region, DmtxDecode *decode,
+      DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1)
 {
-   double t, slope;
-   double stepSize;
-   double bTmp0, bTmp1;
-   int gapCount = 0, gapLength = 0, maxGapLength = 0;
-   DmtxVector2 p0, px0, px1;
-   DmtxColor3 color;
-   DmtxMatrix3 s, sInv, sReg, sRegInv, m0, m1;
-   DmtxMatrix3 mPre0, mPre1, mPre0Inv, mPre1Inv;
-   DmtxVector2 prevHit, prevStep, highHit, highHitX;
+   int success;
+   DmtxRay2 rayFull;
+   DmtxVector2 p0, p1, pTmp;
 
-   // Function requires that operating edge be transformed to top of unit square
-   switch(edgeLoc) {
-      case DmtxEdgeTop:
-         dmtxMatrix3Identity(mPre0);
-         dmtxMatrix3Identity(mPre0Inv);
-         dmtxMatrix3Identity(mPre1);
-         dmtxMatrix3Identity(mPre1Inv);
+/*fprintf(stdout, "MatrixRegion2AlignFirstEdge()\n"); */
+   if(!ray0.isDefined && !ray1.isDefined) {
+      return DMTX_FAILURE;
+   }
+   else if(ray0.isDefined && ray1.isDefined) {
+      /* XXX test if reasonably colinear? */
+      dmtxPointAlongRay2(&p0, &ray0, ray0.tMax);
+      dmtxPointAlongRay2(&p1, &ray1, ray1.tMax);
+      rayFull.isDefined = 1;
+      rayFull.p = p1;
+      dmtxVector2Sub(&pTmp, &p0, &p1);
+      dmtxVector2Norm(&pTmp);
+      rayFull.v = pTmp;
+      rayFull.tMin = 0;
+      rayFull.tMax = dmtxDistanceAlongRay2(&rayFull, &p0);
+      /* XXX else choose longer of the two */
+   }
+   else {
+      rayFull = (ray0.isDefined) ? ray0 : ray1;
+   }
+
+   /* Reject edges shorter than 10 pixels */
+   if(rayFull.tMax < 10) {
+      return DMTX_FAILURE;
+   }
+
+   SetCornerLoc(region, DmtxCorner00, rayFull.p);
+   SetCornerLoc(region, DmtxCorner01, p0);
+
+   success = MatrixRegion2UpdateXfrms(region, &(decode->image));
+   if(!success)
+      return DMTX_FAILURE;
+
+   /* Top-right pane showing first edge fit */
+   CALLBACK_DECODE_FUNC1(buildMatrixCallback2, decode, region);
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ * XXX
+ *
+ * @param
+ * @return XXX
+ */
+static void
+SetCornerLoc(DmtxMatrixRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point)
+{
+   switch(cornerLoc) {
+      case DmtxCorner00:
+         region->corners.c00 = point;
          break;
-      case DmtxEdgeBottom:
-         dmtxMatrix3Translate(mPre0, 0.0, -1.0);
-         dmtxMatrix3Translate(mPre0Inv, 0.0, 1.0);
-         dmtxMatrix3Scale(mPre1, 1.0, -1.0);
-         dmtxMatrix3Scale(mPre1Inv, 1.0, -1.0);
+      case DmtxCorner10:
+         region->corners.c10 = point;
          break;
-      case DmtxEdgeLeft:
-         dmtxMatrix3Translate(mPre0, -1.0, 0.0);
-         dmtxMatrix3Translate(mPre0Inv, 1.0, 0.0);
-         dmtxMatrix3Rotate(mPre1, -M_PI_2);
-         dmtxMatrix3Rotate(mPre1Inv, M_PI_2);
+      case DmtxCorner11:
+         region->corners.c11 = point;
          break;
-      case DmtxEdgeRight:
-         dmtxMatrix3Rotate(mPre0, -M_PI_2);
-         dmtxMatrix3Rotate(mPre0Inv, M_PI_2);
-         dmtxMatrix3Scale(mPre1, 1.0, -1.0);
-         dmtxMatrix3Scale(mPre1Inv, 1.0, -1.0);
+      case DmtxCorner01:
+         region->corners.c01 = point;
          break;
    }
 
-   dmtxMatrix3LineSkewTop(m0, 1.0, 0.75, 1.0);
-   dmtxMatrix3Scale(m1, 1.25, 1.0);
-   dmtxMatrix3Multiply(s, m0, m1);
+   region->corners.known |= cornerLoc;
+}
 
-   dmtxMatrix3Multiply(sReg, matrixRegion->raw2fit, mPre0);
-   dmtxMatrix3MultiplyBy(sReg, mPre1);
-   dmtxMatrix3MultiplyBy(sReg, s);
+/**
+ *    T |
+ *      |
+ *      |
+ *      +-----
+ *    O      R
+ *
+ * @param
+ * @return XXX
+ */
+static int
+MatrixRegion2AlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
+{
+   int success;
+   DmtxVector2 p0[4], p1[4], pCorner[4];
+   int hitCount[4] = { 0, 0, 0, 0 };
+   int weakCount[4] = { 0, 0, 0, 0 };
+   DmtxMatrix3 xlate, flip, shear;
+   DmtxMatrix3 preFit2Raw, postRaw2Fit;
+   DmtxVector2 O, T, R;
+   DmtxVector2 fitO, fitT;
+   DmtxVector2 oldRawO, oldRawT;
+   int i, bestFit;
+   DmtxRay2 rayOT, rayNew;
+   double ratio, maxRatio;
 
-   dmtxMatrix3LineSkewTopInv(m0, 1.0, 0.75, 1.0);
-   dmtxMatrix3Scale(m1, 0.8, 1.0);
-   dmtxMatrix3Multiply(sInv, m1, m0);
+/*fprintf(stdout, "MatrixRegion2AlignSecondEdge()\n"); */
 
-   dmtxMatrix3Multiply(sRegInv, sInv, mPre1Inv);
-   dmtxMatrix3MultiplyBy(sRegInv, mPre0Inv);
-   dmtxMatrix3MultiplyBy(sRegInv, matrixRegion->fit2raw);
+   /* Scan top edge left-to-right (shear only)
+      .---
+      |
 
-   if(edgeLoc == DmtxEdgeTop && decode && decode->buildMatrixCallback3)
-      (*(decode->buildMatrixCallback3))(sRegInv);
-   else if(edgeLoc == DmtxEdgeRight && decode && decode->buildMatrixCallback4)
-      (*(decode->buildMatrixCallback4))(sRegInv);
+      If used, alter chain as follows:
+         O = intersection of known edges
+         T = farthest known point along scanned edge
+         R = old O
+         update tx, ty, rotate, scx, scy, shear based on this info
+   */
+   dmtxMatrix3Shear(postRaw2Fit, 0.0, 1.0);
+   dmtxMatrix3Shear(preFit2Raw, 0.0, -1.0);
 
-   // Determine step size (90% of rough pixel length)
-   px0.X = 0.0;
-   px0.Y = 0.0;
-   px1.X = 0.0;
-   px1.Y = 1.0;
-   dmtxMatrix3VMultiplyBy(&px0, sRegInv);
-   dmtxMatrix3VMultiplyBy(&px1, sRegInv);
-   dmtxVector2SubFrom(&px1, &px0);
-   stepSize = dmtxVector2Mag(&px1);
-   assert(stepSize > DMTX_ALMOST_ZERO);
-   stepSize = 0.9 * (1.0/stepSize);
+   hitCount[0] = MatrixRegion2AlignEdge(region, decode, postRaw2Fit,
+         preFit2Raw, &p0[0], &p1[0], &pCorner[0], &weakCount[0]);
 
-   p0.X = 0.0;
-   p0.Y = 1.0;
-   prevStep = prevHit = p0;
+   /* Scan top edge right-to-left (horizontal flip and shear)
+      ---.
+         |
 
-   highHit.X = highHit.Y = 1.0; // XXX add this for safety in case it's not found
+      If used, alter chain as follows:
+         O = intersection of known edges
+         T = old O
+         R = farthest known point along scanned edge
+         update tx, ty, rotate, scx, scy, shear based on this info
+   */
+   dmtxMatrix3Scale(flip, -1.0, 1.0);
+   dmtxMatrix3Shear(shear, 0.0, 1.0);
+   dmtxMatrix3Multiply(postRaw2Fit, flip, shear);
 
-   while(p0.X < 1.0 && p0.Y < 3.0) { // XXX cap rise at 3.0 to prevent infinite loops
-      dmtxMatrix3VMultiply(&px0, &p0, sRegInv);
-      dmtxColor3FromImage(&color, &(decode->image), px0.X, px0.Y);
-      t = dmtxDistanceAlongRay3(&(matrixRegion->gradient.ray), &color);
+   dmtxMatrix3Shear(shear, 0.0, -1.0);
+   dmtxMatrix3Scale(flip, -1.0, 1.0);
+   dmtxMatrix3Multiply(preFit2Raw, shear, flip);
 
-      if(decode && decode->xfrmPlotPointCallback)
-         (*(decode->xfrmPlotPointCallback))(px0, sReg, (edgeLoc == DmtxEdgeTop) ? 4 : 5, DMTX_DISPLAY_POINT);
+   hitCount[1] = MatrixRegion2AlignEdge(region, decode, postRaw2Fit,
+         preFit2Raw, &p0[1], &p1[1], &pCorner[1], &weakCount[1]);
 
-      // Bad notation whereby:
-      //    prevStep captures every little step
-      //    prevHit captures the most recent edge boundary detection
+   /* Scan bottom edge left-to-right (vertical flip and shear)
+      |
+      '---
 
-      // Need to move upward
-      if(t > matrixRegion->gradient.tMid) {
+      If used, alter chain as follows:
+         O = intersection of known edges
+         T = old T
+         R = farthest known point along scanned edge
+         update tx, ty, rotate, scx, scy, shear based on this info
+   */
+   dmtxMatrix3Scale(flip, 1.0, -1.0);
+   dmtxMatrix3Translate(xlate, 0.0, 1.0);
+   dmtxMatrix3Shear(shear, 0.0, 1.0);
+   dmtxMatrix3Multiply(postRaw2Fit, flip, xlate);
+   dmtxMatrix3MultiplyBy(postRaw2Fit, shear);
 
-         // Need to move up, and previous move was right
-         if(p0.X - prevStep.X > DMTX_ALMOST_ZERO) {
+   dmtxMatrix3Shear(shear, 0.0, -1.0);
+   dmtxMatrix3Translate(xlate, 0.0, -1.0);
+   dmtxMatrix3Scale(flip, 1.0, -1.0);
+   dmtxMatrix3Multiply(preFit2Raw, shear, xlate);
+   dmtxMatrix3MultiplyBy(preFit2Raw, flip);
 
-            if(gapLength > 2*maxGapLength) {
-               maxGapLength = gapLength;
-               gapCount = 1;
-            }
-            else if(gapLength > maxGapLength/2) {
-               gapCount++;
-            }
+   hitCount[2] = MatrixRegion2AlignEdge(region, decode, postRaw2Fit,
+         preFit2Raw, &p0[2], &p1[2], &pCorner[2], &weakCount[2]);
 
-            gapLength = 0; // no matter what, reset gapLength
-         }
+   /* Scan bottom edge right-to-left (flip flip shear)
+         |
+      ---'
 
-         prevStep = p0;
-         p0.Y += stepSize;
+      If used, alter chain as follows:
+         O = intersection of known edges
+         T = farthest known point along scanned edge
+         R = old T
+         update tx, ty, rotate, scx, scy, shear based on this info
+   */
+   dmtxMatrix3Scale(flip, -1.0, -1.0);
+   dmtxMatrix3Translate(xlate, 0.0, 1.0);
+   dmtxMatrix3Shear(shear, 0.0, 1.0);
+   dmtxMatrix3Multiply(postRaw2Fit, flip, xlate);
+   dmtxMatrix3MultiplyBy(postRaw2Fit, shear);
+
+   dmtxMatrix3Shear(shear, 0.0, -1.0);
+   dmtxMatrix3Translate(xlate, 0.0, -1.0);
+   dmtxMatrix3Scale(flip, -1.0, -1.0);
+   dmtxMatrix3Multiply(preFit2Raw, shear, xlate);
+   dmtxMatrix3MultiplyBy(preFit2Raw, flip);
+
+   hitCount[3] = MatrixRegion2AlignEdge(region, decode, postRaw2Fit,
+         preFit2Raw, &p0[3], &p1[3], &pCorner[3], &weakCount[3]);
+
+   /* choose orientation with highest hitCount/(weakCount + 1) ratio */
+   for(i = 0; i < 4; i++) {
+      ratio = (double)hitCount[i]/(weakCount[i] + 1);
+
+      if(i == 0 || ratio > maxRatio) {
+         bestFit = i;
+         maxRatio = ratio;
       }
-      // Need to advance to the right
-      else {
-         // Need to move right, and previous step was up
-         if(fabs(p0.Y - prevStep.Y) > DMTX_ALMOST_ZERO) {
-
-            // If it has been a while since previous hit
-            if(p0.X - prevHit.X >= 3 * stepSize) {
-               highHit = p0;
-               highHitX = px0;
-            }
-            // Recent had a hit
-            else {
-               prevHit = p0;
-            }
-         }
-         // Need to move right, and previous step was right
-         else {
-            gapLength++;
-         }
-
-         prevStep = p0;
-         p0.X += stepSize;
-      }
    }
 
-   matrixRegion->gapCount = gapCount;
-   matrixRegion->highHit = highHitX; // Image coordinates
+   if(hitCount[bestFit] < 5)
+      return DMTX_FAILURE;
 
-   dmtxMatrix3VMultiplyBy(&prevHit, sInv);
-   dmtxMatrix3VMultiplyBy(&highHit, sInv);
+   fitT.X = 0.0;
+   fitT.Y = 1.0;
+   dmtxMatrix3VMultiply(&oldRawT, &fitT, region->fit2raw);
 
-   slope = (highHit.Y - prevHit.Y)/(highHit.X - prevHit.X);
+   fitO.X = 0.0;
+   fitO.Y = 0.0;
+   dmtxMatrix3VMultiply(&oldRawO, &fitO, region->fit2raw);
 
-   // XXX comment this well
-   bTmp0 = (slope * -prevHit.X) + prevHit.Y;
-   bTmp1 = (slope * (1.0 - prevHit.X)) + prevHit.Y;
-   if(bTmp0 < 0 || bTmp1 < 0) {
-      return DMTX_FALSE;
+   if(bestFit == 0 || bestFit == 1)
+      oldRawT = pCorner[bestFit];
+   else
+      oldRawO = pCorner[bestFit];
+
+   rayOT.p = oldRawO;
+   dmtxVector2Sub(&rayOT.v, &oldRawT, &oldRawO);
+   dmtxVector2Norm(&rayOT.v);
+
+   rayNew.p = p0[bestFit];
+   dmtxVector2Sub(&rayNew.v, &p1[bestFit], &p0[bestFit]);
+   dmtxVector2Norm(&rayNew.v);
+
+   /* New origin is always origin of both known edges */
+   dmtxRay2Intersect(&O, &rayOT, &rayNew);
+
+   if(bestFit == 0) {
+      T = p1[bestFit];
+      R = oldRawO;
+   }
+   else if(bestFit == 1) {
+      T = oldRawO;
+      R = p1[bestFit];
+   }
+   else if(bestFit == 2) {
+      T = oldRawT;
+      R = p1[bestFit];
+   }
+   else {
+      assert(bestFit == 3);
+      T = p1[bestFit];
+      R = oldRawT;
    }
 
-   switch(edgeLoc) {
-      case DmtxEdgeTop:
-         matrixRegion->chain.by0 = bTmp0;
-         matrixRegion->chain.by1 = bTmp1;
-         break;
-      case DmtxEdgeBottom:
-         break;
-      case DmtxEdgeLeft:
-         break;
-      case DmtxEdgeRight:
-         matrixRegion->chain.bx0 = bTmp0;
-         matrixRegion->chain.bx1 = bTmp1;
-         break;
-   }
+   SetCornerLoc(region, DmtxCorner00, O);
+   SetCornerLoc(region, DmtxCorner01, T);
+   SetCornerLoc(region, DmtxCorner10, R);
 
-   MatrixRegionUpdateXfrms(matrixRegion);
+   success = MatrixRegion2UpdateXfrms(region, &(decode->image));
 
-   if(decode && decode->xfrmPlotPointCallback) {
-      (*(decode->xfrmPlotPointCallback))(highHitX, sReg, 4, DMTX_DISPLAY_SQUARE);
-   }
+   /* Skewed barcode in the bottom middle pane */
+/* CALLBACK_DECODE_FUNC1(buildMatrixCallback4, decode, region->fit2raw); */
 
-   return DMTX_TRUE;
+   return success;
 }
 
 /**
@@ -1212,26 +809,32 @@ MatrixRegionAlignEdge(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode, DmtxEd
  * @return XXX
  */
 static int
-MatrixRegionEstimateSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
+MatrixRegion2AlignRightEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
 {
-   int matrixSize;
-   DmtxVector2 p0;
+   int success;
+   DmtxMatrix3 rotate, flip, skew, scale;
+   DmtxMatrix3 preFit2Raw, postRaw2Fit;
 
-   dmtxMatrix3VMultiply(&p0, &(matrixRegion->highHit), matrixRegion->raw2fit);
+   dmtxMatrix3Rotate(rotate, -M_PI_2);
+   dmtxMatrix3Scale(flip, 1.0, -1.0);
+   dmtxMatrix3LineSkewTop(skew, 1.0, 0.5, 1.0);
+   dmtxMatrix3Scale(scale, 1.25, 1.0);
 
-   matrixSize = 2 * (int)((matrixRegion->gapCount * 1)/p0.X + 0.5);
+   dmtxMatrix3Multiply(postRaw2Fit, rotate, flip);
+   dmtxMatrix3MultiplyBy(postRaw2Fit, skew);
+   dmtxMatrix3MultiplyBy(postRaw2Fit, scale);
 
-   // Round odd size estimates to next even number
-   if(matrixSize & 0x01)
-      matrixSize++;
+   dmtxMatrix3Scale(scale, 0.8, 1.0);
+   dmtxMatrix3LineSkewTopInv(skew, 1.0, 0.5, 1.0);
+   dmtxMatrix3Scale(flip, 1.0, -1.0);
+   dmtxMatrix3Rotate(rotate, M_PI_2);
+   dmtxMatrix3Multiply(preFit2Raw, scale, skew);
+   dmtxMatrix3MultiplyBy(preFit2Raw, flip);
+   dmtxMatrix3MultiplyBy(preFit2Raw, rotate);
 
-   // Clamp size estimate to acceptable range
-   if(matrixSize < 8)
-      matrixSize = 8;
-   else if(matrixSize > 144)
-      matrixSize = 144;
+   success = MatrixRegion2AlignCalibEdge(region, decode, DmtxEdgeRight, preFit2Raw, postRaw2Fit);
 
-   return matrixSize;
+   return success;
 }
 
 /**
@@ -1241,105 +844,455 @@ MatrixRegionEstimateSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
  * @return XXX
  */
 static int
-MatrixRegionFindSize(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
+MatrixRegion2AlignTopEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
 {
+   int success;
+   DmtxMatrix3 preFit2Raw, postRaw2Fit;
+
+   dmtxMatrix3LineSkewTop(postRaw2Fit, 1.0, 0.5, 1.0);
+   dmtxMatrix3LineSkewTopInv(preFit2Raw, 1.0, 0.5, 1.0);
+
+   success = MatrixRegion2AlignCalibEdge(region, decode, DmtxEdgeTop, preFit2Raw, postRaw2Fit);
+
+   return success;
+}
+
+/**
+ * XXX
+ *
+ * @param
+ * @return XXX
+ */
+static int
+MatrixRegion2AlignCalibEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit)
+{
+   DmtxVector2 p0, p1, pCorner;
+   DmtxVector2 cFit, cBefore, cAfter, cTmp;
+   int success;
+   double slope;
+   int hitCount;
+   int weakCount;
+
+   assert(edgeLoc == DmtxEdgeTop || edgeLoc == DmtxEdgeRight);
+
+   hitCount = MatrixRegion2AlignEdge(region, decode, postRaw2Fit, preFit2Raw, &p0, &p1, &pCorner, &weakCount);
+   if(hitCount < 2)
+      return DMTX_FAILURE;
+
+   /* Update pCorner first, tracking value before and after update */
+   if(edgeLoc == DmtxEdgeRight) {
+      cFit.X = 1.0;
+      cFit.Y = 0.0;
+      dmtxMatrix3VMultiply(&cBefore, &cFit, region->fit2raw);
+/* XXX we are probably doing a few extra ops here */
+      SetCornerLoc(region, DmtxCorner10, pCorner);
+      success = MatrixRegion2UpdateXfrms(region, &(decode->image));
+      if(!success)
+         return DMTX_FAILURE;
+
+      dmtxMatrix3VMultiply(&cAfter, &cFit, region->fit2raw);
+   }
+   else {
+      cFit.X = 0.0;
+      cFit.Y = 1.0;
+      dmtxMatrix3VMultiply(&cBefore, &cFit, region->fit2raw);
+
+      SetCornerLoc(region, DmtxCorner01, pCorner);
+      success = MatrixRegion2UpdateXfrms(region, &(decode->image));
+      if(!success)
+         return DMTX_FAILURE;
+
+      dmtxMatrix3VMultiply(&cBefore, &cFit, region->fit2raw);
+   }
+
+   /* If pCorner's change was significant then it probably affected edge
+      fit quality.  Since pCorner is now correct, a second edge alignment
+      should give accurate results. */
+   if(dmtxVector2Mag(dmtxVector2Sub(&cTmp, &cAfter, &cBefore)) > 20.0) {
+      hitCount = MatrixRegion2AlignEdge(region, decode, postRaw2Fit, preFit2Raw, &p0, &p1, &pCorner, &weakCount);
+      if(hitCount < 2)
+         return DMTX_FAILURE;
+   }
+
+   /* With reliable edge fit results now update remaining corners */
+   if(edgeLoc == DmtxEdgeRight) {
+      dmtxMatrix3VMultiplyBy(&p0, region->raw2fit);
+      dmtxMatrix3VMultiplyBy(&p1, region->raw2fit);
+
+      assert(fabs(p1.Y - p0.Y) > DMTX_ALMOST_ZERO);
+      slope = (p1.X - p0.X) / (p1.Y - p0.Y);
+
+      p0.X = p0.X - slope * p0.Y;
+      p0.Y = 0.0;
+      p1.X = p0.X + slope;
+      p1.Y = 1.0;
+
+      dmtxMatrix3VMultiplyBy(&p0, region->fit2raw);
+      dmtxMatrix3VMultiplyBy(&p1, region->fit2raw);
+
+      SetCornerLoc(region, DmtxCorner10, p0);
+      SetCornerLoc(region, DmtxCorner11, p1);
+   }
+   else {
+      dmtxMatrix3VMultiplyBy(&p0, region->raw2fit);
+      dmtxMatrix3VMultiplyBy(&p1, region->raw2fit);
+
+      assert(fabs(p1.X - p0.X) > DMTX_ALMOST_ZERO);
+      slope = (p1.Y - p0.Y) / (p1.X - p0.X);
+
+      p0.Y = p0.Y - slope * p0.X;
+      p0.X = 0.0;
+      p1.Y = p0.Y + slope;
+      p1.X = 1.0;
+
+      dmtxMatrix3VMultiplyBy(&p0, region->fit2raw);
+      dmtxMatrix3VMultiplyBy(&p1, region->fit2raw);
+
+      SetCornerLoc(region, DmtxCorner01, p0);
+      SetCornerLoc(region, DmtxCorner11, p1);
+   }
+   success = MatrixRegion2UpdateXfrms(region, &(decode->image));
+   if(!success)
+      return DMTX_FAILURE;
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ * XXX returns 3 points in raw coordinates
+ *
+ * @param
+ * @return XXX
+ */
+static int
+MatrixRegion2AlignEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0, DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount)
+{
+   int hitCount, edgeHit, prevEdgeHit;
+   DmtxVector2 c00, c10, c01;
+   DmtxMatrix3 sRaw2Fit, sFit2Raw;
+   DmtxVector2 forward, lateral;
+   DmtxVector2 pFitExact, pFitProgress, pRawProgress, pRawExact, pLast;
+   double interceptTest, intercept[8];
+   DmtxVector2 adjust[8];
+   double slope[8];
    int i;
-   int status = DMTX_FAILURE;
-   int sizeIdx;
-   int sizeEstimate;
-   int adjust[] = { 0, -2, +2, -4, +4, -6, +6 };
-   int adjustAttempts = 7;
-   int rowColAttempts[24];
+   int stepsSinceStarAdjust;
+   DmtxVector2 pTmp;
 
-   sizeEstimate = MatrixRegionEstimateSize(matrixRegion, decode);
+/*fprintf(stdout, "MatrixRegion2AlignEdge()\n"); */
+   dmtxMatrix3Multiply(sRaw2Fit, region->raw2fit, postRaw2Fit);
+   dmtxMatrix3Multiply(sFit2Raw, preFit2Raw, region->fit2raw);
 
-   memset(rowColAttempts, 0x00, sizeof(rowColAttempts));
-   assert(sizeof(symbolSize) / sizeof(int) == 24);
+   /* Draw skewed image in bottom left pane */
+/* CALLBACK_DECODE_FUNC1(buildMatrixCallback3, decode, sFit2Raw); */
 
-   for(i = 0; i < adjustAttempts; i++) {
-      matrixRegion->dataRows = matrixRegion->dataCols = sizeEstimate - 2 + adjust[i];
+   /* Set starting point */
+   pFitProgress.X = -0.003;
+   pFitProgress.Y = 0.9;
+   *pCorner = pFitExact = pFitProgress;
+   dmtxMatrix3VMultiply(&pRawProgress, &pFitProgress, sFit2Raw);
 
-      if(matrixRegion->dataRows < 8 || matrixRegion->dataRows > 132)
-         continue;
-
-      status = PatternReadNonDataModules(matrixRegion, decode);
-      if(status == DMTX_SUCCESS)
-         break;
+   /* Initialize star lines */
+   for(i = 0; i < 8; i++) {
+      slope[i] = tan((M_PI_2/8.0) * i);
+      intercept[i] = 0.9;
+      adjust[i].X = 0.0;
+      adjust[i].Y = 0.9;
    }
 
-   // If we try all adjustments and still can't get a good read then just give up
-   if(status == DMTX_FAILURE)
-      return status; // XXX bad read
+   hitCount = 0;
+   stepsSinceStarAdjust = 0;
+   *weakCount = 0;
 
-   // Determine how many data words and error words will be stored in this size of grid
-   // First loop determines matrix size and data/error counts
-   for(sizeIdx = 0; sizeIdx < 9; sizeIdx++) { // XXX this will not work for structured append arrays
-      if(symbolSize[sizeIdx] == matrixRegion->dataRows + 2) {
-         matrixRegion->sizeIdx = sizeIdx;
+   prevEdgeHit = edgeHit = DMTX_EDGE_STEP_EXACT;
+
+   for(;;) {
+      /* XXX technically we don't need to recalculate lateral & forward once we have left the finder bar */
+      dmtxMatrix3VMultiply(&pTmp, &pRawProgress, sRaw2Fit);
+
+      /* XXX still not happy with this */
+      c00 = pTmp;
+      c10.X = c00.X + 0.1;
+      c10.Y = c00.Y;
+      c01.X = c00.X - 0.0087155743; /* sin(5deg) */
+      c01.Y = c00.Y + 0.0996194698; /* cos(5deg) */
+
+      dmtxMatrix3VMultiplyBy(&c00, sFit2Raw);
+      dmtxMatrix3VMultiplyBy(&c10, sFit2Raw);
+      dmtxMatrix3VMultiplyBy(&c01, sFit2Raw);
+
+      /* Calculate forward and lateral directions in raw coordinates */
+      dmtxVector2Sub(&forward, &c10, &c00);
+      if(dmtxVector2Mag(&forward) < DMTX_ALMOST_ZERO) /* XXX modify dmtxVector2Norm() to return failure without assert */
+         return 0;
+      dmtxVector2Norm(&forward);
+
+      dmtxVector2Sub(&lateral, &c01, &c00);
+      if(dmtxVector2Mag(&lateral) < DMTX_ALMOST_ZERO)
+         return 0;
+      dmtxVector2Norm(&lateral);
+
+      prevEdgeHit = edgeHit;
+      edgeHit = StepAlongEdge(&(decode->image), region, &pRawProgress, &pRawExact, forward, lateral, decode);
+      dmtxMatrix3VMultiply(&pFitProgress, &pRawProgress, sRaw2Fit);
+
+      if(edgeHit == DMTX_EDGE_STEP_EXACT) {
+/**
+         if(prevEdgeHit == DMTX_EDGE_STEP_TOO_WEAK) <-- XXX REVIST LATER ... doesn't work
+            hitCount++;
+*/
+         hitCount++;
+
+         dmtxMatrix3VMultiply(&pFitExact, &pRawExact, sRaw2Fit);
+
+         /* Adjust star lines upward (non-vertical) */
+         for(i = 0; i < 8; i++) {
+            interceptTest = pFitExact.Y - slope[i] * pFitExact.X;
+            if(interceptTest > intercept[i]) {
+               intercept[i] = interceptTest;
+               adjust[i] = pFitExact;
+               stepsSinceStarAdjust = 0;
+
+               /* XXX still "turning corner" but not as bad anymore */
+               if(i == 7) {
+                  *pCorner = pFitExact;
+/*                CALLBACK_DECODE_FUNC4(plotPointCallback, decode, pRawExact, 1, 1, DMTX_DISPLAY_POINT); */
+               }
+
+               if(i == 0) {
+                  pLast = pFitExact;
+                  CALLBACK_DECODE_FUNC4(plotPointCallback, decode, pRawExact, 1, 1, DMTX_DISPLAY_POINT);
+               }
+            }
+         }
+
+         /* Draw edge hits along skewed edge in bottom left pane */
+         CALLBACK_DECODE_FUNC4(xfrmPlotPointCallback, decode, pFitExact, NULL, 4, DMTX_DISPLAY_POINT);
+      }
+      else if(edgeHit == DMTX_EDGE_STEP_TOO_WEAK) {
+         stepsSinceStarAdjust++;
+         if(prevEdgeHit == DMTX_EDGE_STEP_TOO_WEAK)
+            (*weakCount)++;
+      }
+
+      /* XXX also change stepsSinceNear and use this in the break condition */
+      if(hitCount >= 20 && stepsSinceStarAdjust > hitCount)
+         break;
+
+      if(pFitProgress.X > 1.0) {
+/*       CALLBACK_DECODE_FUNC4(plotPointCallback, decode, pRawProgress, 1, 1, DMTX_DISPLAY_SQUARE); */
          break;
       }
+
+      if(pRawProgress.X < 1 || pRawProgress.X > decode->image.width - 1 ||
+         pRawProgress.Y < 1 || pRawProgress.Y > decode->image.height - 1)
+         break;
    }
 
-   matrixRegion->arraySize = sizeof(unsigned char) * matrixRegion->dataRows * matrixRegion->dataCols;
-   matrixRegion->array = (unsigned char *)malloc(matrixRegion->arraySize);
-   memset(matrixRegion->array, 0x00, matrixRegion->arraySize);
-   if(matrixRegion->array == NULL) {
-      perror("Malloc failed");
-      exit(2); // XXX find better error handling here
+   /* Find lowest available horizontal starline adjustment */
+   for(i = 0; i < 8; i++) {
+      if(adjust[i].X < 0.1)
+         break;
+   }
+   if(i == -1)
+      return 0;
+
+   *p0 = adjust[i];
+
+   /* Find highest available non-horizontal starline adjustment */
+   for(i = 7; i > 1; i--) {
+      if(adjust[i].X > 0.8)
+         break;
+   }
+   if(i == -1)
+      return 0;
+
+   *p1 = adjust[i];
+
+   if(fabs(p0->X - p1->X) < 0.1 || p0->Y < 0.2 || p1->Y < 0.2) {
+      return 0;
    }
 
-   matrixRegion->codeSize = sizeof(unsigned char) * dataWordLength[sizeIdx] + errorWordLength[sizeIdx];
-   matrixRegion->code = (unsigned char *)malloc(matrixRegion->codeSize);
-   memset(matrixRegion->code, 0x00, matrixRegion->codeSize);
-   if(matrixRegion->code == NULL) {
-      perror("Malloc failed");
-      exit(2); // XXX find better error handling here
-   }
+   dmtxMatrix3VMultiplyBy(pCorner, sFit2Raw);
+   dmtxMatrix3VMultiplyBy(p0, sFit2Raw);
+   dmtxMatrix3VMultiplyBy(p1, sFit2Raw);
 
-   // XXX not sure if this is the right place or even the right approach.
-   // Trying to allocate memory for the decoded data stream and will
-   // initially assume that decoded data will not be larger than 2x encoded data
-   matrixRegion->outputSize = sizeof(unsigned char) * matrixRegion->codeSize * 10;
-   matrixRegion->output = (unsigned char *)malloc(matrixRegion->outputSize);
-   memset(matrixRegion->output, 0x00, matrixRegion->outputSize);
-   if(matrixRegion->output == NULL) {
-      perror("Malloc failed");
-      exit(2); // XXX find better error handling here
-   }
-
-   return DMTX_SUCCESS; // XXX good read
+   return hitCount;
 }
 
 /**
- * XXX
+ * XXX receives and returns 2 points in non-skewed raw pixel coordinates
+ *
+ * @param
+ * @return XXX
+ */
+static int
+StepAlongEdge(DmtxImage *image, DmtxMatrixRegion *region, DmtxVector2 *pProgress, DmtxVector2 *pExact, DmtxVector2 forward, DmtxVector2 lateral, DmtxDecode *decode)
+{
+   int x, y;
+   int xToward, yToward;
+   double frac, accelPrev, accelNext;
+   DmtxCompassEdge compass, compassPrev, compassNext;
+   DmtxVector2 vTmp;
+
+/*fprintf(stdout, "StepAlongEdge()\n"); */
+   x = (int)(pProgress->X + 0.5);
+   y = (int)(pProgress->Y + 0.5);
+
+   *pExact = *pProgress;
+   compass = GetCompassEdge(image, x, y, DMTX_ALL_COMPASS_DIRS);
+
+   /* If pixel shows a weak edge in any direction then advance forward */
+   if(compass.magnitude < 60) {
+      dmtxVector2AddTo(pProgress, &forward);
+/*    CALLBACK_DECODE_FUNC4(plotPointCallback, decode, *pProgress, 1, 1, DMTX_DISPLAY_POINT); */
+      return DMTX_EDGE_STEP_TOO_WEAK;
+   }
+
+   /* forward is toward edge */
+   /* lateral is away from edge */
+
+   /* Determine orthagonal step directions */
+   if(compass.scanDir == DmtxCompassDir0) {
+      yToward = 0;
+
+      if(fabs(forward.X) > fabs(lateral.X))
+         xToward = (forward.X > 0) ? 1 : -1;
+      else
+         xToward = (lateral.X > 0) ? -1 : 1;
+   }
+   else {
+      xToward = 0;
+
+      if(fabs(forward.Y) > fabs(lateral.Y))
+         yToward = (forward.Y > 0) ? 1 : -1;
+      else
+         yToward = (lateral.Y > 0) ? -1 : 1;
+   }
+
+   /* Pixel shows edge in perpendicular direction */
+   compassPrev = GetCompassEdge(image, x-xToward, y-yToward, compass.edgeDir);
+   compassNext = GetCompassEdge(image, x+xToward, y+yToward, compass.edgeDir);
+
+   accelPrev = compass.magnitude - compassPrev.magnitude;
+   accelNext = compassNext.magnitude - compass.magnitude;
+
+   /* If we found a strong edge then calculate the zero crossing */
+   /* XXX explore expanding this test to allow a little more fudge (without screwing up edge placement later) */
+   if(accelPrev * accelNext < DMTX_ALMOST_ZERO) {
+
+      dmtxVector2AddTo(pProgress, &lateral);
+
+      frac = (fabs(accelNext - accelPrev) > DMTX_ALMOST_ZERO) ?
+            (accelPrev / (accelPrev - accelNext)) - 0.5 : 0.0;
+
+      vTmp.X = xToward;
+      vTmp.Y = yToward;
+      dmtxVector2ScaleBy(&vTmp, frac);
+      dmtxVector2AddTo(pExact, &vTmp);
+
+/*    CALLBACK_DECODE_FUNC4(plotPointCallback, decode, *pExact, 2, 1, DMTX_DISPLAY_POINT); */
+      return DMTX_EDGE_STEP_EXACT;
+   }
+
+   /* Passed edge */
+   if(compassPrev.magnitude > compass.magnitude) {
+/*    CALLBACK_DECODE_FUNC4(plotPointCallback, decode, *pProgress, 3, 1, DMTX_DISPLAY_POINT); */
+      dmtxVector2AddTo(pProgress, &lateral);
+      return DMTX_EDGE_STEP_TOO_FAR;
+   }
+
+   /* Approaching edge but not there yet */
+/* CALLBACK_DECODE_FUNC4(plotPointCallback, decode, *pProgress, 4, 1, DMTX_DISPLAY_POINT); */
+   dmtxVector2AddTo(pProgress, &forward);
+   return DMTX_EDGE_STEP_NOT_QUITE;
+}
+
+/**
+ * Determine pattern size by testing calibration bar for presence of
+ * alternating foreground and background colored modules.  All barcode
+ * regions are treated as one large pattern during this step, even if using
+ * the structure append format, since we are only looking at the outside
+ * perimeter.
+ *
+ * @param
+ * @return XXX
+ */
+static int
+AllocateStorage(DmtxMatrixRegion *region, DmtxDecode *decode)
+{
+   region->symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
+   region->symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
+   region->mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, region->sizeIdx);
+   region->mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, region->sizeIdx);
+
+   region->arraySize = sizeof(unsigned char) * region->mappingRows * region->mappingCols;
+
+   region->array = (unsigned char *)malloc(region->arraySize);
+   if(region->array == NULL) {
+      perror("Malloc failed");
+      exit(2); /* XXX find better error handling here */
+   }
+   memset(region->array, 0x00, region->arraySize);
+
+   region->codeSize = sizeof(unsigned char) *
+         dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, region->sizeIdx) +
+         dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, region->sizeIdx);
+
+   region->code = (unsigned char *)malloc(region->codeSize);
+   if(region->code == NULL) {
+      perror("Malloc failed");
+      exit(2); /* XXX find better error handling here */
+   }
+   memset(region->code, 0x00, region->codeSize);
+
+   /* XXX not sure if this is the right place or even the right approach.
+      Trying to allocate memory for the decoded data stream and will
+      initially assume that decoded data will not be larger than 2x encoded data */
+   region->outputSize = sizeof(unsigned char) * region->codeSize * 10;
+   region->output = (unsigned char *)malloc(region->outputSize);
+   if(region->output == NULL) {
+      perror("Malloc failed");
+      exit(2); /* XXX find better error handling here */
+   }
+   memset(region->output, 0x00, region->outputSize);
+
+   return DMTX_SUCCESS; /* XXX good read */
+}
+
+/**
+ * XXX new experimental version that operates on sizeIdx instead of region
  *
  * @param
  * @return XXX
  */
 static DmtxColor3
-ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *decode)
+ReadModuleColor(DmtxDecode *decode, int symbolRow, int symbolCol, int sizeIdx, DmtxMatrix3 fit2raw)
 {
    int i;
-   double sampleX[] = { 1.5, 1.3, 1.5, 1.7, 1.5 };
-   double sampleY[] = { 1.5, 1.5, 1.3, 1.5, 1.7 };
+   int symbolRows, symbolCols;
+   double sampleX[] = { 0.5, 0.3, 0.5, 0.7, 0.5 };
+   double sampleY[] = { 0.5, 0.5, 0.3, 0.5, 0.7 };
    DmtxVector2 p, p0;
    DmtxColor3 cPoint, cAverage;
 
    cAverage.R = cAverage.G = cAverage.B = 0.0;
 
+   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
+   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
+
    for(i = 0; i < 5; i++) {
 
-      // The "+ 2" adjustment allows for the Finder and Calibration bars
-      p.X = (1.0/(matrixRegion->dataCols + 2)) * (col + sampleX[i]);
-      p.Y = (1.0/(matrixRegion->dataRows + 2)) * (row + sampleY[i]);
+      p.X = (1.0/symbolCols) * (symbolCol + sampleX[i]);
+      p.Y = (1.0/symbolRows) * (symbolRow + sampleY[i]);
 
-      dmtxMatrix3VMultiply(&p0, &p, matrixRegion->fit2raw);
-      dmtxColor3FromImage(&cPoint, &(decode->image), p0.X, p0.Y);
+      dmtxMatrix3VMultiply(&p0, &p, fit2raw);
+      dmtxColor3FromImage2(&cPoint, &(decode->image), p0);
+/*    dmtxColor3FromImage(&cPoint, &(decode->image), p0.X, p0.Y); */
 
       dmtxColor3AddTo(&cAverage, &cPoint);
 
-      if(decode && decode->plotPointCallback)
-         (*(decode->plotPointCallback))(p0, 1, 1, DMTX_DISPLAY_POINT);
+/*    CALLBACK_DECODE_FUNC4(plotPointCallback, decode, p0, 1, 1, DMTX_DISPLAY_POINT); */
    }
    dmtxColor3ScaleBy(&cAverage, 0.2);
 
@@ -1353,65 +1306,117 @@ ReadModuleColor(DmtxMatrixRegion *matrixRegion, int row, int col, DmtxDecode *de
  * @return XXX
  */
 static int
-PatternReadNonDataModules(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
+MatrixRegion2FindSize(DmtxMatrixRegion *region, DmtxDecode *decode)
 {
-   int row, col;
-   int errors = 0;
-   float t, tRatio;
-   DmtxColor3 color;
+   int sizeIdx;
+   int errors[30] = { 0 };
+   int minErrorsSizeIdx;
+   int row, col, symbolRows, symbolCols;
+   double tOff, tOn, jumpThreshold;
+   DmtxColor3 colorOn, colorOff;
+   DmtxColor3 colorOnAvg, colorOffAvg;
+   DmtxColor3 black = { 0.0, 0.0, 0.0 };
+   DmtxGradient gradient, testGradient;
+   int sizeIdxAttempts[] = { 23, 22, 21, 20, 19, 18, 17, 16, 15, 14,
+                             13, 29, 12, 11, 10, 28, 27,  9, 25,  8,
+                             26,  7,  6,  5,  4, 24,  3,  2,  1,  0 };
+   int *ptr;
 
-   for(row = matrixRegion->dataRows; row >= -1; row--) {
-      for(col = matrixRegion->dataCols; col >= -1; col--) {
+   /* First try all sizes to determine which sizeIdx with best contrast */
+   ptr = sizeIdxAttempts;
+   gradient.tMin = gradient.tMid = gradient.tMax = 0;
+   do {
+      sizeIdx = *ptr;
+      symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
+      symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
 
-         if(row > -1 && row < matrixRegion->dataRows) {
-            if(col > -1 && col < matrixRegion->dataCols) {
-               continue;
-            }
-         }
+      colorOnAvg = colorOffAvg = black;
 
-         color = ReadModuleColor(matrixRegion, row, col, decode);
-//       color = ReadModuleColor(matrixRegion, matrixRegion->dataRows - row - 1, col, decode);
-         t = dmtxDistanceAlongRay3(&(matrixRegion->gradient.ray), &color);
-         tRatio = (t - matrixRegion->gradient.tMin)/(matrixRegion->gradient.tMax - matrixRegion->gradient.tMin);
-
-//       if(decode && decode->plotPointCallback)
-//          (*(decode->plotPointCallback))(p0, 5, 1, DMTX_DISPLAY_POINT);
-
-         if(decode && decode->plotModuleCallback)
-            (*(decode->plotModuleCallback))(decode, matrixRegion, row, col, color);
-
-         // Check that finder and calibration bar modules have correct colors
-         if(col == -1 || row == -1) {
-            if(tRatio < 0.5) {
-//             fprintf(stdout, "Error: %g < 0.5\n", tRatio);
-//             if(decode && decode->plotPointCallback)
-//                (*(decode->plotPointCallback))(p0, 1, 1, DMTX_DISPLAY_SQUARE);
-               errors++;
-            }
-         }
-         else if(row == matrixRegion->dataRows || col == matrixRegion->dataCols) {
-            if((row + col) % 2) {
-               if(tRatio < 0.5) {
-//                fprintf(stdout, "Error: %g < 0.5\n", tRatio);
-//                if(decode && decode->plotPointCallback)
-//                   (*(decode->plotPointCallback))(p0, 1, 1, DMTX_DISPLAY_SQUARE);
-                  errors++;
-               }
-            }
-            else {
-               if(tRatio > 0.5) {
-//                fprintf(stdout, "Error: %g > 0.5\n", tRatio);
-//                if(decode && decode->plotPointCallback)
-//                   (*(decode->plotPointCallback))(p0, 1, 1, DMTX_DISPLAY_SQUARE);
-                  errors++;
-               }
-            }
-         }
-
-         if(errors > 4)
-            return DMTX_FAILURE; // Too many errors detected
+      for(row = 0, col = 0; col < symbolCols; col++) {
+         colorOn = ReadModuleColor(decode, row, col, sizeIdx, region->fit2raw);
+         colorOff = ReadModuleColor(decode, row-1, col, sizeIdx, region->fit2raw);
+         dmtxColor3AddTo(&colorOnAvg, &colorOn);
+         dmtxColor3AddTo(&colorOffAvg, &colorOff);
       }
-   }
+
+      for(row = 0, col = 0; row < symbolRows; row++) {
+         colorOn = ReadModuleColor(decode, row, col, sizeIdx, region->fit2raw);
+         colorOff = ReadModuleColor(decode, row, col-1, sizeIdx, region->fit2raw);
+         dmtxColor3AddTo(&colorOnAvg, &colorOn);
+         dmtxColor3AddTo(&colorOffAvg, &colorOff);
+      }
+
+      dmtxColor3ScaleBy(&colorOnAvg, 1.0/(symbolRows + symbolCols));
+      dmtxColor3ScaleBy(&colorOffAvg, 1.0/(symbolRows + symbolCols));
+
+      testGradient.ray.p = colorOffAvg;
+      dmtxColor3Sub(&testGradient.ray.c, &colorOnAvg, &colorOffAvg);
+      dmtxColor3Norm(&testGradient.ray.c);
+      testGradient.tMin = 0;
+      testGradient.tMax = dmtxDistanceAlongRay3(&testGradient.ray, &colorOnAvg);
+      testGradient.tMid = (testGradient.tMin + testGradient.tMax) / 2.0;
+
+      if(testGradient.tMax > gradient.tMax)
+         gradient = testGradient;
+   } while(*(ptr++) != 0);
+
+   jumpThreshold = 0.4 * (gradient.tMax - gradient.tMin);
+   if(jumpThreshold < 20)
+      return DMTX_FAILURE;
+
+   /* Start with largest possible pattern size and work downward.  If done
+      in other direction then false positive is possible. */
+
+   ptr = sizeIdxAttempts;
+   minErrorsSizeIdx = *ptr;
+   do {
+      sizeIdx = *ptr;
+      symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
+      symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
+
+      /* Test each pair of ON/OFF modules in the calibration bars */
+
+      /* Top calibration row */
+      row = symbolRows - 1;
+      for(col = 0; col < symbolCols; col += 2) {
+         colorOff = ReadModuleColor(decode, row, col + 1, sizeIdx, region->fit2raw);
+         tOff = dmtxDistanceAlongRay3(&gradient.ray, &colorOff);
+         colorOn = ReadModuleColor(decode, row, col, sizeIdx, region->fit2raw);
+         tOn = dmtxDistanceAlongRay3(&gradient.ray, &colorOn);
+
+         if(tOn - tOff < jumpThreshold)
+            errors[sizeIdx]++;
+
+         if(errors[sizeIdx] > errors[minErrorsSizeIdx])
+            break;
+      }
+
+      /* Right calibration column */
+      col = symbolCols - 1;
+      for(row = 0; row < symbolRows; row += 2) {
+         colorOff = ReadModuleColor(decode, row + 1, col, sizeIdx, region->fit2raw);
+         tOff = dmtxDistanceAlongRay3(&gradient.ray, &colorOff);
+         colorOn = ReadModuleColor(decode, row, col, sizeIdx, region->fit2raw);
+         tOn = dmtxDistanceAlongRay3(&gradient.ray, &colorOn);
+
+         if(tOn - tOff < jumpThreshold)
+            errors[sizeIdx]++;
+
+         if(errors[sizeIdx] > errors[minErrorsSizeIdx])
+            break;
+      }
+
+      /* Track of which sizeIdx has the fewest errors */
+      if(errors[sizeIdx] < errors[minErrorsSizeIdx])
+         minErrorsSizeIdx = sizeIdx;
+
+   } while(*(ptr++) != 0);
+
+   region->gradient = gradient;
+   region->sizeIdx = minErrorsSizeIdx;
+
+   if(errors[minErrorsSizeIdx] >= 4)
+      return DMTX_FAILURE;
 
    return DMTX_SUCCESS;
 }
@@ -1423,31 +1428,62 @@ PatternReadNonDataModules(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
  * @return XXX
  */
 static int
-PopulateArrayFromImage(DmtxMatrixRegion *matrixRegion, DmtxDecode *decode)
+PopulateArrayFromImage2(DmtxMatrixRegion *region, DmtxDecode *decode)
 {
-   int row, col;
-   float t, tRatio;
+   int col, row, rowTmp;
+   int symbolRow, symbolCol;
+   int dataRegionRows, dataRegionCols;
+   int statusPrev, statusModule;
+   double tPrev, tModule;
+   double jumpThreshold;
    DmtxColor3 color;
 
-   memset(matrixRegion->array, 0x00, matrixRegion->arraySize);
+   dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
+   dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);
 
-   for(row = 0; row < matrixRegion->dataRows; row++) {
-      for(col = 0; col < matrixRegion->dataCols; col++) {
+   memset(region->array, 0x00, region->arraySize);
 
-         // Swap row because the array's origin is top-left and everything else is bottom-left
-         color = ReadModuleColor(matrixRegion, matrixRegion->dataRows - row - 1, col, decode);
-         t = dmtxDistanceAlongRay3(&(matrixRegion->gradient.ray), &color);
-         tRatio = (t - matrixRegion->gradient.tMin)/(matrixRegion->gradient.tMax - matrixRegion->gradient.tMin);
+   jumpThreshold = 0.4 * (region->gradient.tMax - region->gradient.tMin);
 
-         // Value has been assigned, but not visited
-         matrixRegion->array[row*matrixRegion->dataCols+col] |= (tRatio < 0.5) ? DMTX_MODULE_ON : DMTX_MODULE_OFF;
-         matrixRegion->array[row*matrixRegion->dataCols+col] |= DMTX_MODULE_ASSIGNED;
+   /* XXX later add additional pass in second (3rd, 4th?) with confidence value */
+   for(row = 0; row < region->mappingRows; row++) {
 
-         // Draw "ideal" barcode
-         if(decode && decode->plotModuleCallback)
-            (*(decode->plotModuleCallback))(decode, matrixRegion, matrixRegion->dataRows - row - 1, col, color);
+      /* Transform mapping row to symbol row (Swap because the array's
+         origin is top-left and everything else is bottom-left) */
+      rowTmp = region->mappingRows - row - 1;
+      symbolRow = rowTmp + 2 * (rowTmp / dataRegionRows) + 1;
+
+      /* Capture initial tModule location from symbolCol == 0 (known finder bar) */
+      color = ReadModuleColor(decode, symbolRow, 0, region->sizeIdx, region->fit2raw);
+      tModule = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
+      statusModule = DMTX_MODULE_ON_RGB;
+
+      for(col = 0; col < region->mappingCols; col++) {
+
+         /* Transform mapping col to symbol col */
+         symbolCol = col + 2 * (col / dataRegionCols) + 1;
+
+         tPrev = tModule;
+         statusPrev = statusModule;
+
+         color = ReadModuleColor(decode, symbolRow, symbolCol, region->sizeIdx, region->fit2raw);
+         tModule = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
+
+         if(tModule > tPrev + jumpThreshold)
+            statusModule = DMTX_MODULE_ON_RGB;
+         else if(tModule < tPrev - jumpThreshold)
+            statusModule = 0;
+         else
+            statusModule = statusPrev;
+
+         /* Value has been assigned, but not visited */
+         region->array[row*region->mappingCols+col] |= statusModule;
+         region->array[row*region->mappingCols+col] |= DMTX_MODULE_ASSIGNED;
       }
    }
+
+   /* Ideal barcode drawn in lower-right (final) window pane */
+   CALLBACK_DECODE_FUNC2(finalCallback, decode, decode, region);
 
    return DMTX_SUCCESS;
 }

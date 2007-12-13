@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxmatrix3.c,v 1.5 2006-10-12 18:05:16 mblaughton Exp $ */
+/* $Id: dmtxmatrix3.c,v 1.5 2006/10/12 18:05:16 mblaughton Exp $ */
 
 /**
  *
@@ -116,12 +117,12 @@ void dmtxMatrix3Rotate(DmtxMatrix3 m, double angle)
  *     | 0  0  1 |
  *
  *                  Transform "m"
- *                      _____     (0,sy)  x------o  (sx,sy)
- *                      \   |             |      |
- *  (0,1)  x----o       /   |      (0,1)  +----+ |
- *         |    |      /  /\|             |    | |
- *         |    |      \ /                |    | |
- *         +----*       `                 +----+-*
+ *                      _____     (0,sy)  x-------o (sx,sy)
+ *                      \   |             |       |
+ *  (0,1)  x----o       /   |      (0,1)  +----+  |
+ *         |    |      /  /\|             |    |  |
+ *         |    |      \ /                |    |  |
+ *         +----*       `                 +----+--*
  *  (0,0)     (1,0)                (0,0)            (sx,0)
  *
  */
@@ -204,7 +205,7 @@ void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
 }
 
 /**
- * Line Skew (Remove Perspective) Transformation
+ * Line skew transformation for removing perspective
  *
  *     | b1/b0    0    (b1-b0)/(sz*b0) |
  * m = |   0    sz/b0         0        |

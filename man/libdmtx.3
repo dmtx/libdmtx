@@ -1,13 +1,13 @@
-.\" $Id: libdmtx.3,v 1.5 2006-10-16 01:46:35 mblaughton Exp $
+.\" $Id: libdmtx.3,v 1.5 2006/10/16 01:46:35 mblaughton Exp $
 .\"
 .\" Man page for the libdmtx project.
 .\"
 .\" To view: $ groff -man -T ascii libdmtx.3 | less
 .\" To text: $ groff -man -T ascii libdmtx.3 | col -b | expand
 .\"
-.TH LIBDMTX 3 "October 15, 2006"
+.TH LIBDMTX 3 "December 7, 2007"
 .SH NAME
-libdmtx \- Data Matrix Encoder/Decoder Library 0.3.0
+libdmtx \- Data Matrix Encoder/Decoder Library 0.4.0
 .SH SYNOPSIS
 \fB#include <dmtx.h>\fP
 
@@ -107,12 +107,15 @@ This program demonstrates both directions of \fIlibdmtx\fP functionality by firs
      DmtxEncode *encode;
      DmtxDecode *decode;
 
+     fprintf(stdout, "input:  \\"%s\\"\\n", testString);
+
      /*
       * 1) Write a new Data Matrix barcode (in memory)
       */
 
      encode = dmtxEncodeCreate();
-     dmtxEncodeData(encode, testString);
+     dmtxEncodeDataMatrix(encode, strlen((char *)testString),
+           testString, DMTX_SYMBOL_SQUARE_AUTO);
 
      // Take copy of new image before freeing DmtxEncode struct
      image = encode->image;
@@ -122,8 +125,8 @@ This program demonstrates both directions of \fIlibdmtx\fP functionality by firs
         perror("Malloc error");
         exit(1);
      }
-     memcpy(image.pxl, encode->image.pxl, image.width * image.height *
-           sizeof(DmtxPixel));
+     memcpy(image.pxl, encode->image.pxl, image.width *
+           image.height * sizeof(DmtxPixel));
      dmtxEncodeDestroy(&encode);
 
      /*
@@ -134,8 +137,11 @@ This program demonstrates both directions of \fIlibdmtx\fP functionality by firs
      decode->option = DmtxSingleScanOnly;
      decode->image = image;
 
-     count += dmtxScanLine(decode, DmtxDirUp, decode->image.width/2);
-     count += dmtxScanLine(decode, DmtxDirRight, decode->image.height/2);
+     count += dmtxScanLine(decode, DmtxDirUp,
+           decode->image.width/2);
+
+     count += dmtxScanLine(decode, DmtxDirRight,
+           decode->image.height/2);
 
      if(count > 0) {
         fprintf(stdout, "output: \\"");
@@ -151,16 +157,12 @@ This program demonstrates both directions of \fIlibdmtx\fP functionality by firs
 
 .SH "SEE ALSO"
 libpng(3)
-
 .SH STANDARDS
 ISO/IEC 16022:2000
-
+.PP
 ANSI/AIM BC11 ISS
-
 .SH BUGS
 Email bug reports to mike@dragonflylogic.com
-
 .SH AUTHOR
-Copyright (C) 2006 Mike Laughton
-
+Copyright (c) 2007 Mike Laughton
 .\" end of man page

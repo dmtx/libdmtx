@@ -1,6 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (C) 2006 Mike Laughton
+
+Copyright (c) 2007 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -19,7 +20,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxreedsol.c,v 1.3 2006-10-09 17:18:10 mblaughton Exp $ */
+/* $Id: dmtxreedsol.c,v 1.3 2006/10/09 17:18:10 mblaughton Exp $ */
+
+#ifndef GfSum
+#define GfSum(a,b) (a ^ b)
+#endif
 
 /**
  *
@@ -27,56 +32,53 @@ Contact: mike@dragonflylogic.com
  * @return XXX
  */
 static void
-GenReedSolEcc(DmtxMatrixRegion *matrixRegion)
+GenReedSolEcc(DmtxMatrixRegion *region)
 {
    int i, j, val;
-   int dataLength = dataWordLength[matrixRegion->sizeIdx];
-   int errorWordCount = errorWordLength[matrixRegion->sizeIdx];
-   int totalLength = dataLength + errorWordCount;
-   unsigned char g[69], b[68];
-   unsigned char *codewords = matrixRegion->code;
+   int step, block;
+   int blockSize;
+   int dataLength;
+   int errorWordCount;
+   int totalLength;
+   unsigned char g[69], b[68], *bPtr;
+   unsigned char *codewords = region->code;
 
-   SetEccPoly(g, errorWordCount);
-   memset(b, 0x00, sizeof(b));
+   dataLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, region->sizeIdx);
+   errorWordCount = dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, region->sizeIdx);
+   totalLength = dataLength + errorWordCount;
 
-   for(i = 0; i < totalLength; i++) {
-      if(i < dataLength) {
-         val = GfSum(b[errorWordCount-1], codewords[i]);
-         for(j = errorWordCount - 1; j > 0; j--) {
+   step = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, region->sizeIdx);
+   blockSize = errorWordCount / step;
+
+   memset(g, 0x01, sizeof(g));
+
+   /* Generate ECC polynomial */
+   for(i = 1; i <= blockSize; i++) {
+      for(j = i - 1; j >= 0; j--) {
+         g[j] = GfDoublify(g[j], i);     /* g[j] *= 2**i */
+         if(j > 0)
+            g[j] = GfSum(g[j], g[j-1]);  /* g[j] += g[j-1] */
+      }
+   }
+
+   /* Populate error codeword array */
+   for(block = 0; block < step; block++) {
+
+      memset(b, 0x00, sizeof(b));
+      for(i = block; i < dataLength; i += step) {
+         val = GfSum(b[blockSize-1], codewords[i]);
+         for(j = blockSize - 1; j > 0; j--) {
             b[j] = GfSum(b[j-1], GfProduct(g[j], val));
          }
          b[0] = GfProduct(g[0], val);
       }
-      else {
-         codewords[i] = b[totalLength-i-1];
+
+      bPtr = b + blockSize - 1;
+      for(i = dataLength + block; i < totalLength; i += step) {
+         codewords[i] = *(bPtr--);
       }
-   }
 
-   fprintf(stdout, "\nadd ecc:");
-   for(i = 0; i < matrixRegion->codeSize; i++) {
-      fprintf(stdout, " %d", codewords[i]);
-   }
-   fprintf(stdout, "\n");
-}
-
-/**
- *
- * @param XXX
- * @return XXX
- */
-static void
-SetEccPoly(unsigned char *g, int errorWordCount)
-{
-   int i, j;
-
-   memset(g, 0x01, sizeof(unsigned char) * (errorWordCount + 1));
-
-   for(i = 1; i <= errorWordCount; i++) {
-      for(j = i - 1; j >= 0; j--) {
-         g[j] = GfDoublify(g[j], i);     // g[j] *= 2**i
-         if(j > 0)
-            g[j] = GfSum(g[j], g[j-1]);  // g[j] += g[j-1]
-      }
+      assert(b - bPtr == 1);
    }
 }
 
@@ -87,33 +89,27 @@ SetEccPoly(unsigned char *g, int errorWordCount)
  * @return XXX
  */
 static int
-DecodeCheckErrors(DmtxMatrixRegion *matrixRegion)
+DecodeCheckErrors(DmtxMatrixRegion *region)
 {
-   int i, j;
+   int i, j, step, errorWordLength;
    unsigned char reg, a;
 
-   for(i = 0; i < errorWordLength[matrixRegion->sizeIdx]; i++) {
-      a = aLogVal[i+1];
+   step = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, region->sizeIdx);
+   errorWordLength = dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, region->sizeIdx);
 
-      for(j = 0, reg = 0; j < matrixRegion->codeSize; j++)
-         reg = GfSum(matrixRegion->code[j], GfProduct(a, reg));
+   for(i = 0; i < errorWordLength; i++) {
+      a = aLogVal[i / step + 1];
+
+      reg = 0;
+      for(j = i % step; j < region->codeSize; j += step) {
+         reg = GfSum(region->code[j], GfProduct(a, reg));
+      }
 
       if(reg != 0)
          return DMTX_FAILURE;
    }
 
    return DMTX_SUCCESS;
-}
-
-/**
- *
- * @param XXX
- * @return XXX
- */
-static int
-GfSum(int a, int b)
-{
-   return a ^ b;
 }
 
 /**
@@ -138,10 +134,10 @@ GfProduct(int a, int b)
 static int
 GfDoublify(int a, int b)
 {
-   if(a == 0) // XXX this is right, right?
+   if(a == 0) /* XXX this is right, right? */
       return 0;
    else if(b == 0)
-      return a; // XXX this is right, right?
+      return a; /* XXX this is right, right? */
    else
       return aLogVal[(logVal[a] + b) % 255];
 }

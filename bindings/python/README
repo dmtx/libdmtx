@@ -1,0 +1,7 @@
+README for pydmtx version 0.4.0 - December 7, 2007
+-----------------------------------------------------------------
+
+pydmtx is a thin wrapper around libdmtx that reads and writes
+Data Matrix barcodes as PIL Image objects.  Dan Watson wrote
+the original version of pydmtx in 2006, and allowed it to
+become a native part of libdmtx with the 0.4.0 release.

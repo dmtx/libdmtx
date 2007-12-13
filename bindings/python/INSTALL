@@ -1,0 +1,71 @@
+Building and Installing pydmtx
+-----------------------------------------------------------------
+
+1. libdmtx Installation
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+libdmtx must be installed on your system before trying to
+install and run the Python bindings.  Refer to the INSTALL
+file in the main libdmtx directory for instructions on how
+to do this.
+
+
+2. pydmtx Installation
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+After libdmtx is present, next install pydmtx by running the
+following command as root:
+
+  $ python setup.py install
+
+Once installed, you can verify it works by running as yourself:
+
+  $ python test.py
+
+If it throws an error like this:
+
+  ImportError: libdmtx.so.0: cannot open shared object file
+
+this indicates it is not able to find the libdmtx library.
+There are a few ways to fix this.  You can make a temporary
+local session fix:
+
+  $ export LD_LIBRARY_PATH=/usr/local/lib
+
+... or make a permanent fix that requires root privileges:
+
+  $ /sbin/ldconfig /usr/local/lib
+
+Alternatively, you could edit /etc/ld.so.conf to include
+/usr/local/lib (which also requires root privileges).
+
+When it is working properly the test.py script should create an
+image named 'hello.png' in the current directory.  The image
+should be a Data Matrix barcode that scans to "hello, world".
+
+
+3. Dependencies
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+These packages are required to install and run pydmtx:
+
+  Python:  http://www.python.org
+  PIL:     http://www.pythonware.com/products/pil
+
+If you are using an RPM-based system then you can test for the
+following packages:
+
+  python
+  python-devel
+  python-imaging
+
+
+4. Anything Else?
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+Is anything missing from these instructions?  If you spent
+hours searching for a solution that you feel should be included
+in this file, then please send an email or post to the "Help"
+forum at
+
+  http://sourceforge.net/forum/forum.php?forum_id=513654

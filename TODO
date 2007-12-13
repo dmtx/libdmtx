@@ -1,38 +1,59 @@
 TODO Items
 -----------------------------------------------------------------
 
-version 0.1:
-  x Cycle texture images with right-click
-  x Complete PlotPoint so it handles floating rows and columns
-  x Implement right and left directions of FollowEdge
-  x Call right and left edge following scans started from vertical step scans
-  x Implement 2D vector and matrix functions
-  x Trace lines with actual line object (2D ray)
-  x Turn corners when encountering the end of a followed line
-  x Build 2d transformation to wrap around region, assuming parallelogram
-  x Display pane 4 with reverse-transformed image capture
-  x Enhance dmtxCapturePixel to use "area averaging" instead of nearest neighbor
-  x Figure out why squares are 3 pixels off (to start: draw white gl lines over follower paths)
-  x Add callback function for PlotEventPoint(x, y, event_type)
-  x Improve follower logic (weighted line fit)
-  x dmtxGetPixel: do averaged interpolation followed by a tMin/tMid/tMax cutoff
-  x Add in de-skew transformation
-  x Refactor vector libraries to consistently list target parameter first
-  x Calibrate based on calibration lines
-  x Shrink-fit transformation around region
+version 0.5:
+  o libdmtx:   Implement error correction (initially through libfec)
+  o libdmtx:   blit mask malloc'd with image, and visits + yes/no tracked
+               (used for culling)
+  o libdmtx:   multiple barcode finds tracked by progress, not all at once
+               (offer decision to continue back to calling app)
 
-version 0.2:
-  x Move dmtxCapturePixel routine to library code
-  x Initial restructuring of code for architectural goodness
-  x Improve API for real-world use (and not just dumping results to STDOUT)
-  x Add "dmtxread" command line utility
-  x Add "dmtxwrite" command line utility
-  x Implement error detection
-  x Create "simpletest.c" for full-circle processing
-  x Use libpng(3) in library to read Data Matrix images
-  x Slap together some basic documentation
+               how best to blot out quadrilaterals in blit mask?
 
-version 0.3:
+  o libdmtx:   Roll scan pattern into core library (inward breadth-first cross)
+  o libdmtx:   Change barcode scans to be incremental calls from application
+  o libdmtx:   1 bpp mask of already-scanned pixels?
+  o libdmtx:   Capture high-level design in documentation (data flow, module analogies)
+  o libdmtx:   Thorough test for memory leaks
+  o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
+  o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
+  o libdmtx:   Implement --auto-fast option using algorithm from spec (lighter & faster?)
+  o libdmtx:   Add calibration functionality to remove spherical distortion
+  o libdmtx:   Implement overlap detection to avoid rescanning in successfully decoded regions
+  o libdmtx:   Implement structured append symbols
+  o dmtxread:  JPEG support
+  o dmtxwrite: Verbose messages describing encoding process
+  o testsuite: Generate metrics in reproducible format to enable historical tracking
+  o testsuite: Investigate option of embedding decoded text into PNG test image comments
+  o testsuite: Tests should compare scanned results to embedded PNG comments
+  o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
+  o testsuite: 'make test' writes metrics file
+  o testsuite: 'make test' confirms performance
+
+version 0.4: (07-Dec-2008)
+  x libdmtx:   Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
+  x libdmtx:   Fix 4 bottom-right modules in sizes where they are not used (thanks Matthias R.!)
+  x libdmtx:   Replace callback references with preprocessor macros
+  x libdmtx:   Implement remaining encodation schemes for encoding (X12, Base 256, etc...)
+  x libdmtx:   Implement remaining encodation schemes for decoding (X12, Base 256, etc...)
+  x libdmtx:   Implement --auto-best option for best possible encoding efficiency
+  x libdmtx:   Implement multi-region symbols
+  x libdmtx:   Read and write rectangle shaped barcodes
+  x libdmtx:   Use GNU autotools (autoconf, automake, libtool)
+  x libdmtx:   New region detection overhaul
+  x libdmtx:   Fix chcon error in Makefile (right answer might be to use autoconf)
+  x bindings:  Include initial version of Python bindings from pydmtx project (thanks Dan!)
+  x bindings:  Add decoding functionality through Python
+  x bindings:  Expose new encoding functionality through Python
+  x dmtxread:  Fix dmtxread crash when same barcode is found more than 16 times
+  x dmtxread:  Verbose messages describing traits of detected barcodes
+  x dmtxread:  --codewords option to print codewords instead of decoded message
+  x dmtxread:  --newline option to insert newline character at end of output
+  x dmtxwrite: Additional output formats (PNG, ASCII, codewords)
+  x testsuite: 'make test' executes regression tests for encodation
+  x testsuite: Add marathon images to project (thanks john@sportcam.net!)
+
+version 0.3: (15-Oct-2006)
   x Use preprocessor to pull code into one big file before compiling
   x Update Makefile to handle monolithic approach; add targets for test, util, tarball
   x Rename DmtxInfo struct and variables to DmtxDecode (for consistency with DmtxEncode)
@@ -56,48 +77,52 @@ version 0.3:
   x Increase dmtxread default scanline count (feasible because of better stability)
   x Add man page for dmtxwrite
 
-version 0.4:
-  x Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
-  o Try new approach to replace follower algorithm (beefed up ...Align() logic
-  o Capture high-level design in documentation (data flow, module analogies)
-  o Create dedicated module for printing encoded barcodes to image/ascii/ps/etc...
-  o Investigate reported memory leak
-  o Implement overlap detection to avoid rescanning in successfully decoded regions
-  o Implement error correction
-  o Implement consistent and robust error handling (errno.h + custom)
-  o Implement remaining encodation schemes in dmtxencode.c (X12, Base 256, etc...)
-  o Investigate option of embedding decoded text into PNG test image comments
-  o Fix chcon error in Makefile (right answer might be to use autoconf)
+version 0.2: (11-Jun-2006)
+  x Move dmtxCapturePixel routine to library code
+  x Initial restructuring of code for architectural goodness
+  x Improve API for real-world use (and not just dumping results to STDOUT)
+  x Add "dmtxread" command line utility
+  x Add "dmtxwrite" command line utility
+  x Implement error detection
+  x Create "simpletest.c" for full-circle processing
+  x Use libpng(3) in library to read Data Matrix images
+  x Slap together some basic documentation
+
+version 0.1: (22-Apr-2006)
+  x Cycle texture images with right-click
+  x Complete PlotPoint so it handles floating rows and columns
+  x Implement right and left directions of FollowEdge
+  x Call right and left edge following scans started from vertical step scans
+  x Implement 2D vector and matrix functions
+  x Trace lines with actual line object (2D ray)
+  x Turn corners when encountering the end of a followed line
+  x Build 2d transformation to wrap around region, assuming parallelogram
+  x Display pane 4 with reverse-transformed image capture
+  x Enhance dmtxCapturePixel to use "area averaging" instead of nearest neighbor
+  x Figure out why squares are 3 pixels off (to start: draw white gl lines over follower paths)
+  x Add callback function for PlotEventPoint(x, y, event_type)
+  x Improve follower logic (weighted line fit)
+  x dmtxGetPixel: do averaged interpolation followed by a tMin/tMid/tMax cutoff
+  x Add in de-skew transformation
+  x Refactor vector libraries to consistently list target parameter first
+  x Calibrate based on calibration lines
+  x Shrink-fit transformation around region
+
 
 future versions:
-  o Add calibration functionality to remove spherical distortion
-  o Use libpng(3) to write Data Matrix images
-  o Use libtool
-  o Tune region detection to work better with captured (non-generated) images
-  o Implement structured append symbols
-  o Try bi-linear approximation (instead of linear) in follower edge detection
-  o Implement fixed point math functions for use on mobile platforms
-  o Implement pre-ECC200 Data Matrix standards (big effort/low demand)
-  o Build test suite (regression/accuracy/performance/etc...)
+------------------------------------------------------------------------------
+  o libdmtx:   Try bi-linear approximation (instead of linear) in follower edge detection
+  o libdmtx:   Implement fixed point math functions for use on mobile platforms
+  o libdmtx:   Port to Windows?
 
-Notes on new follower algorithm replacement:
-   Scrap the whole follower concept as we know it.  Everything is based on the
-   following approach:
 
-   1) Scanning in any of the 4 cardinal directions, find a line (any straight
-      line will do)
-   2) Follow the line as far as you can in both directions (this is one of the
-      finder bars)
-   3) Rotate and scale line boundaries to stretch from origin (0,0) to (0,1)
-   4) Use MatrixRegionAlignTop() to find line that defines top edge (whether
-      finder or timing) and scale top to line y=1
-   5) Calculate intersection of 2 known lines
+perhaps never:
+---------------------------------------------------------------------------
+  o libdmtx:   Implement pre-ECC200 Data Matrix standards (big effort/low demand)
 
-   *  Corner (0,1) is now known, but we don't know if this is the intersection
-      of a finder bar and: A) the other finder bar, or B) a timing bar.  Next:
 
-   5) Use MatrixRegionAlignBottom() to find and align bottom line
-   6) Determine which line (top vs. bottom) is the other finder bar (how?)
-   7) Rotate intersection of finder bars to origin (if not already there)
-   8) Use MatrixRegionAlignSide() to align side
-   9) Reject if any side is shorter than minModuleSize * smallestModuleCount
+Website:
+---------------------------------------------------------------------------
+  o Explore using single background image instead of split
+  o Add what we currently do, don't do, would like to do in the future
+  o Add http://hosted-projects.com/trac/hudora/public/wiki/huBarcode to resources page
