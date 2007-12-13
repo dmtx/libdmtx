@@ -16,6 +16,7 @@ version 0.5:
   o libdmtx:   Implement overlap detection to avoid rescanning in successfully decoded regions
   o libdmtx:   Implement structured append symbols
   o dmtxread:  JPEG support
+  o dmtxread:  Add option to write image of path scanned and regions found (from mask)
   o dmtxwrite: Verbose messages describing encoding process
   o testsuite: Generate metrics in reproducible format to enable historical tracking
   o testsuite: Investigate option of embedding decoded text into PNG test image comments
