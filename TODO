@@ -3,16 +3,10 @@ TODO Items
 
 version 0.5:
   o libdmtx:   Implement error correction (initially through libfec)
-  o libdmtx:   blit mask malloc'd with image, and visits + yes/no tracked
-               (used for culling)
-  o libdmtx:   multiple barcode finds tracked by progress, not all at once
-               (offer decision to continue back to calling app)
-
-               how best to blot out quadrilaterals in blit mask?
-
+  o libdmtx:   Implement image mask to track scan progress and avoid rescanned pixels
+  o libdmtx:   Implement multiple barcodes as incremental choice offered to calling app
+  o libdmtx:   Based on "incremental choice", remove unnecessary mallocs (single in stack)
   o libdmtx:   Roll scan pattern into core library (inward breadth-first cross)
-  o libdmtx:   Change barcode scans to be incremental calls from application
-  o libdmtx:   1 bpp mask of already-scanned pixels?
   o libdmtx:   Capture high-level design in documentation (data flow, module analogies)
   o libdmtx:   Thorough test for memory leaks
   o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
