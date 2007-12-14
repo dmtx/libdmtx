@@ -50,7 +50,7 @@ version 0.4: (07-Dec-2008)
   x dmtxread:  --newline option to insert newline character at end of output
   x dmtxwrite: Additional output formats (PNG, ASCII, codewords)
   x testsuite: 'make test' executes regression tests for encodation
-  x testsuite: Add marathon images to project (thanks john@sportcam.net!)
+  x testsuite: Add marathon images to project (thanks John!)
 
 version 0.3: (15-Oct-2006)
   x Use preprocessor to pull code into one big file before compiling
