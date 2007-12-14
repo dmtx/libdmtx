@@ -2,8 +2,7 @@ TODO Items
 -----------------------------------------------------------------
 
 version 0.5:
-  o libdmtx:   Allow choice of edge-drop condition passed to MatrixRegion2AlignEdge()
-  o libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
+  o libdmtx:   Allow choice of edge-drop condition passed to MatrixRegionAlignEdge()
   o libdmtx:   Implement error correction (initially through libfec)
   o libdmtx:   Implement image mask to track scan progress and avoid rescanned pixels
   o libdmtx:   Implement multiple barcodes as incremental choice offered to calling app
@@ -17,6 +16,7 @@ version 0.5:
   o libdmtx:   Add calibration functionality to remove spherical distortion
   o libdmtx:   Implement overlap detection to avoid rescanning in successfully decoded regions
   o libdmtx:   Implement structured append symbols
+  x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
   o dmtxread:  JPEG support
   o dmtxread:  Add option to write image of path scanned and regions found (from mask)
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
