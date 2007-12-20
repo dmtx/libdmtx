@@ -157,7 +157,7 @@ static void PushInputWord(DmtxChannel *channel, unsigned char codeword);
 static void PushTriplet(DmtxChannel *channel, DmtxTriplet *triplet);
 static void IncrementProgress(DmtxChannel *channel, int encodedUnits);
 static void ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int tripletCount, int inputCount);
-static void ProcessEndOfSymbolEdifact(DmtxChannel *channel);
+static void TestForEndOfSymbolEdifact(DmtxChannel *channel);
 static int GetC40TextX12Words(int *outputWords, int inputWord, DmtxSchemeEncode encScheme);
 static DmtxTriplet GetTripletValues(unsigned char cw1, unsigned char cw2);
 static DmtxQuadruplet GetQuadrupletValues(unsigned char cw1, unsigned char cw2, unsigned char cw3);
