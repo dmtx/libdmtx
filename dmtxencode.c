@@ -857,15 +857,8 @@ EncodeEdifactCodeword(DmtxChannel *channel)
    IncrementProgress(channel, 9);
    channel->inputPtr++;
 
-   /* Test for end of encodation conditions:
-      1) Just encoded final input value
-      2) Just completed an EDIFACT codeword triplet and there are exactly
-         1 or 2 remaining input codewords */
-   if((channel->inputPtr == channel->inputStop) ||
-         (channel->currentLength % 12 == 0 &&
-         channel->inputStop - channel->inputPtr <= 2)) {
-      ProcessEndOfSymbolEdifact(channel);
-   }
+   /* XXX rename this to CheckforEndOfSymbolEdifact() */
+   ProcessEndOfSymbolEdifact(channel);
 }
 
 /**
@@ -1256,31 +1249,72 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
 }
 
 /**
+ * This function tests if the remaining input values will be completed in one of the special cases
+ *
  * Must leave this function in ASCII encodation (EDIFACT must always be unlatched)
+ *
+ *    Symbol  ASCII  EDIFACT  Ending    Codeword
+ *    words   words  values   type      Sequence
+ *    ------  -----  -------  --------  -------------------------------------
+ * a       1      0           Special   PAD
+ * b       1      1           Special   ASCII (this could be 2 ASCII digits)
+ * c       1   >= 2           Continue  need larger symbol
+ * d       2      0           Special   PAD PAD
+ * e       2      1           Special   ASCII PAD
+ * f       2      2           Special   ASCII ASCII
+ * g       2   >= 3           Continue  need larger symbol
+ * h                       0  Normal    UNLATCH
+ * i                    >= 1  Continue  not end of symbol
+ *
+ * Note: All "Special" cases require clean byte boundary to start
+ *
  */
 static void
 ProcessEndOfSymbolEdifact(DmtxChannel *channel)
 {
+   int edifactValues;
+   int currentByte;
+   int sizeIdx;
+   int symbolCodewords;
+   int asciiCodewords;
    int i;
-   int remainingInputWords;
 
-   remainingInputWords = channel->inputStop - channel->inputPtr;
+   /* Count number of input values remaining (assuming normal EDIFACT) */
+   edifactValues = channel->inputStop - channel->inputPtr;
 
-   /* Normal case */
-   if(remainingInputWords == 0) {
+   /* Impossible is to end symbol in one step if there are 5+ values
+      remaining (note that '9999' can still terminate in case 'f') */
+   if(edifactValues > 4) /* (subset of h -- performance only) */
+      return;
+
+   /* Find minimum symbol size big enough to accomodate remaining codewords */
+   currentByte = channel->currentLength/12;
+
+   /* XXX this is broken -- what if someone asks for DMTX_SYMBOL_RECT_AUTO or a specific sizeIdx? */
+   sizeIdx = FindCorrectBarcodeSize(DMTX_SYMBOL_SQUARE_AUTO, currentByte);
+   symbolCodewords = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) - currentByte;
+
+   /* Test for special case condition */
+   if(channel->currentLength % 12 == 0 && (symbolCodewords == 1 || symbolCodewords == 2)) {
+
+      /* Count number of codewords left to write (assuming ASCII) */
+      /* XXX temporary hack ... later create function that knows about shifts and digits */
+      asciiCodewords = edifactValues;
+
+      if(asciiCodewords <= symbolCodewords) { /* (a,b,d,e,f) */
+         ChangeEncScheme(channel, DmtxSchemeEncodeAscii, DMTX_UNLATCH_IMPLICIT);
+         /* XXX this for loop should produce exactly ascciWords codewords ... assert somehow? */
+         for(i = 0; i < edifactValues; i++) {
+           EncodeNextWord(channel, DmtxSchemeEncodeAscii);
+           assert(channel->invalid == 0);
+         }
+      }
+      /* else (c,g) -- do nothing */
+   }
+   else if(edifactValues == 0) { /* (h) */
       ChangeEncScheme(channel, DmtxSchemeEncodeAscii, DMTX_UNLATCH_EXPLICIT);
    }
-   /* Special case: Unlatch is implied (switch manually) */
-   else {
-      assert(remainingInputWords <= 2);
-      assert(channel->currentLength % 12 == 0);
-
-      ChangeEncScheme(channel, DmtxSchemeEncodeAscii, DMTX_UNLATCH_IMPLICIT);
-      for(i = 0; i < remainingInputWords; i++) {
-         EncodeNextWord(channel, DmtxSchemeEncodeAscii);
-         assert(channel->invalid == 0);
-      }
-   }
+   /* else (i) -- do nothing */
 }
 
 /**
