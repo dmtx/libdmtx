@@ -858,7 +858,7 @@ EncodeEdifactCodeword(DmtxChannel *channel)
    channel->inputPtr++;
 
    /* XXX rename this to CheckforEndOfSymbolEdifact() */
-   ProcessEndOfSymbolEdifact(channel);
+   TestForEndOfSymbolEdifact(channel);
 }
 
 /**
@@ -1249,28 +1249,30 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
 }
 
 /**
- * This function tests if the remaining input values will be completed in one of the special cases
+ * This function tests if the remaining input values can be completed using
+ * one of the valid end-of-symbol cases, and finishes encodation if possible.
  *
- * Must leave this function in ASCII encodation (EDIFACT must always be unlatched)
+ * This function must exit in ASCII encodation.  EDIFACT must always be
+ * unlatched, although implicit Unlatch is possible.
  *
- *    Symbol  ASCII  EDIFACT  Ending    Codeword
- *    words   words  values   type      Sequence
- *    ------  -----  -------  --------  -------------------------------------
- * a       1      0           Special   PAD
- * b       1      1           Special   ASCII (this could be 2 ASCII digits)
- * c       1   >= 2           Continue  need larger symbol
- * d       2      0           Special   PAD PAD
- * e       2      1           Special   ASCII PAD
- * f       2      2           Special   ASCII ASCII
- * g       2   >= 3           Continue  need larger symbol
- * h                       0  Normal    UNLATCH
- * i                    >= 1  Continue  not end of symbol
+ * Symbol  ASCII  EDIFACT  Ending      Codeword
+ * Words   Words  Values   Condition   Sequence
+ * ------  -----  -------  ----------  --------------------------------------
+ *      1      0           (a) Special   PAD
+ *      1      1           (b) Special   ASCII (this could be 2 ASCII digits)
+ *      1   >= 2           (c) Continue  need larger symbol
+ *      2      0           (d) Special   PAD PAD
+ *      2      1           (e) Special   ASCII PAD
+ *      2      2           (f) Special   ASCII ASCII
+ *      2   >= 3           (g) Continue  need larger symbol
+ *    N/A    N/A        0  (h) Normal    UNLATCH
+ *    N/A    N/A     >= 1  (i) Continue  not end of symbol
  *
- * Note: All "Special" cases require clean byte boundary to start
+ * Note: All "Special" cases (a,b,d,e,f) require clean byte boundary to start
  *
  */
 static void
-ProcessEndOfSymbolEdifact(DmtxChannel *channel)
+TestForEndOfSymbolEdifact(DmtxChannel *channel)
 {
    int edifactValues;
    int currentByte;
