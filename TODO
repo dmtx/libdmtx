@@ -28,6 +28,9 @@ version 0.5:
   o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
   o testsuite: 'make test' writes metrics file
   o testsuite: 'make test' confirms performance
+  o project:   Update revision control variables to be SVN friendly
+               o $Id$
+               o $Log$
 
 version 0.4: (07-Dec-2008)
   x libdmtx:   Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
