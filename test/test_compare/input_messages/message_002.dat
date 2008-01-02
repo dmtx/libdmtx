@@ -1,0 +1,2 @@
+libdmtx is a shared library for Linux that can be used to read (scan & decode) and write (encode & print) 2D Data Matrix barcode symbols.  It is released under the LGPL and can be used and distributed freely under these terms.
+Data Matrix barcodes are two-dimensional symbols that hold a dense pattern of data with built-in error correction.  The Data Matrix symbology (sometimes referred to as DataMatrix) was invented and released into the public domain by RVSI Acuity CiMatrix.  Wikipedia has a good article on the symbology and its characteristics.
