@@ -1255,18 +1255,18 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
  * This function must exit in ASCII encodation.  EDIFACT must always be
  * unlatched, although implicit Unlatch is possible.
  *
- * Symbol  ASCII  EDIFACT  Ending      Codeword
- * Words   Words  Values   Condition   Sequence
- * ------  -----  -------  ----------  --------------------------------------
- *      1      0           (a) Special   PAD
- *      1      1           (b) Special   ASCII (this could be 2 ASCII digits)
- *      1   >= 2           (c) Continue  need larger symbol
- *      2      0           (d) Special   PAD PAD
- *      2      1           (e) Special   ASCII PAD
- *      2      2           (f) Special   ASCII ASCII
- *      2   >= 3           (g) Continue  need larger symbol
- *    N/A    N/A        0  (h) Normal    UNLATCH
- *    N/A    N/A     >= 1  (i) Continue  not end of symbol
+ * End   Symbol  ASCII  EDIFACT  End        Codeword
+ * Case  Words   Words  Values   Condition  Sequence
+ * ----  ------  -----  -------  ---------  -------------------------------
+ * (a)        1      0           Special    PAD
+ * (b)        1      1           Special    ASCII (could be 2 digits)
+ * (c)        1   >= 2           Continue   Need larger symbol
+ * (d)        2      0           Special    PAD PAD
+ * (e)        2      1           Special    ASCII PAD
+ * (f)        2      2           Special    ASCII ASCII
+ * (g)        2   >= 3           Continue   Need larger symbol
+ * (h)      N/A    N/A        0  Normal     UNLATCH
+ * (i)      N/A    N/A     >= 1  Continue   Not end of symbol
  *
  * Note: All "Special" cases (a,b,d,e,f) require clean byte boundary to start
  *
@@ -1281,23 +1281,24 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
    int asciiCodewords;
    int i;
 
-   /* Count number of input values remaining (assuming normal EDIFACT) */
+   /* Count remaining input values assuming EDIFACT encodation */
    edifactValues = channel->inputStop - channel->inputPtr;
 
-   /* Impossible is to end symbol in one step if there are 5+ values
-      remaining (note that '9999' can still terminate in case 'f') */
-   if(edifactValues > 4) /* (subset of h -- performance only) */
+   /* Can't end symbol right now if there are 5+ values remaining -- note
+      that '9999' can still terminate in case (f) */
+   if(edifactValues > 4) /* subset of (i) -- for performance only */
       return;
 
    /* Find minimum symbol size big enough to accomodate remaining codewords */
-   currentByte = channel->currentLength/12;
+   /* XXX broken -- what if someone asks for DMTX_SYMBOL_RECT_AUTO or specific sizeIdx? */
 
-   /* XXX this is broken -- what if someone asks for DMTX_SYMBOL_RECT_AUTO or a specific sizeIdx? */
+   currentByte = channel->currentLength/12;
    sizeIdx = FindCorrectBarcodeSize(DMTX_SYMBOL_SQUARE_AUTO, currentByte);
    symbolCodewords = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) - currentByte;
 
    /* Test for special case condition */
-   if(channel->currentLength % 12 == 0 && (symbolCodewords == 1 || symbolCodewords == 2)) {
+   if(channel->currentLength % 12 == 0 &&
+         (symbolCodewords == 1 || symbolCodewords == 2)) {
 
       /* Count number of codewords left to write (assuming ASCII) */
       /* XXX temporary hack ... later create function that knows about shifts and digits */
@@ -1305,10 +1306,11 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
 
       if(asciiCodewords <= symbolCodewords) { /* (a,b,d,e,f) */
          ChangeEncScheme(channel, DmtxSchemeEncodeAscii, DMTX_UNLATCH_IMPLICIT);
-         /* XXX this for loop should produce exactly ascciWords codewords ... assert somehow? */
+
+         /* XXX this loop should produce exactly asciiWords codewords ... assert somehow? */
          for(i = 0; i < edifactValues; i++) {
-           EncodeNextWord(channel, DmtxSchemeEncodeAscii);
-           assert(channel->invalid == 0);
+            EncodeNextWord(channel, DmtxSchemeEncodeAscii);
+            assert(channel->invalid == 0);
          }
       }
       /* else (c,g) -- do nothing */
