@@ -1,4 +1,4 @@
-noinst_PROGRAMS = gltest gltest.debug
+check_PROGRAMS = gltest gltest.debug
 
 AM_CPPFLAGS=-I/usr/include/SDL
 
