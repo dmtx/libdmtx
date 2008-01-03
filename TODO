@@ -28,7 +28,7 @@ version 0.5:
   o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
   o testsuite: 'make test' writes metrics file
   o testsuite: 'make test' confirms performance
-  o project:   Remove gltest from default build target
+  / project:   Remove gltest and simpletest from default build target (autoreconf required)
   o project:   Figure out way to include extra files (and not .svn) without compiling
   o project:   Update revision control variables to be SVN friendly
                o $Id$
