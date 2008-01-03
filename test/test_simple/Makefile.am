@@ -1,4 +1,4 @@
-noinst_PROGRAMS = simpletest
+check_PROGRAMS = simpletest
 
 simpletest_SOURCES = simpletest.c
 simpletest_LDFLAGS = -lm
