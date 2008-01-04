@@ -270,8 +270,8 @@ OPTIONS:\n"), programName, programName);
   -g, --gap=NUM          use scan grid with gap of NUM pixels between scanlines\n\
   -n, --newline          insert newline character at the end of decoded data\n\
   -d, --distortion=K1,K2 radial distortion coefficients (not implemented yet)\n\
-  -r, --region=REGION    only scan portion of image; specify REGION by listing\n\
-        x1,y1:x2,y2      two opposing corners of a rectangular region\n\
+  -r, --region=REGION    only scan a subset of image; specify REGION by listing\n\
+        x1,y1:x2,y2      opposite corners of a rectangle region (not implemented)\n\
   -v, --verbose          use verbose messages\n\
   -C, --coordinates      prefix decoded message with barcode corner locations\n\
   -M, --mosaic           interpret detected regions as Data Mosaic barcodes\n\
