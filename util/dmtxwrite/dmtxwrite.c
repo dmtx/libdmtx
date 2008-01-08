@@ -416,7 +416,7 @@ OPTIONS:\n"), programName, programName);
         p = PNG    [default] PNG image\n\
         m = PNM              PNM image\n\
   -o, --output=FILE          path of file containing barcode image output\n\
-  -p, --preview=[nac]        print a preview of the barcode data to STDOUT\n\
+  -p, --preview=[nac]        print preview of barcode data to STDOUT\n\
         n = None   [default] do not print barcode preview\n\
         a = ASCII            ASCII-art representation\n\
         c = Codewords        list data and error codewords\n\
