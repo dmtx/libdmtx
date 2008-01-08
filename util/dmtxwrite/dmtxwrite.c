@@ -51,8 +51,8 @@ static void ReadData(UserOptions *options, int *codeBuffer, unsigned char *codeB
 static long StringToLong(char *numberString);
 static void ShowUsage(int status);
 static void FatalError(int errorCode, char *fmt, ...);
-static void WriteImagePng(DmtxEncode *encode, char *path);
-static void WriteImagePnm(DmtxEncode *encode, char *path);
+static void WriteImagePng(UserOptions *options, DmtxEncode *encode);
+static void WriteImagePnm(UserOptions *options, DmtxEncode *encode);
 static void WriteAsciiBarcode(DmtxEncode *encode);
 static void WriteCodewords(DmtxEncode *encode);
 
@@ -98,10 +98,10 @@ main(int argc, char *argv[])
       case 'n':
          break; // do nothing
       case 'p':
-         WriteImagePng(encode, options.outputPath);
+         WriteImagePng(&options, encode);
          break;
       case 'm':
-         WriteImagePnm(encode, options.outputPath);
+         WriteImagePnm(&options, encode);
          break;
    }
 
@@ -142,6 +142,7 @@ InitUserOptions(UserOptions *options)
    options->sizeIdx = DMTX_SYMBOL_SQUARE_AUTO;
    options->verbose = 0;
    options->mosaic = 0;
+   options->dpi = 0; // default to native resolution of requested image format
 }
 
 /**
@@ -180,6 +181,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
          {"symbol-size", required_argument, NULL, 's'},
          {"verbose",     no_argument,       NULL, 'v'},
          {"mosaic",      no_argument,       NULL, 'M'},
+         {"resolution",  required_argument, NULL, 'R'},
          {"help",        no_argument,       NULL,  0 },
          {0, 0, 0, 0}
    };
@@ -194,7 +196,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
    encode->scheme = DmtxSchemeEncodeAscii;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:p:r:s:vM", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:p:r:s:vMR:", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -310,6 +312,9 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
          case 'M':
             options->mosaic = 1;
             break;
+         case 'R':
+            options->dpi = StringToLong(optarg);
+            break;
          default:
             return DMTXWRITE_ERROR;
             break;
@@ -317,6 +322,9 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
    }
 
    options->inputPath = (*argvp)[optind];
+
+   // XXX here test for incompatibility between options. For example you
+   // cannot specify dpi if PNM output is requested
 
    return DMTXWRITE_SUCCESS;
 }
@@ -434,7 +442,7 @@ OPTIONS:\n"), programName, programName);
              8x18,    8x32,   12x26,   12x36,   16x36,   16x48\n\
   -v, --verbose              use verbose messages\n\
   -M, --mosaic               create non-standard Data Mosaic barcode\n\
-  -R, --resolution=NUM       set physical resolution of image (dpi)\n\
+  -R, --resolution=NUM       set image print resolution (dpi)\n\
       --help                 display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
    }
@@ -468,15 +476,16 @@ FatalError(int errorCode, char *fmt, ...)
  *
  */
 static void
-WriteImagePng(DmtxEncode *encode, char *path)
+WriteImagePng(UserOptions *options, DmtxEncode *encode)
 {
    FILE *fp;
    int row;
    png_structp pngPtr;
    png_infop infoPtr;
    png_bytepp rowPointers;
+   png_uint_32 pixelsPerMeter;
 
-   fp = fopen(path, "wb");
+   fp = fopen(options->outputPath, "wb");
    if(fp == NULL) {
       perror(programName);
       exit(3);
@@ -510,6 +519,11 @@ WriteImagePng(DmtxEncode *encode, char *path)
    png_set_IHDR(pngPtr, infoPtr, encode->image.width, encode->image.height,
          8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
          PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+
+   if(options->dpi > 0) {
+      pixelsPerMeter = (png_uint_32)(39.3700787 * options->dpi + 0.5);
+      png_set_pHYs(pngPtr, infoPtr, pixelsPerMeter, pixelsPerMeter, PNG_RESOLUTION_METER);
+   }
 
    rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * encode->image.height);
    if(rowPointers == NULL) {
@@ -549,27 +563,27 @@ WriteImagePng(DmtxEncode *encode, char *path)
  *
  */
 static void
-WriteImagePnm(DmtxEncode *encode, char *path)
+WriteImagePnm(UserOptions *options, DmtxEncode *encode)
 {
    int row, col;
-   FILE *output;
+   FILE *fp;
 
    // Flip rows top-to-bottom to account for PNM "top-left" origin
-   output = fopen(path, "wb");
-   if(output == NULL) {
+   fp = fopen(options->outputPath, "wb");
+   if(fp == NULL) {
       perror(programName);
       exit(3);
    }
 
-   fprintf(output, "P6 %d %d 255 ", encode->image.width, encode->image.height);
+   fprintf(fp, "P6 %d %d 255 ", encode->image.width, encode->image.height);
    for(row = 0; row < encode->image.height; row++) {
       for(col = 0; col < encode->image.width; col++) {
-         fputc(encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].R, output);
-         fputc(encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].G, output);
-         fputc(encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].B, output);
+         fputc(encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].R, fp);
+         fputc(encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].G, fp);
+         fputc(encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].B, fp);
       }
    }
-   fclose(output);
+   fclose(fp);
 }
 
 /**

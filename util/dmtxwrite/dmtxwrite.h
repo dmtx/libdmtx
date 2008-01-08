@@ -44,6 +44,7 @@ typedef struct {
    int sizeIdx;
    int verbose;
    int mosaic;
+   int dpi;
 } UserOptions;
 
 #endif
