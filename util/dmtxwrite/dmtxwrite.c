@@ -95,12 +95,20 @@ main(int argc, char *argv[])
 
    // Write barcode image to requested format
    switch(options.format) {
+      case 'n':
+         break; // do nothing
       case 'p':
          WriteImagePng(encode, options.outputPath);
          break;
-      case 'n':
+      case 'm':
          WriteImagePnm(encode, options.outputPath);
          break;
+   }
+
+   // Write barcode preview if requested
+   switch(options.preview) {
+      case 'n':
+         break; // do nothing
       case 'a':
          WriteAsciiBarcode(encode);
          break;
@@ -129,6 +137,7 @@ InitUserOptions(UserOptions *options)
    options->format = 'p';
    options->inputPath = NULL;
    options->outputPath = "dmtxwrite.png"; // XXX needs to have different extensions for other formats
+   options->preview = 'n';
    options->rotate = 0;
    options->sizeIdx = DMTX_SYMBOL_SQUARE_AUTO;
    options->verbose = 0;
@@ -166,6 +175,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
          {"encoding",    required_argument, NULL, 'e'},
          {"format",      required_argument, NULL, 'f'},
          {"output",      required_argument, NULL, 'o'},
+         {"preview",     required_argument, NULL, 'p'},
          {"rotate",      required_argument, NULL, 'r'},
          {"symbol-size", required_argument, NULL, 's'},
          {"verbose",     no_argument,       NULL, 'v'},
@@ -184,7 +194,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
    encode->scheme = DmtxSchemeEncodeAscii;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:r:s:vM", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:p:r:s:vM", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -251,8 +261,8 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
          case 'f':
             options->format = *optarg;
 
-            if(options->format != 'p' && options->format != 'n' &&
-                  options->format != 'a' && options->format != 'c') {
+            if(options->format != 'n' && options->format != 'p' &&
+                  options->format != 'm') {
                fprintf(stdout, "Invalid output format \"%c\"\n", options->format);
                return DMTXWRITE_ERROR;
             }
@@ -260,6 +270,16 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             break;
          case 'o':
             options->outputPath = optarg;
+            break;
+         case 'p':
+            options->preview = *optarg;
+
+            if(options->preview != 'n' && options->preview != 'a' &&
+                  options->preview != 'c') {
+               fprintf(stdout, "Invalid preview format \"%c\"\n", options->preview);
+               return DMTXWRITE_ERROR;
+            }
+
             break;
          case 'r':
             options->rotate = StringToLong(optarg);
@@ -385,18 +405,21 @@ OPTIONS:\n"), programName, programName);
   -e, --encoding=[bfactxe8]  encodation scheme\n\
         b = Best optimized   best possible optimization (beta)\n\
         f = Fast optimized   basic optimization (not implemented)\n\
-        a = ASCII [default]  ASCII standard & extended\n\
+        a = ASCII  [default] ASCII standard & extended\n\
         c = C40              digits and uppercase\n\
         t = Text             digits and lowercase\n\
         x = X12              ANSI X12 EDI\n\
         e = EDIFACT          ASCII values 32-94\n\
         8 = Base 256         all byte values 0-255\n\
-  -f, --format=[pnac]        output format\n\
-        p = PNG              [default] PNG image\n\
-        n = PNM              PNM image\n\
-        a = ASCII            print ASCII representation to STDOUT\n\
-        c = Codewords        print internal codewords to STDOUT\n\
+  -f, --format=[npm]         image output format\n\
+        n = None             do not create barcode image\n\
+        p = PNG    [default] PNG image\n\
+        m = PNM              PNM image\n\
   -o, --output=FILE          path of file containing barcode image output\n\
+  -p, --preview=[nac]        print a preview of the barcode data to STDOUT\n\
+        n = None   [default] do not print barcode preview\n\
+        a = ASCII            ASCII-art representation\n\
+        c = Codewords        list data and error codewords\n\
   -r, --rotate=DEGREES       rotation angle (degrees)\n\
   -s, --symbol-size=SIZE     symbol size in Rows x Cols\n\
         Automatic SIZE options:\n\
@@ -411,6 +434,7 @@ OPTIONS:\n"), programName, programName);
              8x18,    8x32,   12x26,   12x36,   16x36,   16x48\n\
   -v, --verbose              use verbose messages\n\
   -M, --mosaic               create non-standard Data Mosaic barcode\n\
+  -R, --resolution=NUM       set physical resolution of image (dpi)\n\
       --help                 display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
    }
