@@ -38,15 +38,20 @@ Encodation scheme.
    e = EDIFACT          ASCII values 32-94
    8 = Base 256         all byte values 0-255
 .TP
-\fB\-f\fP, \fB\-\-format\fP=[pa]
+\fB\-f\fP, \fB\-\-format\fP=[npm]
 Barcode output format.
-   p = PNG              [default] PNG image
-   n = PNM              PNM image
-   a = ASCII            print ASCII representation to STDOUT
-   c = Codewords        print internal codewords to STDOUT
+   n = None             do not create barcode image
+   p = PNG    [default] PNG image
+   m = PNM              PNM image
 .TP
 \fB\-o\fP, \fB\-\-output\fP=\fIFILE\fP
 Barcode output filename.
+.TP
+\fB\-p\fP, \fB\-\-preview\fP=[nac]
+Barcode preview.
+   n = None   [default] do not print barcode preview
+   a = ASCII            ASCII-art representation
+   c = Codewords        list data and error codewords
 .TP
 \fB\-r\fP, \fB\-\-rotate\fP=\fIDEGREES\fP
 Rotation angle. (degrees) (not implemented)
