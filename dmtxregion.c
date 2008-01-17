@@ -103,17 +103,52 @@ dmtxScanLine(DmtxDecode *decode, DmtxDirection dir, int lineNbr)
       if(!success)
          continue;
 
-      success = AllocateStorage(&region, decode);
-      if(!success)
-         continue;
+      /* XXX logic below this point should be broken off into a separate
+         decode function (possibly in dmtxdecode.c) because:
 
-      success = PopulateArrayFromImage2(&region, decode);
-      if(!success)
-         continue;
+         * it has nothing to do with region detection
+         * it needs to be called by different parts of code (mosaic vs matrix)
+         * it needs to be called multiple times during mosaic decoding
 
-      success = DecodeRegion(&region);
-      if(!success)
-         continue;
+         .. but for now just make an ugly hack ...
+      */
+
+      if(decode->mosaic) {
+         fprintf(stdout, "Sorry: Data Mosaic decoding not implemented yet\n\n");
+         /* TODO: modify AllocateStorage() to grab more space for mosaic */
+/*
+         success = AllocateStorage(&region, decode);
+         if(!success)
+            continue;
+*/
+
+         /* TODO: modify PopulateArrayFromImage() to turn on R, G, and B invidually if mosaic */
+/*
+         success = PopulateArrayFromImage(&region, decode);
+         if(!success)
+            continue;
+*/
+
+         /* TODO: modify DecodeRegion() decode R, G, and B channels in order */
+/*
+         success = DecodeRegion(&region);
+         if(!success)
+            continue;
+*/
+      }
+      else {
+         success = AllocateStorage(&region, decode);
+         if(!success)
+            continue;
+
+         success = PopulateArrayFromImage(&region, decode);
+         if(!success)
+            continue;
+
+         success = DecodeRegion(&region);
+         if(!success)
+            continue;
+      }
 
       /* We are now holding a valid, fully decoded Data Matrix barcode.
          Add this to the list of valid barcodes and continue searching
@@ -649,14 +684,10 @@ MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
 /*fprintf(stdout, "MatrixRegionAlignSecondEdge()\n"); */
 
    /* Scan top edge left-to-right (shear only)
-      .---
-      |
 
-      If used, alter chain as follows:
-         O = intersection of known edges
-         T = farthest known point along scanned edge
-         R = old O
-         update tx, ty, rotate, scx, scy, shear based on this info
+      +---   O = intersection of known edges
+      |      T = farthest known point along scanned edge
+      |      R = old O
    */
    dmtxMatrix3Shear(postRaw2Fit, 0.0, 1.0);
    dmtxMatrix3Shear(preFit2Raw, 0.0, -1.0);
@@ -665,14 +696,10 @@ MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
          preFit2Raw, &p0[0], &p1[0], &pCorner[0], &weakCount[0]);
 
    /* Scan top edge right-to-left (horizontal flip and shear)
-      ---.
-         |
 
-      If used, alter chain as follows:
-         O = intersection of known edges
-         T = old O
-         R = farthest known point along scanned edge
-         update tx, ty, rotate, scx, scy, shear based on this info
+      ---+   O = intersection of known edges
+         |   T = old O
+         |   R = farthest known point along scanned edge
    */
    dmtxMatrix3Scale(flip, -1.0, 1.0);
    dmtxMatrix3Shear(shear, 0.0, 1.0);
@@ -686,14 +713,10 @@ MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
          preFit2Raw, &p0[1], &p1[1], &pCorner[1], &weakCount[1]);
 
    /* Scan bottom edge left-to-right (vertical flip and shear)
-      |
-      '---
 
-      If used, alter chain as follows:
-         O = intersection of known edges
-         T = old T
-         R = farthest known point along scanned edge
-         update tx, ty, rotate, scx, scy, shear based on this info
+      |      O = intersection of known edges
+      |      T = old T
+      +---   R = farthest known point along scanned edge
    */
    dmtxMatrix3Scale(flip, 1.0, -1.0);
    dmtxMatrix3Translate(xlate, 0.0, 1.0);
@@ -711,14 +734,10 @@ MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
          preFit2Raw, &p0[2], &p1[2], &pCorner[2], &weakCount[2]);
 
    /* Scan bottom edge right-to-left (flip flip shear)
-         |
-      ---'
 
-      If used, alter chain as follows:
-         O = intersection of known edges
-         T = farthest known point along scanned edge
-         R = old T
-         update tx, ty, rotate, scx, scy, shear based on this info
+         |   O = intersection of known edges
+         |   T = farthest known point along scanned edge
+      ---+   R = old T
    */
    dmtxMatrix3Scale(flip, -1.0, -1.0);
    dmtxMatrix3Translate(xlate, 0.0, 1.0);
@@ -1178,7 +1197,8 @@ StepAlongEdge(DmtxImage *image, DmtxMatrixRegion *region, DmtxVector2 *pProgress
    accelNext = compassNext.magnitude - compass.magnitude;
 
    /* If we found a strong edge then calculate the zero crossing */
-   /* XXX explore expanding this test to allow a little more fudge (without screwing up edge placement later) */
+   /* XXX explore expanding this test to allow a little more fudge (without
+      screwing up edge placement later) */
    if(accelPrev * accelNext < DMTX_ALMOST_ZERO) {
 
       dmtxVector2AddTo(pProgress, &lateral);
@@ -1428,7 +1448,7 @@ MatrixRegionFindSize(DmtxMatrixRegion *region, DmtxDecode *decode)
  * @return XXX
  */
 static int
-PopulateArrayFromImage2(DmtxMatrixRegion *region, DmtxDecode *decode)
+PopulateArrayFromImage(DmtxMatrixRegion *region, DmtxDecode *decode)
 {
    int col, row, rowTmp;
    int symbolRow, symbolCol;
