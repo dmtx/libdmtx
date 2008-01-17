@@ -2,6 +2,8 @@ TODO Items
 -----------------------------------------------------------------
 
 version 0.5:
+  o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
+  o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Allow choice of edge-drop condition passed to MatrixRegionAlignEdge()
   o libdmtx:   Implement error correction (initially through libfec)
   o libdmtx:   Implement image mask to track scan progress and avoid rescanned pixels
@@ -28,7 +30,7 @@ version 0.5:
   o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
   o testsuite: 'make test' writes metrics file
   o testsuite: 'make test' confirms performance
-  / project:   Remove gltest and simpletest from default build target (autoreconf required)
+  x project:   Remove gltest and simpletest from default build target (autoreconf required)
   o project:   Figure out way to include extra files (and not .svn) without compiling
   o project:   Update revision control variables to be SVN friendly
                o $Id$
