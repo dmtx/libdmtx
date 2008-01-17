@@ -75,7 +75,7 @@ main(int argc, char *argv[])
    InitUserOptions(&options);
 
    decode = dmtxDecodeStructCreate();
-   decode->option = DmtxSingleScanOnly;
+   decode->option = DmtxSingleScanOnly; // XXX this will go away with incremental scanning
 
    err = HandleArgs(&options, &argc, &argv, &fileIndex, decode);
    if(err)
@@ -126,7 +126,6 @@ InitUserOptions(UserOptions *options)
    options->region = NULL;
    options->verbose = 0;
    options->coordinates = 0;
-   options->mosaic = 0;
    options->pageNumber = 0;
 }
 
@@ -192,7 +191,6 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, Dmt
             options->coordinates = 1;
             break;
          case 'M':
-            options->mosaic = 1;
             decode->mosaic = 1;
             break;
          case 'P':
