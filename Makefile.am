@@ -29,6 +29,5 @@ EXTRA_DIST = KNOWNBUG \
 	script/check_whitespace.sh \
 	script/dist-image.sh \
 	test/images_opengl/* \
-	test/test_compare/* \
 	bindings/python/* \
 	bindings/php/*
