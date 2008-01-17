@@ -24,13 +24,14 @@ version 0.5:
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
   o dmtxwrite: Print character values (not just codewords) from --format=c (-fc) option
   o dmtxwrite: Verbose messages describing encoding process
+  x dmtxwrite: Moved ASCII and codeword output to separate --preview option
   o testsuite: Generate metrics in reproducible format to enable historical tracking
   o testsuite: Investigate option of embedding decoded text into PNG test image comments
   o testsuite: Tests should compare scanned results to embedded PNG comments
   o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
   o testsuite: 'make test' writes metrics file
   o testsuite: 'make test' confirms performance
-  x project:   Remove gltest and simpletest from default build target (autoreconf required)
+  x project:   Remove gltest and simpletest from default build target
   o project:   Figure out way to include extra files (and not .svn) without compiling
   o project:   Update revision control variables to be SVN friendly
                o $Id$
