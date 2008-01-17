@@ -26,6 +26,7 @@ version 0.5:
   o dmtxread:  Add option to write image of path scanned and regions found (from mask)
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
   x dmtxwrite: Move ASCII and codeword output to separate --preview option
+  x dmtxwrite: Added -R option for setting image print resolution in dpi (PNG only)
   o dmtxwrite: Print character values (not just codewords) from --format=c (-fc) option
   o dmtxwrite: Verbose messages describing encoding process
   o testsuite: Generate metrics in reproducible format to enable historical tracking
