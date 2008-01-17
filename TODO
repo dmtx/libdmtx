@@ -2,15 +2,18 @@ TODO Items
 -----------------------------------------------------------------
 
 version 0.5:
+  x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
+  / libdmtx:   Use new Edifact decode function that doesn't assume full triplet
+  x libdmtx:   Fix TestForEndOfSymbolEdifact() to handle special cases correctly
+  o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
-  o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Allow choice of edge-drop condition passed to MatrixRegionAlignEdge()
   o libdmtx:   Implement error correction (initially through libfec)
   o libdmtx:   Implement image mask to track scan progress and avoid rescanned pixels
   o libdmtx:   Implement multiple barcodes as incremental choice offered to calling app
   o libdmtx:   Based on "incremental choice", remove unnecessary mallocs (single in stack)
+  o libdmtx:   Replace dmtxScanLine() with dmtxScanPixel()
   o libdmtx:   Roll scan pattern into core library (inward breadth-first cross)
-  o libdmtx:   Capture high-level design in documentation (data flow, module analogies)
   o libdmtx:   Thorough test for memory leaks
   o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
@@ -18,13 +21,13 @@ version 0.5:
   o libdmtx:   Add calibration functionality to remove spherical distortion
   o libdmtx:   Implement overlap detection to avoid rescanning in successfully decoded regions
   o libdmtx:   Implement structured append symbols
-  x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
+  o libdmtx:   Capture high-level design in documentation (data flow, module analogies)
   o dmtxread:  JPEG support
   o dmtxread:  Add option to write image of path scanned and regions found (from mask)
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
+  x dmtxwrite: Move ASCII and codeword output to separate --preview option
   o dmtxwrite: Print character values (not just codewords) from --format=c (-fc) option
   o dmtxwrite: Verbose messages describing encoding process
-  x dmtxwrite: Moved ASCII and codeword output to separate --preview option
   o testsuite: Generate metrics in reproducible format to enable historical tracking
   o testsuite: Investigate option of embedding decoded text into PNG test image comments
   o testsuite: Tests should compare scanned results to embedded PNG comments
@@ -33,9 +36,7 @@ version 0.5:
   o testsuite: 'make test' confirms performance
   x project:   Remove gltest and simpletest from default build target
   o project:   Figure out way to include extra files (and not .svn) without compiling
-  o project:   Update revision control variables to be SVN friendly
-               o $Id$
-               o $Log$
+  o project:   Update revision control variables to be SVN friendly (e.g., $Id$, $Log$)
 
 version 0.4: (07-Dec-2008)
   x libdmtx:   Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
