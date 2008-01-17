@@ -121,7 +121,7 @@ static int StepAlongEdge(DmtxImage *image, DmtxMatrixRegion *region, DmtxVector2
 static int AllocateStorage(DmtxMatrixRegion *region, DmtxDecode *decode);
 static DmtxColor3 ReadModuleColor(DmtxDecode *decode, int symbolRow, int symbolCol, int sizeIdx, DmtxMatrix3 fit2raw);
 static int MatrixRegionFindSize(DmtxMatrixRegion *region, DmtxDecode *decode);
-static int PopulateArrayFromImage2(DmtxMatrixRegion *region, DmtxDecode *decode);
+static int PopulateArrayFromImage(DmtxMatrixRegion *region, DmtxDecode *decode);
 
 /* dmtxdecode.c */
 static int DecodeRegion(DmtxMatrixRegion *region);
