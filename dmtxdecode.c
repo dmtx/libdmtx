@@ -430,6 +430,38 @@ DecodeSchemeEdifact(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char 
    }
 
    return ptr;
+
+/* XXX the following version should be safer, but requires testing before replacing the old version
+   int bits = 0;
+   int bitCount = 0;
+   int value;
+
+   while(ptr < dataEnd) {
+
+      if(bitCount < 6) {
+         bits = (bits << 8) | *(ptr++);
+         bitCount += 8;
+      }
+
+      value = bits >> (bitCount - 6);
+      bits -= (value << (bitCount - 6));
+      bitCount -= 6;
+
+      if(value == 0x1f) {
+         assert(bits == 0); // should be padded with zero-value bits
+         return ptr;
+      }
+      region->output[region->outputIdx++] = value ^ (((value & 0x20) ^ 0x20) << 1);
+
+      // Unlatch implied if just completed triplet and 1 or 2 words are left
+      if(bitCount == 0 && dataEnd - ptr - 1 > 0 && dataEnd - ptr - 1 < 3)
+         return ptr;
+   }
+
+   assert(bits == 0); // should be padded with zero-value bits
+   assert(bitCount == 0); // should be padded with zero-value bits
+   return ptr;
+*/
 }
 
 /**
