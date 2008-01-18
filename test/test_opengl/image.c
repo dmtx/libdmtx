@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mblaughton@users.sourceforge.net
 */
 
-/* $Id: image.c,v 1.5 2006/10/13 01:54:35 mblaughton Exp $ */
+/* $Id$ */
 
 #include <stdlib.h>
 #include <stdio.h>

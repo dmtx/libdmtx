@@ -1,7 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
 
-Copyright (c) 2007 Mike Laughton
+Copyright (c) 2008 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxwrite.h,v 1.3 2006/10/12 18:22:39 mblaughton Exp $ */
+/* $Id$ */
 
 #ifndef __DMTXWRITE_H__
 #define __DMTXWRITE_H__

@@ -1,7 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
 
-Copyright (c) 2007 Mike Laughton
+Copyright (c) 2008 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxregion.c,v 1.16 2006/10/23 22:14:27 mblaughton Exp $ */
+/* $Id$ */
 
 /**
  * Scans through a line (vertical or horizontal) of the source image to
@@ -116,21 +116,21 @@ dmtxScanLine(DmtxDecode *decode, DmtxDirection dir, int lineNbr)
       if(decode->mosaic) {
          fprintf(stdout, "Sorry: Data Mosaic decoding not implemented yet\n\n");
          /* TODO: modify AllocateStorage() to grab more space for mosaic */
-/*
+/**
          success = AllocateStorage(&region, decode);
          if(!success)
             continue;
 */
 
          /* TODO: modify PopulateArrayFromImage() to turn on R, G, and B invidually if mosaic */
-/*
+/**
          success = PopulateArrayFromImage(&region, decode);
          if(!success)
             continue;
 */
 
          /* TODO: modify DecodeRegion() decode R, G, and B channels in order */
-/*
+/**
          success = DecodeRegion(&region);
          if(!success)
             continue;

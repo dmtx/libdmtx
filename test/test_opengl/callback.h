@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mblaughton@users.sourceforge.net
 */
 
-/* $Id: callback.h,v 1.4 2006/10/13 01:54:35 mblaughton Exp $ */
+/* $Id$ */
 
 #ifndef __CALLBACK_H__
 #define __CALLBACK_H__

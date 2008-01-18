@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: simpletest.c,v 1.2 2006/10/09 23:21:28 mblaughton Exp $ */
+/* $Id$ */
 
 #include <stdlib.h>
 #include <stdio.h>

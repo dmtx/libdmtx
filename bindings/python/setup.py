@@ -17,7 +17,7 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-# $Id: pydmtx.py,v 1.1 2006/10/06 05:29:51 mblaughton Exp $
+# $Id$
 
 from distutils.core import setup, Extension
 

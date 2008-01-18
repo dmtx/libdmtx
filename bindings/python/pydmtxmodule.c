@@ -22,7 +22,7 @@ Contact: dcwatson@gmail.com
          mike@dragonflylogic.com
 */
 
-/* $Id: dmtx.h,v 1.10 2006/10/06 05:29:51 mblaughton Exp $ */
+/* $Id$ */
 
 #include <string.h>
 #include <Python.h>

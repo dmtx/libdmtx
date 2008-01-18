@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mblaughton@users.sourceforge.net
 */
 
-/* $Id: display.h,v 1.3 2006/10/13 01:54:35 mblaughton Exp $ */
+/* $Id$ */
 
 #include <GL/gl.h>
 #include <GL/glu.h>
