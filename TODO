@@ -36,8 +36,9 @@ version 0.5:
   o testsuite: 'make test' writes metrics file
   o testsuite: 'make test' confirms performance
   x project:   Remove gltest and simpletest from default build target
+  x project:   Update Subversion to be keyword friendly ($Id$)
   o project:   Figure out way to include extra files (and not .svn) without compiling
-  o project:   Update revision control variables to be SVN friendly (e.g., $Id$, $Log$)
+  o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
 
 version 0.4: (07-Dec-2008)
   x libdmtx:   Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
