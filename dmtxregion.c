@@ -1227,11 +1227,10 @@ StepAlongEdge(DmtxImage *image, DmtxMatrixRegion *region, DmtxVector2 *pProgress
 }
 
 /**
- * Determine pattern size by testing calibration bar for presence of
- * alternating foreground and background colored modules.  All barcode
- * regions are treated as one large pattern during this step, even if using
- * the structure append format, since we are only looking at the outside
- * perimeter.
+ * Determine pattern size by testing calibration bars for alternating
+ * foreground and background color modules.  All barcode regions are
+ * treated as one large pattern during this step, even multiregion
+ * barcodes, since we are only looking at the outside perimeter.
  *
  * @param
  * @return XXX
