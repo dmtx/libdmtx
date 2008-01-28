@@ -85,16 +85,36 @@ main(int argc, char *argv[])
    if(err)
       ShowUsage(err);
 
+   // Loop through all image files named in paramter list
    while(fileIndex < argc) {
 
       imagePath = argv[fileIndex];
+/*
+   pageIndex = 0;
+   for(;;) {
 
-      // Loop through all "pages" present in current image
+      // LoadImage() will return pageCount of at least 1
+      image = LoadImage(argv[fileIndex], pageIndex++);
+
+      scan(image);
+
+      if(pageIndex >= image.pageCount) {
+         fileIndex++;
+         pageIndex = 0;
+      }
+   }
+*/
+      // Loop through all "pages" present in image
       imageIndex = 0;
       do {
-         dmtxImageInit(&decode.image);
+         // XXX does this really do anything? maybe dmtxImageInit() should
+         // receive width and height, and whould be called from the
+         // LoadImage() function after width and height are read from image
+         // file header
+         dmtxImageInit(&decode.image); // XXX call me in LoadImagePng() instead
 
          imageCount = LoadImage(&decode.image, imagePath, imageIndex);
+         // imageCount = LoadImage(&image, imageFilePath, imageFileIndex);
 
          if(imageCount == 0)
             break;
@@ -104,6 +124,7 @@ main(int argc, char *argv[])
          p1.Y = decode.image.height - 1;
 
          decode = dmtxDecodeInit(&decode.image, p0, p1, options.scanGap);
+         // decode = dmtxDecodeInit(&image, p0, p1, options.scanGap);
 
 /* XXX and this is how it should be (very soon) ...
 
@@ -519,7 +540,9 @@ LoadImagePng(DmtxImage *image, char *imagePath)
    // This copy reverses row order top-to-bottom so image coordinate system
    // corresponds with normal "right-handed" 2D space
    for(row = 0; row < image->height; row++) {
-      memcpy(image->pxl + (row * image->width), rowPointers[image->height - row - 1], image->width * sizeof(DmtxPixel));
+      memcpy(image->pxl + (row * image->width),
+            rowPointers[image->height - row - 1],
+            image->width * sizeof(DmtxPixel));
    }
 
    for(row = 0; row < height; row++) {
@@ -538,7 +561,7 @@ LoadImagePng(DmtxImage *image, char *imagePath)
  *
  * @param image    pointer to DmtxImage structure to be populated
  * @param filename path/name of PNG image
- * @return         number of images loaded
+ * @return         number of pages contained in image file
  */
 static int
 LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex)
