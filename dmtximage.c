@@ -45,9 +45,8 @@ dmtxImageDeInit(DmtxImage *image)
    if(image == NULL)
       return 0; /* Error */
 
-   if(image->pxl != NULL) {
+   if(image->pxl != NULL)
       free(image->pxl);
-   }
 
    memset(image, 0x00, sizeof(DmtxImage));
 
