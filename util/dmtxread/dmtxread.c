@@ -131,11 +131,11 @@ main(int argc, char *argv[])
    int err;
    int fileIndex;
    int pageIndex;
-   DmtxImage image;
+   DmtxImage *image;
    DmtxPixelLoc p0, p1;
    DmtxDecode decode;
    DmtxRegion region;
-   DmtxMessage message;
+   DmtxMessage *message;
 
    SetOptionDefaults(&options); // XXX was InitUserOptions()
 
@@ -143,20 +143,20 @@ main(int argc, char *argv[])
    if(err)
       ShowUsage(err);
 
-   // Loop once for each page of each image file in paramter list
+   // Loop once for each page of each image file in parameter list
    for(pageIndex = 0; fileIndex < argc;) {
 
-      // Load image page from file (many formats are single page only)
+      // Load image page from file (many formats only support single page)
       image = LoadImage(argv[fileIndex], pageIndex++); // XXX calls dmtxImageInit()
 
       // Increment counters early so 'continue' doesn't break indexing
-      if(pageIndex >= image.pageCount) {
+      if(pageIndex >= image->pageCount) {
          fileIndex++;
          pageIndex = 0;
       }
 
       // If file doesn't contain at least one image then something went wrong
-      if(image.pageCount < 1) {
+      if(image->pageCount < 1) {
          // error
          continue;
       }
@@ -164,11 +164,11 @@ main(int argc, char *argv[])
       // Determine image region to be scanned (XXX account for user option too)
       p0.X = 0;
       p0.Y = 0;
-      p1.X = image.width - 1;
-      p1.Y = image.height - 1;
+      p1.X = image->width - 1;
+      p1.Y = image->height - 1;
 
       // Initialize decode struct for loaded image
-      decode = dmtxDecodeInit(&image, p0, p1, options.scanGap);
+      decode = dmtxDecodeInit(image, p0, p1, options.scanGap);
 
       // Loop once for each barcode region detected
       for(;;) {
@@ -187,14 +187,14 @@ main(int argc, char *argv[])
          // XXX later change this to a opt-in debug option
          //WriteImagePnm(&options, &decode, imagePath);
 
-         PrintDecodedOutput(&message, &options, &decode, imageIndex);
+         PrintDecodedOutput(message, &options, &decode, pageIndex);
 
-         dmtxDeInitMessage(&message);
+         dmtxDeInitMessage(message);
 
          break; // XXX for now, break after first barcode found in image
       }
 
-      dmtxImageDeInit(&decode.image);
+      dmtxImageDeInit(&image);
    }
 
    exit(0);
