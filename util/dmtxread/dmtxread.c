@@ -135,23 +135,21 @@ main(int argc, char *argv[])
    DmtxPixelLoc p0, p1;
    DmtxDecode decode;
    DmtxRegion region;
-   DmtxBarcode matrix, mosaic;
+   DmtxMessage message;
 
    SetOptionDefaults(&options); // XXX was InitUserOptions()
 
-   // XXX remove decode from HandleArgs() parameter list
-   err = HandleArgs(&options, &argc, &argv, &fileIndex, &decode);
+   err = HandleArgs(&options, &fileIndex, &argc, &argv);
    if(err)
       ShowUsage(err);
 
-   // Loop once for each image file named in paramter list
+   // Loop once for each page of each image file in paramter list
    for(pageIndex = 0; fileIndex < argc;) {
 
-      // Load image from file
-      // XXX dmtxImageInit(&decode.image); call me in LoadImagePng() instead
-      image = LoadImage(argv[fileIndex], pageIndex++);
+      // Load image page from file (many formats are single page only)
+      image = LoadImage(argv[fileIndex], pageIndex++); // XXX calls dmtxImageInit()
 
-      // Update file/page counter early so 'continue' doesn't break indexing
+      // Increment counters early so 'continue' doesn't break indexing
       if(pageIndex >= image.pageCount) {
          fileIndex++;
          pageIndex = 0;
@@ -184,18 +182,14 @@ main(int argc, char *argv[])
             continue; // (can this even happen?)
 
          // Decode region based on requested scan mode
-         if(options.mosaic)
-            mosaic = dmtxDecodeMosaic(&region);
-         else
-            matrix = dmtxDecodeMatrix(&region);
+         message = (options.mosaic) ? dmtxDecodeMosaic(&region) : dmtxDecodeMosaic(&region);
 
          // XXX later change this to a opt-in debug option
          //WriteImagePnm(&options, &decode, imagePath);
 
-         PrintDecodedOutput(&options, &decode, imageIndex); // XXX mosaic / matrix?
+         PrintDecodedOutput(&message, &options, &decode, imageIndex);
 
-         dmtxDeInitMatrix(&matrix);
-         dmtxDeInitMosaic(&mosaic);
+         dmtxDeInitMessage(&message);
 
          break; // XXX for now, break after first barcode found in image
       }
