@@ -80,6 +80,7 @@ main(int argc, char *argv[])
    memset(&decode, 0x00, sizeof(DmtxDecode));
    memset(&region, 0x00, sizeof(DmtxMatrixRegion));
 
+   // XXX remove decode from HandleArgs() parameter list
    err = HandleArgs(&options, &argc, &argv, &fileIndex, &decode);
    if(err)
       ShowUsage(err);
@@ -88,6 +89,7 @@ main(int argc, char *argv[])
 
       imagePath = argv[fileIndex];
 
+      // Loop through all "pages" present in current image
       imageIndex = 0;
       do {
          dmtxImageInit(&decode.image);
@@ -113,9 +115,9 @@ main(int argc, char *argv[])
             continue; (can this even happen?)
 
          if(options.mosaic)
-            matrix = dmtxDecodeMatrix(&region);
-         else
             mosaic = dmtxDecodeMosaic(&region);
+         else
+            matrix = dmtxDecodeMatrix(&region);
 
          // use it here
 
