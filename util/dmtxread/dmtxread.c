@@ -103,6 +103,26 @@ main(int argc, char *argv[])
 
          decode = dmtxDecodeInit(&decode.image, p0, p1, options.scanGap);
 
+/* XXX and this is how it should be (very soon) ...
+
+         region = dmtxFindNextRegion(&decode);
+
+         if(region.status == DMTX_NO_MORE)
+            break;
+         else if(region.status == DMTX_INVALID)
+            continue; (can this even happen?)
+
+         if(options.mosaic)
+            matrix = dmtxDecodeMatrix(&region);
+         else
+            mosaic = dmtxDecodeMosaic(&region);
+
+         // use it here
+
+         dmtxDeInitMatrix(&matrix);
+         dmtxDeInitMosaic(&matrix);
+*/
+
          count = dmtxFindNextRegion(&decode);
          if(count == 0)
             continue;
