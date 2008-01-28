@@ -49,8 +49,8 @@ static ImageFormat GetImageFormat(char *imagePath);
 static int LoadImage(DmtxImage *image, char *imagePath, int imageIndex);
 static int LoadImagePng(DmtxImage *image, char *imagePath);
 static int LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex);
-static int ScanImage(UserOptions *options, DmtxDecode *decode);
 static int PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int imageIndex);
+static void WriteImagePnm(UserOptions *options, DmtxDecode *decode, char *imagePath);
 
 char *programName;
 
@@ -66,18 +66,21 @@ main(int argc, char *argv[])
 {
    int err;
    int fileIndex;
-   DmtxDecode *decode;
+   DmtxDecode decode;
+   DmtxMatrixRegion region;
    UserOptions options;
    char *imagePath;
    int imageCount;
    int imageIndex;
+   int count;
+   DmtxPixelLoc p0, p1;
 
    InitUserOptions(&options);
 
-   decode = dmtxDecodeStructCreate();
-   decode->option = DmtxSingleScanOnly; // XXX this will go away with incremental scanning
+   memset(&decode, 0x00, sizeof(DmtxDecode));
+   memset(&region, 0x00, sizeof(DmtxMatrixRegion));
 
-   err = HandleArgs(&options, &argc, &argv, &fileIndex, decode);
+   err = HandleArgs(&options, &argc, &argv, &fileIndex, &decode);
    if(err)
       ShowUsage(err);
 
@@ -87,25 +90,33 @@ main(int argc, char *argv[])
 
       imageIndex = 0;
       do {
-         dmtxImageInit(&(decode->image));
+         dmtxImageInit(&decode.image);
 
-         imageCount = LoadImage(&(decode->image), imagePath, imageIndex);
+         imageCount = LoadImage(&decode.image, imagePath, imageIndex);
 
          if(imageCount == 0)
             break;
 
-         ScanImage(&options, decode);
+         p0.X = p0.Y = 0;
+         p1.X = decode.image.width - 1;
+         p1.Y = decode.image.height - 1;
 
-         PrintDecodedOutput(&options, decode, imageIndex);
+         decode = dmtxDecodeInit(&decode.image, p0, p1, options.scanGap);
 
-         dmtxImageDeInit(&(decode->image));
+         count = dmtxFindNextRegion(&decode);
+         if(count == 0)
+            continue;
 
+         // XXX later change this to a opt-in debug option
+         WriteImagePnm(&options, &decode, imagePath);
+
+         PrintDecodedOutput(&options, &decode, imageIndex);
+
+         dmtxImageDeInit(&decode.image);
       } while(++imageIndex < imageCount);
 
       fileIndex++;
    }
-
-   dmtxDecodeStructDestroy(&decode);
 
    exit(0);
 }
@@ -573,40 +584,6 @@ LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex)
 }
 
 /**
- * Scan image for Data Matrix barcodes within image.
- *
- * @param options   runtime options from defaults or command line
- * @param decode    pointer to DmtxDecode struct
- * @return          DMTXREAD_SUCCESS | DMTXREAD_ERROR
- */
-static int
-ScanImage(UserOptions *options, DmtxDecode *decode)
-{
-   int row, col;
-
-   dmtxScanStartNew(decode);
-
-   for(row = options->scanGap; row < decode->image.height; row += options->scanGap) {
-      if(dmtxDecodeGetMatrixCount(decode) > 0)
-         break;
-      else
-         dmtxScanLine(decode, DmtxDirRight, row);
-   }
-
-   for(col = options->scanGap; col < decode->image.width; col += options->scanGap) {
-      if(dmtxDecodeGetMatrixCount(decode) > 0)
-         break;
-      else
-         dmtxScanLine(decode, DmtxDirUp, col);
-   }
-
-   if(dmtxDecodeGetMatrixCount(decode) == 0)
-      return DMTXREAD_ERROR; // XXX maybe this should return the number of barcodes instead of ERROR?
-
-   return DMTXREAD_SUCCESS;
-}
-
-/**
  * XXX
  *
  * @param options   runtime options from defaults or command line
@@ -620,12 +597,16 @@ PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int imageIndex)
    int dataWordLength;
    DmtxMatrixRegion *region;
 
-   region = dmtxDecodeGetMatrix(decode, 0);
-   if(region == NULL)
-      return DMTXREAD_ERROR;
+// region = dmtxDecodeGetMatrix(decode, 0);
+// if(region == NULL)
+//    return DMTXREAD_ERROR;
+
+   region = &(decode->matrix);
+
+// if(region->status != DMTX_STATUS_VALID)
+//    return DMTXREAD_ERROR;
 
    dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, region->sizeIdx);
-
    if(options->verbose) {
       fprintf(stdout, "--------------------------------------------------\n");
       fprintf(stdout, "       Matrix Size: %d x %d\n",
@@ -680,4 +661,41 @@ PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int imageIndex)
    }
 
    return DMTXREAD_SUCCESS;
+}
+
+/**
+ *
+ */
+static void
+WriteImagePnm(UserOptions *options, DmtxDecode *decode, char *imagePath)
+{
+   int row, col;
+   int moduleStatus;
+   FILE *fp;
+   DmtxMatrixRegion *matrix;
+
+   matrix = &(decode->matrix);
+
+   /* XXX later change this to append to the input filename */
+   imagePath = "debug.pnm";
+
+   /* Flip rows top-to-bottom to account for PNM "top-left" origin */
+   fp = fopen(imagePath, "wb");
+   if(fp == NULL) {
+      perror(programName);
+      exit(3);
+   }
+
+   fprintf(fp, "P6 %d %d 255 ", matrix->symbolCols, matrix->symbolRows);
+   for(row = matrix->symbolRows - 1; row  >= 0; row--) {
+      for(col = 0; col < matrix->symbolCols; col++) {
+         moduleStatus = dmtxSymbolModuleStatus(matrix, row, col);
+
+         fputc((moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255, fp);
+         fputc((moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255, fp);
+         fputc((moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255, fp);
+      }
+   }
+
+   fclose(fp);
 }

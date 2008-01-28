@@ -185,7 +185,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 dmtxwrite_SOURCES = dmtxwrite.c dmtxwrite.h
 dmtxwrite_LDFLAGS = -lm -lpng
-dmtxwrite_debug_SOURCES = dmtxwrite.c
+dmtxwrite_debug_SOURCES = dmtxwrite.c dmtxwrite.h
 dmtxwrite_debug_LDFLAGS = -lm -lpng -static
 LDADD = ../../libdmtx.la
 all: all-am

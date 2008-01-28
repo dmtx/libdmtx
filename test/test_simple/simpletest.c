@@ -34,7 +34,8 @@ main(int argc, char **argv)
    unsigned char testString[] = "30Q324343430794<OQQ";
    DmtxImage image;
    DmtxEncode *encode;
-   DmtxDecode *decode;
+   DmtxDecode decode;
+   DmtxPixelLoc p0, p1;
 
    fprintf(stdout, "input:  \"%s\"\n", testString);
 
@@ -61,21 +62,21 @@ main(int argc, char **argv)
     * 2) Read the Data Matrix barcode from above
     */
 
-   decode = dmtxDecodeStructCreate();
-   decode->option = DmtxSingleScanOnly;
-   decode->image = image;
+   p0.X = p0.Y = 0;
+   p1.X = image.width - 1;
+   p1.Y = image.height - 1;
+   decode = dmtxDecodeInit(&image, p0, p1, 5);
 
-   count += dmtxScanLine(decode, DmtxDirUp, decode->image.width/2);
-   count += dmtxScanLine(decode, DmtxDirRight, decode->image.height/2);
+   count = dmtxFindNextRegion(&decode);
 
    if(count > 0) {
       fprintf(stdout, "output: \"");
-      fwrite(decode->matrix[0].output, sizeof(unsigned char),
-            decode->matrix[0].outputIdx, stdout);
+      fwrite(decode.matrix.output, sizeof(unsigned char),
+            decode.matrix.outputIdx, stdout);
       fprintf(stdout, "\"\n\n");
    }
 
-   dmtxDecodeStructDestroy(&decode);
+   dmtxImageDeInit(&image);
 
    exit(0);
 }

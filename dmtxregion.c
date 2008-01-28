@@ -22,145 +22,130 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
-/**
- * Scans through a line (vertical or horizontal) of the source image to
- * find and decode valid Data Matrix barcode regions.
+/*
  *
+ *
+ */
+extern int
+dmtxFindNextRegion(DmtxDecode *decode)
+{
+   DmtxPixelLoc loc;
+   DmtxScanGrid *grid;
+
+   grid = &(decode->grid);
+
+   /* Pick up where we left off after last scan */
+   while(grid->extent >= grid->minExtent) {
+
+      loc = GetGridCoordinates(grid);
+      IncrementPixelProgress(grid);
+
+      if(dmtxScanPixel(decode, loc))
+         return 1;
+   }
+
+   return 0;
+}
+
+/**
  * @param decode   pointer to DmtxDecode information struct
  * @param dir      scan direction (DmtxUp|DmtxRight)
  * @param lineNbr  number of image row or column to be scanned
  * @return         number of barcodes scanned
  */
 extern int
-dmtxScanLine(DmtxDecode *decode, DmtxDirection dir, int lineNbr)
+dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
 {
-   int lineOffset, travelLimit;
-   int *x, *y;
    int success;
    DmtxEdgeSubPixel edgeStart;
    DmtxRay2 ray0, ray1;
    DmtxCompassEdge compassEdge;
-   DmtxMatrixRegion region;
 
-   /* XXX rethink about which direction we should scan in, and how this can be controlled by user */
-   assert(dir == DmtxDirRight || dir == DmtxDirUp);
+   /* Test whether this pixel is sitting on an edge of any direction */
+   compassEdge = GetCompassEdge(&(decode->image), loc.X, loc.Y, DMTX_ALL_COMPASS_DIRS);
+   if(compassEdge.magnitude < 60)
+      return 0;
 
-   travelLimit = (dir == DmtxDirRight) ? decode->image.width : decode->image.height;
+   /* If the edge is strong then find its subpixel location */
+   edgeStart = FindZeroCrossing(&(decode->image), loc.X, loc.Y, compassEdge);
+   edgeStart.compass = compassEdge; /* XXX for now ... need to preserve scanDir */
+   if(!edgeStart.isEdge)
+      return 0;
 
-   if(dir == DmtxDirRight) {
-      x = &lineOffset;
-      y = &lineNbr;
+   /* Next follow it to the end in both directions */
+   ray0 = FollowEdge(&(decode->image), loc.X, loc.Y, edgeStart, 1, decode);
+   ray1 = FollowEdge(&(decode->image), loc.X, loc.Y, edgeStart, -1, decode);
+
+   memset(&(decode->matrix), 0x00, sizeof(DmtxMatrixRegion));
+
+   success = MatrixRegionAlignFirstEdge(decode, &edgeStart, ray0, ray1);
+   if(!success)
+      return 0;
+
+   success = MatrixRegionAlignSecondEdge(decode);
+   if(!success)
+      return 0;
+
+   success = MatrixRegionAlignRightEdge(decode);
+   if(!success)
+      return 0;
+
+   success = MatrixRegionAlignTopEdge(decode);
+   if(!success)
+      return 0;
+
+   /* XXX When adding clipping functionality against previously
+      scanned barcodes, this is a good place to add a test for
+      collisions.  Although we tested for this early on in the jump
+      region scan, the subsequent follower and alignment steps may
+      have moved us into a collision with another matrix region.  A
+      collision at this point is grounds for immediate failure. */
+
+   success = MatrixRegionFindSize(decode);
+   if(!success)
+      return 0;
+
+   /* XXX logic below this point should be broken off into a separate
+      decode function (possibly in dmtxdecode.c) because:
+
+      * it has nothing to do with region detection
+      * it needs to be called by different parts of code (mosaic vs matrix)
+      * it needs to be called multiple times during mosaic decoding
+
+      .. but for now just make an ugly hack ...
+   */
+
+   if(decode->mosaic) {
+      success = AllocateStorage(decode);
+      if(!success)
+         return 0;
+
+      success = PopulateArrayFromMosaic(decode);
+      if(!success)
+         return 0;
+/**
+      success = DecodeMosaicRegion(&region);
+      if(!success) {
+         decode->matrix.status = DMTX_STATUS_INVALID;
+         return 0;
+      }
+*/
    }
    else {
-      x = &lineNbr;
-      y = &lineOffset;
+      success = AllocateStorage(decode);
+      if(!success)
+         return 0;
+
+      success = PopulateArrayFromMatrix(decode);
+      if(!success)
+         return 0;
+
+      success = DecodeMatrixRegion(&(decode->matrix));
+      if(!success)
+         return 0;
    }
 
-   /* Loop through each pixel in the scanline */
-   for(lineOffset = 0; lineOffset < travelLimit; lineOffset++) {
-
-      /* Test whether this pixel is sitting on an edge of any direction */
-      compassEdge = GetCompassEdge(&(decode->image), *x, *y, DMTX_ALL_COMPASS_DIRS);
-      if(compassEdge.magnitude < 60)
-         continue;
-
-      /* If the edge is strong then find its subpixel location */
-      edgeStart = FindZeroCrossing(&(decode->image), *x, *y, compassEdge);
-      edgeStart.compass = compassEdge; /* XXX for now ... need to preserve scanDir */
-      if(!edgeStart.isEdge)
-         continue;
-
-      /* Next follow it to the end in both directions */
-      ray0 = FollowEdge(&(decode->image), *x, *y, edgeStart, 1, decode);
-      ray1 = FollowEdge(&(decode->image), *x, *y, edgeStart, -1, decode);
-
-      memset(&region, 0x00, sizeof(DmtxMatrixRegion));
-
-      success = MatrixRegionAlignFirstEdge(&region, decode, &edgeStart, ray0, ray1);
-      if(!success)
-         continue;
-
-      success = MatrixRegionAlignSecondEdge(&region, decode);
-      if(!success)
-         continue;
-
-      success = MatrixRegionAlignRightEdge(&region, decode);
-      if(!success)
-         continue;
-
-      success = MatrixRegionAlignTopEdge(&region, decode);
-      if(!success)
-         continue;
-
-      /* XXX When adding clipping functionality against previously
-         scanned barcodes, this is a good place to add a test for
-         collisions.  Although we tested for this early on in the jump
-         region scan, the subsequent follower and alignment steps may
-         have moved us into a collision with another matrix region.  A
-         collision at this point is grounds for immediate failure. */
-
-      success = MatrixRegionFindSize(&region, decode);
-      if(!success)
-         continue;
-
-      /* XXX logic below this point should be broken off into a separate
-         decode function (possibly in dmtxdecode.c) because:
-
-         * it has nothing to do with region detection
-         * it needs to be called by different parts of code (mosaic vs matrix)
-         * it needs to be called multiple times during mosaic decoding
-
-         .. but for now just make an ugly hack ...
-      */
-
-      if(decode->mosaic) {
-         fprintf(stdout, "Sorry: Data Mosaic decoding not implemented yet\n\n");
-         /* TODO: modify AllocateStorage() to grab more space for mosaic */
-/**
-         success = AllocateStorage(&region, decode);
-         if(!success)
-            continue;
-*/
-
-         /* TODO: modify PopulateArrayFromImage() to turn on R, G, and B invidually if mosaic */
-/**
-         success = PopulateArrayFromImage(&region, decode);
-         if(!success)
-            continue;
-*/
-
-         /* TODO: modify DecodeRegion() decode R, G, and B channels in order */
-/**
-         success = DecodeRegion(&region);
-         if(!success)
-            continue;
-*/
-      }
-      else {
-         success = AllocateStorage(&region, decode);
-         if(!success)
-            continue;
-
-         success = PopulateArrayFromImage(&region, decode);
-         if(!success)
-            continue;
-
-         success = DecodeRegion(&region);
-         if(!success)
-            continue;
-      }
-
-      /* We are now holding a valid, fully decoded Data Matrix barcode.
-         Add this to the list of valid barcodes and continue searching
-         for more. */
-
-      decode->matrix[decode->matrixCount++] = region;
-
-      if(decode->matrixCount > 0)
-         break;
-   }
-
-   return decode->matrixCount;
+   return 1;
 }
 
 /**
@@ -582,12 +567,14 @@ MatrixRegionUpdateXfrms(DmtxMatrixRegion *region, DmtxImage *image)
  * @return XXX
  */
 static int
-MatrixRegionAlignFirstEdge(DmtxMatrixRegion *region, DmtxDecode *decode,
-      DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1)
+MatrixRegionAlignFirstEdge(DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1)
 {
    int success;
    DmtxRay2 rayFull;
    DmtxVector2 p0, p1, pTmp;
+   DmtxMatrixRegion *region;
+
+   region = &(decode->matrix);
 
 /*fprintf(stdout, "MatrixRegionAlignFirstEdge()\n"); */
    if(!ray0.isDefined && !ray1.isDefined) {
@@ -666,7 +653,7 @@ SetCornerLoc(DmtxMatrixRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 poin
  * @return XXX
  */
 static int
-MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
+MatrixRegionAlignSecondEdge(DmtxDecode *decode)
 {
    int success;
    DmtxVector2 p0[4], p1[4], pCorner[4];
@@ -680,8 +667,10 @@ MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
    int i, bestFit;
    DmtxRay2 rayOT, rayNew;
    double ratio, maxRatio;
+   DmtxMatrixRegion *region;
 
 /*fprintf(stdout, "MatrixRegionAlignSecondEdge()\n"); */
+   region = &(decode->matrix);
 
    /* Scan top edge left-to-right (shear only)
 
@@ -692,8 +681,8 @@ MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
    dmtxMatrix3Shear(postRaw2Fit, 0.0, 1.0);
    dmtxMatrix3Shear(preFit2Raw, 0.0, -1.0);
 
-   hitCount[0] = MatrixRegionAlignEdge(region, decode, postRaw2Fit,
-         preFit2Raw, &p0[0], &p1[0], &pCorner[0], &weakCount[0]);
+   hitCount[0] = MatrixRegionAlignEdge(decode, postRaw2Fit, preFit2Raw,
+         &p0[0], &p1[0], &pCorner[0], &weakCount[0]);
 
    /* Scan top edge right-to-left (horizontal flip and shear)
 
@@ -709,8 +698,8 @@ MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
    dmtxMatrix3Scale(flip, -1.0, 1.0);
    dmtxMatrix3Multiply(preFit2Raw, shear, flip);
 
-   hitCount[1] = MatrixRegionAlignEdge(region, decode, postRaw2Fit,
-         preFit2Raw, &p0[1], &p1[1], &pCorner[1], &weakCount[1]);
+   hitCount[1] = MatrixRegionAlignEdge(decode, postRaw2Fit, preFit2Raw,
+         &p0[1], &p1[1], &pCorner[1], &weakCount[1]);
 
    /* Scan bottom edge left-to-right (vertical flip and shear)
 
@@ -730,8 +719,8 @@ MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
    dmtxMatrix3Multiply(preFit2Raw, shear, xlate);
    dmtxMatrix3MultiplyBy(preFit2Raw, flip);
 
-   hitCount[2] = MatrixRegionAlignEdge(region, decode, postRaw2Fit,
-         preFit2Raw, &p0[2], &p1[2], &pCorner[2], &weakCount[2]);
+   hitCount[2] = MatrixRegionAlignEdge(decode, postRaw2Fit, preFit2Raw,
+         &p0[2], &p1[2], &pCorner[2], &weakCount[2]);
 
    /* Scan bottom edge right-to-left (flip flip shear)
 
@@ -751,8 +740,8 @@ MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
    dmtxMatrix3Multiply(preFit2Raw, shear, xlate);
    dmtxMatrix3MultiplyBy(preFit2Raw, flip);
 
-   hitCount[3] = MatrixRegionAlignEdge(region, decode, postRaw2Fit,
-         preFit2Raw, &p0[3], &p1[3], &pCorner[3], &weakCount[3]);
+   hitCount[3] = MatrixRegionAlignEdge(decode, postRaw2Fit, preFit2Raw,
+         &p0[3], &p1[3], &pCorner[3], &weakCount[3]);
 
    /* choose orientation with highest hitCount/(weakCount + 1) ratio */
    for(i = 0; i < 4; i++) {
@@ -828,11 +817,14 @@ MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
  * @return XXX
  */
 static int
-MatrixRegionAlignRightEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
+MatrixRegionAlignRightEdge(DmtxDecode *decode)
 {
    int success;
    DmtxMatrix3 rotate, flip, skew, scale;
    DmtxMatrix3 preFit2Raw, postRaw2Fit;
+   DmtxMatrixRegion *region;
+
+   region = &(decode->matrix);
 
    dmtxMatrix3Rotate(rotate, -M_PI_2);
    dmtxMatrix3Scale(flip, 1.0, -1.0);
@@ -851,7 +843,7 @@ MatrixRegionAlignRightEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
    dmtxMatrix3MultiplyBy(preFit2Raw, flip);
    dmtxMatrix3MultiplyBy(preFit2Raw, rotate);
 
-   success = MatrixRegionAlignCalibEdge(region, decode, DmtxEdgeRight, preFit2Raw, postRaw2Fit);
+   success = MatrixRegionAlignCalibEdge(decode, DmtxEdgeRight, preFit2Raw, postRaw2Fit);
 
    return success;
 }
@@ -863,7 +855,7 @@ MatrixRegionAlignRightEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
  * @return XXX
  */
 static int
-MatrixRegionAlignTopEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
+MatrixRegionAlignTopEdge(DmtxDecode *decode)
 {
    int success;
    DmtxMatrix3 preFit2Raw, postRaw2Fit;
@@ -871,7 +863,7 @@ MatrixRegionAlignTopEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
    dmtxMatrix3LineSkewTop(postRaw2Fit, 1.0, 0.5, 1.0);
    dmtxMatrix3LineSkewTopInv(preFit2Raw, 1.0, 0.5, 1.0);
 
-   success = MatrixRegionAlignCalibEdge(region, decode, DmtxEdgeTop, preFit2Raw, postRaw2Fit);
+   success = MatrixRegionAlignCalibEdge(decode, DmtxEdgeTop, preFit2Raw, postRaw2Fit);
 
    return success;
 }
@@ -883,7 +875,7 @@ MatrixRegionAlignTopEdge(DmtxMatrixRegion *region, DmtxDecode *decode)
  * @return XXX
  */
 static int
-MatrixRegionAlignCalibEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit)
+MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit)
 {
    DmtxVector2 p0, p1, pCorner;
    DmtxVector2 cFit, cBefore, cAfter, cTmp;
@@ -891,10 +883,13 @@ MatrixRegionAlignCalibEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxEdg
    double slope;
    int hitCount;
    int weakCount;
+   DmtxMatrixRegion *region;
 
    assert(edgeLoc == DmtxEdgeTop || edgeLoc == DmtxEdgeRight);
 
-   hitCount = MatrixRegionAlignEdge(region, decode, postRaw2Fit, preFit2Raw, &p0, &p1, &pCorner, &weakCount);
+   region = &(decode->matrix);
+
+   hitCount = MatrixRegionAlignEdge(decode, postRaw2Fit, preFit2Raw, &p0, &p1, &pCorner, &weakCount);
    if(hitCount < 2)
       return DMTX_FAILURE;
 
@@ -928,7 +923,7 @@ MatrixRegionAlignCalibEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxEdg
       fit quality.  Since pCorner is now correct, a second edge alignment
       should give accurate results. */
    if(dmtxVector2Mag(dmtxVector2Sub(&cTmp, &cAfter, &cBefore)) > 20.0) {
-      hitCount = MatrixRegionAlignEdge(region, decode, postRaw2Fit, preFit2Raw, &p0, &p1, &pCorner, &weakCount);
+      hitCount = MatrixRegionAlignEdge(decode, postRaw2Fit, preFit2Raw, &p0, &p1, &pCorner, &weakCount);
       if(hitCount < 2)
          return DMTX_FAILURE;
    }
@@ -984,7 +979,7 @@ MatrixRegionAlignCalibEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxEdg
  * @return XXX
  */
 static int
-MatrixRegionAlignEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0, DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount)
+MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0, DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount)
 {
    int hitCount, edgeHit, prevEdgeHit;
    DmtxVector2 c00, c10, c01;
@@ -997,6 +992,9 @@ MatrixRegionAlignEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxMatrix3 
    int i;
    int stepsSinceStarAdjust;
    DmtxVector2 pTmp;
+   DmtxMatrixRegion *region;
+
+   region = &(decode->matrix);
 
 /*fprintf(stdout, "MatrixRegionAlignEdge()\n"); */
    dmtxMatrix3Multiply(sRaw2Fit, region->raw2fit, postRaw2Fit);
@@ -1239,8 +1237,12 @@ StepAlongEdge(DmtxImage *image, DmtxMatrixRegion *region, DmtxVector2 *pProgress
  * @return XXX
  */
 static int
-AllocateStorage(DmtxMatrixRegion *region, DmtxDecode *decode)
+AllocateStorage(DmtxDecode *decode)
 {
+   DmtxMatrixRegion *region;
+
+   region = &(decode->matrix);
+
    region->symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
    region->symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
    region->mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, region->sizeIdx);
@@ -1326,7 +1328,7 @@ ReadModuleColor(DmtxDecode *decode, int symbolRow, int symbolCol, int sizeIdx, D
  * @return XXX
  */
 static int
-MatrixRegionFindSize(DmtxMatrixRegion *region, DmtxDecode *decode)
+MatrixRegionFindSize(DmtxDecode *decode)
 {
    int sizeIdx;
    int errors[30] = { 0 };
@@ -1341,6 +1343,9 @@ MatrixRegionFindSize(DmtxMatrixRegion *region, DmtxDecode *decode)
                              13, 29, 12, 11, 10, 28, 27,  9, 25,  8,
                              26,  7,  6,  5,  4, 24,  3,  2,  1,  0 };
    int *ptr;
+   DmtxMatrixRegion *region;
+
+   region = &(decode->matrix);
 
    /* First try all sizes to determine which sizeIdx with best contrast */
    ptr = sizeIdxAttempts;
@@ -1448,7 +1453,7 @@ MatrixRegionFindSize(DmtxMatrixRegion *region, DmtxDecode *decode)
  * @return XXX
  */
 static int
-PopulateArrayFromImage(DmtxMatrixRegion *region, DmtxDecode *decode)
+PopulateArrayFromMatrix(DmtxDecode *decode)
 {
    int col, row, rowTmp;
    int symbolRow, symbolCol;
@@ -1457,6 +1462,9 @@ PopulateArrayFromImage(DmtxMatrixRegion *region, DmtxDecode *decode)
    double tPrev, tModule;
    double jumpThreshold;
    DmtxColor3 color;
+   DmtxMatrixRegion *region;
+
+   region = &(decode->matrix);
 
    dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
    dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);
@@ -1498,6 +1506,60 @@ PopulateArrayFromImage(DmtxMatrixRegion *region, DmtxDecode *decode)
 
          /* Value has been assigned, but not visited */
          region->array[row*region->mappingCols+col] |= statusModule;
+         region->array[row*region->mappingCols+col] |= DMTX_MODULE_ASSIGNED;
+      }
+   }
+
+   /* Ideal barcode drawn in lower-right (final) window pane */
+   CALLBACK_DECODE_FUNC2(finalCallback, decode, decode, region);
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ * XXX
+ *
+ * @param
+ * @return XXX
+ */
+static int
+PopulateArrayFromMosaic(DmtxDecode *decode)
+{
+   int col, row, rowTmp;
+   int symbolRow, symbolCol;
+   int dataRegionRows, dataRegionCols;
+   DmtxColor3 color;
+   DmtxMatrixRegion *region;
+
+   region = &(decode->matrix);
+
+   dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
+   dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);
+
+   memset(region->array, 0x00, region->arraySize);
+
+   for(row = 0; row < region->mappingRows; row++) {
+
+      /* Transform mapping row to symbol row (Swap because the array's
+         origin is top-left and everything else is bottom-left) */
+      rowTmp = region->mappingRows - row - 1;
+      symbolRow = rowTmp + 2 * (rowTmp / dataRegionRows) + 1;
+
+      for(col = 0; col < region->mappingCols; col++) {
+
+         /* Transform mapping col to symbol col */
+         symbolCol = col + 2 * (col / dataRegionCols) + 1;
+
+         color = ReadModuleColor(decode, symbolRow, symbolCol, region->sizeIdx, region->fit2raw);
+
+         /* Value has been assigned, but not visited */
+         if(color.R < 50)
+            region->array[row*region->mappingCols+col] |= DMTX_MODULE_ON_RED;
+         if(color.G < 50)
+            region->array[row*region->mappingCols+col] |= DMTX_MODULE_ON_GREEN;
+         if(color.B < 50)
+            region->array[row*region->mappingCols+col] |= DMTX_MODULE_ON_BLUE;
+
          region->array[row*region->mappingCols+col] |= DMTX_MODULE_ASSIGNED;
       }
    }

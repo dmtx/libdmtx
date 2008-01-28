@@ -25,25 +25,29 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTX_H__
 #define __DMTX_H__
 
-#define DMTX_FAILURE           0
-#define DMTX_SUCCESS           1
+#define DMTX_FAILURE                   0
+#define DMTX_SUCCESS                   1
 
-#define DMTX_DISPLAY_SQUARE    1
-#define DMTX_DISPLAY_POINT     2
-#define DMTX_DISPLAY_CIRCLE    3
+#define DMTX_STATUS_NOT_SCANNED        0
+#define DMTX_STATUS_VALID              1
+#define DMTX_STATUS_INVALID            2
 
-#define DMTX_MODULE_ON_RGB     0x07  /* ON_RED | ON_GREEN | ON_BLUE */
-#define DMTX_MODULE_ON_RED     0x01
-#define DMTX_MODULE_ON_GREEN   0x02
-#define DMTX_MODULE_ON_BLUE    0x04
-#define DMTX_MODULE_ASSIGNED   0x10
-#define DMTX_MODULE_VISITED    0x20
-#define DMTX_MODULE_DATA       0x40
+#define DMTX_DISPLAY_SQUARE            1
+#define DMTX_DISPLAY_POINT             2
+#define DMTX_DISPLAY_CIRCLE            3
 
-#define DMTX_SYMBOL_SQUARE_AUTO  -1
-#define DMTX_SYMBOL_SQUARE_COUNT 24
-#define DMTX_SYMBOL_RECT_AUTO    -2
-#define DMTX_SYMBOL_RECT_COUNT    6
+#define DMTX_MODULE_ON_RED          0x01
+#define DMTX_MODULE_ON_GREEN        0x02
+#define DMTX_MODULE_ON_BLUE         0x04
+#define DMTX_MODULE_ON_RGB          0x07  /* ON_RED | ON_GREEN | ON_BLUE */
+#define DMTX_MODULE_ASSIGNED        0x10
+#define DMTX_MODULE_VISITED         0x20
+#define DMTX_MODULE_DATA            0x40
+
+#define DMTX_SYMBOL_SQUARE_AUTO       -1
+#define DMTX_SYMBOL_SQUARE_COUNT      24
+#define DMTX_SYMBOL_RECT_AUTO         -2
+#define DMTX_SYMBOL_RECT_COUNT         6
 
 typedef enum {
    DmtxDirNone       = 0x00,
@@ -85,10 +89,6 @@ typedef enum {
 } DmtxSchemeDecode;
 
 typedef enum {
-   DmtxSingleScanOnly = 0x01
-} DmtxDecodeOptions;
-
-typedef enum {
    DmtxSymAttribSymbolRows,
    DmtxSymAttribSymbolCols,
    DmtxSymAttribDataRegionRows,
@@ -120,6 +120,11 @@ typedef struct DmtxColor3_struct {
    double G;
    double B;
 } DmtxColor3;
+
+typedef struct DmtxPixelLoc_struct {
+   int X;
+   int Y;
+} DmtxPixelLoc;
 
 typedef struct DmtxVector2_struct {
    double X;
@@ -211,13 +216,33 @@ typedef struct DmtxEdgeFollower_struct {
    DmtxDirection   dir;
 } DmtxEdgeFollower;
 
+typedef struct DmtxScanGrid_struct {
+   /* set once */
+   int minExtent;  /* Smallest cross size used in scan */
+   int maxExtent;  /* Size of bounding grid region (2^N - 1) */
+   int xOffset;    /* Offset to obtain image X coordinate */
+   int yOffset;    /* Offset to obtain image Y coordinate */
+
+   /* reset for each level */
+   int total;      /* Total number of crosses at this size */
+   int extent;     /* Length/width of cross in pixels */
+   int jumpSize;   /* Distance in pixels between cross centers */
+   int pixelTotal; /* Total pixel count within an individual cross path */
+   int startPos;   /* X and Y coordinate of first cross center in pattern */
+
+   /* reset for each cross */
+   int pixelCount; /* Progress (pixel count) within current cross pattern */
+   int xCenter;    /* X center of current cross pattern */
+   int yCenter;    /* Y center of current cross pattern */
+} DmtxScanGrid;
+
 typedef struct DmtxDecode_struct DmtxDecode;
 struct DmtxDecode_struct {
-   int option;
-   int mosaic;
-   int matrixCount;
-   DmtxMatrixRegion matrix[16];
    DmtxImage image;
+   DmtxScanGrid grid;
+
+   int mosaic;
+   DmtxMatrixRegion matrix; /* XXX rename this to region ? */
    void (* buildMatrixCallback2)(DmtxMatrixRegion *);
    void (* buildMatrixCallback3)(DmtxMatrix3);
    void (* buildMatrixCallback4)(DmtxMatrix3);
@@ -318,14 +343,11 @@ extern int dmtxImageGetWidth(DmtxImage *image);
 extern int dmtxImageGetHeight(DmtxImage *image);
 extern int dmtxImageGetOffset(DmtxImage *image, DmtxDirection dir, int lineNbr, int offset);
 
-extern int dmtxScanLine(DmtxDecode *decode, DmtxDirection dir, int lineNbr);
+extern int dmtxFindNextRegion(DmtxDecode *decode);
+extern int dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc);
 extern void dmtxMatrixRegionDeInit(DmtxMatrixRegion *region);
 
-extern DmtxDecode *dmtxDecodeStructCreate(void);
-extern void dmtxDecodeStructDestroy(DmtxDecode **decode);
-extern DmtxMatrixRegion *dmtxDecodeGetMatrix(DmtxDecode *decode, int index);
-extern int dmtxDecodeGetMatrixCount(DmtxDecode *decode);
-extern void dmtxScanStartNew(DmtxDecode *decode);
+extern DmtxDecode dmtxDecodeInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize);
 
 extern DmtxEncode *dmtxEncodeStructCreate(void);
 extern void dmtxEncodeStructDestroy(DmtxEncode **encode);

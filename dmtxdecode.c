@@ -22,83 +22,21 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
-/**
+/*
  *
- * @param XXX
- * @return XXX
+ *
  */
-extern DmtxDecode *
-dmtxDecodeStructCreate(void)
+extern DmtxDecode
+dmtxDecodeInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
 {
-   DmtxDecode *decode;
+   DmtxDecode decode;
 
-   decode = (DmtxDecode *)malloc(sizeof(DmtxDecode));
-   if(decode == NULL) {
-      exit(1); /*/*XX better error strategy required here */
-   }
+   memset(&decode, 0x00, sizeof(DmtxDecode));
 
-   memset(decode, 0x00, sizeof(DmtxDecode));
+   decode.image = *image;
+   decode.grid = InitScanGrid(image, p0, p1, minGapSize);
 
    return decode;
-}
-
-/**
- *
- * @param XXX
- * @return XXX
- */
-extern void
-dmtxDecodeStructDestroy(DmtxDecode **decode)
-{
-   /* Call this to free the scanned Data Matrix list from memory */
-   dmtxScanStartNew(*decode);
-
-   if(*decode != NULL) {
-      free(*decode);
-   }
-
-   *decode = NULL;
-}
-
-/**
- *
- * @param decode   Pointer to DmtxDecode information struct
- * @return         success (DMTX_SUCCESS|DMTX_FAILURE)
- */
-extern int
-dmtxDecodeGetMatrixCount(DmtxDecode *decode)
-{
-   return decode->matrixCount;
-}
-
-/**
- *
- * @param decode   Pointer to DmtxDecode information struct
- * @return         success (DMTX_SUCCESS|DMTX_FAILURE)
- */
-extern DmtxMatrixRegion *
-dmtxDecodeGetMatrix(DmtxDecode *decode, int index)
-{
-   if(index < 0 || index >= decode->matrixCount)
-      return NULL;
-
-   return &(decode->matrix[index]);
-}
-
-/**
- *
- * @param decode   Pointer to DmtxDecode information struct
- * @return         success (DMTX_SUCCESS|DMTX_FAILURE)
- */
-extern void
-dmtxScanStartNew(DmtxDecode *decode)
-{
-   int i;
-
-   for(i = 0; i < decode->matrixCount; i++)
-      dmtxMatrixRegionDeInit(&(decode->matrix[i]));
-
-   decode->matrixCount = 0;
 }
 
 /**
@@ -108,7 +46,7 @@ dmtxScanStartNew(DmtxDecode *decode)
  * @return XXX
  */
 static int
-DecodeRegion(DmtxMatrixRegion *region)
+DecodeMatrixRegion(DmtxMatrixRegion *region)
 {
    int success;
 

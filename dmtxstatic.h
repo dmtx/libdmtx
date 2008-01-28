@@ -110,21 +110,22 @@ static DmtxCompassEdge GetCompassEdge(DmtxImage *image, int x, int y, int edgeSc
 static DmtxEdgeSubPixel FindZeroCrossing(DmtxImage *image, int x, int y, DmtxCompassEdge compassStart);
 static DmtxRay2 FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forward, DmtxDecode *decode);
 static int MatrixRegionUpdateXfrms(DmtxMatrixRegion *region, DmtxImage *image);
-static int MatrixRegionAlignFirstEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1);
+static int MatrixRegionAlignFirstEdge(DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1);
 static void SetCornerLoc(DmtxMatrixRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point);
-static int MatrixRegionAlignSecondEdge(DmtxMatrixRegion *region, DmtxDecode *decode);
-static int MatrixRegionAlignRightEdge(DmtxMatrixRegion *region, DmtxDecode *decode);
-static int MatrixRegionAlignTopEdge(DmtxMatrixRegion *region, DmtxDecode *decode);
-static int MatrixRegionAlignCalibEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit);
-static int MatrixRegionAlignEdge(DmtxMatrixRegion *region, DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0, DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount);
+static int MatrixRegionAlignSecondEdge(DmtxDecode *decode);
+static int MatrixRegionAlignRightEdge(DmtxDecode *decode);
+static int MatrixRegionAlignTopEdge( DmtxDecode *decode);
+static int MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit);
+static int MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0, DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount);
 static int StepAlongEdge(DmtxImage *image, DmtxMatrixRegion *region, DmtxVector2 *pProgress, DmtxVector2 *pExact, DmtxVector2 forward, DmtxVector2 lateral, DmtxDecode *decode);
-static int AllocateStorage(DmtxMatrixRegion *region, DmtxDecode *decode);
+static int AllocateStorage(DmtxDecode *decode);
 static DmtxColor3 ReadModuleColor(DmtxDecode *decode, int symbolRow, int symbolCol, int sizeIdx, DmtxMatrix3 fit2raw);
-static int MatrixRegionFindSize(DmtxMatrixRegion *region, DmtxDecode *decode);
-static int PopulateArrayFromImage(DmtxMatrixRegion *region, DmtxDecode *decode);
+static int MatrixRegionFindSize(DmtxDecode *decode);
+static int PopulateArrayFromMatrix(DmtxDecode *decode);
+static int PopulateArrayFromMosaic(DmtxDecode *decode);
 
 /* dmtxdecode.c */
-static int DecodeRegion(DmtxMatrixRegion *region);
+static int DecodeMatrixRegion(DmtxMatrixRegion *region);
 static void DecodeDataStream(DmtxMatrixRegion *region);
 static unsigned char *NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr);
 static unsigned char *DecodeSchemeAsciiStd(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd);
@@ -179,6 +180,12 @@ static void GenReedSolEcc(DmtxMatrixRegion *region);
 static int DecodeCheckErrors(DmtxMatrixRegion *region);
 static int GfProduct(int a, int b);
 static int GfDoublify(int a, int b);
+
+/* dmtxscangrid.c */
+static DmtxScanGrid InitScanGrid(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize);
+static void IncrementPixelProgress(DmtxScanGrid *cross);
+static void SetDerivedFields(DmtxScanGrid *cross);
+static DmtxPixelLoc GetGridCoordinates(DmtxScanGrid *grid);
 
 /* dmtxsymbol.c */
 static int FindCorrectBarcodeSize(int symbolShape, int dataWords);
