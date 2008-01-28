@@ -80,7 +80,6 @@ main(int argc, char *argv[])
    memset(&decode, 0x00, sizeof(DmtxDecode));
    memset(&region, 0x00, sizeof(DmtxMatrixRegion));
 
-   // XXX remove decode from HandleArgs() parameter list
    err = HandleArgs(&options, &argc, &argv, &fileIndex, &decode);
    if(err)
       ShowUsage(err);
@@ -89,32 +88,13 @@ main(int argc, char *argv[])
    while(fileIndex < argc) {
 
       imagePath = argv[fileIndex];
-/*
-   pageIndex = 0;
-   for(;;) {
 
-      // LoadImage() will return pageCount of at least 1
-      image = LoadImage(argv[fileIndex], pageIndex++);
-
-      scan(image);
-
-      if(pageIndex >= image.pageCount) {
-         fileIndex++;
-         pageIndex = 0;
-      }
-   }
-*/
       // Loop through all "pages" present in image
       imageIndex = 0;
       do {
-         // XXX does this really do anything? maybe dmtxImageInit() should
-         // receive width and height, and whould be called from the
-         // LoadImage() function after width and height are read from image
-         // file header
-         dmtxImageInit(&decode.image); // XXX call me in LoadImagePng() instead
+         dmtxImageInit(&decode.image);
 
          imageCount = LoadImage(&decode.image, imagePath, imageIndex);
-         // imageCount = LoadImage(&image, imageFilePath, imageFileIndex);
 
          if(imageCount == 0)
             break;
@@ -124,27 +104,6 @@ main(int argc, char *argv[])
          p1.Y = decode.image.height - 1;
 
          decode = dmtxDecodeInit(&decode.image, p0, p1, options.scanGap);
-         // decode = dmtxDecodeInit(&image, p0, p1, options.scanGap);
-
-/* XXX and this is how it should be (very soon) ...
-
-         region = dmtxFindNextRegion(&decode);
-
-         if(region.status == DMTX_NO_MORE)
-            break;
-         else if(region.status == DMTX_INVALID)
-            continue; (can this even happen?)
-
-         if(options.mosaic)
-            mosaic = dmtxDecodeMosaic(&region);
-         else
-            matrix = dmtxDecodeMatrix(&region);
-
-         // use it here
-
-         dmtxDeInitMatrix(&matrix);
-         dmtxDeInitMosaic(&matrix);
-*/
 
          count = dmtxFindNextRegion(&decode);
          if(count == 0)
@@ -163,6 +122,90 @@ main(int argc, char *argv[])
 
    exit(0);
 }
+
+/*
+int
+main(int argc, char *argv[])
+{
+   UserOptions options;
+   int err;
+   int fileIndex;
+   int pageIndex;
+   DmtxImage image;
+   DmtxPixelLoc p0, p1;
+   DmtxDecode decode;
+   DmtxRegion region;
+   DmtxBarcode matrix, mosaic;
+
+   SetOptionDefaults(&options); // XXX was InitUserOptions()
+
+   // XXX remove decode from HandleArgs() parameter list
+   err = HandleArgs(&options, &argc, &argv, &fileIndex, &decode);
+   if(err)
+      ShowUsage(err);
+
+   // Loop once for each image file named in paramter list
+   for(pageIndex = 0; fileIndex < argc;) {
+
+      // Load image from file
+      // XXX dmtxImageInit(&decode.image); call me in LoadImagePng() instead
+      image = LoadImage(argv[fileIndex], pageIndex++);
+
+      // Update file/page counter early so 'continue' doesn't break indexing
+      if(pageIndex >= image.pageCount) {
+         fileIndex++;
+         pageIndex = 0;
+      }
+
+      // If file doesn't contain at least one image then something went wrong
+      if(image.pageCount < 1) {
+         // error
+         continue;
+      }
+
+      // Determine image region to be scanned (XXX account for user option too)
+      p0.X = 0;
+      p0.Y = 0;
+      p1.X = image.width - 1;
+      p1.Y = image.height - 1;
+
+      // Initialize decode struct for loaded image
+      decode = dmtxDecodeInit(&image, p0, p1, options.scanGap);
+
+      // Loop once for each barcode region detected
+      for(;;) {
+
+         // Find next barcode region within image, but do not decode
+         region = dmtxFindNextRegion(&decode);
+
+         if(region.status == DMTX_NO_MORE)
+            break;
+         else if(region.status == DMTX_INVALID)
+            continue; // (can this even happen?)
+
+         // Decode region based on requested scan mode
+         if(options.mosaic)
+            mosaic = dmtxDecodeMosaic(&region);
+         else
+            matrix = dmtxDecodeMatrix(&region);
+
+         // XXX later change this to a opt-in debug option
+         //WriteImagePnm(&options, &decode, imagePath);
+
+         PrintDecodedOutput(&options, &decode, imageIndex); // XXX mosaic / matrix?
+
+         dmtxDeInitMatrix(&matrix);
+         dmtxDeInitMosaic(&mosaic);
+
+         break; // XXX for now, break after first barcode found in image
+      }
+
+      dmtxImageDeInit(&decode.image);
+   }
+
+   exit(0);
+}
+*/
 
 /**
  *
