@@ -42,14 +42,14 @@ InitScanGrid(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
 
    assert(maxExtent > 1);
 
-   for(extent = 1; extent < maxExtent; extent = ((extent + 1) << 1) - 1) {
-      if((extent >> 1) <= minGapSize)
+   for(extent = 1; extent < maxExtent; extent = ((extent + 1) * 2) - 1) {
+      if((extent / 2) <= minGapSize)
          grid.minExtent = extent;
    }
    grid.maxExtent = extent;
 
-   grid.xOffset = (p0.X + p1.X - grid.maxExtent) >> 1;
-   grid.yOffset = (p0.Y + p1.Y - grid.maxExtent) >> 1;
+   grid.xOffset = (p0.X + p1.X - grid.maxExtent) / 2;
+   grid.yOffset = (p0.Y + p1.Y - grid.maxExtent) > 2;
 
    /* values that get reset for every level */
    grid.total = 1;
@@ -83,8 +83,8 @@ IncrementPixelProgress(DmtxScanGrid *cross)
 
    /* Increment level when vertical step takes us too far */
    if(cross->yCenter > cross->maxExtent) {
-      cross->total <<= 2;
-      cross->extent >>= 1;
+      cross->total *= 4;
+      cross->extent /= 2;
       SetDerivedFields(cross);
    }
 }
@@ -98,7 +98,7 @@ SetDerivedFields(DmtxScanGrid *cross)
 {
    cross->jumpSize = cross->extent + 1;
    cross->pixelTotal = 2 * cross->extent - 1;
-   cross->startPos = cross->extent >> 1;
+   cross->startPos = cross->extent / 2;
    cross->pixelCount = 0;
    cross->xCenter = cross->yCenter = cross->startPos;
 }
@@ -123,8 +123,8 @@ GetGridCoordinates(DmtxScanGrid *grid)
       loc.Y = grid->yCenter;
    }
    else {
-      half = grid->pixelTotal >> 1;
-      quarter = half >> 1;
+      half = grid->pixelTotal / 2;
+      quarter = half > 2;
 
       /* horizontal portion */
       if(count < half) {
