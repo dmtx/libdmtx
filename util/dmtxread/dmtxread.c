@@ -128,7 +128,6 @@ int
 main(int argc, char *argv[])
 {
    UserOptions options;
-   int err;
    int fileIndex;
    int pageIndex;
    DmtxImage *image;
@@ -139,9 +138,8 @@ main(int argc, char *argv[])
 
    SetOptionDefaults(&options); // XXX was InitUserOptions()
 
-   err = HandleArgs(&options, &fileIndex, &argc, &argv);
-   if(err)
-      ShowUsage(err);
+   if(HandleArgs(&options, &fileIndex, &argc, &argv) == DMTXREAD_ERROR)
+      ShowUsage(DMTXREAD_ERROR);
 
    // Loop once for each page of each image file in parameter list
    for(pageIndex = 0; fileIndex < argc;) {
@@ -149,7 +147,7 @@ main(int argc, char *argv[])
       // Load image page from file (many formats only support single page)
       image = LoadImage(argv[fileIndex], pageIndex++); // XXX calls dmtxImageInit()
 
-      // Increment counters early so 'continue' doesn't break indexing
+      // Increment counters early to allow simple 'continue' later in loop
       if(pageIndex >= image->pageCount) {
          fileIndex++;
          pageIndex = 0;
@@ -161,7 +159,7 @@ main(int argc, char *argv[])
          continue;
       }
 
-      // Determine image region to be scanned (XXX account for user option too)
+      // Determine image region to be scanned (XXX should account for user option too)
       p0.X = 0;
       p0.Y = 0;
       p1.X = image->width - 1;
