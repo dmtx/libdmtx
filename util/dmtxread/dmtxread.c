@@ -40,7 +40,7 @@ Contact: mike@dragonflylogic.com
 
 #define MIN(x,y) ((x < y) ? x : y)
 
-static void InitUserOptions(UserOptions *options);
+static void SetOptionDefaults(UserOptions *options);
 static int HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, DmtxDecode *decode);
 static long StringToLong(char *numberString);
 static void ShowUsage(int status);
@@ -75,7 +75,7 @@ main(int argc, char *argv[])
    int count;
    DmtxPixelLoc p0, p1;
 
-   InitUserOptions(&options);
+   SetOptionDefaults(&options);
 
    memset(&decode, 0x00, sizeof(DmtxDecode));
    memset(&region, 0x00, sizeof(DmtxMatrixRegion));
@@ -136,7 +136,7 @@ main(int argc, char *argv[])
    DmtxRegion region;
    DmtxMessage *message;
 
-   SetOptionDefaults(&options); // XXX was InitUserOptions()
+   SetOptionDefaults(&options);
 
    if(HandleArgs(&options, &fileIndex, &argc, &argv) == DMTXREAD_ERROR)
       ShowUsage(DMTXREAD_ERROR);
@@ -204,7 +204,7 @@ main(int argc, char *argv[])
  *
  */
 static void
-InitUserOptions(UserOptions *options)
+SetOptionDefaults(UserOptions *options)
 {
    memset(options, 0x00, sizeof(UserOptions));
 
