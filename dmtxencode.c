@@ -1284,9 +1284,9 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
    /* Count remaining input values assuming EDIFACT encodation */
    edifactValues = channel->inputStop - channel->inputPtr;
 
-   /* Can't end symbol right now if there are 5+ values remaining -- note
-      that '9999' can still terminate in case (f) */
-   if(edifactValues > 4) /* subset of (i) -- for performance only */
+   /* Can't end symbol right now if there are 5+ values remaining
+      (noting that '9999' can still terminate in case (f)) */
+   if(edifactValues > 4) /* subset of (i) -- performance only */
       return;
 
    /* Find minimum symbol size big enough to accomodate remaining codewords */
