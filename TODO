@@ -1,6 +1,28 @@
 TODO Items
 -----------------------------------------------------------------
 
+IMMEDIATE
+   x switch to incremental (one matrix) approach, which passes back buffer no matter what
+      x Remove dmtxScanStartNew()
+      x Remove dmtxDecodeGetMatrixCount()
+      x Remove dmtxDecodeGetMatrix()
+      x Add status
+
+   x write buffer dumping function in dmtxread (takes into account b&w or rgb barcode dumps)
+
+   o pass decision back to calling program whether to scan (requiring malloc) it
+   o change dmtxFindNextRegion() to return region (not malloc'd)
+   o update gltest to use the new calling structure
+
+   o rename DmtxMatrixRegion to DmtxRegion
+   o split out actual data fields
+   o remove mosaic field from DmtxDecode (and replace functionality by calling dedicated named function)
+   o remove DmtxMatrixRegion from decode and pass it between functions explicitly
+
+   o write fully structured debug barcode dump from dmtxread (currently just mapping grid)
+   o add data to the malloc'd image buffer (for writing log data and tracking progress)
+   o improve black/white decision process
+
 version 0.5:
   x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
   x libdmtx:   Fix TestForEndOfSymbolEdifact() to handle special cases correctly
