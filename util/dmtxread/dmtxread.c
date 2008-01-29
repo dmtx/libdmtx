@@ -39,10 +39,12 @@ Contact: mike@dragonflylogic.com
 #define DMTXREAD_ERROR       1
 
 #define MIN(x,y) ((x < y) ? x : y)
+#define MAX(x,y) ((x > y) ? x : y)
 
 static void SetOptionDefaults(UserOptions *options);
 static int HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, DmtxDecode *decode);
-static long StringToLong(char *numberString);
+static int SetScanRegion(DmtxPixelLoc *p0, DmtxPixelLoc *p1, char *corners, DmtxImage *image);
+static int StringToInt(int *numberInt, char **numberString, char terminate);
 static void ShowUsage(int status);
 static void FatalError(int errorCode, char *fmt, ...);
 static ImageFormat GetImageFormat(char *imagePath);
@@ -99,9 +101,32 @@ main(int argc, char *argv[])
          if(imageCount == 0)
             break;
 
-         p0.X = p0.Y = 0;
-         p1.X = decode.image.width - 1;
-         p1.Y = decode.image.height - 1;
+         /* It probably makes more sense to use a different calling
+            convention for this feature.  Maybe something like:
+
+            -x, --x-range-min=N[%]  [defaults to   0%]
+            -X, --x-range-max=N[%]  [defaults to 100%]
+            -y, --y-range-min=N[%]  [defaults to   0%]
+            -Y, --y-range-max=N[%]  [defaults to 100%]
+
+            Examples: (Note: origin is at top-left corner of image):
+
+               Scan top third of image:
+                  dmtxread --y-range-max=33% image.png
+
+               Scan bottom half of image:
+                  dmtxread --y-range-min=50% image.png
+
+               Scan 100x100 pixel box at top left corner:
+                  dmtxread -X 100 -Y 100 image.png
+
+               Scan vertical stripe of down center of image:
+                  dmtxread -x 33% -X 67% image.png
+         */
+
+         err = SetScanRegion(&p0, &p1, options.region, &decode.image);
+         if(err)
+            continue;
 
          decode = dmtxDecodeInit(&decode.image, p0, p1, options.scanGap);
 
@@ -138,8 +163,9 @@ main(int argc, char *argv[])
 
    SetOptionDefaults(&options);
 
-   if(HandleArgs(&options, &fileIndex, &argc, &argv) == DMTXREAD_ERROR)
-      ShowUsage(DMTXREAD_ERROR);
+   err = HandleArgs(&options, &fileIndex, &argc, &argv);
+   if(err)
+      ShowUsage(DMTXREAD_BAD_ARGUMENT);
 
    // Loop once for each page of each image file in parameter list
    for(pageIndex = 0; fileIndex < argc;) {
@@ -160,10 +186,9 @@ main(int argc, char *argv[])
       }
 
       // Determine image region to be scanned (XXX should account for user option too)
-      p0.X = 0;
-      p0.Y = 0;
-      p1.X = image->width - 1;
-      p1.Y = image->height - 1;
+      err = SetScanRegion(&p0, &p1, options.region, image);
+      if(err)
+         FatalError(1, _("Badly formed region string \"%s\""), options.region);
 
       // Initialize decode struct for loaded image
       decode = dmtxDecodeInit(image, p0, p1, options.scanGap);
@@ -232,6 +257,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, Dmt
 {
    int opt;
    int longIndex;
+   char *ptr;
 
    struct option longOptions[] = {
          {"codewords",   no_argument,       NULL, 'c'},
@@ -265,7 +291,10 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, Dmt
             options->codewords = 1;
             break;
          case 'g':
-            options->scanGap = StringToLong(optarg);
+            ptr = optarg;
+            if(StringToInt(&(options->scanGap), &ptr, '\0') != 0 ||
+                  options->scanGap <= 0)
+               FatalError(1, _("Invalid gap size \"%s\""), optarg);
             break;
          case 'n':
             options->newline = 1;
@@ -306,28 +335,75 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, Dmt
 }
 
 /**
- * Convert a string of characters to a long integer.  If string cannot be
+ *
+ *
+ */
+static int
+SetScanRegion(DmtxPixelLoc *p0, DmtxPixelLoc *p1, char *corners, DmtxImage *image)
+{
+   char *ptr;
+
+   assert(image && image->width != 0 && image->height != 0);
+
+   // example "10,10:200,200"
+   if(corners) {
+      ptr = corners;
+      if(StringToInt(&(p0->X), &ptr, ',') != 0 ||
+            StringToInt(&(p0->Y), &ptr, ':') != 0 ||
+            StringToInt(&(p1->X), &ptr, ',') != 0 ||
+            StringToInt(&(p1->Y), &ptr, '\0') != 0) {
+         fprintf(stderr, _("Badly formed region string \"%s\"\n\n"), corners);
+         return DMTXREAD_ERROR;
+      }
+
+      if(MIN(p0->X, p1->X) < 0 || MAX(p0->X, p1->X) > image->width - 1 ||
+            MIN(p0->Y, p1->Y) < 0 || MAX(p0->Y, p1->Y) > image->height - 1) {
+         fprintf(stderr, _("Specified region extends beyond boundaries of \"%s\"\n\n"), "image->path");
+         return DMTXREAD_ERROR;
+      }
+
+      // This affects all images
+      if(p0->X == p1->X || p0->Y == p1->Y)
+         FatalError(2, _("Specified region has area of zero"));
+   }
+   else {
+      p0->X = 0;
+      p0->Y = 0;
+      p1->X = image->width - 1;
+      p1->Y = image->height - 1;
+   }
+
+   return DMTXREAD_SUCCESS;
+}
+
+/**
+ * Convert a string of characters to an integer.  If string cannot be
  * converted then the function will abort the program.
  *
  * @param numberString pointer to string of numbers
  * @return             converted long
  */
-static long
-StringToLong(char *numberString)
+static int
+StringToInt(int *numberInt, char **numberString, char terminate)
 {
    long numberLong;
    char *trailingChars;
 
    errno = 0;
-   numberLong = strtol(numberString, &trailingChars, 10);
+   numberLong = strtol(*numberString, &trailingChars, 10);
 
    while(isspace(*trailingChars))
       trailingChars++;
 
-   if(errno != 0 || *trailingChars != '\0')
-      FatalError(2, _("Invalid number \"%s\""), numberString);
+   if(errno != 0 || *trailingChars != terminate) {
+      *numberInt = -1;
+      *numberString = NULL;
+      return 1;
+   }
 
-   return numberLong;
+   *numberInt = (int)numberLong;
+   *numberString = (terminate == '\0') ? trailingChars : trailingChars + 1;
+   return 0;
 }
 
 /**
@@ -358,7 +434,7 @@ OPTIONS:\n"), programName, programName);
   -n, --newline          insert newline character at the end of decoded data\n\
   -d, --distortion=K1,K2 radial distortion coefficients (not implemented yet)\n\
   -r, --region=REGION    only scan a subset of image; specify REGION by listing\n\
-        x1,y1:x2,y2      opposite corners of a rectangle region (not implemented)\n\
+        x1,y1:x2,y2      opposing corners of a rectangular region within image\n\
   -v, --verbose          use verbose messages\n\
   -C, --coordinates      prefix decoded message with barcode corner locations\n\
   -M, --mosaic           interpret detected regions as Data Mosaic barcodes\n\
