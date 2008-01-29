@@ -22,6 +22,7 @@ IMMEDIATE
    o write fully structured debug barcode dump from dmtxread (currently just mapping grid)
    o add data to the malloc'd image buffer (for writing log data and tracking progress)
    o improve black/white decision process
+   o consider changing rounding of zero crossing math to nearest center between pixels
 
 version 0.5:
   x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
