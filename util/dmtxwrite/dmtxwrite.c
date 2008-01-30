@@ -393,21 +393,21 @@ static void
 ShowUsage(int status)
 {
    if(status != 0) {
-      fprintf(stderr, _("Usage: %s [OPTION]... DATA\n"), programName);
+      fprintf(stderr, _("Usage: %s [OPTION]... [FILE]\n"), programName);
       fprintf(stderr, _("Try `%s --help' for more information.\n"), programName);
    }
    else {
-      fprintf(stdout, _("Usage: %s [OPTION]... DATA\n"), programName);
+      fprintf(stdout, _("Usage: %s [OPTION]... [FILE]\n"), programName);
       fprintf(stdout, _("\
-Encode DATA and write Data Matrix barcode to desired format\n\
+Encode FILE or STDIN and write Data Matrix barcode to desired format\n\
 \n\
-Example: %s -o message.png message.txt\n\
-Example: cat message.txt | %s -o message.png\n\
+Example: %s message.txt -o message.png\n\
+Example: echo -n 123456 | %s -o message.png\n\
 \n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
-  -c, --color=COLOR          barcode color\n\
-  -b, --bg-color=COLOR       background color\n\
+  -c, --color=COLOR          barcode color (not implemented)\n\
+  -b, --bg-color=COLOR       background color (not implemented)\n\
   -d, --module=NUM           module size (in pixels)\n\
   -m, --margin=NUM           margin size (in pixels)\n\
   -e, --encoding=[bfactxe8]  encodation scheme\n\
@@ -429,7 +429,7 @@ OPTIONS:\n"), programName, programName);
         a = ASCII            ASCII-art representation\n\
         c = Codewords        list data and error codewords\n\
   -r, --rotate=DEGREES       rotation angle (degrees)\n\
-  -s, --symbol-size=SIZE     symbol size in Rows x Cols\n\
+  -s, --symbol-size=SIZE     symbol size in ROWSxCOLS\n\
         Automatic SIZE options:\n\
             s = Auto square  [default]\n\
             r = Auto rectangle\n\
