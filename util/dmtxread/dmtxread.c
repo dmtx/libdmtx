@@ -38,13 +38,11 @@ Contact: mike@dragonflylogic.com
 #define DMTXREAD_SUCCESS     0
 #define DMTXREAD_ERROR       1
 
-#define MIN(x,y) ((x < y) ? x : y)
-#define MAX(x,y) ((x > y) ? x : y)
-
 static void SetOptionDefaults(UserOptions *options);
 static int HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, DmtxDecode *decode);
-static int SetScanRegion(DmtxPixelLoc *p0, DmtxPixelLoc *p1, char *corners, DmtxImage *image);
-static int StringToInt(int *numberInt, char **numberString, char terminate);
+static int SetRangeLimit(int *target, char *optionString, int minMax, int limit);
+static int SetScanRegion(DmtxPixelLoc *p0, DmtxPixelLoc *p1, UserOptions *options, DmtxImage *image);
+static int StringToInt(int *numberInt, char *numberString, char **terminate);
 static void ShowUsage(int status);
 static void FatalError(int errorCode, char *fmt, ...);
 static ImageFormat GetImageFormat(char *imagePath);
@@ -101,30 +99,7 @@ main(int argc, char *argv[])
          if(imageCount == 0)
             break;
 
-         /* It probably makes more sense to use a different calling
-            convention for this feature.  Maybe something like:
-
-            -x, --x-range-min=N[%]  [defaults to   0%]
-            -X, --x-range-max=N[%]  [defaults to 100%]
-            -y, --y-range-min=N[%]  [defaults to   0%]
-            -Y, --y-range-max=N[%]  [defaults to 100%]
-
-            Examples: (Note: origin is at top-left corner of image):
-
-               Scan top third of image:
-                  dmtxread --y-range-max=33% image.png
-
-               Scan bottom half of image:
-                  dmtxread --y-range-min=50% image.png
-
-               Scan 100x100 pixel box at top left corner:
-                  dmtxread -X 100 -Y 100 image.png
-
-               Scan vertical stripe of down center of image:
-                  dmtxread -x 33% -X 67% image.png
-         */
-
-         err = SetScanRegion(&p0, &p1, options.region, &decode.image);
+         err = SetScanRegion(&p0, &p1, &options, &decode.image);
          if(err)
             continue;
 
@@ -237,7 +212,10 @@ SetOptionDefaults(UserOptions *options)
    options->codewords = 0;
    options->scanGap = 2;
    options->newline = 0;
-   options->region = NULL;
+   options->xRangeMin = NULL;
+   options->xRangeMax = NULL;
+   options->yRangeMin = NULL;
+   options->yRangeMax = NULL;
    options->verbose = 0;
    options->coordinates = 0;
    options->pageNumber = 0;
@@ -255,6 +233,7 @@ SetOptionDefaults(UserOptions *options)
 static int
 HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, DmtxDecode *decode)
 {
+   int err;
    int opt;
    int longIndex;
    char *ptr;
@@ -263,7 +242,10 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, Dmt
          {"codewords",   no_argument,       NULL, 'c'},
          {"gap",         required_argument, NULL, 'g'},
          {"newline",     no_argument,       NULL, 'n'},
-         {"region",      required_argument, NULL, 'r'},
+         {"x-range-min", required_argument, NULL, 'x'},
+         {"x-range-max", required_argument, NULL, 'X'},
+         {"y-range-min", required_argument, NULL, 'y'},
+         {"y-range-max", required_argument, NULL, 'Y'},
          {"verbose",     no_argument,       NULL, 'v'},
          {"coordinates", no_argument,       NULL, 'C'},
          {"mosaic",      no_argument,       NULL, 'M'},
@@ -279,7 +261,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, Dmt
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "cg:nr:vCMP", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:vCMP", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -291,16 +273,24 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, Dmt
             options->codewords = 1;
             break;
          case 'g':
-            ptr = optarg;
-            if(StringToInt(&(options->scanGap), &ptr, '\0') != 0 ||
-                  options->scanGap <= 0)
-               FatalError(1, _("Invalid gap size \"%s\""), optarg);
+            err = StringToInt(&(options->scanGap), optarg, &ptr);
+            if(err != DMTXREAD_SUCCESS || options->scanGap <= 0 || *ptr != '\n')
+               FatalError(1, _("Invalid gap request \"%s\""), optarg);
             break;
          case 'n':
             options->newline = 1;
             break;
-         case 'r':
-            options->region = optarg;
+         case 'x':
+            options->xRangeMin = optarg;
+            break;
+         case 'X':
+            options->xRangeMax = optarg;
+            break;
+         case 'y':
+            options->yRangeMin = optarg;
+            break;
+         case 'Y':
+            options->yRangeMax = optarg;
             break;
          case 'v':
             options->verbose = 1;
@@ -334,43 +324,53 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, Dmt
    return DMTXREAD_SUCCESS;
 }
 
+static int
+SetRangeLimit(int *target, char *optionString, int minMax, int limit)
+{
+   int err;
+   int value;
+   char *terminate;
+
+   if(optionString == NULL) {
+      *target = minMax * limit;
+   }
+   if(optionString) {
+      err = StringToInt(&value, optionString, &terminate);
+      if(err)
+         return DMTXREAD_ERROR;
+      *target = (*terminate == '%') ? (int)(0.01 * value * limit + 0.5) : value;
+   }
+
+   return DMTXREAD_SUCCESS;
+}
+
 /**
  *
  *
  */
 static int
-SetScanRegion(DmtxPixelLoc *p0, DmtxPixelLoc *p1, char *corners, DmtxImage *image)
+SetScanRegion(DmtxPixelLoc *pMin, DmtxPixelLoc *pMax, UserOptions *options, DmtxImage *image)
 {
-   char *ptr;
+   int value;
+   char *ptr, *terminate;
 
-   assert(image && image->width != 0 && image->height != 0);
+   assert(options && image && image->width != 0 && image->height != 0);
 
-   // example "10,10:200,200"
-   if(corners) {
-      ptr = corners;
-      if(StringToInt(&(p0->X), &ptr, ',') != 0 ||
-            StringToInt(&(p0->Y), &ptr, ':') != 0 ||
-            StringToInt(&(p1->X), &ptr, ',') != 0 ||
-            StringToInt(&(p1->Y), &ptr, '\0') != 0) {
-         fprintf(stderr, _("Badly formed region string \"%s\"\n\n"), corners);
-         return DMTXREAD_ERROR;
-      }
-
-      if(MIN(p0->X, p1->X) < 0 || MAX(p0->X, p1->X) > image->width - 1 ||
-            MIN(p0->Y, p1->Y) < 0 || MAX(p0->Y, p1->Y) > image->height - 1) {
-         fprintf(stderr, _("Specified region extends beyond boundaries of \"%s\"\n\n"), "image->path");
-         return DMTXREAD_ERROR;
-      }
-
-      // This affects all images
-      if(p0->X == p1->X || p0->Y == p1->Y)
-         FatalError(2, _("Specified region has area of zero"));
+   if(SetRangeLimit(&(pMin->X), options->xRangeMin, 0, image->width - 1) == DMTXREAD_ERROR ||
+         SetRangeLimit(&(pMin->Y), options->yRangeMin, 0, image->height - 1) == DMTXREAD_ERROR ||
+         SetRangeLimit(&(pMax->X), options->xRangeMax, 1, image->width - 1) == DMTXREAD_ERROR ||
+         SetRangeLimit(&(pMax->Y), options->yRangeMax, 1, image->height - 1) == DMTXREAD_ERROR) {
+      fprintf(stderr, _("Badly formed range parameter\n\n"));
+      return DMTXREAD_ERROR;
    }
-   else {
-      p0->X = 0;
-      p0->Y = 0;
-      p1->X = image->width - 1;
-      p1->Y = image->height - 1;
+
+   if(pMin->X >= pMax->X || pMin->Y >= pMax->Y)
+      FatalError(2, _("Specified range has non-positive area"));
+
+   if(pMin->X < 0 || pMax->X > image->width - 1 ||
+         pMin->Y < 0 || pMax->Y > image->height - 1) {
+      fprintf(stderr, _("Specified range extends beyond image boundaries\n\n"));
+      return DMTXREAD_ERROR;
    }
 
    return DMTXREAD_SUCCESS;
@@ -384,25 +384,22 @@ SetScanRegion(DmtxPixelLoc *p0, DmtxPixelLoc *p1, char *corners, DmtxImage *imag
  * @return             converted long
  */
 static int
-StringToInt(int *numberInt, char **numberString, char terminate)
+StringToInt(int *numberInt, char *numberString, char **terminate)
 {
    long numberLong;
-   char *trailingChars;
 
    errno = 0;
-   numberLong = strtol(*numberString, &trailingChars, 10);
+   numberLong = strtol(numberString, terminate, 10);
 
-   while(isspace(*trailingChars))
-      trailingChars++;
+   while(isspace(**terminate))
+      (*terminate)++;
 
-   if(errno != 0 || *trailingChars != terminate) {
+   if(errno != 0 || (**terminate != '\0' && **terminate != '%')) {
       *numberInt = -1;
-      *numberString = NULL;
       return 1;
    }
 
    *numberInt = (int)numberLong;
-   *numberString = (terminate == '\0') ? trailingChars : trailingChars + 1;
    return 0;
 }
 
@@ -425,7 +422,7 @@ ShowUsage(int status)
 Scan FILE (PNG or TIFF image) for Data Matrix barcodes and print decoded results\n\
 to STDOUT.  Note that %s may find multiple barcodes in one image.\n\
 \n\
-Example: %s -r10,10:200,200 -g10 IMAGE001.png IMAGE002.png\n\
+Example: %s -y50%% -g10 IMAGE001.png IMAGE002.png\n\
 \n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
@@ -433,8 +430,10 @@ OPTIONS:\n"), programName, programName);
   -g, --gap=NUM          use scan grid with gap of NUM pixels between scanlines\n\
   -n, --newline          insert newline character at the end of decoded data\n\
   -d, --distortion=K1,K2 radial distortion coefficients (not implemented yet)\n\
-  -r, --region=REGION    only scan a subset of image; specify REGION by listing\n\
-        x1,y1:x2,y2      opposing corners of a rectangular region within image\n\
+  -x, --x-range-min=N[%] do not scan pixels to the left of N (or N%)\n\
+  -X, --x-range-max=N[%] do not scan pixels to the right of N (or N%)\n\
+  -y, --y-range-min=N[%] do not scan pixels above N (or N%)\n\
+  -Y, --y-range-max=N[%] do not scan pixels below N (or N%)\n\
   -v, --verbose          use verbose messages\n\
   -C, --coordinates      prefix decoded message with barcode corner locations\n\
   -M, --mosaic           interpret detected regions as Data Mosaic barcodes\n\
