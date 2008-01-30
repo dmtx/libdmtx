@@ -161,9 +161,9 @@ main(int argc, char *argv[])
       }
 
       // Determine image region to be scanned (XXX should account for user option too)
-      err = SetScanRegion(&p0, &p1, options.region, image);
+      err = SetScanRegion(&p0, &p1, &options, image);
       if(err)
-         FatalError(1, _("Badly formed region string \"%s\""), options.region);
+         continue;
 
       // Initialize decode struct for loaded image
       decode = dmtxDecodeInit(image, p0, p1, options.scanGap);
@@ -419,10 +419,12 @@ ShowUsage(int status)
    else {
       fprintf(stdout, _("Usage: %s [OPTION]... [FILE]...\n"), programName);
       fprintf(stdout, _("\
-Scan FILE (PNG or TIFF image) for Data Matrix barcodes and print decoded results\n\
+Scan image FILE for Data Matrix barcodes and print decoded results\n\
 to STDOUT.  Note that %s may find multiple barcodes in one image.\n\
 \n\
-Example: %s -y50%% -g10 IMAGE001.png IMAGE002.png\n\
+Example: (scans top third of images using minimum gap size of 10 pixels)\n\
+\n\
+   %s -Y33%% -g10 IMAGE001.png IMAGE002.png\n\
 \n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
@@ -543,7 +545,7 @@ LoadImagePng(DmtxImage *image, char *imagePath)
    png_bytepp      rowPointers;
    png_color_16p   image_background;
 
-   // TODO: set_jmpbuf
+   // XXX should be setting set_jmpbuf
 
    fp = fopen(imagePath, "rb");
    if(fp == NULL) {
@@ -752,14 +754,7 @@ PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int imageIndex)
    int dataWordLength;
    DmtxMatrixRegion *region;
 
-// region = dmtxDecodeGetMatrix(decode, 0);
-// if(region == NULL)
-//    return DMTXREAD_ERROR;
-
    region = &(decode->matrix);
-
-// if(region->status != DMTX_STATUS_VALID)
-//    return DMTXREAD_ERROR;
 
    dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, region->sizeIdx);
    if(options->verbose) {
@@ -834,13 +829,13 @@ WriteImagePnm(UserOptions *options, DmtxDecode *decode, char *imagePath)
    /* XXX later change this to append to the input filename */
    imagePath = "debug.pnm";
 
-   /* Flip rows top-to-bottom to account for PNM "top-left" origin */
    fp = fopen(imagePath, "wb");
    if(fp == NULL) {
       perror(programName);
       exit(3);
    }
 
+   /* Flip rows top-to-bottom to account for PNM "top-left" origin */
    fprintf(fp, "P6 %d %d 255 ", matrix->symbolCols, matrix->symbolRows);
    for(row = matrix->symbolRows - 1; row  >= 0; row--) {
       for(col = 0; col < matrix->symbolCols; col++) {
