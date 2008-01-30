@@ -81,7 +81,7 @@ int main(int argc, char **argv)
    SDL_Event       event;
    SDL_Surface     *screen;
    unsigned char   outputString[1024];
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
 
    decode = dmtxDecodeStructCreate();
 

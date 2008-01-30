@@ -28,7 +28,7 @@ Contact: mike@dragonflylogic.com
  * @return XXX
  */
 extern void
-dmtxSetBuildMatrixCallback2(DmtxDecode *decode, void (* func)(DmtxMatrixRegion *))
+dmtxSetBuildMatrixCallback2(DmtxDecode *decode, void (* func)(DmtxRegion *))
 {
    if(decode == NULL) {
       exit(1); /* XXX better error handling strategy */
@@ -103,7 +103,7 @@ dmtxSetXfrmPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVector2, Dmtx
  * @return XXX
  */
 extern void
-dmtxSetFinalCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixRegion *))
+dmtxSetFinalCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxRegion *))
 {
    if(decode == NULL) {
       exit(1); /* XXX better error handling strategy */
@@ -118,7 +118,7 @@ dmtxSetFinalCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixR
  * @return XXX
  */
 extern void
-dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixRegion *, int, int, DmtxColor3))
+dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxRegion *, int, int, DmtxColor3))
 {
    if(decode == NULL) {
       exit(1); /* XXX better error handling strategy */

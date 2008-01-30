@@ -46,7 +46,7 @@ dmtxDecodeInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSiz
  * @return XXX
  */
 static int
-DecodeMatrixRegion(DmtxMatrixRegion *region)
+DecodeMatrixRegion(DmtxRegion *region)
 {
    int success;
 
@@ -71,7 +71,7 @@ DecodeMatrixRegion(DmtxMatrixRegion *region)
  * @return XXX
  */
 static void
-DecodeDataStream(DmtxMatrixRegion *region)
+DecodeDataStream(DmtxRegion *region)
 {
    DmtxSchemeDecode encScheme;
    unsigned char *ptr, *dataEnd;
@@ -153,7 +153,7 @@ NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr)
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeAsciiStd(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeAsciiStd(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd)
 {
    int digits;
 
@@ -178,7 +178,7 @@ DecodeSchemeAsciiStd(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeAsciiExt(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeAsciiExt(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd)
 {
    region->output[region->outputIdx++] = *ptr + 128;
 
@@ -191,7 +191,7 @@ DecodeSchemeAsciiExt(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeC40Text(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme)
+DecodeSchemeC40Text(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme)
 {
    int i;
    int packed;
@@ -283,7 +283,7 @@ DecodeSchemeC40Text(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char 
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeX12(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeX12(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd)
 {
    int i;
    int packed;
@@ -331,7 +331,7 @@ DecodeSchemeX12(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dat
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeEdifact(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeEdifact(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd)
 {
    int i;
    unsigned char unpacked[4];
@@ -408,7 +408,7 @@ DecodeSchemeEdifact(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char 
  * @return XXX
  */
 static unsigned char *
-DecodeSchemeBase256(DmtxMatrixRegion *region, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeBase256(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd)
 {
    int d0, d1;
    int i;

@@ -72,20 +72,20 @@ dmtxEncodeStructCreate(void)
    encode->marginSize = 10;
 
    /* This can be cleaned up later */
-   encode->matrix.gradient.isDefined = DMTX_TRUE;
+   encode->region.gradient.isDefined = DMTX_TRUE;
 
    /* Initialize background color to white */
-   encode->matrix.gradient.ray.p.R = 255.0;
-   encode->matrix.gradient.ray.p.G = 255.0;
-   encode->matrix.gradient.ray.p.B = 255.0;
+   encode->region.gradient.ray.p.R = 255.0;
+   encode->region.gradient.ray.p.G = 255.0;
+   encode->region.gradient.ray.p.B = 255.0;
 
    /* Initialize foreground color to black */
-   encode->matrix.gradient.tMin = 0.0;
-   encode->matrix.gradient.tMax = dmtxColor3Mag(&(encode->matrix.gradient.ray.p));
-   encode->matrix.gradient.tMid = (encode->matrix.gradient.tMin + encode->matrix.gradient.tMax)/2.0;
+   encode->region.gradient.tMin = 0.0;
+   encode->region.gradient.tMax = dmtxColor3Mag(&(encode->region.gradient.ray.p));
+   encode->region.gradient.tMid = (encode->region.gradient.tMin + encode->region.gradient.tMax)/2.0;
 
-   dmtxColor3Scale(&(encode->matrix.gradient.ray.c),
-         &(encode->matrix.gradient.ray.p), -1.0/encode->matrix.gradient.tMax);
+   dmtxColor3Scale(&(encode->region.gradient.ray.c),
+         &(encode->region.gradient.ray.p), -1.0/encode->region.gradient.tMax);
 
    dmtxMatrix3Identity(encode->xfrm);
 
@@ -105,7 +105,7 @@ dmtxEncodeStructDestroy(DmtxEncode **encode)
 
    dmtxImageDeInit(&((*encode)->image));
 
-   dmtxMatrixRegionDeInit(&((*encode)->matrix));
+   dmtxMatrixRegionDeInit(&((*encode)->region));
 
    free(*encode);
    *encode = NULL;
@@ -177,34 +177,34 @@ dmtxEncodeDataMatrix(DmtxEncode *encode, int inputSize, unsigned char *inputStri
    AddPadChars(buf, &dataWordCount, dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx));
 
    /* XXX we can remove a lot of this redundant data */
-   encode->matrix.sizeIdx = sizeIdx;
+   encode->region.sizeIdx = sizeIdx;
 
-   encode->matrix.codeSize = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) +
+   encode->region.codeSize = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) +
          dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, sizeIdx);
 
-   encode->matrix.symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
-   encode->matrix.symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
-   encode->matrix.mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdx);
-   encode->matrix.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
+   encode->region.symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
+   encode->region.symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
+   encode->region.mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdx);
+   encode->region.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
 
-/* fprintf(stdout, "\n\nsize:    %dx%d w/ %d error codewords\n", rows, cols, errorWordLength(encode->matrix.sizeIdx)); */
+/* fprintf(stdout, "\n\nsize:    %dx%d w/ %d error codewords\n", rows, cols, errorWordLength(encode->region.sizeIdx)); */
 
-   encode->matrix.code = (unsigned char *)malloc(sizeof(unsigned char) * encode->matrix.codeSize);
-   if(encode->matrix.code == NULL) {
+   encode->region.code = (unsigned char *)malloc(sizeof(unsigned char) * encode->region.codeSize);
+   if(encode->region.code == NULL) {
       perror("dmtxEncodeData");
       exit(7);
    }
-   memset(encode->matrix.code, 0x00, sizeof(unsigned char) * encode->matrix.codeSize);
-   memcpy(encode->matrix.code, buf, dataWordCount);
+   memset(encode->region.code, 0x00, sizeof(unsigned char) * encode->region.codeSize);
+   memcpy(encode->region.code, buf, dataWordCount);
 
    /* Generate error correction codewords */
-   GenReedSolEcc(&(encode->matrix));
+   GenReedSolEcc(&(encode->region));
 
    /* Allocate storage for pattern */
-   PatternInit(&(encode->matrix));
+   PatternInit(&(encode->region));
 
-   /* Module placement in matrix */
-   ModulePlacementEcc200(encode->matrix.array, encode->matrix.code, encode->matrix.sizeIdx, DMTX_MODULE_ON_RGB);
+   /* Module placement in region */
+   ModulePlacementEcc200(encode->region.array, encode->region.code, encode->region.sizeIdx, DMTX_MODULE_ON_RGB);
 
    /* Allocate memory for the image to be generated */
    /* XXX image = DmtxImageMalloc(width, height); */
@@ -215,8 +215,8 @@ dmtxEncodeDataMatrix(DmtxEncode *encode, int inputSize, unsigned char *inputStri
    }
 
    image->pageCount = 1;
-   image->width = 2 * encode->marginSize + (encode->matrix.symbolCols * encode->moduleSize);
-   image->height = 2 * encode->marginSize + (encode->matrix.symbolRows * encode->moduleSize);
+   image->width = 2 * encode->marginSize + (encode->region.symbolCols * encode->moduleSize);
+   image->height = 2 * encode->marginSize + (encode->region.symbolRows * encode->moduleSize);
 
    image->pxl = (DmtxPixel *)malloc(image->width * image->height * sizeof(DmtxPixel));
    if(image->pxl == NULL) {
@@ -333,28 +333,28 @@ dmtxEncodeDataMosaic(DmtxEncode *encode, int inputSize, unsigned char *inputStri
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, splitSizeIdxAttempt);
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, splitSizeIdxAttempt);
 
-   memset(encode->matrix.array, 0x00, sizeof(unsigned char) * encode->matrix.mappingRows * encode->matrix.mappingCols);
-   ModulePlacementEcc200(encode->matrix.array, encode->matrix.code, encode->matrix.sizeIdx, DMTX_MODULE_ON_RED);
+   memset(encode->region.array, 0x00, sizeof(unsigned char) * encode->region.mappingRows * encode->region.mappingCols);
+   ModulePlacementEcc200(encode->region.array, encode->region.code, encode->region.sizeIdx, DMTX_MODULE_ON_RED);
 
    /* Data Mosaic will traverse this array multiple times -- reset
       DMTX_MODULE_ASSIGNED and DMX_MODULE_VISITED bits before starting */
    for(row = 0; row < mappingRows; row++) {
       for(col = 0; col < mappingCols; col++) {
-         encode->matrix.array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
+         encode->region.array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
       }
    }
 
-   ModulePlacementEcc200(encode->matrix.array, encodeGreen->matrix.code, encode->matrix.sizeIdx, DMTX_MODULE_ON_GREEN);
+   ModulePlacementEcc200(encode->region.array, encodeGreen->region.code, encode->region.sizeIdx, DMTX_MODULE_ON_GREEN);
 
    /* Data Mosaic will traverse this array multiple times -- reset
       DMTX_MODULE_ASSIGNED and DMX_MODULE_VISITED bits before starting */
    for(row = 0; row < mappingRows; row++) {
       for(col = 0; col < mappingCols; col++) {
-         encode->matrix.array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
+         encode->region.array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
       }
    }
 
-   ModulePlacementEcc200(encode->matrix.array, encodeBlue->matrix.code, encode->matrix.sizeIdx, DMTX_MODULE_ON_BLUE);
+   ModulePlacementEcc200(encode->region.array, encodeBlue->region.code, encode->region.sizeIdx, DMTX_MODULE_ON_BLUE);
 
    dmtxEncodeStructDestroy(&encodeGreen);
    dmtxEncodeStructDestroy(&encodeBlue);
@@ -423,7 +423,7 @@ Randomize255State(unsigned char codewordValue, int codewordPosition)
  * @return XXX
  */
 static void
-PatternInit(DmtxMatrixRegion *region)
+PatternInit(DmtxRegion *region)
 {
    int patternSize;
 
@@ -474,8 +474,8 @@ PrintPattern(DmtxEncode *encode)
 
    memset(encode->image->pxl, 0xff, encode->image->width * encode->image->height * sizeof(DmtxPixel));
 
-   for(symbolRow = 0; symbolRow < encode->matrix.symbolRows; symbolRow++) {
-      for(symbolCol = 0; symbolCol < encode->matrix.symbolCols; symbolCol++) {
+   for(symbolRow = 0; symbolRow < encode->region.symbolRows; symbolRow++) {
+      for(symbolCol = 0; symbolCol < encode->region.symbolCols; symbolCol++) {
 
          vIn.X = symbolCol;
          vIn.Y = symbolRow;
@@ -485,7 +485,7 @@ PrintPattern(DmtxEncode *encode)
          pixelCol = (int)(vOut.X);
          pixelRow = (int)(vOut.Y);
 
-         moduleStatus = dmtxSymbolModuleStatus(&(encode->matrix), symbolRow, symbolCol);
+         moduleStatus = dmtxSymbolModuleStatus(&(encode->region), symbolRow, symbolCol);
 
          for(i = pixelRow; i < pixelRow + encode->moduleSize; i++) {
             for(j = pixelCol; j < pixelCol + encode->moduleSize; j++) {

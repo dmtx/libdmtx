@@ -186,7 +186,7 @@ typedef struct DmtxCorners_struct {
    DmtxVector2 c01;
 } DmtxCorners;
 
-typedef struct DmtxMatrixRegion_struct {
+typedef struct DmtxRegion_struct {
    DmtxGradient    gradient;      /* Linear blend of colors between background and symbol color */
    DmtxChain       chain;         /* List of values that are used to build a transformation matrix */
    DmtxCorners     corners;       /* Corners of barcode region */
@@ -204,7 +204,7 @@ typedef struct DmtxMatrixRegion_struct {
    unsigned char   *array;        /* Pointer to internal representation of scanned Data Matrix modules */
    unsigned char   *code;         /* Pointer to internal storage of code words (data and error) */
    unsigned char   *output;       /* Pointer to internal storage of decoded output */
-} DmtxMatrixRegion;
+} DmtxRegion;
 
 typedef struct DmtxEdgeFollower_struct {
    int             slope;
@@ -243,14 +243,14 @@ struct DmtxDecode_struct {
    DmtxScanGrid grid;
 
    int mosaic;
-   DmtxMatrixRegion matrix; /* XXX rename this to region ? */
-   void (* buildMatrixCallback2)(DmtxMatrixRegion *);
+   DmtxRegion region; /* XXX delete this from struct */
+   void (* buildMatrixCallback2)(DmtxRegion *);
    void (* buildMatrixCallback3)(DmtxMatrix3);
    void (* buildMatrixCallback4)(DmtxMatrix3);
    void (* plotPointCallback)(DmtxVector2, int, int, int);
    void (* xfrmPlotPointCallback)(DmtxVector2, DmtxMatrix3, int, int);
-   void (* finalCallback)(DmtxDecode *, DmtxMatrixRegion *);
-   void (* plotModuleCallback)(DmtxDecode *, DmtxMatrixRegion *, int, int, DmtxColor3);
+   void (* finalCallback)(DmtxDecode *, DmtxRegion *);
+   void (* plotModuleCallback)(DmtxDecode *, DmtxRegion *, int, int, DmtxColor3);
 };
 
 typedef struct DmtxEncode_struct {
@@ -261,7 +261,7 @@ typedef struct DmtxEncode_struct {
    DmtxImage *image;
    DmtxMatrix3 xfrm;
    DmtxMatrix3 rxfrm;
-   DmtxMatrixRegion matrix;
+   DmtxRegion region;
 } DmtxEncode;
 
 typedef struct DmtxChannel_struct {
@@ -346,7 +346,7 @@ extern int dmtxImageGetOffset(DmtxImage *image, DmtxDirection dir, int lineNbr, 
 
 extern int dmtxFindNextRegion(DmtxDecode *decode);
 extern int dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc);
-extern void dmtxMatrixRegionDeInit(DmtxMatrixRegion *region);
+extern void dmtxMatrixRegionDeInit(DmtxRegion *region);
 
 extern DmtxDecode dmtxDecodeInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize);
 
@@ -355,15 +355,15 @@ extern void dmtxEncodeStructDestroy(DmtxEncode **encode);
 extern int dmtxEncodeDataMatrix(DmtxEncode *encode, int inputSize, unsigned char *inputString, int sizeIdxRequest);
 extern int dmtxEncodeDataMosaic(DmtxEncode *encode, int inputSize, unsigned char *inputString, int sizeIdxRequest);
 
-extern void dmtxSetBuildMatrixCallback2(DmtxDecode *decode, void (* func)(DmtxMatrixRegion *));
+extern void dmtxSetBuildMatrixCallback2(DmtxDecode *decode, void (* func)(DmtxRegion *));
 extern void dmtxSetBuildMatrixCallback3(DmtxDecode *decode, void (* func)(DmtxMatrix3));
 extern void dmtxSetBuildMatrixCallback4(DmtxDecode *decode, void (* func)(DmtxMatrix3));
 extern void dmtxSetPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVector2, int, int, int));
 extern void dmtxSetXfrmPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVector2, DmtxMatrix3, int, int));
-extern void dmtxSetFinalCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixRegion *));
-extern void dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxMatrixRegion *, int, int, DmtxColor3));
+extern void dmtxSetFinalCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxRegion *));
+extern void dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxRegion *, int, int, DmtxColor3));
 
-extern int dmtxSymbolModuleStatus(DmtxMatrixRegion *region, int row, int col);
+extern int dmtxSymbolModuleStatus(DmtxRegion *region, int row, int col);
 extern int dmtxGetSymbolAttribute(int attribute, int sizeIdx);
 
 #endif

@@ -32,7 +32,7 @@ Contact: mike@dragonflylogic.com
  * @return XXX
  */
 static void
-GenReedSolEcc(DmtxMatrixRegion *region)
+GenReedSolEcc(DmtxRegion *region)
 {
    int i, j, val;
    int step, block;
@@ -89,7 +89,7 @@ GenReedSolEcc(DmtxMatrixRegion *region)
  * @return XXX
  */
 static int
-DecodeCheckErrors(DmtxMatrixRegion *region)
+DecodeCheckErrors(DmtxRegion *region)
 {
    int i, j, step, errorWordLength;
    unsigned char reg, a;

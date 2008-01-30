@@ -125,7 +125,7 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    DmtxDecode *decode;
    PyObject *pilPixel;
    DmtxPixel dmtxPixel;
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
    int x, y;
    static char *kwlist[] = { "width", "height", "gap_size", "picker", "context", NULL };
 

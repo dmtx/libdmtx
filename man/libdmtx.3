@@ -31,7 +31,7 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.4.0
 
 \fBint dmtxDecodeGetMatrixCount(DmtxDecode *\fIdecode\fP);\fP
 
-\fBDmtxMatrixRegion *dmtxDecodeGetMatrix(DmtxDecode *\fIdecode\fP, int \fIindex\fP);\fP
+\fBDmtxRegion *dmtxDecodeGetMatrix(DmtxDecode *\fIdecode\fP, int \fIindex\fP);\fP
 
 .SH DESCRIPTION
 \fIlibdmtx\fP is a shared library for Linux that encodes and decodes ECC200 Data Matrix barcodes.  Data Matrix barcodes are two-dimensional patterns that hold a high density of data with built-in error correction.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
@@ -78,7 +78,7 @@ Returns the number of Data Matrix barcodes that are currently stored in the Dmtx
 
 6. Call \fBdmtxDecodeGetMatrix()\fP
 
-Returns a pointer to the DmtxMatrixRegion struct held by DmtxDecode.  Data Matrix information (geometries, encoded and decoded data) will be stored until next call to \fBdmtxScanStartNew()\fP or \fBdmtxDecodeStructDestroy()\fP.
+Returns a pointer to the DmtxRegion struct held by DmtxDecode.  Data Matrix information (geometries, encoded and decoded data) will be stored until next call to \fBdmtxScanStartNew()\fP or \fBdmtxDecodeStructDestroy()\fP.
 
 7. Call \fBdmtxImageDeInit()\fP
 

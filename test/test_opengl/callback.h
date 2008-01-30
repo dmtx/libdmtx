@@ -29,12 +29,12 @@ void CrossScanCallback(DmtxScanRange *range, DmtxGradient *gradient, DmtxEdgeSca
 void FollowScanCallback(DmtxEdgeFollower *follower);
 void FinderBarCallback(DmtxRay2 *ray);
 */
-void BuildMatrixCallback2(DmtxMatrixRegion *region);
+void BuildMatrixCallback2(DmtxRegion *region);
 void BuildMatrixCallback3(DmtxMatrix3 region);
 void BuildMatrixCallback4(DmtxMatrix3 region);
 void PlotPointCallback(DmtxVector2 point, int colorInt, int paneNbr, int dispType);
 void XfrmPlotPointCallback(DmtxVector2 point, DmtxMatrix3 xfrm, int paneNbr, int dispType);
-void FinalCallback(DmtxDecode *decode, DmtxMatrixRegion *region);
-void PlotModuleCallback(DmtxDecode *info, DmtxMatrixRegion *region, int row, int col, DmtxColor3 color);
+void FinalCallback(DmtxDecode *decode, DmtxRegion *region);
+void PlotModuleCallback(DmtxDecode *info, DmtxRegion *region, int row, int col, DmtxColor3 color);
 
 #endif

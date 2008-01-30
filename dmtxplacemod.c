@@ -31,7 +31,7 @@ Contact: mike@dragonflylogic.com
  * row and col are expressed in symbol coordinates, so (0,0) is the intersection of the "L"
  */
 int
-dmtxSymbolModuleStatus(DmtxMatrixRegion *region, int symbolRow, int symbolCol)
+dmtxSymbolModuleStatus(DmtxRegion *region, int symbolRow, int symbolCol)
 {
    int symbolRowReverse;
    int mappingRow, mappingCol;

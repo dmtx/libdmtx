@@ -14,10 +14,10 @@ IMMEDIATE
    o change dmtxFindNextRegion() to return region (not malloc'd)
    o update gltest to use the new calling structure
 
-   o rename DmtxMatrixRegion to DmtxRegion
+   / rename DmtxMatrixRegion to DmtxRegion
    o split out actual data fields
    o remove mosaic field from DmtxDecode (and replace functionality by calling dedicated named function)
-   o remove DmtxMatrixRegion from decode and pass it between functions explicitly
+   o remove DmtxRegion from decode and pass it between functions explicitly
 
    o write fully structured debug barcode dump from dmtxread (currently just mapping grid)
    o add data to the malloc'd image buffer (for writing log data and tracking progress)

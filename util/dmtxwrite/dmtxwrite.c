@@ -600,11 +600,11 @@ WriteAsciiBarcode(DmtxEncode *encode)
    fputc('\n', stdout);
 
    // ASCII prints from top to bottom
-   for(symbolRow = encode->matrix.symbolRows - 1; symbolRow >= 0; symbolRow--) {
+   for(symbolRow = encode->region.symbolRows - 1; symbolRow >= 0; symbolRow--) {
 
       fputs("    ", stdout);
-      for(symbolCol = 0; symbolCol < encode->matrix.symbolCols; symbolCol++) {
-         fputs((dmtxSymbolModuleStatus(&(encode->matrix), symbolRow, symbolCol) &
+      for(symbolCol = 0; symbolCol < encode->region.symbolCols; symbolCol++) {
+         fputs((dmtxSymbolModuleStatus(&(encode->region), symbolRow, symbolCol) &
                moduleOnAll) ? "XX" : "  ", stdout);
       }
       fputs("\n", stdout);
@@ -621,10 +621,10 @@ WriteCodewords(DmtxEncode *encode)
 {
    int i, dataWordLength;
 
-   dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, encode->matrix.sizeIdx);
+   dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, encode->region.sizeIdx);
 
-   for(i = 0; i < encode->matrix.codeSize; i++) {
+   for(i = 0; i < encode->region.codeSize; i++) {
       fprintf(stdout, "%c:%03d\n", (i < dataWordLength) ?
-            'd' : 'e', encode->matrix.code[i]);
+            'd' : 'e', encode->region.code[i]);
    }
 }

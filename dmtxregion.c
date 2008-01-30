@@ -80,7 +80,7 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
    ray0 = FollowEdge(decode->image, loc.X, loc.Y, edgeStart, 1, decode);
    ray1 = FollowEdge(decode->image, loc.X, loc.Y, edgeStart, -1, decode);
 
-   memset(&(decode->matrix), 0x00, sizeof(DmtxMatrixRegion));
+   memset(&(decode->region), 0x00, sizeof(DmtxRegion));
 
    success = MatrixRegionAlignFirstEdge(decode, &edgeStart, ray0, ray1);
    if(!success)
@@ -130,7 +130,7 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
 /**
       success = DecodeMosaicRegion(&region);
       if(!success) {
-         decode->matrix.status = DMTX_STATUS_INVALID;
+         decode->region.status = DMTX_STATUS_INVALID;
          return 0;
       }
 */
@@ -144,7 +144,7 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
       if(!success)
          return 0;
 
-      success = DecodeMatrixRegion(&(decode->matrix));
+      success = DecodeMatrixRegion(&(decode->region));
       if(!success)
          return 0;
    }
@@ -160,7 +160,7 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
  * @return XXX
  */
 extern void
-dmtxMatrixRegionDeInit(DmtxMatrixRegion *region)
+dmtxMatrixRegionDeInit(DmtxRegion *region)
 {
    if(region->array != NULL)
       free(region->array);
@@ -171,7 +171,7 @@ dmtxMatrixRegionDeInit(DmtxMatrixRegion *region)
    if(region->output != NULL)
       free(region->output);
 
-   memset(region, 0x00, sizeof(DmtxMatrixRegion));
+   memset(region, 0x00, sizeof(DmtxRegion));
 }
 
 /**
@@ -436,7 +436,7 @@ FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forwa
  * @return XXX
  */
 static int
-MatrixRegionUpdateXfrms(DmtxMatrixRegion *region, DmtxImage *image)
+MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
 {
    DmtxVector2 v01, vTmp, vCenter, pCenter;
    double tx, ty, phi, shx, scx, scy, skx, sky;
@@ -576,9 +576,9 @@ MatrixRegionAlignFirstEdge(DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, Dmtx
    int success;
    DmtxRay2 rayFull;
    DmtxVector2 p0, p1, pTmp;
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
 
-   region = &(decode->matrix);
+   region = &(decode->region);
 
 /*fprintf(stdout, "MatrixRegionAlignFirstEdge()\n"); */
    if(!ray0.isDefined && !ray1.isDefined) {
@@ -626,7 +626,7 @@ MatrixRegionAlignFirstEdge(DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, Dmtx
  * @return XXX
  */
 static void
-SetCornerLoc(DmtxMatrixRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point)
+SetCornerLoc(DmtxRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point)
 {
    switch(cornerLoc) {
       case DmtxCorner00:
@@ -671,10 +671,10 @@ MatrixRegionAlignSecondEdge(DmtxDecode *decode)
    int i, bestFit;
    DmtxRay2 rayOT, rayNew;
    double ratio, maxRatio;
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
 
 /*fprintf(stdout, "MatrixRegionAlignSecondEdge()\n"); */
-   region = &(decode->matrix);
+   region = &(decode->region);
 
    /* Scan top edge left-to-right (shear only)
 
@@ -826,9 +826,9 @@ MatrixRegionAlignRightEdge(DmtxDecode *decode)
    int success;
    DmtxMatrix3 rotate, flip, skew, scale;
    DmtxMatrix3 preFit2Raw, postRaw2Fit;
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
 
-   region = &(decode->matrix);
+   region = &(decode->region);
 
    dmtxMatrix3Rotate(rotate, -M_PI_2);
    dmtxMatrix3Scale(flip, 1.0, -1.0);
@@ -887,11 +887,11 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
    double slope;
    int hitCount;
    int weakCount;
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
 
    assert(edgeLoc == DmtxEdgeTop || edgeLoc == DmtxEdgeRight);
 
-   region = &(decode->matrix);
+   region = &(decode->region);
 
    hitCount = MatrixRegionAlignEdge(decode, postRaw2Fit, preFit2Raw, &p0, &p1, &pCorner, &weakCount);
    if(hitCount < 2)
@@ -996,9 +996,9 @@ MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 p
    int i;
    int stepsSinceStarAdjust;
    DmtxVector2 pTmp;
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
 
-   region = &(decode->matrix);
+   region = &(decode->region);
 
 /*fprintf(stdout, "MatrixRegionAlignEdge()\n"); */
    dmtxMatrix3Multiply(sRaw2Fit, region->raw2fit, postRaw2Fit);
@@ -1148,7 +1148,7 @@ MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 p
  * @return XXX
  */
 static int
-StepAlongEdge(DmtxImage *image, DmtxMatrixRegion *region, DmtxVector2 *pProgress, DmtxVector2 *pExact, DmtxVector2 forward, DmtxVector2 lateral, DmtxDecode *decode)
+StepAlongEdge(DmtxImage *image, DmtxRegion *region, DmtxVector2 *pProgress, DmtxVector2 *pExact, DmtxVector2 forward, DmtxVector2 lateral, DmtxDecode *decode)
 {
    int x, y;
    int xToward, yToward;
@@ -1242,9 +1242,9 @@ StepAlongEdge(DmtxImage *image, DmtxMatrixRegion *region, DmtxVector2 *pProgress
 static int
 AllocateStorage(DmtxDecode *decode)
 {
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
 
-   region = &(decode->matrix);
+   region = &(decode->region);
 
    region->symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
    region->symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
@@ -1346,9 +1346,9 @@ MatrixRegionFindSize(DmtxDecode *decode)
                              13, 29, 12, 11, 10, 28, 27,  9, 25,  8,
                              26,  7,  6,  5,  4, 24,  3,  2,  1,  0 };
    int *ptr;
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
 
-   region = &(decode->matrix);
+   region = &(decode->region);
 
    /* First try all sizes to determine which sizeIdx with best contrast */
    ptr = sizeIdxAttempts;
@@ -1465,9 +1465,9 @@ PopulateArrayFromMatrix(DmtxDecode *decode)
    double tPrev, tModule;
    double jumpThreshold;
    DmtxColor3 color;
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
 
-   region = &(decode->matrix);
+   region = &(decode->region);
 
    dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
    dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);
@@ -1532,9 +1532,9 @@ PopulateArrayFromMosaic(DmtxDecode *decode)
    int symbolRow, symbolCol;
    int dataRegionRows, dataRegionCols;
    DmtxColor3 color;
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
 
-   region = &(decode->matrix);
+   region = &(decode->region);
 
    dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
    dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);

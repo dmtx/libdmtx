@@ -113,7 +113,7 @@ void FinderBarCallback(DmtxRay2 *ray)
  *
  *
  */
-void BuildMatrixCallback2(DmtxMatrixRegion *region)
+void BuildMatrixCallback2(DmtxRegion *region)
 {
    int i, j;
    float scale = 1.0/200.0;
@@ -393,7 +393,7 @@ void XfrmPlotPointCallback(DmtxVector2 point, DmtxMatrix3 xfrm, int paneNbr, int
  *
  *
  */
-void FinalCallback(DmtxDecode *decode, DmtxMatrixRegion *region)
+void FinalCallback(DmtxDecode *decode, DmtxRegion *region)
 {
    int row, col;
    int symbolRows, symbolCols;
@@ -416,7 +416,7 @@ void FinalCallback(DmtxDecode *decode, DmtxMatrixRegion *region)
  *
  *
  */
-void PlotModuleCallback(DmtxDecode *info, DmtxMatrixRegion *region, int row, int col, DmtxColor3 color)
+void PlotModuleCallback(DmtxDecode *info, DmtxRegion *region, int row, int col, DmtxColor3 color)
 {
    int modSize, halfModsize, padSize;
 // float t;

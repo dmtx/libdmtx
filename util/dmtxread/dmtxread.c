@@ -72,7 +72,7 @@ main(int argc, char *argv[])
    char *imagePath;
    DmtxDecode decode;
    DmtxImage *image;
-   DmtxMatrixRegion region;
+   DmtxRegion region;
    DmtxPixelLoc p0, p1;
 
    SetOptionDefaults(&options);
@@ -707,9 +707,9 @@ PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int pageIndex)
 {
    int i;
    int dataWordLength;
-   DmtxMatrixRegion *region;
+   DmtxRegion *region;
 
-   region = &(decode->matrix);
+   region = &(decode->region);
 
    dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, region->sizeIdx);
    if(options->verbose) {
@@ -777,9 +777,9 @@ WriteImagePnm(UserOptions *options, DmtxDecode *decode, char *imagePath)
    int row, col;
    int moduleStatus;
    FILE *fp;
-   DmtxMatrixRegion *matrix;
+   DmtxRegion *region;
 
-   matrix = &(decode->matrix);
+   region = &(decode->region);
 
    /* XXX later change this to append to the input filename */
    imagePath = "debug.pnm";
@@ -791,10 +791,10 @@ WriteImagePnm(UserOptions *options, DmtxDecode *decode, char *imagePath)
    }
 
    /* Flip rows top-to-bottom to account for PNM "top-left" origin */
-   fprintf(fp, "P6 %d %d 255 ", matrix->symbolCols, matrix->symbolRows);
-   for(row = matrix->symbolRows - 1; row  >= 0; row--) {
-      for(col = 0; col < matrix->symbolCols; col++) {
-         moduleStatus = dmtxSymbolModuleStatus(matrix, row, col);
+   fprintf(fp, "P6 %d %d 255 ", region->symbolCols, region->symbolRows);
+   for(row = region->symbolRows - 1; row  >= 0; row--) {
+      for(col = 0; col < region->symbolCols; col++) {
+         moduleStatus = dmtxSymbolModuleStatus(region, row, col);
 
          fputc((moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255, fp);
          fputc((moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255, fp);
