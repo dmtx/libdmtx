@@ -37,9 +37,13 @@ dmtxFindNextRegion(DmtxDecode *decode)
    /* Pick up where we left off after last scan */
    while(grid->extent >= grid->minExtent) {
 
+      /* Extract pixel location of current progress from scan grid */
       loc = GetGridCoordinates(grid);
+
+      /* Increment early to avoid any chance of revisiting this location */
       IncrementPixelProgress(grid);
 
+      /* Scan this pixel for the presence of a valid barcode edge */
       if(dmtxScanPixel(decode, loc))
          return 1;
    }
