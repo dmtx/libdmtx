@@ -22,7 +22,7 @@ Contact: mike@dragonflylogic.com
 
 /* $Id: dmtxscangrid.c 42 2008-01-18 22:05:16Z mblaughton $ */
 
-/*
+/**
  *
  *
  */
@@ -60,7 +60,7 @@ InitScanGrid(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
    return grid;
 }
 
-/*
+/**
  *
  *
  */
@@ -89,7 +89,7 @@ IncrementPixelProgress(DmtxScanGrid *cross)
    }
 }
 
-/*
+/**
  *
  *
  */
@@ -103,7 +103,7 @@ SetDerivedFields(DmtxScanGrid *cross)
    cross->xCenter = cross->yCenter = cross->startPos;
 }
 
-/*
+/**
  *
  *
  */

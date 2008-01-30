@@ -40,15 +40,17 @@ dmtxImageInit(DmtxImage *image)
  *
  */
 extern int
-dmtxImageDeInit(DmtxImage *image)
+dmtxImageDeInit(DmtxImage **image)
 {
-   if(image == NULL)
+   if(*image == NULL)
       return 0; /* Error */
 
-   if(image->pxl != NULL)
-      free(image->pxl);
+   if((*image)->pxl != NULL)
+      free((*image)->pxl);
 
-   memset(image, 0x00, sizeof(DmtxImage));
+   free(*image);
+
+   *image = NULL;
 
    return 0;
 }

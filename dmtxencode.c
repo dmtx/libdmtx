@@ -156,6 +156,7 @@ EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
 extern int
 dmtxEncodeDataMatrix(DmtxEncode *encode, int inputSize, unsigned char *inputString, int sizeIdxRequest)
 {
+   DmtxImage *image;
    int dataWordCount;
    int sizeIdx;
    unsigned char buf[4096];
@@ -206,14 +207,23 @@ dmtxEncodeDataMatrix(DmtxEncode *encode, int inputSize, unsigned char *inputStri
    ModulePlacementEcc200(encode->matrix.array, encode->matrix.code, encode->matrix.sizeIdx, DMTX_MODULE_ON_RGB);
 
    /* Allocate memory for the image to be generated */
-   encode->image.width = 2 * encode->marginSize + (encode->matrix.symbolCols * encode->moduleSize);
-   encode->image.height = 2 * encode->marginSize + (encode->matrix.symbolRows * encode->moduleSize);
-
-   encode->image.pxl = (DmtxPixel *)malloc(encode->image.width * encode->image.height * sizeof(DmtxPixel));
-   if(encode->image.pxl == NULL) {
+   /* XXX image = DmtxImageMalloc(width, height); */
+   image = (DmtxImage *)malloc(sizeof(DmtxImage));
+   if(image == NULL) {
       perror("malloc error");
       exit(2);
    }
+
+   image->pageCount = 1;
+   image->width = 2 * encode->marginSize + (encode->matrix.symbolCols * encode->moduleSize);
+   image->height = 2 * encode->marginSize + (encode->matrix.symbolRows * encode->moduleSize);
+
+   image->pxl = (DmtxPixel *)malloc(image->width * image->height * sizeof(DmtxPixel));
+   if(image->pxl == NULL) {
+      perror("malloc error");
+      exit(2);
+   }
+   encode->image = image;
 
    /* Insert finder and aligment pattern modules */
    PrintPattern(encode);
@@ -462,7 +472,7 @@ PrintPattern(DmtxEncode *encode)
       IMPORTANT: DmtxImage is stored with its origin at bottom-right
       (unlike common image file formats) to preserve "right-handed" 2D space */
 
-   memset(encode->image.pxl, 0xff, encode->image.width * encode->image.height * sizeof(DmtxPixel));
+   memset(encode->image->pxl, 0xff, encode->image->width * encode->image->height * sizeof(DmtxPixel));
 
    for(symbolRow = 0; symbolRow < encode->matrix.symbolRows; symbolRow++) {
       for(symbolCol = 0; symbolCol < encode->matrix.symbolCols; symbolCol++) {
@@ -479,9 +489,9 @@ PrintPattern(DmtxEncode *encode)
 
          for(i = pixelRow; i < pixelRow + encode->moduleSize; i++) {
             for(j = pixelCol; j < pixelCol + encode->moduleSize; j++) {
-               encode->image.pxl[i * encode->image.width + j].R = (moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255;
-               encode->image.pxl[i * encode->image.width + j].G = (moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255;
-               encode->image.pxl[i * encode->image.width + j].B = (moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255;
+               encode->image->pxl[i * encode->image->width + j].R = (moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255;
+               encode->image->pxl[i * encode->image->width + j].G = (moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255;
+               encode->image->pxl[i * encode->image->width + j].B = (moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255;
             }
          }
 

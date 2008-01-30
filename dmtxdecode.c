@@ -22,7 +22,7 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
-/*
+/**
  *
  *
  */
@@ -33,7 +33,7 @@ dmtxDecodeInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSiz
 
    memset(&decode, 0x00, sizeof(DmtxDecode));
 
-   decode.image = *image;
+   decode.image = image;
    decode.grid = InitScanGrid(image, p0, p1, minGapSize);
 
    return decode;

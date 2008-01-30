@@ -39,17 +39,17 @@ Contact: mike@dragonflylogic.com
 #define DMTXREAD_ERROR       1
 
 static void SetOptionDefaults(UserOptions *options);
-static int HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, DmtxDecode *decode);
+static int HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[]);
 static int SetRangeLimit(int *target, char *optionString, int minMax, int limit);
 static int SetScanRegion(DmtxPixelLoc *p0, DmtxPixelLoc *p1, UserOptions *options, DmtxImage *image);
 static int StringToInt(int *numberInt, char *numberString, char **terminate);
 static void ShowUsage(int status);
 static void FatalError(int errorCode, char *fmt, ...);
 static ImageFormat GetImageFormat(char *imagePath);
-static int LoadImage(DmtxImage *image, char *imagePath, int imageIndex);
-static int LoadImagePng(DmtxImage *image, char *imagePath);
-static int LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex);
-static int PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int imageIndex);
+static DmtxImage *LoadImage(char *imagePath, int pageIndex);
+static DmtxImage *LoadImagePng(char *imagePath);
+static DmtxImage *LoadImageTiff(char *imagePath, int pageIndex);
+static int PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int pageIndex);
 static void WriteImagePnm(UserOptions *options, DmtxDecode *decode, char *imagePath);
 
 char *programName;
@@ -64,89 +64,28 @@ char *programName;
 int
 main(int argc, char *argv[])
 {
+   int count;
    int err;
    int fileIndex;
-   DmtxDecode decode;
-   DmtxMatrixRegion region;
+   int pageIndex;
    UserOptions options;
    char *imagePath;
-   int imageCount;
-   int imageIndex;
-   int count;
-   DmtxPixelLoc p0, p1;
-
-   SetOptionDefaults(&options);
-
-   memset(&decode, 0x00, sizeof(DmtxDecode));
-   memset(&region, 0x00, sizeof(DmtxMatrixRegion));
-
-   err = HandleArgs(&options, &argc, &argv, &fileIndex, &decode);
-   if(err)
-      ShowUsage(err);
-
-   // Loop through all image files named in paramter list
-   while(fileIndex < argc) {
-
-      imagePath = argv[fileIndex];
-
-      // Loop through all "pages" present in image
-      imageIndex = 0;
-      do {
-         dmtxImageInit(&decode.image);
-
-         imageCount = LoadImage(&decode.image, imagePath, imageIndex);
-
-         if(imageCount == 0)
-            break;
-
-         err = SetScanRegion(&p0, &p1, &options, &decode.image);
-         if(err)
-            continue;
-
-         decode = dmtxDecodeInit(&decode.image, p0, p1, options.scanGap);
-
-         count = dmtxFindNextRegion(&decode);
-         if(count == 0)
-            continue;
-
-         // XXX later change this to a opt-in debug option
-         WriteImagePnm(&options, &decode, imagePath);
-
-         PrintDecodedOutput(&options, &decode, imageIndex);
-
-         dmtxImageDeInit(&decode.image);
-      } while(++imageIndex < imageCount);
-
-      fileIndex++;
-   }
-
-   exit(0);
-}
-
-/*
-int
-main(int argc, char *argv[])
-{
-   UserOptions options;
-   int fileIndex;
-   int pageIndex;
-   DmtxImage *image;
-   DmtxPixelLoc p0, p1;
    DmtxDecode decode;
-   DmtxRegion region;
-   DmtxMessage *message;
+   DmtxImage *image;
+   DmtxMatrixRegion region;
+   DmtxPixelLoc p0, p1;
 
    SetOptionDefaults(&options);
 
    err = HandleArgs(&options, &fileIndex, &argc, &argv);
    if(err)
-      ShowUsage(DMTXREAD_BAD_ARGUMENT);
+      ShowUsage(err);
 
    // Loop once for each page of each image file in parameter list
    for(pageIndex = 0; fileIndex < argc;) {
 
       // Load image page from file (many formats only support single page)
-      image = LoadImage(argv[fileIndex], pageIndex++); // XXX calls dmtxImageInit()
+      image = LoadImage(argv[fileIndex], pageIndex++);
 
       // Increment counters early to allow simple 'continue' later in loop
       if(pageIndex >= image->pageCount) {
@@ -160,7 +99,7 @@ main(int argc, char *argv[])
          continue;
       }
 
-      // Determine image region to be scanned (XXX should account for user option too)
+      // Determine image region to be scanned XXX this is a bad function name
       err = SetScanRegion(&p0, &p1, &options, image);
       if(err)
          continue;
@@ -172,22 +111,24 @@ main(int argc, char *argv[])
       for(;;) {
 
          // Find next barcode region within image, but do not decode
-         region = dmtxFindNextRegion(&decode);
-
-         if(region.status == DMTX_NO_MORE)
+         count = dmtxFindNextRegion(&decode);
+         if(count == 0)
             break;
-         else if(region.status == DMTX_INVALID)
-            continue; // (can this even happen?)
+
+         // region = dmtxFindNextRegion(&decode);
+         //if(region.status == DMTX_NO_MORE)
+            //break;
 
          // Decode region based on requested scan mode
-         message = (options.mosaic) ? dmtxDecodeMosaic(&region) : dmtxDecodeMosaic(&region);
+         //message = (options.mosaic) ? dmtxDecodeMosaic(&region) : dmtxDecodeMosaic(&region);
 
          // XXX later change this to a opt-in debug option
          //WriteImagePnm(&options, &decode, imagePath);
 
-         PrintDecodedOutput(message, &options, &decode, pageIndex);
+         //PrintDecodedOutput(message, &options, &decode, pageIndex);
+         PrintDecodedOutput(&options, &decode, pageIndex);
 
-         dmtxDeInitMessage(message);
+         //dmtxDeInitMessage(message);
 
          break; // XXX for now, break after first barcode found in image
       }
@@ -197,7 +138,6 @@ main(int argc, char *argv[])
 
    exit(0);
 }
-*/
 
 /**
  *
@@ -231,7 +171,7 @@ SetOptionDefaults(UserOptions *options)
  * @return           DMTXREAD_SUCCESS | DMTXREAD_ERROR
  */
 static int
-HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, DmtxDecode *decode)
+HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
 {
    int err;
    int opt;
@@ -299,7 +239,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, Dmt
             options->coordinates = 1;
             break;
          case 'M':
-            decode->mosaic = 1;
+            options->mosaic = 1;
             break;
          case 'P':
             options->pageNumber = 1;
@@ -324,6 +264,10 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, Dmt
    return DMTXREAD_SUCCESS;
 }
 
+/**
+ *
+ *
+ */
 static int
 SetRangeLimit(int *target, char *optionString, int minMax, int limit)
 {
@@ -500,27 +444,24 @@ GetImageFormat(char *imagePath)
 /**
  *
  */
-static int
-LoadImage(DmtxImage *image, char *imagePath, int imageIndex)
+static DmtxImage *
+LoadImage(char *imagePath, int pageIndex)
 {
-   int imageCount;
-   ImageFormat imageFormat;
+   DmtxImage *image;
 
-   imageFormat = GetImageFormat(imagePath);
-
-   switch(imageFormat) {
+   switch(GetImageFormat(imagePath)) {
       case ImageFormatPng:
-         imageCount = LoadImagePng(image, imagePath);
+         image = LoadImagePng(imagePath);
          break;
       case ImageFormatTiff:
-         imageCount = LoadImageTiff(image, imagePath, imageIndex);
+         image = LoadImageTiff(imagePath, pageIndex);
          break;
       default:
          FatalError(1, _("Unrecognized file type"));
          break;
    }
 
-   return imageCount;
+   return image;
 }
 
 /**
@@ -530,9 +471,10 @@ LoadImage(DmtxImage *image, char *imagePath, int imageIndex)
  * @param imagePath path/name of PNG image
  * @return          DMTX_SUCCESS | DMTX_FAILURE
  */
-static int
-LoadImagePng(DmtxImage *image, char *imagePath)
+static DmtxImage *
+LoadImagePng(char *imagePath)
 {
+   DmtxImage       *image;
    png_byte        pngHeader[8];
    FILE            *fp;
    int             isPng;
@@ -550,37 +492,37 @@ LoadImagePng(DmtxImage *image, char *imagePath)
    fp = fopen(imagePath, "rb");
    if(fp == NULL) {
       perror(programName);
-      return 0;
+      return NULL;
    }
 
    fread(pngHeader, 1, sizeof(pngHeader), fp);
    isPng = !png_sig_cmp(pngHeader, 0, sizeof(pngHeader));
    if(!isPng)
-      return 0;
+      return NULL;
 
    pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
    if(pngPtr == NULL) {
       png_destroy_read_struct(&pngPtr, (png_infopp)NULL, (png_infopp)NULL);
-      return 0;
+      return NULL;
    }
 
    infoPtr = png_create_info_struct(pngPtr);
    if(infoPtr == NULL) {
       png_destroy_read_struct(&pngPtr, (png_infopp)NULL, (png_infopp)NULL);
-      return 0;
+      return NULL;
    }
 
    endInfo = png_create_info_struct(pngPtr);
    if(endInfo == NULL) {
       png_destroy_read_struct(&pngPtr, &infoPtr, (png_infopp)NULL);
-      return 0;
+      return NULL;
    }
 
    if(setjmp(png_jmpbuf(pngPtr))) {
       png_destroy_read_struct(&pngPtr, &infoPtr, &endInfo);
       fclose(fp);
-      return 0;
+      return NULL;
    }
 
    png_init_io(pngPtr, fp);
@@ -624,7 +566,7 @@ LoadImagePng(DmtxImage *image, char *imagePath)
    if(rowPointers == NULL) {
       perror(programName);
       // free first?
-      return 0;
+      return NULL;
    }
 
    for(row = 0; row < height; row++) {
@@ -637,7 +579,16 @@ LoadImagePng(DmtxImage *image, char *imagePath)
 
    png_destroy_read_struct(&pngPtr, &infoPtr, &endInfo);
 
+   // XXX image = DmtxImageMalloc(width, height);
+   image = (DmtxImage *)malloc(sizeof(DmtxImage));
+   if(image == NULL) {
+      perror(programName);
+      // free first?
+      return NULL;
+   }
+
    // Use PNG information to populate DmtxImage information
+   image->pageCount = 1;
    image->width = width;
    image->height = height;
 
@@ -645,8 +596,9 @@ LoadImagePng(DmtxImage *image, char *imagePath)
          sizeof(DmtxPixel));
    if(image->pxl == NULL) {
       perror(programName);
+      free(image);
       // free first?
-      return 0;
+      return NULL;
    }
 
    // This copy reverses row order top-to-bottom so image coordinate system
@@ -665,7 +617,7 @@ LoadImagePng(DmtxImage *image, char *imagePath)
 
    fclose(fp);
 
-   return 1;
+   return image;
 }
 
 /**
@@ -675,9 +627,10 @@ LoadImagePng(DmtxImage *image, char *imagePath)
  * @param filename path/name of PNG image
  * @return         number of pages contained in image file
  */
-static int
-LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex)
+static DmtxImage *
+LoadImageTiff(char *imagePath, int pageIndex)
 {
+   DmtxImage *image;
    int dirIndex = 0;
    TIFF* tif;
    int row, col, offset;
@@ -688,11 +641,11 @@ LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex)
    tif = TIFFOpen(imagePath, "r");
    if(tif == NULL) {
       perror(programName);
-      return 0;
+      return NULL;
    }
 
    do {
-      if(dirIndex == imageIndex) {
+      if(dirIndex == pageIndex) {
          TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w);
          TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h);
          npixels = w * h;
@@ -701,7 +654,7 @@ LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex)
          if(raster == NULL) {
             perror(programName);
             // free before returning
-            return 0;
+            return NULL;
          }
 
          if(TIFFReadRGBAImage(tif, w, h, raster, 0)) {
@@ -713,7 +666,7 @@ LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex)
             if(image->pxl == NULL) {
                perror(programName);
                // free before returning
-               return 0;
+               return NULL;
             }
 
             // This copy reverses row order top-to-bottom so image coordinate system
@@ -737,7 +690,9 @@ LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex)
 
    TIFFClose(tif);
 
-   return dirIndex;
+   image->pageCount = dirIndex;
+
+   return image;
 }
 
 /**
@@ -748,7 +703,7 @@ LoadImageTiff(DmtxImage *image, char *imagePath, int imageIndex)
  * @return          DMTXREAD_SUCCESS | DMTXREAD_ERROR
  */
 static int
-PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int imageIndex)
+PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int pageIndex)
 {
    int i;
    int dataWordLength;
@@ -783,19 +738,19 @@ PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int imageIndex)
    }
 
    if(options->pageNumber)
-      fprintf(stdout, "%d:", imageIndex + 1);
+      fprintf(stdout, "%d:", pageIndex + 1);
 
    if(options->coordinates) {
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
-            decode->image.height - (int)(region->corners.c00.Y + 0.5));
+            decode->image->height - (int)(region->corners.c00.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c10.X + 0.5),
-            decode->image.height - (int)(region->corners.c10.Y + 0.5));
+            decode->image->height - (int)(region->corners.c10.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c11.X + 0.5),
-            decode->image.height - (int)(region->corners.c11.Y + 0.5));
+            decode->image->height - (int)(region->corners.c11.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c01.X + 0.5),
-            decode->image.height - (int)(region->corners.c01.Y + 0.5));
+            decode->image->height - (int)(region->corners.c01.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
-            decode->image.height - (int)(region->corners.c00.Y + 0.5));
+            decode->image->height - (int)(region->corners.c00.Y + 0.5));
    }
 
    if(options->codewords) {

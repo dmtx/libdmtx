@@ -157,6 +157,7 @@ typedef struct DmtxPixel_struct {
 } DmtxPixel;
 
 typedef struct DmtxImage_struct {
+   unsigned int pageCount;
    unsigned int width;
    unsigned int height;
    DmtxPixel    *pxl;
@@ -238,7 +239,7 @@ typedef struct DmtxScanGrid_struct {
 
 typedef struct DmtxDecode_struct DmtxDecode;
 struct DmtxDecode_struct {
-   DmtxImage image;
+   DmtxImage *image;
    DmtxScanGrid grid;
 
    int mosaic;
@@ -257,7 +258,7 @@ typedef struct DmtxEncode_struct {
    int marginSize;
    DmtxEncodeMethod method;
    DmtxSchemeEncode scheme;
-   DmtxImage image;
+   DmtxImage *image;
    DmtxMatrix3 xfrm;
    DmtxMatrix3 rxfrm;
    DmtxMatrixRegion matrix;
@@ -338,7 +339,7 @@ extern float dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, float t);
 
 extern int dmtxImageInit(DmtxImage *image);
-extern int dmtxImageDeInit(DmtxImage *image);
+extern int dmtxImageDeInit(DmtxImage **image);
 extern int dmtxImageGetWidth(DmtxImage *image);
 extern int dmtxImageGetHeight(DmtxImage *image);
 extern int dmtxImageGetOffset(DmtxImage *image, DmtxDirection dir, int lineNbr, int offset);

@@ -22,7 +22,7 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
-/*
+/**
  *
  *
  */
@@ -62,19 +62,19 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
    DmtxCompassEdge compassEdge;
 
    /* Test whether this pixel is sitting on an edge of any direction */
-   compassEdge = GetCompassEdge(&(decode->image), loc.X, loc.Y, DMTX_ALL_COMPASS_DIRS);
+   compassEdge = GetCompassEdge(decode->image, loc.X, loc.Y, DMTX_ALL_COMPASS_DIRS);
    if(compassEdge.magnitude < 60)
       return 0;
 
    /* If the edge is strong then find its subpixel location */
-   edgeStart = FindZeroCrossing(&(decode->image), loc.X, loc.Y, compassEdge);
+   edgeStart = FindZeroCrossing(decode->image, loc.X, loc.Y, compassEdge);
    edgeStart.compass = compassEdge; /* XXX for now ... need to preserve scanDir */
    if(!edgeStart.isEdge)
       return 0;
 
    /* Next follow it to the end in both directions */
-   ray0 = FollowEdge(&(decode->image), loc.X, loc.Y, edgeStart, 1, decode);
-   ray1 = FollowEdge(&(decode->image), loc.X, loc.Y, edgeStart, -1, decode);
+   ray0 = FollowEdge(decode->image, loc.X, loc.Y, edgeStart, 1, decode);
+   ray1 = FollowEdge(decode->image, loc.X, loc.Y, edgeStart, -1, decode);
 
    memset(&(decode->matrix), 0x00, sizeof(DmtxMatrixRegion));
 
@@ -605,7 +605,7 @@ MatrixRegionAlignFirstEdge(DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, Dmtx
    SetCornerLoc(region, DmtxCorner00, rayFull.p);
    SetCornerLoc(region, DmtxCorner01, p0);
 
-   success = MatrixRegionUpdateXfrms(region, &(decode->image));
+   success = MatrixRegionUpdateXfrms(region, decode->image);
    if(!success)
       return DMTX_FAILURE;
 
@@ -802,7 +802,7 @@ MatrixRegionAlignSecondEdge(DmtxDecode *decode)
    SetCornerLoc(region, DmtxCorner01, T);
    SetCornerLoc(region, DmtxCorner10, R);
 
-   success = MatrixRegionUpdateXfrms(region, &(decode->image));
+   success = MatrixRegionUpdateXfrms(region, decode->image);
 
    /* Skewed barcode in the bottom middle pane */
 /* CALLBACK_DECODE_FUNC1(buildMatrixCallback4, decode, region->fit2raw); */
@@ -900,7 +900,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
       dmtxMatrix3VMultiply(&cBefore, &cFit, region->fit2raw);
 /* XXX we are probably doing a few extra ops here */
       SetCornerLoc(region, DmtxCorner10, pCorner);
-      success = MatrixRegionUpdateXfrms(region, &(decode->image));
+      success = MatrixRegionUpdateXfrms(region, decode->image);
       if(!success)
          return DMTX_FAILURE;
 
@@ -912,7 +912,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
       dmtxMatrix3VMultiply(&cBefore, &cFit, region->fit2raw);
 
       SetCornerLoc(region, DmtxCorner01, pCorner);
-      success = MatrixRegionUpdateXfrms(region, &(decode->image));
+      success = MatrixRegionUpdateXfrms(region, decode->image);
       if(!success)
          return DMTX_FAILURE;
 
@@ -965,7 +965,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
       SetCornerLoc(region, DmtxCorner01, p0);
       SetCornerLoc(region, DmtxCorner11, p1);
    }
-   success = MatrixRegionUpdateXfrms(region, &(decode->image));
+   success = MatrixRegionUpdateXfrms(region, decode->image);
    if(!success)
       return DMTX_FAILURE;
 
@@ -1050,7 +1050,7 @@ MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 p
       dmtxVector2Norm(&lateral);
 
       prevEdgeHit = edgeHit;
-      edgeHit = StepAlongEdge(&(decode->image), region, &pRawProgress, &pRawExact, forward, lateral, decode);
+      edgeHit = StepAlongEdge(decode->image, region, &pRawProgress, &pRawExact, forward, lateral, decode);
       dmtxMatrix3VMultiply(&pFitProgress, &pRawProgress, sRaw2Fit);
 
       if(edgeHit == DMTX_EDGE_STEP_EXACT) {
@@ -1101,8 +1101,8 @@ MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 p
          break;
       }
 
-      if(pRawProgress.X < 1 || pRawProgress.X > decode->image.width - 1 ||
-         pRawProgress.Y < 1 || pRawProgress.Y > decode->image.height - 1)
+      if(pRawProgress.X < 1 || pRawProgress.X > decode->image->width - 1 ||
+         pRawProgress.Y < 1 || pRawProgress.Y > decode->image->height - 1)
          break;
    }
 
@@ -1308,8 +1308,8 @@ ReadModuleColor(DmtxDecode *decode, int symbolRow, int symbolCol, int sizeIdx, D
       p.Y = (1.0/symbolRows) * (symbolRow + sampleY[i]);
 
       dmtxMatrix3VMultiply(&p0, &p, fit2raw);
-      dmtxColor3FromImage2(&cPoint, &(decode->image), p0);
-/*    dmtxColor3FromImage(&cPoint, &(decode->image), p0.X, p0.Y); */
+      dmtxColor3FromImage2(&cPoint, decode->image, p0);
+/*    dmtxColor3FromImage(&cPoint, decode->image, p0.X, p0.Y); */
 
       dmtxColor3AddTo(&cAverage, &cPoint);
 

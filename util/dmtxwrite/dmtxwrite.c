@@ -516,7 +516,7 @@ WriteImagePng(UserOptions *options, DmtxEncode *encode)
    /* Set up output control using standard streams */
    png_init_io(pngPtr, fp);
 
-   png_set_IHDR(pngPtr, infoPtr, encode->image.width, encode->image.height,
+   png_set_IHDR(pngPtr, infoPtr, encode->image->width, encode->image->height,
          8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
          PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
@@ -525,22 +525,22 @@ WriteImagePng(UserOptions *options, DmtxEncode *encode)
       png_set_pHYs(pngPtr, infoPtr, pixelsPerMeter, pixelsPerMeter, PNG_RESOLUTION_METER);
    }
 
-   rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * encode->image.height);
+   rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * encode->image->height);
    if(rowPointers == NULL) {
       perror(programName);
    }
 
    // This copy reverses row order top-to-bottom so image coordinate system
    // corresponds with normal "right-handed" 2D space
-   for(row = 0; row < encode->image.height; row++) {
+   for(row = 0; row < encode->image->height; row++) {
       rowPointers[row] = (png_bytep)png_malloc(pngPtr, png_get_rowbytes(pngPtr, infoPtr));
 
-      assert(png_get_rowbytes(pngPtr, infoPtr) == encode->image.width * sizeof(DmtxPixel));
+      assert(png_get_rowbytes(pngPtr, infoPtr) == encode->image->width * sizeof(DmtxPixel));
 
       // Flip rows top-to-bottom to account for PNM "top-left" origin
       memcpy(rowPointers[row],
-            encode->image.pxl + ((encode->image.height - row - 1) * encode->image.width),
-            encode->image.width * sizeof(DmtxPixel));
+            encode->image->pxl + ((encode->image->height - row - 1) * encode->image->width),
+            encode->image->width * sizeof(DmtxPixel));
    }
 
    png_set_rows(pngPtr, infoPtr, rowPointers);
@@ -550,7 +550,7 @@ WriteImagePng(UserOptions *options, DmtxEncode *encode)
    /* Clean up after the write, and free any memory allocated */
    png_destroy_write_struct(&pngPtr, &infoPtr);
 
-   for(row = 0; row < encode->image.height; row++) {
+   for(row = 0; row < encode->image->height; row++) {
       png_free(pngPtr, rowPointers[row]);
    }
    png_free(pngPtr, rowPointers);
@@ -575,12 +575,12 @@ WriteImagePnm(UserOptions *options, DmtxEncode *encode)
       exit(3);
    }
 
-   fprintf(fp, "P6 %d %d 255 ", encode->image.width, encode->image.height);
-   for(row = 0; row < encode->image.height; row++) {
-      for(col = 0; col < encode->image.width; col++) {
-         fputc(encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].R, fp);
-         fputc(encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].G, fp);
-         fputc(encode->image.pxl[(encode->image.height - row - 1) * encode->image.width + col].B, fp);
+   fprintf(fp, "P6 %d %d 255 ", encode->image->width, encode->image->height);
+   for(row = 0; row < encode->image->height; row++) {
+      for(col = 0; col < encode->image->width; col++) {
+         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col].R, fp);
+         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col].G, fp);
+         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col].B, fp);
       }
    }
    fclose(fp);
