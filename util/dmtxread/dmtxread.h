@@ -37,7 +37,10 @@ typedef struct {
    int codewords;
    int scanGap;
    int newline;
-   char *region;
+   char *xRangeMin;
+   char *xRangeMax;
+   char *yRangeMin;
+   char *yRangeMax;
    int verbose;
    int coordinates;
    int mosaic;
