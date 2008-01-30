@@ -274,8 +274,8 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], int *fileIndex, Dmt
             break;
          case 'g':
             err = StringToInt(&(options->scanGap), optarg, &ptr);
-            if(err != DMTXREAD_SUCCESS || options->scanGap <= 0 || *ptr != '\n')
-               FatalError(1, _("Invalid gap request \"%s\""), optarg);
+            if(err != DMTXREAD_SUCCESS || options->scanGap <= 0 || *ptr != '\0')
+               FatalError(1, _("Invalid gap specified \"%s\""), optarg);
             break;
          case 'n':
             options->newline = 1;
@@ -336,7 +336,7 @@ SetRangeLimit(int *target, char *optionString, int minMax, int limit)
    }
    if(optionString) {
       err = StringToInt(&value, optionString, &terminate);
-      if(err)
+      if(err != DMTXREAD_SUCCESS)
          return DMTXREAD_ERROR;
       *target = (*terminate == '%') ? (int)(0.01 * value * limit + 0.5) : value;
    }
@@ -396,11 +396,11 @@ StringToInt(int *numberInt, char *numberString, char **terminate)
 
    if(errno != 0 || (**terminate != '\0' && **terminate != '%')) {
       *numberInt = -1;
-      return 1;
+      return DMTXREAD_ERROR;
    }
 
    *numberInt = (int)numberLong;
-   return 0;
+   return DMTXREAD_SUCCESS;
 }
 
 /**
