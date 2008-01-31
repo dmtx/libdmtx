@@ -658,7 +658,17 @@ LoadImageTiff(char *imagePath, int pageIndex)
          }
 
          if(TIFFReadRGBAImage(tif, w, h, raster, 0)) {
+
+            // XXX image = DmtxImageMalloc(width, height);
+            image = (DmtxImage *)malloc(sizeof(DmtxImage));
+            if(image == NULL) {
+               perror(programName);
+               // free before returning
+               return NULL;
+            }
+
             // Use TIFF information to populate DmtxImage information
+            image->pageCount = dirIndex;
             image->width = w;
             image->height = h;
 
