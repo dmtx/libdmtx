@@ -212,7 +212,7 @@ PopulateArrayFromMatrix()
       else
          array[idx] = ERASURE
 
-      mark as assigned, but not visited
+      array[idx] |= DMTX_MODULE_ASSIGNED;
    }
 }
 
@@ -222,8 +222,11 @@ PopulateArrayFromMatrix()
  */
 TallyModuleJumps(int xRegionOrigin, int yRegionOrigin, int regionWidth, int regionHeight, int direction)
 {
+   int extent;
    int symbolRow, symbolCol;
    int mappingRow, mappingCol;
+   int lineStart, lineStop;
+   int travelStart, travelStop;
    int *line, *travel;
    int sign;
 
@@ -234,21 +237,25 @@ TallyModuleJumps(int xRegionOrigin, int yRegionOrigin, int regionWidth, int regi
 
    if(direction & DmtxDirHorizontal) {
       line = &symbolRow;
-      travel = &col;
+      travel = &symbolCol;
       extent = regionWidth;
-      travelStart = (travelStep == 1) ? xRegionOrigin : xRegionOrigin + extent - 1;
-      travelStop = (travelStep == 1) ? xRegionOrigin + extent : xRegionOrigin - 1;
+      lineStart = yRegionOrigin + 1;
+      lineStop = yRegionOrigin + regionHeight - 2;
+      travelStart = (travelStep == 1) ? xRegionOrigin : xRegionOrigin + regionWidth - 1;
+      travelStop = (travelStep == 1) ? xRegionOrigin + regionWidth : xRegionOrigin - 1;
    }
    else {
       assert(direction & DmtxDirVertical);
-      line = &col;
+      line = &symbolCol;
       travel = &symbolRow;
       extent = regionHeight;
-      travelStart = (travelStep == 1) ? yRegionOrigin : yRegionOrigin + extent - 1;
-      travelStop = (travelStep == 1) ? yRegionOrigin + extent : yRegionOrigin - 1;
+      lineStart = xRegionOrigin + 1;
+      lineStop = xRegionOrigin + regionWidth - 2;
+      travelStart = (travelStep == 1) ? yRegionOrigin : yRegionOrigin + regionHeight - 1;
+      travelStop = (travelStep == 1) ? yRegionOrigin + regionHeight : yRegionOrigin - 1;
    }
 
-   for(*line = lineStart; *line != lineStop ; *line++) {
+   for(*line = lineStart; *line != lineStop ; (*line)++) {
 
       weight = extent - 2;
 
@@ -268,15 +275,20 @@ TallyModuleJumps(int xRegionOrigin, int yRegionOrigin, int regionWidth, int regi
 
          status = (compare t toPrev)
 
+         mappingRow = f(symbolRow);
+         mappingCol = f(symbolCol);
+
          if(status == on)
-            array[symbolRow,symbolCol] += (weight * 2);
+            array[mappingRow,mappingCol] += (weight * 2);
          else if(status == unsure)
-            array[symbolRow,symbolCol] += (weight);
+            array[mappingRow,mappingCol] += (weight);
 
          *travel += travelStep;
 
          weight--;
       }
+
+      assert(weight == 0);
    }
 }
 
