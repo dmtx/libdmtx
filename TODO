@@ -171,48 +171,59 @@ Work in progress:
  */
 PopulateArrayFromMatrix()
 {
-   int row, col;
-   int regionWidth, regionHeight;
+   int mapWidth, mapHeight;
    int xRegionCount, yRegionCount;
-   int xMapOrigin, yMapOrigin;
+   int xRegionTotal, yRegionTotal;
+   double weightFactor;
+   int tally[24][24]; // only needs to be as big as mapping modules of largest single region
 
-   memset(array, 0x00, sizeof(width * height * sizeof()));
+   memset(array, 0x00, sizeof(width * height * sizeof(unsigned char)));
 
-   // Capture region dimensions including border modules
-   regionWidth = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols) + 2;
-   regionHeight = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows) + 2;
+   // Capture region dimensions (does not include border modules)
+   mapWidth = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols);
+   mapHeight = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows);
 
    // Capture number of regions present in this barcode (1 if single region)
-   xRegionCount = dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions);
-   yRegionCount = dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions);
+   xRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions);
+   yRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions);
+
+   weightFactor = mapHeight + mapWidth + 2;
+   assert(weightFactor > 0);
 
    // Tally module changes for each region in each direction
-   for(row = 0; row < yRegionCount; row++) {
+   for(yRegionCount = 0; yRegionCount < yRegionTotal; yRegionCount++) {
 
-      // Find Y location of region origin in symbol coordinates
-      yRegionOrigin = row * regionHeight;
+      // Y location of mapping region origin in symbol coordinates
+      yOrigin = yRegionCount * (regionHeight + 2);
 
-      for(col = 0; col < xRegionCount; col++) {
+      for(xRegionCount = 0; xRegionCount < xRegionTotal; xRegionCount++) {
 
-         // Find X location of region origin in symbol coordinates
-         xRegionOrigin = col * regionWidth;
+         // X location of mapping region origin in symbol coordinates
+         xOrigin = xRegionCount * (regionWidth + 2);
 
-         TallyModuleJumps(xRegionOrigin, yRegionOrigin, regionWidth, regionHeight, DmtxDirUp);
-         TallyModuleJumps(xRegionOrigin, yRegionOrigin, regionWidth, regionHeight, DmtxDirLeft);
-         TallyModuleJumps(xRegionOrigin, yRegionOrigin, regionWidth, regionHeight, DmtxDirDown);
-         TallyModuleJumps(xRegionOrigin, yRegionOrigin, regionWidth, regionHeight, DmtxDirRight);
+         memset(&tally, 0x00, sizeof(24 * 24 * sizeof(int));
+         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirUp);
+         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirLeft);
+         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirDown);
+         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirRight);
+
+         // Decide module status based on final tallies
+         for(mapRow = 0; mapRow < mapHeight * yRegionTotal; mapRow++) {
+            for(mapCol = 0; mapCol < mapWidth * xRegionTotal; mapCol++) {
+
+               idx = XYZ; // XXX
+
+               if(tally[mapRow][mapCol]/weightFactor > 0.55)
+                  array[idx] = DMTX_MODULE_STATUS_ON_RGB;
+               else if(tally[mappingRow][mappingCol]/weightFactor < 0.45)
+                  array[idx] = DMTX_MODULE_STATUS_OFF;
+               else
+                  array[idx] = DMTX_MODULE_STATUS_UNSURE;
+
+               array[idx] |= DMTX_MODULE_ASSIGNED;
+            }
+         }
       }
-   }
-
-   for(each mapping module) {
-      if(tally[idx]/(height + width - 2) > 0.55)
-         array[idx] = ON
-      else if(tally[idx]/(height + width - 2) < 0.45)
-         array[idx] = OFF
-      else
-         array[idx] = ERASURE
-
-      array[idx] |= DMTX_MODULE_ASSIGNED;
    }
 }
 
@@ -220,7 +231,7 @@ PopulateArrayFromMatrix()
  *
  *
  */
-TallyModuleJumps(int xRegionOrigin, int yRegionOrigin, int regionWidth, int regionHeight, int direction)
+TallyModuleJumps(int xOrigin, int yOrigin, int mapWidth, int mapHeight, int direction)
 {
    int extent;
    int symbolRow, symbolCol;
@@ -239,9 +250,9 @@ TallyModuleJumps(int xRegionOrigin, int yRegionOrigin, int regionWidth, int regi
       line = &symbolRow;
       travel = &symbolCol;
       extent = regionWidth;
-      lineStart = yRegionOrigin + 1;
-      lineStop = yRegionOrigin + regionHeight - 2;
-      travelStart = (travelStep == 1) ? xRegionOrigin : xRegionOrigin + regionWidth - 1;
+      lineStart = yRegionOrigin;
+      lineStop = yRegionOrigin + regionHeight;
+      travelStart = (travelStep == 1) ? xRegionOrigin - 1 : xRegionOrigin + regionWidth;
       travelStop = (travelStep == 1) ? xRegionOrigin + regionWidth : xRegionOrigin - 1;
    }
    else {
@@ -249,13 +260,13 @@ TallyModuleJumps(int xRegionOrigin, int yRegionOrigin, int regionWidth, int regi
       line = &symbolCol;
       travel = &symbolRow;
       extent = regionHeight;
-      lineStart = xRegionOrigin + 1;
-      lineStop = xRegionOrigin + regionWidth - 2;
-      travelStart = (travelStep == 1) ? yRegionOrigin : yRegionOrigin + regionHeight - 1;
+      lineStart = xRegionOrigin;
+      lineStop = xRegionOrigin + regionWidth;
+      travelStart = (travelStep == 1) ? yRegionOrigin - 1: yRegionOrigin + regionHeight;
       travelStop = (travelStep == 1) ? yRegionOrigin + regionHeight : yRegionOrigin - 1;
    }
 
-   for(*line = lineStart; *line != lineStop ; (*line)++) {
+   for(*line = lineStart; *line < lineStop ; (*line)++) {
 
       weight = extent - 2;
 
@@ -275,13 +286,13 @@ TallyModuleJumps(int xRegionOrigin, int yRegionOrigin, int regionWidth, int regi
 
          status = (compare t toPrev)
 
-         mappingRow = f(symbolRow);
-         mappingCol = f(symbolCol);
+         mapRow = f(symbolRow);
+         mapCol = f(symbolCol);
 
          if(status == on)
-            array[mappingRow,mappingCol] += (weight * 2);
+            tally[mapRow][mapCol] += (weight * 2);
          else if(status == unsure)
-            array[mappingRow,mappingCol] += (weight);
+            tally[mapRow][mapCol] += (weight);
 
          *travel += travelStep;
 
