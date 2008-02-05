@@ -174,18 +174,18 @@ PopulateArrayFromMatrix()
    int mapWidth, mapHeight;
    int xRegionCount, yRegionCount;
    int xRegionTotal, yRegionTotal;
-   double weightFactor;
-   int tally[24][24]; // Only large enough to map largest single region
+   int weightFactor;
+   int tally[24][24]; // Large enough to map largest single region
 
    memset(array, 0x00, sizeof(width * height * sizeof(unsigned char)));
+
+   // Capture number of regions present in barcode
+   xRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions);
+   yRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions);
 
    // Capture region dimensions (not including border modules)
    mapWidth = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols);
    mapHeight = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows);
-
-   // Capture number of regions present in this barcode
-   xRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions);
-   yRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions);
 
    weightFactor = mapHeight + mapWidth + 2;
    assert(weightFactor > 0);
@@ -208,16 +208,16 @@ PopulateArrayFromMatrix()
          TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirRight);
 
          // Decide module status based on final tallies
-         for(mapRow = 0; mapRow < mapHeight * yRegionTotal; mapRow++) {
-            for(mapCol = 0; mapCol < mapWidth * xRegionTotal; mapCol++) {
+         for(mapRow = 0; mapRow < mapHeight; mapRow++) {
+            for(mapCol = 0; mapCol < mapWidth; mapCol++) {
 
                rowTmp = (yRegionCount * mapHeight) + mapRow;
                colTmp = (xRegionCount * mapWidth) + mapCol;
                idx = (rowTmp * xRegionTotal * mapWidth) + colTmp;
 
-               if(tally[mapRow][mapCol]/weightFactor > 0.55)
+               if(tally[mapRow][mapCol]/(double)weightFactor > 0.6)
                   array[idx] = DMTX_MODULE_STATUS_ON_RGB;
-               else if(tally[mappingRow][mappingCol]/weightFactor < 0.45)
+               else if(tally[mappingRow][mappingCol]/(double)weightFactor < 0.4)
                   array[idx] = DMTX_MODULE_STATUS_OFF;
                else
                   array[idx] = DMTX_MODULE_STATUS_UNSURE;
@@ -248,8 +248,8 @@ TallyModuleJumps(int xOrigin, int yOrigin, int mapWidth, int mapHeight, int dire
 
    travelStep = (direction == DmtxDirUp || direction == DmtxDirRight) ? 1 : -1;
 
-   // Abstract row and column progress using pointers to allow traversal of
-   // grid in all 4 directions reusing the same logic
+   // Abstract row and column progress using pointers to allow grid
+   // traversal in all 4 directions using same logic
 
    if(direction & DmtxDirHorizontal) {
       line = &symbolRow;
@@ -309,7 +309,7 @@ TallyModuleJumps(int xOrigin, int yOrigin, int mapWidth, int mapHeight, int dire
          mapCol = symbolCol - xOrigin;
 
          if(statusModule == DMTX_MODULE_ON_RGB)
-            tally[mapRow][mapCol] += (2 * weight);
+            tally[mapRow][mapCol] += 2 * weight;
          else if(status == DMTX_MODULE_UNSURE)
             tally[mapRow][mapCol] += weight;
 
@@ -319,111 +319,3 @@ TallyModuleJumps(int xOrigin, int yOrigin, int mapWidth, int mapHeight, int dire
       assert(weight == 0);
    }
 }
-
-/* example:
-
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-14 13 12 11 10 09 08 07 06 05 04 03 02 01  01 02 03 04 05 06 07 08 09 10 11 12 13 14
-
-14 14 14 14 14 14 14 14 14 14 14 14 14 14  01 01 01 01 01 01 01 01 01 01 01 01 01 01
-13 13 13 13 13 13 13 13 13 13 13 13 13 13  02 02 02 02 02 02 02 02 02 02 02 02 02 02
-12 12 12 12 12 12 12 12 12 12 12 12 12 12  03 03 03 03 03 03 03 03 03 03 03 03 03 03
-11 11 11 11 11 11 11 11 11 11 11 11 11 11  04 04 04 04 04 04 04 04 04 04 04 04 04 04
-10 10 10 10 10 10 10 10 10 10 10 10 10 10  05 05 05 05 05 05 05 05 05 05 05 05 05 05
-09 09 09 09 09 09 09 09 09 09 09 09 09 09  06 06 06 06 06 06 06 06 06 06 06 06 06 06
-08 08 08 08 08 08 08 08 08 08 08 08 08 08  07 07 07 07 07 07 07 07 07 07 07 07 07 07
-07 07 07 07 07 07 07 07 07 07 07 07 07 07  08 08 08 08 08 08 08 08 08 08 08 08 08 08
-06 06 06 06 06 06 06 06 06 06 06 06 06 06  09 09 09 09 09 09 09 09 09 09 09 09 09 09
-05 05 05 05 05 05 05 05 05 05 05 05 05 05  10 10 10 10 10 10 10 10 10 10 10 10 10 10
-04 04 04 04 04 04 04 04 04 04 04 04 04 04  11 11 11 11 11 11 11 11 11 11 11 11 11 11
-03 03 03 03 03 03 03 03 03 03 03 03 03 03  12 12 12 12 12 12 12 12 12 12 12 12 12 12
-02 02 02 02 02 02 02 02 02 02 02 02 02 02  13 13 13 13 13 13 13 13 13 13 13 13 13 13
-01 01 01 01 01 01 01 01 01 01 01 01 01 01  14 14 14 14 14 14 14 14 14 14 14 14 14 14
-
-The four grids above add together to       30 30 30 30 30 30 30 30 30 30 30 30 30 30
-create a grid of like values ------>       30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-                                           30 30 30 30 30 30 30 30 30 30 30 30 30 30
-
-02 00 00 00 01 00 02 00 00 00 00 00 00 00  <-- Take this grid, where:
-00 00 00 00 02 00 00 02 00 00 02 00 02 00
-00 00 00 00 02 00 02 00 00 00 02 00 00 02      0 = OFF
-00 02 01 00 00 00 00 00 00 02 00 00 01 00      1 = UNSURE
-00 02 00 02 00 00 00 02 00 00 02 00 00 00      2 = ON
-02 00 00 00 00 01 00 02 00 00 00 00 00 00
-02 02 02 00 00 02 00 00 00 00 00 00 02 00      When multipied by four weight matrices
-00 00 00 02 00 00 00 02 00 02 00 02 00 00      above (based on directional scan) then
-02 02 00 02 00 00 00 02 02 00 02 02 00 02      you get the four results below ...
-02 00 00 00 00 00 02 00 00 00 00 02 02 02
-00 00 01 02 02 02 00 02 00 00 00 00 02 01
-00 00 00 00 00 00 00 00 00 00 00 00 02 00
-00 00 02 00 00 00 00 00 00 00 02 00 00 00
-00 00 00 02 00 02 00 02 00 01 00 02 00 00
-
-28 00 00 00 10 00 16 00 00 00 00 00 00 00  02 00 00 00 05 00 14 00 00 00 00 00 00 00
-00 00 00 00 20 00 00 14 00 00 08 00 04 00  00 00 00 00 10 00 00 16 00 00 22 00 26 00
-00 00 00 00 20 00 16 00 00 00 08 00 00 02  00 00 00 00 10 00 14 00 00 00 22 00 00 28
-00 26 12 00 00 00 00 00 00 10 00 00 02 00  00 04 03 00 00 00 00 00 00 20 00 00 13 00
-00 26 00 22 00 00 00 14 00 00 08 00 00 00  00 04 00 08 00 00 00 16 00 00 22 00 00 00
-28 00 00 00 00 09 00 14 00 00 00 00 00 00  02 00 00 00 00 06 00 16 00 00 00 00 00 00
-28 26 24 00 00 18 00 00 00 00 00 00 04 00  02 04 06 00 00 12 00 00 00 00 00 00 26 00
-00 00 00 22 00 00 00 14 00 10 00 06 00 00  00 00 00 08 00 00 00 16 00 20 00 24 00 00
-28 26 00 22 00 00 00 14 12 00 08 06 00 02  02 04 00 08 00 00 00 16 18 00 22 24 00 28
-28 00 00 00 00 00 16 00 00 00 00 06 04 02  02 00 00 00 00 00 14 00 00 00 00 24 26 28
-00 00 12 22 20 18 00 14 00 00 00 00 04 01  00 00 03 08 10 12 00 16 00 00 00 00 26 14
-00 00 00 00 00 00 00 00 00 00 00 00 04 00  00 00 00 00 00 00 00 00 00 00 00 00 26 00
-00 00 24 00 00 00 00 00 00 00 08 00 00 00  00 00 06 00 00 00 00 00 00 00 22 00 00 00
-00 00 00 22 00 18 00 14 00 05 00 06 00 00  00 00 00 08 00 12 00 16 00 10 00 24 00 00
-
-28 00 00 00 14 00 28 00 00 00 00 00 00 00  02 00 00 00 01 00 02 00 00 00 00 00 00 00
-00 00 00 00 26 00 00 26 00 00 26 00 26 00  00 00 00 00 04 00 00 04 00 00 04 00 04 00
-00 00 00 00 24 00 24 00 00 00 24 00 00 24  00 00 00 00 06 00 06 00 00 00 06 00 00 06
-00 22 11 00 00 00 00 00 00 22 00 00 11 00  00 08 04 00 00 00 00 00 00 08 00 00 04 00
-00 20 00 20 00 00 00 20 00 00 20 00 00 00  00 10 00 10 00 00 00 10 00 00 10 00 00 00
-18 00 00 00 00 09 00 18 00 00 00 00 00 00  12 00 00 00 00 06 00 12 00 00 00 00 00 00
-16 16 16 00 00 16 00 00 00 00 00 00 16 00  14 14 14 00 00 14 00 00 00 00 00 00 14 00
-00 00 00 14 00 00 00 14 00 14 00 14 00 00  00 00 00 16 00 00 00 16 00 16 00 16 00 00
-12 12 00 12 00 00 00 12 12 00 12 12 00 12  18 18 00 18 00 00 00 18 18 00 18 18 00 18
-10 00 00 00 00 00 10 00 00 00 00 10 10 10  20 00 00 00 00 00 20 00 00 00 00 20 20 20
-00 00 04 08 08 08 00 08 00 00 00 00 08 04  00 00 11 22 22 22 00 22 00 00 00 00 22 11
-00 00 00 00 00 00 00 00 00 00 00 00 06 00  00 00 00 00 00 00 00 00 00 00 00 00 24 00
-00 00 04 00 00 00 00 00 00 00 04 00 00 00  00 00 26 00 00 00 00 00 00 00 26 00 00 00
-00 00 00 02 00 02 00 02 00 01 00 02 00 00  00 00 00 28 00 28 00 28 00 14 00 28 00 00
-
-... resulting in this final weighted       02 00 00 00 01 00 02 00 00 00 00 00 00 00
-    results matrix (shown after            00 00 00 00 02 00 00 02 00 00 02 00 02 00
-    dividing by 30) --------------->       00 00 00 00 02 00 02 00 00 00 02 00 00 02
-                                           00 02 01 00 00 00 00 00 00 02 00 00 01 00
-                                           00 02 00 02 00 00 00 02 00 00 02 00 00 00
-                                           02 00 00 00 00 01 00 02 00 00 00 00 00 00
-                                           02 02 02 00 00 02 00 00 00 00 00 00 02 00
-                                           00 00 00 02 00 00 00 02 00 02 00 02 00 00
-                                           02 02 00 02 00 00 00 02 02 00 02 02 00 02
-                                           02 00 00 00 00 00 02 00 00 00 00 02 02 02
-                                           00 00 01 02 02 02 00 02 00 00 00 00 02 01
-                                           00 00 00 00 00 00 00 00 00 00 00 00 02 00
-                                           00 00 02 00 00 00 00 00 00 00 02 00 00 00
-                                           00 00 00 02 00 02 00 02 00 01 00 02 00 00
-*/
