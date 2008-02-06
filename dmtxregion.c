@@ -1519,6 +1519,172 @@ PopulateArrayFromMatrix(DmtxDecode *decode)
    return DMTX_SUCCESS;
 }
 
+/*
+ *
+ *
+ */
+/*
+static int
+PopulateArrayFromMatrix(DmtxDecode *decode)
+{
+   int weightFactor;
+   int mapWidth, mapHeight;
+   int xRegionTotal, yRegionTotal;
+   int xRegionCount, yRegionCount;
+   int xOrigin, yOrigin;
+   int mapCol, mapRow;
+   int colTmp, rowTmp, idx;
+   int tally[24][24]; // Large enough to map largest single region
+   DmtxRegion *region;
+
+   region = &(decode->region);
+
+   memset(region->array, 0x00, region->arraySize);
+
+   // Capture number of regions present in barcode
+   xRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions, region->sizeIdx);
+   yRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, region->sizeIdx);
+
+   // Capture region dimensions (not including border modules)
+   mapWidth = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);
+   mapHeight = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
+
+   weightFactor = mapHeight + mapWidth + 2;
+   assert(weightFactor > 0);
+
+   // Tally module changes for each region in each direction
+   for(yRegionCount = 0; yRegionCount < yRegionTotal; yRegionCount++) {
+
+      // Y location of mapping region origin in symbol coordinates
+      yOrigin = yRegionCount * (mapHeight + 2) + 1;
+
+      for(xRegionCount = 0; xRegionCount < xRegionTotal; xRegionCount++) {
+
+         // X location of mapping region origin in symbol coordinates
+         xOrigin = xRegionCount * (mapWidth + 2) + 1;
+
+         memset(&tally, 0x00, sizeof(24 * 24 * sizeof(int)));
+         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirUp);
+         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirLeft);
+         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirDown);
+         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirRight);
+
+         // Decide module status based on final tallies
+         for(mapRow = 0; mapRow < mapHeight; mapRow++) {
+            for(mapCol = 0; mapCol < mapWidth; mapCol++) {
+
+               rowTmp = (yRegionCount * mapHeight) + mapRow;
+               colTmp = (xRegionCount * mapWidth) + mapCol;
+               idx = (rowTmp * xRegionTotal * mapWidth) + colTmp;
+
+               if(tally[mapRow][mapCol]/(double)weightFactor > 0.6)
+                  region->array[idx] = DMTX_MODULE_ON_RGB;
+               else if(tally[mapRow][mapCol]/(double)weightFactor < 0.4)
+                  region->array[idx] = DMTX_MODULE_OFF;
+               else
+                  region->array[idx] = DMTX_MODULE_UNSURE;
+
+               region->array[idx] |= DMTX_MODULE_ASSIGNED;
+            }
+         }
+      }
+   }
+}
+*/
+/*
+ *
+ *
+ */
+/*
+static void
+TallyModuleJumps(int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, int direction)
+{
+   int extent, weight;
+   int travelStep;
+   int symbolRow, symbolCol;
+   int mappingRow, mappingCol;
+   int lineStart, lineStop;
+   int travelStart, travelStop;
+   int *line, *travel;
+   int sign;
+
+   assert(direction == DmtxDirUp || direction == DmtxDirLeft ||
+         direction == DmtxDirDown || direction == DmtxDirRight);
+
+   travelStep = (direction == DmtxDirUp || direction == DmtxDirRight) ? 1 : -1;
+
+   // Abstract row and column progress using pointers to allow grid
+   // traversal in all 4 directions using same logic
+
+   if(direction & DmtxDirHorizontal) {
+      line = &symbolRow;
+      travel = &symbolCol;
+      extent = mapWidth;
+      lineStart = yOrigin;
+      lineStop = yOrigin + mapHeight;
+      travelStart = (travelStep == 1) ? xOrigin - 1 : xOrigin + mapWidth;
+      travelStop = (travelStep == 1) ? xOrigin + mapWidth : xOrigin - 1;
+   }
+   else {
+      assert(direction & DmtxDirVertical);
+      line = &symbolCol;
+      travel = &symbolRow;
+      extent = mapHeight;
+      lineStart = xOrigin;
+      lineStop = xOrigin + mapWidth;
+      travelStart = (travelStep == 1) ? yOrigin - 1: yOrigin + mapHeight;
+      travelStop = (travelStep == 1) ? yOrigin + mapHeight : yOrigin - 1;
+   }
+
+   weight = extent - 2;
+   jumpTreshhold = fabs(); // XXX must be positive
+   sameTreshhold = fabs(); // XXX must be positive
+
+   for(*line = lineStart; *line < lineStop; (*line)++) {
+
+      // Capture tModule for each leading border module as normal but
+      // decide status based on predictable barcode border pattern
+
+      *travel = travelStart;
+      color = ReadModuleColor(decode, symbolRow, symbolCol, region->sizeIdx, region->fit2raw);
+      tModule = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
+
+      statusModule = (sign == 1 || !(*line & 0x01)) = DMTX_MODULE_ON_RGB : DMTX_MODULE_OFF;
+
+      while((*travel += travelstep) != travelStop) {
+
+         tPrev = tModule;
+         statusPrev = statusModule;
+
+         // For normal data-bearing modules capture color and decide
+         // module status based on comparison to previous "known" module
+
+         color = ReadModuleColor(decode, symbolRow, symbolCol, region->sizeIdx, region->fit2raw);
+         tModule = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
+
+         if(fabs(tModule - tPrev) > jumpTreshhold)
+            statusModule = (statusPrev == DMTX_MODULE_OFF) ?
+                  DMTX_MODULE_ON_RGB : DMTX_MODULE_ON_RGB;
+         else if(fabs(tModule - tPrev) < sameThreshhold)
+            statusModule = statusPrev;
+         else
+            statusModule = DMTX_MODULE_UNSURE;
+
+         mapRow = symbolRow - yOrigin;
+         mapCol = symbolCol - xOrigin;
+
+         if(statusModule == DMTX_MODULE_ON_RGB)
+            tally[mapRow][mapCol] += 2 * weight;
+         else if(status == DMTX_MODULE_UNSURE)
+            tally[mapRow][mapCol] += weight;
+
+         weight--;
+      }
+
+      assert(weight == 0);
+   }
+}
+*/
 /**
  * XXX
  *
@@ -1572,162 +1738,3 @@ PopulateArrayFromMosaic(DmtxDecode *decode)
 
    return DMTX_SUCCESS;
 }
-
-/*
- *
- *
- */
-/*
-PopulateArrayFromMatrix()
-{
-   int mapWidth, mapHeight;
-   int xRegionCount, yRegionCount;
-   int xRegionTotal, yRegionTotal;
-   int weightFactor;
-   int tally[24][24]; // Large enough to map largest single region
-
-   memset(array, 0x00, sizeof(width * height * sizeof(unsigned char)));
-
-   // Capture number of regions present in barcode
-   xRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions);
-   yRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions);
-
-   // Capture region dimensions (not including border modules)
-   mapWidth = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols);
-   mapHeight = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows);
-
-   weightFactor = mapHeight + mapWidth + 2;
-   assert(weightFactor > 0);
-
-   // Tally module changes for each region in each direction
-   for(yRegionCount = 0; yRegionCount < yRegionTotal; yRegionCount++) {
-
-      // Y location of mapping region origin in symbol coordinates
-      yOrigin = yRegionCount * (regionHeight + 2) + 1;
-
-      for(xRegionCount = 0; xRegionCount < xRegionTotal; xRegionCount++) {
-
-         // X location of mapping region origin in symbol coordinates
-         xOrigin = xRegionCount * (regionWidth + 2) + 1;
-
-         memset(&tally, 0x00, sizeof(24 * 24 * sizeof(int)));
-         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirUp);
-         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirLeft);
-         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirDown);
-         TallyModuleJumps(tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirRight);
-
-         // Decide module status based on final tallies
-         for(mapRow = 0; mapRow < mapHeight; mapRow++) {
-            for(mapCol = 0; mapCol < mapWidth; mapCol++) {
-
-               rowTmp = (yRegionCount * mapHeight) + mapRow;
-               colTmp = (xRegionCount * mapWidth) + mapCol;
-               idx = (rowTmp * xRegionTotal * mapWidth) + colTmp;
-
-               if(tally[mapRow][mapCol]/(double)weightFactor > 0.6)
-                  array[idx] = DMTX_MODULE_STATUS_ON_RGB;
-               else if(tally[mappingRow][mappingCol]/(double)weightFactor < 0.4)
-                  array[idx] = DMTX_MODULE_STATUS_OFF;
-               else
-                  array[idx] = DMTX_MODULE_STATUS_UNSURE;
-
-               array[idx] |= DMTX_MODULE_ASSIGNED;
-            }
-         }
-      }
-   }
-}
-*/
-
-/*
- *
- *
- */
-/*
-TallyModuleJumps(int xOrigin, int yOrigin, int mapWidth, int mapHeight, int direction)
-{
-   int extent;
-   int symbolRow, symbolCol;
-   int mappingRow, mappingCol;
-   int lineStart, lineStop;
-   int travelStart, travelStop;
-   int *line, *travel;
-   int sign;
-
-   assert(direction == DmtxDirUp || direction == DmtxDirLeft ||
-         direction == DmtxDirDown || direction == DmtxDirRight);
-
-   travelStep = (direction == DmtxDirUp || direction == DmtxDirRight) ? 1 : -1;
-
-   // Abstract row and column progress using pointers to allow grid
-   // traversal in all 4 directions using same logic
-
-   if(direction & DmtxDirHorizontal) {
-      line = &symbolRow;
-      travel = &symbolCol;
-      extent = regionWidth;
-      lineStart = yOrigin;
-      lineStop = yOrigin + regionHeight;
-      travelStart = (travelStep == 1) ? xOrigin - 1 : xOrigin + regionWidth;
-      travelStop = (travelStep == 1) ? xOrigin + regionWidth : xOrigin - 1;
-   }
-   else {
-      assert(direction & DmtxDirVertical);
-      line = &symbolCol;
-      travel = &symbolRow;
-      extent = regionHeight;
-      lineStart = xOrigin;
-      lineStop = xOrigin + regionWidth;
-      travelStart = (travelStep == 1) ? yOrigin - 1: yOrigin + regionHeight;
-      travelStop = (travelStep == 1) ? yOrigin + regionHeight : yOrigin - 1;
-   }
-
-   weight = extent - 2;
-   jumpTreshhold = fabs(); // XXX must be positive
-   sameTreshhold = fabs(); // XXX must be positive
-
-   for(*line = lineStart; *line < lineStop; (*line)++) {
-
-      // Capture tModule for each leading border module as normal but
-      // decide status based on predictable barcode border pattern
-
-      *travel = travelStart;
-      color = ReadModuleColor(decode, symbolRow, symbolCol, region->sizeIdx, region->fit2raw);
-      tModule = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
-
-      statusModule = (sign == 1 || !(*line & 0x01)) = DMTX_MODULE_ON_RGB : DMTX_MODULE_OFF;
-
-      while((*travel += travelstep) != travelStop) {
-
-         tPrev = tModule;
-         statusPrev = statusModule;
-
-         // For normal data-bearing modules capture color and decide
-         // module status based on comparison to previous "known" module
-
-         color = ReadModuleColor(decode, symbolRow, symbolCol, region->sizeIdx, region->fit2raw);
-         tModule = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
-
-         if(fabs(tModule - tPrev) > jumpTreshhold)
-            statusModule = (statusPrev == DMTX_MODULE_OFF) ?
-                  DMTX_MODULE_ON_RGB : DMTX_MODULE_ON_RGB;
-         else if(fabs(tModule - tPrev) < sameThreshhold)
-            statusModule = statusPrev;
-         else
-            statusModule = DMTX_MODULE_UNSURE;
-
-         mapRow = symbolRow - yOrigin;
-         mapCol = symbolCol - xOrigin;
-
-         if(statusModule == DMTX_MODULE_ON_RGB)
-            tally[mapRow][mapCol] += 2 * weight;
-         else if(status == DMTX_MODULE_UNSURE)
-            tally[mapRow][mapCol] += weight;
-
-         weight--;
-      }
-
-      assert(weight == 0);
-   }
-}
-*/

@@ -36,10 +36,12 @@ Contact: mike@dragonflylogic.com
 #define DMTX_DISPLAY_POINT             2
 #define DMTX_DISPLAY_CIRCLE            3
 
+#define DMTX_MODULE_OFF             0x00
 #define DMTX_MODULE_ON_RED          0x01
 #define DMTX_MODULE_ON_GREEN        0x02
 #define DMTX_MODULE_ON_BLUE         0x04
 #define DMTX_MODULE_ON_RGB          0x07  /* ON_RED | ON_GREEN | ON_BLUE */
+#define DMTX_MODULE_UNSURE          0x08  /* ON_RED | ON_GREEN | ON_BLUE */
 #define DMTX_MODULE_ASSIGNED        0x10
 #define DMTX_MODULE_VISITED         0x20
 #define DMTX_MODULE_DATA            0x40
