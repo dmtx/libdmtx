@@ -362,9 +362,10 @@ ShowUsage(int status)
    }
    else {
       fprintf(stdout, _("Usage: %s [OPTION]... [FILE]...\n"), programName);
+/*to STDOUT.  Note that %s may find multiple barcodes in one image.\n\*/
       fprintf(stdout, _("\
 Scan image FILE for Data Matrix barcodes and print decoded results\n\
-to STDOUT.  Note that %s may find multiple barcodes in one image.\n\
+to STDOUT.  %s currently only reads the first barcode found in the image.\n\
 \n\
 Example: (scans top third of images using minimum gap size of 10 pixels)\n\
 \n\
