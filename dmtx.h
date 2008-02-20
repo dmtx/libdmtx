@@ -36,6 +36,10 @@ Contact: mike@dragonflylogic.com
 #define DMTX_DISPLAY_POINT             2
 #define DMTX_DISPLAY_CIRCLE            3
 
+#define DMTX_REGION_EOF               -1
+#define DMTX_REGION_NOT_FOUND          0
+#define DMTX_REGION_FOUND              1
+
 #define DMTX_MODULE_OFF             0x00
 #define DMTX_MODULE_ON_RED          0x01
 #define DMTX_MODULE_ON_GREEN        0x02
@@ -189,6 +193,7 @@ typedef struct DmtxCorners_struct {
 } DmtxCorners;
 
 typedef struct DmtxRegion_struct {
+   int             valid;         /* XXX temporary variable */
    DmtxGradient    gradient;      /* Linear blend of colors between background and symbol color */
    DmtxChain       chain;         /* List of values that are used to build a transformation matrix */
    DmtxCorners     corners;       /* Corners of barcode region */

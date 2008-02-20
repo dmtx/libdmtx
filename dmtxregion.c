@@ -23,8 +23,9 @@ Contact: mike@dragonflylogic.com
 /* $Id$ */
 
 /**
- *
- *
+ * This function returns either when a region is found or when the file has been completely read
+ * returns: DMTX_REGION_FOUND
+ *          DMTX_REGION_EOF
  */
 extern int
 dmtxFindNextRegion(DmtxDecode *decode)
@@ -44,12 +45,12 @@ dmtxFindNextRegion(DmtxDecode *decode)
       IncrementPixelProgress(grid);
 
       /* Scan this pixel for the presence of a valid barcode edge */
-      if(dmtxScanPixel(decode, loc)) {
-         return 1;
-      }
+      /* XXX remember that later this function will not decode the actual barcode yet */
+      if(dmtxScanPixel(decode, loc) == DMTX_REGION_FOUND)
+         return DMTX_REGION_FOUND;
    }
 
-   return 0;
+   return DMTX_REGION_EOF;
 }
 
 /**
@@ -69,35 +70,36 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
    /* Test whether this pixel is sitting on an edge of any direction */
    compassEdge = GetCompassEdge(decode->image, loc.X, loc.Y, DMTX_ALL_COMPASS_DIRS);
    if(compassEdge.magnitude < 60)
-      return 0;
+      return DMTX_REGION_NOT_FOUND;
 
    /* If the edge is strong then find its subpixel location */
    edgeStart = FindZeroCrossing(decode->image, loc.X, loc.Y, compassEdge);
    edgeStart.compass = compassEdge; /* XXX for now ... need to preserve scanDir */
    if(!edgeStart.isEdge)
-      return 0;
+      return DMTX_REGION_NOT_FOUND;
 
    /* Next follow it to the end in both directions */
    ray0 = FollowEdge(decode->image, loc.X, loc.Y, edgeStart, 1, decode);
    ray1 = FollowEdge(decode->image, loc.X, loc.Y, edgeStart, -1, decode);
 
    memset(&(decode->region), 0x00, sizeof(DmtxRegion));
+   decode->region.valid = 0;
 
    success = MatrixRegionAlignFirstEdge(decode, &edgeStart, ray0, ray1);
    if(!success)
-      return 0;
+      return DMTX_REGION_NOT_FOUND;
 
    success = MatrixRegionAlignSecondEdge(decode);
    if(!success)
-      return 0;
+      return DMTX_REGION_NOT_FOUND;
 
    success = MatrixRegionAlignRightEdge(decode);
    if(!success)
-      return 0;
+      return DMTX_REGION_NOT_FOUND;
 
    success = MatrixRegionAlignTopEdge(decode);
    if(!success)
-      return 0;
+      return DMTX_REGION_NOT_FOUND;
 
    /* XXX When adding clipping functionality against previously
       scanned barcodes, this is a good place to add a test for
@@ -108,7 +110,7 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
 
    success = MatrixRegionFindSize(decode);
    if(!success)
-      return 0;
+      return DMTX_REGION_NOT_FOUND;
 
    /* XXX logic below this point should be broken off into a separate
       decode function (possibly in dmtxdecode.c) because:
@@ -123,34 +125,35 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
    if(decode->mosaic) {
       success = AllocateStorage(decode);
       if(!success)
-         return 0;
+         return DMTX_REGION_FOUND;
 
       success = PopulateArrayFromMosaic(decode);
       if(!success)
-         return 0;
+         return DMTX_REGION_FOUND;
 /**
       success = DecodeMosaicRegion(&region);
       if(!success) {
          decode->region.status = DMTX_STATUS_INVALID;
-         return 0;
+         return DMTX_REGION_NOT_FOUND;
       }
 */
    }
    else {
       success = AllocateStorage(decode);
       if(!success)
-         return 0;
+         return DMTX_REGION_FOUND;
 
       success = PopulateArrayFromMatrix(decode);
       if(!success)
-         return 0;
+         return DMTX_REGION_FOUND;
 
       success = DecodeMatrixRegion(&(decode->region));
       if(!success)
-         return 0;
+         return DMTX_REGION_FOUND;
    }
 
-   return 1;
+   decode->region.valid = 1;
+   return DMTX_REGION_FOUND;
 }
 
 /**
@@ -1297,8 +1300,8 @@ ReadModuleColor(DmtxDecode *decode, int symbolRow, int symbolCol, int sizeIdx, D
 {
    int i;
    int symbolRows, symbolCols;
-   double sampleX[] = { 0.5, 0.3, 0.5, 0.7, 0.5 };
-   double sampleY[] = { 0.5, 0.5, 0.3, 0.5, 0.7 };
+   double sampleX[] = { 0.5, 0.4, 0.5, 0.6, 0.5 };
+   double sampleY[] = { 0.5, 0.5, 0.4, 0.5, 0.6 };
    DmtxVector2 p, p0;
    DmtxColor3 cPoint, cAverage;
 
@@ -1616,6 +1619,7 @@ TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, 
    DmtxRegion *region;
    int statusPrev, statusModule;
    double tPrev, tModule;
+/*double debug[24][24]; */
 
    assert(direction == DmtxDirUp || direction == DmtxDirLeft ||
          direction == DmtxDirDown || direction == DmtxDirRight);
@@ -1647,7 +1651,7 @@ TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, 
       travelStop = (travelStep == 1) ? yOrigin + mapHeight : yOrigin - 1;
    }
 
-   jumpThreshold = 0.5 * (region->gradient.tMax - region->gradient.tMin);
+   jumpThreshold = 0.3 * (region->gradient.tMax - region->gradient.tMin);
    sameThreshold = 0.2 * (region->gradient.tMax - region->gradient.tMin);
 
    assert(jumpThreshold > 0);
@@ -1680,19 +1684,28 @@ TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, 
          if(statusPrev == DMTX_MODULE_ON_RGB) {
             if(tModule < tPrev - jumpThreshold)
                statusModule = DMTX_MODULE_OFF;
+            else
+               statusModule = DMTX_MODULE_ON_RGB;
+/*
             else if(tModule > tPrev - sameThreshold)
                statusModule = DMTX_MODULE_ON_RGB;
             else
                statusModule = DMTX_MODULE_UNSURE;
+*/
          }
          else if(statusPrev == DMTX_MODULE_OFF) {
             if(tModule > tPrev + jumpThreshold)
                statusModule = DMTX_MODULE_ON_RGB;
+            else
+               statusModule = DMTX_MODULE_OFF;
+/*
             else if(tModule < tPrev + sameThreshold)
                statusModule = DMTX_MODULE_OFF;
             else
                statusModule = DMTX_MODULE_UNSURE;
+*/
          }
+/*
          else {
             assert(statusPrev == DMTX_MODULE_UNSURE);
             if(tModule > tPrev + jumpThreshold)
@@ -1702,6 +1715,7 @@ TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, 
             else
                statusModule = DMTX_MODULE_UNSURE;
          }
+*/
 
          mapRow = symbolRow - yOrigin;
          mapCol = symbolCol - xOrigin;
@@ -1712,11 +1726,25 @@ TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, 
          else if(statusModule == DMTX_MODULE_UNSURE)
             tally[mapRow][mapCol] += weight;
 
+/*       debug[mapRow][mapCol] = tModule - tPrev; */
+
          weight--;
       }
 
       assert(weight == 0);
    }
+
+/* XXX begin temporary dump */
+/*
+for(mapRow = mapHeight - 1; mapRow >= 0; mapRow--) {
+   for(mapCol = 0; mapCol < mapWidth; mapCol++) {
+      fprintf(stdout, "%0.2g ", debug[mapRow][mapCol]);
+   }
+   fprintf(stdout, "\n");
+}
+fprintf(stdout, "\n");
+*/
+/* XXX end temporary dump */
 }
 
 /**

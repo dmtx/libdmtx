@@ -66,6 +66,7 @@ main(int argc, char *argv[])
 {
    int count;
    int err;
+   int status;
    int fileIndex;
    int pageIndex;
    UserOptions options;
@@ -111,17 +112,17 @@ main(int argc, char *argv[])
       for(;;) {
 
          // Find next barcode region within image, but do not decode
-         count = dmtxFindNextRegion(&decode);
+         status = dmtxFindNextRegion(&decode);
+
+         if(status == DMTX_REGION_EOF)
+            break;
 
          // XXX later change this to a opt-in debug option
          WriteImagePnm(&options, &decode, imagePath);
 
-         if(count == 0)
+         // XXX this goes away later ... 2 part scan = find + decode
+         if(decode.region.valid == 0)
             break;
-
-         // region = dmtxFindNextRegion(&decode);
-         //if(region.status == DMTX_NO_MORE)
-            //break;
 
          // Decode region based on requested scan mode
          //message = (options.mosaic) ? dmtxDecodeMosaic(&region) : dmtxDecodeMosaic(&region);
