@@ -122,7 +122,7 @@ static int AllocateStorage(DmtxDecode *decode);
 static DmtxColor3 ReadModuleColor(DmtxDecode *decode, int symbolRow, int symbolCol, int sizeIdx, DmtxMatrix3 fit2raw);
 static int MatrixRegionFindSize(DmtxDecode *decode);
 static int PopulateArrayFromMatrix(DmtxDecode *decode);
-/*static void TallyModuleJumps(int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, int direction);*/
+static void TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, int direction);
 static int PopulateArrayFromMosaic(DmtxDecode *decode);
 
 /* dmtxdecode.c */

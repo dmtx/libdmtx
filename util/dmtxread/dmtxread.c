@@ -112,6 +112,10 @@ main(int argc, char *argv[])
 
          // Find next barcode region within image, but do not decode
          count = dmtxFindNextRegion(&decode);
+
+         // XXX later change this to a opt-in debug option
+         WriteImagePnm(&options, &decode, imagePath);
+
          if(count == 0)
             break;
 
@@ -121,9 +125,6 @@ main(int argc, char *argv[])
 
          // Decode region based on requested scan mode
          //message = (options.mosaic) ? dmtxDecodeMosaic(&region) : dmtxDecodeMosaic(&region);
-
-         // XXX later change this to a opt-in debug option
-         //WriteImagePnm(&options, &decode, imagePath);
 
          //PrintDecodedOutput(message, &options, &decode, pageIndex);
          PrintDecodedOutput(&options, &decode, pageIndex);
