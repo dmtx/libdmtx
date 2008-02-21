@@ -2,29 +2,20 @@ TODO Items
 -----------------------------------------------------------------
 
 "Must Have" features for next release:
+--------------------------------------
    1) diagnostic utility that dumps image copy with scanning info embedded
    2) error correction (libfec)
-   3) region detection and decoding handled as separate tasks
+   3) region detection and decoding handled as separate tasks (and structs)
    4) updated documentation to reflect API and option changes
    5) all programs and bindings updated to work with new version
    6) the rest is just gravy
 
 IMMEDIATE
-   x switch to incremental (one matrix) approach, which passes back buffer no matter what
-      x Remove dmtxScanStartNew()
-      x Remove dmtxDecodeGetMatrixCount()
-      x Remove dmtxDecodeGetMatrix()
-      x Add status
-
-   x write buffer dumping function in dmtxread (takes into account b&w or rgb barcode dumps)
-
-   x finsh writing and integrate 4-direction weighted module reads (see notes at bottom)
-
+---------
    / pass decision back to calling program whether to scan (requiring malloc) it
    o change dmtxFindNextRegion() to return region (not malloc'd)
    o update gltest to use the new calling structure
 
-   / rename DmtxMatrixRegion to DmtxRegion
    o split out actual data fields
    o remove mosaic field from DmtxDecode (and replace functionality by calling dedicated named function)
    o remove DmtxRegion from decode and pass it between functions explicitly
@@ -48,36 +39,18 @@ IMMEDIATE
       - resulting image should clearly show misread modules
    o Change dmtxread to print out trail left by scanning logic (future)
 
-   -D, --diagnose="nop"
-       n = None [default]
-       o = Overlay image with module color decisions
-       p = Path taken by region detection logic
-
-version 0.5:
-  x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
-  x libdmtx:   Fix TestForEndOfSymbolEdifact() to handle special cases correctly
-  x libdmtx:   Implement multiple barcodes as incremental choice offered to calling app
-  x libdmtx:   Replace dmtxScanLine() with dmtxScanPixel()
-  x libdmtx:   Roll scan pattern into core library (inward breadth-first cross)
-  / libdmtx:   Use new Edifact decode function that doesn't assume full triplet
-  / libdmtx:   Thorough test for memory leaks
-  / libdmtx:   Based on "incremental choice", remove unnecessary mallocs (single in stack)
+after version 0.5:
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
   o libdmtx:   Allow choice of edge-drop condition passed to MatrixRegionAlignEdge()
-  o libdmtx:   Implement error correction (initially through libfec)
   o libdmtx:   Implement image mask to track scan progress and avoid rescanned pixels
   o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
   o libdmtx:   Implement --auto-fast option using algorithm from spec (lighter & faster?)
   o libdmtx:   Implement overlap detection to avoid rescanning in successfully decoded regions
   o libdmtx:   Implement structured append symbols
-  x dmtxread:  Add ability to scan portion of image
   o dmtxread:  JPEG support
-  o dmtxread:  Add option to write image of path scanned and regions found (from mask)
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
-  x dmtxwrite: Move ASCII and codeword output to separate --preview option
-  x dmtxwrite: Added -R option for setting image print resolution in dpi (PNG only)
   o dmtxwrite: Print character values (not just codewords) from --format=c (-fc) option
   o dmtxwrite: Verbose messages describing encoding process
   o testsuite: Generate metrics in reproducible format to enable historical tracking
@@ -86,10 +59,28 @@ version 0.5:
   o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
   o testsuite: 'make test' writes metrics file
   o testsuite: 'make test' confirms performance
-  x project:   Remove gltest and simpletest from default build target
-  x project:   Update Subversion to be keyword friendly ($Id$)
   o project:   Figure out way to include extra files (and not .svn) without compiling
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
+
+version 0.5: (??-Apr-2008?)
+  x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
+  x libdmtx:   Fix TestForEndOfSymbolEdifact() to handle special cases correctly
+  x libdmtx:   Implement multiple barcodes as incremental choice offered to calling app
+  x libdmtx:   Pass found regions back to calling app before attempting decode
+  x libdmtx:   Replace dmtxScanLine() with dmtxScanPixel()
+  x libdmtx:   Roll scan pattern into core library (inward breadth-first cross)
+  x libdmtx:   Implement 4-direction weighted module decisions (eliminates thresholds)
+  / libdmtx:   Use new Edifact decode function that doesn't assume full triplet
+  / libdmtx:   Thorough test for memory leaks
+  / libdmtx:   Based on "incremental choice", remove unnecessary mallocs (single in stack)
+  o libdmtx:   Implement error correction (initially through libfec)
+  x dmtxread:  Add ability to scan portion of image
+  x dmtxread:  Add --diagnose option that dumps image with scan infomation embedded
+  o dmtxread:  Add option to write image of path scanned and regions found (from mask)
+  x dmtxwrite: Move ASCII and codeword output to separate --preview option
+  x dmtxwrite: Added -R option for setting image print resolution in dpi (PNG only)
+  x project:   Remove gltest and simpletest from default build target
+  x project:   Update Subversion to be keyword friendly ($Id$)
 
 version 0.4: (07-Dec-2008)
   x libdmtx:   Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
