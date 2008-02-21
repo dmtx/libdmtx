@@ -10,9 +10,9 @@ IMMEDIATE
 
    x write buffer dumping function in dmtxread (takes into account b&w or rgb barcode dumps)
 
-   / finsh writing and integrate 4-direction weighted module reads (see notes at bottom)
+   x finsh writing and integrate 4-direction weighted module reads (see notes at bottom)
 
-   o pass decision back to calling program whether to scan (requiring malloc) it
+   / pass decision back to calling program whether to scan (requiring malloc) it
    o change dmtxFindNextRegion() to return region (not malloc'd)
    o update gltest to use the new calling structure
 
@@ -26,15 +26,34 @@ IMMEDIATE
    o improve black/white decision process
    o consider changing rounding of zero crossing math to nearest center between pixels
 
+   o print out image representing "unstretched" barcode
+
+   o nominal predicted barcode in another color
+   o print color weights based on direction
+   o Temporarily modify dmtxregion to dump directional weights
+   o Change dmtxScanPixel() to also return false hits -- found a barcode but ECC failed
+   o Change dmtxread to print out dump of both failed and successful barcodes if requested
+   o Change dmtxread to print out mis-read modules somehow ... additive, subtractive?
+      - Build color vector that describes jump from background to foreground color
+      - When module is determined to be "off" then add half of color vector
+      - When module is determined to be "on" then subtract half of color vector
+      - resulting image should clearly show misread modules
+   o Change dmtxread to print out trail left by scanning logic (future)
+
+   -D, --diagnose="nop"
+       n = None [default]
+       o = Overlay image with module color decisions
+       p = Path taken by region detection logic
+
 version 0.5:
   x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
   x libdmtx:   Fix TestForEndOfSymbolEdifact() to handle special cases correctly
+  x libdmtx:   Implement multiple barcodes as incremental choice offered to calling app
+  x libdmtx:   Replace dmtxScanLine() with dmtxScanPixel()
+  x libdmtx:   Roll scan pattern into core library (inward breadth-first cross)
   / libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   / libdmtx:   Thorough test for memory leaks
-  / libdmtx:   Implement multiple barcodes as incremental choice offered to calling app
   / libdmtx:   Based on "incremental choice", remove unnecessary mallocs (single in stack)
-  / libdmtx:   Replace dmtxScanLine() with dmtxScanPixel()
-  / libdmtx:   Roll scan pattern into core library (inward breadth-first cross)
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
   o libdmtx:   Allow choice of edge-drop condition passed to MatrixRegionAlignEdge()
@@ -45,6 +64,7 @@ version 0.5:
   o libdmtx:   Implement --auto-fast option using algorithm from spec (lighter & faster?)
   o libdmtx:   Implement overlap detection to avoid rescanning in successfully decoded regions
   o libdmtx:   Implement structured append symbols
+  x dmtxread:  Add ability to scan portion of image
   o dmtxread:  JPEG support
   o dmtxread:  Add option to write image of path scanned and regions found (from mask)
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
