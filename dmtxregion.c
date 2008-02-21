@@ -1453,78 +1453,6 @@ MatrixRegionFindSize(DmtxDecode *decode)
    return DMTX_SUCCESS;
 }
 
-/**
- * XXX
- *
- * @param
- * @return XXX
- */
-/*
-static int
-PopulateArrayFromMatrix(DmtxDecode *decode)
-{
-   int col, row, rowTmp;
-   int symbolRow, symbolCol;
-   int dataRegionRows, dataRegionCols;
-   int statusPrev, statusModule;
-   double tPrev, tModule;
-   double jumpThreshold;
-   DmtxColor3 color;
-   DmtxRegion *region;
-
-   region = &(decode->region);
-
-   dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
-   dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);
-
-   memset(region->array, 0x00, region->arraySize);
-
-   jumpThreshold = 0.4 * (region->gradient.tMax - region->gradient.tMin);
-
-   // XXX later add additional pass in second (3rd, 4th?) with confidence value
-   for(row = 0; row < region->mappingRows; row++) {
-
-      // Transform mapping row to symbol row (Swap because the array's
-      // origin is top-left and everything else is bottom-left)
-      rowTmp = region->mappingRows - row - 1;
-      symbolRow = rowTmp + 2 * (rowTmp / dataRegionRows) + 1;
-
-      // Capture initial tModule location from symbolCol == 0 (known finder bar)
-      color = ReadModuleColor(decode, symbolRow, 0, region->sizeIdx, region->fit2raw);
-      tModule = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
-      statusModule = DMTX_MODULE_ON_RGB;
-
-      for(col = 0; col < region->mappingCols; col++) {
-
-         // Transform mapping col to symbol col
-         symbolCol = col + 2 * (col / dataRegionCols) + 1;
-
-         tPrev = tModule;
-         statusPrev = statusModule;
-
-         color = ReadModuleColor(decode, symbolRow, symbolCol, region->sizeIdx, region->fit2raw);
-         tModule = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
-
-         if(tModule > tPrev + jumpThreshold)
-            statusModule = DMTX_MODULE_ON_RGB;
-         else if(tModule < tPrev - jumpThreshold)
-            statusModule = 0;
-         else
-            statusModule = statusPrev;
-
-         // Value has been assigned, but not visited
-         region->array[row*region->mappingCols+col] |= statusModule;
-         region->array[row*region->mappingCols+col] |= DMTX_MODULE_ASSIGNED;
-      }
-   }
-
-   // Ideal barcode drawn in lower-right (final) window pane
-   CALLBACK_DECODE_FUNC2(finalCallback, decode, decode, region);
-
-   return DMTX_SUCCESS;
-}
-*/
-
 /*
  *
  *
@@ -1584,12 +1512,10 @@ PopulateArrayFromMatrix(DmtxDecode *decode)
                colTmp = (xRegionCount * mapWidth) + mapCol;
                idx = (rowTmp * xRegionTotal * mapWidth) + colTmp;
 
-               if(tally[mapRow][mapCol]/(double)weightFactor > 0.6)
+               if(tally[mapRow][mapCol]/(double)weightFactor > 0.5)
                   region->array[idx] = DMTX_MODULE_ON_RGB;
-               else if(tally[mapRow][mapCol]/(double)weightFactor < 0.4)
-                  region->array[idx] = DMTX_MODULE_OFF;
                else
-                  region->array[idx] = DMTX_MODULE_UNSURE;
+                  region->array[idx] = DMTX_MODULE_OFF;
 
                region->array[idx] |= DMTX_MODULE_ASSIGNED;
             }
@@ -1614,12 +1540,12 @@ TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, 
    int lineStart, lineStop;
    int travelStart, travelStop;
    int *line, *travel;
-   double jumpThreshold, sameThreshold;
+   double jumpThreshold;
    DmtxColor3 color;
    DmtxRegion *region;
    int statusPrev, statusModule;
    double tPrev, tModule;
-/*double debug[24][24]; */
+/* double debug[24][24]; */
 
    assert(direction == DmtxDirUp || direction == DmtxDirLeft ||
          direction == DmtxDirDown || direction == DmtxDirRight);
@@ -1652,10 +1578,8 @@ TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, 
    }
 
    jumpThreshold = 0.3 * (region->gradient.tMax - region->gradient.tMin);
-   sameThreshold = 0.2 * (region->gradient.tMax - region->gradient.tMin);
 
    assert(jumpThreshold > 0);
-   assert(sameThreshold > 0);
 
    for(*line = lineStart; *line < lineStop; (*line)++) {
 
@@ -1686,36 +1610,13 @@ TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, 
                statusModule = DMTX_MODULE_OFF;
             else
                statusModule = DMTX_MODULE_ON_RGB;
-/*
-            else if(tModule > tPrev - sameThreshold)
-               statusModule = DMTX_MODULE_ON_RGB;
-            else
-               statusModule = DMTX_MODULE_UNSURE;
-*/
          }
          else if(statusPrev == DMTX_MODULE_OFF) {
             if(tModule > tPrev + jumpThreshold)
                statusModule = DMTX_MODULE_ON_RGB;
             else
                statusModule = DMTX_MODULE_OFF;
-/*
-            else if(tModule < tPrev + sameThreshold)
-               statusModule = DMTX_MODULE_OFF;
-            else
-               statusModule = DMTX_MODULE_UNSURE;
-*/
          }
-/*
-         else {
-            assert(statusPrev == DMTX_MODULE_UNSURE);
-            if(tModule > tPrev + jumpThreshold)
-               statusModule = DMTX_MODULE_ON_RGB;
-            else if(tModule < tPrev + jumpThreshold)
-               statusModule = DMTX_MODULE_OFF;
-            else
-               statusModule = DMTX_MODULE_UNSURE;
-         }
-*/
 
          mapRow = symbolRow - yOrigin;
          mapCol = symbolCol - xOrigin;
@@ -1723,8 +1624,8 @@ TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, 
 
          if(statusModule == DMTX_MODULE_ON_RGB)
             tally[mapRow][mapCol] += (2 * weight);
-         else if(statusModule == DMTX_MODULE_UNSURE)
-            tally[mapRow][mapCol] += weight;
+/*       else if(statusModule == DMTX_MODULE_UNSURE)
+            tally[mapRow][mapCol] += weight; */
 
 /*       debug[mapRow][mapCol] = tModule - tPrev; */
 
