@@ -1,6 +1,14 @@
 TODO Items
 -----------------------------------------------------------------
 
+"Must Have" features for next release:
+   1) diagnostic utility that dumps image copy with scanning info embedded
+   2) error correction (libfec)
+   3) region detection and decoding handled as separate tasks
+   4) updated documentation to reflect API and option changes
+   5) all programs and bindings updated to work with new version
+   6) the rest is just gravy
+
 IMMEDIATE
    x switch to incremental (one matrix) approach, which passes back buffer no matter what
       x Remove dmtxScanStartNew()
