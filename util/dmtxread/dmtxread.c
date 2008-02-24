@@ -122,7 +122,7 @@ main(int argc, char *argv[])
 
          // XXX this goes away later ... 2 part scan = find + decode
          if(decode.region.valid == 0)
-            break;
+            continue;
 
          // Decode region based on requested scan mode
          //message = (options.mosaic) ? dmtxDecodeMosaic(&region) : dmtxDecodeMosaic(&region);
@@ -385,6 +385,10 @@ OPTIONS:\n"), programName, programName);
   -Y, --y-range-max=N[%] do not scan pixels below N (or N%)\n\
   -v, --verbose          use verbose messages\n\
   -C, --coordinates      prefix decoded message with barcode corner locations\n\
+  -D, --diagnose=[nop]   create copy of original image with diagnostic data\n\
+      n = None [default] do not create copy of original image\n\
+      o = Overlay        overlay image with module colors\n\
+      p = Path           display path taken by scanning logic\n\
   -M, --mosaic           interpret detected regions as Data Mosaic barcodes\n\
   -P, --page-number      prefix decoded message with corresponding page number\n\
       --help             display this help and exit\n"));
