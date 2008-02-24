@@ -67,6 +67,10 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
    DmtxRay2 ray0, ray1;
    DmtxCompassEdge compassEdge;
 
+   if(loc.X < 0 || loc.X >= decode->image->width ||
+         loc.Y < 0 || loc.Y >= decode->image->height)
+      return DMTX_REGION_NOT_FOUND; /* XXX change to DMTX_REGION_out_of_bounds */
+
    /* Test whether this pixel is sitting on an edge of any direction */
    compassEdge = GetCompassEdge(decode->image, loc.X, loc.Y, DMTX_ALL_COMPASS_DIRS);
    if(compassEdge.magnitude < 60)
@@ -1048,7 +1052,8 @@ MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 p
 
       /* Calculate forward and lateral directions in raw coordinates */
       dmtxVector2Sub(&forward, &c10, &c00);
-      if(dmtxVector2Mag(&forward) < DMTX_ALMOST_ZERO) /* XXX modify dmtxVector2Norm() to return failure without assert */
+      /* XXX modify dmtxVector2Norm() to return failure without assert */
+      if(dmtxVector2Mag(&forward) < DMTX_ALMOST_ZERO)
          return 0;
       dmtxVector2Norm(&forward);
 
@@ -1056,6 +1061,11 @@ MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 p
       if(dmtxVector2Mag(&lateral) < DMTX_ALMOST_ZERO)
          return 0;
       dmtxVector2Norm(&lateral);
+
+      /* Don't allow forward and lateral to point in same direction
+         (extreme matrix could otherwise create infinite loop) */
+      if(dmtxVector2Dot(&forward, &lateral) > 0.0)
+         return 0;
 
       prevEdgeHit = edgeHit;
       edgeHit = StepAlongEdge(decode->image, region, &pRawProgress, &pRawExact, forward, lateral, decode);
