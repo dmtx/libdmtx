@@ -55,7 +55,7 @@ DecodeMatrixRegion(DmtxRegion *region)
 
    success = DecodeCheckErrors(region);
    if(!success) {
-      fprintf(stderr, "Rejected due to ECC validation\n");
+/*    fprintf(stderr, "Rejected due to ECC validation\n"); */
       return DMTX_FAILURE;
    }
 
