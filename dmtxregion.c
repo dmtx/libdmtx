@@ -438,6 +438,25 @@ FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forwa
 }
 
 /**
+ *
+ *
+ */
+static double
+RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
+{
+   DmtxVector2 vA, vB;
+   DmtxMatrix3 m;
+
+   dmtxVector2Norm(dmtxVector2Sub(&vA, &c1, &c0));
+   dmtxVector2Norm(dmtxVector2Sub(&vB, &c2, &c1));
+
+   dmtxMatrix3Rotate(m, M_PI - angle);
+   dmtxMatrix3VMultiplyBy(&vA, m);
+
+   return dmtxVector2Dot(&vA, &vB);
+}
+
+/**
  * XXX
  *
  * @param
@@ -446,10 +465,10 @@ FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forwa
 static int
 MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
 {
-   DmtxVector2 v01, vTmp, vCenter, pCenter;
+   DmtxVector2 v01, vTmp;
    double tx, ty, phi, shx, scx, scy, skx, sky;
    double dimOT, dimOX, dimOR, dimRT, dimTX, dimRX;
-   DmtxMatrix3 m, mtxy, mphi, mshx, mscxy, msky, mskx;
+   DmtxMatrix3 m, mtxy, mphi, mshx, mscxy, msky, mskx, mTmp;
    DmtxCorners corners;
 
    assert((region->corners.known & DmtxCorner00) && (region->corners.known & DmtxCorner01));
@@ -477,18 +496,14 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
          return DMTX_FAILURE;
    }
    else {
-      vTmp.X = v01.Y;
-      vTmp.Y = -v01.X;
+      dmtxMatrix3Rotate(mTmp, -M_PI_2);
+      dmtxMatrix3VMultiply(&vTmp, &v01, mTmp);
       dmtxVector2Add(&corners.c10, &corners.c00, &vTmp);
-
-      /* Choose direction that points toward center of image */
-      pCenter.X = image->width/2.0;
-      pCenter.Y = image->height/2.0;
-      dmtxVector2Sub(&vCenter, &pCenter, &corners.c00);
-
-      if(dmtxVector2Dot(&vTmp, &vCenter) < 0.0)
-         dmtxVector2ScaleBy(&vTmp, -1.0);
    }
+
+   /* Solid edges are both defined now */
+   if(RightAngleTrueness(corners.c01, corners.c00, corners.c10, M_PI_2) < 0.7)
+      return DMTX_FAILURE;
 
    /* Top-right corner -- validate if known or create temporary value */
    if(corners.known & DmtxCorner11) {
@@ -500,6 +515,18 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
    else {
       dmtxVector2Add(&corners.c11, &corners.c10, &v01);
    }
+
+   /* Test top-left corner for trueness */
+   if(RightAngleTrueness(corners.c11, corners.c01, corners.c00, M_PI_2) < 0.7)
+      return DMTX_FAILURE;
+
+   /* Test bottom-right corner for trueness */
+   if(RightAngleTrueness(corners.c00, corners.c10, corners.c11, M_PI_2) < 0.7)
+      return DMTX_FAILURE;
+
+   /* Test top-right corner for trueness */
+   if(RightAngleTrueness(corners.c10, corners.c11, corners.c01, M_PI_2) < 0.7)
+      return DMTX_FAILURE;
 
    /* Verify that the 4 corners define a reasonably fat quadrilateral */
    dimOX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c00)); /* XXX could use MagSquared() */
@@ -840,7 +867,8 @@ MatrixRegionAlignRightEdge(DmtxDecode *decode)
 
    dmtxMatrix3Rotate(rotate, -M_PI_2);
    dmtxMatrix3Scale(flip, 1.0, -1.0);
-   dmtxMatrix3LineSkewTop(skew, 1.0, 0.5, 1.0);
+/* dmtxMatrix3LineSkewTop(skew, 1.0, 0.5, 1.0); */
+   dmtxMatrix3Shear(skew, 0.0, 0.5);
    dmtxMatrix3Scale(scale, 1.25, 1.0);
 
    dmtxMatrix3Multiply(postRaw2Fit, rotate, flip);
@@ -848,7 +876,8 @@ MatrixRegionAlignRightEdge(DmtxDecode *decode)
    dmtxMatrix3MultiplyBy(postRaw2Fit, scale);
 
    dmtxMatrix3Scale(scale, 0.8, 1.0);
-   dmtxMatrix3LineSkewTopInv(skew, 1.0, 0.5, 1.0);
+/* dmtxMatrix3LineSkewTopInv(skew, 1.0, 0.5, 1.0); */
+   dmtxMatrix3Shear(skew, 0.0, -0.5);
    dmtxMatrix3Scale(flip, 1.0, -1.0);
    dmtxMatrix3Rotate(rotate, M_PI_2);
    dmtxMatrix3Multiply(preFit2Raw, scale, skew);
@@ -871,9 +900,12 @@ MatrixRegionAlignTopEdge(DmtxDecode *decode)
 {
    int success;
    DmtxMatrix3 preFit2Raw, postRaw2Fit;
-
+/*
    dmtxMatrix3LineSkewTop(postRaw2Fit, 1.0, 0.5, 1.0);
    dmtxMatrix3LineSkewTopInv(preFit2Raw, 1.0, 0.5, 1.0);
+*/
+   dmtxMatrix3Shear(postRaw2Fit, 0.0, 0.5);
+   dmtxMatrix3Shear(preFit2Raw, 0.0, -0.5);
 
    success = MatrixRegionAlignCalibEdge(decode, DmtxEdgeTop, preFit2Raw, postRaw2Fit);
 
@@ -890,7 +922,7 @@ static int
 MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit)
 {
    DmtxVector2 p0, p1, pCorner;
-   DmtxVector2 cFit, cBefore, cAfter, cTmp;
+   DmtxVector2 cFit, cBefore, cAfter;
    int success;
    double slope;
    int hitCount;
@@ -929,15 +961,6 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
          return DMTX_FAILURE;
 
       dmtxMatrix3VMultiply(&cBefore, &cFit, region->fit2raw);
-   }
-
-   /* If pCorner's change was significant then it probably affected edge
-      fit quality.  Since pCorner is now correct, a second edge alignment
-      should give accurate results. */
-   if(dmtxVector2Mag(dmtxVector2Sub(&cTmp, &cAfter, &cBefore)) > 20.0) {
-      hitCount = MatrixRegionAlignEdge(decode, postRaw2Fit, preFit2Raw, &p0, &p1, &pCorner, &weakCount);
-      if(hitCount < 2)
-         return DMTX_FAILURE;
    }
 
    /* With reliable edge fit results now update remaining corners */
@@ -1039,20 +1062,26 @@ MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 p
       /* XXX technically we don't need to recalculate lateral & forward once we have left the finder bar */
       dmtxMatrix3VMultiply(&pTmp, &pRawProgress, sRaw2Fit);
 
-      /* XXX still not happy with this */
+      /* XXX move this outside of this loop ? */
       c00 = pTmp;
-      c10.X = c00.X + 0.1;
+      c10.X = c00.X + 1;
       c10.Y = c00.Y;
-      c01.X = c00.X - 0.0087155743; /* sin(5deg) */
-      c01.Y = c00.Y + 0.0996194698; /* cos(5deg) */
+      c01.X = c00.X - 0.087155743;
+      c01.Y = c00.Y + 0.996194698;
 
       dmtxMatrix3VMultiplyBy(&c00, sFit2Raw);
       dmtxMatrix3VMultiplyBy(&c10, sFit2Raw);
       dmtxMatrix3VMultiplyBy(&c01, sFit2Raw);
 
+      if(RightAngleTrueness(c01, c00, c10, M_PI) < 0.1) {
+         /* XXX instead of just failing here, hopefully find what happened
+                upstream to trigger this condition. we can probably avoid
+                this earlier on, and even avoid assertion failures elsewhere */
+         return 0;
+      }
+
       /* Calculate forward and lateral directions in raw coordinates */
       dmtxVector2Sub(&forward, &c10, &c00);
-      /* XXX modify dmtxVector2Norm() to return failure without assert */
       if(dmtxVector2Mag(&forward) < DMTX_ALMOST_ZERO)
          return 0;
       dmtxVector2Norm(&forward);
@@ -1061,11 +1090,6 @@ MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 p
       if(dmtxVector2Mag(&lateral) < DMTX_ALMOST_ZERO)
          return 0;
       dmtxVector2Norm(&lateral);
-
-      /* Don't allow forward and lateral to point in same direction
-         (extreme matrix could otherwise create infinite loop) */
-      if(dmtxVector2Dot(&forward, &lateral) > 0.0)
-         return 0;
 
       prevEdgeHit = edgeHit;
       edgeHit = StepAlongEdge(decode->image, region, &pRawProgress, &pRawExact, forward, lateral, decode);
