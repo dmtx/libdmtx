@@ -859,7 +859,7 @@ static int
 MatrixRegionAlignRightEdge(DmtxDecode *decode)
 {
    int success;
-   DmtxMatrix3 rotate, flip, skew, scale;
+   DmtxMatrix3 rotate, flip, shear, scale;
    DmtxMatrix3 preFit2Raw, postRaw2Fit;
    DmtxRegion *region;
 
@@ -867,20 +867,18 @@ MatrixRegionAlignRightEdge(DmtxDecode *decode)
 
    dmtxMatrix3Rotate(rotate, -M_PI_2);
    dmtxMatrix3Scale(flip, 1.0, -1.0);
-/* dmtxMatrix3LineSkewTop(skew, 1.0, 0.5, 1.0); */
-   dmtxMatrix3Shear(skew, 0.0, 0.5);
+   dmtxMatrix3Shear(shear, 0.0, 0.5);
    dmtxMatrix3Scale(scale, 1.25, 1.0);
 
    dmtxMatrix3Multiply(postRaw2Fit, rotate, flip);
-   dmtxMatrix3MultiplyBy(postRaw2Fit, skew);
+   dmtxMatrix3MultiplyBy(postRaw2Fit, shear);
    dmtxMatrix3MultiplyBy(postRaw2Fit, scale);
 
    dmtxMatrix3Scale(scale, 0.8, 1.0);
-/* dmtxMatrix3LineSkewTopInv(skew, 1.0, 0.5, 1.0); */
-   dmtxMatrix3Shear(skew, 0.0, -0.5);
+   dmtxMatrix3Shear(shear, 0.0, -0.5);
    dmtxMatrix3Scale(flip, 1.0, -1.0);
    dmtxMatrix3Rotate(rotate, M_PI_2);
-   dmtxMatrix3Multiply(preFit2Raw, scale, skew);
+   dmtxMatrix3Multiply(preFit2Raw, scale, shear);
    dmtxMatrix3MultiplyBy(preFit2Raw, flip);
    dmtxMatrix3MultiplyBy(preFit2Raw, rotate);
 
@@ -900,10 +898,7 @@ MatrixRegionAlignTopEdge(DmtxDecode *decode)
 {
    int success;
    DmtxMatrix3 preFit2Raw, postRaw2Fit;
-/*
-   dmtxMatrix3LineSkewTop(postRaw2Fit, 1.0, 0.5, 1.0);
-   dmtxMatrix3LineSkewTopInv(preFit2Raw, 1.0, 0.5, 1.0);
-*/
+
    dmtxMatrix3Shear(postRaw2Fit, 0.0, 0.5);
    dmtxMatrix3Shear(preFit2Raw, 0.0, -0.5);
 
@@ -922,7 +917,7 @@ static int
 MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit)
 {
    DmtxVector2 p0, p1, pCorner;
-   DmtxVector2 cFit, cBefore, cAfter;
+   DmtxVector2 cFit;
    int success;
    double slope;
    int hitCount;
@@ -937,30 +932,23 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
    if(hitCount < 2)
       return DMTX_FAILURE;
 
-   /* Update pCorner first, tracking value before and after update */
    if(edgeLoc == DmtxEdgeRight) {
       cFit.X = 1.0;
       cFit.Y = 0.0;
-      dmtxMatrix3VMultiply(&cBefore, &cFit, region->fit2raw);
-/* XXX we are probably doing a few extra ops here */
+
       SetCornerLoc(region, DmtxCorner10, pCorner);
       success = MatrixRegionUpdateXfrms(region, decode->image);
       if(!success)
          return DMTX_FAILURE;
-
-      dmtxMatrix3VMultiply(&cAfter, &cFit, region->fit2raw);
    }
    else {
       cFit.X = 0.0;
       cFit.Y = 1.0;
-      dmtxMatrix3VMultiply(&cBefore, &cFit, region->fit2raw);
 
       SetCornerLoc(region, DmtxCorner01, pCorner);
       success = MatrixRegionUpdateXfrms(region, decode->image);
       if(!success)
          return DMTX_FAILURE;
-
-      dmtxMatrix3VMultiply(&cBefore, &cFit, region->fit2raw);
    }
 
    /* With reliable edge fit results now update remaining corners */
