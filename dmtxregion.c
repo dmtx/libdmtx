@@ -1057,9 +1057,14 @@ MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 p
       c01.X = c00.X - 0.087155743;
       c01.Y = c00.Y + 0.996194698;
 
-      dmtxMatrix3VMultiplyBy(&c00, sFit2Raw);
-      dmtxMatrix3VMultiplyBy(&c10, sFit2Raw);
-      dmtxMatrix3VMultiplyBy(&c01, sFit2Raw);
+      if(dmtxMatrix3VMultiplyBy(&c00, sFit2Raw) != DMTX_SUCCESS)
+         return 0;
+
+      if(dmtxMatrix3VMultiplyBy(&c10, sFit2Raw) != DMTX_SUCCESS)
+         return 0;
+
+      if(dmtxMatrix3VMultiplyBy(&c01, sFit2Raw) != DMTX_SUCCESS)
+         return 0;
 
       if(RightAngleTrueness(c01, c00, c10, M_PI) < 0.1) {
          /* XXX instead of just failing here, hopefully find what happened

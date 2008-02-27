@@ -29,6 +29,7 @@ Contact: mike@dragonflylogic.com
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <float.h>
 #include "dmtx.h"
 #include "dmtxstatic.h"
 

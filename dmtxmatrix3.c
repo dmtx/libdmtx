@@ -25,7 +25,8 @@ Contact: mike@dragonflylogic.com
 /**
  *
  */
-void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1)
+extern void
+dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1)
 {
    *(DmtxMatrix3Struct *)m0 = *(DmtxMatrix3Struct *)m1;
 }
@@ -47,7 +48,8 @@ void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1)
  *  (0,0)     (1,0)      |/     (0,0)     (1,0)
  *
  */
-void dmtxMatrix3Identity(DmtxMatrix3 m)
+extern void
+dmtxMatrix3Identity(DmtxMatrix3 m)
 {
    static DmtxMatrix3 tmp = { {1, 0, 0},
                               {0, 1, 0},
@@ -95,7 +97,8 @@ void dmtxMatrix3Translate(DmtxMatrix3 m, float tx, float ty)
  *  (0,0)     (1,0)                     (0,0)
  *
  */
-void dmtxMatrix3Rotate(DmtxMatrix3 m, double angle)
+extern void
+dmtxMatrix3Rotate(DmtxMatrix3 m, double angle)
 {
    double sinAngle, cosAngle;
 
@@ -126,7 +129,8 @@ void dmtxMatrix3Rotate(DmtxMatrix3 m, double angle)
  *  (0,0)     (1,0)                (0,0)            (sx,0)
  *
  */
-void dmtxMatrix3Scale(DmtxMatrix3 m, float sx, float sy)
+extern void
+dmtxMatrix3Scale(DmtxMatrix3 m, float sx, float sy)
 {
    dmtxMatrix3Identity(m);
    m[0][0] = sx;
@@ -136,7 +140,8 @@ void dmtxMatrix3Scale(DmtxMatrix3 m, float sx, float sy)
 /**
  * Shear Transformation
  */
-void dmtxMatrix3Shear(DmtxMatrix3 m, float shx, float shy)
+extern void
+dmtxMatrix3Shear(DmtxMatrix3 m, float shx, float shy)
 {
    dmtxMatrix3Identity(m);
    m[1][0] = shx;
@@ -146,38 +151,46 @@ void dmtxMatrix3Shear(DmtxMatrix3 m, float shx, float shy)
 /**
  *
  */
-DmtxVector2 *dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m)
+extern int
+dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m)
 {
+   int success;
    DmtxVector2 vOut;
 
-   dmtxMatrix3VMultiply(&vOut, v, m);
+   success = dmtxMatrix3VMultiply(&vOut, v, m);
    *v = vOut;
 
-   return v;
+   return success;
 }
 
 /**
  *
  */
-DmtxVector2 *dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m)
+extern int
+dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m)
 {
-   float w;
+   double w;
 
    vOut->X = vIn->X*m[0][0] + vIn->Y*m[1][0] + m[2][0];
    vOut->Y = vIn->X*m[0][1] + vIn->Y*m[1][1] + m[2][1];
    w = vIn->X*m[0][2] + vIn->Y*m[1][2] + m[2][2];
 
-   assert(fabs(w) > DMTX_ALMOST_ZERO);
+   if(fabs(w) < DMTX_ALMOST_ZERO) {
+      vOut->X = FLT_MAX;
+      vOut->Y = FLT_MAX;
+      return DMTX_ALMOST_INFINITY;
+   }
 
    dmtxVector2ScaleBy(vOut, 1/w);
 
-   return vOut;
+   return DMTX_SUCCESS;
 }
 
 /**
  *
  */
-void dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1)
+extern void
+dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1)
 {
    int i, j, k;
    float val;
@@ -196,7 +209,8 @@ void dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1)
 /**
  *
  */
-void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
+extern void
+dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
 {
    DmtxMatrix3 mTmp;
 
@@ -225,7 +239,8 @@ void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
  *  (0,0)    (sz,0)                (0,0)    (sz,0)
  *
  */
-void dmtxMatrix3LineSkewTop(DmtxMatrix3 m, float b0, float b1, float sz)
+extern void
+dmtxMatrix3LineSkewTop(DmtxMatrix3 m, float b0, float b1, float sz)
 {
    assert(b0 > DMTX_ALMOST_ZERO);
 
@@ -238,7 +253,8 @@ void dmtxMatrix3LineSkewTop(DmtxMatrix3 m, float b0, float b1, float sz)
 /**
  *
  */
-void dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, float b0, float b1, float sz)
+extern void
+dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, float b0, float b1, float sz)
 {
    assert(b1 > DMTX_ALMOST_ZERO);
 
@@ -251,7 +267,8 @@ void dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, float b0, float b1, float sz)
 /**
  *
  */
-void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz)
+extern void
+dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz)
 {
    assert(b0 > DMTX_ALMOST_ZERO);
 
@@ -264,7 +281,8 @@ void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz)
 /**
  *
  */
-void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, float b0, float b1, float sz)
+extern void
+dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, float b0, float b1, float sz)
 {
    assert(b1 > DMTX_ALMOST_ZERO);
 
@@ -277,7 +295,8 @@ void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, float b0, float b1, float sz)
 /**
  *
  */
-void dmtxMatrix3Print(DmtxMatrix3 m)
+extern void
+dmtxMatrix3Print(DmtxMatrix3 m)
 {
    fprintf(stdout, "%8.8f\t%8.8f\t%8.8f\n", m[0][0], m[0][1], m[0][2]);
    fprintf(stdout, "%8.8f\t%8.8f\t%8.8f\n", m[1][0], m[1][1], m[1][2]);

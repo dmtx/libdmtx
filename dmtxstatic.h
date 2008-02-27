@@ -43,6 +43,7 @@ Contact: mike@dragonflylogic.com
 #define DMTX_TURN_CCW          2
 
 #define DMTX_ALMOST_ZERO       0.000001
+#define DMTX_ALMOST_INFINITY  -1
 
 #define DMTX_FALSE             0
 #define DMTX_TRUE              1
