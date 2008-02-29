@@ -385,7 +385,7 @@ OPTIONS:\n"), programName, programName);
   -Y, --y-range-max=N[%] do not scan pixels below N (or N%)\n\
   -v, --verbose          use verbose messages\n\
   -C, --coordinates      prefix decoded message with barcode corner locations\n\
-  -D, --diagnose=[nop]   create copy of original image with diagnostic data\n\
+  -D, --diagnose=[nop]   create copy of original image with diagnostic data (not implemented)\n\
       n = None [default] do not create copy of original image\n\
       o = Overlay        overlay image with module colors\n\
       p = Path           display path taken by scanning logic\n\
