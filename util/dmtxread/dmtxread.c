@@ -118,7 +118,7 @@ main(int argc, char *argv[])
             break;
 
          // XXX later change this to a opt-in debug option
-         WriteImagePnm(&options, &decode, imagePath);
+         //WriteImagePnm(&options, &decode, imagePath);
 
          // XXX this goes away later ... 2 part scan = find + decode
          if(decode.region.valid == 0)
