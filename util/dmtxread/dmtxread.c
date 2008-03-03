@@ -89,13 +89,13 @@ main(int argc, char *argv[])
       image = LoadImage(argv[fileIndex], pageIndex++);
 
       // Increment counters early to allow simple 'continue' later in loop
-      if(pageIndex >= image->pageCount) {
+      if(image == NULL || pageIndex >= image->pageCount) {
          fileIndex++;
          pageIndex = 0;
       }
 
       // If file doesn't contain at least one image then something went wrong
-      if(image->pageCount < 1) {
+      if(image == NULL || image->pageCount < 1) {
          // error
          continue;
       }
