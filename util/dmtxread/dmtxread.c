@@ -725,6 +725,7 @@ PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int pageIndex)
 {
    int i;
    int dataWordLength;
+   int rotateInt;
    double rotate;
    DmtxRegion *region;
 
@@ -733,11 +734,12 @@ PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int pageIndex)
    dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, region->sizeIdx);
    if(options->verbose) {
 
-      rotate = (atan2(region->fit2raw[0][1], region->fit2raw[1][1]) -
+      rotate = (2 * M_PI) + (atan2(region->fit2raw[0][1], region->fit2raw[1][1]) -
             atan2(region->fit2raw[1][0], region->fit2raw[0][0])) / 2.0;
 
-      if(rotate < 0)
-         rotate += (2 * M_PI);
+      rotateInt = (int)(rotate * 180/M_PI + 0.5);
+      if(rotateInt >= 360)
+         rotateInt -= 360;
 
       fprintf(stdout, "--------------------------------------------------\n");
       fprintf(stdout, "       Matrix Size: %d x %d\n",
@@ -752,7 +754,7 @@ PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int pageIndex)
             dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, region->sizeIdx));
       fprintf(stdout, "Interleaved Blocks: %d\n",
             dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, region->sizeIdx));
-      fprintf(stdout, "    Rotation Angle: %d\n", (int)(rotate * 180/M_PI + 0.5));
+      fprintf(stdout, "    Rotation Angle: %d\n", rotateInt);
       fprintf(stdout, "          Corner 0: (%0.1f, %0.1f)\n",
             region->corners.c00.X, region->corners.c00.Y);
       fprintf(stdout, "          Corner 1: (%0.1f, %0.1f)\n",
