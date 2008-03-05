@@ -226,8 +226,7 @@ dmtxColor3Norm(DmtxColor3 *c)
 
    mag = dmtxColor3Mag(c);
 
-   if(mag == 0)
-      ; /* Div/0 Error */
+   assert(mag > DMTX_ALMOST_ZERO);
 
    dmtxColor3ScaleBy(c, 1/mag);
 

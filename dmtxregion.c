@@ -1413,6 +1413,9 @@ MatrixRegionFindSize(DmtxDecode *decode)
 
       testGradient.ray.p = colorOffAvg;
       dmtxColor3Sub(&testGradient.ray.c, &colorOnAvg, &colorOffAvg);
+      if(dmtxColor3Mag(&testGradient.ray.c) < 20)
+         continue;
+
       dmtxColor3Norm(&testGradient.ray.c);
       testGradient.tMin = 0;
       testGradient.tMax = dmtxDistanceAlongRay3(&testGradient.ray, &colorOnAvg);
