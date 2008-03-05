@@ -65,16 +65,13 @@ char *programName;
 int
 main(int argc, char *argv[])
 {
-   int count;
    int err;
    int status;
    int fileIndex;
    int pageIndex;
    UserOptions options;
-   char *imagePath;
    DmtxDecode decode;
    DmtxImage *image;
-   DmtxRegion region;
    DmtxPixelLoc p0, p1;
 
    SetOptionDefaults(&options);
@@ -118,8 +115,8 @@ main(int argc, char *argv[])
          if(status == DMTX_REGION_EOF)
             break;
 
-         // XXX later change this to a opt-in debug option
-         //WriteImagePnm(&options, &decode, imagePath);
+         if(options.diagnose)
+            WriteImagePnm(&options, &decode, "debug.pnm");
 
          // XXX this goes away later ... 2 part scan = find + decode
          if(decode.region.valid == 0)
@@ -161,6 +158,7 @@ SetOptionDefaults(UserOptions *options)
    options->yRangeMax = NULL;
    options->verbose = 0;
    options->coordinates = 0;
+   options->diagnose = 0;
    options->pageNumber = 0;
 }
 
@@ -191,6 +189,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
          {"y-range-max", required_argument, NULL, 'Y'},
          {"verbose",     no_argument,       NULL, 'v'},
          {"coordinates", no_argument,       NULL, 'C'},
+         {"diagnose",    no_argument,       NULL, 'D'},
          {"mosaic",      no_argument,       NULL, 'M'},
          {"page-number", no_argument,       NULL, 'P'},
          {"help",        no_argument,       NULL,  0 },
@@ -204,7 +203,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:vCMP", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:vCDMP", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -240,6 +239,9 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'C':
             options->coordinates = 1;
+            break;
+         case 'D':
+            options->diagnose = 1;
             break;
          case 'M':
             options->mosaic = 1;
@@ -298,9 +300,6 @@ SetRangeLimit(int *target, char *optionString, int minMax, int limit)
 static int
 SetScanRegion(DmtxPixelLoc *pMin, DmtxPixelLoc *pMax, UserOptions *options, DmtxImage *image)
 {
-   int value;
-   char *ptr, *terminate;
-
    assert(options && image && image->width != 0 && image->height != 0);
 
    if(SetRangeLimit(&(pMin->X), options->xRangeMin, 0, image->width - 1) == DMTXREAD_ERROR ||
@@ -380,10 +379,10 @@ OPTIONS:\n"), programName, programName);
   -g, --gap=NUM          use scan grid with gap of NUM pixels between scanlines\n\
   -n, --newline          insert newline character at the end of decoded data\n\
   -d, --distortion=K1,K2 radial distortion coefficients (not implemented yet)\n\
-  -x, --x-range-min=N[%] do not scan pixels to the left of N (or N%)\n\
-  -X, --x-range-max=N[%] do not scan pixels to the right of N (or N%)\n\
-  -y, --y-range-min=N[%] do not scan pixels above N (or N%)\n\
-  -Y, --y-range-max=N[%] do not scan pixels below N (or N%)\n\
+  -x, --x-range-min=N[%%] do not scan pixels to the left of N (or N%%)\n\
+  -X, --x-range-max=N[%%] do not scan pixels to the right of N (or N%%)\n\
+  -y, --y-range-min=N[%%] do not scan pixels above N (or N%%)\n\
+  -Y, --y-range-max=N[%%] do not scan pixels below N (or N%%)\n\
   -v, --verbose          use verbose messages\n\
   -C, --coordinates      prefix decoded message with barcode corner locations\n\
   -D, --diagnose=[nop]   create copy of original image with diagnostic data (not implemented)\n\
@@ -456,6 +455,8 @@ static DmtxImage *
 LoadImage(char *imagePath, int pageIndex)
 {
    DmtxImage *image;
+
+   image = NULL;
 
    switch(GetImageFormat(imagePath)) {
       case ImageFormatPng:
@@ -646,6 +647,8 @@ LoadImageTiff(char *imagePath, int pageIndex)
    uint32* raster;
    size_t npixels;
 
+   image = NULL;
+
    tif = TIFFOpen(imagePath, "r");
    if(tif == NULL) {
       perror(programName);
@@ -708,7 +711,8 @@ LoadImageTiff(char *imagePath, int pageIndex)
 
    TIFFClose(tif);
 
-   image->pageCount = dirIndex;
+   if(image != NULL)
+      image->pageCount = dirIndex;
 
    return image;
 }
@@ -809,9 +813,6 @@ WriteImagePnm(UserOptions *options, DmtxDecode *decode, char *imagePath)
    DmtxRegion *region;
 
    region = &(decode->region);
-
-   /* XXX later change this to append to the input filename */
-   imagePath = "debug.pnm";
 
    fp = fopen(imagePath, "wb");
    if(fp == NULL) {

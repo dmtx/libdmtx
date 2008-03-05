@@ -43,6 +43,7 @@ typedef struct {
    char *yRangeMax;
    int verbose;
    int coordinates;
+   int diagnose;
    int mosaic;
    int pageNumber;
 } UserOptions;

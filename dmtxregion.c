@@ -467,7 +467,7 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
 {
    DmtxVector2 v01, vTmp;
    double tx, ty, phi, shx, scx, scy, skx, sky;
-   double dimOT, dimOX, dimOR, dimRT, dimTX, dimRX;
+   double dimOT, dimOR, dimTX, dimRX, ratio;
    DmtxMatrix3 m, mtxy, mphi, mshx, mscxy, msky, mskx, mTmp;
    DmtxCorners corners;
 
@@ -501,6 +501,10 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
       dmtxVector2Add(&corners.c10, &corners.c00, &vTmp);
    }
 
+   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c10, &corners.c00)); /* XXX could use MagSquared() */
+   if(dimOR < 8)
+      return DMTX_FAILURE;
+
    /* Solid edges are both defined now */
    if(RightAngleTrueness(corners.c01, corners.c00, corners.c10, M_PI_2) < 0.7)
       return DMTX_FAILURE;
@@ -516,6 +520,20 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
       dmtxVector2Add(&corners.c11, &corners.c10, &v01);
    }
 
+   /* Verify that the 4 corners define a reasonably fat quadrilateral */
+   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c01)); /* XXX could use MagSquared() */
+   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c10)); /* XXX could use MagSquared() */
+   if(dimTX < 8 || dimRX < 8)
+      return DMTX_FAILURE;
+
+   ratio = dimOT / dimRX;
+   if(ratio < 0.5 || ratio > 2.0)
+      return DMTX_FAILURE;
+
+   ratio = dimOR / dimTX;
+   if(ratio < 0.5 || ratio > 2.0)
+      return DMTX_FAILURE;
+
    /* Test top-left corner for trueness */
    if(RightAngleTrueness(corners.c11, corners.c01, corners.c00, M_PI_2) < 0.7)
       return DMTX_FAILURE;
@@ -526,21 +544,6 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
 
    /* Test top-right corner for trueness */
    if(RightAngleTrueness(corners.c10, corners.c11, corners.c01, M_PI_2) < 0.7)
-      return DMTX_FAILURE;
-
-   /* Verify that the 4 corners define a reasonably fat quadrilateral */
-   dimOX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c00)); /* XXX could use MagSquared() */
-   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c10, &corners.c00)); /* XXX could use MagSquared() */
-   dimRT = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c01, &corners.c10)); /* XXX could use MagSquared() */
-   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c01)); /* XXX could use MagSquared() */
-   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c10)); /* XXX could use MagSquared() */
-
-   if(dimOR < 8 || dimTX < 8 || dimRX < 8 || dimOX < 11 || dimRT < 11)
-      return DMTX_FAILURE;
-
-   if(min(dimOX,dimRT)/max(dimOX,dimRT) < 0.5 ||
-      min(dimOT,dimRX)/max(dimOT,dimRX) < 0.5 ||
-      min(dimOR,dimTX)/max(dimOR,dimTX) < 0.5)
       return DMTX_FAILURE;
 
    /* Calculate values needed for transformations */
