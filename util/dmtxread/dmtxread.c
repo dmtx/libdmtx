@@ -473,7 +473,7 @@ LoadImage(char *imagePath, int pageIndex)
          image = LoadImageTiff(imagePath, pageIndex);
          break;
       default:
-         FatalError(1, _("Unrecognized file type"));
+         FatalError(1, _("Unrecognized file type \"%s\""), imagePath);
          break;
    }
 
