@@ -62,7 +62,6 @@ dmtxFindNextRegion(DmtxDecode *decode)
 extern int
 dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
 {
-   int success;
    DmtxEdgeSubPixel edgeStart;
    DmtxRay2 ray0, ray1;
    DmtxCompassEdge compassEdge;
@@ -86,23 +85,16 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
    ray0 = FollowEdge(decode->image, loc.X, loc.Y, edgeStart, 1, decode);
    ray1 = FollowEdge(decode->image, loc.X, loc.Y, edgeStart, -1, decode);
 
-   memset(&(decode->region), 0x00, sizeof(DmtxRegion));
-   decode->region.valid = 0;
-
-   success = MatrixRegionAlignFirstEdge(decode, &edgeStart, ray0, ray1);
-   if(!success)
+   if(MatrixRegionAlignFirstEdge(decode, &edgeStart, ray0, ray1) != DMTX_SUCCESS)
       return DMTX_REGION_NOT_FOUND;
 
-   success = MatrixRegionAlignSecondEdge(decode);
-   if(!success)
+   if(MatrixRegionAlignSecondEdge(decode) != DMTX_SUCCESS)
       return DMTX_REGION_NOT_FOUND;
 
-   success = MatrixRegionAlignRightEdge(decode);
-   if(!success)
+   if(MatrixRegionAlignRightEdge(decode) != DMTX_SUCCESS)
       return DMTX_REGION_NOT_FOUND;
 
-   success = MatrixRegionAlignTopEdge(decode);
-   if(!success)
+   if(MatrixRegionAlignTopEdge(decode) != DMTX_SUCCESS)
       return DMTX_REGION_NOT_FOUND;
 
    /* XXX When adding clipping functionality against previously
@@ -112,8 +104,7 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
       have moved us into a collision with another matrix region.  A
       collision at this point is grounds for immediate failure. */
 
-   success = MatrixRegionFindSize(decode);
-   if(!success)
+   if(MatrixRegionFindSize(decode) != DMTX_SUCCESS)
       return DMTX_REGION_NOT_FOUND;
 
    /* XXX logic below this point should be broken off into a separate
@@ -127,12 +118,10 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
    */
 
    if(decode->mosaic) {
-      success = AllocateStorage(decode);
-      if(!success)
+      if(AllocateStorage(decode) != DMTX_SUCCESS)
          return DMTX_REGION_FOUND;
 
-      success = PopulateArrayFromMosaic(decode);
-      if(!success)
+      if(PopulateArrayFromMosaic(decode) != DMTX_SUCCESS)
          return DMTX_REGION_FOUND;
 /**
       success = DecodeMosaicRegion(&region);
@@ -143,16 +132,13 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
 */
    }
    else {
-      success = AllocateStorage(decode);
-      if(!success)
+      if(AllocateStorage(decode) != DMTX_SUCCESS)
          return DMTX_REGION_FOUND;
 
-      success = PopulateArrayFromMatrix(decode);
-      if(!success)
+      if(PopulateArrayFromMatrix(decode) != DMTX_SUCCESS)
          return DMTX_REGION_FOUND;
 
-      success = DecodeMatrixRegion(&(decode->region));
-      if(!success)
+      if(DecodeMatrixRegion(&(decode->region)) != DMTX_SUCCESS)
          return DMTX_REGION_FOUND;
    }
 
@@ -465,7 +451,7 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
 static int
 MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
 {
-   DmtxVector2 v01, vTmp;
+   DmtxVector2 vOT, vOR, vTmp;
    double tx, ty, phi, shx, scx, scy, skx, sky;
    double dimOT, dimOR, dimTX, dimRX, ratio;
    DmtxMatrix3 m, mtxy, mphi, mshx, mscxy, msky, mskx, mTmp;
@@ -484,7 +470,7 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
       corners.c01.X > image->width - 1 || corners.c01.Y > image->height - 1)
       return DMTX_FAILURE;
 
-   dimOT = dmtxVector2Mag(dmtxVector2Sub(&v01, &corners.c01, &corners.c00)); /* XXX could use MagSquared() */
+   dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &corners.c01, &corners.c00)); /* XXX could use MagSquared() */
    if(dimOT < 8)
       return DMTX_FAILURE;
 
@@ -497,11 +483,11 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
    }
    else {
       dmtxMatrix3Rotate(mTmp, -M_PI_2);
-      dmtxMatrix3VMultiply(&vTmp, &v01, mTmp);
+      dmtxMatrix3VMultiply(&vTmp, &vOT, mTmp);
       dmtxVector2Add(&corners.c10, &corners.c00, &vTmp);
    }
 
-   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c10, &corners.c00)); /* XXX could use MagSquared() */
+   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vOR, &corners.c10, &corners.c00)); /* XXX could use MagSquared() */
    if(dimOR < 8)
       return DMTX_FAILURE;
 
@@ -517,7 +503,7 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
          return DMTX_FAILURE;
    }
    else {
-      dmtxVector2Add(&corners.c11, &corners.c10, &v01);
+      dmtxVector2Add(&corners.c11, &corners.c01, &vOR);
    }
 
    /* Verify that the 4 corners define a reasonably fat quadrilateral */
@@ -551,7 +537,7 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
    ty = -1 * corners.c00.Y;
    dmtxMatrix3Translate(mtxy, tx, ty);
 
-   phi = atan2(v01.X, v01.Y);
+   phi = atan2(vOT.X, vOT.Y);
    dmtxMatrix3Rotate(mphi, phi);
 
    /* Update transformation with values known so far */
@@ -563,7 +549,7 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
    dmtxMatrix3Shear(mshx, 0.0, shx);
 
    scx = 1.0/vTmp.X;
-   scy = 1.0/dmtxVector2Mag(&v01);
+   scy = 1.0/dmtxVector2Mag(&vOT);
    dmtxMatrix3Scale(mscxy, scx, scy);
 
    /* Update transformation with values known so far */
@@ -611,7 +597,6 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
 static int
 MatrixRegionAlignFirstEdge(DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1)
 {
-   int success;
    DmtxRay2 rayFull;
    DmtxVector2 p0, p1, pTmp;
    DmtxRegion *region;
@@ -640,15 +625,17 @@ MatrixRegionAlignFirstEdge(DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, Dmtx
    }
 
    /* Reject edges shorter than 10 pixels */
-   if(rayFull.tMax < 10) {
+   if(rayFull.tMax < 10)
       return DMTX_FAILURE;
-   }
+
+   /* This is the first moment we have something indicating a region */
+   memset(region, 0x00, sizeof(DmtxRegion));
+   region->valid = 0;
 
    SetCornerLoc(region, DmtxCorner00, rayFull.p);
    SetCornerLoc(region, DmtxCorner01, p0);
 
-   success = MatrixRegionUpdateXfrms(region, decode->image);
-   if(!success)
+   if(MatrixRegionUpdateXfrms(region, decode->image) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    /* Top-right pane showing first edge fit */
@@ -697,7 +684,6 @@ SetCornerLoc(DmtxRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point)
 static int
 MatrixRegionAlignSecondEdge(DmtxDecode *decode)
 {
-   int success;
    DmtxVector2 p0[4], p1[4], pCorner[4];
    int hitCount[4] = { 0, 0, 0, 0 };
    int weakCount[4] = { 0, 0, 0, 0 };
@@ -785,6 +771,49 @@ MatrixRegionAlignSecondEdge(DmtxDecode *decode)
    hitCount[3] = MatrixRegionAlignEdge(decode, postRaw2Fit, preFit2Raw,
          &p0[3], &p1[3], &pCorner[3], &weakCount[3]);
 
+/*
+   o Simplify StepAlongEdge() and avoid complicated error-prone counters. Instead just find all 4 edges, and then prune out edges according to early criteria:
+
+   a) Exited based on step limit without touching anything (p0-p1 length is <8 pixels)
+   b) If length (based on p0-p1) of top is <1/8 of bottom (or vice versa)
+
+     For those that remain, choose the winner based on least variation among module samples and proximity of color to initial edge
+
+   for(each edge orientation option) {
+      if(hitCount[i] < 3)
+         option[i] = invalid;
+      else if(length[p1-p0] < 8 pixels)
+         option[i] = invalid;
+   }
+
+   if(option[0].valid && option[2].valid) {
+      ratio = length[0]/length[2];
+      if(ratio > 8)
+         option[2] = invalid;
+      else if(ration < 1/8)
+         option[0] = invalid;
+   }
+   // XXX then also same thing for option[0] and option[1]
+
+   // Determine winner among remaining options
+   winner = NULL;
+   currentMin = max or first;
+   for(each sizeIdx) {
+      for(each edge orientation option) {
+         if(edge orientation is ruled out)
+            continue;
+
+         if(ColorDevianceSum(sizeIdx, matrix, gradient, &currentMin))
+            winner = thisOrientation;
+      }
+   }
+   if(winner == NULL)
+      return FAILURE;
+
+     - step along imaginary center (same # steps for each test), summing color difference between sample and ON color in known gradient. As soon as sum exceeds previous best, then eliminate from candidacy. record best minimum difference for each leg candidate. candidate with smallest diff wins.
+     - maybe round-robin the tests, so the winning leg will get a foot in the door sooner, speeding things up significantly
+*/
+
    /* choose orientation with highest hitCount/(weakCount + 1) ratio */
    for(i = 0; i < 4; i++) {
       ratio = (double)hitCount[i]/(weakCount[i] + 1);
@@ -844,12 +873,13 @@ MatrixRegionAlignSecondEdge(DmtxDecode *decode)
    SetCornerLoc(region, DmtxCorner01, T);
    SetCornerLoc(region, DmtxCorner10, R);
 
-   success = MatrixRegionUpdateXfrms(region, decode->image);
+   if(MatrixRegionUpdateXfrms(region, decode->image) != DMTX_SUCCESS)
+      return DMTX_FAILURE;
 
    /* Skewed barcode in the bottom middle pane */
 /* CALLBACK_DECODE_FUNC1(buildMatrixCallback4, decode, region->fit2raw); */
 
-   return success;
+   return DMTX_SUCCESS;
 }
 
 /**
@@ -861,7 +891,6 @@ MatrixRegionAlignSecondEdge(DmtxDecode *decode)
 static int
 MatrixRegionAlignRightEdge(DmtxDecode *decode)
 {
-   int success;
    DmtxMatrix3 rotate, flip, shear, scale;
    DmtxMatrix3 preFit2Raw, postRaw2Fit;
    DmtxRegion *region;
@@ -885,9 +914,10 @@ MatrixRegionAlignRightEdge(DmtxDecode *decode)
    dmtxMatrix3MultiplyBy(preFit2Raw, flip);
    dmtxMatrix3MultiplyBy(preFit2Raw, rotate);
 
-   success = MatrixRegionAlignCalibEdge(decode, DmtxEdgeRight, preFit2Raw, postRaw2Fit);
+   if(MatrixRegionAlignCalibEdge(decode, DmtxEdgeRight, preFit2Raw, postRaw2Fit) != DMTX_SUCCESS)
+      return DMTX_FAILURE;
 
-   return success;
+   return DMTX_SUCCESS;
 }
 
 /**
@@ -899,15 +929,15 @@ MatrixRegionAlignRightEdge(DmtxDecode *decode)
 static int
 MatrixRegionAlignTopEdge(DmtxDecode *decode)
 {
-   int success;
    DmtxMatrix3 preFit2Raw, postRaw2Fit;
 
    dmtxMatrix3Shear(postRaw2Fit, 0.0, 0.5);
    dmtxMatrix3Shear(preFit2Raw, 0.0, -0.5);
 
-   success = MatrixRegionAlignCalibEdge(decode, DmtxEdgeTop, preFit2Raw, postRaw2Fit);
+   if(MatrixRegionAlignCalibEdge(decode, DmtxEdgeTop, preFit2Raw, postRaw2Fit) != DMTX_SUCCESS)
+      return DMTX_FAILURE;
 
-   return success;
+   return DMTX_SUCCESS;
 }
 
 /**
@@ -921,7 +951,6 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
 {
    DmtxVector2 p0, p1, pCorner;
    DmtxVector2 cFit;
-   int success;
    double slope;
    int hitCount;
    int weakCount;
@@ -940,8 +969,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
       cFit.Y = 0.0;
 
       SetCornerLoc(region, DmtxCorner10, pCorner);
-      success = MatrixRegionUpdateXfrms(region, decode->image);
-      if(!success)
+      if(MatrixRegionUpdateXfrms(region, decode->image) != DMTX_SUCCESS)
          return DMTX_FAILURE;
    }
    else {
@@ -949,8 +977,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
       cFit.Y = 1.0;
 
       SetCornerLoc(region, DmtxCorner01, pCorner);
-      success = MatrixRegionUpdateXfrms(region, decode->image);
-      if(!success)
+      if(MatrixRegionUpdateXfrms(region, decode->image) != DMTX_SUCCESS)
          return DMTX_FAILURE;
    }
 
@@ -991,8 +1018,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
       SetCornerLoc(region, DmtxCorner01, p0);
       SetCornerLoc(region, DmtxCorner11, p1);
    }
-   success = MatrixRegionUpdateXfrms(region, decode->image);
-   if(!success)
+   if(MatrixRegionUpdateXfrms(region, decode->image) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    return DMTX_SUCCESS;
