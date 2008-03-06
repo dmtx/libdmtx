@@ -192,6 +192,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
          {"diagnose",    no_argument,       NULL, 'D'},
          {"mosaic",      no_argument,       NULL, 'M'},
          {"page-number", no_argument,       NULL, 'P'},
+         {"version",     no_argument,       NULL, 'V'},
          {"help",        no_argument,       NULL,  0 },
          {0, 0, 0, 0}
    };
@@ -203,7 +204,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:vCDMP", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:vCDMPV", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -248,6 +249,11 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'P':
             options->pageNumber = 1;
+            break;
+         case 'V':
+            fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
+            fprintf(stdout, "libdmtx version %s\n", dmtxVersion());
+            exit(0);
             break;
          default:
             return DMTXREAD_ERROR;
@@ -391,6 +397,7 @@ OPTIONS:\n"), programName, programName);
       p = Path           display path taken by scanning logic\n\
   -M, --mosaic           interpret detected regions as Data Mosaic barcodes\n\
   -P, --page-number      prefix decoded message with corresponding page number\n\
+  -V, --version          print version information\n\
       --help             display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
    }

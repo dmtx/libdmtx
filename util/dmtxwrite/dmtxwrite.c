@@ -182,6 +182,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
          {"verbose",     no_argument,       NULL, 'v'},
          {"mosaic",      no_argument,       NULL, 'M'},
          {"resolution",  required_argument, NULL, 'R'},
+         {"version",     no_argument,       NULL, 'V'},
          {"help",        no_argument,       NULL,  0 },
          {0, 0, 0, 0}
    };
@@ -196,7 +197,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
    encode->scheme = DmtxSchemeEncodeAscii;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:p:r:s:vMR:", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:p:r:s:vMR:V", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -314,6 +315,11 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             break;
          case 'R':
             options->dpi = StringToLong(optarg);
+            break;
+         case 'V':
+            fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
+            fprintf(stdout, "libdmtx version %s\n", dmtxVersion());
+            exit(0);
             break;
          default:
             return DMTXWRITE_ERROR;
@@ -443,6 +449,7 @@ OPTIONS:\n"), programName, programName);
   -v, --verbose              use verbose messages\n\
   -M, --mosaic               create non-standard Data Mosaic barcode\n\
   -R, --resolution=NUM       set image print resolution (dpi)\n\
+  -V, --version              print version information\n\
       --help                 display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
    }

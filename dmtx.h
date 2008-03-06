@@ -25,6 +25,8 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTX_H__
 #define __DMTX_H__
 
+#define DMTX_VERSION                   "0.4.2"
+
 #define DMTX_FAILURE                   0
 #define DMTX_SUCCESS                   1
 
@@ -372,5 +374,7 @@ extern void dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDeco
 
 extern int dmtxSymbolModuleStatus(DmtxRegion *region, int row, int col);
 extern int dmtxGetSymbolAttribute(int attribute, int sizeIdx);
+
+extern char *dmtxVersion(void);
 
 #endif

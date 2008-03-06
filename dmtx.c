@@ -45,3 +45,9 @@ Contact: mike@dragonflylogic.com
 #include "dmtxcolor3.c"
 #include "dmtximage.c"
 #include "dmtxcallback.c"
+
+extern char *
+dmtxVersion(void)
+{
+   return DMTX_VERSION;
+}
