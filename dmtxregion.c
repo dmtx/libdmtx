@@ -632,8 +632,9 @@ MatrixRegionAlignFirstEdge(DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, Dmtx
    memset(region, 0x00, sizeof(DmtxRegion));
    region->valid = 0;
 
+   dmtxPointAlongRay2(&pTmp, &rayFull, rayFull.tMax);
+   SetCornerLoc(region, DmtxCorner01, pTmp);
    SetCornerLoc(region, DmtxCorner00, rayFull.p);
-   SetCornerLoc(region, DmtxCorner01, p0);
 
    if(MatrixRegionUpdateXfrms(region, decode->image) != DMTX_SUCCESS)
       return DMTX_FAILURE;
