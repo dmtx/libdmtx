@@ -613,8 +613,11 @@ MatrixRegionAlignFirstEdge(DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, Dmtx
       dmtxPointAlongRay2(&p1, &ray1, ray1.tMax);
       rayFull.isDefined = 1;
       rayFull.p = p1;
+
       dmtxVector2Sub(&pTmp, &p0, &p1);
-      dmtxVector2Norm(&pTmp);
+      if(dmtxVector2Norm(&pTmp) != DMTX_SUCCESS)
+         return DMTX_FAILURE;
+
       rayFull.v = pTmp;
       rayFull.tMin = 0;
       rayFull.tMax = dmtxDistanceAlongRay2(&rayFull, &p0);
@@ -843,11 +846,13 @@ MatrixRegionAlignSecondEdge(DmtxDecode *decode)
 
    rayOT.p = oldRawO;
    dmtxVector2Sub(&rayOT.v, &oldRawT, &oldRawO);
-   dmtxVector2Norm(&rayOT.v);
+   if(dmtxVector2Norm(&rayOT.v) != DMTX_SUCCESS)
+      return DMTX_FAILURE;
 
    rayNew.p = p0[bestFit];
    dmtxVector2Sub(&rayNew.v, &p1[bestFit], &p0[bestFit]);
-   dmtxVector2Norm(&rayNew.v);
+   if(dmtxVector2Norm(&rayNew.v) != DMTX_SUCCESS)
+      return DMTX_FAILURE;
 
    /* New origin is always origin of both known edges */
    dmtxRay2Intersect(&O, &rayOT, &rayNew);
@@ -1105,14 +1110,12 @@ MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 p
 
       /* Calculate forward and lateral directions in raw coordinates */
       dmtxVector2Sub(&forward, &c10, &c00);
-      if(dmtxVector2Mag(&forward) < DMTX_ALMOST_ZERO)
+      if(dmtxVector2Norm(&forward) != DMTX_SUCCESS)
          return 0;
-      dmtxVector2Norm(&forward);
 
       dmtxVector2Sub(&lateral, &c01, &c00);
-      if(dmtxVector2Mag(&lateral) < DMTX_ALMOST_ZERO)
+      if(dmtxVector2Norm(&lateral) != DMTX_SUCCESS)
          return 0;
-      dmtxVector2Norm(&lateral);
 
       prevEdgeHit = edgeHit;
       edgeHit = StepAlongEdge(decode->image, region, &pRawProgress, &pRawExact, forward, lateral, decode);

@@ -219,18 +219,19 @@ dmtxColor3Cross(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
  *
  *
  */
-extern float
+extern int
 dmtxColor3Norm(DmtxColor3 *c)
 {
    double mag;
 
    mag = dmtxColor3Mag(c);
 
-   assert(mag > DMTX_ALMOST_ZERO);
+   if(mag < DMTX_ALMOST_ZERO)
+      return DMTX_FAILURE;
 
    dmtxColor3ScaleBy(c, 1/mag);
 
-   return mag;
+   return DMTX_SUCCESS;
 }
 
 /**

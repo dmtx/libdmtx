@@ -111,18 +111,19 @@ dmtxVector2Cross(DmtxVector2 *v1, DmtxVector2 *v2)
  *
  *
  */
-extern float
+extern int
 dmtxVector2Norm(DmtxVector2 *v)
 {
    float mag;
 
    mag = dmtxVector2Mag(v);
 
-   assert(mag > DMTX_ALMOST_ZERO);
+   if(mag < DMTX_ALMOST_ZERO)
+      return DMTX_FAILURE;
 
    dmtxVector2ScaleBy(v, 1/mag);
 
-   return mag;
+   return DMTX_SUCCESS;
 }
 
 /**
