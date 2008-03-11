@@ -70,6 +70,9 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
          loc.Y < 0 || loc.Y >= decode->image->height)
       return DMTX_REGION_NOT_FOUND; /* XXX change to DMTX_REGION_out_of_bounds */
 
+/* if(dmtxGetMaskProperty(loc.X, loc.Y) == DMTX_DO_NOT_FOLLOW)
+      return DMTX_REGION_NOT_FOUND; */
+
    /* Test whether this pixel is sitting on an edge of any direction */
    compassEdge = GetCompassEdge(decode->image, loc.X, loc.Y, DMTX_ALL_COMPASS_DIRS);
    if(compassEdge.magnitude < 60)
@@ -88,6 +91,11 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
    if(MatrixRegionAlignFirstEdge(decode, &edgeStart, ray0, ray1) != DMTX_SUCCESS)
       return DMTX_REGION_NOT_FOUND;
 
+   /* Capture copy of first edge boundaries */
+   /* ... if this turns out to be a dead end then we'll mark this single
+      edge as 'do not follow' for future passes */
+   /* cornerCapture.00 = xyz; cornerCapture.01 = xyz; */
+
    if(MatrixRegionAlignSecondEdge(decode) != DMTX_SUCCESS)
       return DMTX_REGION_NOT_FOUND;
 
@@ -97,15 +105,10 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
    if(MatrixRegionAlignTopEdge(decode) != DMTX_SUCCESS)
       return DMTX_REGION_NOT_FOUND;
 
-   /* XXX When adding clipping functionality against previously
-      scanned barcodes, this is a good place to add a test for
-      collisions.  Although we tested for this early on in the jump
-      region scan, the subsequent follower and alignment steps may
-      have moved us into a collision with another matrix region.  A
-      collision at this point is grounds for immediate failure. */
-
-   if(MatrixRegionFindSize(decode) != DMTX_SUCCESS)
+   if(MatrixRegionFindSize(decode) != DMTX_SUCCESS) {
+      /* mark cornerCapture line as 'no not follow' */
       return DMTX_REGION_NOT_FOUND;
+   }
 
    /* XXX logic below this point should be broken off into a separate
       decode function (possibly in dmtxdecode.c) because:
@@ -544,7 +547,40 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
    dmtxMatrix3Multiply(m, mtxy, mphi);
 
    dmtxMatrix3VMultiply(&vTmp, &corners.c10, m);
-   assert(vTmp.X > DMTX_ALMOST_ZERO);
+
+   if(vTmp.X <= DMTX_ALMOST_ZERO) {
+      fprintf(stdout, "\n");
+      fprintf(stdout, "*** if you see this error please email the following text to mike@dragonflylogic.com ***\n");
+      fprintf(stdout, "\n");
+      fprintf(stdout, "tx:       %g\n", tx);
+      fprintf(stdout, "ty:       %g\n", ty);
+      fprintf(stdout, "phi:      %g\n", phi);
+      fprintf(stdout, "vTmp:     %g,%g\n", vTmp.X, vTmp.Y);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "01.00.10: %.3f\n", RightAngleTrueness(corners.c01, corners.c00, corners.c10, M_PI_2));
+      fprintf(stdout, "00.10.11: %.3f\n", RightAngleTrueness(corners.c00, corners.c10, corners.c11, M_PI_2));
+      fprintf(stdout, "10.11.01: %.3f\n", RightAngleTrueness(corners.c10, corners.c11, corners.c01, M_PI_2));
+      fprintf(stdout, "11.01.00: %.3f\n", RightAngleTrueness(corners.c11, corners.c01, corners.c00, M_PI_2));
+      fprintf(stdout, "\n");
+      fprintf(stdout, "c00       %g,%g\n", corners.c00.X, corners.c00.Y);
+      fprintf(stdout, "c01       %g,%g\n", corners.c01.X, corners.c01.Y);
+      fprintf(stdout, "c11       %g,%g\n", corners.c11.X, corners.c11.Y);
+      fprintf(stdout, "c10       %g,%g\n", corners.c10.X, corners.c10.Y);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "dimXX:    %g %g %g %g\n", dimOT, dimOR, dimTX, dimRX);
+      fprintf(stdout, "known:    %d %d %d %d\n", (corners.known & DmtxCorner00) ? 1 : 0,
+                                                 (corners.known & DmtxCorner10) ? 1 : 0,
+                                                 (corners.known & DmtxCorner11) ? 1 : 0,
+                                                 (corners.known & DmtxCorner01) ? 1 : 0);
+      fprintf(stdout, "mtxy:\n");
+      dmtxMatrix3Print(mtxy);
+      fprintf(stdout, "mphi:\n");
+      dmtxMatrix3Print(mphi);
+      fprintf(stdout, "m:\n");
+      dmtxMatrix3Print(m);
+      exit(1);
+   }
+
    shx = -vTmp.Y / vTmp.X;
    dmtxMatrix3Shear(mshx, 0.0, shx);
 

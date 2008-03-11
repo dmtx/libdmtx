@@ -3,26 +3,31 @@ TODO Items
 
 "Must Have" features for next release:
 --------------------------------------
-   1) diagnostic utility that dumps image copy with scanning info embedded
+   1) no more assertion failures
    2) error correction (libfec)
    3) region detection and decoding handled as separate tasks (and structs)
-   4) updated documentation to reflect API and option changes
-   5) all programs and bindings updated to work with new version
-   6) the rest is just gravy
+   4) image mask approach (for performance and multi-barcode scans)
+   5) updated documentation to reflect API and option changes
+   6) all programs and bindings updated to work with new version
 
-IMMEDIATE
----------
+   -) diagnostic utility that dumps image copy with scanning info embedded
+
+Tonight:
+--------------------------------------
    / pass decision back to calling program whether to scan (requiring malloc) it
    o change dmtxFindNextRegion() to return region (not malloc'd)
+   o send updated version of dmtxregion.c to Steve H. to track error
+   o split out actual data fields
+
    o update gltest to use the new calling structure
 
-   o split out actual data fields
+Soon:
+--------------------------------------
    o remove mosaic field from DmtxDecode (and replace functionality by calling dedicated named function)
    o remove DmtxRegion from decode and pass it between functions explicitly
 
    o write fully structured debug barcode dump from dmtxread (currently just mapping grid)
    o add data to the malloc'd image buffer (for writing log data and tracking progress)
-   o improve black/white decision process
    o consider changing rounding of zero crossing math to nearest center between pixels
 
    o print out image representing "unstretched" barcode
@@ -76,6 +81,7 @@ version 0.5: (??-Apr-2008?)
   o libdmtx:   Implement error correction (initially through libfec)
   x dmtxread:  Add ability to scan portion of image
   x dmtxread:  Add --diagnose option that dumps image with scan infomation embedded
+  x dmtxread:  Added Z rotation angle (in degrees) to verbose output
   o dmtxread:  Add option to write image of path scanned and regions found (from mask)
   x dmtxwrite: Move ASCII and codeword output to separate --preview option
   x dmtxwrite: Added -R option for setting image print resolution in dpi (PNG only)
