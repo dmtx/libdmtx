@@ -1051,12 +1051,13 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
    if(hitCount < 2)
       return DMTX_FAILURE;
 
-   dmtxMatrix3VMultiplyBy(&p0, region->raw2fit);
-   dmtxMatrix3VMultiplyBy(&p1, region->raw2fit);
-
    if(edgeLoc == DmtxEdgeRight) {
+      SetCornerLoc(region, DmtxCorner10, pCorner);
       if(MatrixRegionUpdateXfrms(region, decode->image) != DMTX_SUCCESS)
          return DMTX_FAILURE;
+
+      dmtxMatrix3VMultiplyBy(&p0, region->raw2fit);
+      dmtxMatrix3VMultiplyBy(&p1, region->raw2fit);
 
       assert(fabs(p1.Y - p0.Y) > DMTX_ALMOST_ZERO);
       slope = (p1.X - p0.X) / (p1.Y - p0.Y);
@@ -1076,6 +1077,9 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
       SetCornerLoc(region, DmtxCorner01, pCorner);
       if(MatrixRegionUpdateXfrms(region, decode->image) != DMTX_SUCCESS)
          return DMTX_FAILURE;
+
+      dmtxMatrix3VMultiplyBy(&p0, region->raw2fit);
+      dmtxMatrix3VMultiplyBy(&p1, region->raw2fit);
 
       assert(fabs(p1.X - p0.X) > DMTX_ALMOST_ZERO);
       slope = (p1.Y - p0.Y) / (p1.X - p0.X);
