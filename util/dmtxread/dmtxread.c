@@ -343,7 +343,7 @@ StringToInt(int *numberInt, char *numberString, char **terminate)
    errno = 0;
    numberLong = strtol(numberString, terminate, 10);
 
-   while(isspace(**terminate))
+   while(isspace((int)**terminate))
       (*terminate)++;
 
    if(errno != 0 || (**terminate != '\0' && **terminate != '%')) {

@@ -604,6 +604,52 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
    sky = vTmp.Y;
    dmtxMatrix3LineSkewTop(msky, 1.0, sky, 1.0);
 
+   if(sky <= DMTX_ALMOST_ZERO) {
+      fprintf(stdout, "\n");
+      fprintf(stdout, "*** if you see this error please email the following text to mike@dragonflylogic.com ***\n");
+      fprintf(stdout, "\n");
+      fprintf(stdout, "tx:       %g\n", tx);
+      fprintf(stdout, "ty:       %g\n", ty);
+      fprintf(stdout, "phi:      %g\n", phi);
+      fprintf(stdout, "shx:      %g\n", shx);
+      fprintf(stdout, "scx:      %g\n", scx);
+      fprintf(stdout, "scy:      %g\n", scy);
+      fprintf(stdout, "skx:      %g\n", skx);
+      fprintf(stdout, "sky:      %g\n", sky);
+      fprintf(stdout, "vTmp:     %g,%g\n", vTmp.X, vTmp.Y);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "01.00.10: %.3f\n", RightAngleTrueness(corners.c01, corners.c00, corners.c10, M_PI_2));
+      fprintf(stdout, "00.10.11: %.3f\n", RightAngleTrueness(corners.c00, corners.c10, corners.c11, M_PI_2));
+      fprintf(stdout, "10.11.01: %.3f\n", RightAngleTrueness(corners.c10, corners.c11, corners.c01, M_PI_2));
+      fprintf(stdout, "11.01.00: %.3f\n", RightAngleTrueness(corners.c11, corners.c01, corners.c00, M_PI_2));
+      fprintf(stdout, "\n");
+      fprintf(stdout, "c00       %g,%g\n", corners.c00.X, corners.c00.Y);
+      fprintf(stdout, "c01       %g,%g\n", corners.c01.X, corners.c01.Y);
+      fprintf(stdout, "c11       %g,%g\n", corners.c11.X, corners.c11.Y);
+      fprintf(stdout, "c10       %g,%g\n", corners.c10.X, corners.c10.Y);
+      fprintf(stdout, "\n");
+      fprintf(stdout, "dimXX:    %g %g %g %g\n", dimOT, dimOR, dimTX, dimRX);
+      fprintf(stdout, "known:    %d %d %d %d\n", (corners.known & DmtxCorner00) ? 1 : 0,
+                                                 (corners.known & DmtxCorner10) ? 1 : 0,
+                                                 (corners.known & DmtxCorner11) ? 1 : 0,
+                                                 (corners.known & DmtxCorner01) ? 1 : 0);
+      fprintf(stdout, "mtxy:\n");
+      dmtxMatrix3Print(mtxy);
+      fprintf(stdout, "mphi:\n");
+      dmtxMatrix3Print(mphi);
+      fprintf(stdout, "mshx:\n");
+      dmtxMatrix3Print(mshx);
+      fprintf(stdout, "mscxy:\n");
+      dmtxMatrix3Print(mscxy);
+      fprintf(stdout, "mskx:\n");
+      dmtxMatrix3Print(mskx);
+      fprintf(stdout, "msky:\n");
+      dmtxMatrix3Print(msky);
+      fprintf(stdout, "m:\n");
+      dmtxMatrix3Print(m);
+      exit(1);
+   }
+
    /* Update region with final update */
    dmtxMatrix3Multiply(region->raw2fit, m, msky);
 
@@ -992,7 +1038,6 @@ static int
 MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit)
 {
    DmtxVector2 p0, p1, pCorner;
-   DmtxVector2 cFit;
    double slope;
    int hitCount;
    int weakCount;
@@ -1006,27 +1051,12 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
    if(hitCount < 2)
       return DMTX_FAILURE;
 
-   if(edgeLoc == DmtxEdgeRight) {
-      cFit.X = 1.0;
-      cFit.Y = 0.0;
+   dmtxMatrix3VMultiplyBy(&p0, region->raw2fit);
+   dmtxMatrix3VMultiplyBy(&p1, region->raw2fit);
 
-      SetCornerLoc(region, DmtxCorner10, pCorner);
+   if(edgeLoc == DmtxEdgeRight) {
       if(MatrixRegionUpdateXfrms(region, decode->image) != DMTX_SUCCESS)
          return DMTX_FAILURE;
-   }
-   else {
-      cFit.X = 0.0;
-      cFit.Y = 1.0;
-
-      SetCornerLoc(region, DmtxCorner01, pCorner);
-      if(MatrixRegionUpdateXfrms(region, decode->image) != DMTX_SUCCESS)
-         return DMTX_FAILURE;
-   }
-
-   /* With reliable edge fit results now update remaining corners */
-   if(edgeLoc == DmtxEdgeRight) {
-      dmtxMatrix3VMultiplyBy(&p0, region->raw2fit);
-      dmtxMatrix3VMultiplyBy(&p1, region->raw2fit);
 
       assert(fabs(p1.Y - p0.Y) > DMTX_ALMOST_ZERO);
       slope = (p1.X - p0.X) / (p1.Y - p0.Y);
@@ -1043,8 +1073,9 @@ MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 
       SetCornerLoc(region, DmtxCorner11, p1);
    }
    else {
-      dmtxMatrix3VMultiplyBy(&p0, region->raw2fit);
-      dmtxMatrix3VMultiplyBy(&p1, region->raw2fit);
+      SetCornerLoc(region, DmtxCorner01, pCorner);
+      if(MatrixRegionUpdateXfrms(region, decode->image) != DMTX_SUCCESS)
+         return DMTX_FAILURE;
 
       assert(fabs(p1.X - p0.X) > DMTX_ALMOST_ZERO);
       slope = (p1.Y - p0.Y) / (p1.X - p0.X);
