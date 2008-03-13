@@ -74,7 +74,7 @@ dmtxMatrix3Identity(DmtxMatrix3 m)
  *  (0,0)     (1,0)                (0,0)     (1,0)
  *
  */
-void dmtxMatrix3Translate(DmtxMatrix3 m, float tx, float ty)
+void dmtxMatrix3Translate(DmtxMatrix3 m, double tx, double ty)
 {
    dmtxMatrix3Identity(m);
    m[2][0] = tx;
@@ -130,7 +130,7 @@ dmtxMatrix3Rotate(DmtxMatrix3 m, double angle)
  *
  */
 extern void
-dmtxMatrix3Scale(DmtxMatrix3 m, float sx, float sy)
+dmtxMatrix3Scale(DmtxMatrix3 m, double sx, double sy)
 {
    dmtxMatrix3Identity(m);
    m[0][0] = sx;
@@ -141,7 +141,7 @@ dmtxMatrix3Scale(DmtxMatrix3 m, float sx, float sy)
  * Shear Transformation
  */
 extern void
-dmtxMatrix3Shear(DmtxMatrix3 m, float shx, float shy)
+dmtxMatrix3Shear(DmtxMatrix3 m, double shx, double shy)
 {
    dmtxMatrix3Identity(m);
    m[1][0] = shx;
@@ -193,7 +193,7 @@ extern void
 dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1)
 {
    int i, j, k;
-   float val;
+   double val;
 
    for(i = 0; i < 3; i++) {
       for(j = 0; j < 3; j++) {
@@ -240,7 +240,7 @@ dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
  *
  */
 extern void
-dmtxMatrix3LineSkewTop(DmtxMatrix3 m, float b0, float b1, float sz)
+dmtxMatrix3LineSkewTop(DmtxMatrix3 m, double b0, double b1, double sz)
 {
    assert(b0 > DMTX_ALMOST_ZERO);
 
@@ -254,7 +254,7 @@ dmtxMatrix3LineSkewTop(DmtxMatrix3 m, float b0, float b1, float sz)
  *
  */
 extern void
-dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, float b0, float b1, float sz)
+dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, double b0, double b1, double sz)
 {
    assert(b1 > DMTX_ALMOST_ZERO);
 
@@ -268,7 +268,7 @@ dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, float b0, float b1, float sz)
  *
  */
 extern void
-dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz)
+dmtxMatrix3LineSkewSide(DmtxMatrix3 m, double b0, double b1, double sz)
 {
    assert(b0 > DMTX_ALMOST_ZERO);
 
@@ -282,7 +282,7 @@ dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz)
  *
  */
 extern void
-dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, float b0, float b1, float sz)
+dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, double b0, double b1, double sz)
 {
    assert(b1 > DMTX_ALMOST_ZERO);
 

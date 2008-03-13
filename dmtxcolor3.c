@@ -46,7 +46,7 @@ extern void
 dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
 {
    int xInt, yInt;
-   float xFrac, yFrac;
+   double xFrac, yFrac;
    DmtxColor3 clrLL, clrLR, clrUL, clrUR;
    DmtxPixel pxlLL, pxlLR, pxlUL, pxlUR;
 
@@ -112,7 +112,7 @@ dmtxPixelFromColor3(DmtxPixel *pxl, DmtxColor3 *color)
  *
  */
 extern DmtxColor3
-dmtxColor3AlongRay3(DmtxRay3 *ray, float dist)
+dmtxColor3AlongRay3(DmtxRay3 *ray, double dist)
 {
    DmtxColor3 color;
    DmtxColor3 cTmp;
@@ -180,7 +180,7 @@ dmtxColor3Sub(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
  *
  */
 extern DmtxColor3 *
-dmtxColor3ScaleBy(DmtxColor3 *c, float s)
+dmtxColor3ScaleBy(DmtxColor3 *c, double s)
 {
    c->R *= s;
    c->G *= s;
@@ -194,7 +194,7 @@ dmtxColor3ScaleBy(DmtxColor3 *c, float s)
  *
  */
 extern DmtxColor3 *
-dmtxColor3Scale(DmtxColor3 *cOut, DmtxColor3 *c, float s)
+dmtxColor3Scale(DmtxColor3 *cOut, DmtxColor3 *c, double s)
 {
    *cOut = *c;
 
@@ -238,7 +238,7 @@ dmtxColor3Norm(DmtxColor3 *c)
  *
  *
  */
-extern float
+extern double
 dmtxColor3Dot(DmtxColor3 *c1, DmtxColor3 *c2)
 {
    /* XXX double check that this is right */
@@ -249,7 +249,7 @@ dmtxColor3Dot(DmtxColor3 *c1, DmtxColor3 *c2)
  *
  *
  */
-extern float
+extern double
 dmtxColor3Mag(DmtxColor3 *c)
 {
    return sqrt(c->R * c->R + c->G * c->G + c->B * c->B);
@@ -259,7 +259,7 @@ dmtxColor3Mag(DmtxColor3 *c)
  *
  *
  */
-extern float
+extern double
 dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q)
 {
    DmtxColor3 cSubTmp;
@@ -275,7 +275,7 @@ dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q)
  *
  *
  */
-extern float
+extern double
 dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q)
 {
    DmtxColor3 cSubTmp;
@@ -291,7 +291,7 @@ dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q)
  *
  */
 extern int
-dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, float t)
+dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t)
 {
    DmtxColor3 cTmp;
 

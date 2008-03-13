@@ -117,7 +117,7 @@ typedef enum {
    DmtxCorner01 = 0x01 << 3
 } DmtxCornerLoc;
 
-typedef float DmtxMatrix3[3][3];
+typedef double DmtxMatrix3[3][3];
 
 typedef struct DmtxMatrix3Struct_struct {
    DmtxMatrix3 m;
@@ -146,14 +146,14 @@ typedef struct DmtxRay3_struct {
 
 typedef struct DmtxRay2_struct {
    char        isDefined;
-   float       tMin, tMax;
+   double      tMin, tMax;
    DmtxVector2 p;
    DmtxVector2 v;
 } DmtxRay2;
 
 typedef struct DmtxGradient_struct {
    char        isDefined;
-   float       tMin, tMax, tMid;
+   double      tMin, tMax, tMid;
    DmtxRay3    ray;
    DmtxColor3 color, colorPrev; /* XXX maybe these aren't appropriate variables for a gradient? */
 } DmtxGradient;
@@ -173,17 +173,17 @@ typedef struct DmtxImage_struct {
 
 typedef struct DmtxEdge_struct {
    int             offset;
-   float           t;
+   double          t;
    DmtxColor3     color;
 } DmtxEdge;
 
 typedef struct DmtxChain_struct {
-   float tx, ty;
-   float phi, shx;
-   float scx, scy;
-   float bx0, bx1;
-   float by0, by1;
-   float sz;
+   double tx, ty;
+   double phi, shx;
+   double scx, scy;
+   double bx0, bx1;
+   double by0, by1;
+   double sz;
 } DmtxChain;
 
 typedef struct DmtxCorners_struct {
@@ -219,8 +219,8 @@ typedef struct DmtxEdgeFollower_struct {
    int             slope;
    int             turnCount;
    int             paraOffset;
-   float           perpOffset;
-   float           tMin, tMid, tMax;
+   double          perpOffset;
+   double          tMin, tMid, tMax;
    DmtxRay3        ray;
    DmtxRay2        line0, line1;
    DmtxDirection   dir;
@@ -301,51 +301,51 @@ extern DmtxVector2 *dmtxVector2AddTo(DmtxVector2 *v1, DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2Add(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2SubFrom(DmtxVector2 *v1, DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2Sub(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2);
-extern DmtxVector2 *dmtxVector2ScaleBy(DmtxVector2 *v, float s);
-extern DmtxVector2 *dmtxVector2Scale(DmtxVector2 *vOut, DmtxVector2 *v, float s);
-extern float dmtxVector2Cross(DmtxVector2 *v1, DmtxVector2 *v2);
+extern DmtxVector2 *dmtxVector2ScaleBy(DmtxVector2 *v, double s);
+extern DmtxVector2 *dmtxVector2Scale(DmtxVector2 *vOut, DmtxVector2 *v, double s);
+extern double dmtxVector2Cross(DmtxVector2 *v1, DmtxVector2 *v2);
 extern int dmtxVector2Norm(DmtxVector2 *v);
-extern float dmtxVector2Dot(DmtxVector2 *v1, DmtxVector2 *v2);
-extern float dmtxVector2Mag(DmtxVector2 *v);
-extern float dmtxDistanceFromRay2(DmtxRay2 *r, DmtxVector2 *q);
-extern float dmtxDistanceAlongRay2(DmtxRay2 *r, DmtxVector2 *q);
+extern double dmtxVector2Dot(DmtxVector2 *v1, DmtxVector2 *v2);
+extern double dmtxVector2Mag(DmtxVector2 *v);
+extern double dmtxDistanceFromRay2(DmtxRay2 *r, DmtxVector2 *q);
+extern double dmtxDistanceAlongRay2(DmtxRay2 *r, DmtxVector2 *q);
 extern int dmtxRay2Intersect(DmtxVector2 *point, DmtxRay2 *p0, DmtxRay2 *p1);
-extern int dmtxPointAlongRay2(DmtxVector2 *point, DmtxRay2 *r, float t);
+extern int dmtxPointAlongRay2(DmtxVector2 *point, DmtxRay2 *r, double t);
 
 extern void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1);
 extern void dmtxMatrix3Identity(DmtxMatrix3 m);
-extern void dmtxMatrix3Translate(DmtxMatrix3 m, float tx, float ty);
+extern void dmtxMatrix3Translate(DmtxMatrix3 m, double tx, double ty);
 extern void dmtxMatrix3Rotate(DmtxMatrix3 m, double angle);
-extern void dmtxMatrix3Scale(DmtxMatrix3 m, float sx, float sy);
-extern void dmtxMatrix3Shear(DmtxMatrix3 m, float shx, float shy);
+extern void dmtxMatrix3Scale(DmtxMatrix3 m, double sx, double sy);
+extern void dmtxMatrix3Shear(DmtxMatrix3 m, double shx, double shy);
 extern int dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m);
 extern int dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m);
 extern void dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1);
 extern void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1);
-extern void dmtxMatrix3LineSkewTop(DmtxMatrix3 m, float b0, float b1, float sz);
-extern void dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, float b0, float b1, float sz);
-extern void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, float b0, float b1, float sz);
-extern void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, float b0, float b1, float sz);
+extern void dmtxMatrix3LineSkewTop(DmtxMatrix3 m, double b0, double b1, double sz);
+extern void dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, double b0, double b1, double sz);
+extern void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, double b0, double b1, double sz);
+extern void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, double b0, double b1, double sz);
 extern void dmtxMatrix3Print(DmtxMatrix3 m);
 
 extern DmtxPixel dmtxPixelFromImage(DmtxImage *image, int x, int y);
 extern void dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p);
 extern DmtxColor3 *dmtxColor3FromPixel(DmtxColor3 *color, DmtxPixel *pxl);
 extern void dmtxPixelFromColor3(DmtxPixel *pxl, DmtxColor3 *color);
-extern DmtxColor3 dmtxColor3AlongRay3(DmtxRay3 *ray, float dist);
+extern DmtxColor3 dmtxColor3AlongRay3(DmtxRay3 *ray, double dist);
 extern DmtxColor3 *dmtxColor3AddTo(DmtxColor3 *v1, DmtxColor3 *v2);
 extern DmtxColor3 *dmtxColor3Add(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
 extern DmtxColor3 *dmtxColor3SubFrom(DmtxColor3 *v1, DmtxColor3 *v2);
 extern DmtxColor3 *dmtxColor3Sub(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
-extern DmtxColor3 *dmtxColor3ScaleBy(DmtxColor3 *v, float s);
-extern DmtxColor3 *dmtxColor3Scale(DmtxColor3 *vOut, DmtxColor3 *v, float s);
+extern DmtxColor3 *dmtxColor3ScaleBy(DmtxColor3 *v, double s);
+extern DmtxColor3 *dmtxColor3Scale(DmtxColor3 *vOut, DmtxColor3 *v, double s);
 extern DmtxColor3 *dmtxColor3Cross(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
 extern int dmtxColor3Norm(DmtxColor3 *v);
-extern float dmtxColor3Dot(DmtxColor3 *v1, DmtxColor3 *v2);
-extern float dmtxColor3Mag(DmtxColor3 *v);
-extern float dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
-extern float dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
-extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, float t);
+extern double dmtxColor3Dot(DmtxColor3 *v1, DmtxColor3 *v2);
+extern double dmtxColor3Mag(DmtxColor3 *v);
+extern double dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
+extern double dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
+extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
 
 extern int dmtxImageInit(DmtxImage *image);
 extern int dmtxImageDeInit(DmtxImage **image);

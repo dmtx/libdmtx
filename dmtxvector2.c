@@ -77,7 +77,7 @@ dmtxVector2Sub(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2)
  *
  */
 extern DmtxVector2 *
-dmtxVector2ScaleBy(DmtxVector2 *v, float s)
+dmtxVector2ScaleBy(DmtxVector2 *v, double s)
 {
    v->X *= s;
    v->Y *= s;
@@ -90,7 +90,7 @@ dmtxVector2ScaleBy(DmtxVector2 *v, float s)
  *
  */
 extern DmtxVector2 *
-dmtxVector2Scale(DmtxVector2 *vOut, DmtxVector2 *v, float s)
+dmtxVector2Scale(DmtxVector2 *vOut, DmtxVector2 *v, double s)
 {
    *vOut = *v;
 
@@ -101,7 +101,7 @@ dmtxVector2Scale(DmtxVector2 *vOut, DmtxVector2 *v, float s)
  *
  *
  */
-extern float
+extern double
 dmtxVector2Cross(DmtxVector2 *v1, DmtxVector2 *v2)
 {
    return (v1->X * v2->Y) - (v1->Y * v2->X);
@@ -114,7 +114,7 @@ dmtxVector2Cross(DmtxVector2 *v1, DmtxVector2 *v2)
 extern int
 dmtxVector2Norm(DmtxVector2 *v)
 {
-   float mag;
+   double mag;
 
    mag = dmtxVector2Mag(v);
 
@@ -130,7 +130,7 @@ dmtxVector2Norm(DmtxVector2 *v)
  *
  *
  */
-extern float
+extern double
 dmtxVector2Dot(DmtxVector2 *v1, DmtxVector2 *v2)
 {
    return (v1->X * v2->X) + (v1->Y * v2->Y);
@@ -140,7 +140,7 @@ dmtxVector2Dot(DmtxVector2 *v1, DmtxVector2 *v2)
  *
  *
  */
-extern float
+extern double
 dmtxVector2Mag(DmtxVector2 *v)
 {
    return sqrt(v->X * v->X + v->Y * v->Y);
@@ -150,7 +150,7 @@ dmtxVector2Mag(DmtxVector2 *v)
  *
  *
  */
-extern float
+extern double
 dmtxDistanceFromRay2(DmtxRay2 *r, DmtxVector2 *q)
 {
    DmtxVector2 vSubTmp;
@@ -165,7 +165,7 @@ dmtxDistanceFromRay2(DmtxRay2 *r, DmtxVector2 *q)
  *
  *
  */
-extern float
+extern double
 dmtxDistanceAlongRay2(DmtxRay2 *r, DmtxVector2 *q)
 {
    DmtxVector2 vSubTmp;
@@ -187,7 +187,7 @@ dmtxDistanceAlongRay2(DmtxRay2 *r, DmtxVector2 *q)
 extern int
 dmtxRay2Intersect(DmtxVector2 *point, DmtxRay2 *p0, DmtxRay2 *p1)
 {
-   float numer, denom;
+   double numer, denom;
    DmtxVector2 w;
 
    denom = dmtxVector2Cross(&(p1->v), &(p0->v));
@@ -205,7 +205,7 @@ dmtxRay2Intersect(DmtxVector2 *point, DmtxRay2 *p0, DmtxRay2 *p1)
  *
  */
 extern int
-dmtxPointAlongRay2(DmtxVector2 *point, DmtxRay2 *r, float t)
+dmtxPointAlongRay2(DmtxVector2 *point, DmtxRay2 *r, double t)
 {
    DmtxVector2 vTmp;
 

@@ -449,7 +449,7 @@ PrintPattern(DmtxEncode *encode)
    int i, j;
    int symbolRow, symbolCol;
    int pixelRow, pixelCol;
-   float sxy, txy;
+   double sxy, txy;
    DmtxMatrix3 m1, m2;
    DmtxVector2 vIn, vOut;
    DmtxPixel black;
