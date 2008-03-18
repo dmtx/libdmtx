@@ -164,11 +164,27 @@ typedef struct DmtxPixel_struct {
    unsigned char B;
 } DmtxPixel;
 
+typedef enum {
+   DmtxCompassDirNeg45 = 0x01,
+   DmtxCompassDir0     = 0x02,
+   DmtxCompassDir45    = 0x04,
+   DmtxCompassDir90    = 0x08
+} DmtxCompassDir;
+
+typedef struct DmtxCompassEdge_struct {
+   char            assigned;
+   double          magnitude;  /* sqrt(R^2 + G^2 + B^2) */
+   DmtxColor3      intensity;
+   DmtxCompassDir  edgeDir;
+   DmtxCompassDir  scanDir;    /* DmtxCompassDir0 | DmtxCompassDir90 */
+} DmtxCompassEdge;
+
 typedef struct DmtxImage_struct {
-   unsigned int pageCount;
-   unsigned int width;
-   unsigned int height;
-   DmtxPixel    *pxl;
+   unsigned int    pageCount;
+   unsigned int    width;
+   unsigned int    height;
+   DmtxPixel       *pxl;
+   DmtxCompassEdge *compass;
 } DmtxImage;
 
 typedef struct DmtxEdge_struct {
@@ -347,6 +363,7 @@ extern double dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern double dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
 
+extern DmtxImage *dmtxImageMalloc(int width, int height);
 extern int dmtxImageInit(DmtxImage *image);
 extern int dmtxImageDeInit(DmtxImage **image);
 extern int dmtxImageGetWidth(DmtxImage *image);

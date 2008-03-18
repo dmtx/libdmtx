@@ -26,6 +26,46 @@ Contact: mike@dragonflylogic.com
  *
  *
  */
+extern DmtxImage *
+dmtxImageMalloc(int width, int height)
+{
+   int pixelBufSize, compassBufSize;
+   DmtxImage *image;
+
+   image = (DmtxImage *)malloc(sizeof(DmtxImage));
+   if(image == NULL) {
+      return NULL;
+   }
+
+   image->pageCount = 1;
+   image->width = width;
+   image->height = height;
+
+   pixelBufSize = width * height * sizeof(DmtxPixel);
+   compassBufSize = width * height * sizeof(DmtxCompassEdge);
+
+   image->pxl = (DmtxPixel *)malloc(pixelBufSize);
+   if(image->pxl == NULL) {
+      free(image);
+      return NULL;
+   }
+   memset(image->pxl, 0x00, pixelBufSize);
+
+   image->compass = (DmtxCompassEdge *)malloc(compassBufSize);
+   if(image->compass == NULL) {
+      free(image->pxl);
+      free(image);
+      return NULL;
+   }
+   memset(image->compass, 0x00, compassBufSize);
+
+   return image;
+}
+
+/**
+ *
+ *
+ */
 extern int
 dmtxImageInit(DmtxImage *image)
 {
@@ -47,6 +87,9 @@ dmtxImageDeInit(DmtxImage **image)
 
    if((*image)->pxl != NULL)
       free((*image)->pxl);
+
+   if((*image)->compass != NULL)
+      free((*image)->compass);
 
    free(*image);
 

@@ -80,21 +80,7 @@ typedef enum {
    DmtxMaskBit8 = 0x01 << 0
 } DmtxBitMask;
 
-typedef enum {
-   DmtxCompassDirNeg45 = 0x01,
-   DmtxCompassDir0     = 0x02,
-   DmtxCompassDir45    = 0x04,
-   DmtxCompassDir90    = 0x08
-} DmtxCompassDir;
-
 #define DMTX_ALL_COMPASS_DIRS 0x0f
-
-typedef struct DmtxCompassEdge_struct {
-   double          magnitude;  /* sqrt(R^2 + G^2 + B^2) */
-   DmtxColor3      intensity;
-   DmtxCompassDir  edgeDir;
-   DmtxCompassDir  scanDir;    /* DmtxCompassDir0 | DmtxCompassDir90 */
-} DmtxCompassEdge;
 
 typedef struct DmtxEdgeSubPixel_struct {
    int             isEdge;

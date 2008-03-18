@@ -202,7 +202,7 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
    static const int patternX[] =       { -1,  0,  1,  1,  1,  0, -1, -1 };
    static const int patternY[] =       { -1, -1, -1,  0,  1,  1,  1,  0 };
    DmtxPixel pixel;
-   DmtxCompassEdge edge, maxEdge;
+   DmtxCompassEdge edge, maxEdge, *compassCache;
    DmtxColor3 color, black = { 0.0, 0.0, 0.0 }; /* XXX move black to a global scope later */
 
    assert(edgeScanDirs);
@@ -213,10 +213,15 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
    maxEdge.intensity = black;
    maxEdge.magnitude = 0.0;
 
-   mag0 = mag90 = -1.0;
-
    if(x <= 0 || x >= image->width - 1 || y <= 0 || y >= image->height - 1)
       return maxEdge; /* XXX should really communicate failure with a dedicated value instead */
+
+   compassCache = &(image->compass[y * image->width + x]);
+
+   if(compassCache->assigned == 1 && (edgeScanDirs & compassCache->edgeDir))
+      return *compassCache;
+
+   mag0 = mag90 = -1.0;
 
    /* Calculate this pixel's edge intensity for each direction (-45, 0, 45, 90) */
    for(dirIdx = 0; dirIdx <= 3; dirIdx++) {
@@ -262,6 +267,11 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
    }
    if(mag0 > -1.0 && mag90 > -1.0)
       maxEdge.scanDir = (mag0 > mag90) ? DmtxCompassDir0 : DmtxCompassDir90;
+
+   if(edgeScanDirs == DMTX_ALL_COMPASS_DIRS) {
+      *compassCache = maxEdge;
+      compassCache->assigned = 1;
+   }
 
    return maxEdge;
 }
@@ -548,39 +558,6 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
 
    dmtxMatrix3VMultiply(&vTmp, &corners.c10, m);
 
-   if(vTmp.X <= DMTX_ALMOST_ZERO) {
-      fprintf(stdout, "\n");
-      fprintf(stdout, "*** if you see this error please email the following text to mike@dragonflylogic.com ***\n");
-      fprintf(stdout, "\n");
-      fprintf(stdout, "tx:       %g\n", tx);
-      fprintf(stdout, "ty:       %g\n", ty);
-      fprintf(stdout, "phi:      %g\n", phi);
-      fprintf(stdout, "vTmp:     %g,%g\n", vTmp.X, vTmp.Y);
-      fprintf(stdout, "\n");
-      fprintf(stdout, "01.00.10: %.3f\n", RightAngleTrueness(corners.c01, corners.c00, corners.c10, M_PI_2));
-      fprintf(stdout, "00.10.11: %.3f\n", RightAngleTrueness(corners.c00, corners.c10, corners.c11, M_PI_2));
-      fprintf(stdout, "10.11.01: %.3f\n", RightAngleTrueness(corners.c10, corners.c11, corners.c01, M_PI_2));
-      fprintf(stdout, "11.01.00: %.3f\n", RightAngleTrueness(corners.c11, corners.c01, corners.c00, M_PI_2));
-      fprintf(stdout, "\n");
-      fprintf(stdout, "c00       %g,%g\n", corners.c00.X, corners.c00.Y);
-      fprintf(stdout, "c01       %g,%g\n", corners.c01.X, corners.c01.Y);
-      fprintf(stdout, "c11       %g,%g\n", corners.c11.X, corners.c11.Y);
-      fprintf(stdout, "c10       %g,%g\n", corners.c10.X, corners.c10.Y);
-      fprintf(stdout, "\n");
-      fprintf(stdout, "dimXX:    %g %g %g %g\n", dimOT, dimOR, dimTX, dimRX);
-      fprintf(stdout, "known:    %d %d %d %d\n", (corners.known & DmtxCorner00) ? 1 : 0,
-                                                 (corners.known & DmtxCorner10) ? 1 : 0,
-                                                 (corners.known & DmtxCorner11) ? 1 : 0,
-                                                 (corners.known & DmtxCorner01) ? 1 : 0);
-      fprintf(stdout, "mtxy:\n");
-      dmtxMatrix3Print(mtxy);
-      fprintf(stdout, "mphi:\n");
-      dmtxMatrix3Print(mphi);
-      fprintf(stdout, "m:\n");
-      dmtxMatrix3Print(m);
-      exit(1);
-   }
-
    shx = -vTmp.Y / vTmp.X;
    dmtxMatrix3Shear(mshx, 0.0, shx);
 
@@ -603,52 +580,6 @@ MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image)
    dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
    sky = vTmp.Y;
    dmtxMatrix3LineSkewTop(msky, 1.0, sky, 1.0);
-
-   if(sky <= DMTX_ALMOST_ZERO) {
-      fprintf(stdout, "\n");
-      fprintf(stdout, "*** if you see this error please email the following text to mike@dragonflylogic.com ***\n");
-      fprintf(stdout, "\n");
-      fprintf(stdout, "tx:       %g\n", tx);
-      fprintf(stdout, "ty:       %g\n", ty);
-      fprintf(stdout, "phi:      %g\n", phi);
-      fprintf(stdout, "shx:      %g\n", shx);
-      fprintf(stdout, "scx:      %g\n", scx);
-      fprintf(stdout, "scy:      %g\n", scy);
-      fprintf(stdout, "skx:      %g\n", skx);
-      fprintf(stdout, "sky:      %g\n", sky);
-      fprintf(stdout, "vTmp:     %g,%g\n", vTmp.X, vTmp.Y);
-      fprintf(stdout, "\n");
-      fprintf(stdout, "01.00.10: %.3f\n", RightAngleTrueness(corners.c01, corners.c00, corners.c10, M_PI_2));
-      fprintf(stdout, "00.10.11: %.3f\n", RightAngleTrueness(corners.c00, corners.c10, corners.c11, M_PI_2));
-      fprintf(stdout, "10.11.01: %.3f\n", RightAngleTrueness(corners.c10, corners.c11, corners.c01, M_PI_2));
-      fprintf(stdout, "11.01.00: %.3f\n", RightAngleTrueness(corners.c11, corners.c01, corners.c00, M_PI_2));
-      fprintf(stdout, "\n");
-      fprintf(stdout, "c00       %g,%g\n", corners.c00.X, corners.c00.Y);
-      fprintf(stdout, "c01       %g,%g\n", corners.c01.X, corners.c01.Y);
-      fprintf(stdout, "c11       %g,%g\n", corners.c11.X, corners.c11.Y);
-      fprintf(stdout, "c10       %g,%g\n", corners.c10.X, corners.c10.Y);
-      fprintf(stdout, "\n");
-      fprintf(stdout, "dimXX:    %g %g %g %g\n", dimOT, dimOR, dimTX, dimRX);
-      fprintf(stdout, "known:    %d %d %d %d\n", (corners.known & DmtxCorner00) ? 1 : 0,
-                                                 (corners.known & DmtxCorner10) ? 1 : 0,
-                                                 (corners.known & DmtxCorner11) ? 1 : 0,
-                                                 (corners.known & DmtxCorner01) ? 1 : 0);
-      fprintf(stdout, "mtxy:\n");
-      dmtxMatrix3Print(mtxy);
-      fprintf(stdout, "mphi:\n");
-      dmtxMatrix3Print(mphi);
-      fprintf(stdout, "mshx:\n");
-      dmtxMatrix3Print(mshx);
-      fprintf(stdout, "mscxy:\n");
-      dmtxMatrix3Print(mscxy);
-      fprintf(stdout, "mskx:\n");
-      dmtxMatrix3Print(mskx);
-      fprintf(stdout, "msky:\n");
-      dmtxMatrix3Print(msky);
-      fprintf(stdout, "m:\n");
-      dmtxMatrix3Print(m);
-      exit(1);
-   }
 
    /* Update region with final update */
    dmtxMatrix3Multiply(region->raw2fit, m, msky);
@@ -1679,7 +1610,6 @@ TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, 
    DmtxRegion *region;
    int statusPrev, statusModule;
    double tPrev, tModule;
-/* double debug[24][24]; */
 
    assert(direction == DmtxDirUp || direction == DmtxDirLeft ||
          direction == DmtxDirDown || direction == DmtxDirRight);
@@ -1768,18 +1698,6 @@ TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, 
 
       assert(weight == 0);
    }
-
-/* XXX begin temporary dump */
-/*
-for(mapRow = mapHeight - 1; mapRow >= 0; mapRow--) {
-   for(mapCol = 0; mapCol < mapWidth; mapCol++) {
-      fprintf(stdout, "%0.2g ", debug[mapRow][mapCol]);
-   }
-   fprintf(stdout, "\n");
-}
-fprintf(stdout, "\n");
-*/
-/* XXX end temporary dump */
 }
 
 /**

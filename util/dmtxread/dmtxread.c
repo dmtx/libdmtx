@@ -595,24 +595,9 @@ LoadImagePng(char *imagePath)
 
    png_destroy_read_struct(&pngPtr, &infoPtr, &endInfo);
 
-   // XXX image = DmtxImageMalloc(width, height);
-   image = (DmtxImage *)malloc(sizeof(DmtxImage));
+   image = dmtxImageMalloc(width, height);
    if(image == NULL) {
       perror(programName);
-      // free first?
-      return NULL;
-   }
-
-   // Use PNG information to populate DmtxImage information
-   image->pageCount = 1;
-   image->width = width;
-   image->height = height;
-
-   image->pxl = (DmtxPixel *)malloc(image->width * image->height *
-         sizeof(DmtxPixel));
-   if(image->pxl == NULL) {
-      perror(programName);
-      free(image);
       // free first?
       return NULL;
    }
@@ -677,23 +662,10 @@ LoadImageTiff(char *imagePath, int pageIndex)
 
          if(TIFFReadRGBAImage(tif, w, h, raster, 0)) {
 
-            // XXX image = DmtxImageMalloc(width, height);
-            image = (DmtxImage *)malloc(sizeof(DmtxImage));
+            image = dmtxImageMalloc(w, h);
             if(image == NULL) {
                perror(programName);
-               // free before returning
-               return NULL;
-            }
-
-            // Use TIFF information to populate DmtxImage information
-            image->pageCount = dirIndex;
-            image->width = w;
-            image->height = h;
-
-            image->pxl = (DmtxPixel *)malloc(image->width * image->height * sizeof(DmtxPixel));
-            if(image->pxl == NULL) {
-               perror(programName);
-               // free before returning
+               // free first?
                return NULL;
             }
 

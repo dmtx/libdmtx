@@ -156,7 +156,6 @@ EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
 extern int
 dmtxEncodeDataMatrix(DmtxEncode *encode, int inputSize, unsigned char *inputString, int sizeIdxRequest)
 {
-   DmtxImage *image;
    int dataWordCount;
    int sizeIdx;
    unsigned char buf[4096];
@@ -208,22 +207,14 @@ dmtxEncodeDataMatrix(DmtxEncode *encode, int inputSize, unsigned char *inputStri
 
    /* Allocate memory for the image to be generated */
    /* XXX image = DmtxImageMalloc(width, height); */
-   image = (DmtxImage *)malloc(sizeof(DmtxImage));
-   if(image == NULL) {
-      perror("malloc error");
+   encode->image = dmtxImageMalloc(
+         2 * encode->marginSize + (encode->region.symbolCols * encode->moduleSize),
+         2 * encode->marginSize + (encode->region.symbolRows * encode->moduleSize));
+
+   if(encode->image == NULL) {
+      perror("image malloc error");
       exit(2);
    }
-
-   image->pageCount = 1;
-   image->width = 2 * encode->marginSize + (encode->region.symbolCols * encode->moduleSize);
-   image->height = 2 * encode->marginSize + (encode->region.symbolRows * encode->moduleSize);
-
-   image->pxl = (DmtxPixel *)malloc(image->width * image->height * sizeof(DmtxPixel));
-   if(image->pxl == NULL) {
-      perror("malloc error");
-      exit(2);
-   }
-   encode->image = image;
 
    /* Insert finder and aligment pattern modules */
    PrintPattern(encode);
