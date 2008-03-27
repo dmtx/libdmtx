@@ -86,17 +86,14 @@ main(int argc, char *argv[])
       // Load image page from file (many formats only support single page)
       image = LoadImage(argv[fileIndex], pageIndex++);
 
-      // Increment counters early to allow simple 'continue' later in loop
-      if(image == NULL || pageIndex >= image->pageCount) {
+      // If requested page did not load then move to the next image
+      if(image == NULL) {
          fileIndex++;
          pageIndex = 0;
-      }
-
-      // If file doesn't contain at least one image then something went wrong
-      if(image == NULL || image->pageCount < 1) {
-         // error
          continue;
       }
+
+      assert(image->pageCount > 0 && pageIndex <= image->pageCount);
 
       // Determine image region to be scanned XXX this is a bad function name
       err = SetScanRegion(&p0, &p1, &options, image);
@@ -463,16 +460,15 @@ LoadImage(char *imagePath, int pageIndex)
 {
    DmtxImage *image;
 
-   image = NULL;
-
    switch(GetImageFormat(imagePath)) {
       case ImageFormatPng:
-         image = LoadImagePng(imagePath);
+         image = (pageIndex == 0) ? LoadImagePng(imagePath) : NULL;
          break;
       case ImageFormatTiff:
          image = LoadImageTiff(imagePath, pageIndex);
          break;
       default:
+         image = NULL;
          FatalError(1, _("Unrecognized file type \"%s\""), imagePath);
          break;
    }

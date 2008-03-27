@@ -208,6 +208,7 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
    assert(edgeScanDirs);
 
    /* Set maxEdge to invalid state */
+   maxEdge.assigned = 0;
    maxEdge.edgeDir = -1;
    maxEdge.scanDir = -1;
    maxEdge.intensity = black;
