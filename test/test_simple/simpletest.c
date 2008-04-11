@@ -32,30 +32,28 @@ main(int argc, char **argv)
 {
    int count = 0;
    unsigned char testString[] = "30Q324343430794<OQQ";
-   DmtxImage image;
+   DmtxImage *image;
    DmtxEncode *encode;
    DmtxDecode decode;
+   DmtxRegion region;
+   DmtxMessage *message;
    DmtxPixelLoc p0, p1;
 
    fprintf(stdout, "input:  \"%s\"\n", testString);
 
    /*
-    * 1) Write a new Data Matrix barcode (in memory)
+    * 1) Write a new Data Matrix barcode (just in memory)
     */
 
    encode = dmtxEncodeStructCreate();
-   dmtxEncodeDataMatrix(encode, strlen((char *)testString), testString, DMTX_SYMBOL_SQUARE_AUTO);
+   dmtxEncodeDataMatrix(encode, strlen((char *)testString), testString,
+         DMTX_SYMBOL_SQUARE_AUTO);
 
-   // Take copy of new image before freeing DmtxEncode struct
-   image = encode->image;
-   image.pxl = (DmtxPixel *)malloc(image.width * image.height *
-         sizeof(DmtxPixel));
-   if(image.pxl == NULL) {
-      perror("Malloc error");
-      exit(1);
-   }
-   memcpy(image.pxl, encode->image.pxl, image.width * image.height *
-         sizeof(DmtxPixel));
+   /* Keep a copy of the new image before freeing DmtxEncode struct */
+
+   image = dmtxImageMalloc(encode->image->width, encode->image->height);
+   memcpy(image->pxl, encode->image->pxl, image->width * image->height * sizeof(DmtxPixel));
+
    dmtxEncodeStructDestroy(&encode);
 
    /*
@@ -63,19 +61,20 @@ main(int argc, char **argv)
     */
 
    p0.X = p0.Y = 0;
-   p1.X = image.width - 1;
-   p1.Y = image.height - 1;
-   decode = dmtxDecodeInit(&image, p0, p1, 5);
+   p1.X = image->width - 1;
+   p1.Y = image->height - 1;
+   decode = dmtxDecodeInit(image, p0, p1, 5);
 
-   count = dmtxFindNextRegion(&decode);
+   region = dmtxFindNextRegion(&decode);
+   if(region.found == DMTX_REGION_EOF)
+      exit(0);
 
-   if(count > 0) {
-      fprintf(stdout, "output: \"");
-      fwrite(decode.matrix.output, sizeof(unsigned char),
-            decode.matrix.outputIdx, stdout);
-      fprintf(stdout, "\"\n\n");
-   }
+   message = dmtxDecodeMatrixRegion(&decode, &region);
+   fprintf(stdout, "output: \"");
+   fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
+   fprintf(stdout, "\"\n\n");
 
+   dmtxMessageDeInit(&message);
    dmtxImageDeInit(&image);
 
    exit(0);
