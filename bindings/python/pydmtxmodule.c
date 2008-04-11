@@ -2,7 +2,7 @@
 pydmtx - Python wrapper for libdmtx
 
 Copyright (c) 2006 Dan Watson
-Copyright (c) 2007 Mike Laughton
+Copyright (c) 2008 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -73,7 +73,7 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
 
    Py_INCREF(context);
 
-   // plotter is required, and must be callable
+   /* Plotter is required, and must be callable */
    if((plotter == NULL) || !PyCallable_Check(plotter)) {
       PyErr_SetString(PyExc_TypeError, "plotter must be callable");
       return NULL;
@@ -87,14 +87,14 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
    dmtxEncodeDataMatrix(encode, data_size, (unsigned char *)data, shape);
 
    if((start_cb != NULL) && PyCallable_Check(start_cb)) {
-      args = Py_BuildValue("(iiO)", encode->image.width, encode->image.height, context);
+      args = Py_BuildValue("(iiO)", encode->image->width, encode->image->height, context);
       (void)PyEval_CallObject(start_cb, args);
       Py_DECREF(args);
    }
 
-   for(row = 0; row < encode->image.height; row++) {
-      for(col = 0; col < encode->image.width; col++) {
-         pixel = dmtxPixelFromImage(&encode->image, col, row);
+   for(row = 0; row < encode->image->height; row++) {
+      for(col = 0; col < encode->image->width; col++) {
+         pixel = dmtxPixelFromImage(encode->image, col, row);
          args = Py_BuildValue("(ii(iii)O)", col, row, pixel.R, pixel.G, pixel.B, context);
          (void)PyEval_CallObject(plotter, args);
          Py_DECREF(args);
@@ -122,39 +122,34 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    PyObject *context = Py_None;
    PyObject *args;
    PyObject *output;
-   DmtxDecode *decode;
+   DmtxImage *image;
+   DmtxDecode decode;
+   DmtxRegion region;
+   DmtxMessage *message;
    PyObject *pilPixel;
    DmtxPixel dmtxPixel;
-   DmtxRegion *region;
+   DmtxPixelLoc p0, p1;
    int x, y;
    static char *kwlist[] = { "width", "height", "gap_size", "picker", "context", NULL };
 
-   // individual pixel picker is probably a slow way to do this
+   /* Individual pixel picker is probably a slow way to do this */
    if(!PyArg_ParseTupleAndKeywords(arglist, kwargs, "iii|OO", kwlist,
          &width, &height, &gap_size, &picker, &context))
       return NULL;
 
    Py_INCREF(context);
 
-   // picker is required, and must be callable
+   /* Picker is required, and must be callable */
    if((picker == NULL) || !PyCallable_Check(picker)) {
       PyErr_SetString(PyExc_TypeError, "picker must be callable");
       return NULL;
    }
 
-   decode = dmtxDecodeStructCreate();
-   dmtxImageInit(&(decode->image));
+   image = dmtxImageMalloc(width, height);
 
-   decode->image.width = width;
-   decode->image.height = height;
-
-   decode->image.pxl = (DmtxPixel *)malloc(decode->image.width * decode->image.height * sizeof(DmtxPixel));
-   if(decode->image.pxl == NULL)
-      return NULL;
-
-   // populate image with PIL image data
-   for(y = 0; y < decode->image.height; y++) {
-      for(x = 0; x < decode->image.width; x++) {
+   /* Populate libdmtx image with PIL image data */
+   for(y = 0; y < image->height; y++) {
+      for(x = 0; x < image->width; x++) {
          args = Py_BuildValue("(iiO)", x, y, context);
          pilPixel = PyEval_CallObject(picker, args);
          Py_DECREF(args);
@@ -165,30 +160,34 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
          if(!PyArg_ParseTuple(pilPixel, "iii", &dmtxPixel.R, &dmtxPixel.G, &dmtxPixel.B))
             return NULL;
 
-         decode->image.pxl[y * decode->image.width + x] = dmtxPixel;
+         image->pxl[y * image->width + x] = dmtxPixel;
 
          Py_DECREF(pilPixel);
       }
    }
 
-   dmtxScanStartNew(decode);
+   p0.X = p0.Y = 0; /* XXX this should be moved to the library */
+   p1.X = image->width - 1;
+   p1.Y = image->height - 1;
+   decode = dmtxDecodeInit(image, p0, p1, gap_size);
 
-   for(y = gap_size; y < decode->image.height; y += gap_size) {
-      if(dmtxDecodeGetMatrixCount(decode) > 0)
+   for(;;) {
+      region = dmtxFindNextRegion(&decode);
+      if(region.found == DMTX_REGION_EOF)
          break;
-      else
-         dmtxScanLine(decode, DmtxDirRight, y);
+
+      message = dmtxDecodeMatrixRegion(&decode, &region);
+      if(message == NULL)
+         continue;
+
+      output = Py_BuildValue("s", message->output);
+      Py_INCREF(output);
+
+      dmtxMessageDeInit(&message);
+      break; /* XXX for now, break after first barcode is found in image */
    }
 
-   region = dmtxDecodeGetMatrix(decode, 0);
-   if(region == NULL)
-      return Py_None;
-
-   output = Py_BuildValue("s", region->output);
-   Py_INCREF(output);
-
-   dmtxImageDeInit(&(decode->image));
-   dmtxDecodeStructDestroy(&decode);
+   dmtxImageDeInit(&image);
    Py_DECREF(context);
 
    return output;

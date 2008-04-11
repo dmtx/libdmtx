@@ -73,8 +73,8 @@ main(int argc, char *argv[])
    int pageIndex;
    UserOptions options;
    DmtxImage *image;
-   DmtxRegion region;
    DmtxDecode decode;
+   DmtxRegion region;
    DmtxMessage *message;
    DmtxPixelLoc p0, p1;
 
@@ -112,7 +112,6 @@ main(int argc, char *argv[])
 
          /* Find next barcode region within image, but do not decode yet */
          region = dmtxFindNextRegion(&decode);
-
          if(region.found == DMTX_REGION_EOF)
             break;
 
@@ -128,8 +127,7 @@ main(int argc, char *argv[])
          PrintDecodedOutput(&options, image, &region, message, pageIndex);
 
          dmtxMessageDeInit(&message);
-
-         break; /* XXX for now, break after first barcode found in image */
+         break; /* XXX for now, break after first barcode is found in image */
       }
 
       dmtxImageDeInit(&image);
