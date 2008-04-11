@@ -76,27 +76,27 @@ main(int argc, char *argv[])
 
    InitUserOptions(&options);
 
-   // Create and initialize libdmtx structures
+   /* Create and initialize libdmtx structures */
    encode = dmtxEncodeStructCreate();
 
-   // Process user options
+   /* Process user options */
    err = HandleArgs(&options, &argc, &argv, encode);
    if(err)
       ShowUsage(err);
 
-   // Read input data into buffer
+   /* Read input data into buffer */
    ReadData(&options, &codeBufferSize, codeBuffer);
 
-   // Create barcode image
+   /* Create barcode image */
    if(options.mosaic)
       dmtxEncodeDataMosaic(encode, codeBufferSize, codeBuffer, options.sizeIdx);
    else
       dmtxEncodeDataMatrix(encode, codeBufferSize, codeBuffer, options.sizeIdx);
 
-   // Write barcode image to requested format
+   /* Write barcode image to requested format */
    switch(options.format) {
       case 'n':
-         break; // do nothing
+         break; /* do nothing */
       case 'p':
          WriteImagePng(&options, encode);
          break;
@@ -105,10 +105,10 @@ main(int argc, char *argv[])
          break;
    }
 
-   // Write barcode preview if requested
+   /* Write barcode preview if requested */
    switch(options.preview) {
       case 'n':
-         break; // do nothing
+         break; /* do nothing */
       case 'a':
          WriteAsciiBarcode(encode);
          break;
@@ -117,7 +117,7 @@ main(int argc, char *argv[])
          break;
    }
 
-   // Clean up
+   /* Clean up */
    dmtxEncodeStructDestroy(&encode);
 
    exit(0);
@@ -132,17 +132,17 @@ InitUserOptions(UserOptions *options)
 {
    memset(options, 0x00, sizeof(UserOptions));
 
-// options->color = "";
-// options->bgColor = "";
+/* options->color = ""; */
+/* options->bgColor = ""; */
    options->format = 'p';
    options->inputPath = NULL;
-   options->outputPath = "dmtxwrite.png"; // XXX needs to have different extensions for other formats
+   options->outputPath = "dmtxwrite.png"; /* XXX needs to have different extensions for other formats */
    options->preview = 'n';
    options->rotate = 0;
    options->sizeIdx = DMTX_SYMBOL_SQUARE_AUTO;
    options->verbose = 0;
    options->mosaic = 0;
-   options->dpi = 0; // default to native resolution of requested image format
+   options->dpi = 0; /* default to native resolution of requested image format */
 }
 
 /**
@@ -191,7 +191,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
    if(programName && strrchr(programName, '/'))
       programName = strrchr(programName, '/') + 1;
 
-   // Set default values before considering arguments
+   /* Set default values before considering arguments */
    encode->moduleSize = 5;
    encode->marginSize = 10;
    encode->scheme = DmtxSchemeEncodeAscii;
@@ -202,7 +202,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
          break;
 
       switch(opt) {
-         case 0: // --help
+         case 0: /* --help */
             ShowUsage(0);
             break;
          case 'c':
@@ -288,7 +288,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             options->rotate = StringToLong(optarg);
             break;
          case 's':
-            // Determine correct barcode size and/or shape
+            /* Determine correct barcode size and/or shape */
             if(*optarg == 's') {
                options->sizeIdx = DMTX_SYMBOL_SQUARE_AUTO;
             }
@@ -329,8 +329,8 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
 
    options->inputPath = (*argvp)[optind];
 
-   // XXX here test for incompatibility between options. For example you
-   // cannot specify dpi if PNM output is requested
+   /* XXX here test for incompatibility between options. For example you
+      cannot specify dpi if PNM output is requested */
 
    return DMTXWRITE_SUCCESS;
 }
@@ -537,14 +537,14 @@ WriteImagePng(UserOptions *options, DmtxEncode *encode)
       perror(programName);
    }
 
-   // This copy reverses row order top-to-bottom so image coordinate system
-   // corresponds with normal "right-handed" 2D space
+   /* This copy reverses row order top-to-bottom so image coordinate system
+      corresponds with normal "right-handed" 2D space */
    for(row = 0; row < encode->image->height; row++) {
       rowPointers[row] = (png_bytep)png_malloc(pngPtr, png_get_rowbytes(pngPtr, infoPtr));
 
       assert(png_get_rowbytes(pngPtr, infoPtr) == encode->image->width * sizeof(DmtxPixel));
 
-      // Flip rows top-to-bottom to account for PNM "top-left" origin
+      /* Flip rows top-to-bottom to account for PNM "top-left" origin */
       memcpy(rowPointers[row],
             encode->image->pxl + ((encode->image->height - row - 1) * encode->image->width),
             encode->image->width * sizeof(DmtxPixel));
@@ -575,7 +575,7 @@ WriteImagePnm(UserOptions *options, DmtxEncode *encode)
    int row, col;
    FILE *fp;
 
-   // Flip rows top-to-bottom to account for PNM "top-left" origin
+   /* Flip rows top-to-bottom to account for PNM "top-left" origin */
    fp = fopen(options->outputPath, "wb");
    if(fp == NULL) {
       perror(programName);
@@ -606,7 +606,7 @@ WriteAsciiBarcode(DmtxEncode *encode)
 
    fputc('\n', stdout);
 
-   // ASCII prints from top to bottom
+   /* ASCII prints from top to bottom */
    for(symbolRow = encode->region.symbolRows - 1; symbolRow >= 0; symbolRow--) {
 
       fputs("    ", stdout);
