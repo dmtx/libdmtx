@@ -67,7 +67,7 @@ dmtxImageMalloc(int width, int height)
  *
  */
 extern int
-dmtxImageDeInit(DmtxImage **image)
+dmtxImageFree(DmtxImage **image)
 {
    if(*image == NULL)
       return 0; /* Error */

@@ -103,7 +103,7 @@ dmtxEncodeStructDestroy(DmtxEncode **encode)
    if(*encode == NULL)
       return;
 
-   dmtxImageDeInit(&((*encode)->image));
+   dmtxImageFree(&((*encode)->image));
    dmtxMessageDeInit(&((*encode)->message));
 
    free(*encode);

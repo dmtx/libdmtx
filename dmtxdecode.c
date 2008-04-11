@@ -27,7 +27,7 @@ Contact: mike@dragonflylogic.com
  *
  */
 extern DmtxDecode
-dmtxDecodeInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
+dmtxDecodeInitScan(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
 {
    DmtxDecode decode;
 

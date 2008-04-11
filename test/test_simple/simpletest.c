@@ -62,7 +62,7 @@ main(int argc, char **argv)
    p0.X = p0.Y = 0;
    p1.X = image->width - 1;
    p1.Y = image->height - 1;
-   decode = dmtxDecodeInit(image, p0, p1, 5);
+   decode = dmtxDecodeInitScan(image, p0, p1, 5);
 
    region = dmtxFindNextRegion(&decode);
    if(region.found == DMTX_REGION_EOF)
@@ -75,7 +75,7 @@ main(int argc, char **argv)
    fprintf(stdout, "\"\n\n");
 
    dmtxMessageDeInit(&message);
-   dmtxImageDeInit(&image);
+   dmtxImageFree(&image);
 
    exit(0);
 }

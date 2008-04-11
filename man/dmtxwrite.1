@@ -5,14 +5,14 @@
 .\" To view: $ groff -man -T ascii dmtxwrite.1 | less
 .\" To text: $ groff -man -T ascii dmtxwrite.1 | col -b | expand
 .\"
-.TH DMTXWRITE 1 "December 7, 2007"
+.TH DMTXWRITE 1 "April X, 2008"
 .SH NAME
 dmtxwrite \- create Data Matrix barcodes
 .SH SYNOPSIS
 .B dmtxwrite
 [\fIOPTIONS\fP]... [FILE]
 .SH DESCRIPTION
-dmtxwrite creates an ECC200 Data Matrix barcode by encoding data from a file or standard input and writing the resulting barcode to an image file.
+dmtxwrite encodes data from a file or STDIN, and writes the resulting ECC200 Data Matrix barcode as an image.
 .SH OPTIONS
 .TP
 \fB\-c\fP, \fB\-\-color\fP=\fICOLOR\fP
@@ -29,29 +29,28 @@ Margin size. (in pixels)
 .TP
 \fB\-e\fP, \fB\-\-encoding\fP=[bfactxe8]
 Encodation scheme.
-   b = Best optimized   best possible optimization (beta)
-   f = Fast optimized   basic optimization (not implemented)
-   a = ASCII [default]  digits and ASCII (standard & extended)
-   c = C40              digits and uppercase
-   t = Text             digits and lowercase
-   x = X12              ANSI X12 EDI
-   e = EDIFACT          ASCII values 32-94
-   8 = Base 256         all byte values 0-255
+   b = Best optimized     best possible optimization (beta)
+   f = Fast optimized     basic optimization (not implemented)
+   a = ASCII    [default] ASCII standard & extended
+   c = C40                digits and uppercase
+   t = Text               digits and lowercase
+   x = X12                ANSI X12 EDI
+   e = EDIFACT            ASCII values 32-94
+   8 = Base 256           all byte values 0-255
 .TP
 \fB\-f\fP, \fB\-\-format\fP=[npm]
 Barcode output format.
-   n = None             do not create barcode image
-   p = PNG    [default] PNG image
-   m = PNM              PNM image
+   n = None               do not create barcode image
+   p = PNG      [default] PNG image
+   m = PNM                PNM image
 .TP
 \fB\-o\fP, \fB\-\-output\fP=\fIFILE\fP
 Barcode output filename.
 .TP
-\fB\-p\fP, \fB\-\-preview\fP=[nac]
+\fB\-p\fP, \fB\-\-preview\fP=[ac]
 Barcode preview (STDOUT).
-   n = None   [default] do not print barcode preview
-   a = ASCII            ASCII-art representation
-   c = Codewords        list data and error codewords
+   a = ASCII              ASCII-art representation
+   c = Codewords          list data and error codewords
 .TP
 \fB\-r\fP, \fB\-\-rotate\fP=\fIDEGREES\fP
 Rotation angle. (degrees) (not implemented)
@@ -69,14 +68,17 @@ Symbol size specified in Rows x Cols.
    Manually specified \fISIZE\fP options for rectangular symbols:
        8x18,   8x32,   12x26,   12x36,   16x36,   16x48
 .TP
-\fB\-v\fP, \fB\-\-verbose\fP
-Use verbose messages.
-.TP
 \fB\-M\fP, \fB\-\-mosaic\fP
 Create non-standard Data Mosaic barcode.
 .TP
 \fB\-R\fP, \fB\-\-resolution\fP=\fINUM\fP
 Set image print resolution (dpi).
+.TP
+\fB\-v\fP, \fB\-\-verbose\fP
+Use verbose messages.
+.TP
+\fB\-V\fP, \fB\-\-version\fP
+Print program version information.
 .TP
 \fB\-\-help\fP
 Display this help message and quit.
@@ -87,5 +89,5 @@ ANSI/AIM BC11 ISS
 .SH BUGS
 Email bug reports to \fImike@dragonflylogic.com\fP
 .SH AUTHOR
-Copyright (c) 2007 Mike Laughton
+Copyright (c) 2008 Mike Laughton
 .\" end of man page

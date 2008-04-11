@@ -7,31 +7,41 @@
 .\"
 .TH LIBDMTX 3 "December 7, 2007"
 .SH NAME
-libdmtx \- Data Matrix Encoder/Decoder Library 0.4.0
+libdmtx \- Data Matrix Encoder/Decoder Library 0.5.0
 .SH SYNOPSIS
 \fB#include <dmtx.h>\fP
 
-\fBDmtxEncode *dmtxEncodeCreate(\fIvoid\fP);\fP
+\fIENCODING FUNCTIONS\fP
 
-\fBvoid dmtxEncodeDestroy(DmtxEncode **\fIencode\fP);\fP
+\fBDmtxEncode dmtxEncodeStructInit(\fIvoid\fP);\fP
 
-\fBint dmtxEncodeData(DmtxEncode *\fIencode\fP, unsigned char *\fIinputString\fP);\fP
+\fBint dmtxEncodeDataMatrix(DmtxEncode *\fIenc\fP, unsigned char *\fIs\fP);\fP
 
-\fBDmtxDecode *dmtxDecodeStructCreate(\fIvoid\fP);\fP
+\fBint dmtxEncodeDataMosaic(DmtxEncode *\fIenc\fP, unsigned char *\fIs\fP);\fP
 
-\fBvoid dmtxDecodeStructDestroy(DmtxDecode **\fIdecode\fP);\fP
+\fBvoid dmtxEncodeStructDeInit(DmtxEncode *\fIenc\fP);\fP
 
-\fBint dmtxImageInit(DmtxImage *\fIimage\fP);\fP
+\fIDECODING FUNCTIONS\fP
 
-\fBint dmtxImageDeInit(DmtxImage *\fIimage\fP);\fP
+\fBDmtxDecode dmtxDecodeStructInit(DmtxImage *\fIimg\fP, DmtxPixelLoc \fIp0\fP, DmtxPixelLoc \fIp1\fP, int \fIgap\fP);\fP
 
-\fBvoid dmtxScanStartNew(DmtxDecode *\fIdecode\fP);\fP
+\fBDmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *\fIdec\fP);\fP
 
-\fBvoid dmtxScanLine(DmtxDecode *\fIdecode\fP, int \fIline\fP, DmtxDirection \fIdirection\fP);\fP
+\fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP);\fP
 
-\fBint dmtxDecodeGetMatrixCount(DmtxDecode *\fIdecode\fP);\fP
+\fBDmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP);\fP
 
-\fBDmtxRegion *dmtxDecodeGetMatrix(DmtxDecode *\fIdecode\fP, int \fIindex\fP);\fP
+\fBvoid dmtxDecodeStructDeInit(DmtxDecode *\fIdec\fP);\fP
+
+\fICOMMON FUNCTIONS\fP
+
+\fBDmtxMessage *dmtxMessageMalloc(int \fIsizeIdx\fP);\fP
+
+\fBvoid dmtxMessageFree(DmtxMessage **\fImsg\fP);\fP
+
+\fBDmtxImage *dmtxImageMalloc(int \fIwidth\fP, int \fIheight\fP);\fP
+
+\fBint dmtxImageFree(DmtxImage **\fIimg\fP);\fP
 
 .SH DESCRIPTION
 \fIlibdmtx\fP is a shared library for Linux that encodes and decodes ECC200 Data Matrix barcodes.  Data Matrix barcodes are two-dimensional patterns that hold a high density of data with built-in error correction.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.

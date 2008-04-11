@@ -430,12 +430,11 @@ OPTIONS:\n"), programName, programName);
         p = PNG    [default] PNG image\n\
         m = PNM              PNM image\n\
   -o, --output=FILE          path of file containing barcode image output\n\
-  -p, --preview=[nac]        print preview of barcode data to STDOUT\n\
-        n = None   [default] do not print barcode preview\n\
+  -p, --preview=[ac]         print preview of barcode data to STDOUT\n\
         a = ASCII            ASCII-art representation\n\
         c = Codewords        list data and error codewords\n\
   -r, --rotate=DEGREES       rotation angle (degrees)\n\
-  -s, --symbol-size=SIZE     symbol size in ROWSxCOLS\n\
+  -s, --symbol-size=SIZE     symbol size in Rows x Cols\n\
         Automatic SIZE options:\n\
             s = Auto square  [default]\n\
             r = Auto rectangle\n\
@@ -446,9 +445,9 @@ OPTIONS:\n"), programName, programName);
             88x88,   96x96, 104x104, 120x120, 132x132, 144x144\n\
         Manually specified SIZE options for rectangular symbols:\n\
              8x18,    8x32,   12x26,   12x36,   16x36,   16x48\n\
-  -v, --verbose              use verbose messages\n\
   -M, --mosaic               create non-standard Data Mosaic barcode\n\
   -R, --resolution=NUM       set image print resolution (dpi)\n\
+  -v, --verbose              use verbose messages\n\
   -V, --version              print version information\n\
       --help                 display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));

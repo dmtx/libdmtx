@@ -368,7 +368,7 @@ extern double dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
 
 extern DmtxImage *dmtxImageMalloc(int width, int height);
-extern int dmtxImageDeInit(DmtxImage **image);
+extern int dmtxImageFree(DmtxImage **image);
 extern int dmtxImageGetWidth(DmtxImage *image);
 extern int dmtxImageGetHeight(DmtxImage *image);
 extern int dmtxImageGetOffset(DmtxImage *image, DmtxDirection dir, int lineNbr, int offset);
@@ -376,7 +376,7 @@ extern int dmtxImageGetOffset(DmtxImage *image, DmtxDirection dir, int lineNbr, 
 extern DmtxRegion dmtxFindNextRegion(DmtxDecode *decode);
 extern DmtxRegion dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc);
 
-extern DmtxDecode dmtxDecodeInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize);
+extern DmtxDecode dmtxDecodeInitScan(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *decode, DmtxRegion *region);
 extern DmtxMessage *dmtxMessageInit(int sizeIdx);
 extern void dmtxMessageDeInit(DmtxMessage **message);

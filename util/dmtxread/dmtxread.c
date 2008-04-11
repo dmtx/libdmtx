@@ -105,7 +105,7 @@ main(int argc, char *argv[])
          continue;
 
       /* Initialize decode struct for newly loaded image */
-      decode = dmtxDecodeInit(image, p0, p1, options.scanGap);
+      decode = dmtxDecodeInitScan(image, p0, p1, options.scanGap);
 
       /* Loop once for each detected barcode region */
       for(;;) {
@@ -130,7 +130,7 @@ main(int argc, char *argv[])
          break; /* XXX for now, break after first barcode is found in image */
       }
 
-      dmtxImageDeInit(&image);
+      dmtxImageFree(&image);
    }
 
    exit(0);
@@ -369,8 +369,9 @@ ShowUsage(int status)
       fprintf(stdout, _("Usage: %s [OPTION]... [FILE]...\n"), programName);
 /*to STDOUT.  Note that %s may find multiple barcodes in one image.\n\*/
       fprintf(stdout, _("\
-Scan image FILE for Data Matrix barcodes and print decoded results\n\
-to STDOUT.  %s currently only reads the first barcode found in the image.\n\
+Scan image FILE for Data Matrix barcodes and print decoded results to\n\
+STDOUT.  Note: %s currently stops scanning after it decodes the\n\
+first barcode in an image.\n\
 \n\
 Example: (scans top third of images using minimum gap size of 10 pixels)\n\
 \n\
@@ -378,24 +379,23 @@ Example: (scans top third of images using minimum gap size of 10 pixels)\n\
 \n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
-  -c, --codewords        print codewords extracted from barcode pattern\n\
-  -g, --gap=NUM          use scan grid with gap of NUM pixels between scanlines\n\
-  -n, --newline          insert newline character at the end of decoded data\n\
-  -d, --distortion=K1,K2 radial distortion coefficients (not implemented yet)\n\
-  -x, --x-range-min=N[%%] do not scan pixels to the left of N (or N%%)\n\
-  -X, --x-range-max=N[%%] do not scan pixels to the right of N (or N%%)\n\
-  -y, --y-range-min=N[%%] do not scan pixels above N (or N%%)\n\
-  -Y, --y-range-max=N[%%] do not scan pixels below N (or N%%)\n\
-  -v, --verbose          use verbose messages\n\
-  -C, --coordinates      prefix decoded message with barcode corner locations\n\
-  -D, --diagnose=[nop]   create copy of original image with diagnostic data (not implemented)\n\
-      n = None [default] do not create copy of original image\n\
-      o = Overlay        overlay image with module colors\n\
-      p = Path           display path taken by scanning logic\n\
-  -M, --mosaic           interpret detected regions as Data Mosaic barcodes\n\
-  -P, --page-number      prefix decoded message with corresponding page number\n\
-  -V, --version          print version information\n\
-      --help             display this help and exit\n"));
+  -c, --codewords            print codewords extracted from barcode pattern\n\
+  -g, --gap=NUM              use scan grid with gap of NUM pixels between lines\n\
+  -n, --newline              print newline character at the end of decoded data\n\
+  -d, --distortion=K1,K2     radial distortion coefficients (not implemented)\n\
+  -x, --x-range-min=N[%%]     do not scan pixels to the left of N (or N%%)\n\
+  -X, --x-range-max=N[%%]     do not scan pixels to the right of N (or N%%)\n\
+  -y, --y-range-min=N[%%]     do not scan pixels above N (or N%%)\n\
+  -Y, --y-range-max=N[%%]     do not scan pixels below N (or N%%)\n\
+  -C, --coordinates          prefix decoded message with corner locations\n\
+  -D, --diagnose=[op]        create copy of original image with diagnostic data\n\
+      o = Overlay [default]  overlay image with module colors\n\
+      p = Path               capture path taken by scanning logic\n\
+  -M, --mosaic               interpret detected regions as Data Mosaic barcodes\n\
+  -P, --page-number          prefix decoded message with fax/tiff page number\n\
+  -v, --verbose              use verbose messages\n\
+  -V, --version              print program version information\n\
+      --help                 display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
    }
 
