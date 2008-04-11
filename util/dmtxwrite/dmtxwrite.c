@@ -611,7 +611,7 @@ WriteAsciiBarcode(DmtxEncode *encode)
 
       fputs("    ", stdout);
       for(symbolCol = 0; symbolCol < encode->region.symbolCols; symbolCol++) {
-         fputs((dmtxSymbolModuleStatus(&(encode->region), symbolRow, symbolCol) &
+         fputs((dmtxSymbolModuleStatus(encode->message, encode->region.sizeIdx, symbolRow, symbolCol) &
                moduleOnAll) ? "XX" : "  ", stdout);
       }
       fputs("\n", stdout);
@@ -630,8 +630,8 @@ WriteCodewords(DmtxEncode *encode)
 
    dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, encode->region.sizeIdx);
 
-   for(i = 0; i < encode->region.codeSize; i++) {
+   for(i = 0; i < encode->message->codeSize; i++) {
       fprintf(stdout, "%c:%03d\n", (i < dataWordLength) ?
-            'd' : 'e', encode->region.code[i]);
+            'd' : 'e', encode->message->code[i]);
    }
 }

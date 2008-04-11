@@ -128,7 +128,7 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
  *
  */
 static int
-FindCorrectBarcodeSize(int sizeIdxRequest, int dataWords)
+FindCorrectBarcodeSize(int dataWords, int sizeIdxRequest)
 {
    int sizeIdx;
    int idxBeg, idxEnd;

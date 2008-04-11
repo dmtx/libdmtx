@@ -50,8 +50,10 @@ static ImageFormat GetImageFormat(char *imagePath);
 static DmtxImage *LoadImage(char *imagePath, int pageIndex);
 static DmtxImage *LoadImagePng(char *imagePath);
 static DmtxImage *LoadImageTiff(char *imagePath, int pageIndex);
-static int PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int pageIndex);
-static void WriteImagePnm(UserOptions *options, DmtxDecode *decode, char *imagePath);
+static int PrintDecodedOutput(UserOptions *options, DmtxImage *image,
+      DmtxRegion *region, DmtxMessage *message, int pageIndex);
+static void WriteImagePnm(UserOptions *options, DmtxDecode *decode,
+      DmtxMessage *message, int sizeIdx, char *imagePath);
 
 char *programName;
 
@@ -70,8 +72,10 @@ main(int argc, char *argv[])
    int fileIndex;
    int pageIndex;
    UserOptions options;
-   DmtxDecode decode;
    DmtxImage *image;
+   DmtxRegion region;
+   DmtxDecode decode;
+   DmtxMessage *message;
    DmtxPixelLoc p0, p1;
 
    SetOptionDefaults(&options);
@@ -80,13 +84,13 @@ main(int argc, char *argv[])
    if(err)
       ShowUsage(err);
 
-   // Loop once for each page of each image file in parameter list
+   /* Loop once for each page of each image listed in parameters */
    for(pageIndex = 0; fileIndex < argc;) {
 
-      // Load image page from file (many formats only support single page)
+      /* Load image page from file (many formats are single-page only) */
       image = LoadImage(argv[fileIndex], pageIndex++);
 
-      // If requested page did not load then move to the next image
+      /* If requested page did not load then move to the next image */
       if(image == NULL) {
          fileIndex++;
          pageIndex = 0;
@@ -95,39 +99,35 @@ main(int argc, char *argv[])
 
       assert(image->pageCount > 0 && pageIndex <= image->pageCount);
 
-      // Determine image region to be scanned XXX this is a bad function name
-      err = SetScanRegion(&p0, &p1, &options, image);
+      /* Set image region to be scanned XXX this is a poorly named function */
+      err = SetScanRegion(&p0, &p1, &options, image); /* XXX parameters are not intuitive */
       if(err)
          continue;
 
-      // Initialize decode struct for loaded image
+      /* Initialize decode struct for newly loaded image */
       decode = dmtxDecodeInit(image, p0, p1, options.scanGap);
 
-      // Loop once for each barcode region detected
+      /* Loop once for each detected barcode region */
       for(;;) {
 
-         // Find next barcode region within image, but do not decode
-         status = dmtxFindNextRegion(&decode);
+         /* Find next barcode region within image, but do not decode yet */
+         region = dmtxFindNextRegion(&decode);
 
-         if(status == DMTX_REGION_EOF)
+         if(region.found == DMTX_REGION_EOF)
             break;
 
          if(options.diagnose)
-            WriteImagePnm(&options, &decode, "debug.pnm");
+            WriteImagePnm(&options, &decode, message, region.sizeIdx, "debug.pnm");
 
-         // XXX this goes away later ... 2 part scan = find + decode
-         if(decode.region.valid == 0)
-            continue;
+         /* Decode region based on requested scan mode */
+         message = dmtxDecodeMatrixRegion(&decode, &region);
+/*       message = (options.mosaic) ? dmtxDecodeMosaic(&region) : dmtxDecodeMatrix(&region); */
 
-         // Decode region based on requested scan mode
-         //message = (options.mosaic) ? dmtxDecodeMosaic(&region) : dmtxDecodeMosaic(&region);
+         PrintDecodedOutput(&options, image, &region, message, pageIndex);
 
-         //PrintDecodedOutput(message, &options, &decode, pageIndex);
-         PrintDecodedOutput(&options, &decode, pageIndex);
+         dmtxMessageDeInit(&message);
 
-         //dmtxDeInitMessage(message);
-
-         break; // XXX for now, break after first barcode found in image
+         break; /* XXX for now, break after first barcode found in image */
       }
 
       dmtxImageDeInit(&image);
@@ -145,7 +145,7 @@ SetOptionDefaults(UserOptions *options)
 {
    memset(options, 0x00, sizeof(UserOptions));
 
-   // Set default options
+   /* Set default options */
    options->codewords = 0;
    options->scanGap = 2;
    options->newline = 0;
@@ -206,7 +206,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
          break;
 
       switch(opt) {
-         case 0: // --help
+         case 0: /* --help */
             ShowUsage(0);
             break;
          case 'c':
@@ -259,10 +259,10 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    }
    *fileIndex = optind;
 
-   // File not specified
+   /* File not specified */
    if(*fileIndex == *argcp) {
 
-      if(*argcp == 1) // program called without arguments
+      if(*argcp == 1) /* program called without arguments */
          return DMTXREAD_ERROR;
       else
          FatalError(1, _("Must specify image file"));
@@ -432,8 +432,8 @@ GetImageFormat(char *imagePath)
 {
    char *extension, *ptr;
 
-   // XXX Right now this determines file type based on filename extension.
-   // XXX Not ideal -- but only temporary.
+   /* XXX Right now this determines file type based on filename extension.
+    * XXX Not ideal -- but only temporary. */
    assert(imagePath != NULL);
 
    ptr = strrchr(imagePath, '/');
@@ -499,7 +499,7 @@ LoadImagePng(char *imagePath)
    png_bytepp      rowPointers;
    png_color_16p   image_background;
 
-   // XXX should be setting set_jmpbuf
+   /* XXX should be setting set_jmpbuf */
 
    fp = fopen(imagePath, "rb");
    if(fp == NULL) {
@@ -577,7 +577,7 @@ LoadImagePng(char *imagePath)
    rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * height);
    if(rowPointers == NULL) {
       perror(programName);
-      // free first?
+      /* free first? */
       return NULL;
    }
 
@@ -594,12 +594,12 @@ LoadImagePng(char *imagePath)
    image = dmtxImageMalloc(width, height);
    if(image == NULL) {
       perror(programName);
-      // free first?
+      /* free first? */
       return NULL;
    }
 
-   // This copy reverses row order top-to-bottom so image coordinate system
-   // corresponds with normal "right-handed" 2D space
+   /* This copy reverses row order top-to-bottom so image coordinate system
+      corresponds with normal "right-handed" 2D space */
    for(row = 0; row < image->height; row++) {
       memcpy(image->pxl + (row * image->width),
             rowPointers[image->height - row - 1],
@@ -652,7 +652,7 @@ LoadImageTiff(char *imagePath, int pageIndex)
          raster = (uint32*) _TIFFmalloc(npixels * sizeof (uint32));
          if(raster == NULL) {
             perror(programName);
-            // free before returning
+            /* free before returning */
             return NULL;
          }
 
@@ -661,15 +661,15 @@ LoadImageTiff(char *imagePath, int pageIndex)
             image = dmtxImageMalloc(w, h);
             if(image == NULL) {
                perror(programName);
-               // free first?
+               /* free first? */
                return NULL;
             }
 
-            // This copy reverses row order top-to-bottom so image coordinate system
-            // corresponds with normal "right-handed" 2D space
+            /* This copy reverses row order top-to-bottom so image coordinate system
+               corresponds with normal "right-handed" 2D space */
             for(row = 0; row < image->height; row++) {
                for(col = 0; col < image->width; col++) {
-                  // XXX TIFF uses ABGR packed
+                  /* XXX TIFF uses ABGR packed */
                   offset = row * image->width + col;
                   image->pxl[offset].R = raster[offset] & 0x000000ff;
                   image->pxl[offset].G = (raster[offset] & 0x0000ff00) >> 8;
@@ -700,15 +700,13 @@ LoadImageTiff(char *imagePath, int pageIndex)
  * @return          DMTXREAD_SUCCESS | DMTXREAD_ERROR
  */
 static int
-PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int pageIndex)
+PrintDecodedOutput(UserOptions *options, DmtxImage *image,
+      DmtxRegion *region, DmtxMessage *message, int pageIndex)
 {
    int i;
    int dataWordLength;
    int rotateInt;
    double rotate;
-   DmtxRegion *region;
-
-   region = &(decode->region);
 
    dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, region->sizeIdx);
    if(options->verbose) {
@@ -725,7 +723,7 @@ PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int pageIndex)
             dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx),
             dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx));
       fprintf(stdout, "    Data Codewords: %d (capacity %d)\n",
-            region->outputIdx, dataWordLength);
+            message->outputIdx, dataWordLength);
       fprintf(stdout, "   Error Codewords: %d\n",
             dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, region->sizeIdx));
       fprintf(stdout, "      Data Regions: %d x %d\n",
@@ -750,25 +748,25 @@ PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int pageIndex)
 
    if(options->coordinates) {
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
-            decode->image->height - (int)(region->corners.c00.Y + 0.5));
+            image->height - (int)(region->corners.c00.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c10.X + 0.5),
-            decode->image->height - (int)(region->corners.c10.Y + 0.5));
+            image->height - (int)(region->corners.c10.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c11.X + 0.5),
-            decode->image->height - (int)(region->corners.c11.Y + 0.5));
+            image->height - (int)(region->corners.c11.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c01.X + 0.5),
-            decode->image->height - (int)(region->corners.c01.Y + 0.5));
+            image->height - (int)(region->corners.c01.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
-            decode->image->height - (int)(region->corners.c00.Y + 0.5));
+            image->height - (int)(region->corners.c00.Y + 0.5));
    }
 
    if(options->codewords) {
-      for(i = 0; i < region->codeSize; i++) {
+      for(i = 0; i < message->codeSize; i++) {
          fprintf(stdout, "%c:%03d\n", (i < dataWordLength) ?
-               'd' : 'e', region->code[i]);
+               'd' : 'e', message->code[i]);
       }
    }
    else {
-      fwrite(region->output, sizeof(char), region->outputIdx, stdout);
+      fwrite(message->output, sizeof(char), message->outputIdx, stdout);
       if(options->newline)
          fputc('\n', stdout);
    }
@@ -780,14 +778,16 @@ PrintDecodedOutput(UserOptions *options, DmtxDecode *decode, int pageIndex)
  *
  */
 static void
-WriteImagePnm(UserOptions *options, DmtxDecode *decode, char *imagePath)
+WriteImagePnm(UserOptions *options, DmtxDecode *decode,
+      DmtxMessage *message, int sizeIdx, char *imagePath)
 {
    int row, col;
    int moduleStatus;
+   int symbolRows, symbolCols;
    FILE *fp;
-   DmtxRegion *region;
 
-   region = &(decode->region);
+   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
+   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
 
    fp = fopen(imagePath, "wb");
    if(fp == NULL) {
@@ -796,10 +796,10 @@ WriteImagePnm(UserOptions *options, DmtxDecode *decode, char *imagePath)
    }
 
    /* Flip rows top-to-bottom to account for PNM "top-left" origin */
-   fprintf(fp, "P6 %d %d 255 ", region->symbolCols, region->symbolRows);
-   for(row = region->symbolRows - 1; row  >= 0; row--) {
-      for(col = 0; col < region->symbolCols; col++) {
-         moduleStatus = dmtxSymbolModuleStatus(region, row, col);
+   fprintf(fp, "P6 %d %d 255 ", symbolCols, symbolRows);
+   for(row = symbolRows - 1; row  >= 0; row--) {
+      for(col = 0; col < symbolCols; col++) {
+         moduleStatus = dmtxSymbolModuleStatus(message, sizeIdx, row, col);
 
          fputc((moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255, fp);
          fputc((moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255, fp);

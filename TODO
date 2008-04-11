@@ -3,10 +3,10 @@ TODO Items
 
 "Must Have" features for next release:
 --------------------------------------
-   1) no more assertion failures
+   x) no more assertion failures
    2) error correction (libfec)
    3) region detection and decoding handled as separate tasks (and structs)
-   4) image mask approach (for performance and multi-barcode scans)
+   x) image mask approach (for performance and multi-barcode scans)
    5) updated documentation to reflect API and option changes
    6) all programs and bindings updated to work with new version
 
@@ -16,8 +16,8 @@ Tonight:
 --------------------------------------
    / pass decision back to calling program whether to scan (requiring malloc) it
    o change dmtxFindNextRegion() to return region (not malloc'd)
-   o send updated version of dmtxregion.c to Steve H. to track error
    o split out actual data fields
+   x send updated version of dmtxregion.c to Steve H. to track error
 
    o update gltest to use the new calling structure
 

@@ -32,7 +32,7 @@ Contact: mike@dragonflylogic.com
  * @return XXX
  */
 static void
-GenReedSolEcc(DmtxRegion *region)
+GenReedSolEcc(DmtxMessage *message, int sizeIdx)
 {
    int i, j, val;
    int step, block;
@@ -41,13 +41,13 @@ GenReedSolEcc(DmtxRegion *region)
    int errorWordCount;
    int totalLength;
    unsigned char g[69], b[68], *bPtr;
-   unsigned char *codewords = region->code;
+   unsigned char *codewords = message->code;
 
-   dataLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, region->sizeIdx);
-   errorWordCount = dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, region->sizeIdx);
+   dataLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx);
+   errorWordCount = dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, sizeIdx);
    totalLength = dataLength + errorWordCount;
 
-   step = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, region->sizeIdx);
+   step = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
    blockSize = errorWordCount / step;
 
    memset(g, 0x01, sizeof(g));
@@ -89,20 +89,20 @@ GenReedSolEcc(DmtxRegion *region)
  * @return XXX
  */
 static int
-DecodeCheckErrors(DmtxRegion *region)
+DecodeCheckErrors(DmtxMessage *message, int sizeIdx)
 {
    int i, j, step, errorWordLength;
    unsigned char reg, a;
 
-   step = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, region->sizeIdx);
-   errorWordLength = dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, region->sizeIdx);
+   step = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
+   errorWordLength = dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, sizeIdx);
 
    for(i = 0; i < errorWordLength; i++) {
       a = aLogVal[i / step + 1];
 
       reg = 0;
-      for(j = i % step; j < region->codeSize; j += step) {
-         reg = GfSum(region->code[j], GfProduct(a, reg));
+      for(j = i % step; j < message->codeSize; j += step) {
+         reg = GfSum(message->code[j], GfProduct(a, reg));
       }
 
       if(reg != 0)

@@ -31,16 +31,19 @@ Contact: mike@dragonflylogic.com
  * row and col are expressed in symbol coordinates, so (0,0) is the intersection of the "L"
  */
 int
-dmtxSymbolModuleStatus(DmtxRegion *region, int symbolRow, int symbolCol)
+dmtxSymbolModuleStatus(DmtxMessage *message, int sizeIdx, int symbolRow, int symbolCol)
 {
    int symbolRowReverse;
    int mappingRow, mappingCol;
    int dataRegionRows, dataRegionCols;
+   int symbolRows, mappingCols;
 
-   dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
-   dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);
+   dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, sizeIdx);
+   dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, sizeIdx);
+   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
+   mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
 
-   symbolRowReverse = region->symbolRows - symbolRow - 1;
+   symbolRowReverse = symbolRows - symbolRow - 1;
    mappingRow = symbolRowReverse - 1 - 2 * (symbolRowReverse / (dataRegionRows+2));
    mappingCol = symbolCol - 1 - 2 * (symbolCol / (dataRegionCols+2));
 
@@ -58,7 +61,7 @@ dmtxSymbolModuleStatus(DmtxRegion *region, int symbolRow, int symbolCol)
       return (((symbolRow & 0x01) ? 0 : DMTX_MODULE_ON_RGB) | (!DMTX_MODULE_DATA));
 
    /* Data modules */
-   return (region->array[mappingRow * region->mappingCols + mappingCol] | DMTX_MODULE_DATA);
+   return (message->array[mappingRow * mappingCols + mappingCol] | DMTX_MODULE_DATA);
 }
 
 /**

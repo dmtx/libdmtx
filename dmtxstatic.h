@@ -95,42 +95,55 @@ typedef struct DmtxEdgeSubPixel_struct {
 static void ClampIntRange(int *value, int min, int max);
 static DmtxCompassEdge GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs);
 static DmtxEdgeSubPixel FindZeroCrossing(DmtxImage *image, int x, int y, DmtxCompassEdge compassStart);
-static DmtxRay2 FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forward, DmtxDecode *decode);
+static DmtxRay2 FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forward);
 static double RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle);
-static int MatrixRegionUpdateXfrms(DmtxRegion *region, DmtxImage *image);
-static int MatrixRegionAlignFirstEdge(DmtxDecode *decode, DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1);
 static void SetCornerLoc(DmtxRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point);
-static int MatrixRegionAlignSecondEdge(DmtxDecode *decode);
-static int MatrixRegionAlignRightEdge(DmtxDecode *decode);
-static int MatrixRegionAlignTopEdge( DmtxDecode *decode);
-static int MatrixRegionAlignCalibEdge(DmtxDecode *decode, DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit);
-static int MatrixRegionAlignEdge(DmtxDecode *decode, DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0, DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount);
-static int StepAlongEdge(DmtxImage *image, DmtxRegion *region, DmtxVector2 *pProgress, DmtxVector2 *pExact, DmtxVector2 forward, DmtxVector2 lateral, DmtxDecode *decode);
-static int AllocateStorage(DmtxDecode *decode);
-static DmtxColor3 ReadModuleColor(DmtxDecode *decode, int symbolRow, int symbolCol, int sizeIdx, DmtxMatrix3 fit2raw);
-static int MatrixRegionFindSize(DmtxDecode *decode);
-static int PopulateArrayFromMatrix(DmtxDecode *decode);
-static void TallyModuleJumps(DmtxDecode *decode, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, int direction);
-static int PopulateArrayFromMosaic(DmtxDecode *decode);
+static int MatrixRegionUpdateXfrms(DmtxImage *image, DmtxRegion *region);
+
+static int MatrixRegionAlignFirstEdge(DmtxImage *image, DmtxRegion *region,
+      DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1);
+
+static int MatrixRegionAlignSecondEdge(DmtxImage *image, DmtxRegion *region);
+
+static int MatrixRegionAlignRightEdge(DmtxImage *image, DmtxRegion *region);
+
+static int MatrixRegionAlignTopEdge( DmtxImage *image, DmtxRegion *region);
+
+static int MatrixRegionAlignCalibEdge(DmtxImage *image, DmtxRegion *region,
+      DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit);
+
+static int MatrixRegionAlignEdge(DmtxImage *image, DmtxRegion *region,
+      DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0,
+      DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount);
+
+static int StepAlongEdge(DmtxImage *image, DmtxRegion *region,
+      DmtxVector2 *pProgress, DmtxVector2 *pExact, DmtxVector2 forward,
+      DmtxVector2 lateral);
+
+static DmtxColor3 ReadModuleColor(DmtxImage *image, DmtxRegion *region,
+      int symbolRow, int symbolCol, int sizeIdx);
+
+static int MatrixRegionFindSize(DmtxImage *image, DmtxRegion *region);
 
 /* dmtxdecode.c */
-static int DecodeMatrixRegion(DmtxRegion *region);
-static void DecodeDataStream(DmtxRegion *region);
+static void DecodeDataStream(DmtxMessage *message, int sizeIdx);
 static unsigned char *NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr);
-static unsigned char *DecodeSchemeAsciiStd(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd);
-static unsigned char *DecodeSchemeAsciiExt(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd);
-static unsigned char *DecodeSchemeC40Text(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme);
-static unsigned char *DecodeSchemeX12(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd);
-static unsigned char *DecodeSchemeEdifact(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd);
-static unsigned char *DecodeSchemeBase256(DmtxRegion *region, unsigned char *ptr, unsigned char *dataEnd);
+static unsigned char *DecodeSchemeAsciiStd(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd);
+static unsigned char *DecodeSchemeAsciiExt(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd);
+static unsigned char *DecodeSchemeC40Text(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme);
+static unsigned char *DecodeSchemeX12(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd);
+static unsigned char *DecodeSchemeEdifact(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd);
+static unsigned char *DecodeSchemeBase256(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd);
 /* static unsigned char UnRandomize253State(unsigned char codewordValue, int codewordPosition); XXX need later */
 static unsigned char UnRandomize255State(unsigned char value, int idx);
+static int PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *region);
+static void TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, int direction);
+static int PopulateArrayFromMosaic(DmtxMessage *message, DmtxImage *image, DmtxRegion *region);
 
 /* dmtxencode.c */
 static void AddPadChars(unsigned char *buf, int *bufSize, int paddedSize);
 static unsigned char Randomize253State(unsigned char codewordValue, int codewordPosition);
 static unsigned char Randomize255State(unsigned char codewordValue, int codewordPosition);
-static void PatternInit(DmtxRegion *region);
 static void PrintPattern(DmtxEncode *encode);
 static void InitChannel(DmtxChannel *channel, unsigned char *codewords, int length);
 static int EncodeSingleScheme(unsigned char *buf, unsigned char *codewords, int length, DmtxSchemeEncode scheme);
@@ -165,8 +178,8 @@ static void PlaceModule(unsigned char *modules, int mappingRows, int mappingCols
       unsigned char *codeword, DmtxBitMask mask, int moduleOnColor);
 
 /* dmtxreedsol.c */
-static void GenReedSolEcc(DmtxRegion *region);
-static int DecodeCheckErrors(DmtxRegion *region);
+static void GenReedSolEcc(DmtxMessage *message, int sizeidx);
+static int DecodeCheckErrors(DmtxMessage *message, int sizeIdx);
 static int GfProduct(int a, int b);
 static int GfDoublify(int a, int b);
 
@@ -177,7 +190,7 @@ static void SetDerivedFields(DmtxScanGrid *cross);
 static DmtxPixelLoc GetGridCoordinates(DmtxScanGrid *grid);
 
 /* dmtxsymbol.c */
-static int FindCorrectBarcodeSize(int symbolShape, int dataWords);
+static int FindCorrectBarcodeSize(int dataWords, int symbolShape);
 
 /* Galois Field log values */
 static int logVal[] =

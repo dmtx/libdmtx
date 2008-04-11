@@ -104,8 +104,7 @@ dmtxEncodeStructDestroy(DmtxEncode **encode)
       return;
 
    dmtxImageDeInit(&((*encode)->image));
-
-   dmtxMatrixRegionDeInit(&((*encode)->region));
+   dmtxMessageDeInit(&((*encode)->message));
 
    free(*encode);
    *encode = NULL;
@@ -122,28 +121,26 @@ EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
       int inputSize, DmtxSchemeEncode scheme, int *sizeIdx)
 {
    int dataWordCount;
-   int sizeIdxRequest;
+
+   /* Encode input string into data codewords */
+   switch(scheme) {
+      case DmtxSchemeEncodeAutoBest:
+         dataWordCount = EncodeAutoBest(buf, inputString, inputSize);
+         break;
+      case DmtxSchemeEncodeAutoFast:
+         dataWordCount = 0;
+         /* dataWordCount = EncodeAutoFast(buf, inputString, inputSize); */
+         break;
+      default:
+         dataWordCount = EncodeSingleScheme(buf, inputString, inputSize, scheme);
+         break;
+   }
 
    /* XXX must fix ... will need to handle sizeIdx requests here because it is
       needed by Encode...() (for triplet termination) */
 
-   /* Capture initial status of sizeIdxRequest */
-   sizeIdxRequest = *sizeIdx;
-
-   /* Set to invalid state until correct value is available */
-   *sizeIdx = -1;
-
-   /* Encode input string into data codewords */
-   if(scheme == DmtxSchemeEncodeAutoBest)
-      dataWordCount = EncodeAutoBest(buf, inputString, inputSize);
-   else if(scheme == DmtxSchemeEncodeAutoFast)
-      dataWordCount = 0;
-      /* dataWordCount = EncodeAutoFast(buf, inputString, inputSize); */
-   else
-      dataWordCount = EncodeSingleScheme(buf, inputString, inputSize, scheme);
-
-   /* Set correct barcode size */
-   *sizeIdx = FindCorrectBarcodeSize(sizeIdxRequest, dataWordCount);
+   /* parameter sizeIdx is requested value, returned sizeIdx is decision */
+   *sizeIdx = FindCorrectBarcodeSize(dataWordCount, *sizeIdx);
 
    return dataWordCount;
 }
@@ -177,33 +174,21 @@ dmtxEncodeDataMatrix(DmtxEncode *encode, int inputSize, unsigned char *inputStri
 
    /* XXX we can remove a lot of this redundant data */
    encode->region.sizeIdx = sizeIdx;
-
-   encode->region.codeSize = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) +
-         dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, sizeIdx);
-
    encode->region.symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
    encode->region.symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
    encode->region.mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdx);
    encode->region.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
 
+   /* Allocate memory for message and array */
+   encode->message = dmtxMessageInit(sizeIdx);
+
 /* fprintf(stdout, "\n\nsize:    %dx%d w/ %d error codewords\n", rows, cols, errorWordLength(encode->region.sizeIdx)); */
 
-   encode->region.code = (unsigned char *)malloc(sizeof(unsigned char) * encode->region.codeSize);
-   if(encode->region.code == NULL) {
-      perror("dmtxEncodeData");
-      exit(7);
-   }
-   memset(encode->region.code, 0x00, sizeof(unsigned char) * encode->region.codeSize);
-   memcpy(encode->region.code, buf, dataWordCount);
-
    /* Generate error correction codewords */
-   GenReedSolEcc(&(encode->region));
-
-   /* Allocate storage for pattern */
-   PatternInit(&(encode->region));
+   GenReedSolEcc(encode->message, encode->region.sizeIdx);
 
    /* Module placement in region */
-   ModulePlacementEcc200(encode->region.array, encode->region.code, encode->region.sizeIdx, DMTX_MODULE_ON_RGB);
+   ModulePlacementEcc200(encode->message->array, encode->message->code, encode->region.sizeIdx, DMTX_MODULE_ON_RGB);
 
    /* Allocate memory for the image to be generated */
    /* XXX image = DmtxImageMalloc(width, height); */
@@ -261,7 +246,7 @@ dmtxEncodeDataMosaic(DmtxEncode *encode, int inputSize, unsigned char *inputStri
    /* XXX clean up above lines later for corner cases */
 
    /* Use 1/3 (floor) of dataWordCount establish first symbol size attempt */
-   splitSizeIdxFirst = FindCorrectBarcodeSize(sizeIdxRequest, tmpInputSize);
+   splitSizeIdxFirst = FindCorrectBarcodeSize(tmpInputSize, sizeIdxRequest);
 
    /* Set the last possible symbol size for this symbol shape or specific size request */
    if(sizeIdxRequest == DMTX_SYMBOL_SQUARE_AUTO)
@@ -324,28 +309,28 @@ dmtxEncodeDataMosaic(DmtxEncode *encode, int inputSize, unsigned char *inputStri
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, splitSizeIdxAttempt);
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, splitSizeIdxAttempt);
 
-   memset(encode->region.array, 0x00, sizeof(unsigned char) * encode->region.mappingRows * encode->region.mappingCols);
-   ModulePlacementEcc200(encode->region.array, encode->region.code, encode->region.sizeIdx, DMTX_MODULE_ON_RED);
+   memset(encode->message->array, 0x00, sizeof(unsigned char) * encode->region.mappingRows * encode->region.mappingCols);
+   ModulePlacementEcc200(encode->message->array, encode->message->code, encode->region.sizeIdx, DMTX_MODULE_ON_RED);
 
    /* Data Mosaic will traverse this array multiple times -- reset
       DMTX_MODULE_ASSIGNED and DMX_MODULE_VISITED bits before starting */
    for(row = 0; row < mappingRows; row++) {
       for(col = 0; col < mappingCols; col++) {
-         encode->region.array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
+         encode->message->array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
       }
    }
 
-   ModulePlacementEcc200(encode->region.array, encodeGreen->region.code, encode->region.sizeIdx, DMTX_MODULE_ON_GREEN);
+   ModulePlacementEcc200(encode->message->array, encodeGreen->message->code, encode->region.sizeIdx, DMTX_MODULE_ON_GREEN);
 
    /* Data Mosaic will traverse this array multiple times -- reset
       DMTX_MODULE_ASSIGNED and DMX_MODULE_VISITED bits before starting */
    for(row = 0; row < mappingRows; row++) {
       for(col = 0; col < mappingCols; col++) {
-         encode->region.array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
+         encode->message->array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
       }
    }
 
-   ModulePlacementEcc200(encode->region.array, encodeBlue->region.code, encode->region.sizeIdx, DMTX_MODULE_ON_BLUE);
+   ModulePlacementEcc200(encode->message->array, encodeBlue->message->code, encode->region.sizeIdx, DMTX_MODULE_ON_BLUE);
 
    dmtxEncodeStructDestroy(&encodeGreen);
    dmtxEncodeStructDestroy(&encodeBlue);
@@ -414,27 +399,6 @@ Randomize255State(unsigned char codewordValue, int codewordPosition)
  * @return XXX
  */
 static void
-PatternInit(DmtxRegion *region)
-{
-   int patternSize;
-
-   if(region == NULL)
-      exit(1); /* XXX find better error handling here */
-
-   patternSize = sizeof(unsigned char) * region->mappingRows * region->mappingCols;
-   region->array = (unsigned char *)malloc(patternSize);
-   if(region->array == NULL)
-      exit(2); /* XXX find better error handling here */
-
-   memset(region->array, 0x00, patternSize);
-}
-
-/**
- *
- * @param XXX
- * @return XXX
- */
-static void
 PrintPattern(DmtxEncode *encode)
 {
    int i, j;
@@ -476,7 +440,7 @@ PrintPattern(DmtxEncode *encode)
          pixelCol = (int)(vOut.X);
          pixelRow = (int)(vOut.Y);
 
-         moduleStatus = dmtxSymbolModuleStatus(&(encode->region), symbolRow, symbolCol);
+         moduleStatus = dmtxSymbolModuleStatus(encode->message, encode->region.sizeIdx, symbolRow, symbolCol);
 
          for(i = pixelRow; i < pixelRow + encode->moduleSize; i++) {
             for(j = pixelCol; j < pixelCol + encode->moduleSize; j++) {
@@ -1184,7 +1148,8 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
    /* Find minimum symbol size big enough to accomodate remaining codewords */
    currentByte = channel->currentLength/12;
 /* XXX this is broken -- what if someone asks for DMTX_SYMBOL_RECT_AUTO or a specific sizeIdx? */
-   sizeIdx = FindCorrectBarcodeSize(DMTX_SYMBOL_SQUARE_AUTO, currentByte + ((inputCount == 3) ? 2 : inputCount));
+   sizeIdx = FindCorrectBarcodeSize(currentByte + ((inputCount == 3) ? 2 : inputCount),
+         DMTX_SYMBOL_SQUARE_AUTO);
    remainingCodewords = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) - currentByte;
 
    /* XXX the big problem with all of these special cases is what if one of
@@ -1294,7 +1259,7 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
    /* XXX broken -- what if someone asks for DMTX_SYMBOL_RECT_AUTO or specific sizeIdx? */
 
    currentByte = channel->currentLength/12;
-   sizeIdx = FindCorrectBarcodeSize(DMTX_SYMBOL_SQUARE_AUTO, currentByte);
+   sizeIdx = FindCorrectBarcodeSize(currentByte, DMTX_SYMBOL_SQUARE_AUTO);
    symbolCodewords = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) - currentByte;
 
    /* Test for special case condition */
