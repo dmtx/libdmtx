@@ -67,19 +67,6 @@ dmtxImageMalloc(int width, int height)
  *
  */
 extern int
-dmtxImageInit(DmtxImage *image)
-{
-   image->width = image->height = 0;
-   image->pxl = NULL;
-
-   return 0;
-}
-
-/**
- *
- *
- */
-extern int
 dmtxImageDeInit(DmtxImage **image)
 {
    if(*image == NULL)

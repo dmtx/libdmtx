@@ -222,13 +222,6 @@ typedef struct DmtxRegion_struct {
    int             symbolCols;    /* Number of total columns in symbol including alignment patterns */
    int             mappingRows;   /* Number of data rows in symbol */
    int             mappingCols;   /* Number of data columns in symbol */
-/* int             arraySize;  */ /* mappingRows * mappingCols */
-/* int             codeSize;   */ /* Size of encoded data (data words + error words) */
-/* int             outputSize; */ /* Size of buffer used to hold decoded data */
-/* int             outputIdx;  */ /* Internal index used to store output progress */
-/* unsigned char   *array;     */ /* Pointer to internal representation of scanned Data Matrix modules */
-/* unsigned char   *code;      */ /* Pointer to internal storage of code words (data and error) */
-/* unsigned char   *output;    */ /* Pointer to internal storage of decoded output */
 } DmtxRegion;
 
 typedef struct DmtxMessage_struct {
@@ -279,7 +272,6 @@ struct DmtxDecode_struct {
    DmtxScanGrid grid;
 
    int mosaic;
-/* DmtxRegion region; */ /* XXX delete this from struct */
    void (* buildMatrixCallback2)(DmtxRegion *);
    void (* buildMatrixCallback3)(DmtxMatrix3);
    void (* buildMatrixCallback4)(DmtxMatrix3);
@@ -376,7 +368,6 @@ extern double dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
 
 extern DmtxImage *dmtxImageMalloc(int width, int height);
-extern int dmtxImageInit(DmtxImage *image);
 extern int dmtxImageDeInit(DmtxImage **image);
 extern int dmtxImageGetWidth(DmtxImage *image);
 extern int dmtxImageGetHeight(DmtxImage *image);
