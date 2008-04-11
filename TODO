@@ -4,25 +4,17 @@ TODO Items
 "Must Have" features for next release:
 --------------------------------------
    x) no more assertion failures
-   2) error correction (libfec)
-   3) region detection and decoding handled as separate tasks (and structs)
+   x) region detection and decoding handled as separate tasks (and structs)
    x) image mask approach (for performance and multi-barcode scans)
+   4) error correction (libfec)
    5) updated documentation to reflect API and option changes
    6) all programs and bindings updated to work with new version
 
    -) diagnostic utility that dumps image copy with scanning info embedded
 
-Tonight:
---------------------------------------
-   / pass decision back to calling program whether to scan (requiring malloc) it
-   o change dmtxFindNextRegion() to return region (not malloc'd)
-   o split out actual data fields
-   x send updated version of dmtxregion.c to Steve H. to track error
-
-   o update gltest to use the new calling structure
-
 Soon:
 --------------------------------------
+   o update gltest to use the new calling structure
    o remove mosaic field from DmtxDecode (and replace functionality by calling dedicated named function)
    o remove DmtxRegion from decode and pass it between functions explicitly
 
@@ -76,8 +68,7 @@ version 0.5: (??-Apr-2008?)
   x libdmtx:   Roll scan pattern into core library (inward breadth-first cross)
   x libdmtx:   Implement 4-direction weighted module decisions (eliminates thresholds)
   / libdmtx:   Use new Edifact decode function that doesn't assume full triplet
-  / libdmtx:   Thorough test for memory leaks
-  / libdmtx:   Based on "incremental choice", remove unnecessary mallocs (single in stack)
+  x libdmtx:   Based on "incremental choice", remove unnecessary mallocs (single in stack)
   o libdmtx:   Implement error correction (initially through libfec)
   x dmtxread:  Add ability to scan portion of image
   x dmtxread:  Add --diagnose option that dumps image with scan infomation embedded

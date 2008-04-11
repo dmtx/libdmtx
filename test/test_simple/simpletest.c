@@ -30,10 +30,9 @@ Contact: mike@dragonflylogic.com
 int
 main(int argc, char **argv)
 {
-   int count = 0;
    unsigned char testString[] = "30Q324343430794<OQQ";
-   DmtxImage *image;
    DmtxEncode *encode;
+   DmtxImage *image;
    DmtxDecode decode;
    DmtxRegion region;
    DmtxMessage *message;
@@ -42,7 +41,7 @@ main(int argc, char **argv)
    fprintf(stdout, "input:  \"%s\"\n", testString);
 
    /*
-    * 1) Write a new Data Matrix barcode (just in memory)
+    * 1) Write a new Data Matrix barcode image (keep in memory)
     */
 
    encode = dmtxEncodeStructCreate();
@@ -70,6 +69,7 @@ main(int argc, char **argv)
       exit(0);
 
    message = dmtxDecodeMatrixRegion(&decode, &region);
+
    fprintf(stdout, "output: \"");
    fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
    fprintf(stdout, "\"\n\n");
