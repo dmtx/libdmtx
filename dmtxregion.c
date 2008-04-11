@@ -69,6 +69,7 @@ dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc)
    DmtxRegion region;
 
    /* Assume region is not found unless scan finds one below */
+   memset(&region, 0x00, sizeof(DmtxRegion));
    region.found = DMTX_REGION_NOT_FOUND;
 
    if(loc.X < 0 || loc.X >= decode->image->width ||

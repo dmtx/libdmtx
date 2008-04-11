@@ -120,8 +120,10 @@ main(int argc, char *argv[])
             WriteImagePnm(&options, &decode, message, region.sizeIdx, "debug.pnm");
 
          /* Decode region based on requested scan mode */
-         message = dmtxDecodeMatrixRegion(&decode, &region);
 /*       message = (options.mosaic) ? dmtxDecodeMosaic(&region) : dmtxDecodeMatrix(&region); */
+         message = dmtxDecodeMatrixRegion(&decode, &region);
+         if(message == NULL)
+            continue;
 
          PrintDecodedOutput(&options, image, &region, message, pageIndex);
 
