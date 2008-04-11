@@ -181,6 +181,7 @@ dmtxEncodeDataMatrix(DmtxEncode *encode, int inputSize, unsigned char *inputStri
 
    /* Allocate memory for message and array */
    encode->message = dmtxMessageInit(sizeIdx);
+   memcpy(encode->message->code, buf, dataWordCount);
 
 /* fprintf(stdout, "\n\nsize:    %dx%d w/ %d error codewords\n", rows, cols, errorWordLength(encode->region.sizeIdx)); */
 
