@@ -105,13 +105,13 @@ main(int argc, char *argv[])
          continue;
 
       /* Initialize decode struct for newly loaded image */
-      decode = dmtxDecodeInitScan(image, p0, p1, options.scanGap);
+      decode = dmtxDecodeStructInit(image, p0, p1, options.scanGap);
 
       /* Loop once for each detected barcode region */
       for(;;) {
 
          /* Find next barcode region within image, but do not decode yet */
-         region = dmtxFindNextRegion(&decode);
+         region = dmtxDecodeFindNextRegion(&decode);
          if(region.found == DMTX_REGION_EOF)
             break;
 
@@ -126,10 +126,11 @@ main(int argc, char *argv[])
 
          PrintDecodedOutput(&options, image, &region, message, pageIndex);
 
-         dmtxMessageDeInit(&message);
+         dmtxMessageFree(&message);
          break; /* XXX for now, break after first barcode is found in image */
       }
 
+      dmtxDecodeStructDeInit(&decode);
       dmtxImageFree(&image);
    }
 
@@ -584,6 +585,7 @@ LoadImagePng(char *imagePath)
    for(row = 0; row < height; row++) {
       rowPointers[row] = (png_bytep)png_malloc(pngPtr,
             png_get_rowbytes(pngPtr, infoPtr));
+      assert(rowPointers[row] != NULL);
    }
 
    png_read_image(pngPtr, rowPointers);

@@ -5,7 +5,7 @@
 .\" To view: $ groff -man -T ascii libdmtx.3 | less
 .\" To text: $ groff -man -T ascii libdmtx.3 | col -b | expand
 .\"
-.TH LIBDMTX 3 "December 7, 2007"
+.TH LIBDMTX 3 "April X, 2008"
 .SH NAME
 libdmtx \- Data Matrix Encoder/Decoder Library 0.5.0
 .SH SYNOPSIS
@@ -15,9 +15,9 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.5.0
 
 \fBDmtxEncode dmtxEncodeStructInit(\fIvoid\fP);\fP
 
-\fBint dmtxEncodeDataMatrix(DmtxEncode *\fIenc\fP, unsigned char *\fIs\fP);\fP
+\fBint dmtxEncodeDataMatrix(DmtxEncode *\fIenc\fP, int \fIn\fP, unsigned char *\fIs\fP, int \fIsizeIdxRequest\fP);\fP
 
-\fBint dmtxEncodeDataMosaic(DmtxEncode *\fIenc\fP, unsigned char *\fIs\fP);\fP
+\fBint dmtxEncodeDataMosaic(DmtxEncode *\fIenc\fP, int \fIn\fP, unsigned char *\fIs\fP, int \fIsizeIdxRequest\fP);\fP
 
 \fBvoid dmtxEncodeStructDeInit(DmtxEncode *\fIenc\fP);\fP
 
@@ -37,31 +37,31 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.5.0
 
 \fBDmtxMessage *dmtxMessageMalloc(int \fIsizeIdx\fP);\fP
 
-\fBvoid dmtxMessageFree(DmtxMessage **\fImsg\fP);\fP
+\fBvoid dmtxMessageFree(DmtxMessage **\fImesg\fP);\fP
 
 \fBDmtxImage *dmtxImageMalloc(int \fIwidth\fP, int \fIheight\fP);\fP
 
 \fBint dmtxImageFree(DmtxImage **\fIimg\fP);\fP
 
 .SH DESCRIPTION
-\fIlibdmtx\fP is a shared library for Linux that encodes and decodes ECC200 Data Matrix barcodes.  Data Matrix barcodes are two-dimensional patterns that hold a high density of data with built-in error correction.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
+\fIlibdmtx\fP is a shared library that provides the ability to read and write ECC200 Data Matrix barcodes.  The accompanying utility programs \fIdmtxread\fP and \fIdmtxwrite\fP enable libdmtx functionality from the command line, and also provide a good reference for programmers who wish to write their own programs that interact with libdmtx.  Refer to the man pages on dmtxread(1) and dmtxwrite(1) for details on their syntax and options.
+
+Data Matrix barcodes are two-dimensional patterns resembling a checkerboard in appearance that hold a high density of data with built-in error correction.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
 
 .SH ENCODING - Generating Data Matrix Barcodes
-\fIlibdmtx\fP provides a simple set of functions for the encoding process.  More functions will be added later to support other options, such as output format (ASCII, PNG, PNM, etc...) and others.
+\fIlibdmtx\fP provides a simple set of functions for encoding Data Matrix barcodes.  The following steps will produce an image that encodes the specified message in a valid barcode symbol.
 
-Currently, the following steps are required to create a Data Matrix barcode using \fIlibdmtx\fP:
+1. Call \fBdmtxEncodeStructInit()\fP
 
-1. Call \fBdmtxEncodeCreate()\fP
+This function initializes the internal values of the encoding process, and must be called before any other encoding functions.
 
-This function allocates memory for the encoding process and initializes its internal values.  This function must be called before any other encoding functions.
+2. Call either \fBdmtxEncodeDataMatrix()\fP or \fBdmtxEncodeDataMosaic()\fP
 
-2. Call \fBdmtxEncodeData()\fP
+These functions (depending on the desired barcode format) create one barcode per call, and write the resulting image to an internal structure in the DmtxEncode variable.  The calling program is responsible for creating an image file from this data.
 
-\fBdmtxEncodeData()\fP creates one barcode for each call, and currently writes a PNM image file of the barcode to the current directory.  This is an ugly temporary hack.  Later there will probably be another function after this where you specify what you want done with the barcode image (e.g. Write to STDOUT?  Write to a PNG file?  Keep it in memory? etc...)
+3. Call \fBdmtxEncodeStructDeInit()\fP
 
-3. Call \fBdmtxEncodeDestroy()\fP
-
-This function frees the memory allocated in the \fBdmtxEncodeCreate()\fP and \fBdmtxEncodeData()\fP functions.
+This function resets the internal encoding values and frees the image and message memory allocated during the encoding process.
 
 .SH DECODING - Reading Data Matrix Barcodes
 \fIlibdmtx\fP provides small number of default decoding functions, and provides additional flexibility through parameters and callback functions.
@@ -166,7 +166,7 @@ This program demonstrates both directions of \fIlibdmtx\fP functionality by firs
   }
 
 .SH "SEE ALSO"
-libpng(3)
+\fIdmtxread\fP(1), \fIdmtxwrite\fP(1)
 .SH STANDARDS
 ISO/IEC 16022:2000
 .PP
@@ -174,5 +174,5 @@ ANSI/AIM BC11 ISS
 .SH BUGS
 Email bug reports to mike@dragonflylogic.com
 .SH AUTHOR
-Copyright (c) 2007 Mike Laughton
+Copyright (c) 2008 Mike Laughton
 .\" end of man page

@@ -146,6 +146,7 @@ static unsigned char Randomize253State(unsigned char codewordValue, int codeword
 static unsigned char Randomize255State(unsigned char codewordValue, int codewordPosition);
 static void PrintPattern(DmtxEncode *encode);
 static void InitChannel(DmtxChannel *channel, unsigned char *codewords, int length);
+static int EncodeDataCodewords(unsigned char *buf, unsigned char *inputString, int inputSize, DmtxSchemeEncode scheme, int *sizeIdx);
 static int EncodeSingleScheme(unsigned char *buf, unsigned char *codewords, int length, DmtxSchemeEncode scheme);
 static int EncodeAutoBest(unsigned char *buf, unsigned char *codewords, int length);
 /*static int EncodeAutoFast(unsigned char *buf, unsigned char *codewords, int length); */

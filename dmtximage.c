@@ -67,20 +67,20 @@ dmtxImageMalloc(int width, int height)
  *
  */
 extern int
-dmtxImageFree(DmtxImage **image)
+dmtxImageFree(DmtxImage **img)
 {
-   if(*image == NULL)
+   if(*img == NULL)
       return 0; /* Error */
 
-   if((*image)->pxl != NULL)
-      free((*image)->pxl);
+   if((*img)->pxl != NULL)
+      free((*img)->pxl);
 
-   if((*image)->compass != NULL)
-      free((*image)->compass);
+   if((*img)->compass != NULL)
+      free((*img)->compass);
 
-   free(*image);
+   free(*img);
 
-   *image = NULL;
+   *img = NULL;
 
    return 0;
 }
@@ -90,12 +90,12 @@ dmtxImageFree(DmtxImage **image)
  *
  */
 extern int
-dmtxImageGetWidth(DmtxImage *image)
+dmtxImageGetWidth(DmtxImage *img)
 {
-   if(image == NULL)
+   if(img == NULL)
       ; /* Error */
 
-   return image->width;
+   return img->width;
 }
 
 /**
@@ -103,12 +103,12 @@ dmtxImageGetWidth(DmtxImage *image)
  *
  */
 extern int
-dmtxImageGetHeight(DmtxImage *image)
+dmtxImageGetHeight(DmtxImage *img)
 {
-   if(image == NULL)
+   if(img == NULL)
       ; /* Error */
 
-   return image->height;
+   return img->height;
 }
 
 /**
@@ -116,7 +116,7 @@ dmtxImageGetHeight(DmtxImage *image)
  *
  */
 extern int
-dmtxImageGetOffset(DmtxImage *image, DmtxDirection dir, int lineNbr, int offset)
+dmtxImageGetOffset(DmtxImage *img, DmtxDirection dir, int lineNbr, int offset)
 {
-   return (dir & DmtxDirHorizontal) ? image->width * lineNbr + offset : image->width * offset + lineNbr;
+   return (dir & DmtxDirHorizontal) ? img->width * lineNbr + offset : img->width * offset + lineNbr;
 }

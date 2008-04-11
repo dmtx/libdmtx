@@ -172,7 +172,7 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    decode = dmtxDecodeInit(image, p0, p1, gap_size);
 
    for(;;) {
-      region = dmtxFindNextRegion(&decode);
+      region = dmtxDecodeFindNextRegion(&decode);
       if(region.found == DMTX_REGION_EOF)
          break;
 
@@ -183,7 +183,7 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
       output = Py_BuildValue("s", message->output);
       Py_INCREF(output);
 
-      dmtxMessageDeInit(&message);
+      dmtxMessageFree(&message);
       break; /* XXX for now, break after first barcode is found in image */
    }
 

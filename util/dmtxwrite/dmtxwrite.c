@@ -70,17 +70,17 @@ main(int argc, char *argv[])
 {
    int err;
    UserOptions options;
-   DmtxEncode *encode;
+   DmtxEncode encode;
    unsigned char codeBuffer[DMTXWRITE_BUFFER_SIZE];
    int codeBufferSize = sizeof codeBuffer;
 
    InitUserOptions(&options);
 
    /* Create and initialize libdmtx structures */
-   encode = dmtxEncodeStructCreate();
+   encode = dmtxEncodeStructInit();
 
    /* Process user options */
-   err = HandleArgs(&options, &argc, &argv, encode);
+   err = HandleArgs(&options, &argc, &argv, &encode);
    if(err)
       ShowUsage(err);
 
@@ -89,19 +89,19 @@ main(int argc, char *argv[])
 
    /* Create barcode image */
    if(options.mosaic)
-      dmtxEncodeDataMosaic(encode, codeBufferSize, codeBuffer, options.sizeIdx);
+      dmtxEncodeDataMosaic(&encode, codeBufferSize, codeBuffer, options.sizeIdx);
    else
-      dmtxEncodeDataMatrix(encode, codeBufferSize, codeBuffer, options.sizeIdx);
+      dmtxEncodeDataMatrix(&encode, codeBufferSize, codeBuffer, options.sizeIdx);
 
    /* Write barcode image to requested format */
    switch(options.format) {
       case 'n':
          break; /* do nothing */
       case 'p':
-         WriteImagePng(&options, encode);
+         WriteImagePng(&options, &encode);
          break;
       case 'm':
-         WriteImagePnm(&options, encode);
+         WriteImagePnm(&options, &encode);
          break;
    }
 
@@ -110,15 +110,15 @@ main(int argc, char *argv[])
       case 'n':
          break; /* do nothing */
       case 'a':
-         WriteAsciiBarcode(encode);
+         WriteAsciiBarcode(&encode);
          break;
       case 'c':
-         WriteCodewords(encode);
+         WriteCodewords(&encode);
          break;
    }
 
    /* Clean up */
-   dmtxEncodeStructDestroy(&encode);
+   dmtxEncodeStructDeInit(&encode);
 
    exit(0);
 }

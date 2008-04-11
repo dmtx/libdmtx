@@ -27,16 +27,26 @@ Contact: mike@dragonflylogic.com
  *
  */
 extern DmtxDecode
-dmtxDecodeInitScan(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
+dmtxDecodeStructInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
 {
-   DmtxDecode decode;
+   DmtxDecode dec;
 
-   memset(&decode, 0x00, sizeof(DmtxDecode));
+   memset(&dec, 0x00, sizeof(DmtxDecode));
 
-   decode.image = image;
-   decode.grid = InitScanGrid(image, p0, p1, minGapSize);
+   dec.image = image;
+   dec.grid = InitScanGrid(image, p0, p1, minGapSize);
 
-   return decode;
+   return dec;
+}
+
+/**
+ *
+ *
+ */
+extern void
+dmtxDecodeStructDeInit(DmtxDecode *dec)
+{
+   memset(dec, 0x00, sizeof(DmtxDecode));
 }
 
 /**
@@ -46,30 +56,31 @@ dmtxDecodeInitScan(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGa
  * @return XXX
  */
 extern DmtxMessage *
-dmtxDecodeMatrixRegion(DmtxDecode *decode, DmtxRegion *region)
+dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region)
 {
    DmtxMessage *message;
    int success;
 
-   message = dmtxMessageInit(region->sizeIdx);
+   message = dmtxMessageMalloc(region->sizeIdx);
    if(message == NULL)
       return message;
 
-   if(PopulateArrayFromMatrix(message, decode->image, region) != DMTX_SUCCESS) {
-      dmtxMessageDeInit(&message);
+   if(PopulateArrayFromMatrix(message, dec->image, region) != DMTX_SUCCESS) {
+      dmtxMessageFree(&message);
       return message;
    }
-/* if(PopulateArrayFromMosaic(message, decode->image, region) != DMTX_SUCCESS)
-      return message; */
+
+   if(0 && PopulateArrayFromMosaic(message, dec->image, region) != DMTX_SUCCESS) {
+      dmtxMessageFree(&message);
+      return message;
+   }
 
    ModulePlacementEcc200(message->array, message->code,
          region->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
 
    success = DecodeCheckErrors(message, region->sizeIdx);
-   if(!success) {
-/*    fprintf(stderr, "Rejected due to ECC validation\n"); */
+   if(!success)
       return DMTX_FAILURE;
-   }
 
    DecodeDataStream(message, region->sizeIdx);
 
@@ -81,7 +92,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *decode, DmtxRegion *region)
  * @return XXX
  */
 extern DmtxMessage *
-dmtxMessageInit(int sizeIdx)
+dmtxMessageMalloc(int sizeIdx)
 {
    DmtxMessage *message;
    int mappingRows, mappingCols;
@@ -99,7 +110,7 @@ dmtxMessageInit(int sizeIdx)
    message->array = (unsigned char *)malloc(message->arraySize);
    if(message->array == NULL) {
       perror("Malloc failed");
-      dmtxMessageDeInit(&message);
+      dmtxMessageFree(&message);
       return NULL;
    }
    memset(message->array, 0x00, message->arraySize);
@@ -111,7 +122,7 @@ dmtxMessageInit(int sizeIdx)
    message->code = (unsigned char *)malloc(message->codeSize);
    if(message->code == NULL) {
       perror("Malloc failed");
-      dmtxMessageDeInit(&message);
+      dmtxMessageFree(&message);
       return NULL;
    }
    memset(message->code, 0x00, message->codeSize);
@@ -123,7 +134,7 @@ dmtxMessageInit(int sizeIdx)
    message->output = (unsigned char *)malloc(message->outputSize);
    if(message->output == NULL) {
       perror("Malloc failed");
-      dmtxMessageDeInit(&message);
+      dmtxMessageFree(&message);
       return NULL;
    }
    memset(message->output, 0x00, message->outputSize);
@@ -135,7 +146,7 @@ dmtxMessageInit(int sizeIdx)
  *
  */
 extern void
-dmtxMessageDeInit(DmtxMessage **message)
+dmtxMessageFree(DmtxMessage **message)
 {
    if(*message == NULL)
       return;
@@ -788,7 +799,7 @@ PopulateArrayFromMosaic(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
    }
 
    /* Ideal barcode drawn in lower-right (final) window pane */
-/* CALLBACK_DECODE_FUNC2(finalCallback, decode, decode, region); */
+/* CALLBACK_DECODE_FUNC2(finalCallback, dec, dec, region); */
 
    return DMTX_SUCCESS;
 }

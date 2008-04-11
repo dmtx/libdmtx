@@ -56,40 +56,36 @@ Contact: mike@dragonflylogic.com
  * @param XXX
  * @return XXX
  */
-extern DmtxEncode *
-dmtxEncodeStructCreate(void)
+extern DmtxEncode
+dmtxEncodeStructInit(void)
 {
-   DmtxEncode *encode;
+   DmtxEncode enc;
 
-   encode = (DmtxEncode *)malloc(sizeof(DmtxEncode));
-   if(encode == NULL)
-      exit(3);
+   memset(&enc, 0x00, sizeof(DmtxEncode));
 
-   memset(encode, 0x00, sizeof(DmtxEncode));
-
-   encode->scheme = DmtxSchemeEncodeAutoBest;
-   encode->moduleSize = 5;
-   encode->marginSize = 10;
+   enc.scheme = DmtxSchemeEncodeAutoBest;
+   enc.moduleSize = 5;
+   enc.marginSize = 10;
 
    /* This can be cleaned up later */
-   encode->region.gradient.isDefined = DMTX_TRUE;
+   enc.region.gradient.isDefined = DMTX_TRUE;
 
    /* Initialize background color to white */
-   encode->region.gradient.ray.p.R = 255.0;
-   encode->region.gradient.ray.p.G = 255.0;
-   encode->region.gradient.ray.p.B = 255.0;
+   enc.region.gradient.ray.p.R = 255.0;
+   enc.region.gradient.ray.p.G = 255.0;
+   enc.region.gradient.ray.p.B = 255.0;
 
    /* Initialize foreground color to black */
-   encode->region.gradient.tMin = 0.0;
-   encode->region.gradient.tMax = dmtxColor3Mag(&(encode->region.gradient.ray.p));
-   encode->region.gradient.tMid = (encode->region.gradient.tMin + encode->region.gradient.tMax)/2.0;
+   enc.region.gradient.tMin = 0.0;
+   enc.region.gradient.tMax = dmtxColor3Mag(&(enc.region.gradient.ray.p));
+   enc.region.gradient.tMid = (enc.region.gradient.tMin + enc.region.gradient.tMax)/2.0;
 
-   dmtxColor3Scale(&(encode->region.gradient.ray.c),
-         &(encode->region.gradient.ray.p), -1.0/encode->region.gradient.tMax);
+   dmtxColor3Scale(&(enc.region.gradient.ray.c),
+         &(enc.region.gradient.ray.p), -1.0/enc.region.gradient.tMax);
 
-   dmtxMatrix3Identity(encode->xfrm);
+   dmtxMatrix3Identity(enc.xfrm);
 
-   return encode;
+   return enc;
 }
 
 /**
@@ -98,16 +94,208 @@ dmtxEncodeStructCreate(void)
  * @return XXX
  */
 extern void
-dmtxEncodeStructDestroy(DmtxEncode **encode)
+dmtxEncodeStructDeInit(DmtxEncode *enc)
 {
-   if(*encode == NULL)
+   if(enc == NULL)
       return;
 
-   dmtxImageFree(&((*encode)->image));
-   dmtxMessageDeInit(&((*encode)->message));
+   dmtxImageFree(&(enc->image));
+   dmtxMessageFree(&(enc->message));
 
-   free(*encode);
-   *encode = NULL;
+   memset(enc, 0x00, sizeof(DmtxEncode));
+}
+
+/**
+ *
+ * @param XXX
+ * @return XXX
+ */
+extern int
+dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest)
+{
+   int dataWordCount;
+   int sizeIdx;
+   unsigned char buf[4096];
+
+   /* XXX must fix ... will need to handle sizeIdx requests here because it is
+      needed by Encode...() (for triplet termination) */
+
+   /* Encode input string into data codewords */
+   sizeIdx = sizeIdxRequest;
+   dataWordCount = EncodeDataCodewords(buf, inputString, inputSize, enc->scheme, &sizeIdx);
+   if(dataWordCount <= 0)
+      exit(1);
+
+   /* EncodeDataCodewords() should have updated any auto sizeIdx to a real one */
+   assert(sizeIdx != DMTX_SYMBOL_SQUARE_AUTO && sizeIdx != DMTX_SYMBOL_RECT_AUTO);
+
+   /* Add pad characters to match a standard symbol size (whether smallest or requested) */
+   AddPadChars(buf, &dataWordCount, dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx));
+
+   /* XXX we can remove a lot of this redundant data */
+   enc->region.sizeIdx = sizeIdx;
+   enc->region.symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
+   enc->region.symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
+   enc->region.mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdx);
+   enc->region.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
+
+   /* Allocate memory for message and array */
+   enc->message = dmtxMessageMalloc(sizeIdx);
+   memcpy(enc->message->code, buf, dataWordCount);
+
+/* fprintf(stdout, "\n\nsize:    %dx%d w/ %d error codewords\n", rows, cols, errorWordLength(enc->region.sizeIdx)); */
+
+   /* Generate error correction codewords */
+   GenReedSolEcc(enc->message, enc->region.sizeIdx);
+
+   /* Module placement in region */
+   ModulePlacementEcc200(enc->message->array, enc->message->code, enc->region.sizeIdx, DMTX_MODULE_ON_RGB);
+
+   /* Allocate memory for the image to be generated */
+   /* XXX image = DmtxImageMalloc(width, height); */
+   enc->image = dmtxImageMalloc(
+         2 * enc->marginSize + (enc->region.symbolCols * enc->moduleSize),
+         2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize));
+
+   if(enc->image == NULL) {
+      perror("image malloc error");
+      exit(2);
+   }
+
+   /* Insert finder and aligment pattern modules */
+   PrintPattern(enc);
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ * 1) count how many codewords it would take to encode the whole thing
+ * 2) take ceiling N of codeword count divided by 3
+ * 3) using minimum symbol size that can accomodate N codewords:
+ * 4) create several barcodes over iterations of increasing numbers of input codewords until you go one too far
+ * 5) if codewords remain after filling R, G, and B barcodes then go back to 3 and try with next larger size
+ * 6) take the 3 different images you created and write out a new barcode
+ */
+extern int
+dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest)
+{
+   int dataWordCount;
+   int tmpInputSize;
+   unsigned char *inputStart;
+   int splitInputSize[3];
+   int sizeIdx;
+   int splitSizeIdxAttempt, splitSizeIdxFirst, splitSizeIdxLast;
+   unsigned char buf[3][4096];
+   DmtxEncode encGreen, encBlue;
+   int row, col, mappingRows, mappingCols;
+
+   /* XXX we're going to force ascii until we fix the problem with C40/Text termination */
+   enc->scheme = DmtxSchemeEncodeAscii;
+
+   /* Encode full input string to establish baseline data codeword count */
+   sizeIdx = sizeIdxRequest;
+   /* XXX buf can be changed here to use all 3 buffers' length */
+   dataWordCount = EncodeDataCodewords(buf[0], inputString, inputSize, enc->scheme, &sizeIdx);
+   if(dataWordCount <= 0)
+      exit(1);
+
+   /* Use 1/3 (ceiling) of inputSize establish input size target */
+   tmpInputSize = (inputSize + 2) / 3;
+   splitInputSize[0] = tmpInputSize;
+   splitInputSize[1] = tmpInputSize;
+   splitInputSize[2] = inputSize - (splitInputSize[0] + splitInputSize[1]);
+   /* XXX clean up above lines later for corner cases */
+
+   /* Use 1/3 (floor) of dataWordCount establish first symbol size attempt */
+   splitSizeIdxFirst = FindCorrectBarcodeSize(tmpInputSize, sizeIdxRequest);
+
+   /* Set the last possible symbol size for this symbol shape or specific size request */
+   if(sizeIdxRequest == DMTX_SYMBOL_SQUARE_AUTO)
+      splitSizeIdxLast = DMTX_SYMBOL_SQUARE_COUNT - 1;
+   else if(sizeIdxRequest == DMTX_SYMBOL_RECT_AUTO)
+      splitSizeIdxLast = DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT - 1;
+   else
+      splitSizeIdxLast = splitSizeIdxFirst;
+
+   /* XXX would be nice if we could choose a size and then fill up each
+      layer as we go, but this can cause problems with all data fits on
+      first 2 layers.  Revisit this later after things look a bit cleaner. */
+
+   /* Try increasing symbol sizes until 3 of them can hold all input values */
+   for(splitSizeIdxAttempt = splitSizeIdxFirst; splitSizeIdxAttempt <= splitSizeIdxLast; splitSizeIdxAttempt++) {
+
+      assert(splitSizeIdxAttempt >= 0);
+
+      /* RED LAYER */
+      sizeIdx = splitSizeIdxAttempt;
+      inputStart = inputString;
+      EncodeDataCodewords(buf[0], inputStart, splitInputSize[0], enc->scheme, &sizeIdx);
+      if(sizeIdx != splitSizeIdxAttempt)
+         continue;
+
+      /* GREEN LAYER */
+      sizeIdx = splitSizeIdxAttempt;
+      inputStart += splitInputSize[0];
+      EncodeDataCodewords(buf[1], inputStart, splitInputSize[1], enc->scheme, &sizeIdx);
+      if(sizeIdx != splitSizeIdxAttempt)
+         continue;
+
+      /* BLUE LAYER */
+      sizeIdx = splitSizeIdxAttempt;
+      inputStart += splitInputSize[1];
+      EncodeDataCodewords(buf[2], inputStart, splitInputSize[2], enc->scheme, &sizeIdx);
+      if(sizeIdx != splitSizeIdxAttempt)
+         continue;
+
+      break;
+   }
+
+   /* Now we have the correct lengths for splitInputSize, and they all fit into the desired size */
+   encGreen = *enc;
+   encBlue = *enc;
+
+   /* First encode red to the main encode struct (image portion will be overwritten) */
+   inputStart = inputString;
+   dmtxEncodeDataMatrix(enc, splitInputSize[0], inputStart, splitSizeIdxAttempt);
+
+   inputStart += splitInputSize[0];
+   dmtxEncodeDataMatrix(&encGreen, splitInputSize[1], inputStart, splitSizeIdxAttempt);
+
+   inputStart += splitInputSize[1];
+   dmtxEncodeDataMatrix(&encBlue, splitInputSize[2], inputStart, splitSizeIdxAttempt);
+
+   mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, splitSizeIdxAttempt);
+   mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, splitSizeIdxAttempt);
+
+   memset(enc->message->array, 0x00, sizeof(unsigned char) * enc->region.mappingRows * enc->region.mappingCols);
+   ModulePlacementEcc200(enc->message->array, enc->message->code, enc->region.sizeIdx, DMTX_MODULE_ON_RED);
+
+   /* Data Mosaic will traverse this array multiple times -- reset
+      DMTX_MODULE_ASSIGNED and DMX_MODULE_VISITED bits before starting */
+   for(row = 0; row < mappingRows; row++) {
+      for(col = 0; col < mappingCols; col++) {
+         enc->message->array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
+      }
+   }
+
+   ModulePlacementEcc200(enc->message->array, encGreen.message->code, enc->region.sizeIdx, DMTX_MODULE_ON_GREEN);
+
+   /* Data Mosaic will traverse this array multiple times -- reset
+      DMTX_MODULE_ASSIGNED and DMX_MODULE_VISITED bits before starting */
+   for(row = 0; row < mappingRows; row++) {
+      for(col = 0; col < mappingCols; col++) {
+         enc->message->array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
+      }
+   }
+
+   ModulePlacementEcc200(enc->message->array, encBlue.message->code, enc->region.sizeIdx, DMTX_MODULE_ON_BLUE);
+
+/* dmtxEncodeStructDeInit(&encGreen);
+   dmtxEncodeStructDeInit(&encBlue); */
+
+   PrintPattern(enc);
+
+   return DMTX_SUCCESS;
 }
 
 /**
@@ -143,202 +331,6 @@ EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
    *sizeIdx = FindCorrectBarcodeSize(dataWordCount, *sizeIdx);
 
    return dataWordCount;
-}
-
-/**
- *
- * @param XXX
- * @return XXX
- */
-extern int
-dmtxEncodeDataMatrix(DmtxEncode *encode, int inputSize, unsigned char *inputString, int sizeIdxRequest)
-{
-   int dataWordCount;
-   int sizeIdx;
-   unsigned char buf[4096];
-
-   /* XXX must fix ... will need to handle sizeIdx requests here because it is
-      needed by Encode...() (for triplet termination) */
-
-   /* Encode input string into data codewords */
-   sizeIdx = sizeIdxRequest;
-   dataWordCount = EncodeDataCodewords(buf, inputString, inputSize, encode->scheme, &sizeIdx);
-   if(dataWordCount <= 0)
-      exit(1);
-
-   /* EncodeDataCodewords() should have updated any auto sizeIdx to a real one */
-   assert(sizeIdx != DMTX_SYMBOL_SQUARE_AUTO && sizeIdx != DMTX_SYMBOL_RECT_AUTO);
-
-   /* Add pad characters to match a standard symbol size (whether smallest or requested) */
-   AddPadChars(buf, &dataWordCount, dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx));
-
-   /* XXX we can remove a lot of this redundant data */
-   encode->region.sizeIdx = sizeIdx;
-   encode->region.symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
-   encode->region.symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
-   encode->region.mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdx);
-   encode->region.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
-
-   /* Allocate memory for message and array */
-   encode->message = dmtxMessageInit(sizeIdx);
-   memcpy(encode->message->code, buf, dataWordCount);
-
-/* fprintf(stdout, "\n\nsize:    %dx%d w/ %d error codewords\n", rows, cols, errorWordLength(encode->region.sizeIdx)); */
-
-   /* Generate error correction codewords */
-   GenReedSolEcc(encode->message, encode->region.sizeIdx);
-
-   /* Module placement in region */
-   ModulePlacementEcc200(encode->message->array, encode->message->code, encode->region.sizeIdx, DMTX_MODULE_ON_RGB);
-
-   /* Allocate memory for the image to be generated */
-   /* XXX image = DmtxImageMalloc(width, height); */
-   encode->image = dmtxImageMalloc(
-         2 * encode->marginSize + (encode->region.symbolCols * encode->moduleSize),
-         2 * encode->marginSize + (encode->region.symbolRows * encode->moduleSize));
-
-   if(encode->image == NULL) {
-      perror("image malloc error");
-      exit(2);
-   }
-
-   /* Insert finder and aligment pattern modules */
-   PrintPattern(encode);
-
-   return DMTX_SUCCESS;
-}
-
-/**
- * 1) count how many codewords it would take to encode the whole thing
- * 2) take ceiling N of codeword count divided by 3
- * 3) using minimum symbol size that can accomodate N codewords:
- * 4) create several barcodes over iterations of increasing numbers of input codewords until you go one too far
- * 5) if codewords remain after filling R, G, and B barcodes then go back to 3 and try with next larger size
- * 6) take the 3 different images you created and write out a new barcode
- */
-extern int
-dmtxEncodeDataMosaic(DmtxEncode *encode, int inputSize, unsigned char *inputString, int sizeIdxRequest)
-{
-   int dataWordCount;
-   int tmpInputSize;
-   unsigned char *inputStart;
-   int splitInputSize[3];
-   int sizeIdx;
-   int splitSizeIdxAttempt, splitSizeIdxFirst, splitSizeIdxLast;
-   unsigned char buf[3][4096];
-   DmtxEncode *encodeGreen, *encodeBlue;
-   int row, col, mappingRows, mappingCols;
-
-   /* XXX we're going to force ascii until we fix the problem with C40/Text termination */
-   encode->scheme = DmtxSchemeEncodeAscii;
-
-   /* Encode full input string to establish baseline data codeword count */
-   sizeIdx = sizeIdxRequest;
-   /* XXX buf can be changed here to use all 3 buffers' length */
-   dataWordCount = EncodeDataCodewords(buf[0], inputString, inputSize, encode->scheme, &sizeIdx);
-   if(dataWordCount <= 0)
-      exit(1);
-
-   /* Use 1/3 (ceiling) of inputSize establish input size target */
-   tmpInputSize = (inputSize + 2) / 3;
-   splitInputSize[0] = tmpInputSize;
-   splitInputSize[1] = tmpInputSize;
-   splitInputSize[2] = inputSize - (splitInputSize[0] + splitInputSize[1]);
-   /* XXX clean up above lines later for corner cases */
-
-   /* Use 1/3 (floor) of dataWordCount establish first symbol size attempt */
-   splitSizeIdxFirst = FindCorrectBarcodeSize(tmpInputSize, sizeIdxRequest);
-
-   /* Set the last possible symbol size for this symbol shape or specific size request */
-   if(sizeIdxRequest == DMTX_SYMBOL_SQUARE_AUTO)
-      splitSizeIdxLast = DMTX_SYMBOL_SQUARE_COUNT - 1;
-   else if(sizeIdxRequest == DMTX_SYMBOL_RECT_AUTO)
-      splitSizeIdxLast = DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT - 1;
-   else
-      splitSizeIdxLast = splitSizeIdxFirst;
-
-   /* XXX would be nice if we could choose a size and then fill up each
-      layer as we go, but this can cause problems with all data fits on
-      first 2 layers.  Revisit this later after things look a bit cleaner. */
-
-   /* Try increasing symbol sizes until 3 of them can hold all input values */
-   for(splitSizeIdxAttempt = splitSizeIdxFirst; splitSizeIdxAttempt <= splitSizeIdxLast; splitSizeIdxAttempt++) {
-
-      assert(splitSizeIdxAttempt >= 0);
-
-      /* RED LAYER */
-      sizeIdx = splitSizeIdxAttempt;
-      inputStart = inputString;
-      EncodeDataCodewords(buf[0], inputStart, splitInputSize[0], encode->scheme, &sizeIdx);
-      if(sizeIdx != splitSizeIdxAttempt)
-         continue;
-
-      /* GREEN LAYER */
-      sizeIdx = splitSizeIdxAttempt;
-      inputStart += splitInputSize[0];
-      EncodeDataCodewords(buf[1], inputStart, splitInputSize[1], encode->scheme, &sizeIdx);
-      if(sizeIdx != splitSizeIdxAttempt)
-         continue;
-
-      /* BLUE LAYER */
-      sizeIdx = splitSizeIdxAttempt;
-      inputStart += splitInputSize[1];
-      EncodeDataCodewords(buf[2], inputStart, splitInputSize[2], encode->scheme, &sizeIdx);
-      if(sizeIdx != splitSizeIdxAttempt)
-         continue;
-
-      break;
-   }
-
-   /* Now we have the correct lengths for splitInputSize, and they all fit into the desired size */
-   encodeGreen = dmtxEncodeStructCreate();
-   encodeBlue = dmtxEncodeStructCreate();
-
-   *encodeGreen = *encode;
-   *encodeBlue = *encode;
-
-   /* First encode red to the main encode struct (image portion will be overwritten) */
-   inputStart = inputString;
-   dmtxEncodeDataMatrix(encode, splitInputSize[0], inputStart, splitSizeIdxAttempt);
-
-   inputStart += splitInputSize[0];
-   dmtxEncodeDataMatrix(encodeGreen, splitInputSize[1], inputStart, splitSizeIdxAttempt);
-
-   inputStart += splitInputSize[1];
-   dmtxEncodeDataMatrix(encodeBlue, splitInputSize[2], inputStart, splitSizeIdxAttempt);
-
-   mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, splitSizeIdxAttempt);
-   mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, splitSizeIdxAttempt);
-
-   memset(encode->message->array, 0x00, sizeof(unsigned char) * encode->region.mappingRows * encode->region.mappingCols);
-   ModulePlacementEcc200(encode->message->array, encode->message->code, encode->region.sizeIdx, DMTX_MODULE_ON_RED);
-
-   /* Data Mosaic will traverse this array multiple times -- reset
-      DMTX_MODULE_ASSIGNED and DMX_MODULE_VISITED bits before starting */
-   for(row = 0; row < mappingRows; row++) {
-      for(col = 0; col < mappingCols; col++) {
-         encode->message->array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
-      }
-   }
-
-   ModulePlacementEcc200(encode->message->array, encodeGreen->message->code, encode->region.sizeIdx, DMTX_MODULE_ON_GREEN);
-
-   /* Data Mosaic will traverse this array multiple times -- reset
-      DMTX_MODULE_ASSIGNED and DMX_MODULE_VISITED bits before starting */
-   for(row = 0; row < mappingRows; row++) {
-      for(col = 0; col < mappingCols; col++) {
-         encode->message->array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
-      }
-   }
-
-   ModulePlacementEcc200(encode->message->array, encodeBlue->message->code, encode->region.sizeIdx, DMTX_MODULE_ON_BLUE);
-
-   dmtxEncodeStructDestroy(&encodeGreen);
-   dmtxEncodeStructDestroy(&encodeBlue);
-
-   PrintPattern(encode);
-
-   return DMTX_SUCCESS;
 }
 
 /**
@@ -400,7 +392,7 @@ Randomize255State(unsigned char codewordValue, int codewordPosition)
  * @return XXX
  */
 static void
-PrintPattern(DmtxEncode *encode)
+PrintPattern(DmtxEncode *enc)
 {
    int i, j;
    int symbolRow, symbolCol;
@@ -411,16 +403,16 @@ PrintPattern(DmtxEncode *encode)
    DmtxPixel black;
    int moduleStatus;
 
-   txy = encode->marginSize;
-   sxy = 1.0/encode->moduleSize;
+   txy = enc->marginSize;
+   sxy = 1.0/enc->moduleSize;
 
    dmtxMatrix3Translate(m1, -txy, -txy);
    dmtxMatrix3Scale(m2, sxy, -sxy);
-   dmtxMatrix3Multiply(encode->xfrm, m1, m2);
+   dmtxMatrix3Multiply(enc->xfrm, m1, m2);
 
    dmtxMatrix3Translate(m1, txy, txy);
-   dmtxMatrix3Scale(m2, encode->moduleSize, encode->moduleSize);
-   dmtxMatrix3Multiply(encode->rxfrm, m2, m1);
+   dmtxMatrix3Scale(m2, enc->moduleSize, enc->moduleSize);
+   dmtxMatrix3Multiply(enc->rxfrm, m2, m1);
 
    memset(&black, 0x00, sizeof(DmtxPixel));
 
@@ -428,26 +420,26 @@ PrintPattern(DmtxEncode *encode)
       IMPORTANT: DmtxImage is stored with its origin at bottom-right
       (unlike common image file formats) to preserve "right-handed" 2D space */
 
-   memset(encode->image->pxl, 0xff, encode->image->width * encode->image->height * sizeof(DmtxPixel));
+   memset(enc->image->pxl, 0xff, enc->image->width * enc->image->height * sizeof(DmtxPixel));
 
-   for(symbolRow = 0; symbolRow < encode->region.symbolRows; symbolRow++) {
-      for(symbolCol = 0; symbolCol < encode->region.symbolCols; symbolCol++) {
+   for(symbolRow = 0; symbolRow < enc->region.symbolRows; symbolRow++) {
+      for(symbolCol = 0; symbolCol < enc->region.symbolCols; symbolCol++) {
 
          vIn.X = symbolCol;
          vIn.Y = symbolRow;
 
-         dmtxMatrix3VMultiply(&vOut, &vIn, encode->rxfrm);
+         dmtxMatrix3VMultiply(&vOut, &vIn, enc->rxfrm);
 
          pixelCol = (int)(vOut.X);
          pixelRow = (int)(vOut.Y);
 
-         moduleStatus = dmtxSymbolModuleStatus(encode->message, encode->region.sizeIdx, symbolRow, symbolCol);
+         moduleStatus = dmtxSymbolModuleStatus(enc->message, enc->region.sizeIdx, symbolRow, symbolCol);
 
-         for(i = pixelRow; i < pixelRow + encode->moduleSize; i++) {
-            for(j = pixelCol; j < pixelCol + encode->moduleSize; j++) {
-               encode->image->pxl[i * encode->image->width + j].R = (moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255;
-               encode->image->pxl[i * encode->image->width + j].G = (moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255;
-               encode->image->pxl[i * encode->image->width + j].B = (moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255;
+         for(i = pixelRow; i < pixelRow + enc->moduleSize; i++) {
+            for(j = pixelCol; j < pixelCol + enc->moduleSize; j++) {
+               enc->image->pxl[i * enc->image->width + j].R = (moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255;
+               enc->image->pxl[i * enc->image->width + j].G = (moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255;
+               enc->image->pxl[i * enc->image->width + j].B = (moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255;
             }
          }
 

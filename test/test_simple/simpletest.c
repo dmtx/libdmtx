@@ -31,7 +31,7 @@ int
 main(int argc, char **argv)
 {
    unsigned char testString[] = "30Q324343430794<OQQ";
-   DmtxEncode *encode;
+   DmtxEncode encode;
    DmtxImage *image;
    DmtxDecode decode;
    DmtxRegion region;
@@ -40,41 +40,39 @@ main(int argc, char **argv)
 
    fprintf(stdout, "input:  \"%s\"\n", testString);
 
-   /*
-    * 1) Write a new Data Matrix barcode image (keep in memory)
-    */
+   /* 1) Encode a new Data Matrix barcode image and keep in memory */
 
-   encode = dmtxEncodeStructCreate();
-   dmtxEncodeDataMatrix(encode, strlen((char *)testString), testString,
+   encode = dmtxEncodeStructInit();
+   dmtxEncodeDataMatrix(&encode, strlen((char *)testString), testString,
          DMTX_SYMBOL_SQUARE_AUTO);
 
-   /* Keep a copy of the new image before freeing DmtxEncode struct */
+   /* 2) Take a copy of the new image before freeing DmtxEncode struct */
 
-   image = dmtxImageMalloc(encode->image->width, encode->image->height);
-   memcpy(image->pxl, encode->image->pxl, image->width * image->height * sizeof(DmtxPixel));
+   image = dmtxImageMalloc(encode.image->width, encode.image->height);
+   memcpy(image->pxl, encode.image->pxl, image->width * image->height *
+         sizeof(DmtxPixel));
 
-   dmtxEncodeStructDestroy(&encode);
+   dmtxEncodeStructDeInit(&encode);
 
-   /*
-    * 2) Read the Data Matrix barcode from above
-    */
+   /* 3) Read back the Data Matrix barcode that was created above */
 
    p0.X = p0.Y = 0;
    p1.X = image->width - 1;
    p1.Y = image->height - 1;
-   decode = dmtxDecodeInitScan(image, p0, p1, 5);
 
-   region = dmtxFindNextRegion(&decode);
+   decode = dmtxDecodeStructInit(image, p0, p1, 5);
+
+   region = dmtxDecodeFindNextRegion(&decode);
    if(region.found == DMTX_REGION_EOF)
       exit(0);
 
    message = dmtxDecodeMatrixRegion(&decode, &region);
-
    fprintf(stdout, "output: \"");
    fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
    fprintf(stdout, "\"\n\n");
+   dmtxMessageFree(&message);
 
-   dmtxMessageDeInit(&message);
+   dmtxDecodeStructDeInit(&decode);
    dmtxImageFree(&image);
 
    exit(0);
