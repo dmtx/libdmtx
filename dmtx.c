@@ -33,6 +33,26 @@ Contact: mike@dragonflylogic.com
 #include "dmtx.h"
 #include "dmtxstatic.h"
 
+#ifndef CALLBACK_POINT_PLOT
+#define CALLBACK_POINT_PLOT(a,b,c,d) ((void) 0)
+#endif
+
+#ifndef CALLBACK_POINT_XFRM
+#define CALLBACK_POINT_XFRM(a,b,c,d) ((void) 0)
+#endif
+
+#ifndef CALLBACK_MODULE
+#define CALLBACK_MODULE(a,b,c,d,e) ((void) 0)
+#endif
+
+#ifndef CALLBACK_MATRIX
+#define CALLBACK_MATRIX(a,b) ((void) 0)
+#endif
+
+#ifndef CALLBACK_FINAL
+#define CALLBACK_FINAL(a,b) ((void) 0)
+#endif
+
 #include "dmtxscangrid.c"
 #include "dmtxregion.c"
 #include "dmtxdecode.c"
@@ -44,7 +64,6 @@ Contact: mike@dragonflylogic.com
 #include "dmtxmatrix3.c"
 #include "dmtxcolor3.c"
 #include "dmtximage.c"
-#include "dmtxcallback.c"
 
 extern char *
 dmtxVersion(void)

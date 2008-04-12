@@ -31,7 +31,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-check_PROGRAMS = gltest$(EXEEXT) gltest.debug$(EXEEXT)
+check_PROGRAMS = gltest$(EXEEXT)
 subdir = test/test_opengl
 DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -42,21 +42,12 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 am_gltest_OBJECTS = gltest.$(OBJEXT) callback.$(OBJEXT) \
-	display.$(OBJEXT) image.$(OBJEXT)
+	display.$(OBJEXT) image.$(OBJEXT) dmtx.$(OBJEXT)
 gltest_OBJECTS = $(am_gltest_OBJECTS)
 gltest_LDADD = $(LDADD)
-gltest_DEPENDENCIES = ../../libdmtx.la
 gltest_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(gltest_LDFLAGS) \
 	$(LDFLAGS) -o $@
-am_gltest_debug_OBJECTS = gltest.$(OBJEXT) callback.$(OBJEXT) \
-	display.$(OBJEXT) image.$(OBJEXT)
-gltest_debug_OBJECTS = $(am_gltest_debug_OBJECTS)
-gltest_debug_LDADD = $(LDADD)
-gltest_debug_DEPENDENCIES = ../../libdmtx.la
-gltest_debug_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(gltest_debug_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -69,8 +60,8 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(gltest_SOURCES) $(gltest_debug_SOURCES)
-DIST_SOURCES = $(gltest_SOURCES) $(gltest_debug_SOURCES)
+SOURCES = $(gltest_SOURCES)
+DIST_SOURCES = $(gltest_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -180,12 +171,9 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -I/usr/include/SDL
-gltest_SOURCES = gltest.c callback.c display.c image.c gltest.h callback.h display.h image.h
+AM_CPPFLAGS = -I/usr/include/SDL -I../..
+gltest_SOURCES = gltest.c callback.c display.c image.c dmtx.c
 gltest_LDFLAGS = -lm -lpng -lGL -lGLU -lSDL -lpthread
-gltest_debug_SOURCES = gltest.c callback.c display.c image.c gltest.h callback.h display.h image.h
-gltest_debug_LDFLAGS = -lm -lpng -lGL -lGLU -lSDL -lpthread -static
-LDADD = ../../libdmtx.la
 all: all-am
 
 .SUFFIXES:
@@ -229,9 +217,6 @@ clean-checkPROGRAMS:
 gltest$(EXEEXT): $(gltest_OBJECTS) $(gltest_DEPENDENCIES) 
 	@rm -f gltest$(EXEEXT)
 	$(gltest_LINK) $(gltest_OBJECTS) $(gltest_LDADD) $(LIBS)
-gltest.debug$(EXEEXT): $(gltest_debug_OBJECTS) $(gltest_debug_DEPENDENCIES) 
-	@rm -f gltest.debug$(EXEEXT)
-	$(gltest_debug_LINK) $(gltest_debug_OBJECTS) $(gltest_debug_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -241,6 +226,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/callback.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/display.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dmtx.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/image.Po@am__quote@
 

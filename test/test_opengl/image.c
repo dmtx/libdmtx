@@ -46,23 +46,21 @@ void captureImage(DmtxImage *captured)
  *
  *
  */
-int loadTextureImage(DmtxImage *image)
+int loadTextureImage(DmtxImage **image)
 {
    int error;
    char filepath[128];
 
-   if(image == NULL)
-      return 1; // Error
-
-   if(image->pxl != NULL)
-      free(image->pxl);
-
    strcpy(filepath, "../images_opengl/");
    strcat(filepath, gFilename[gFileIdx]);
    fprintf(stdout, "Opening %s\n", filepath);
-   error = loadPng(filepath, image);
-   if(error)
-      exit(error);
+
+   dmtxImageFree(image);
+
+   *image = loadPng(filepath);
+   if(*image == NULL)
+      exit(1);
+
    gFileIdx++;
    if(gFileIdx == gFileCount)
       gFileIdx = 0;
@@ -78,7 +76,7 @@ int loadTextureImage(DmtxImage *image)
    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
    /* Read barcode image */
-   gluBuild2DMipmaps(GL_TEXTURE_2D, 3, image->width, image->height, GL_RGB, GL_UNSIGNED_BYTE, image->pxl);
+   gluBuild2DMipmaps(GL_TEXTURE_2D, 3, (*image)->width, (*image)->height, GL_RGB, GL_UNSIGNED_BYTE, (*image)->pxl);
 
    /* Create the barcode list */
    barcodeList = glGenLists(1);
@@ -93,7 +91,7 @@ int loadTextureImage(DmtxImage *image)
  *
  *
  */
-int loadPng(char *filename, DmtxImage *image)
+DmtxImage *loadPng(char *filename)
 {
    png_byte        pngHeader[8];
    FILE            *fp;
@@ -106,37 +104,38 @@ int loadPng(char *filename, DmtxImage *image)
    png_infop       info_ptr;
    png_infop       end_info;
    png_bytepp      row_pointers;
+   DmtxImage       *image;
 
    fp = fopen(filename, "rb");
    if(!fp)
-      return IMAGE_ERROR;
+      return NULL;
 
    fread(pngHeader, 1, headerTestSize, fp);
    isPng = !png_sig_cmp(pngHeader, 0, headerTestSize);
    if(!isPng)
-      return IMAGE_NOT_PNG;
+      return NULL;
 
    png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
    if(!png_ptr)
-      return IMAGE_ERROR;
+      return NULL;
 
    info_ptr = png_create_info_struct(png_ptr);
    if(!info_ptr) {
       png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-      return IMAGE_ERROR;
+      return NULL;
    }
 
    end_info = png_create_info_struct(png_ptr);
    if(!end_info) {
       png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
-      return IMAGE_ERROR;
+      return NULL;
    }
 
    if(setjmp(png_jmpbuf(png_ptr))) {
       png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
       fclose(fp);
-      return IMAGE_ERROR;
+      return NULL;
    }
 
    png_init_io(png_ptr, fp);
@@ -179,17 +178,13 @@ int loadPng(char *filename, DmtxImage *image)
 
    // Use PNG information to populate DmtxImage information
    image = dmtxImageMalloc(width, height);
-/*
-   image->width = width;
-   image->height = height;
+   if(image == NULL)
+      return NULL;
 
-   image->pxl = (DmtxPixel *)malloc(image->width * image->height * sizeof(DmtxPixel));
-   if(image->pxl == NULL)
-      return IMAGE_ERROR;
-*/
-
-   for(row = 0; row < image->height; row++)
-      memcpy(image->pxl + (row * image->width), row_pointers[image->height - row - 1], image->width * sizeof(DmtxPixel));
+   for(row = 0; row < image->height; row++) {
+      memcpy(image->pxl + (row * image->width), row_pointers[image->height - row - 1],
+            image->width * sizeof(DmtxPixel));
+   }
 
    for(row = 0; row < height; row++) {
       png_free(png_ptr, row_pointers[row]);
@@ -198,7 +193,7 @@ int loadPng(char *filename, DmtxImage *image)
 
    fclose(fp);
 
-   return IMAGE_NO_ERROR;
+   return image;
 }
 
 /**

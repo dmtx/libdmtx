@@ -362,7 +362,7 @@ FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forwa
          p.Y = edge.yInt + edge.yFrac;
 
          /* Outline of follower in 2nd pane */
-/*       CALLBACK_DECODE_FUNC4(plotPointCallback, dec, p, 1, 1, DMTX_DISPLAY_POINT); */
+         CALLBACK_POINT_PLOT(p, 1, 1, DMTX_DISPLAY_POINT);
 
          if(edge.compass.magnitude > 0.50 * compass.magnitude)
             pSoft = p;
@@ -374,7 +374,7 @@ FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forwa
       yFollow = (int)(edge.yInt + edge.yFrac + 0.5) + yIncrement;
    }
 
-/* CALLBACK_DECODE_FUNC4(plotPointCallback, dec, pHard, 1, 1, DMTX_DISPLAY_SQUARE); */
+/* CALLBACK_POINT_PLOT(pHard, 1, 4, DMTX_DISPLAY_SQUARE); */
 
    dmtxVector2Sub(&pStep, &pHard, &pStart);
    if(dmtxVector2Mag(&pStep) < 4)
@@ -1171,7 +1171,7 @@ StepAlongEdge(DmtxImage *image, DmtxRegion *reg, DmtxVector2 *pProgress,
    /* If pixel shows a weak edge in any direction then advance forward */
    if(compass.magnitude < 60) {
       dmtxVector2AddTo(pProgress, &forward);
-/*    CALLBACK_DECODE_FUNC4(plotPointCallback, dec, *pProgress, 1, 1, DMTX_DISPLAY_POINT); */
+/*    CALLBACK_POINT_PLOT(*pProgress, 1, 5, DMTX_DISPLAY_POINT); */
       return DMTX_EDGE_STEP_TOO_WEAK;
    }
 
@@ -1218,7 +1218,7 @@ StepAlongEdge(DmtxImage *image, DmtxRegion *reg, DmtxVector2 *pProgress,
       dmtxVector2ScaleBy(&vTmp, frac);
       dmtxVector2AddTo(pExact, &vTmp);
 
-/*    CALLBACK_DECODE_FUNC4(plotPointCallback, dec, *pExact, 2, 1, DMTX_DISPLAY_POINT); */
+/*    CALLBACK_POINT_PLOT(*pExact, 2, 1, DMTX_DISPLAY_POINT); */
       return DMTX_EDGE_STEP_EXACT;
    }
 

@@ -270,15 +270,7 @@ typedef struct DmtxDecode_struct DmtxDecode;
 struct DmtxDecode_struct {
    DmtxImage *image;
    DmtxScanGrid grid;
-
    int mosaic;
-   void (* buildMatrixCallback2)(DmtxRegion *);
-   void (* buildMatrixCallback3)(DmtxMatrix3);
-   void (* buildMatrixCallback4)(DmtxMatrix3);
-   void (* plotPointCallback)(DmtxVector2, int, int, int);
-   void (* xfrmPlotPointCallback)(DmtxVector2, DmtxMatrix3, int, int);
-   void (* finalCallback)(DmtxDecode *, DmtxRegion *);
-   void (* plotModuleCallback)(DmtxDecode *, DmtxRegion *, int, int, DmtxColor3);
 };
 
 typedef struct DmtxEncode_struct {
@@ -390,14 +382,6 @@ extern double dmtxColor3Mag(DmtxColor3 *v);
 extern double dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern double dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
-
-extern void dmtxSetBuildMatrixCallback2(DmtxDecode *decode, void (* func)(DmtxRegion *));
-extern void dmtxSetBuildMatrixCallback3(DmtxDecode *decode, void (* func)(DmtxMatrix3));
-extern void dmtxSetBuildMatrixCallback4(DmtxDecode *decode, void (* func)(DmtxMatrix3));
-extern void dmtxSetPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVector2, int, int, int));
-extern void dmtxSetXfrmPlotPointCallback(DmtxDecode *decode, void (* func)(DmtxVector2, DmtxMatrix3, int, int));
-extern void dmtxSetFinalCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxRegion *));
-extern void dmtxSetPlotModuleCallback(DmtxDecode *decode, void (* func)(DmtxDecode *, DmtxRegion *, int, int, DmtxColor3));
 
 extern int dmtxSymbolModuleStatus(DmtxMessage *mapping, int sizeIdx, int row, int col);
 extern int dmtxGetSymbolAttribute(int attribute, int sizeIdx);

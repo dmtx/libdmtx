@@ -34,6 +34,8 @@ dmtxDecodeStructInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int min
    memset(&dec, 0x00, sizeof(DmtxDecode));
 
    dec.image = image;
+   memset(dec.image->compass, 0x00, image->height * image->width * sizeof(DmtxCompassEdge));
+
    dec.grid = InitScanGrid(image, p0, p1, minGapSize);
 
    return dec;

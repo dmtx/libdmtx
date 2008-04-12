@@ -221,12 +221,11 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 lib_LTLIBRARIES = libdmtx.la
 libdmtx_la_SOURCES = dmtx.c dmtxstatic.h
-EXTRA_libdmtx_la_SOURCES = dmtxcallback.c dmtxcolor3.c dmtxdecode.c \
-	dmtxencode.c dmtximage.c dmtxmatrix3.c dmtxplacemod.c dmtxreedsol.c \
-	dmtxregion.c dmtxscangrid.c dmtxsymbol.c dmtxvector2.c
+EXTRA_libdmtx_la_SOURCES = dmtxcolor3.c dmtxdecode.c dmtxencode.c dmtximage.c \
+	dmtxmatrix3.c dmtxplacemod.c dmtxreedsol.c dmtxregion.c dmtxscangrid.c \
+	dmtxsymbol.c dmtxvector2.c
 
 include_HEADERS = dmtx.h
-libdmtx_la_CPPFLAGS = -DCALLBACKS
 libdmtx_la_CFLAGS = -Wall -pedantic
 SUBDIRS = . util test
 dist_man_MANS = man/libdmtx.3 man/dmtxread.1 man/dmtxwrite.1
@@ -337,7 +336,6 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdmtx_la-dmtx.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdmtx_la-dmtxcallback.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdmtx_la-dmtxcolor3.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdmtx_la-dmtxdecode.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdmtx_la-dmtxencode.Plo@am__quote@
@@ -372,95 +370,88 @@ distclean-compile:
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
 libdmtx_la-dmtx.lo: dmtx.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtx.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtx.Tpo -c -o libdmtx_la-dmtx.lo `test -f 'dmtx.c' || echo '$(srcdir)/'`dmtx.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtx.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtx.Tpo -c -o libdmtx_la-dmtx.lo `test -f 'dmtx.c' || echo '$(srcdir)/'`dmtx.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtx.Tpo $(DEPDIR)/libdmtx_la-dmtx.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtx.c' object='libdmtx_la-dmtx.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtx.lo `test -f 'dmtx.c' || echo '$(srcdir)/'`dmtx.c
-
-libdmtx_la-dmtxcallback.lo: dmtxcallback.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxcallback.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxcallback.Tpo -c -o libdmtx_la-dmtxcallback.lo `test -f 'dmtxcallback.c' || echo '$(srcdir)/'`dmtxcallback.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxcallback.Tpo $(DEPDIR)/libdmtx_la-dmtxcallback.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxcallback.c' object='libdmtx_la-dmtxcallback.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxcallback.lo `test -f 'dmtxcallback.c' || echo '$(srcdir)/'`dmtxcallback.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtx.lo `test -f 'dmtx.c' || echo '$(srcdir)/'`dmtx.c
 
 libdmtx_la-dmtxcolor3.lo: dmtxcolor3.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxcolor3.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxcolor3.Tpo -c -o libdmtx_la-dmtxcolor3.lo `test -f 'dmtxcolor3.c' || echo '$(srcdir)/'`dmtxcolor3.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxcolor3.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxcolor3.Tpo -c -o libdmtx_la-dmtxcolor3.lo `test -f 'dmtxcolor3.c' || echo '$(srcdir)/'`dmtxcolor3.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxcolor3.Tpo $(DEPDIR)/libdmtx_la-dmtxcolor3.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxcolor3.c' object='libdmtx_la-dmtxcolor3.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxcolor3.lo `test -f 'dmtxcolor3.c' || echo '$(srcdir)/'`dmtxcolor3.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxcolor3.lo `test -f 'dmtxcolor3.c' || echo '$(srcdir)/'`dmtxcolor3.c
 
 libdmtx_la-dmtxdecode.lo: dmtxdecode.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxdecode.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxdecode.Tpo -c -o libdmtx_la-dmtxdecode.lo `test -f 'dmtxdecode.c' || echo '$(srcdir)/'`dmtxdecode.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxdecode.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxdecode.Tpo -c -o libdmtx_la-dmtxdecode.lo `test -f 'dmtxdecode.c' || echo '$(srcdir)/'`dmtxdecode.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxdecode.Tpo $(DEPDIR)/libdmtx_la-dmtxdecode.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxdecode.c' object='libdmtx_la-dmtxdecode.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxdecode.lo `test -f 'dmtxdecode.c' || echo '$(srcdir)/'`dmtxdecode.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxdecode.lo `test -f 'dmtxdecode.c' || echo '$(srcdir)/'`dmtxdecode.c
 
 libdmtx_la-dmtxencode.lo: dmtxencode.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxencode.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxencode.Tpo -c -o libdmtx_la-dmtxencode.lo `test -f 'dmtxencode.c' || echo '$(srcdir)/'`dmtxencode.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxencode.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxencode.Tpo -c -o libdmtx_la-dmtxencode.lo `test -f 'dmtxencode.c' || echo '$(srcdir)/'`dmtxencode.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxencode.Tpo $(DEPDIR)/libdmtx_la-dmtxencode.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxencode.c' object='libdmtx_la-dmtxencode.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxencode.lo `test -f 'dmtxencode.c' || echo '$(srcdir)/'`dmtxencode.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxencode.lo `test -f 'dmtxencode.c' || echo '$(srcdir)/'`dmtxencode.c
 
 libdmtx_la-dmtximage.lo: dmtximage.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtximage.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtximage.Tpo -c -o libdmtx_la-dmtximage.lo `test -f 'dmtximage.c' || echo '$(srcdir)/'`dmtximage.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtximage.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtximage.Tpo -c -o libdmtx_la-dmtximage.lo `test -f 'dmtximage.c' || echo '$(srcdir)/'`dmtximage.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtximage.Tpo $(DEPDIR)/libdmtx_la-dmtximage.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtximage.c' object='libdmtx_la-dmtximage.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtximage.lo `test -f 'dmtximage.c' || echo '$(srcdir)/'`dmtximage.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtximage.lo `test -f 'dmtximage.c' || echo '$(srcdir)/'`dmtximage.c
 
 libdmtx_la-dmtxmatrix3.lo: dmtxmatrix3.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxmatrix3.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxmatrix3.Tpo -c -o libdmtx_la-dmtxmatrix3.lo `test -f 'dmtxmatrix3.c' || echo '$(srcdir)/'`dmtxmatrix3.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxmatrix3.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxmatrix3.Tpo -c -o libdmtx_la-dmtxmatrix3.lo `test -f 'dmtxmatrix3.c' || echo '$(srcdir)/'`dmtxmatrix3.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxmatrix3.Tpo $(DEPDIR)/libdmtx_la-dmtxmatrix3.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxmatrix3.c' object='libdmtx_la-dmtxmatrix3.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxmatrix3.lo `test -f 'dmtxmatrix3.c' || echo '$(srcdir)/'`dmtxmatrix3.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxmatrix3.lo `test -f 'dmtxmatrix3.c' || echo '$(srcdir)/'`dmtxmatrix3.c
 
 libdmtx_la-dmtxplacemod.lo: dmtxplacemod.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxplacemod.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxplacemod.Tpo -c -o libdmtx_la-dmtxplacemod.lo `test -f 'dmtxplacemod.c' || echo '$(srcdir)/'`dmtxplacemod.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxplacemod.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxplacemod.Tpo -c -o libdmtx_la-dmtxplacemod.lo `test -f 'dmtxplacemod.c' || echo '$(srcdir)/'`dmtxplacemod.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxplacemod.Tpo $(DEPDIR)/libdmtx_la-dmtxplacemod.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxplacemod.c' object='libdmtx_la-dmtxplacemod.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxplacemod.lo `test -f 'dmtxplacemod.c' || echo '$(srcdir)/'`dmtxplacemod.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxplacemod.lo `test -f 'dmtxplacemod.c' || echo '$(srcdir)/'`dmtxplacemod.c
 
 libdmtx_la-dmtxreedsol.lo: dmtxreedsol.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxreedsol.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxreedsol.Tpo -c -o libdmtx_la-dmtxreedsol.lo `test -f 'dmtxreedsol.c' || echo '$(srcdir)/'`dmtxreedsol.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxreedsol.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxreedsol.Tpo -c -o libdmtx_la-dmtxreedsol.lo `test -f 'dmtxreedsol.c' || echo '$(srcdir)/'`dmtxreedsol.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxreedsol.Tpo $(DEPDIR)/libdmtx_la-dmtxreedsol.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxreedsol.c' object='libdmtx_la-dmtxreedsol.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxreedsol.lo `test -f 'dmtxreedsol.c' || echo '$(srcdir)/'`dmtxreedsol.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxreedsol.lo `test -f 'dmtxreedsol.c' || echo '$(srcdir)/'`dmtxreedsol.c
 
 libdmtx_la-dmtxregion.lo: dmtxregion.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxregion.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxregion.Tpo -c -o libdmtx_la-dmtxregion.lo `test -f 'dmtxregion.c' || echo '$(srcdir)/'`dmtxregion.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxregion.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxregion.Tpo -c -o libdmtx_la-dmtxregion.lo `test -f 'dmtxregion.c' || echo '$(srcdir)/'`dmtxregion.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxregion.Tpo $(DEPDIR)/libdmtx_la-dmtxregion.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxregion.c' object='libdmtx_la-dmtxregion.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxregion.lo `test -f 'dmtxregion.c' || echo '$(srcdir)/'`dmtxregion.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxregion.lo `test -f 'dmtxregion.c' || echo '$(srcdir)/'`dmtxregion.c
 
 libdmtx_la-dmtxscangrid.lo: dmtxscangrid.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxscangrid.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxscangrid.Tpo -c -o libdmtx_la-dmtxscangrid.lo `test -f 'dmtxscangrid.c' || echo '$(srcdir)/'`dmtxscangrid.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxscangrid.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxscangrid.Tpo -c -o libdmtx_la-dmtxscangrid.lo `test -f 'dmtxscangrid.c' || echo '$(srcdir)/'`dmtxscangrid.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxscangrid.Tpo $(DEPDIR)/libdmtx_la-dmtxscangrid.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxscangrid.c' object='libdmtx_la-dmtxscangrid.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxscangrid.lo `test -f 'dmtxscangrid.c' || echo '$(srcdir)/'`dmtxscangrid.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxscangrid.lo `test -f 'dmtxscangrid.c' || echo '$(srcdir)/'`dmtxscangrid.c
 
 libdmtx_la-dmtxsymbol.lo: dmtxsymbol.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxsymbol.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxsymbol.Tpo -c -o libdmtx_la-dmtxsymbol.lo `test -f 'dmtxsymbol.c' || echo '$(srcdir)/'`dmtxsymbol.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxsymbol.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxsymbol.Tpo -c -o libdmtx_la-dmtxsymbol.lo `test -f 'dmtxsymbol.c' || echo '$(srcdir)/'`dmtxsymbol.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxsymbol.Tpo $(DEPDIR)/libdmtx_la-dmtxsymbol.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxsymbol.c' object='libdmtx_la-dmtxsymbol.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxsymbol.lo `test -f 'dmtxsymbol.c' || echo '$(srcdir)/'`dmtxsymbol.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxsymbol.lo `test -f 'dmtxsymbol.c' || echo '$(srcdir)/'`dmtxsymbol.c
 
 libdmtx_la-dmtxvector2.lo: dmtxvector2.c
-@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxvector2.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxvector2.Tpo -c -o libdmtx_la-dmtxvector2.lo `test -f 'dmtxvector2.c' || echo '$(srcdir)/'`dmtxvector2.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxvector2.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxvector2.Tpo -c -o libdmtx_la-dmtxvector2.lo `test -f 'dmtxvector2.c' || echo '$(srcdir)/'`dmtxvector2.c
 @am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxvector2.Tpo $(DEPDIR)/libdmtx_la-dmtxvector2.Plo
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxvector2.c' object='libdmtx_la-dmtxvector2.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libdmtx_la_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxvector2.lo `test -f 'dmtxvector2.c' || echo '$(srcdir)/'`dmtxvector2.c
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxvector2.lo `test -f 'dmtxvector2.c' || echo '$(srcdir)/'`dmtxvector2.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

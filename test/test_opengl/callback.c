@@ -32,87 +32,6 @@ Contact: mblaughton@users.sourceforge.net
  *
  *
  */
-/*
-void CrossScanCallback(DmtxScanRange *range, DmtxGradient *gradient, DmtxEdgeScan *scan)
-{
-   if(range->dir & DmtxDirHorizontal)
-      plotPoint(&passOneImage, range->lineNbr, scan->edge.offset + scan->subPixelOffset, ColorWhite);
-   else
-      plotPoint(&passOneImage, scan->edge.offset + scan->subPixelOffset, range->lineNbr, ColorWhite);
-}
-*/
-
-/**
- *
- *
- */
-/*
-void FollowScanCallback(DmtxEdgeFollower *follower)
-{
-   int color;
-
-   switch(follower->dir) {
-      case DmtxDirUp:
-         color = ColorRed;
-         break;
-      case DmtxDirDown:
-         color = ColorGreen;
-         break;
-      case DmtxDirLeft:
-         color = ColorBlue;
-         break;
-      case DmtxDirRight:
-         color = ColorYellow;
-         break;
-      default:
-         color = ColorWhite;
-         break;
-   }
-
-   if(follower->dir & DmtxDirVertical)
-      plotPoint(&passOneImage, follower->paraOffset, follower->perpOffset, color);
-   else
-      plotPoint(&passOneImage, follower->perpOffset, follower->paraOffset, color);
-}
-*/
-
-/**
- *
- *
- */
-/*
-void FinderBarCallback(DmtxRay2 *ray)
-{
-   DmtxVector2 p0, p1, pTmp;
-
-   if(ray->isDefined == 0)
-      return;
-
-   dmtxVector2Add(&p0, &(ray->p), dmtxVector2Scale(&pTmp, &(ray->v), ray->tMin));
-   dmtxVector2Add(&p1, &(ray->p), dmtxVector2Scale(&pTmp, &(ray->v), ray->tMax));
-
-   glViewport(646, 324, 320, 320);
-   glMatrixMode(GL_PROJECTION);
-   glLoadIdentity();
-   glOrtho(-0.5, 319.5, -0.5, 319.5, -1.0, 10.0);
-   glMatrixMode(GL_MODELVIEW);
-   glLoadIdentity();
-
-   glDisable(GL_TEXTURE_2D);
-   glPolygonMode(GL_FRONT, GL_LINE);
-   glColor3f(1.0, 1.0, 1.0);
-
-   glBegin(GL_LINES);
-   glVertex2f(p0.X, p0.Y);
-   glVertex2f(p1.X, p1.Y);
-   glEnd();
-}
-*/
-
-/**
- *
- *
- */
 void BuildMatrixCallback2(DmtxRegion *region)
 {
    int i, j;
@@ -135,11 +54,11 @@ void BuildMatrixCallback2(DmtxRegion *region)
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
          dmtxColor3FromImage2(&clr, captured, point);
-         dmtxPixelFromColor3(&(passTwoImage.pxl[i*320+j]), &clr);
+         dmtxPixelFromColor3(&(passTwoImage->pxl[i*320+j]), &clr);
       }
    }
 
-   DrawPane3(NULL, &passTwoImage);
+   DrawPane3(NULL, passTwoImage);
 
    glViewport(646, 324, 320, 320);
    glMatrixMode(GL_PROJECTION);
@@ -184,11 +103,11 @@ void BuildMatrixCallback3(DmtxMatrix3 mChainInv)
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
          dmtxColor3FromImage2(&clr, captured, point);
-         dmtxPixelFromColor3(&(passTwoImage.pxl[i*320+j]), &clr);
+         dmtxPixelFromColor3(&(passTwoImage->pxl[i*320+j]), &clr);
       }
    }
 
-   DrawPane4(NULL, &passTwoImage);
+   DrawPane4(NULL, passTwoImage);
 
    glViewport(2, 2, 320, 320);
    glMatrixMode(GL_PROJECTION);
@@ -239,11 +158,11 @@ void BuildMatrixCallback4(DmtxMatrix3 mChainInv)
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
          dmtxColor3FromImage2(&clr, captured, point);
-         dmtxPixelFromColor3(&(passTwoImage.pxl[i*320+j]), &clr);
+         dmtxPixelFromColor3(&(passTwoImage->pxl[i*320+j]), &clr);
       }
    }
 
-   DrawPane5(NULL, &passTwoImage);
+   DrawPane5(NULL, passTwoImage);
 
    glViewport(324, 2, 320, 320);
    glMatrixMode(GL_PROJECTION);
@@ -276,7 +195,7 @@ void PlotPointCallback(DmtxVector2 point, int colorInt, int paneNbr, int dispTyp
          break;
       case 2:
          glViewport(324, 324, 320, 320);
-         image = &passOneImage;
+/*       image = passOneImage; */
          break;
       case 3:
          glViewport(646, 324, 320, 320);
@@ -393,29 +312,6 @@ void XfrmPlotPointCallback(DmtxVector2 point, DmtxMatrix3 xfrm, int paneNbr, int
  *
  *
  */
-void FinalCallback(DmtxDecode *decode, DmtxRegion *region)
-{
-   int row, col;
-   int symbolRows, symbolCols;
-   int moduleStatus;
-   DmtxColor3 black = { 0.0, 0.0, 0.0 };
-   DmtxColor3 white = { 255.0, 255.0, 255.0 };
-
-   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
-   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
-
-   for(row = 0; row < symbolRows; row++) {
-      for(col = 0; col < symbolCols; col++) {
-/*       moduleStatus = dmtxSymbolModuleStatus(message, region->sizeIdx, row, col); */
-         PlotModuleCallback(decode, region, row, col, (moduleStatus & DMTX_MODULE_ON_RGB) ? black : white);
-      }
-   }
-}
-
-/**
- *
- *
- */
 void PlotModuleCallback(DmtxDecode *info, DmtxRegion *region, int row, int col, DmtxColor3 color)
 {
    int modSize, halfModsize, padSize;
@@ -447,4 +343,27 @@ void PlotModuleCallback(DmtxDecode *info, DmtxRegion *region, int row, int col, 
    glVertex2f(modSize*(col+0.5) + padSize + halfModsize, modSize*(row+0.5) + padSize + halfModsize);
    glVertex2f(modSize*(col+0.5) + padSize - halfModsize, modSize*(row+0.5) + padSize + halfModsize);
    glEnd();
+}
+
+/**
+ *
+ *
+ */
+void FinalCallback(DmtxDecode *decode, DmtxRegion *region)
+{
+   int row, col;
+   int symbolRows, symbolCols;
+   int moduleStatus;
+   DmtxColor3 black = { 0.0, 0.0, 0.0 };
+   DmtxColor3 white = { 255.0, 255.0, 255.0 };
+
+   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
+   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
+
+   for(row = 0; row < symbolRows; row++) {
+      for(col = 0; col < symbolCols; col++) {
+/*       moduleStatus = dmtxSymbolModuleStatus(message, region->sizeIdx, row, col); */
+         PlotModuleCallback(decode, region, row, col, (moduleStatus & DMTX_MODULE_ON_RGB) ? black : white);
+      }
+   }
 }

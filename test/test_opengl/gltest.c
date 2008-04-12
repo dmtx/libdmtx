@@ -35,16 +35,16 @@ Contact: mblaughton@users.sourceforge.net
 #define MIN(x,y) ((x < y) ? x : y)
 #define MAX(x,y) ((x > y) ? x : y)
 
-GLfloat       view_rotx = 0.0, view_roty = 0.0, view_rotz = 0.0;
-GLfloat       angle = 0.0;
+GLfloat view_rotx = 0.0, view_roty = 0.0, view_rotz = 0.0;
+GLfloat angle = 0.0;
 
-GLuint        barcodeTexture;
-GLint         barcodeList;
+GLuint barcodeTexture;
+GLint barcodeList;
 
-DmtxImage     *captured;
-DmtxImage     *textureImage;
-DmtxImage     *passOneImage;
-DmtxImage     *passTwoImage;
+DmtxImage *textureImage = NULL;
+DmtxImage *captured = NULL;
+DmtxImage *passOneImage = NULL;
+DmtxImage *passTwoImage = NULL;
 
 char *gFilename[] = { "test_image18.png"
                     , "test_image16.png"
@@ -76,37 +76,23 @@ int main(int argc, char **argv)
    int             i;
    int             count;
    int             done;
-   int             vScanGap, hScanGap;
-   DmtxDecode      decode;
    SDL_Event       event;
    SDL_Surface     *screen;
    unsigned char   outputString[1024];
-   DmtxRegion *region;
    DmtxPixelLoc    p0, p1;
-
-   dmtxSetPlotPointCallback(&decode, &PlotPointCallback);
-   dmtxSetXfrmPlotPointCallback(&decode, &XfrmPlotPointCallback);
-   dmtxSetPlotModuleCallback(&decode, &PlotModuleCallback);
-/* dmtxSetCrossScanCallback(&decode, &CrossScanCallback); */
-/* dmtxSetFollowScanCallback(&decode, &FollowScanCallback); */
-   dmtxSetBuildMatrixCallback2(&decode, &BuildMatrixCallback2);
-   dmtxSetBuildMatrixCallback3(&decode, &BuildMatrixCallback3);
-   dmtxSetBuildMatrixCallback4(&decode, &BuildMatrixCallback4);
-   dmtxSetFinalCallback(&decode, &FinalCallback);
+   DmtxDecode      decode;
+   DmtxRegion      region;
+   DmtxMessage     *message;
 
    // Initialize display window
    screen = initDisplay();
 
    // Load input image to DmtxImage
-   loadTextureImage(textureImage);
+   loadTextureImage(&textureImage);
 
    captured = dmtxImageMalloc(320, 320);
    if(captured == NULL)
       exit(4);
-
-   p0.X = p0.Y = 0;
-   p1.X = captured->width - 1;
-   p1.Y = captured->height - 1;
 
    passOneImage = dmtxImageMalloc(320, 320);
    if(passOneImage == NULL)
@@ -116,10 +102,13 @@ int main(int argc, char **argv)
    if(passTwoImage == NULL)
       exit(6);
 
+   p0.X = p0.Y = 0;
+   p1.X = captured->width - 1;
+   p1.Y = captured->height - 1;
+
    done = 0;
    while(!done) {
 
-      /* Generate input image through input events and OpenGL routines */
       SDL_Delay(50);
 
       while(SDL_PollEvent(&event))
@@ -134,28 +123,34 @@ int main(int argc, char **argv)
       memset(passOneImage->pxl, 0x00, passOneImage->width * passOneImage->height * sizeof(DmtxPixel));
       memset(passTwoImage->pxl, 0x00, passTwoImage->width * passTwoImage->height * sizeof(DmtxPixel));
 
-      /* Erase Data Matrix list from previous iteration and start new */
-      decode = dmtxDecodeStructInit(captured, p0, p1, 100);
+      /* Start fresh scan */
+      decode = dmtxDecodeStructInit(captured, p0, p1, 20);
 
-      dmtxDecodeFindNextRegion(&decode);
+      for(;;) {
 
-/*
-XXX put this back in after it compiles
-         region = dmtxDecodeGetMatrix(&decode, 0);
-         memset(outputString, 0x00, 1024);
-         strncpy((char *)outputString, (const char *)region->output, MIN(region->outputIdx, 1023));
-         fprintf(stdout, "%s\n", outputString);
-*/
+         region = dmtxDecodeFindNextRegion(&decode);
+         if(region.found == DMTX_REGION_EOF)
+            break;
+
+         message = dmtxDecodeMatrixRegion(&decode, &region);
+         if(message == NULL)
+            continue;
+
+         fwrite(message->output, sizeof(unsigned char), message->outputSize, stdout);
+         fputc('\n', stdout);
+
+         dmtxMessageFree(&message);
+         break;
+      }
 
       DrawBorders(screen);
-      DrawPane2(screen, passOneImage);
-/*    DrawPane4(screen, passTwoImage); */
+//    DrawPane2(screen, passOneImage);
+//    DrawPane4(screen, passTwoImage);
 
       SDL_GL_SwapBuffers();
    }
 
    dmtxImageFree(&textureImage);
-
    dmtxDecodeStructDeInit(&decode);
 
    exit(0);

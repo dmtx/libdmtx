@@ -37,8 +37,8 @@ typedef enum {
 } ColorEnum;
 
 void captureImage(DmtxImage *image);
-int loadTextureImage(DmtxImage *image);
-int loadPng(char *filename, DmtxImage *image);
+int loadTextureImage(DmtxImage **image);
+DmtxImage *loadPng(char *filename);
 void plotPoint(DmtxImage *image, float rowFloat, float colFloat, int targetColor);
 int clampRGB(float color);
 

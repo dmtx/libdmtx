@@ -39,9 +39,9 @@ extern GLuint        barcodeTexture;
 extern GLint         barcodeList;
 
 extern DmtxImage     *captured;
-extern DmtxImage     textureImage;
-extern DmtxImage     passOneImage;
-extern DmtxImage     passTwoImage;
+extern DmtxImage     *textureImage;
+extern DmtxImage     *passOneImage;
+extern DmtxImage     *passTwoImage;
 
 extern char *gFilename[];
 extern int gFileIdx;

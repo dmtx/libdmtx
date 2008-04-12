@@ -22,20 +22,6 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
-#ifdef CALLBACKS
-#define CALLBACK_DECODE_FUNC1(f,d,p1)             if(d && d->f) (*(d->f))(p1)
-#define CALLBACK_DECODE_FUNC2(f,d,p1,p2)          if(d && d->f) (*(d->f))(p1,p2)
-#define CALLBACK_DECODE_FUNC3(f,d,p1,p2,p3)       if(d && d->f) (*(d->f))(p1,p2,p3)
-#define CALLBACK_DECODE_FUNC4(f,d,p1,p2,p3,p4)    if(d && d->f) (*(d->f))(p1,p2,p3,p4)
-#define CALLBACK_DECODE_FUNC5(f,d,p1,p2,p3,p4,p5) if(d && d->f) (*(d->f))(p1,p2,p3,p4,p5)
-#else
-#define CALLBACK_DECODE_FUNC1(f,d,p1)
-#define CALLBACK_DECODE_FUNC2(f,d,p1,p2)
-#define CALLBACK_DECODE_FUNC3(f,d,p1,p2,p3)
-#define CALLBACK_DECODE_FUNC4(f,d,p1,p2,p3,p4)
-#define CALLBACK_DECODE_FUNC5(f,d,p1,p2,p3,p4,p5)
-#endif
-
 #define DMTX_END_OF_RANGE      5
 #define DMTX_EDGE_FOUND        6
 

@@ -1,11 +1,6 @@
-check_PROGRAMS = gltest gltest.debug
+check_PROGRAMS = gltest
 
-AM_CPPFLAGS=-I/usr/include/SDL
+AM_CPPFLAGS=-I/usr/include/SDL -I../..
 
-gltest_SOURCES = gltest.c callback.c display.c image.c gltest.h callback.h display.h image.h
+gltest_SOURCES = gltest.c callback.c display.c image.c dmtx.c
 gltest_LDFLAGS = -lm -lpng -lGL -lGLU -lSDL -lpthread
-
-gltest_debug_SOURCES = gltest.c callback.c display.c image.c gltest.h callback.h display.h image.h
-gltest_debug_LDFLAGS = -lm -lpng -lGL -lGLU -lSDL -lpthread -static
-
-LDADD = ../../libdmtx.la

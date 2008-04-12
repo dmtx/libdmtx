@@ -24,11 +24,6 @@ Contact: mblaughton@users.sourceforge.net
 #ifndef __CALLBACK_H__
 #define __CALLBACK_H__
 
-/*
-void CrossScanCallback(DmtxScanRange *range, DmtxGradient *gradient, DmtxEdgeScan *scan);
-void FollowScanCallback(DmtxEdgeFollower *follower);
-void FinderBarCallback(DmtxRay2 *ray);
-*/
 void BuildMatrixCallback2(DmtxRegion *region);
 void BuildMatrixCallback3(DmtxMatrix3 region);
 void BuildMatrixCallback4(DmtxMatrix3 region);
