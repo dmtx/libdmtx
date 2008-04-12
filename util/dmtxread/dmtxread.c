@@ -390,7 +390,7 @@ OPTIONS:\n"), programName, programName);
   -Y, --y-range-max=N[%%]     do not scan pixels below N (or N%%)\n\
   -C, --coordinates          prefix decoded message with corner locations\n\
   -D, --diagnose=[op]        create copy of original image with diagnostic data\n\
-      o = Overlay [default]  overlay image with module colors\n\
+      o = Overlay            overlay image with module colors\n\
       p = Path               capture path taken by scanning logic\n\
   -M, --mosaic               interpret detected regions as Data Mosaic barcodes\n\
   -P, --page-number          prefix decoded message with fax/tiff page number\n\

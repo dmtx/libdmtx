@@ -44,63 +44,61 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.5.0
 \fBint dmtxImageFree(DmtxImage **\fIimg\fP);\fP
 
 .SH DESCRIPTION
-\fIlibdmtx\fP is a shared library that provides the ability to read and write ECC200 Data Matrix barcodes.  The accompanying utility programs \fIdmtxread\fP and \fIdmtxwrite\fP enable libdmtx functionality from the command line, and also provide a good reference for programmers who wish to write their own programs that interact with libdmtx.  Refer to the man pages on dmtxread(1) and dmtxwrite(1) for details on their syntax and options.
+\fIlibdmtx\fP is a shared library that provides the ability to read and write Data Matrix barcodes of the modern ECC200 variety.  The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP serve as the official command line interface for libdmtx, and also provide a good reference for programmers who wish to write their own programs that interact with libdmtx.
 
-Data Matrix barcodes are two-dimensional patterns resembling a checkerboard in appearance that hold a high density of data with built-in error correction.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
+Data Matrix barcodes are two dimensional patterns that resemble a checkerboard in appearance, and hold a high density of data with built-in error correction.  They can exist in either square or rectangular configurations, and support several different encodation schemes for optimizing storage of binary and text data.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
 
 .SH ENCODING - Generating Data Matrix Barcodes
-\fIlibdmtx\fP provides a simple set of functions for encoding Data Matrix barcodes.  The following steps will produce an image that encodes the specified message in a valid barcode symbol.
+libdmtx provides a simple set of functions for encoding.  The following steps will produce an image that holds a Data Matrix barcode with the specified message.
 
 1. Call \fBdmtxEncodeStructInit()\fP
 
-This function initializes the internal values of the encoding process, and must be called before any other encoding functions.
+Initializes the internal values of the encoding process.  Must be called before any other encoding functions.
 
 2. Call either \fBdmtxEncodeDataMatrix()\fP or \fBdmtxEncodeDataMosaic()\fP
 
-These functions (depending on the desired barcode format) create one barcode per call, and write the resulting image to an internal structure in the DmtxEncode variable.  The calling program is responsible for creating an image file from this data.
+Depending on the desired barcode format, the calling program will use one of these functions to generate a barcode image within the \fBDmtxEncode\fP struct.  The calling program is responsible for using this information to create a permanent image file.
 
 3. Call \fBdmtxEncodeStructDeInit()\fP
 
-This function resets the internal encoding values and frees the image and message memory allocated during the encoding process.
+Resets the internal encoding values and frees memory allocated during the encoding process.
 
 .SH DECODING - Reading Data Matrix Barcodes
-\fIlibdmtx\fP provides small number of default decoding functions, and provides additional flexibility through parameters and callback functions.
+libdmtx provides a number of functions designed to provide maximum control and flexibility in the decoding process.  The following steps first allocate memory for the image data held by the calling application.  After the image data is captured, the remaining steps will find and decode the barcodes present in the image.
 
-1. Call \fBdmtxDecodeStructCreate()\fP
+1. Call \fBdmtxImageMalloc()\fP
 
-Creates the \fIlibdmtx\fP information struct.  This struct contains user decoding information and runtime options.  \fBdmtxDecodeStructCreate()\fP must be called before any other scanning functions.
+Allocates memory for received image data.  libdmtx provides its own image structure which the calling program must populate before starting a scan.
 
-2. Call \fBdmtxImageInit()\fP
+2. Call \fBdmtxDecodeStructInit()\fP
 
-Initializes an image structure for the calling program to use.  \fIlibdmtx\fP provides its own image structure that must be populated with the raw image information by the calling program before beginning the scan.  An initialized and populated image is required for any scanning activities.
+Initializes the \fBDmtxDecode\fP struct, which designates the image to be scanned and resets the grid pattern for a new scan.  This function must be called before any other scanning functions.
 
-3. Call \fBdmtxScanStartNew()\fP
+3. Call \fBdmtxDecodeFindNextRegion()\fP
 
-Resets the counters and lists before a new scan begins.  This is necessary because libdmtx might find multiple Data Matrix barcodes in an image, and therefore maintains a list of barcode regions.  This function clears the lists between reads so the program doesn't exhaust the system memory with already-scanned barcode regions.
+Searches every pixel location in a recursive grid pattern looking for potential barcode edges.  A \fBDmtxRegion\fP is returned whenever A) a potential barcode region is found, or B) the final pixel has been scanned.  Subsequent calls to this function will resume the search where the previous call left off.
 
-4. Call \fBdmtxScanLine()\fP
+\fIImportant\fP: This function does not dynamically allocate memory and does not decode the barcode contents.  If the calling program receives a region that it wishes to discard, it can simply continue without freeing or cleaning up the previous \fBDmtxRegion\fP struct.  This can be useful for programs that are selective in choosing which regions should be decoded.
 
-Performs the actual scan of a row or column (1 pixel wide) from the source image.  It returns number of Data Matrix barcodes that were found, and stores the barcode information in a list from the decode struct.  Multiple calls to \fBdmtxScanLine()\fP can happen between \fBdmtxScanStartNew()\fP (for example, to make the familiar "cross pattern" like in the supermarket checkout lane).
+4. Call either \fBdmtxDecodeMatrixRegion()\fP or \fBdmtxDecodeMosaicRegion()\fP
 
-5. Call \fBdmtxDecodeGetMatrixCount()\fP
+Extract bit values from the barcode region and decode the underlying message.  \fBDmtxMessage\fP values returned from this function must be freed after use.
 
-Returns the number of Data Matrix barcodes that are currently stored in the DmtxDecode list.  If none were found, will return 0.
+5. Call \fBdmtxMessageFree()\fP
 
-6. Call \fBdmtxDecodeGetMatrix()\fP
+Free the memory held by a \fBDmtxMessage\fP struct.  The complementary function, \fBdmtxMessageMalloc()\fP, is automatically called by \fBdmtxDecodeMatrixRegion()\fP and therefore is not normally used by the calling program.
 
-Returns a pointer to the DmtxRegion struct held by DmtxDecode.  Data Matrix information (geometries, encoded and decoded data) will be stored until next call to \fBdmtxScanStartNew()\fP or \fBdmtxDecodeStructDestroy()\fP.
+6. Call \fBdmtxDecodeStructDeInit()\fP
 
-7. Call \fBdmtxImageDeInit()\fP
+Resets the internal decoding values used during the decoding process.
 
-Resets and frees memory associated with DmtxImage struct.  This is the complement to \fBdmtxImageInit()\fP.
+7. Call \fBdmtxImageFree()\fP
 
-8. Call \fBdmtxDecodeStructDestroy()\fP
-
-Resets and frees memory associated with DmtxDecode struct.  This is the complement to \fBdmtxDecodeInit()\fP.
+Resets and frees memory held by \fBDmtxImage\fP struct.  This is the complement to \fBdmtxImageMalloc()\fP.
 
 .SH EXAMPLE PROGRAM
 
-This program demonstrates both directions of \fIlibdmtx\fP functionality by first creating a Data Matrix barcode with its encoding functionality and then reading it back with the decoding functionality.  If everything works correctly then the original input data should match the final output data.
+This example program (available as simpletest.c in the source package) demonstrates both directions of \fIlibdmtx\fP functionality, encoding and decoding.  It first creates a Data Matrix barcode and then reads it back and prints the decoded message.  If everything works correctly then the final output message should match the original input string.
 
   #include <stdlib.h>
   #include <stdio.h>
@@ -111,56 +109,50 @@ This program demonstrates both directions of \fIlibdmtx\fP functionality by firs
   int
   main(int argc, char **argv)
   {
-     int count = 0;
      unsigned char testString[] = "30Q324343430794<OQQ";
-     DmtxImage image;
-     DmtxEncode *encode;
-     DmtxDecode *decode;
+     DmtxEncode encode;
+     DmtxImage *image;
+     DmtxDecode decode;
+     DmtxRegion region;
+     DmtxMessage *message;
+     DmtxPixelLoc p0, p1;
 
      fprintf(stdout, "input:  \\"%s\\"\\n", testString);
 
-     /*
-      * 1) Write a new Data Matrix barcode (in memory)
-      */
+     /* 1) Encode a new Data Matrix barcode image and keep in memory */
 
-     encode = dmtxEncodeCreate();
-     dmtxEncodeDataMatrix(encode, strlen((char *)testString),
-           testString, DMTX_SYMBOL_SQUARE_AUTO);
+     encode = dmtxEncodeStructInit();
+     dmtxEncodeDataMatrix(&encode, strlen((char *)testString), testString,
+           DMTX_SYMBOL_SQUARE_AUTO);
 
-     // Take copy of new image before freeing DmtxEncode struct
-     image = encode->image;
-     image.pxl = (DmtxPixel *)malloc(image.width * image.height *
+     /* 2) Take a copy of the new image before freeing DmtxEncode struct */
+
+     image = dmtxImageMalloc(encode.image->width, encode.image->height);
+     memcpy(image->pxl, encode.image->pxl, image->width * image->height *
            sizeof(DmtxPixel));
-     if(image.pxl == NULL) {
-        perror("Malloc error");
-        exit(1);
-     }
-     memcpy(image.pxl, encode->image.pxl, image.width *
-           image.height * sizeof(DmtxPixel));
-     dmtxEncodeDestroy(&encode);
 
-     /*
-      * 2) Read the Data Matrix barcode from above
-      */
+     dmtxEncodeStructDeInit(&encode);
 
-     decode = dmtxDecodeStructCreate();
-     decode->option = DmtxSingleScanOnly;
-     decode->image = image;
+     /* 3) Read back the Data Matrix barcode that was created above */
 
-     count += dmtxScanLine(decode, DmtxDirUp,
-           decode->image.width/2);
+     p0.X = p0.Y = 0;
+     p1.X = image->width - 1;
+     p1.Y = image->height - 1;
 
-     count += dmtxScanLine(decode, DmtxDirRight,
-           decode->image.height/2);
+     decode = dmtxDecodeStructInit(image, p0, p1, 5);
 
-     if(count > 0) {
-        fprintf(stdout, "output: \\"");
-        fwrite(decode->matrix[0].output, sizeof(unsigned char),
-              decode->matrix[0].outputIdx, stdout);
-        fprintf(stdout, "\\"\\n\\n");
-     }
+     region = dmtxDecodeFindNextRegion(&decode);
+     if(region.found == DMTX_REGION_EOF)
+        exit(0);
 
-     dmtxDecodeStructDestroy(&decode);
+     message = dmtxDecodeMatrixRegion(&decode, &region);
+     fprintf(stdout, "output: \\"");
+     fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
+     fprintf(stdout, "\\"\\n\\n");
+     dmtxMessageFree(&message);
+
+     dmtxDecodeStructDeInit(&decode);
+     dmtxImageFree(&image);
 
      exit(0);
   }
