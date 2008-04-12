@@ -42,9 +42,9 @@ GLuint        barcodeTexture;
 GLint         barcodeList;
 
 DmtxImage     *captured;
-DmtxImage     textureImage;
-DmtxImage     passOneImage;
-DmtxImage     passTwoImage;
+DmtxImage     *textureImage;
+DmtxImage     *passOneImage;
+DmtxImage     *passTwoImage;
 
 char *gFilename[] = { "test_image18.png"
                     , "test_image16.png"
@@ -77,52 +77,49 @@ int main(int argc, char **argv)
    int             count;
    int             done;
    int             vScanGap, hScanGap;
-   DmtxDecode      *decode;
+   DmtxDecode      decode;
    SDL_Event       event;
    SDL_Surface     *screen;
    unsigned char   outputString[1024];
    DmtxRegion *region;
+   DmtxPixelLoc    p0, p1;
 
-   decode = dmtxDecodeStructCreate();
-
-   decode->option |= DmtxSingleScanOnly;
-
-   dmtxSetPlotPointCallback(decode, &PlotPointCallback);
-   dmtxSetXfrmPlotPointCallback(decode, &XfrmPlotPointCallback);
-   dmtxSetPlotModuleCallback(decode, &PlotModuleCallback);
-/* dmtxSetCrossScanCallback(decode, &CrossScanCallback);
-   dmtxSetFollowScanCallback(decode, &FollowScanCallback); */
-   dmtxSetBuildMatrixCallback2(decode, &BuildMatrixCallback2);
-   dmtxSetBuildMatrixCallback3(decode, &BuildMatrixCallback3);
-   dmtxSetBuildMatrixCallback4(decode, &BuildMatrixCallback4);
-   dmtxSetFinalCallback(decode, &FinalCallback);
-
-   memset(&textureImage, 0x00, sizeof(DmtxImage));
-   memset(&passOneImage, 0x00, sizeof(DmtxImage));
-   memset(&passTwoImage, 0x00, sizeof(DmtxImage));
+   dmtxSetPlotPointCallback(&decode, &PlotPointCallback);
+   dmtxSetXfrmPlotPointCallback(&decode, &XfrmPlotPointCallback);
+   dmtxSetPlotModuleCallback(&decode, &PlotModuleCallback);
+/* dmtxSetCrossScanCallback(&decode, &CrossScanCallback); */
+/* dmtxSetFollowScanCallback(&decode, &FollowScanCallback); */
+   dmtxSetBuildMatrixCallback2(&decode, &BuildMatrixCallback2);
+   dmtxSetBuildMatrixCallback3(&decode, &BuildMatrixCallback3);
+   dmtxSetBuildMatrixCallback4(&decode, &BuildMatrixCallback4);
+   dmtxSetFinalCallback(&decode, &FinalCallback);
 
    // Initialize display window
    screen = initDisplay();
 
    // Load input image to DmtxImage
-   loadTextureImage(&textureImage); // XXX check error condition
+   loadTextureImage(textureImage);
 
-   // XXX More ugly temporary stuff
-   passOneImage.width = passOneImage.height = 320;
-   passOneImage.pxl = (DmtxPixel *)malloc(passOneImage.width * passOneImage.height * sizeof(DmtxPixel));
-   if(passOneImage.pxl == NULL)
-      exit(5); // XXX Yeah, I know
+   captured = dmtxImageMalloc(320, 320);
+   if(captured == NULL)
+      exit(4);
 
-   // XXX More ugly temporary stuff
-   passTwoImage.width = passTwoImage.height = 320;
-   passTwoImage.pxl = (DmtxPixel *)malloc(passTwoImage.width * passTwoImage.height * sizeof(DmtxPixel));
-   if(passTwoImage.pxl == NULL)
-      exit(6); // XXX Yeah, I know
+   p0.X = p0.Y = 0;
+   p1.X = captured->width - 1;
+   p1.Y = captured->height - 1;
+
+   passOneImage = dmtxImageMalloc(320, 320);
+   if(passOneImage == NULL)
+      exit(5);
+
+   passTwoImage = dmtxImageMalloc(320, 320);
+   if(passTwoImage == NULL)
+      exit(6);
 
    done = 0;
    while(!done) {
 
-      // Generate input image through input events and OpenGL routines
+      /* Generate input image through input events and OpenGL routines */
       SDL_Delay(50);
 
       while(SDL_PollEvent(&event))
@@ -131,52 +128,35 @@ int main(int argc, char **argv)
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       DrawGeneratedImage(screen);
 
-      // Capture screenshot of generated image
-      captureImage(decode);
-      captured = &(decode->image); // XXX ugliest hack -- this stuff is all wrong
+      /* Capture screenshot of generated image */
+      captureImage(captured);
 
-      memset(passOneImage.pxl, 0x00, passOneImage.width * passOneImage.height * sizeof(DmtxPixel));
-      memset(passTwoImage.pxl, 0x00, passTwoImage.width * passTwoImage.height * sizeof(DmtxPixel));
+      memset(passOneImage->pxl, 0x00, passOneImage->width * passOneImage->height * sizeof(DmtxPixel));
+      memset(passTwoImage->pxl, 0x00, passTwoImage->width * passTwoImage->height * sizeof(DmtxPixel));
 
-      // Scan for data matrix step ranges within captured image
-      vScanGap = decode->image.height/2.0 + 0.5;
-//    vScanGap = 32;
-      hScanGap = decode->image.width/2.0 + 0.5;
-//    hScanGap = 32;
+      /* Erase Data Matrix list from previous iteration and start new */
+      decode = dmtxDecodeStructInit(captured, p0, p1, 100);
 
-      // Erase Data Matrix list from previous iteration and start new
-      dmtxScanStartNew(decode);
+      dmtxDecodeFindNextRegion(&decode);
 
-      for(i = vScanGap; i < decode->image.height; i += vScanGap) {
-         if(decode->matrixCount > 0)
-            break;
-         dmtxScanLine(decode, DmtxDirRight, i);
-      }
-
-//    for(i = hScanGap; i < decode->image.width; i += hScanGap) {
-//       if(decode->matrixCount > 0)
-//          break;
-//       dmtxScanLine(decode, DmtxDirUp, i);
-//    }
-
-      count = dmtxDecodeGetMatrixCount(decode);
-      if(count > 0) {
-         region = dmtxDecodeGetMatrix(decode, 0);
+/*
+XXX put this back in after it compiles
+         region = dmtxDecodeGetMatrix(&decode, 0);
          memset(outputString, 0x00, 1024);
          strncpy((char *)outputString, (const char *)region->output, MIN(region->outputIdx, 1023));
          fprintf(stdout, "%s\n", outputString);
-      }
+*/
 
       DrawBorders(screen);
-      DrawPane2(screen, &passOneImage);
-//    DrawPane4(screen, &passTwoImage);
+      DrawPane2(screen, passOneImage);
+/*    DrawPane4(screen, passTwoImage); */
 
       SDL_GL_SwapBuffers();
    }
 
-   dmtxImageDeInit(&textureImage);
+   dmtxImageFree(&textureImage);
 
-   dmtxDecodeStructDestroy(&decode);
+   dmtxDecodeStructDeInit(&decode);
 
    exit(0);
 }

@@ -406,7 +406,7 @@ void FinalCallback(DmtxDecode *decode, DmtxRegion *region)
 
    for(row = 0; row < symbolRows; row++) {
       for(col = 0; col < symbolCols; col++) {
-         moduleStatus = dmtxSymbolModuleStatus(region, row, col);
+/*       moduleStatus = dmtxSymbolModuleStatus(message, region->sizeIdx, row, col); */
          PlotModuleCallback(decode, region, row, col, (moduleStatus & DMTX_MODULE_ON_RGB) ? black : white);
       }
    }

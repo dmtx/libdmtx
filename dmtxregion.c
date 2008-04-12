@@ -907,7 +907,8 @@ MatrixRegionAlignTopEdge(DmtxImage *image, DmtxRegion *reg)
  * @return XXX
  */
 static int
-MatrixRegionAlignCalibEdge(DmtxImage *image, DmtxRegion *reg, DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit)
+MatrixRegionAlignCalibEdge(DmtxImage *image, DmtxRegion *reg,
+      DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit)
 {
    DmtxVector2 p0, p1, pCorner;
    double slope;
@@ -1151,7 +1152,8 @@ MatrixRegionAlignEdge(DmtxImage *image, DmtxRegion *reg,
  * @return XXX
  */
 static int
-StepAlongEdge(DmtxImage *image, DmtxRegion *reg, DmtxVector2 *pProgress, DmtxVector2 *pExact, DmtxVector2 forward, DmtxVector2 lateral)
+StepAlongEdge(DmtxImage *image, DmtxRegion *reg, DmtxVector2 *pProgress,
+      DmtxVector2 *pExact, DmtxVector2 forward, DmtxVector2 lateral)
 {
    int x, y;
    int xToward, yToward;

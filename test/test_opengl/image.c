@@ -37,22 +37,9 @@ Contact: mblaughton@users.sourceforge.net
  *
  *
  */
-void captureImage(DmtxDecode *info)
+void captureImage(DmtxImage *captured)
 {
-   if(info->image.width != 320 || info->image.height != 320) {
-      if(info->image.pxl != NULL) {
-         free(info->image.pxl);
-      }
-      info->image.pxl = NULL;
-   }
-
-   if(info->image.pxl == NULL) {
-      info->image.width = 320;
-      info->image.height = 320;
-      info->image.pxl = (DmtxPixel *)malloc(info->image.width * info->image.height * sizeof(DmtxPixel));
-   }
-
-   glReadPixels(2, 324, 320, 320, GL_RGB, GL_UNSIGNED_BYTE, info->image.pxl);
+   glReadPixels(2, 324, 320, 320, GL_RGB, GL_UNSIGNED_BYTE, captured->pxl);
 }
 
 /**
@@ -191,12 +178,15 @@ int loadPng(char *filename, DmtxImage *image)
    png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
 
    // Use PNG information to populate DmtxImage information
+   image = dmtxImageMalloc(width, height);
+/*
    image->width = width;
    image->height = height;
 
    image->pxl = (DmtxPixel *)malloc(image->width * image->height * sizeof(DmtxPixel));
    if(image->pxl == NULL)
       return IMAGE_ERROR;
+*/
 
    for(row = 0; row < image->height; row++)
       memcpy(image->pxl + (row * image->width), row_pointers[image->height - row - 1], image->width * sizeof(DmtxPixel));

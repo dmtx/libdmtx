@@ -6,10 +6,10 @@ TODO Items
    x) no more assertion failures
    x) region detection and decoding handled as separate tasks (and structs)
    x) image mask approach (for performance and multi-barcode scans)
+   x) updated documentation to reflect API and option changes
+   /) all programs and bindings updated to work with new version
    4) error correction (libfec)
-   5) updated documentation to reflect API and option changes
-   6) all programs and bindings updated to work with new version
-   7) move SetRangeLimit and SetScanRegion into library
+   6) move SetRangeLimit and SetScanRegion into library
 
    -) diagnostic utility that dumps image copy with scanning info embedded
 

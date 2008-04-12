@@ -36,7 +36,7 @@ typedef enum {
    ColorYellow = 0x01 << 4
 } ColorEnum;
 
-void captureImage(DmtxDecode *info);
+void captureImage(DmtxImage *image);
 int loadTextureImage(DmtxImage *image);
 int loadPng(char *filename, DmtxImage *image);
 void plotPoint(DmtxImage *image, float rowFloat, float colFloat, int targetColor);
