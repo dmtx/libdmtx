@@ -5,10 +5,11 @@
 # $ script/dist-image.sh
 
 lib_LTLIBRARIES = libdmtx.la
-libdmtx_la_SOURCES = dmtx.c dmtxstatic.h
+libdmtx_la_SOURCES = dmtx.c libfec/init_rs_char.c libfec/decode_rs_char.c libfec/encode_rs_char.c
 EXTRA_libdmtx_la_SOURCES = dmtxcolor3.c dmtxdecode.c dmtxencode.c dmtximage.c \
 	dmtxmatrix3.c dmtxplacemod.c dmtxreedsol.c dmtxregion.c dmtxscangrid.c \
-	dmtxsymbol.c dmtxvector2.c
+	dmtxsymbol.c dmtxvector2.c dmtxstatic.h libfec/char.h libfec/decode_rs.h \
+	libfec/encode_rs.h libfec/fec.h libfec/init_rs.h libfec/rs-common.h
 
 include_HEADERS = dmtx.h
 libdmtx_la_CFLAGS = -Wall -pedantic

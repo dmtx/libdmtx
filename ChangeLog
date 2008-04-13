@@ -1,6 +1,9 @@
 Changes for libdmtx
 -----------------------------------------------------------------
 
+version 0.5 [April 2008]
+  Error correction using libfec (thanks Florian!)
+
 version 0.4 [December 2007]
   Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
   Fix 4 bottom-right modules in sizes where they are not used (thanks Matthias R.!)

@@ -1,6 +1,22 @@
-README for libdmtx version 0.4.0 - December 7, 2007
+README for libdmtx version 0.5.0 - April X, 2008
 -----------------------------------------------------------------
 
+During the 12(?) months 0.3.0 that was the current release, we counted x downloads of the package from sourceforge.
+
+0.4.0 was the current release for 4 months, and experienced x downloads ... setting a download rate of X times the of 0.3.0! And this doesn't even count all the people who are now getting libdmtx from Subversion or codegnome's Debian package.
+
+libdmtx.org is averaging 345 visitors/wk.  was 153/wk during the time that 0.3.0 was the current release (granted the project was on hold during that time)
+
+since added gnu autotools in 0.4.0 people have been running libdmtx on far more platforms
+lots of interest in mobile and embedded platforms (a few videos floating around YouTube now)
+
+version 0.5 focused on both stability and the addition of critical missing features, such as:
+
+  * error correction
+
+version 0.6 will focus on performance
+
+--- old version follows ---
 One year is a long time to wait for new software -- especially
 when the software is held out of reach by a single arbitrary
 decision.  I hope the new features in version 0.4 are significant

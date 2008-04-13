@@ -25,7 +25,7 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTX_H__
 #define __DMTX_H__
 
-#define DMTX_VERSION                   "0.4.2"
+#define DMTX_VERSION                   "0.5.0"
 
 #define DMTX_FAILURE                   0
 #define DMTX_SUCCESS                   1

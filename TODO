@@ -3,11 +3,6 @@ TODO Items
 
 "Must Have" features for next release:
 --------------------------------------
-   x) no more assertion failures
-   x) region detection and decoding handled as separate tasks (and structs)
-   x) image mask approach (for performance and multi-barcode scans)
-   x) updated documentation to reflect API and option changes
-   /) all programs and bindings updated to work with new version
    4) error correction (libfec)
    6) move SetRangeLimit and SetScanRegion into library
 
@@ -15,7 +10,6 @@ TODO Items
 
 Soon:
 --------------------------------------
-   o update gltest to use the new calling structure
    o remove mosaic field from DmtxDecode (and replace functionality by calling dedicated named function)
    o remove DmtxRegion from decode and pass it between functions explicitly
 
@@ -60,7 +54,14 @@ after version 0.5:
   o project:   Figure out way to include extra files (and not .svn) without compiling
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
 
-version 0.5: (??-Apr-2008?)
+version 0.5: (??-Apr-2008)
+
+  x xxx:       no more assertion failures
+  x xxx:       region detection and decoding handled as separate tasks (and structs)
+  x xxx:       image mask approach (for performance and multi-barcode scans)
+  x xxx:       updated documentation to reflect API and option changes
+  x xxx:       all programs and bindings updated to work with new version
+
   x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
   x libdmtx:   Fix TestForEndOfSymbolEdifact() to handle special cases correctly
   x libdmtx:   Implement multiple barcodes as incremental choice offered to calling app
