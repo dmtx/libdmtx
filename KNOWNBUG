@@ -15,6 +15,9 @@ default.
 Base256 encoding doesn't always work right (implementation is
 still incomplete).
 
+Scanning "laughton_giant_multi.png" in the libdmtx-images
+package currently produces a segmentation fault.
+
 
 2. dmtxread
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::

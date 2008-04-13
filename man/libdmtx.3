@@ -46,7 +46,7 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.5.0
 .SH DESCRIPTION
 \fIlibdmtx\fP is a shared library that provides the ability to read and write Data Matrix barcodes of the modern ECC200 variety.  The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP serve as the official command line interface for libdmtx, and also provide a good reference for programmers who wish to write their own programs that interact with libdmtx.
 
-Data Matrix barcodes are two dimensional patterns that resemble a checkerboard in appearance, and hold a high density of data with built-in error correction.  They can exist in either square or rectangular configurations, and support several different encodation schemes for optimizing storage of binary and text data.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
+Data Matrix barcodes are two dimensional patterns that resemble a checkerboard in appearance, and hold a high density of data with built-in error correction.  They can exist in either square or rectangular configurations, and support several different encodation schemes for optimized storage of binary and text data.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
 
 .SH ENCODING - Generating Data Matrix Barcodes
 libdmtx provides a simple set of functions for encoding.  The following steps will produce an image that holds a Data Matrix barcode with the specified message.
@@ -68,7 +68,7 @@ libdmtx provides a number of functions designed to provide maximum control and f
 
 1. Call \fBdmtxImageMalloc()\fP
 
-Allocates memory for received image data.  libdmtx provides its own image structure which the calling program must populate before starting a scan.
+Allocates memory for received image data.  libdmtx provides its own image structure that the calling program must populate before starting a scan.
 
 2. Call \fBdmtxDecodeStructInit()\fP
 
@@ -145,11 +145,13 @@ This example program (available as simpletest.c in the source package) demonstra
      if(region.found == DMTX_REGION_EOF)
         exit(0);
 
-     message = dmtxDecodeMatrixRegion(&decode, &region);
-     fprintf(stdout, "output: \\"");
-     fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
-     fprintf(stdout, "\\"\\n\\n");
-     dmtxMessageFree(&message);
+     message = dmtxDecodeMatrixRegion(&decode, &region, 1);
+     if(message != NULL) {
+        fputs("output: \\"", stdout);
+        fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
+        fputs("\\"\\n\\n", stdout);
+        dmtxMessageFree(&message);
+     }
 
      dmtxDecodeStructDeInit(&decode);
      dmtxImageFree(&image);

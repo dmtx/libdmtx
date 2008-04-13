@@ -4,11 +4,12 @@ TODO Items
 "Must Have" features for next release:
 --------------------------------------
    6) move SetRangeLimit and SetScanRegion into library
-   -) diagnostic utility that dumps image copy with scanning info embedded
-   -) Add new images to libdmtx-images-0.5.0 package (error images, dot peen images, etc...)
+   -) make sure Alessandro is okay with his images being included (otherwise pull out)
+   -) add message == NULL check to simpletest.c
 
 Soon:
 --------------------------------------
+   -) diagnostic utility that dumps image copy with scanning info embedded
    o remove mosaic field from DmtxDecode (and replace functionality by calling dedicated named function)
    o remove DmtxRegion from decode and pass it between functions explicitly
 

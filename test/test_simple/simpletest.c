@@ -66,11 +66,13 @@ main(int argc, char **argv)
    if(region.found == DMTX_REGION_EOF)
       exit(0);
 
-   message = dmtxDecodeMatrixRegion(&decode, &region);
-   fprintf(stdout, "output: \"");
-   fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
-   fprintf(stdout, "\"\n\n");
-   dmtxMessageFree(&message);
+   message = dmtxDecodeMatrixRegion(&decode, &region, 1);
+   if(message != NULL) {
+      fputs("output: \"", stdout);
+      fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
+      fputs("\"\n\n", stdout);
+      dmtxMessageFree(&message);
+   }
 
    dmtxDecodeStructDeInit(&decode);
    dmtxImageFree(&image);

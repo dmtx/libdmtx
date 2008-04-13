@@ -132,7 +132,7 @@ int main(int argc, char **argv)
          if(region.found == DMTX_REGION_EOF)
             break;
 
-         message = dmtxDecodeMatrixRegion(&decode, &region);
+         message = dmtxDecodeMatrixRegion(&decode, &region, 1);
          if(message == NULL)
             continue;
 
