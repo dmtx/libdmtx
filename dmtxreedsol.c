@@ -89,7 +89,7 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
  * @return XXX
  */
 static int
-DecodeCheckErrors(DmtxMessage *message, int sizeIdx)
+DecodeCheckErrors(DmtxMessage *message, int sizeIdx, int fix)
 {
    int errorWordLength;
    void *rs;
@@ -100,14 +100,16 @@ DecodeCheckErrors(DmtxMessage *message, int sizeIdx)
    rs = init_rs_char(8, 0x12d, 1, 1, errorWordLength, 255 - message->codeSize);
    fixederr = decode_rs_char(rs, message->code, NULL, 0);
 
-   if(fixederr >= 0) {
+   if(fixederr == 0) {
+      return DMTX_SUCCESS;
+   }
+   else if(fixederr > 0) {
 /*    if(fixederr)
          fprintf(stdout, "libdmtx: RS fixed %d errors\n", fixederr); */
 
-      return DMTX_SUCCESS;
+      return (fix == 1) ? DMTX_SUCCESS : DMTX_FAILURE;
    }
    else {
-/*    fprintf(stdout, "libdmtx: RS decoding failed...\n"); */
       return DMTX_FAILURE;
    }
 }

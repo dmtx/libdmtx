@@ -27,9 +27,9 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.5.0
 
 \fBDmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *\fIdec\fP);\fP
 
-\fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP);\fP
+\fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
-\fBDmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP);\fP
+\fBDmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
 \fBvoid dmtxDecodeStructDeInit(DmtxDecode *\fIdec\fP);\fP
 

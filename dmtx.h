@@ -270,7 +270,6 @@ typedef struct DmtxDecode_struct DmtxDecode;
 struct DmtxDecode_struct {
    DmtxImage *image;
    DmtxScanGrid grid;
-   int mosaic;
 };
 
 typedef struct DmtxEncode_struct {
@@ -318,7 +317,7 @@ extern int dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int si
 /* dmtxdecode.c */
 extern DmtxDecode dmtxDecodeStructInit(DmtxImage *img, DmtxPixelLoc p0, DmtxPixelLoc p1, int gap);
 extern void dmtxDecodeStructDeInit(DmtxDecode *dec);
-extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg);
+extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxMessageMalloc(int sizeIdx);
 extern void dmtxMessageFree(DmtxMessage **mesg);
 

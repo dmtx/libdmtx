@@ -39,13 +39,18 @@ Do not scan pixels above pixel row N (or N%).
 \fB\-Y\fP, \fB\-\-y-range-max\fP=\fIN[%]\fP
 Do not scan pixels below pixel row N (or N%).
 .TP
-\fB\-C\fP, \fB\-\-coordinates\fP
-Prefix the decoded message with barcode corner locations.
+\fB\-C\fP, \fB\-\-corners\fP
+Prefix the decoded message with the barcode's corner locations.
 .TP
 \fB\-D\fP, \fB\-\-diagnose\fP=[op] (not implemented yet)
-Write copy of original image with diagnostic data.
+Make copy of image with added diagnostic data.
    o = Overlay          overlay image with module colors
    p = Path             capture path taken by scanning logic
+.TP
+\fB\-E\fP, \fB\-\-error-correction\fP=[yn]
+Enable/Disable Reed Solomon error correction.
+   y = Enable [default] attempt to fix errors using built-in ECC
+   n = Disable          skip barcodes when errors are detected
 .TP
 \fB\-M\fP, \fB\-\-mosaic\fP (experimental)
 Interpret detected regions as Data Mosaic barcodes.

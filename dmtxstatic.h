@@ -166,7 +166,7 @@ static void PlaceModule(unsigned char *modules, int mappingRows, int mappingCols
 
 /* dmtxreedsol.c */
 static void GenReedSolEcc(DmtxMessage *message, int sizeidx);
-static int DecodeCheckErrors(DmtxMessage *message, int sizeIdx);
+static int DecodeCheckErrors(DmtxMessage *message, int sizeIdx, int fix);
 static int GfProduct(int a, int b);
 static int GfDoublify(int a, int b);
 

@@ -119,8 +119,7 @@ main(int argc, char *argv[])
             WriteImagePnm(&options, &decode, message, region.sizeIdx, "debug.pnm");
 
          /* Decode region based on requested scan mode */
-/*       message = (options.mosaic) ? dmtxDecodeMosaic(&region) : dmtxDecodeMatrix(&region); */
-         message = dmtxDecodeMatrixRegion(&decode, &region);
+         message = dmtxDecodeMatrixRegion(&decode, &region, options.fix_errors);
          if(message == NULL)
             continue;
 
@@ -155,8 +154,9 @@ SetOptionDefaults(UserOptions *options)
    options->yRangeMin = NULL;
    options->yRangeMax = NULL;
    options->verbose = 0;
-   options->coordinates = 0;
+   options->corners = 0;
    options->diagnose = 0;
+   options->fix_errors = 1;
    options->pageNumber = 0;
 }
 
@@ -178,20 +178,21 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    char *ptr;
 
    struct option longOptions[] = {
-         {"codewords",   no_argument,       NULL, 'c'},
-         {"gap",         required_argument, NULL, 'g'},
-         {"newline",     no_argument,       NULL, 'n'},
-         {"x-range-min", required_argument, NULL, 'x'},
-         {"x-range-max", required_argument, NULL, 'X'},
-         {"y-range-min", required_argument, NULL, 'y'},
-         {"y-range-max", required_argument, NULL, 'Y'},
-         {"verbose",     no_argument,       NULL, 'v'},
-         {"coordinates", no_argument,       NULL, 'C'},
-         {"diagnose",    no_argument,       NULL, 'D'},
-         {"mosaic",      no_argument,       NULL, 'M'},
-         {"page-number", no_argument,       NULL, 'P'},
-         {"version",     no_argument,       NULL, 'V'},
-         {"help",        no_argument,       NULL,  0 },
+         {"codewords",        no_argument,       NULL, 'c'},
+         {"gap",              required_argument, NULL, 'g'},
+         {"newline",          no_argument,       NULL, 'n'},
+         {"x-range-min",      required_argument, NULL, 'x'},
+         {"x-range-max",      required_argument, NULL, 'X'},
+         {"y-range-min",      required_argument, NULL, 'y'},
+         {"y-range-max",      required_argument, NULL, 'Y'},
+         {"verbose",          no_argument,       NULL, 'v'},
+         {"corners",          no_argument,       NULL, 'C'},
+         {"diagnose",         no_argument,       NULL, 'D'},
+         {"error-correction", required_argument, NULL, 'E'},
+         {"mosaic",           no_argument,       NULL, 'M'},
+         {"page-number",      no_argument,       NULL, 'P'},
+         {"version",          no_argument,       NULL, 'V'},
+         {"help",             no_argument,       NULL,  0 },
          {0, 0, 0, 0}
    };
 
@@ -202,7 +203,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:vCDMPV", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:vCDE:MPV", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -237,10 +238,18 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             options->verbose = 1;
             break;
          case 'C':
-            options->coordinates = 1;
+            options->corners = 1;
             break;
          case 'D':
             options->diagnose = 1;
+            break;
+         case 'E':
+            if(strncmp(optarg, "y", 2) == 0 || strncmp(optarg, "Y", 2) == 0)
+               options->fix_errors = 1;
+            else if(strncmp(optarg, "n", 2) == 0 || strncmp(optarg, "N", 2) == 0)
+               options->fix_errors = 0;
+            else
+               FatalError(1, _("Invalid error correction state \"%s\""), optarg);
             break;
          case 'M':
             options->mosaic = 1;
@@ -374,7 +383,7 @@ Scan image FILE for Data Matrix barcodes and print decoded results to\n\
 STDOUT.  Note: %s currently stops scanning after it decodes the\n\
 first barcode in an image.\n\
 \n\
-Example: (scans top third of images using minimum gap size of 10 pixels)\n\
+Example that scans top third of images using gap size no bigger than 10 pixels:\n\
 \n\
    %s -Y33%% -g10 IMAGE001.png IMAGE002.png\n\
 \n\
@@ -388,10 +397,13 @@ OPTIONS:\n"), programName, programName);
   -X, --x-range-max=N[%%]     do not scan pixels to the right of N (or N%%)\n\
   -y, --y-range-min=N[%%]     do not scan pixels above N (or N%%)\n\
   -Y, --y-range-max=N[%%]     do not scan pixels below N (or N%%)\n\
-  -C, --coordinates          prefix decoded message with corner locations\n\
-  -D, --diagnose=[op]        create copy of original image with diagnostic data\n\
+  -C, --corners              prefix decoded message with corner locations\n\
+  -D, --diagnose=[op]        make copy of image with added diagnostic data\n\
       o = Overlay            overlay image with module colors\n\
       p = Path               capture path taken by scanning logic\n\
+  -E, --error-correction=[yn]\n\
+      y = Enable   [default] attempt to fix errors using built-in RS ECC\n\
+      n = Disable            skip barcodes when errors are detected\n\
   -M, --mosaic               interpret detected regions as Data Mosaic barcodes\n\
   -P, --page-number          prefix decoded message with fax/tiff page number\n\
   -v, --verbose              use verbose messages\n\
@@ -748,7 +760,7 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
    if(options->pageNumber)
       fprintf(stdout, "%d:", pageIndex + 1);
 
-   if(options->coordinates) {
+   if(options->corners) {
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
             image->height - (int)(region->corners.c00.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c10.X + 0.5),

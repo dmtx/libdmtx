@@ -58,7 +58,7 @@ dmtxDecodeStructDeInit(DmtxDecode *dec)
  * @return XXX
  */
 extern DmtxMessage *
-dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region)
+dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
 {
    DmtxMessage *message;
    int success;
@@ -80,7 +80,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region)
    ModulePlacementEcc200(message->array, message->code,
          region->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
 
-   success = DecodeCheckErrors(message, region->sizeIdx);
+   success = DecodeCheckErrors(message, region->sizeIdx, fix);
    if(!success)
       return DMTX_FAILURE;
 
