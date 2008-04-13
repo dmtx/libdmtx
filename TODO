@@ -3,10 +3,9 @@ TODO Items
 
 "Must Have" features for next release:
 --------------------------------------
-   4) error correction (libfec)
    6) move SetRangeLimit and SetScanRegion into library
-
    -) diagnostic utility that dumps image copy with scanning info embedded
+   -) Add new images to libdmtx-images-0.5.0 package (error images, dot peen images, etc...)
 
 Soon:
 --------------------------------------
@@ -21,8 +20,6 @@ Soon:
 
    o nominal predicted barcode in another color
    o print color weights based on direction
-   o Temporarily modify dmtxregion to dump directional weights
-   o Change dmtxScanPixel() to also return false hits -- found a barcode but ECC failed
    o Change dmtxread to print out dump of both failed and successful barcodes if requested
    o Change dmtxread to print out mis-read modules somehow ... additive, subtractive?
       - Build color vector that describes jump from background to foreground color
@@ -32,6 +29,7 @@ Soon:
    o Change dmtxread to print out trail left by scanning logic (future)
 
 after version 0.5:
+  o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
   o libdmtx:   Allow choice of edge-drop condition passed to MatrixRegionAlignEdge()
@@ -53,15 +51,11 @@ after version 0.5:
   o testsuite: 'make test' confirms performance
   o project:   Figure out way to include extra files (and not .svn) without compiling
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
+  o dmtxread:  Add option to write image of path scanned and regions found (from mask)
 
-version 0.5: (??-Apr-2008)
-
-  x xxx:       no more assertion failures
-  x xxx:       region detection and decoding handled as separate tasks (and structs)
-  x xxx:       image mask approach (for performance and multi-barcode scans)
-  x xxx:       updated documentation to reflect API and option changes
-  x xxx:       all programs and bindings updated to work with new version
-
+version 0.5: (13-Apr-2008)
+  x libdmtx:   region detection and decoding handled as separate tasks (and structs)
+  x libdmtx:   image mask approach (for performance and multi-barcode scans)
   x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
   x libdmtx:   Fix TestForEndOfSymbolEdifact() to handle special cases correctly
   x libdmtx:   Implement multiple barcodes as incremental choice offered to calling app
@@ -69,17 +63,16 @@ version 0.5: (??-Apr-2008)
   x libdmtx:   Replace dmtxScanLine() with dmtxScanPixel()
   x libdmtx:   Roll scan pattern into core library (inward breadth-first cross)
   x libdmtx:   Implement 4-direction weighted module decisions (eliminates thresholds)
-  / libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   x libdmtx:   Based on "incremental choice", remove unnecessary mallocs (single in stack)
-  o libdmtx:   Implement error correction (initially through libfec)
+  x libdmtx:   Implement error correction using libfec
   x dmtxread:  Add ability to scan portion of image
   x dmtxread:  Add --diagnose option that dumps image with scan infomation embedded
   x dmtxread:  Added Z rotation angle (in degrees) to verbose output
-  o dmtxread:  Add option to write image of path scanned and regions found (from mask)
   x dmtxwrite: Move ASCII and codeword output to separate --preview option
   x dmtxwrite: Added -R option for setting image print resolution in dpi (PNG only)
   x project:   Remove gltest and simpletest from default build target
   x project:   Update Subversion to be keyword friendly ($Id$)
+  x project:   updated documentation to reflect API and option changes
 
 version 0.4: (07-Dec-2008)
   x libdmtx:   Remove arbitrary sz scaling (100.0) since it doesn't matter anyway

@@ -6,31 +6,31 @@ Building and Installing libdmtx
 
 libdmtx is distributed as 2 files: one for source code and
 another for additional test images.  The test images are
-optional, but can be useful for testing purposes.
+strictly optional, but are occasionally useful for testing.
 
 To install everything, place both files in the same directory
-and untar them as follows (example uses v0.4 filenames):
+and untar them as follows:
 
 For .bz2 files:
-  $ tar jxvf libdmtx-0.4.0.tar.bz2
+  $ tar jxvf libdmtx-0.5.0.tar.bz2
 
 For .gz files:
-  $ tar zxvf libdmtx-0.4.0.tar.gz
+  $ tar zxvf libdmtx-0.5.0.tar.gz
 
 For .tar files:
-  $ tar xvf libdmtx-images-0.4.0.tar
+  $ tar xvf libdmtx-images-0.5.0.tar
 
 Note: If your system uses an older version of tar you might
       need to do it in two steps, like this:
 
-  $ gunzip libdmtx-0.4.0.tar.gz && tar xvf libdmtx-0.4.0.tar
+  $ gunzip libdmtx-0.5.0.tar.gz && tar xvf libdmtx-0.5.0.tar
 
 
 2. libdmtx - Building and Installing the Core Library
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-libdmtx uses GNU Autotools so the installation should be
-familiar to veteran free software users:
+libdmtx employs GNU Autotools so the installation should be
+familiar to veterans of free software:
 
 As yourself, first run:
 
@@ -45,36 +45,45 @@ Dependencies section below and install any missing software
 before trying again.
 
 If you're awesome then it built correctly on the first try and
-you can execute any of the resulting programs that were built
-in the subdirectories, including:
+you can execute the resulting programs that were built in the
+subdirectories, including:
+
+  * util/dmtxread/dmtxread
+  * util/dmtxwrite/dmtxwrite
+
+To build the test programs you can run:
+
+  $ make check
+
+which builds the following executables:
 
   * test/test_simple/simpletest
   * test/test_opengl/gltest
-  * util/dmtxread/dmtxread
-  * util/dmtxwrite/dmtxwrite
 
 Note: gltest must be executed from the gltest test directory
       due to a relative path embedded in the code.
 
-If these appear to be working and you want to install the core
-library and utility programs system-wide (not including test
-programs), then log in as root and run:
+If everything appears to be working and you want to install the
+core library and utility programs system-wide (not including test
+programs), then run:
 
-$ make install
+   $ sudo make install
 
-This installs the library files to /usr/local/lib, utilities to
-/usr/local/bin, and man pages to /usr/local/share/man (unless
+Note: If the 'sudo' command is not configured on your system then
+alternatively you can yell "Yeeehaww!" as you log in as root and
+run:
+
+   $ make install
+
+This will install the library files to /usr/local/lib, utilities
+to /usr/local/bin, and man pages to /usr/local/share/man (unless
 you specified a different "--prefix" during the configure step
 above).
 
-Did you encounter any problems?  If you have done these steps
-and it still won't build then please post a message to the
-libdmtx "Help" forum at
-
-  http://sourceforge.net/forum/forum.php?forum_id=513654
-
-so we can review your issue and the solution can be found by
-others might experiencing the same problem.
+Did you encounter any problems?  If you performed all these steps
+and it still won't build properly then please post a message to
+the "Help" forum or mailing list so we can review your issue and
+the solution will become part of the public record.
 
 
 3. Building and Installing the Python Bindings
@@ -83,7 +92,7 @@ others might experiencing the same problem.
 If you wish to call libdmtx from programs written in Python
 then you must also install the Python binding located in the
 bindings/python directory.  See the INSTALL file in that
-directory for further instructions.
+location for further instructions.
 
 
 4. Building the Test Programs: gltest and simpletest

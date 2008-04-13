@@ -1,57 +1,38 @@
-README for libdmtx version 0.5.0 - April X, 2008
+README for libdmtx version 0.5.0 - April 13, 2008
 -----------------------------------------------------------------
 
-During the 12(?) months 0.3.0 that was the current release, we counted x downloads of the package from sourceforge.
+Version 0.5.0 brings libdmtx a big step closer to earning the
+"Production Ready" label.  As predicted, the major untested
+changes in 0.4.0 required a stabilization period to work out the
+kinks, but the library now appears more stable and better
+equipped to scan mixed-quality input than any previous version.
+This release also introduces a critical feature that many users
+have been waiting for: Reed Solomon error correction!
 
-0.4.0 was the current release for 4 months, and experienced x downloads ... setting a download rate of X times the of 0.3.0! And this doesn't even count all the people who are now getting libdmtx from Subversion or codegnome's Debian package.
+With a big thanks to the authors of libfec (Forward Error
+Correction library) and a patch submitted by Florian Kandzia,
+libdmtx can reliably fix many barcode errors instead of simply
+printing the dreaded "Rejected due to ECC validation" warning.
+This feature directly improves both the success rates and runtime
+performance of Data Matrix scans, and will make our software
+immediately relevant to a number of organizations.
 
-libdmtx.org is averaging 345 visitors/wk.  was 153/wk during the time that 0.3.0 was the current release (granted the project was on hold during that time)
+Other new features include:
 
-since added gnu autotools in 0.4.0 people have been running libdmtx on far more platforms
-lots of interest in mobile and embedded platforms (a few videos floating around YouTube now)
+  * Scan grid pattern is now handled by library internally
+  * Better module color decisions (improves success rates)
+  * library now returns pre-decoded regions; gives choice
+  * Ability to scan specific portions of an image
+  * Barcode rotation printed in dmtxread verbose mode
 
-version 0.5 focused on both stability and the addition of critical missing features, such as:
-
-  * error correction
+At a project level, libdmtx has seen a dramatic increase in
+traffic and downloads since the 0.4.0 release.  Compared to the
+period before the year-long freeze in 2007, monthly website
+visits have increased nearly 300% during the last four months.
+Additionally, the software has been used on a number of new
+platforms including Windows, Macintosh, Solaris, and a few mobile
+phones (YouTube has some cool demos).
 
 version 0.6 will focus on performance
 
---- old version follows ---
-One year is a long time to wait for new software -- especially
-when the software is held out of reach by a single arbitrary
-decision.  I hope the new features in version 0.4 are significant
-enough to at least partially justify the wait, and useful enough
-to keep people involved while the last remaining pieces are
-written.
-
-In addition to several minor improvements and bug fixes, version
-0.4 introduces some major pieces of the ECC200 Data Matrix
-specification:
-
-  * Multi-Region Barcodes
-  * Rectangle Barcodes
-  * Optimized Encoding (beta)
-  * All Encodation Schemes Supported (partial Base 256)
-
-as well as some technical additions that should either improve
-things or at least make them interesting:
-
-  * GNU Autotools
-  * Regression testing suite (at least a start)
-  * Overhauled region detection
-  * Valid PNG output
-  * Python bindings (thanks Dan!)
-  * Data Mosaic experimental barcodes (non-standard)
-
-Almost none of this new code has been tested in the real world
-and we /will/ find regressions.  If you encounter problems then
-please let me know so we can work on stabilizing the release.
-The libdmtx "Help" forum at SourceForge is a great place for your
-questions and problems:
-
-   http://sourceforge.net/forum/?group_id=153603
-
-I want to thank everyone who has contributed code, sample images,
-and comments over the last year.  In some cases I received code
-that didn't make it into this release, but I am eager to get it
-included for next time.
+changes to API

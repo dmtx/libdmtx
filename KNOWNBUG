@@ -8,12 +8,12 @@ The encoding optimizer still occasionally generates codeword
 sequences that are not 100% legal according to the ISO
 specification.  Everything still appears to decode properly, but
 until I have time to go through every corner case and validate
-the behavior I will be treating the encoding optimizer as an
-experimental feature.  For now dmtxwrite will encode using a
-straight ASCII scheme by default.
+the behavior this will be treated as an experimental feature.
+For now dmtxwrite will encode using a straight ASCII scheme by
+default.
 
 Base256 encoding doesn't always work right (implementation is
-not complete yet).
+still incomplete).
 
 
 2. dmtxread
@@ -21,7 +21,7 @@ not complete yet).
 
 The follow options are not implemented yet:
   -d, --distortion=K1,K2     radial distortion coefficients
-  -r, --region=REGION        only scan portion of image
+  -D, --diagnose=[op]        diagnostic image output
   -M, --mosaic               (partial implementation)
 
 When using --verbose output the Data Codeword capacity is often
@@ -32,10 +32,12 @@ reported incorrectly.
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 The follow options are not implemented yet:
-  -c, --color=COLOR          barcode color
-  -b, --bgcolor=COLOR        background color
-  -r, --rotate=DEGREES       rotation angle
-  -M, --mosaic               (partial implementation)
+  -eb, --encodation=b        best encodation (beta only)
+  -ef, --encodation=f        fast encodation
+  -c,  --color=COLOR         barcode color
+  -b,  --bgcolor=COLOR       background color
+  -r,  --rotate=DEGREES      rotation angle
+  -M,  --mosaic              (partial implementation)
 
 
 4. Test Programs
