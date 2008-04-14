@@ -1,4 +1,4 @@
-README for pydmtx version 0.4.0 - December 7, 2007
+README for pydmtx version 0.5.0 - April 13, 2008
 -----------------------------------------------------------------
 
 pydmtx is a thin wrapper around libdmtx that reads and writes
