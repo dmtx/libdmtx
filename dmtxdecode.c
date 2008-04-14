@@ -579,7 +579,7 @@ UnRandomize255State(unsigned char value, int idx)
    return (tmp >= 0) ? tmp : tmp + 256;
 }
 
-/*
+/**
  *
  *
  */
@@ -649,7 +649,7 @@ PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
    return 1;
 }
 
-/*
+/**
  *
  *
  */

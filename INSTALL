@@ -32,7 +32,7 @@ Note: If your system uses an older version of tar you might
 libdmtx employs GNU Autotools so the installation should be
 familiar to veterans of free software:
 
-As yourself, first run:
+As yourself, cd into the libdmtx directory and run:
 
   $ ./configure
 
@@ -40,7 +40,7 @@ and then run:
 
   $ make
 
-If this throws any errors you probably want to check the
+If this throws out errors then you probably want to check the
 Dependencies section below and install any missing software
 before trying again.
 
@@ -76,14 +76,14 @@ run:
    $ make install
 
 This will install the library files to /usr/local/lib, utilities
-to /usr/local/bin, and man pages to /usr/local/share/man (unless
+to /usr/local/bin, and man pages to /usr/local/share/man unless
 you specified a different "--prefix" during the configure step
-above).
+above.
 
 Did you encounter any problems?  If you performed all these steps
 and it still won't build properly then please post a message to
-the "Help" forum or mailing list so we can review your issue and
-the solution will become part of the public record.
+the libdmtx "Help" forum or mailing list so we can review your
+issue and the solution becomes part of the public record.
 
 
 3. Building and Installing the Python Bindings
@@ -91,8 +91,8 @@ the solution will become part of the public record.
 
 If you wish to call libdmtx from programs written in Python
 then you must also install the Python binding located in the
-bindings/python directory.  See the INSTALL file in that
-location for further instructions.
+bindings/python directory.  See the INSTALL file located
+in that directory for more detailed instructions.
 
 
 4. Building the Test Programs: gltest and simpletest
@@ -104,7 +104,7 @@ symbol then it will write the decoded stream to STDOUT.  The
 program uses the images from the libdmtx/test/images_opengl
 directory (the only images that are included in the non-
 optional source package), and you can cycle through them by
-right-clicking anywhere on the open gltest window.
+right-clicking anywhere on the gltest window.
 
 The simpletest program is a simple test program.
 

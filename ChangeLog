@@ -3,6 +3,22 @@ Changes for libdmtx
 
 version 0.5 [April 2008]
   Error correction using libfec (thanks Florian!)
+  Rework encoding and decoding API for consistency and intuitiveness
+  Handle region detection and region decoding as separate tasks
+  Pass found regions back to calling app before attempting decode
+  Image mask approach (for performance and multi-barcode scans)
+  Fix TestForEndOfSymbolEdifact() to handle special cases correctly
+  Roll scan pattern into core library (inward breadth-first cross)
+  Replace dmtxScanLine() with dmtxScanPixel()
+  Implement 4-direction weighted module decisions (eliminates thresholds)
+  Add ability to scan portion of image
+  Add --diagnose option that dumps image with embedded scan infomation
+  Added Z rotation angle (in degrees) to verbose output
+  Move ASCII and codeword output to separate --preview option
+  Added -R option for setting image print resolution in dpi (PNG only)
+  Remove gltest and simpletest from default build target
+  Update Subversion to be keyword friendly ($Id$)
+  Updated documentation to reflect API and option changes
 
 version 0.4 [December 2007]
   Remove arbitrary sz scaling (100.0) since it doesn't matter anyway

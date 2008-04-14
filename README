@@ -1,11 +1,11 @@
 README for libdmtx version 0.5.0 - April 13, 2008
 -----------------------------------------------------------------
 
-Version 0.5.0 brings libdmtx a big step closer to earning the
-"Production Ready" label.  As predicted, the major untested
+Version 0.5.0 brings libdmtx a big step closer toward earning
+the "Production Ready" label.  As predicted, the major untested
 changes in 0.4.0 required a stabilization period to work out the
-kinks, but the library now appears more stable and better
-equipped to scan mixed-quality input than any previous version.
+kinks, but the scanning logic now appears more stable and better
+equipped to handle mixed-quality input than any previous version.
 This release also introduces a critical feature that many users
 have been waiting for: Reed Solomon error correction!
 
@@ -19,20 +19,22 @@ immediately relevant to a number of organizations.
 
 Other new features include:
 
-  * Scan grid pattern is now handled by library internally
-  * Better module color decisions (improves success rates)
-  * library now returns pre-decoded regions; gives choice
+  * Optimized scan grid pattern now handled within library
+  * Better module color decisions (improving success rates)
+  * library now returns pre-decoded regions; giving choice
   * Ability to scan specific portions of an image
-  * Barcode rotation printed in dmtxread verbose mode
+  * More consistent API between encoding and decoding
+  * Faster scanning performance
 
-At a project level, libdmtx has seen a dramatic increase in
-traffic and downloads since the 0.4.0 release.  Compared to the
-period before the year-long freeze in 2007, monthly website
-visits have increased nearly 300% during the last four months.
-Additionally, the software has been used on a number of new
-platforms including Windows, Macintosh, Solaris, and a few mobile
-phones (YouTube has some cool demos).
+At a project level, libdmtx continues to gain new users from
+industry, academia, and the free software community.  The
+libdmtx.org website now receives nearly 3 times the monthly
+traffic compared to anything before the 2007 project freeze, and
+the software has been used on a number of new platforms including
+Windows, Macintosh, Solaris, and multiple mobile phones (YouTube
+has some cool demos).
 
-version 0.6 will focus on performance
-
-changes to API
+As always, please let us know if you find bugs or have any
+trouble installing the software.  This version should be pretty
+stable, but if it crashes on you or otherwise fails to scan clean
+barcodes then it would like to address it quickly.  Thanks!

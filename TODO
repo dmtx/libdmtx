@@ -1,35 +1,8 @@
 TODO Items
 -----------------------------------------------------------------
 
-"Must Have" features for next release:
---------------------------------------
-   6) move SetRangeLimit and SetScanRegion into library
-   -) make sure Alessandro is okay with his images being included (otherwise pull out)
-   -) add message == NULL check to simpletest.c
-
-Soon:
---------------------------------------
-   -) diagnostic utility that dumps image copy with scanning info embedded
-   o remove mosaic field from DmtxDecode (and replace functionality by calling dedicated named function)
-   o remove DmtxRegion from decode and pass it between functions explicitly
-
-   o write fully structured debug barcode dump from dmtxread (currently just mapping grid)
-   o add data to the malloc'd image buffer (for writing log data and tracking progress)
-   o consider changing rounding of zero crossing math to nearest center between pixels
-
-   o print out image representing "unstretched" barcode
-
-   o nominal predicted barcode in another color
-   o print color weights based on direction
-   o Change dmtxread to print out dump of both failed and successful barcodes if requested
-   o Change dmtxread to print out mis-read modules somehow ... additive, subtractive?
-      - Build color vector that describes jump from background to foreground color
-      - When module is determined to be "off" then add half of color vector
-      - When module is determined to be "on" then subtract half of color vector
-      - resulting image should clearly show misread modules
-   o Change dmtxread to print out trail left by scanning logic (future)
-
 after version 0.5:
+  o libdmtx:   Move SetRangeLimit and SetScanRegion into library
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
@@ -40,7 +13,17 @@ after version 0.5:
   o libdmtx:   Implement --auto-fast option using algorithm from spec (lighter & faster?)
   o libdmtx:   Implement overlap detection to avoid rescanning in successfully decoded regions
   o libdmtx:   Implement structured append symbols
-  o dmtxread:  JPEG support
+  o dmtxread:  Write fully structured debug barcode dump from dmtxread (currently just mapping grid)
+  o dmtxread:  Print out image representing "unstretched" barcode
+  o dmtxread:  Print color weights based on direction
+  o dmtxread:  Change dmtxread to print out dump of both failed and successful barcodes if requested
+  o dmtxread:  Change dmtxread to print out mis-read modules somehow ... additive, subtractive?
+               - Build color vector that describes jump from background to foreground color
+               - When module is determined to be "off" then add half of color vector
+               - When module is determined to be "on" then subtract half of color vector
+               - resulting image should clearly show misread modules
+  o dmtxread:  Change dmtxread to print out trail left by scanning logic (future)
+  o dmtxread:  JPEG reading support
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
   o dmtxwrite: Print character values (not just codewords) from --format=c (-fc) option
   o dmtxwrite: Verbose messages describing encoding process
@@ -50,30 +33,28 @@ after version 0.5:
   o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
   o testsuite: 'make test' writes metrics file
   o testsuite: 'make test' confirms performance
-  o project:   Figure out way to include extra files (and not .svn) without compiling
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
-  o dmtxread:  Add option to write image of path scanned and regions found (from mask)
 
 version 0.5: (13-Apr-2008)
-  x libdmtx:   region detection and decoding handled as separate tasks (and structs)
-  x libdmtx:   image mask approach (for performance and multi-barcode scans)
+  x libdmtx:   Rework encoding and decoding API for consistency and intuitiveness
+  x libdmtx:   Handle region detection and region decoding as separate tasks
+  x libdmtx:   Pass found regions back to calling app before attempting decode
+  x libdmtx:   Image mask approach (for performance and multi-barcode scans)
   x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
   x libdmtx:   Fix TestForEndOfSymbolEdifact() to handle special cases correctly
-  x libdmtx:   Implement multiple barcodes as incremental choice offered to calling app
-  x libdmtx:   Pass found regions back to calling app before attempting decode
-  x libdmtx:   Replace dmtxScanLine() with dmtxScanPixel()
   x libdmtx:   Roll scan pattern into core library (inward breadth-first cross)
+  x libdmtx:   Replace dmtxScanLine() with dmtxScanPixel()
   x libdmtx:   Implement 4-direction weighted module decisions (eliminates thresholds)
-  x libdmtx:   Based on "incremental choice", remove unnecessary mallocs (single in stack)
-  x libdmtx:   Implement error correction using libfec
+  x libdmtx:   Error correction using libfec (thanks Florian!)
   x dmtxread:  Add ability to scan portion of image
-  x dmtxread:  Add --diagnose option that dumps image with scan infomation embedded
+  x dmtxread:  Add --diagnose option that dumps image with embedded scan infomation
   x dmtxread:  Added Z rotation angle (in degrees) to verbose output
   x dmtxwrite: Move ASCII and codeword output to separate --preview option
   x dmtxwrite: Added -R option for setting image print resolution in dpi (PNG only)
   x project:   Remove gltest and simpletest from default build target
   x project:   Update Subversion to be keyword friendly ($Id$)
-  x project:   updated documentation to reflect API and option changes
+  x project:   Updated documentation to reflect API and option changes
+  x testsuite: Moved all public images to common directory with single copyright file
 
 version 0.4: (07-Dec-2008)
   x libdmtx:   Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
