@@ -21,7 +21,7 @@ Other new features include:
 
   * Optimized scan grid pattern now handled within library
   * Better module color decisions (improving success rates)
-  * library now returns pre-decoded regions; giving choice
+  * library now returns pre-decoded regions -- giving choice
   * Ability to scan specific portions of an image
   * More consistent API between encoding and decoding
   * Faster scanning performance
@@ -34,7 +34,7 @@ the software has been used on a number of new platforms including
 Windows, Macintosh, Solaris, and multiple mobile phones (YouTube
 has some cool demos).
 
-As always, please let us know if you find bugs or have any
+As always, please let us know if you find any bugs or have
 trouble installing the software.  This version should be pretty
-stable, but if it crashes on you or otherwise fails to scan clean
-barcodes then it would like to address it quickly.  Thanks!
+stable, but if it crashes or otherwise fails to scan clean
+barcodes then we would like to address it quickly.  Thanks!
