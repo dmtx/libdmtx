@@ -25,6 +25,10 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTX_H__
 #define __DMTX_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DMTX_VERSION                   "0.5.0"
 
 #define DMTX_FAILURE                   0
@@ -386,5 +390,9 @@ extern int dmtxSymbolModuleStatus(DmtxMessage *mapping, int sizeIdx, int row, in
 extern int dmtxGetSymbolAttribute(int attribute, int sizeIdx);
 
 extern char *dmtxVersion(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
