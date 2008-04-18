@@ -34,6 +34,7 @@ after version 0.5:
   o testsuite: 'make test' writes metrics file
   o testsuite: 'make test' confirms performance
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
+  o project:   Copy getopt1.c, getopt.c and getopt.h ... and use if not present (AC_SEARCH_LIBRARY)
 
 version 0.5: (13-Apr-2008)
   x libdmtx:   Rework encoding and decoding API for consistency and intuitiveness
