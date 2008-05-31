@@ -1,1 +1,1 @@
-SUBDIRS = dmtxread dmtxwrite
+SUBDIRS = dmtxquery dmtxread dmtxwrite

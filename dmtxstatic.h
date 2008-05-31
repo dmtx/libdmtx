@@ -22,6 +22,9 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
+#ifndef __DMTXSTATIC_H__
+#define __DMTXSTATIC_H__
+
 #define DMTX_END_OF_RANGE      5
 #define DMTX_EDGE_FOUND        6
 
@@ -216,3 +219,5 @@ static int aLogVal[] =
       222, 145,  15,  30,  60, 120, 240, 205, 183,  67, 134,  33,  66, 132,  37,  74,
       148,   5,  10,  20,  40,  80, 160, 109, 218, 153,  31,  62, 124, 248, 221, 151,
         3,   6,  12,  24,  48,  96, 192, 173, 119, 238, 241, 207, 179,  75, 150,   1 };
+
+#endif

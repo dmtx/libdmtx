@@ -32,9 +32,9 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = dmtxwrite$(EXEEXT)
-noinst_PROGRAMS = dmtxwrite.debug$(EXEEXT)
-subdir = util/dmtxwrite
+bin_PROGRAMS = dmtxquery$(EXEEXT)
+noinst_PROGRAMS = dmtxquery.debug$(EXEEXT)
+subdir = util/dmtxquery
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -46,20 +46,20 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS) $(noinst_PROGRAMS)
-am_dmtxwrite_OBJECTS = dmtxwrite.$(OBJEXT) dmtxutil.$(OBJEXT)
-dmtxwrite_OBJECTS = $(am_dmtxwrite_OBJECTS)
-dmtxwrite_LDADD = $(LDADD)
-dmtxwrite_DEPENDENCIES = ../../libdmtx.la
-dmtxwrite_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+am_dmtxquery_OBJECTS = dmtxquery.$(OBJEXT) dmtxutil.$(OBJEXT)
+dmtxquery_OBJECTS = $(am_dmtxquery_OBJECTS)
+dmtxquery_LDADD = $(LDADD)
+dmtxquery_DEPENDENCIES = ../../libdmtx.la
+dmtxquery_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(dmtxwrite_LDFLAGS) $(LDFLAGS) -o $@
-am_dmtxwrite_debug_OBJECTS = dmtxwrite.$(OBJEXT) dmtxutil.$(OBJEXT)
-dmtxwrite_debug_OBJECTS = $(am_dmtxwrite_debug_OBJECTS)
-dmtxwrite_debug_LDADD = $(LDADD)
-dmtxwrite_debug_DEPENDENCIES = ../../libdmtx.la
-dmtxwrite_debug_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(dmtxquery_LDFLAGS) $(LDFLAGS) -o $@
+am_dmtxquery_debug_OBJECTS = dmtxquery.$(OBJEXT) dmtxutil.$(OBJEXT)
+dmtxquery_debug_OBJECTS = $(am_dmtxquery_debug_OBJECTS)
+dmtxquery_debug_LDADD = $(LDADD)
+dmtxquery_debug_DEPENDENCIES = ../../libdmtx.la
+dmtxquery_debug_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(dmtxwrite_debug_LDFLAGS) $(LDFLAGS) -o $@
+	$(dmtxquery_debug_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I. -I$(top_builddir)@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -72,10 +72,10 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(dmtxwrite_SOURCES) $(EXTRA_dmtxwrite_SOURCES) \
-	$(dmtxwrite_debug_SOURCES)
-DIST_SOURCES = $(dmtxwrite_SOURCES) $(EXTRA_dmtxwrite_SOURCES) \
-	$(dmtxwrite_debug_SOURCES)
+SOURCES = $(dmtxquery_SOURCES) $(EXTRA_dmtxquery_SOURCES) \
+	$(dmtxquery_debug_SOURCES)
+DIST_SOURCES = $(dmtxquery_SOURCES) $(EXTRA_dmtxquery_SOURCES) \
+	$(dmtxquery_debug_SOURCES)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -185,12 +185,12 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-dmtxwrite_SOURCES = dmtxwrite.c dmtxwrite.h ../common/dmtxutil.c ../common/dmtxutil.h
-dmtxwrite_LDFLAGS = -lm -lpng
-dmtxwrite_debug_SOURCES = dmtxwrite.c dmtxwrite.h ../common/dmtxutil.c ../common/dmtxutil.h
-dmtxwrite_debug_LDFLAGS = -lm -lpng -static
-EXTRA_dmtxwrite_SOURCES = ../common/getopt1.c ../common/getopt.c \
-	../common/getopt.h ../common/getopt_int.h ../common/gettext.h
+dmtxquery_SOURCES = dmtxquery.c dmtxquery.h ../common/dmtxutil.c ../common/dmtxutil.h
+dmtxquery_LDFLAGS = -lm
+dmtxquery_debug_SOURCES = dmtxquery.c dmtxquery.h ../common/dmtxutil.c ../common/dmtxutil.h
+dmtxquery_debug_LDFLAGS = -lm -static
+EXTRA_dmtxquery_SOURCES = ../common/getopt1.c ../common/getopt.c \
+        ../common/getopt.h ../common/getopt_int.h ../common/gettext.h
 
 LDADD = ../../libdmtx.la
 all: all-am
@@ -206,9 +206,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  util/dmtxwrite/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  util/dmtxquery/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  util/dmtxwrite/Makefile
+	  $(AUTOMAKE) --gnu  util/dmtxquery/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -261,12 +261,12 @@ clean-noinstPROGRAMS:
 	  echo " rm -f $$p $$f"; \
 	  rm -f $$p $$f ; \
 	done
-dmtxwrite$(EXEEXT): $(dmtxwrite_OBJECTS) $(dmtxwrite_DEPENDENCIES) 
-	@rm -f dmtxwrite$(EXEEXT)
-	$(dmtxwrite_LINK) $(dmtxwrite_OBJECTS) $(dmtxwrite_LDADD) $(LIBS)
-dmtxwrite.debug$(EXEEXT): $(dmtxwrite_debug_OBJECTS) $(dmtxwrite_debug_DEPENDENCIES) 
-	@rm -f dmtxwrite.debug$(EXEEXT)
-	$(dmtxwrite_debug_LINK) $(dmtxwrite_debug_OBJECTS) $(dmtxwrite_debug_LDADD) $(LIBS)
+dmtxquery$(EXEEXT): $(dmtxquery_OBJECTS) $(dmtxquery_DEPENDENCIES) 
+	@rm -f dmtxquery$(EXEEXT)
+	$(dmtxquery_LINK) $(dmtxquery_OBJECTS) $(dmtxquery_LDADD) $(LIBS)
+dmtxquery.debug$(EXEEXT): $(dmtxquery_debug_OBJECTS) $(dmtxquery_debug_DEPENDENCIES) 
+	@rm -f dmtxquery.debug$(EXEEXT)
+	$(dmtxquery_debug_LINK) $(dmtxquery_debug_OBJECTS) $(dmtxquery_debug_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -274,8 +274,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dmtxquery.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dmtxutil.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dmtxwrite.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getopt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/getopt1.Po@am__quote@
 

@@ -35,17 +35,13 @@ Contact: mike@dragonflylogic.com
 #include <tiffio.h>
 #include <dmtx.h>
 #include "dmtxread.h"
-
-#define DMTXREAD_SUCCESS     0
-#define DMTXREAD_ERROR       1
+#include "../common/dmtxutil.h"
 
 static void SetOptionDefaults(UserOptions *options);
 static int HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[]);
 static int SetRangeLimit(int *target, char *optionString, int minMax, int limit);
 static int SetScanRegion(DmtxPixelLoc *p0, DmtxPixelLoc *p1, UserOptions *options, DmtxImage *image);
-static int StringToInt(int *numberInt, char *numberString, char **terminate);
 static void ShowUsage(int status);
-static void FatalError(int errorCode, char *fmt, ...);
 static ImageFormat GetImageFormat(char *imagePath);
 static DmtxImage *LoadImage(char *imagePath, int pageIndex);
 static DmtxImage *LoadImagePng(char *imagePath);
@@ -167,7 +163,7 @@ SetOptionDefaults(UserOptions *options)
  * @param argcp      pointer to argument count
  * @param argvp      pointer to argument list
  * @param fileIndex  pointer to index of first non-option arg (if successful)
- * @return           DMTXREAD_SUCCESS | DMTXREAD_ERROR
+ * @return           DMTXUTIL_SUCCESS | DMTXUTIL_ERROR
  */
 static int
 HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
@@ -216,7 +212,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'g':
             err = StringToInt(&(options->scanGap), optarg, &ptr);
-            if(err != DMTXREAD_SUCCESS || options->scanGap <= 0 || *ptr != '\0')
+            if(err != DMTXUTIL_SUCCESS || options->scanGap <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid gap specified \"%s\""), optarg);
             break;
          case 'n':
@@ -263,7 +259,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             exit(0);
             break;
          default:
-            return DMTXREAD_ERROR;
+            return DMTXUTIL_ERROR;
             break;
       }
    }
@@ -272,14 +268,14 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    /* File not specified */
    if(*fileIndex == *argcp) {
 
-      if(*argcp == 1) /* program called without arguments */
-         return DMTXREAD_ERROR;
+      if(*argcp == 1) /* Program called without arguments */
+         return DMTXUTIL_ERROR;
       else
          FatalError(1, _("Must specify image file"));
 
    }
 
-   return DMTXREAD_SUCCESS;
+   return DMTXUTIL_SUCCESS;
 }
 
 /**
@@ -298,12 +294,12 @@ SetRangeLimit(int *target, char *optionString, int minMax, int limit)
    }
    if(optionString) {
       err = StringToInt(&value, optionString, &terminate);
-      if(err != DMTXREAD_SUCCESS)
-         return DMTXREAD_ERROR;
+      if(err != DMTXUTIL_SUCCESS)
+         return DMTXUTIL_ERROR;
       *target = (*terminate == '%') ? (int)(0.01 * value * limit + 0.5) : value;
    }
 
-   return DMTXREAD_SUCCESS;
+   return DMTXUTIL_SUCCESS;
 }
 
 /**
@@ -315,12 +311,12 @@ SetScanRegion(DmtxPixelLoc *pMin, DmtxPixelLoc *pMax, UserOptions *options, Dmtx
 {
    assert(options && image && image->width != 0 && image->height != 0);
 
-   if(SetRangeLimit(&(pMin->X), options->xRangeMin, 0, image->width - 1) == DMTXREAD_ERROR ||
-         SetRangeLimit(&(pMin->Y), options->yRangeMin, 0, image->height - 1) == DMTXREAD_ERROR ||
-         SetRangeLimit(&(pMax->X), options->xRangeMax, 1, image->width - 1) == DMTXREAD_ERROR ||
-         SetRangeLimit(&(pMax->Y), options->yRangeMax, 1, image->height - 1) == DMTXREAD_ERROR) {
+   if(SetRangeLimit(&(pMin->X), options->xRangeMin, 0, image->width - 1) == DMTXUTIL_ERROR ||
+         SetRangeLimit(&(pMin->Y), options->yRangeMin, 0, image->height - 1) == DMTXUTIL_ERROR ||
+         SetRangeLimit(&(pMax->X), options->xRangeMax, 1, image->width - 1) == DMTXUTIL_ERROR ||
+         SetRangeLimit(&(pMax->Y), options->yRangeMax, 1, image->height - 1) == DMTXUTIL_ERROR) {
       fprintf(stderr, _("Badly formed range parameter\n\n"));
-      return DMTXREAD_ERROR;
+      return DMTXUTIL_ERROR;
    }
 
    if(pMin->X >= pMax->X || pMin->Y >= pMax->Y)
@@ -329,37 +325,10 @@ SetScanRegion(DmtxPixelLoc *pMin, DmtxPixelLoc *pMax, UserOptions *options, Dmtx
    if(pMin->X < 0 || pMax->X > image->width - 1 ||
          pMin->Y < 0 || pMax->Y > image->height - 1) {
       fprintf(stderr, _("Specified range extends beyond image boundaries\n\n"));
-      return DMTXREAD_ERROR;
+      return DMTXUTIL_ERROR;
    }
 
-   return DMTXREAD_SUCCESS;
-}
-
-/**
- * Convert a string of characters to an integer.  If string cannot be
- * converted then the function will abort the program.
- *
- * @param numberString pointer to string of numbers
- * @return             converted long
- */
-static int
-StringToInt(int *numberInt, char *numberString, char **terminate)
-{
-   long numberLong;
-
-   errno = 0;
-   numberLong = strtol(numberString, terminate, 10);
-
-   while(isspace((int)**terminate))
-      (*terminate)++;
-
-   if(errno != 0 || (**terminate != '\0' && **terminate != '%')) {
-      *numberInt = -1;
-      return DMTXREAD_ERROR;
-   }
-
-   *numberInt = (int)numberLong;
-   return DMTXREAD_SUCCESS;
+   return DMTXUTIL_SUCCESS;
 }
 
 /**
@@ -413,28 +382,6 @@ OPTIONS:\n"), programName, programName);
    }
 
    exit(status);
-}
-
-/**
- * Display error message and exit with error status.
- *
- * @param errorCode error code returned to OS
- * @param fmt       error message format for printing
- * @return          void
- */
-static void
-FatalError(int errorCode, char *fmt, ...)
-{
-   va_list va;
-
-   va_start(va, fmt);
-   fprintf(stderr, "%s: ", programName);
-   vfprintf(stderr, fmt, va);
-   va_end(va);
-   fprintf(stderr, "\n\n");
-   fflush(stderr);
-
-   exit(errorCode);
 }
 
 /**
@@ -711,7 +658,7 @@ LoadImageTiff(char *imagePath, int pageIndex)
  *
  * @param options   runtime options from defaults or command line
  * @param decode    pointer to DmtxDecode struct
- * @return          DMTXREAD_SUCCESS | DMTXREAD_ERROR
+ * @return          DMTXUTIL_SUCCESS | DMTXUTIL_ERROR
  */
 static int
 PrintDecodedOutput(UserOptions *options, DmtxImage *image,
@@ -785,7 +732,7 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
          fputc('\n', stdout);
    }
 
-   return DMTXREAD_SUCCESS;
+   return DMTXUTIL_SUCCESS;
 }
 
 /**

@@ -37,9 +37,7 @@ Contact: mike@dragonflylogic.com
 #include <png.h>
 #include <dmtx.h>
 #include "dmtxwrite.h"
-
-#define DMTXWRITE_SUCCESS     0
-#define DMTXWRITE_ERROR       1
+#include "../common/dmtxutil.h"
 
 #define DMTXWRITE_BUFFER_SIZE 4096
 
@@ -48,9 +46,7 @@ Contact: mike@dragonflylogic.com
 static void InitUserOptions(UserOptions *options);
 static int HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode);
 static void ReadData(UserOptions *options, int *codeBuffer, unsigned char *codeBufferSize);
-static long StringToLong(char *numberString);
 static void ShowUsage(int status);
-static void FatalError(int errorCode, char *fmt, ...);
 static void WriteImagePng(UserOptions *options, DmtxEncode *encode);
 static void WriteImagePnm(UserOptions *options, DmtxEncode *encode);
 static void WriteAsciiBarcode(DmtxEncode *encode);
@@ -151,14 +147,16 @@ InitUserOptions(UserOptions *options)
  * @param options runtime options from defaults or command line
  * @param argcp   pointer to argument count
  * @param argvp   pointer to argument list
- * @return        DMTXWRITE_SUCCESS | DMTXWRITE_ERROR
+ * @return        DMTXUTIL_SUCCESS | DMTXUTIL_ERROR
  */
 static int
 HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
 {
+   int err;
    int i;
    int opt;
    int longIndex;
+   char *ptr;
 
    static char *symbolSizes[] = {
          "10x10", "12x12",   "14x14",   "16x16",   "18x18",   "20x20",
@@ -218,15 +216,19 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             fprintf(stdout, "Option \"%c\" not implemented yet\n", opt);
             break;
          case 'd':
-            encode->moduleSize = StringToLong(optarg);
+            err = StringToInt(&(encode->moduleSize), optarg, &ptr);
+            if(err != DMTXUTIL_SUCCESS || encode->moduleSize <= 0 || *ptr != '\0')
+               FatalError(1, _("Invalid module size specified \"%s\""), optarg);
             break;
          case 'm':
-            encode->marginSize = StringToLong(optarg);
+            err = StringToInt(&(encode->marginSize), optarg, &ptr);
+            if(err != DMTXUTIL_SUCCESS || encode->marginSize <= 0 || *ptr != '\0')
+               FatalError(1, _("Invalid margin size specified \"%s\""), optarg);
             break;
          case 'e':
             if(strlen(optarg) != 1) {
                fprintf(stdout, "Invalid encodation scheme \"%s\"\n", optarg);
-               return DMTXWRITE_ERROR;
+               return DMTXUTIL_ERROR;
             }
             switch(*optarg) {
                case 'b':
@@ -235,7 +237,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
                case 'f':
                   encode->scheme = DmtxSchemeEncodeAutoFast;
                   fprintf(stdout, "\"Fast optimized\" not implemented yet\n", opt);
-                  return DMTXWRITE_ERROR;
+                  return DMTXUTIL_ERROR;
                   break;
                case 'a':
                   encode->scheme = DmtxSchemeEncodeAscii;
@@ -257,7 +259,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
                   break;
                default:
                   fprintf(stdout, "Invalid encodation scheme \"%s\"\n", optarg);
-                  return DMTXWRITE_ERROR;
+                  return DMTXUTIL_ERROR;
                   break;
             }
             break;
@@ -267,7 +269,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             if(options->format != 'n' && options->format != 'p' &&
                   options->format != 'm') {
                fprintf(stdout, "Invalid output format \"%c\"\n", options->format);
-               return DMTXWRITE_ERROR;
+               return DMTXUTIL_ERROR;
             }
 
             break;
@@ -280,12 +282,14 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             if(options->preview != 'n' && options->preview != 'a' &&
                   options->preview != 'c') {
                fprintf(stdout, "Invalid preview format \"%c\"\n", options->preview);
-               return DMTXWRITE_ERROR;
+               return DMTXUTIL_ERROR;
             }
 
             break;
          case 'r':
-            options->rotate = StringToLong(optarg);
+            err = StringToInt(&(options->rotate), optarg, &ptr);
+            if(err != DMTXUTIL_SUCCESS || *ptr != '\0')
+               FatalError(1, _("Invalid rotation angle specified \"%s\""), optarg);
             break;
          case 's':
             /* Determine correct barcode size and/or shape */
@@ -303,7 +307,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
                   }
                }
                if(i == DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT)
-                  return DMTXWRITE_ERROR;
+                  return DMTXUTIL_ERROR;
             }
 
             break;
@@ -314,7 +318,9 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             options->mosaic = 1;
             break;
          case 'R':
-            options->dpi = StringToLong(optarg);
+            err = StringToInt(&(options->dpi), optarg, &ptr);
+            if(err != DMTXUTIL_SUCCESS || options->dpi <= 0 || *ptr != '\0')
+               FatalError(1, _("Invalid dpi specified \"%s\""), optarg);
             break;
          case 'V':
             fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
@@ -322,7 +328,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             exit(0);
             break;
          default:
-            return DMTXWRITE_ERROR;
+            return DMTXUTIL_ERROR;
             break;
       }
    }
@@ -332,7 +338,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
    /* XXX here test for incompatibility between options. For example you
       cannot specify dpi if PNM output is requested */
 
-   return DMTXWRITE_SUCCESS;
+   return DMTXUTIL_SUCCESS;
 }
 
 /**
@@ -362,31 +368,6 @@ ReadData(UserOptions *options, int *codeBufferSize, unsigned char *codeBuffer)
    /* Close file only if not stdin */
    if(fd != 0 && close(fd) != 0)
       FatalError(1, _("Error while closing file"));
-}
-
-/**
- * Convert a string of characters to a long integer.  If string cannot be
- * converted then the function will abort the program.
- *
- * @param numberString pointer to string of numbers
- * @return             converted long
- */
-static long
-StringToLong(char *numberString)
-{
-   long numberLong;
-   char *trailingChars;
-
-   errno = 0;
-   numberLong = strtol(numberString, &trailingChars, 10);
-
-   while(isspace(*trailingChars))
-      trailingChars++;
-
-   if(errno != 0 || *trailingChars != '\0')
-      FatalError(2, _("Invalid number \"%s\""), numberString);
-
-   return numberLong;
 }
 
 /**
@@ -454,28 +435,6 @@ OPTIONS:\n"), programName, programName);
    }
 
    exit(status);
-}
-
-/**
- * Display error message and exit with error status.
- *
- * @param errorCode error code returned to OS
- * @param fmt       error message format for printing
- * @return          void
- */
-static void
-FatalError(int errorCode, char *fmt, ...)
-{
-   va_list va;
-
-   va_start(va, fmt);
-   fprintf(stderr, "%s: ", programName);
-   vfprintf(stderr, fmt, va);
-   va_end(va);
-   fprintf(stderr, "\n\n");
-   fflush(stderr);
-
-   exit(errorCode);
 }
 
 /**
