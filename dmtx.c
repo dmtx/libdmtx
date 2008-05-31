@@ -58,7 +58,7 @@ Contact: mike@dragonflylogic.com
 #include "dmtxdecode.c"
 #include "dmtxencode.c"
 #include "dmtxplacemod.c"
-#include "libfec/fec.h"
+#include "dmtxfec.c"
 #include "dmtxreedsol.c"
 #include "dmtxsymbol.c"
 #include "dmtxvector2.c"

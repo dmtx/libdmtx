@@ -64,7 +64,6 @@ int
 main(int argc, char *argv[])
 {
    int err;
-   int status;
    int fileIndex;
    int pageIndex;
    UserOptions options;

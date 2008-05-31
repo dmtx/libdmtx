@@ -149,9 +149,10 @@ PROPERTY:\n"), programName, programName);
    barcode.N.BPROP           print BPROP property of Nth barcode\n\
    message.count             count of all messages found in image\n\
    message.N                 print all properties of Nth message\n\
-   message.N.MPROP           print MPROP property of message N\n\
-   message.N.barcode.M       Mth barcode of Nth message\n\
-   message.N.barcode.M.BPROP Mth barcode of Nth message\n\
+   message.N.MPROP           print MPROP property of Nth message\n\
+   message.N.barcode.count   count of all barcodes in Nth message\n\
+   message.N.barcode.M       Mth barcode of Nth message, print all\n\
+   message.N.barcode.M.BPROP Mth barcode of Nth message, print BPROP\n\
 \n\
    BPROP barcode properties:\n\
       message        message_number      message_position\n\
