@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id: dmtxquery.c 124 2008-04-13 01:38:03Z mblaughton $ */
+/* $Id$ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -142,7 +142,7 @@ grouped barcode scan results.\n\
 Example: dmtxread barcode.png | %s barcode.count\n\
 Example: %s barcode.2.rotation scanresults.xml\n\
 \n\
-PROPERTIES:\n"), programName, programName, programName);
+PROPERTY:\n"), programName, programName);
       fprintf(stdout, _("\
    barcode.count             count of all barcodes found in image\n\
    barcode.N                 print all properties of Nth barcode\n\
