@@ -29,7 +29,8 @@
 #undef A0
 #define A0 (NN) /* Special reserved value encoding zero in index form */
 
-void encode_rs_char(void *p, data_t *data, data_t *parity)
+static void
+encode_rs_char(void *p, data_t *data, data_t *parity)
 {
    struct rs *rs = (struct rs *)p;
    int i, j;

@@ -74,7 +74,7 @@
 #undef A0
 #define A0 (NN)
 
-int
+static int
 decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras)
 {
    struct rs *rs = (struct rs *)p;

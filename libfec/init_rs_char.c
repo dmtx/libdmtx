@@ -27,7 +27,7 @@ void free_rs_char(void *p){
  * nroots = RS code generator polynomial degree (number of roots)
  * pad = padding bytes at front of shortened block
  */
-void *
+static void *
 init_rs_char(int symsize,int gfpoly,int fcr,int prim, int nroots,int pad)
 {
    struct rs *rs;
