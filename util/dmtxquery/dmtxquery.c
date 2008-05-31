@@ -87,19 +87,6 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[])
    char *ptr;
 
    struct option longOptions[] = {
-         {"codewords",        no_argument,       NULL, 'c'},
-         {"gap",              required_argument, NULL, 'g'},
-         {"newline",          no_argument,       NULL, 'n'},
-         {"x-range-min",      required_argument, NULL, 'x'},
-         {"x-range-max",      required_argument, NULL, 'X'},
-         {"y-range-min",      required_argument, NULL, 'y'},
-         {"y-range-max",      required_argument, NULL, 'Y'},
-         {"verbose",          no_argument,       NULL, 'v'},
-         {"corners",          no_argument,       NULL, 'C'},
-         {"diagnose",         no_argument,       NULL, 'D'},
-         {"error-correction", required_argument, NULL, 'E'},
-         {"mosaic",           no_argument,       NULL, 'M'},
-         {"page-number",      no_argument,       NULL, 'P'},
          {"version",          no_argument,       NULL, 'V'},
          {"help",             no_argument,       NULL,  0 },
          {0, 0, 0, 0}
@@ -113,7 +100,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[])
       return DMTXUTIL_ERROR;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:vCDE:MPV", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "V", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -121,7 +108,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[])
          case 0: /* --help */
             ShowUsage(0);
             break;
-         case 'c':
+         case 'V':
             options->placeHolder = 1;
             break;
          default:
@@ -143,18 +130,38 @@ static void
 ShowUsage(int status)
 {
    if(status != 0) {
-      fprintf(stderr, _("Usage: %s [OPTION]... [FILE]...\n"), programName);
+      fprintf(stderr, _("Usage: %s PROPERTY [OPTION]... [FILE]...\n"), programName);
       fprintf(stderr, _("Try `%s --help' for more information.\n"), programName);
    }
    else {
-      fprintf(stdout, _("Usage: %s [OPTION]... [FILE]...\n"), programName);
+      fprintf(stdout, _("Usage: %s PROPERTY [OPTION]... [FILE]...\n"), programName);
       fprintf(stdout, _("\
-Query XML scan result file for individual or group attributes.\n\
+Extract information from the XML output from dmtxread for individual or\n\
+grouped barcode scan results.\n\
 \n\
-OPTIONS:\n"), programName, programName);
+Example: dmtxread barcode.png | %s barcode.count\n\
+Example: %s barcode.2.rotation scanresults.xml\n\
+\n\
+PROPERTIES:\n"), programName, programName, programName);
       fprintf(stdout, _("\
-  -c, --codewords            print codewords extracted from barcode pattern\n\
-  -v, --verbose              use verbose messages\n\
+   barcode.count             count of all barcodes found in image\n\
+   barcode.N                 print all properties of Nth barcode\n\
+   barcode.N.BPROP           print BPROP property of Nth barcode\n\
+   message.count             count of all messages found in image\n\
+   message.N                 print all properties of Nth message\n\
+   message.N.MPROP           print MPROP property of message N\n\
+   message.N.barcode.M       Mth barcode of Nth message\n\
+   message.N.barcode.M.BPROP Mth barcode of Nth message\n\
+\n\
+   BPROP barcode properties:\n\
+      message        message_number      message_position\n\
+      matrix_size    data_codewords      error_codewords\n\
+      rotation       data_regions_count  interleaved_blocks\n\
+\n\
+   MPROP message properties:\n\
+      message        data_codeword       error_codeword\n\
+\n\
+OPTIONS:\n\
   -V, --version              print program version information\n\
       --help                 display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
