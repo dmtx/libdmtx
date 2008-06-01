@@ -2,6 +2,10 @@
 
 FILE="$1"
 
+if [[ "$(basename $FILE)" = "dmtxfec.c" ]]; then
+   exit 0
+fi
+
 PATTERN="XX_X_XXXX_XXXX_XXX_XX_X_X_"
 
 for i in $(seq 1 25); do

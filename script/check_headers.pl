@@ -15,7 +15,7 @@ while(<>) {
    if(m/^}$/) {
       $closeLineNbr = $.;
    }
-   elsif(!defined($closeLineNbr) || m/^$/ || m/^\*/) {
+   elsif(!defined($closeLineNbr) || m/^$/ || m/^\*/ || m/^#/) {
       next;
    }
    elsif(m/^\/\*\*$/) {

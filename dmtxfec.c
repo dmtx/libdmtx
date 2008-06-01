@@ -1,32 +1,41 @@
-/* Initialize a RS codec
- *
- * Copyright 2002 2004 Phil Karn, KA9Q
- * May be used under the terms of the GNU Lesser General Public License (LGPL)
- */
+/*
+libdmtx - Data Matrix Encoding/Decoding Library
+
+Copyright (c) 2002-2004 Phil Karn, KA9Q
+Copyright (c) 2008 Mike Laughton
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+----------------------------------------------------------------------
+This file is derived from various portions of the fec library
+written by Phil Karn available at http://www.ka9q.net. It has
+been modified to include only the specific cases used by Data
+Matrix barcodes, and to integrate with the rest of libdmtx.
+----------------------------------------------------------------------
+Contact: mike@dragonflylogic.com
+*/
+
+/* $Id$ */
+
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
 
-/* User include file for libfec
- * Copyright 2004, Phil Karn, KA9Q
- * May be used under the terms of the GNU Lesser General Public License (LGPL)
- */
-
-/* General purpose RS codec, 8-bit symbols */
-static void encode_rs_char(void *rs, unsigned char *data, unsigned char *parity);
-static int decode_rs_char(void *rs, unsigned char *data, int *eras_pos, int no_eras);
-static void *init_rs_char(int symsize, int gfpoly, int fcr,int prim, int nroots, int pad);
-static void free_rs_char(void *rs);
-
-/* Stuff specific to the 8-bit symbol version of the general purpose RS codecs
- *
- * Copyright 2003, Phil Karn, KA9Q
- * May be used under the terms of the GNU Lesser General Public License (LGPL)
- */
 typedef unsigned char data_t;
 
 #define MODNN(x) modnn(rs,x)
-
 #define MM (rs->mm)
 #define NN (rs->nn)
 #define ALPHA_TO (rs->alpha_to)
@@ -37,12 +46,54 @@ typedef unsigned char data_t;
 #define PRIM (rs->prim)
 #define IPRIM (rs->iprim)
 #define PAD (rs->pad)
+#define A0 (NN) /* Special reserved value encoding zero in index form */
+
+#if !defined(NROOTS)
+#error "NROOTS not defined"
+#endif
+
+#if !defined(NN)
+#error "NN not defined"
+#endif
+
+#if !defined(PAD)
+#error "PAD not defined"
+#endif
+
+#if !defined(ALPHA_TO)
+#error "ALPHA_TO not defined"
+#endif
+
+#if !defined(INDEX_OF)
+#error "INDEX_OF not defined"
+#endif
+
+#if !defined(MODNN)
+#error "MODNN not defined"
+#endif
+
+#if !defined(FCR)
+#error "FCR not defined"
+#endif
+
+#if !defined(PRIM)
+#error "PRIM not defined"
+#endif
+
+#undef NULL
+#define NULL ((void *)0)
+
+#undef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
+#undef A0
 #define A0 (NN)
 
-/* Stuff common to all the general-purpose Reed-Solomon codecs
- * Copyright 2004 Phil Karn, KA9Q
- * May be used under the terms of the GNU Lesser General Public License (LGPL)
- */
+/* General purpose RS codec, 8-bit symbols */
+static void encode_rs_char(void *rs, unsigned char *data, unsigned char *parity);
+static int decode_rs_char(void *rs, unsigned char *data, int *eras_pos, int no_eras);
+static void *init_rs_char(int symsize, int gfpoly, int fcr,int prim, int nroots, int pad);
+static void free_rs_char(void *rs);
 
 /* Reed-Solomon codec control block */
 struct rs {
@@ -58,6 +109,10 @@ struct rs {
    int pad;        /* Padding bytes in shortened block */
 };
 
+/**
+ *
+ *
+ */
 static int
 modnn(struct rs *rs, int x)
 {
@@ -69,7 +124,12 @@ modnn(struct rs *rs, int x)
    return x;
 }
 
-void free_rs_char(void *p)
+/**
+ *
+ *
+ */
+static void
+free_rs_char(void *p)
 {
    struct rs *rs = (struct rs *)p;
 
@@ -79,10 +139,8 @@ void free_rs_char(void *p)
    free(rs);
 }
 
-#undef NULL
-#define NULL ((void *)0)
-
-/* Initialize a Reed-Solomon codec
+/**
+ * Initialize a Reed-Solomon codec
  * symsize = symbol size, bits
  * gfpoly = Field generator polynomial coefficients
  * fcr = first root of RS code generator polynomial, index form
@@ -193,10 +251,8 @@ done:;
 
    return rs;
 }
-/* Reed-Solomon encoder
- * Copyright 2002 2004 Phil Karn, KA9Q
- * May be used under the terms of the GNU Lesser General Public License (LGPL)
- *
+
+/**
  * data_t          - a typedef for the data symbol
  * data_t data[]   - array of NN-NROOTS-PAD and type data_t to be encoded
  * data_t parity[] - an array of NROOTS and type data_t to be written with parity symbols
@@ -216,10 +272,6 @@ done:;
  * file declaring these functions (usually <string.h>) must be included by the calling
  * program.
  */
-
-#undef A0
-#define A0 (NN) /* Special reserved value encoding zero in index form */
-
 static void
 encode_rs_char(void *p, data_t *data, data_t *parity)
 {
@@ -248,10 +300,8 @@ encode_rs_char(void *p, data_t *data, data_t *parity)
          parity[NROOTS-1] = 0;
    }
 }
-/* General purpose Reed-Solomon decoder for 8-bit symbols or less
- * Copyright 2003 Phil Karn, KA9Q
- * May be used under the terms of the GNU Lesser General Public License (LGPL)
- *
+
+/**
  * data_t         a typedef for the data symbol
  * data_t data[]  array of NN data and parity symbols to be corrected in place
  * NROOTS         the number of roots in the RS code generator polynomial,
@@ -272,47 +322,6 @@ encode_rs_char(void *p, data_t *data, data_t *parity)
  * file declaring these functions (usually <string.h>) must be included by the calling
  * program.
  */
-
-#if !defined(NROOTS)
-#error "NROOTS not defined"
-#endif
-
-#if !defined(NN)
-#error "NN not defined"
-#endif
-
-#if !defined(PAD)
-#error "PAD not defined"
-#endif
-
-#if !defined(ALPHA_TO)
-#error "ALPHA_TO not defined"
-#endif
-
-#if !defined(INDEX_OF)
-#error "INDEX_OF not defined"
-#endif
-
-#if !defined(MODNN)
-#error "MODNN not defined"
-#endif
-
-#if !defined(FCR)
-#error "FCR not defined"
-#endif
-
-#if !defined(PRIM)
-#error "PRIM not defined"
-#endif
-
-#if !defined(NULL)
-#define NULL ((void *)0)
-#endif
-
-#undef MIN
-#define MIN(a,b)        ((a) < (b) ? (a) : (b))
-#undef A0
-#define A0 (NN)
 
 static int
 decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras)
