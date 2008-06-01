@@ -97,7 +97,10 @@ DecodeCheckErrors(DmtxMessage *message, int sizeIdx, int fix)
 
    errorWordLength = dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, sizeIdx);
 
-   rs = init_rs_char(8, 0x12d, 1, 1, errorWordLength, 255 - message->codeSize);
+   rs = init_rs_char(errorWordLength, 255 - message->codeSize);
+   if(rs == NULL)
+      return DMTX_FAILURE;
+
    fixederr = decode_rs_char(rs, message->code, NULL, 0);
 
    if(fixederr == 0) {
