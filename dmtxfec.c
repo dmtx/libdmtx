@@ -136,7 +136,7 @@ init_rs_char(int nroots, int pad)
       rs->index_of[sr] = i;
       rs->alpha_to[i] = sr;
       sr <<= 1;
-      if(sr & 256)
+      if(sr & (1 << DMTX_RS_MM))
          sr ^= DMTX_RS_GFPOLY;
       sr &= DMTX_RS_NN;
    }
