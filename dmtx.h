@@ -119,7 +119,8 @@ typedef enum {
    DmtxSymAttribMappingMatrixCols,
    DmtxSymAttribDataWordLength,
    DmtxSymAttribErrorWordLength,
-   DmtxSymAttribInterleavedBlocks
+   DmtxSymAttribInterleavedBlocks,
+   DmtxSymAttribMaxCorrectable
 } DmtxSymAttribute;
 
 typedef enum {

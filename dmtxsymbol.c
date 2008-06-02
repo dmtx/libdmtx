@@ -78,6 +78,12 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
                                                            6, 8, 8,
                                                      1, 1, 1, 1, 1, 1 };
 
+   static const int maxCorrectable[] = { 2, 3, 5,  6,  7,  9,  10,  12,  14,
+                                                  18, 21, 24,  28,  34,  42,
+                                                  56, 72, 96, 112, 136, 168,
+                                                         204, 248, 310,
+                                                   3,  5,  7,   9,  12,  14 };
+
    /* XXX maybe this should be a proper check instead of an assertion */
    assert(sizeIdx >= 0 && sizeIdx < DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT);
 
@@ -114,6 +120,9 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
          break;
       case DmtxSymAttribInterleavedBlocks:
          return interleavedBlocks[sizeIdx];
+         break;
+      case DmtxSymAttribMaxCorrectable:
+         return maxCorrectable[sizeIdx];
          break;
       default:
          exit(1); /* error condition */

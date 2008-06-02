@@ -149,7 +149,7 @@ SetOptionDefaults(UserOptions *options)
    options->yRangeMin = NULL;
    options->yRangeMax = NULL;
    options->verbose = 0;
-   options->maxCorrections = 2;
+   options->maxCorrections = -1;
    options->diagnose = 0;
    options->pageNumber = 0;
    options->corners = 0;
@@ -234,7 +234,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'C':
             err = StringToInt(&(options->maxCorrections), optarg, &ptr);
-            if(err != DMTXUTIL_SUCCESS || options->maxCorrections < 0 || *ptr != '\0')
+            if(err != DMTXUTIL_SUCCESS || options->maxCorrections < -1 || *ptr != '\0')
                FatalError(1, _("Invalid max corrections specified \"%s\""), optarg);
             break;
          case 'D':

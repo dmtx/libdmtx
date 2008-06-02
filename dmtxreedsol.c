@@ -92,10 +92,12 @@ static int
 DecodeCheckErrors(DmtxMessage *message, int sizeIdx, int fix)
 {
    int errorWordLength;
+   int maxCorrectable;
    void *rs;
    int fixederr;
 
    errorWordLength = dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, sizeIdx);
+   maxCorrectable = dmtxGetSymbolAttribute(DmtxSymAttribMaxCorrectable, sizeIdx);
 
    rs = init_rs_char(errorWordLength, 255 - message->codeSize);
    if(rs == NULL)
@@ -103,16 +105,16 @@ DecodeCheckErrors(DmtxMessage *message, int sizeIdx, int fix)
 
    fixederr = decode_rs_char(rs, message->code, NULL, 0, fix);
 
-   if(fixederr == 0) {
-      return DMTX_SUCCESS;
-   }
-   else if(fixederr > 0) {
-/*fprintf(stdout, "libdmtx: RS fixed %d errors (%d)\n", fixederr, sizeIdx);*/
-      return (fixederr <= fix) ? DMTX_SUCCESS : DMTX_FAILURE;
-   }
-   else {
+   if(fixederr < 0)
       return DMTX_FAILURE;
-   }
+
+   if(fix >= 0 && fixederr > fix)
+      return DMTX_FAILURE;
+
+   if(fixederr > maxCorrectable)
+      return DMTX_FAILURE;
+
+   return DMTX_SUCCESS;
 }
 
 /**
