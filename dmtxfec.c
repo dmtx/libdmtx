@@ -48,7 +48,7 @@ typedef unsigned char data_t;
 
 /* General purpose RS codec, 8-bit symbols */
 static void encode_rs_char(void *rs, unsigned char *data, unsigned char *parity);
-static int decode_rs_char(void *rs, unsigned char *data, int *eras_pos, int no_eras);
+static int decode_rs_char(void *rs, unsigned char *data, int *eras_pos, int no_eras, int max_fixes);
 static void *init_rs_char(int nroots, int pad);
 static void free_rs_char(void *rs);
 
@@ -58,7 +58,6 @@ struct rs {
    data_t *index_of;    /* Antilog lookup table */
    data_t *genpoly;     /* Generator polynomial */
    int nroots;          /* Number of generator roots = number of parity symbols */
-   int iprim;           /* prim-th root of 1, index form */
    int pad;             /* Padding bytes in shortened block */
 };
 
@@ -101,7 +100,7 @@ static void *
 init_rs_char(int nroots, int pad)
 {
    struct rs *rs;
-   int i, j, sr, root, iprim;
+   int i, j, sr, root;
 
    /* Check parameter ranges */
    if(nroots < 0 || nroots > DMTX_RS_NN)
@@ -158,18 +157,13 @@ init_rs_char(int nroots, int pad)
    }
    rs->nroots = nroots;
 
-   /* Find prim-th root of 1, used in decoding */
-   for(iprim = 1; (iprim % 1) != 0; iprim += DMTX_RS_NN)
-      ;
-   rs->iprim = iprim;
-
    rs->genpoly[0] = 1;
-   for (i = 0,root=1; i < nroots; i++,root += 1) {
+   for(i = 0,root=1; i < nroots; i++,root += 1) {
       rs->genpoly[i+1] = 1;
 
       /* Multiply rs->genpoly[] by  @**(root + x) */
-      for (j = i; j > 0; j--) {
-         if (rs->genpoly[j] != 0)
+      for(j = i; j > 0; j--) {
+         if(rs->genpoly[j] != 0)
             rs->genpoly[j] = rs->genpoly[j-1] ^ rs->alpha_to[modnn(rs, rs->index_of[rs->genpoly[j]] + root)];
          else
             rs->genpoly[j] = rs->genpoly[j-1];
@@ -251,12 +245,12 @@ encode_rs_char(void *p, data_t *data, data_t *parity)
  * program.
  */
 static int
-decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras)
+decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras, int max_fixes)
 {
    struct rs *rs = (struct rs *)p;
    int deg_lambda, el, deg_omega;
-   int i, j, r,k;
-   data_t u,q,tmp,num1,num2,den,discr_r;
+   int i, j, r, k;
+   data_t u, q, tmp, num1, num2, den, discr_r;
    int syn_error, count;
 
    /* Err+Eras Locator poly and syndrome poly */
@@ -288,13 +282,15 @@ decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras)
 
    /* If syndrome is zero, data[] is a codeword and there are no errors to
       correct. So return data[] unmodified */
-
-   /* XXX add check here to return if error correction is not required */
-
-   if(!syn_error) {
+   if(syn_error == 0) {
       count = 0;
       goto finish;
    }
+   else if(max_fixes == 0) {
+      count = -1;
+      goto finish;
+   }
+
    memset(&lambda[1], 0, rs->nroots * sizeof(lambda[0]));
    lambda[0] = 1;
 
@@ -363,7 +359,7 @@ decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras)
    /* Find roots of the error+erasure locator polynomial by Chien search */
    memcpy(&reg[1], &lambda[1], rs->nroots * sizeof(reg[0]));
    count = 0; /* Number of roots of lambda(x) */
-   for(i = 1,k=rs->iprim-1; i <= DMTX_RS_NN; i++,k = modnn(rs,k+rs->iprim)) {
+   for(i = 1,k=0; i <= DMTX_RS_NN; i++,k = modnn(rs,k+1)) {
       q = 1; /* lambda[0] is always 0 */
       for(j = deg_lambda; j > 0; j--) {
          if(reg[j] != DMTX_RS_NN) {
@@ -404,11 +400,11 @@ decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras)
 
    /* Compute error values in poly-form. num1 = omega(inv(X(l))), num2 =
       inv(X(l))**0 and den = lambda_pr(inv(X(l))) all in poly-form */
-   for(j = count-1; j >=0; j--) {
+   for(j = count - 1; j >= 0; j--) {
       num1 = 0;
       for(i = deg_omega; i >= 0; i--) {
          if(omega[i] != DMTX_RS_NN)
-            num1   ^= rs->alpha_to[modnn(rs,omega[i] + i * root[j])];
+            num1 ^= rs->alpha_to[modnn(rs,omega[i] + i * root[j])];
       }
       num2 = rs->alpha_to[modnn(rs, DMTX_RS_NN)];
       den = 0;
@@ -428,7 +424,7 @@ decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras)
 
 finish:
    if(eras_pos != NULL) {
-      for(i=0;i<count;i++)
+      for(i = 0; i < count; i++)
          eras_pos[i] = loc[i];
    }
 

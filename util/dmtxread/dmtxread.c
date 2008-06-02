@@ -114,7 +114,7 @@ main(int argc, char *argv[])
             WriteImagePnm(&options, &decode, message, region.sizeIdx, "debug.pnm");
 
          /* Decode region based on requested scan mode */
-         message = dmtxDecodeMatrixRegion(&decode, &region, options.fix_errors);
+         message = dmtxDecodeMatrixRegion(&decode, &region, options.maxCorrections);
          if(message == NULL)
             continue;
 
@@ -149,10 +149,10 @@ SetOptionDefaults(UserOptions *options)
    options->yRangeMin = NULL;
    options->yRangeMax = NULL;
    options->verbose = 0;
-   options->corners = 0;
+   options->maxCorrections = 2;
    options->diagnose = 0;
-   options->fix_errors = 1;
    options->pageNumber = 0;
+   options->corners = 0;
 }
 
 /**
@@ -181,11 +181,11 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
          {"y-range-min",      required_argument, NULL, 'y'},
          {"y-range-max",      required_argument, NULL, 'Y'},
          {"verbose",          no_argument,       NULL, 'v'},
-         {"corners",          no_argument,       NULL, 'C'},
+         {"max-corrections",  required_argument, NULL, 'C'},
          {"diagnose",         no_argument,       NULL, 'D'},
-         {"error-correction", required_argument, NULL, 'E'},
          {"mosaic",           no_argument,       NULL, 'M'},
          {"page-number",      no_argument,       NULL, 'P'},
+         {"corners",          no_argument,       NULL, 'R'},
          {"version",          no_argument,       NULL, 'V'},
          {"help",             no_argument,       NULL,  0 },
          {0, 0, 0, 0}
@@ -198,7 +198,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:vCDE:MPV", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:vC:DMPRV", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -233,24 +233,21 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             options->verbose = 1;
             break;
          case 'C':
-            options->corners = 1;
+            err = StringToInt(&(options->maxCorrections), optarg, &ptr);
+            if(err != DMTXUTIL_SUCCESS || options->maxCorrections < 0 || *ptr != '\0')
+               FatalError(1, _("Invalid max corrections specified \"%s\""), optarg);
             break;
          case 'D':
             options->diagnose = 1;
-            break;
-         case 'E':
-            if(strncmp(optarg, "y", 2) == 0 || strncmp(optarg, "Y", 2) == 0)
-               options->fix_errors = 1;
-            else if(strncmp(optarg, "n", 2) == 0 || strncmp(optarg, "N", 2) == 0)
-               options->fix_errors = 0;
-            else
-               FatalError(1, _("Invalid error correction state \"%s\""), optarg);
             break;
          case 'M':
             options->mosaic = 1;
             break;
          case 'P':
             options->pageNumber = 1;
+            break;
+         case 'R':
+            options->corners = 1;
             break;
          case 'V':
             fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
@@ -365,15 +362,13 @@ OPTIONS:\n"), programName, programName);
   -X, --x-range-max=N[%%]     do not scan pixels to the right of N (or N%%)\n\
   -y, --y-range-min=N[%%]     do not scan pixels above N (or N%%)\n\
   -Y, --y-range-max=N[%%]     do not scan pixels below N (or N%%)\n\
-  -C, --corners              prefix decoded message with corner locations\n\
+  -C, --corrections-max=N    correct at most N errors (0 = no error correction)\n\
   -D, --diagnose=[op]        make copy of image with added diagnostic data\n\
       o = Overlay            overlay image with module colors\n\
       p = Path               capture path taken by scanning logic\n\
-  -E, --error-correction=[yn]\n\
-      y = Enable   [default] attempt to fix errors using built-in RS ECC\n\
-      n = Disable            skip barcodes when errors are detected\n\
   -M, --mosaic               interpret detected regions as Data Mosaic barcodes\n\
   -P, --page-number          prefix decoded message with fax/tiff page number\n\
+  -R, --corners              prefix decoded message with corner locations\n\
   -v, --verbose              use verbose messages\n\
   -V, --version              print program version information\n\
       --help                 display this help and exit\n"));

@@ -101,16 +101,14 @@ DecodeCheckErrors(DmtxMessage *message, int sizeIdx, int fix)
    if(rs == NULL)
       return DMTX_FAILURE;
 
-   fixederr = decode_rs_char(rs, message->code, NULL, 0);
+   fixederr = decode_rs_char(rs, message->code, NULL, 0, fix);
 
    if(fixederr == 0) {
       return DMTX_SUCCESS;
    }
    else if(fixederr > 0) {
-/*    if(fixederr)
-         fprintf(stdout, "libdmtx: RS fixed %d errors\n", fixederr); */
-
-      return (fix == 1) ? DMTX_SUCCESS : DMTX_FAILURE;
+/*fprintf(stdout, "libdmtx: RS fixed %d errors (%d)\n", fixederr, sizeIdx);*/
+      return (fixederr <= fix) ? DMTX_SUCCESS : DMTX_FAILURE;
    }
    else {
       return DMTX_FAILURE;

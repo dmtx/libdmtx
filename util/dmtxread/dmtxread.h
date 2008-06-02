@@ -42,11 +42,11 @@ typedef struct {
    char *yRangeMin;
    char *yRangeMax;
    int verbose;
-   int corners;
+   int maxCorrections;
    int diagnose;
-   int fix_errors;
    int mosaic;
    int pageNumber;
+   int corners;
 } UserOptions;
 
 typedef enum {
