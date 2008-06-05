@@ -121,7 +121,7 @@ main(int argc, char *argv[])
          PrintDecodedOutput(&options, image, &region, message, pageIndex);
 
          dmtxMessageFree(&message);
-         break; /* XXX for now, break after first barcode is found in image */
+//       break; /* XXX for now, break after first barcode is found in image */
       }
 
       dmtxDecodeStructDeInit(&decode);
@@ -558,7 +558,7 @@ LoadImagePng(char *imagePath)
    for(row = 0; row < image->height; row++) {
       memcpy(image->pxl + (row * image->width),
             rowPointers[image->height - row - 1],
-            image->width * sizeof(DmtxPixel));
+            image->width * sizeof(DmtxRgb));
    }
 
    for(row = 0; row < height; row++) {
@@ -626,9 +626,9 @@ LoadImageTiff(char *imagePath, int pageIndex)
                for(col = 0; col < image->width; col++) {
                   /* XXX TIFF uses ABGR packed */
                   offset = row * image->width + col;
-                  image->pxl[offset].R = raster[offset] & 0x000000ff;
-                  image->pxl[offset].G = (raster[offset] & 0x0000ff00) >> 8;
-                  image->pxl[offset].B = (raster[offset] & 0x00ff0000) >> 16;
+                  image->pxl[offset][0] = raster[offset] & 0x000000ff;
+                  image->pxl[offset][1] = (raster[offset] & 0x0000ff00) >> 8;
+                  image->pxl[offset][2] = (raster[offset] & 0x00ff0000) >> 16;
                }
             }
          }

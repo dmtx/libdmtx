@@ -131,10 +131,7 @@ typedef enum {
 } DmtxCornerLoc;
 
 typedef double DmtxMatrix3[3][3];
-
-typedef struct DmtxMatrix3Struct_struct {
-   DmtxMatrix3 m;
-} DmtxMatrix3Struct;
+typedef unsigned char DmtxRgb[3];
 
 typedef struct DmtxColor3_struct {
    double R;
@@ -171,12 +168,6 @@ typedef struct DmtxGradient_struct {
    DmtxColor3 color, colorPrev; /* XXX maybe these aren't appropriate variables for a gradient? */
 } DmtxGradient;
 
-typedef struct DmtxPixel_struct {
-   unsigned char R;
-   unsigned char G;
-   unsigned char B;
-} DmtxPixel;
-
 typedef enum {
    DmtxCompassDirNeg45 = 0x01,
    DmtxCompassDir0     = 0x02,
@@ -196,7 +187,7 @@ typedef struct DmtxImage_struct {
    unsigned int    pageCount;
    unsigned int    width;
    unsigned int    height;
-   DmtxPixel       *pxl;
+   DmtxRgb         *pxl;
    DmtxCompassEdge *compass;
 } DmtxImage;
 
@@ -376,10 +367,10 @@ extern void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, double b0, double b1, double 
 extern void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, double b0, double b1, double sz);
 extern void dmtxMatrix3Print(DmtxMatrix3 m);
 
-extern DmtxPixel dmtxPixelFromImage(DmtxImage *img, int x, int y);
+extern void dmtxPixelFromImage(DmtxRgb rgb, DmtxImage *img, int x, int y);
 extern void dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *img, DmtxVector2 p);
-extern DmtxColor3 *dmtxColor3FromPixel(DmtxColor3 *color, DmtxPixel *pxl);
-extern void dmtxPixelFromColor3(DmtxPixel *pxl, DmtxColor3 *color);
+extern DmtxColor3 *dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb);
+extern void dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color);
 extern DmtxColor3 dmtxColor3AlongRay3(DmtxRay3 *ray, double dist);
 extern DmtxColor3 *dmtxColor3AddTo(DmtxColor3 *v1, DmtxColor3 *v2);
 extern DmtxColor3 *dmtxColor3Add(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);

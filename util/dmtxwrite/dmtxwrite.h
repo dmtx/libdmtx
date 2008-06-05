@@ -34,8 +34,8 @@ Contact: mike@dragonflylogic.com
 #define N_(String) String
 
 typedef struct {
-   DmtxPixel color;
-   DmtxPixel bgColor;
+   DmtxRgb color;
+   DmtxRgb bgColor;
    char format;
    char *inputPath;
    char *outputPath;

@@ -120,8 +120,8 @@ int main(int argc, char **argv)
       /* Capture screenshot of generated image */
       captureImage(captured);
 
-      memset(passOneImage->pxl, 0x00, passOneImage->width * passOneImage->height * sizeof(DmtxPixel));
-      memset(passTwoImage->pxl, 0x00, passTwoImage->width * passTwoImage->height * sizeof(DmtxPixel));
+      memset(passOneImage->pxl, 0x00, passOneImage->width * passOneImage->height * sizeof(DmtxRgb));
+      memset(passTwoImage->pxl, 0x00, passTwoImage->width * passTwoImage->height * sizeof(DmtxRgb));
 
       /* Start fresh scan */
       decode = dmtxDecodeStructInit(captured, p0, p1, 20);

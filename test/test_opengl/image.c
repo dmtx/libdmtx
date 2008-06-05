@@ -183,7 +183,7 @@ DmtxImage *loadPng(char *filename)
 
    for(row = 0; row < image->height; row++) {
       memcpy(image->pxl + (row * image->width), row_pointers[image->height - row - 1],
-            image->width * sizeof(DmtxPixel));
+            image->width * sizeof(DmtxRgb));
    }
 
    for(row = 0; row < height; row++) {
@@ -230,13 +230,13 @@ void plotPoint(DmtxImage *image, float rowFloat, float colFloat, int targetColor
          continue;
 
       if(targetColor & (ColorWhite | ColorRed | ColorYellow))
-         image->pxl[offset[i]].R = max(image->pxl[offset[i]].R, color[i]);
+         image->pxl[offset[i]][0] = max(image->pxl[offset[i]][0], color[i]);
 
       if(targetColor & (ColorWhite | ColorGreen | ColorYellow))
-         image->pxl[offset[i]].G = max(image->pxl[offset[i]].G, color[i]);
+         image->pxl[offset[i]][1] = max(image->pxl[offset[i]][1], color[i]);
 
       if(targetColor & (ColorWhite | ColorBlue))
-         image->pxl[offset[i]].B = max(image->pxl[offset[i]].B, color[i]);
+         image->pxl[offset[i]][2] = max(image->pxl[offset[i]][2], color[i]);
    }
 }
 

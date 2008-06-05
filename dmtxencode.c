@@ -400,7 +400,6 @@ PrintPattern(DmtxEncode *enc)
    double sxy, txy;
    DmtxMatrix3 m1, m2;
    DmtxVector2 vIn, vOut;
-   DmtxPixel black;
    int moduleStatus;
 
    txy = enc->marginSize;
@@ -414,13 +413,11 @@ PrintPattern(DmtxEncode *enc)
    dmtxMatrix3Scale(m2, enc->moduleSize, enc->moduleSize);
    dmtxMatrix3Multiply(enc->rxfrm, m2, m1);
 
-   memset(&black, 0x00, sizeof(DmtxPixel));
-
    /* Print raster version of barcode pattern
       IMPORTANT: DmtxImage is stored with its origin at bottom-right
       (unlike common image file formats) to preserve "right-handed" 2D space */
 
-   memset(enc->image->pxl, 0xff, enc->image->width * enc->image->height * sizeof(DmtxPixel));
+   memset(enc->image->pxl, 0xff, enc->image->width * enc->image->height * sizeof(DmtxRgb));
 
    for(symbolRow = 0; symbolRow < enc->region.symbolRows; symbolRow++) {
       for(symbolCol = 0; symbolCol < enc->region.symbolCols; symbolCol++) {
@@ -437,9 +434,12 @@ PrintPattern(DmtxEncode *enc)
 
          for(i = pixelRow; i < pixelRow + enc->moduleSize; i++) {
             for(j = pixelCol; j < pixelCol + enc->moduleSize; j++) {
-               enc->image->pxl[i * enc->image->width + j].R = (moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255;
+/*             enc->image->pxl[i * enc->image->width + j].R = (moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255;
                enc->image->pxl[i * enc->image->width + j].G = (moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255;
-               enc->image->pxl[i * enc->image->width + j].B = (moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255;
+               enc->image->pxl[i * enc->image->width + j].B = (moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255; */
+               enc->image->pxl[i * enc->image->width + j][0] = (moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255;
+               enc->image->pxl[i * enc->image->width + j][1] = (moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255;
+               enc->image->pxl[i * enc->image->width + j][2] = (moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255;
             }
          }
 

@@ -42,9 +42,7 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 am_gltest_OBJECTS = gltest.$(OBJEXT) callback.$(OBJEXT) \
-	display.$(OBJEXT) image.$(OBJEXT) dmtx.$(OBJEXT) \
-	decode_rs_char.$(OBJEXT) encode_rs_char.$(OBJEXT) \
-	init_rs_char.$(OBJEXT)
+	display.$(OBJEXT) image.$(OBJEXT) dmtx.$(OBJEXT)
 gltest_OBJECTS = $(am_gltest_OBJECTS)
 gltest_LDADD = $(LDADD)
 gltest_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
@@ -174,10 +172,7 @@ target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I/usr/include/SDL -I../..
-gltest_SOURCES = gltest.c callback.c display.c image.c dmtx.c \
-        ../../libfec/decode_rs_char.c ../../libfec/encode_rs_char.c \
-        ../../libfec/init_rs_char.c
-
+gltest_SOURCES = gltest.c callback.c display.c image.c dmtx.c
 EXTRA_gltest_SOURCES = callback.h display.h gltest.h image.h
 gltest_LDFLAGS = -lm -lpng -lGL -lGLU -lSDL -lpthread
 all: all-am
@@ -231,13 +226,10 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/callback.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/decode_rs_char.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/display.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dmtx.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/encode_rs_char.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gltest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/image.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/init_rs_char.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -259,48 +251,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
-
-decode_rs_char.o: ../../libfec/decode_rs_char.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT decode_rs_char.o -MD -MP -MF $(DEPDIR)/decode_rs_char.Tpo -c -o decode_rs_char.o `test -f '../../libfec/decode_rs_char.c' || echo '$(srcdir)/'`../../libfec/decode_rs_char.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/decode_rs_char.Tpo $(DEPDIR)/decode_rs_char.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../libfec/decode_rs_char.c' object='decode_rs_char.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o decode_rs_char.o `test -f '../../libfec/decode_rs_char.c' || echo '$(srcdir)/'`../../libfec/decode_rs_char.c
-
-decode_rs_char.obj: ../../libfec/decode_rs_char.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT decode_rs_char.obj -MD -MP -MF $(DEPDIR)/decode_rs_char.Tpo -c -o decode_rs_char.obj `if test -f '../../libfec/decode_rs_char.c'; then $(CYGPATH_W) '../../libfec/decode_rs_char.c'; else $(CYGPATH_W) '$(srcdir)/../../libfec/decode_rs_char.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/decode_rs_char.Tpo $(DEPDIR)/decode_rs_char.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../libfec/decode_rs_char.c' object='decode_rs_char.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o decode_rs_char.obj `if test -f '../../libfec/decode_rs_char.c'; then $(CYGPATH_W) '../../libfec/decode_rs_char.c'; else $(CYGPATH_W) '$(srcdir)/../../libfec/decode_rs_char.c'; fi`
-
-encode_rs_char.o: ../../libfec/encode_rs_char.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT encode_rs_char.o -MD -MP -MF $(DEPDIR)/encode_rs_char.Tpo -c -o encode_rs_char.o `test -f '../../libfec/encode_rs_char.c' || echo '$(srcdir)/'`../../libfec/encode_rs_char.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/encode_rs_char.Tpo $(DEPDIR)/encode_rs_char.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../libfec/encode_rs_char.c' object='encode_rs_char.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o encode_rs_char.o `test -f '../../libfec/encode_rs_char.c' || echo '$(srcdir)/'`../../libfec/encode_rs_char.c
-
-encode_rs_char.obj: ../../libfec/encode_rs_char.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT encode_rs_char.obj -MD -MP -MF $(DEPDIR)/encode_rs_char.Tpo -c -o encode_rs_char.obj `if test -f '../../libfec/encode_rs_char.c'; then $(CYGPATH_W) '../../libfec/encode_rs_char.c'; else $(CYGPATH_W) '$(srcdir)/../../libfec/encode_rs_char.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/encode_rs_char.Tpo $(DEPDIR)/encode_rs_char.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../libfec/encode_rs_char.c' object='encode_rs_char.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o encode_rs_char.obj `if test -f '../../libfec/encode_rs_char.c'; then $(CYGPATH_W) '../../libfec/encode_rs_char.c'; else $(CYGPATH_W) '$(srcdir)/../../libfec/encode_rs_char.c'; fi`
-
-init_rs_char.o: ../../libfec/init_rs_char.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT init_rs_char.o -MD -MP -MF $(DEPDIR)/init_rs_char.Tpo -c -o init_rs_char.o `test -f '../../libfec/init_rs_char.c' || echo '$(srcdir)/'`../../libfec/init_rs_char.c
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/init_rs_char.Tpo $(DEPDIR)/init_rs_char.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../libfec/init_rs_char.c' object='init_rs_char.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o init_rs_char.o `test -f '../../libfec/init_rs_char.c' || echo '$(srcdir)/'`../../libfec/init_rs_char.c
-
-init_rs_char.obj: ../../libfec/init_rs_char.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT init_rs_char.obj -MD -MP -MF $(DEPDIR)/init_rs_char.Tpo -c -o init_rs_char.obj `if test -f '../../libfec/init_rs_char.c'; then $(CYGPATH_W) '../../libfec/init_rs_char.c'; else $(CYGPATH_W) '$(srcdir)/../../libfec/init_rs_char.c'; fi`
-@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/init_rs_char.Tpo $(DEPDIR)/init_rs_char.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='../../libfec/init_rs_char.c' object='init_rs_char.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o init_rs_char.obj `if test -f '../../libfec/init_rs_char.c'; then $(CYGPATH_W) '../../libfec/init_rs_char.c'; else $(CYGPATH_W) '$(srcdir)/../../libfec/init_rs_char.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

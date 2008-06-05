@@ -41,10 +41,10 @@ dmtxImageMalloc(int width, int height)
    image->width = width;
    image->height = height;
 
-   pixelBufSize = width * height * sizeof(DmtxPixel);
+   pixelBufSize = width * height * sizeof(DmtxRgb);
    compassBufSize = width * height * sizeof(DmtxCompassEdge);
 
-   image->pxl = (DmtxPixel *)malloc(pixelBufSize);
+   image->pxl = (DmtxRgb *)malloc(pixelBufSize);
    if(image->pxl == NULL) {
       free(image);
       return NULL;

@@ -28,7 +28,7 @@ Contact: mike@dragonflylogic.com
 extern void
 dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1)
 {
-   *(DmtxMatrix3Struct *)m0 = *(DmtxMatrix3Struct *)m1;
+   memcpy(m0, m1, sizeof(DmtxMatrix3));
 }
 
 /**

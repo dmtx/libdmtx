@@ -154,7 +154,7 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
    static const double coefficient[] = {  0,  1,  2,  1,  0, -1, -2, -1 };
    static const int patternX[] =       { -1,  0,  1,  1,  1,  0, -1, -1 };
    static const int patternY[] =       { -1, -1, -1,  0,  1,  1,  1,  0 };
-   DmtxPixel pixel;
+   DmtxRgb rgb;
    DmtxCompassEdge edge, maxEdge, *compassCache;
    DmtxColor3 color, black = { 0.0, 0.0, 0.0 }; /* XXX move black to a global scope later */
 
@@ -204,8 +204,8 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
 
          /* Weight pixel value by appropriate coefficient in convolution matrix */
          coefficientIdx = (patternIdx - dirIdx + 8) % 8;
-         pixel = dmtxPixelFromImage(image, xAdjust, yAdjust);
-         dmtxColor3FromPixel(&color, &pixel);
+         dmtxPixelFromImage(rgb, image, xAdjust, yAdjust);
+         dmtxColor3FromPixel(&color, rgb);
          dmtxColor3AddTo(&edge.intensity, dmtxColor3ScaleBy(&color, coefficient[coefficientIdx]));
       }
       edge.magnitude = dmtxColor3Mag(&edge.intensity);

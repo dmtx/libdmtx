@@ -54,7 +54,7 @@ void BuildMatrixCallback2(DmtxRegion *region)
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
          dmtxColor3FromImage2(&clr, captured, point);
-         dmtxPixelFromColor3(&(passTwoImage->pxl[i*320+j]), &clr);
+         dmtxPixelFromColor3(passTwoImage->pxl[i*320+j], &clr);
       }
    }
 
@@ -103,7 +103,7 @@ void BuildMatrixCallback3(DmtxMatrix3 mChainInv)
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
          dmtxColor3FromImage2(&clr, captured, point);
-         dmtxPixelFromColor3(&(passTwoImage->pxl[i*320+j]), &clr);
+         dmtxPixelFromColor3(passTwoImage->pxl[i*320+j], &clr);
       }
    }
 
@@ -158,7 +158,7 @@ void BuildMatrixCallback4(DmtxMatrix3 mChainInv)
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
          dmtxColor3FromImage2(&clr, captured, point);
-         dmtxPixelFromColor3(&(passTwoImage->pxl[i*320+j]), &clr);
+         dmtxPixelFromColor3(passTwoImage->pxl[i*320+j], &clr);
       }
    }
 

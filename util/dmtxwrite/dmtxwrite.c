@@ -204,15 +204,15 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             ShowUsage(0);
             break;
          case 'c':
-            options->color.R = 0;
-            options->color.G = 0;
-            options->color.B = 0;
+            options->color[0] = 0;
+            options->color[1] = 0;
+            options->color[2] = 0;
             fprintf(stdout, "Option \"%c\" not implemented yet\n", opt);
             break;
          case 'b':
-            options->bgColor.R = 255;
-            options->bgColor.G = 255;
-            options->bgColor.B = 255;
+            options->bgColor[0] = 255;
+            options->bgColor[1] = 255;
+            options->bgColor[2] = 255;
             fprintf(stdout, "Option \"%c\" not implemented yet\n", opt);
             break;
          case 'd':
@@ -500,12 +500,12 @@ WriteImagePng(UserOptions *options, DmtxEncode *encode)
    for(row = 0; row < encode->image->height; row++) {
       rowPointers[row] = (png_bytep)png_malloc(pngPtr, png_get_rowbytes(pngPtr, infoPtr));
 
-      assert(png_get_rowbytes(pngPtr, infoPtr) == encode->image->width * sizeof(DmtxPixel));
+      assert(png_get_rowbytes(pngPtr, infoPtr) == encode->image->width * sizeof(DmtxRgb));
 
       /* Flip rows top-to-bottom to account for PNM "top-left" origin */
       memcpy(rowPointers[row],
             encode->image->pxl + ((encode->image->height - row - 1) * encode->image->width),
-            encode->image->width * sizeof(DmtxPixel));
+            encode->image->width * sizeof(DmtxRgb));
    }
 
    png_set_rows(pngPtr, infoPtr, rowPointers);
@@ -543,9 +543,9 @@ WriteImagePnm(UserOptions *options, DmtxEncode *encode)
    fprintf(fp, "P6 %d %d 255 ", encode->image->width, encode->image->height);
    for(row = 0; row < encode->image->height; row++) {
       for(col = 0; col < encode->image->width; col++) {
-         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col].R, fp);
-         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col].G, fp);
-         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col].B, fp);
+         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col][0], fp);
+         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col][1], fp);
+         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col][2], fp);
       }
    }
    fclose(fp);

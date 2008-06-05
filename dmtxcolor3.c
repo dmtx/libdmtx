@@ -26,16 +26,19 @@ Contact: mike@dragonflylogic.com
  *
  *
  */
-extern DmtxPixel
-dmtxPixelFromImage(DmtxImage *image, int x, int y)
+extern void
+dmtxPixelFromImage(DmtxRgb rgb, DmtxImage *image, int x, int y)
 {
-   DmtxPixel bad = {0,0,0};
-
    if(x >= 0 && x < image->width && y >= 0 && y < image->height) {
-      return image->pxl[y * image->width + x];
+      rgb[0] = image->pxl[y * image->width + x][0];
+      rgb[1] = image->pxl[y * image->width + x][1];
+      rgb[2] = image->pxl[y * image->width + x][2];
    }
-
-   return bad;
+   else {
+      rgb[0] = 0;
+      rgb[1] = 0;
+      rgb[2] = 0;
+   }
 }
 
 /**
@@ -48,7 +51,7 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
    int xInt, yInt;
    double xFrac, yFrac;
    DmtxColor3 clrLL, clrLR, clrUL, clrUR;
-   DmtxPixel pxlLL, pxlLR, pxlUL, pxlUR;
+   DmtxRgb pxlLL, pxlLR, pxlUL, pxlUR;
 
 /* p = dmtxRemoveLensDistortion(p, image, -0.000003, 0.0); */
 
@@ -57,15 +60,15 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
    xFrac = p.X - xInt;
    yFrac = p.Y - yInt;
 
-   pxlLL = dmtxPixelFromImage(image, xInt,   yInt);
-   pxlLR = dmtxPixelFromImage(image, xInt+1, yInt);
-   pxlUL = dmtxPixelFromImage(image, xInt,   yInt+1);
-   pxlUR = dmtxPixelFromImage(image, xInt+1, yInt+1);
+   dmtxPixelFromImage(pxlLL, image, xInt,   yInt);
+   dmtxPixelFromImage(pxlLR, image, xInt+1, yInt);
+   dmtxPixelFromImage(pxlUL, image, xInt,   yInt+1);
+   dmtxPixelFromImage(pxlUR, image, xInt+1, yInt+1);
 
-   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrLL, &pxlLL), (1 - xFrac) * (1 - yFrac));
-   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrLR, &pxlLR), xFrac * (1 - yFrac));
-   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrUL, &pxlUL), (1 - xFrac) * yFrac);
-   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrUR, &pxlUR), xFrac * yFrac);
+   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrLL, pxlLL), (1 - xFrac) * (1 - yFrac));
+   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrLR, pxlLR), xFrac * (1 - yFrac));
+   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrUL, pxlUL), (1 - xFrac) * yFrac);
+   dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrUR, pxlUR), xFrac * yFrac);
 
    *color = clrLL;
    dmtxColor3AddTo(color, &clrLR);
@@ -78,16 +81,16 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
  *
  */
 extern DmtxColor3 *
-dmtxColor3FromPixel(DmtxColor3 *color, DmtxPixel *pxl)
+dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb)
 {
  /*double Y;*/
 
    /* XXX this probably isn't the appropriate place for color-to-grayscale
       conversion but everyone references this function right now */
 
-   color->R = pxl->R;
-   color->G = pxl->G;
-   color->B = pxl->B;
+   color->R = rgb[0];
+   color->G = rgb[1];
+   color->B = rgb[2];
 
  /*Y = 0.3*color->R + 0.59*color->G + 0.11*color->B;
    color->R = color->G = color->B = Y;*/
@@ -100,11 +103,11 @@ dmtxColor3FromPixel(DmtxColor3 *color, DmtxPixel *pxl)
  *
  */
 extern void
-dmtxPixelFromColor3(DmtxPixel *pxl, DmtxColor3 *color)
+dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color)
 {
-   pxl->R = (int)(color->R + 0.5);
-   pxl->G = (int)(color->G + 0.5);
-   pxl->B = (int)(color->B + 0.5);
+   rgb[0] = (int)(color->R + 0.5);
+   rgb[1] = (int)(color->G + 0.5);
+   rgb[2] = (int)(color->B + 0.5);
 }
 
 /**
