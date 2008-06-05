@@ -139,6 +139,10 @@ dmtxMatrix3Scale(DmtxMatrix3 m, double sx, double sy)
 
 /**
  * Shear Transformation
+ *
+ *     | 0    shy  0 |
+ * m = | shx  0    0 |
+ *     | 0    0    1 |
  */
 extern void
 dmtxMatrix3Shear(DmtxMatrix3 m, double shx, double shy)
