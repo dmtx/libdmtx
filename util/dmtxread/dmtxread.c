@@ -121,7 +121,7 @@ main(int argc, char *argv[])
          PrintDecodedOutput(&options, image, &region, message, pageIndex);
 
          dmtxMessageFree(&message);
-//       break; /* XXX for now, break after first barcode is found in image */
+         break; /* XXX for now, break after first barcode is found in image */
       }
 
       dmtxDecodeStructDeInit(&decode);
