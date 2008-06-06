@@ -37,4 +37,8 @@ typedef struct {
    int placeHolder;
 } UserOptions;
 
+static void SetOptionDefaults(UserOptions *options);
+static int HandleArgs(UserOptions *options, int *argcp, char **argvp[]);
+static void ShowUsage(int status);
+
 #endif

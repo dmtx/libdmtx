@@ -30,10 +30,6 @@ Contact: mike@dragonflylogic.com
 #include "dmtxquery.h"
 #include "../common/dmtxutil.h"
 
-static void SetOptionDefaults(UserOptions *options);
-static int HandleArgs(UserOptions *options, int *argcp, char **argvp[]);
-static void ShowUsage(int status);
-
 char *programName;
 
 /**
@@ -109,7 +105,9 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[])
             ShowUsage(0);
             break;
          case 'V':
-            options->placeHolder = 1;
+            fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
+            fprintf(stdout, "libdmtx version %s\n", dmtxVersion());
+            exit(0);
             break;
          default:
             return DMTXUTIL_ERROR;
@@ -147,6 +145,7 @@ PROPERTY:\n"), programName, programName);
    barcode.count             count of all barcodes found in image\n\
    barcode.N                 print all properties of Nth barcode\n\
    barcode.N.BPROP           print BPROP property of Nth barcode\n\
+\n\
    message.count             count of all messages found in image\n\
    message.N                 print all properties of Nth message\n\
    message.N.MPROP           print MPROP property of Nth message\n\

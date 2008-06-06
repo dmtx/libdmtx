@@ -39,18 +39,7 @@ Contact: mike@dragonflylogic.com
 #include "dmtxwrite.h"
 #include "../common/dmtxutil.h"
 
-#define DMTXWRITE_BUFFER_SIZE 4096
-
 #define MIN(x,y) ((x < y) ? x : y)
-
-static void InitUserOptions(UserOptions *options);
-static int HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode);
-static void ReadData(UserOptions *options, int *codeBuffer, unsigned char *codeBufferSize);
-static void ShowUsage(int status);
-static void WriteImagePng(UserOptions *options, DmtxEncode *encode);
-static void WriteImagePnm(UserOptions *options, DmtxEncode *encode);
-static void WriteAsciiBarcode(DmtxEncode *encode);
-static void WriteCodewords(DmtxEncode *encode);
 
 char *programName;
 

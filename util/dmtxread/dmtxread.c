@@ -37,20 +37,6 @@ Contact: mike@dragonflylogic.com
 #include "dmtxread.h"
 #include "../common/dmtxutil.h"
 
-static void SetOptionDefaults(UserOptions *options);
-static int HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[]);
-static int SetRangeLimit(int *target, char *optionString, int minMax, int limit);
-static int SetScanRegion(DmtxPixelLoc *p0, DmtxPixelLoc *p1, UserOptions *options, DmtxImage *image);
-static void ShowUsage(int status);
-static ImageFormat GetImageFormat(char *imagePath);
-static DmtxImage *LoadImage(char *imagePath, int pageIndex);
-static DmtxImage *LoadImagePng(char *imagePath);
-static DmtxImage *LoadImageTiff(char *imagePath, int pageIndex);
-static int PrintDecodedOutput(UserOptions *options, DmtxImage *image,
-      DmtxRegion *region, DmtxMessage *message, int pageIndex);
-static void WriteImagePnm(UserOptions *options, DmtxDecode *decode,
-      DmtxMessage *message, int sizeIdx, char *imagePath);
-
 char *programName;
 
 /**

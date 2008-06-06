@@ -33,6 +33,8 @@ Contact: mike@dragonflylogic.com
 #endif
 #define N_(String) String
 
+#define DMTXWRITE_BUFFER_SIZE 4096
+
 typedef struct {
    DmtxRgb color;
    DmtxRgb bgColor;
@@ -46,5 +48,14 @@ typedef struct {
    int mosaic;
    int dpi;
 } UserOptions;
+
+static void InitUserOptions(UserOptions *options);
+static int HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode);
+static void ReadData(UserOptions *options, int *codeBuffer, unsigned char *codeBufferSize);
+static void ShowUsage(int status);
+static void WriteImagePng(UserOptions *options, DmtxEncode *encode);
+static void WriteImagePnm(UserOptions *options, DmtxEncode *encode);
+static void WriteAsciiBarcode(DmtxEncode *encode);
+static void WriteCodewords(DmtxEncode *encode);
 
 #endif
