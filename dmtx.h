@@ -238,7 +238,6 @@ typedef struct DmtxMessage_struct {
    unsigned char   *output;       /* Pointer to internal storage of decoded output */
 } DmtxMessage;
 
-
 typedef struct DmtxEdgeFollower_struct {
    int             slope;
    int             turnCount;
@@ -275,6 +274,11 @@ struct DmtxDecode_struct {
    DmtxImage *image;
    DmtxScanGrid grid;
 };
+
+typedef struct DmtxTime_struct {
+   time_t sec;
+   unsigned long usec;
+} DmtxTime;
 
 typedef struct DmtxEncode_struct {
    int moduleSize;

@@ -13,4 +13,6 @@ AC_CONFIG_FILES([
  test/test_opengl/Makefile
  test/test_simple/Makefile
 ])
+AC_CHECK_FUNCS([gettimeofday])
+AC_CHECK_HEADERS([sys/time.h])
 AC_OUTPUT

@@ -27,16 +27,27 @@ Contact: mike@dragonflylogic.com
  *
  */
 extern DmtxRegion
-dmtxDecodeFindNextRegion(DmtxDecode *dec)
+dmtxDecodeFindNextRegion(DmtxDecode *dec /*, int duration */)
 {
    DmtxScanGrid *grid;
    DmtxPixelLoc loc;
    DmtxRegion   reg;
+/* DmtxTime     timeStart; */
+
+/* assert(duration >= 0); */
 
    grid = &(dec->grid);
 
+   /* Capture function start time */
+/* timeStart = dmtxTimeNow(); */
+
    /* Pick up where we left off after last scan */
-   while(grid->extent >= grid->minExtent) {
+   for(;;) {
+
+      if(grid->extent < grid->minExtent) {
+         reg.found = DMTX_REGION_EOF;
+         break;
+      }
 
       /* Extract pixel location of current progress from scan grid */
       loc = GetGridCoordinates(grid);
@@ -46,16 +57,24 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec)
 
       /* Scan this pixel for the presence of a valid barcode edge */
       reg = dmtxScanPixel(dec, loc);
+
       if(reg.found == DMTX_REGION_FOUND)
-         return reg;
+         break;
+
+      /* Ran out of time */
+/*
+      if(dmtxTimeExceeded(timeStart, duration)) {
+         reg.found = DMTX_REGION_TIMEOUT;
+         break;
+      }
+*/
    }
 
-   reg.found = DMTX_REGION_EOF;
    return reg;
 }
 
 /**
- * @param dec   pointer to DmtxDecode information struct
+ * @param dec      pointer to DmtxDecode information struct
  * @param dir      scan direction (DmtxUp|DmtxRight)
  * @param lineNbr  number of image row or column to be scanned
  * @return         number of barcodes scanned

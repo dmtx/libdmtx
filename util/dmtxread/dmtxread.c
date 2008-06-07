@@ -92,10 +92,23 @@ main(int argc, char *argv[])
       for(;;) {
 
          /* Find next barcode region within image, but do not decode yet */
+/*       region = dmtxDecodeFindNextRegion(&decode, 0); */
          region = dmtxDecodeFindNextRegion(&decode);
+
+         /* Scan finished without finding another barcode region */
          if(region.found == DMTX_REGION_EOF)
             break;
 
+         /* Time ran out before finding another barcode region */
+/*       if(region.found == DMTX_REGION_TIMEOUT) {
+            if(still have time overall) {
+               continue;
+            }
+            else {
+               break;
+            }
+         }
+*/
          if(options.diagnose)
             WriteImagePnm(&options, &decode, message, region.sizeIdx, "debug.pnm");
 
