@@ -22,31 +22,52 @@ Contact: mike@dragonflylogic.com
 
 /* $Id: dmtxregion.c 148 2008-06-05 05:06:56Z mblaughton $ */
 
-/*
- * XXX This is an imprecise but relatively portable implementation
- */
-
-#include <time.h>
-#include <errno.h>
-
 /**
  *
  *
  */
+#if defined(HAVE_SYS_TIME_H) && defined(HAVE_GETTIMEOFDAY)
+#include <sys/time.h>
+extern DmtxTime
+dmtxTimeNow(void)
+{
+   int err;
+   struct timeval tv;
+   DmtxTime tNow;
+
+   err = gettimeofday(&tv, NULL);
+   if(err != 0)
+      ; /* XXX handle error better here */
+
+   tNow.sec = tv.tv_sec;
+   tNow.usec = tv.tv_usec;
+
+   return tNow;
+}
+#elif defined (_MSC_VER)
+extern DmtxTime
+dmtxTimeNow(void)
+{
+   ; /* MICROSOFT VC++ VERSION GOES HERE */
+}
+#else
+#include <time.h>
 extern DmtxTime
 dmtxTimeNow(void)
 {
    time_t s;
    DmtxTime tNow;
 
-   s = time();
-   assert(errno != 0)
+   s = time(NULL);
+   if(errno != 0)
+      ; /* XXX handle error better here */
 
    tNow.sec = s;
    tNow.usec = 0;
 
    return tNow;
 }
+#endif
 
 /**
  *

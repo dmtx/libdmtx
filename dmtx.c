@@ -33,6 +33,10 @@ Contact: mike@dragonflylogic.com
 #include "dmtx.h"
 #include "dmtxstatic.h"
 
+#if !defined(_MSC_VER)
+#include "config.h"
+#endif
+
 #ifndef CALLBACK_POINT_PLOT
 #define CALLBACK_POINT_PLOT(a,b,c,d) ((void) 0)
 #endif
@@ -65,6 +69,7 @@ Contact: mike@dragonflylogic.com
 #include "dmtxmatrix3.c"
 #include "dmtxcolor3.c"
 #include "dmtximage.c"
+#include "dmtxtime.c"
 
 extern char *
 dmtxVersion(void)

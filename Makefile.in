@@ -223,7 +223,7 @@ lib_LTLIBRARIES = libdmtx.la
 libdmtx_la_SOURCES = dmtx.c
 EXTRA_libdmtx_la_SOURCES = dmtxcolor3.c dmtxdecode.c dmtxencode.c dmtximage.c \
 	dmtxmatrix3.c dmtxplacemod.c dmtxfec.c dmtxreedsol.c dmtxregion.c \
-	dmtxscangrid.c dmtxsymbol.c dmtxvector2.c dmtxstatic.h
+	dmtxscangrid.c dmtxsymbol.c dmtxvector2.c dmtxtime.c dmtxstatic.h
 
 include_HEADERS = dmtx.h
 libdmtx_la_CFLAGS = -Wall -pedantic
@@ -347,6 +347,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdmtx_la-dmtxregion.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdmtx_la-dmtxscangrid.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdmtx_la-dmtxsymbol.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdmtx_la-dmtxtime.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libdmtx_la-dmtxvector2.Plo@am__quote@
 
 .c.o:
@@ -460,6 +461,13 @@ libdmtx_la-dmtxvector2.lo: dmtxvector2.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxvector2.c' object='libdmtx_la-dmtxvector2.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxvector2.lo `test -f 'dmtxvector2.c' || echo '$(srcdir)/'`dmtxvector2.c
+
+libdmtx_la-dmtxtime.lo: dmtxtime.c
+@am__fastdepCC_TRUE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -MT libdmtx_la-dmtxtime.lo -MD -MP -MF $(DEPDIR)/libdmtx_la-dmtxtime.Tpo -c -o libdmtx_la-dmtxtime.lo `test -f 'dmtxtime.c' || echo '$(srcdir)/'`dmtxtime.c
+@am__fastdepCC_TRUE@	mv -f $(DEPDIR)/libdmtx_la-dmtxtime.Tpo $(DEPDIR)/libdmtx_la-dmtxtime.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='dmtxtime.c' object='libdmtx_la-dmtxtime.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libdmtx_la_CFLAGS) $(CFLAGS) -c -o libdmtx_la-dmtxtime.lo `test -f 'dmtxtime.c' || echo '$(srcdir)/'`dmtxtime.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
