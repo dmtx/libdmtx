@@ -350,7 +350,7 @@ Scan image FILE for Data Matrix barcodes and print decoded results to\n\
 STDOUT.  Note: %s currently stops scanning after it decodes the\n\
 first barcode in an image.\n\
 \n\
-Example that scans top third of images using gap size no bigger than 10 pixels:\n\
+Example: Scan top third of images using gap no larger than 10 pixels\n\
 \n\
    %s -Y33%% -g10 IMAGE001.png IMAGE002.png\n\
 \n\
@@ -364,8 +364,8 @@ OPTIONS:\n"), programName, programName);
   -X, --x-range-max=N[%%]     do not scan pixels to the right of N (or N%%)\n\
   -y, --y-range-min=N[%%]     do not scan pixels above N (or N%%)\n\
   -Y, --y-range-max=N[%%]     do not scan pixels below N (or N%%)\n\
-  -m, --milliseconds=N       xxxxx\n\
-  -C, --corrections-max=N    correct at most N errors (0 = no error correction)\n\
+  -m, --milliseconds=N       stop scan after N milliseconds (per image)\n\
+  -C, --corrections-max=N    correct at most N errors (0 = correction disabled)\n\
   -D, --diagnose=[op]        make copy of image with added diagnostic data\n\
       o = Overlay            overlay image with module colors\n\
       p = Path               capture path taken by scanning logic\n\

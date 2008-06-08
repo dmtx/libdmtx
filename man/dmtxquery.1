@@ -1,18 +1,18 @@
 .\" $Id$
 .\"
-.\" Man page for the dmtxread utility (libdmtx project).
+.\" Man page for the dmtxquery utility (libdmtx project).
 .\"
-.\" To view: $ groff -man -T ascii dmtxread.1 | less
-.\" To text: $ groff -man -T ascii dmtxread.1 | col -b | expand
+.\" To view: $ groff -man -T ascii dmtxquery.1 | less
+.\" To text: $ groff -man -T ascii dmtxquery.1 | col -b | expand
 .\"
 .TH DMTXREAD 1 "April 13, 2008"
 .SH NAME
-dmtxread \- scan Data Matrix barcodes
+dmtxquery \- extract information from dmtxread output
 .SH SYNOPSIS
-.B dmtxread
-[\fIOPTION\fP]... [\fIFILE\fP]...
+.B dmtxquery
+\fIPROPERTY\fP [\fIOPTION\fP]... [\fIFILE\fP]...
 .SH DESCRIPTION
-dmtxread finds and decodes ECC200 Data Matrix barcodes within images and writes the decoded messages to standard output.  Note: dmtxread currently stops scanning after it decodes the first barcode in an image.
+dmtxquery extracts information from the XML output from dmtxread for individual or grouped barcode scan results.
 .SH OPTIONS
 .TP
 \fB\-c\fP, \fB\-\-codewords\fP
