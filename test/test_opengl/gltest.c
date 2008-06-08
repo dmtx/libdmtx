@@ -83,6 +83,7 @@ int main(int argc, char *argv[])
    DmtxDecode      decode;
    DmtxRegion      region;
    DmtxMessage     *message;
+   DmtxTime        timeout;
 
    // Initialize display window
    screen = initDisplay();
@@ -128,8 +129,10 @@ int main(int argc, char *argv[])
 
       for(;;) {
 
-         region = dmtxDecodeFindNextRegion(&decode);
-         if(region.found == DMTX_REGION_EOF)
+         timeout = dmtxTimeAdd(dmtxTimeNow(), 100);
+
+         region = dmtxDecodeFindNextRegion(&decode, &timeout);
+         if(region.found == DMTX_REGION_TIMEOUT || region.found == DMTX_REGION_EOF)
             break;
 
          message = dmtxDecodeMatrixRegion(&decode, &region, 1);
