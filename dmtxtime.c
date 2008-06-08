@@ -52,23 +52,25 @@ dmtxTimeNow(void)
 
 #elif defined (_MSC_VER)
 
-#include <time.h>
+#include <Windows.h>
 
-#define DMTX_TICK_USEC 1000000
+#define DMTX_TICK_USEC 1
 
-/* MICROSOFT VC++ version -- XXX still required */
+/* MICROSOFT VC++ version */
 extern DmtxTime
 dmtxTimeNow(void)
 {
-   time_t s;
+   FILETIME ft;
+   unsigned __int64 tm = 0;
    DmtxTime tNow;
 
-   s = time(NULL);
-   if(errno != 0)
-      ; /* XXX handle error better here */
+   GetSystemTimeAsFileTime(&ft);
 
-   tNow.sec = s;
-   tNow.usec = 0;
+   /* Convert to microseconds */
+   tm = ((ft.dwHighDateTime << 32) | ft.dwLowDateTime)/10;
+
+   tNow.sec = (long)(tm / 1000000UL);
+   tNow.usec = (long)(tm % 1000000UL);
 
    return tNow;
 }
