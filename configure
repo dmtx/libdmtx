@@ -19244,7 +19244,7 @@ LIBTOOL='$(SHELL) $(top_builddir)/libtool'
 
 ac_config_headers="$ac_config_headers config.h"
 
-ac_config_files="$ac_config_files Makefile util/Makefile util/dmtxquery/Makefile util/dmtxread/Makefile util/dmtxwrite/Makefile test/Makefile test/test_opengl/Makefile test/test_simple/Makefile"
+ac_config_files="$ac_config_files Makefile util/Makefile util/dmtxquery/Makefile util/dmtxread/Makefile util/dmtxwrite/Makefile test/Makefile test/test_opengl/Makefile test/test_simple/Makefile test/test_unit/Makefile"
 
 
 
@@ -20321,6 +20321,7 @@ do
     "test/Makefile") CONFIG_FILES="$CONFIG_FILES test/Makefile" ;;
     "test/test_opengl/Makefile") CONFIG_FILES="$CONFIG_FILES test/test_opengl/Makefile" ;;
     "test/test_simple/Makefile") CONFIG_FILES="$CONFIG_FILES test/test_simple/Makefile" ;;
+    "test/test_unit/Makefile") CONFIG_FILES="$CONFIG_FILES test/test_unit/Makefile" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}

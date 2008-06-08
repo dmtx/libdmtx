@@ -53,6 +53,7 @@ main(int argc, char *argv[])
    int fileIndex;
    int pageIndex;
    UserOptions options;
+   DmtxTime  msec, *timeout;
    DmtxImage *image;
    DmtxDecode decode;
    DmtxRegion region;
@@ -65,8 +66,14 @@ main(int argc, char *argv[])
    if(err)
       ShowUsage(err);
 
+   timeout = (options.msec == -1) ? NULL : &msec;
+
    /* Loop once for each page of each image listed in parameters */
    for(pageIndex = 0; fileIndex < argc;) {
+
+      /* Reset timeout for each new image */
+      if(timeout != NULL)
+         msec = dmtxTimeAdd(dmtxTimeNow(), options.msec);
 
       /* Load image page from file (many formats are single-page only) */
       image = LoadImage(argv[fileIndex], pageIndex++);
@@ -92,23 +99,12 @@ main(int argc, char *argv[])
       for(;;) {
 
          /* Find next barcode region within image, but do not decode yet */
-/*       region = dmtxDecodeFindNextRegion(&decode, 0); */
-         region = dmtxDecodeFindNextRegion(&decode);
+         region = dmtxDecodeFindNextRegion(&decode, timeout);
 
-         /* Scan finished without finding another barcode region */
-         if(region.found == DMTX_REGION_EOF)
+         /* Finished file or ran out of time before finding another region */
+         if(region.found == DMTX_REGION_TIMEOUT || region.found == DMTX_REGION_EOF)
             break;
 
-         /* Time ran out before finding another barcode region */
-/*       if(region.found == DMTX_REGION_TIMEOUT) {
-            if(still have time overall) {
-               continue;
-            }
-            else {
-               break;
-            }
-         }
-*/
          if(options.diagnose)
             WriteImagePnm(&options, &decode, message, region.sizeIdx, "debug.pnm");
 
@@ -147,6 +143,7 @@ SetOptionDefaults(UserOptions *options)
    options->xRangeMax = NULL;
    options->yRangeMin = NULL;
    options->yRangeMax = NULL;
+   options->msec = -1;
    options->verbose = 0;
    options->maxCorrections = -1;
    options->diagnose = 0;
@@ -179,6 +176,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
          {"x-range-max",      required_argument, NULL, 'X'},
          {"y-range-min",      required_argument, NULL, 'y'},
          {"y-range-max",      required_argument, NULL, 'Y'},
+         {"milliseconds",     required_argument, NULL, 'm'},
          {"verbose",          no_argument,       NULL, 'v'},
          {"max-corrections",  required_argument, NULL, 'C'},
          {"diagnose",         no_argument,       NULL, 'D'},
@@ -197,7 +195,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:vC:DMPRV", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:m:vC:DMPRV", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -228,12 +226,17 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
          case 'Y':
             options->yRangeMax = optarg;
             break;
+         case 'm':
+            err = StringToInt(&(options->msec), optarg, &ptr);
+            if(err != DMTXUTIL_SUCCESS || options->msec < 0 || *ptr != '\0')
+               FatalError(1, _("Invalid duration (in milliseconds) specified \"%s\""), optarg);
+            break;
          case 'v':
             options->verbose = 1;
             break;
          case 'C':
             err = StringToInt(&(options->maxCorrections), optarg, &ptr);
-            if(err != DMTXUTIL_SUCCESS || options->maxCorrections < -1 || *ptr != '\0')
+            if(err != DMTXUTIL_SUCCESS || options->maxCorrections < 0 || *ptr != '\0')
                FatalError(1, _("Invalid max corrections specified \"%s\""), optarg);
             break;
          case 'D':
@@ -361,6 +364,7 @@ OPTIONS:\n"), programName, programName);
   -X, --x-range-max=N[%%]     do not scan pixels to the right of N (or N%%)\n\
   -y, --y-range-min=N[%%]     do not scan pixels above N (or N%%)\n\
   -Y, --y-range-max=N[%%]     do not scan pixels below N (or N%%)\n\
+  -m, --milliseconds=N       xxxxx\n\
   -C, --corrections-max=N    correct at most N errors (0 = no error correction)\n\
   -D, --diagnose=[op]        make copy of image with added diagnostic data\n\
       o = Overlay            overlay image with module colors\n\

@@ -50,9 +50,10 @@ extern "C" {
 #define DMTX_DISPLAY_POINT             2
 #define DMTX_DISPLAY_CIRCLE            3
 
-#define DMTX_REGION_EOF               -1
-#define DMTX_REGION_NOT_FOUND          0
-#define DMTX_REGION_FOUND              1
+#define DMTX_REGION_FOUND              0
+#define DMTX_REGION_NOT_FOUND          1
+#define DMTX_REGION_TIMEOUT            2
+#define DMTX_REGION_EOF                3
 
 #define DMTX_MODULE_OFF             0x00
 #define DMTX_MODULE_ON_RED          0x01
@@ -316,6 +317,11 @@ typedef struct DmtxQuadruplet_struct {
    unsigned char value[4];
 } DmtxQuadruplet;
 
+/* dmtxtime.c */
+extern DmtxTime dmtxTimeNow(void);
+extern DmtxTime dmtxTimeAdd(DmtxTime t, long duration);
+extern int dmtxTimeExceeded(DmtxTime timeout);
+
 /* dmtxencode.c */
 extern DmtxEncode dmtxEncodeStructInit(void);
 extern void dmtxEncodeStructDeInit(DmtxEncode *enc);
@@ -330,7 +336,7 @@ extern DmtxMessage *dmtxMessageMalloc(int sizeIdx);
 extern void dmtxMessageFree(DmtxMessage **mesg);
 
 /* dmtxregion.c */
-extern DmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *decode);
+extern DmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *decode, DmtxTime *timeout);
 extern DmtxRegion dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc);
 
 /* dmtximage.c */

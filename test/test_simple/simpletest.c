@@ -28,7 +28,7 @@ Contact: mike@dragonflylogic.com
 #include <dmtx.h>
 
 int
-main(int argc, char **argv)
+main(int argc, char *argv[])
 {
    unsigned char testString[] = "30Q324343430794<OQQ";
    DmtxEncode encode;
@@ -50,7 +50,7 @@ main(int argc, char **argv)
 
    image = dmtxImageMalloc(encode.image->width, encode.image->height);
    memcpy(image->pxl, encode.image->pxl, image->width * image->height *
-         sizeof(DmtxPixel));
+         sizeof(DmtxRgb));
 
    dmtxEncodeStructDeInit(&encode);
 
@@ -62,7 +62,7 @@ main(int argc, char **argv)
 
    decode = dmtxDecodeStructInit(image, p0, p1, 5);
 
-   region = dmtxDecodeFindNextRegion(&decode);
+   region = dmtxDecodeFindNextRegion(&decode, NULL);
    if(region.found == DMTX_REGION_EOF)
       exit(0);
 

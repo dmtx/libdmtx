@@ -14,6 +14,7 @@ AC_CONFIG_FILES([
  test/Makefile
  test/test_opengl/Makefile
  test/test_simple/Makefile
+ test/test_unit/Makefile
 ])
 
 AC_CHECK_HEADERS([sys/time.h])

@@ -41,6 +41,7 @@ typedef struct {
    char *xRangeMax;
    char *yRangeMin;
    char *yRangeMax;
+   int msec;
    int verbose;
    int maxCorrections;
    int diagnose;

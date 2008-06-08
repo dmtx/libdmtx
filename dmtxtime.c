@@ -27,7 +27,12 @@ Contact: mike@dragonflylogic.com
  *
  */
 #if defined(HAVE_SYS_TIME_H) && defined(HAVE_GETTIMEOFDAY)
+
 #include <sys/time.h>
+
+#define DMTX_TICK_USEC 1
+
+/* GETTIMEOFDAY version */
 extern DmtxTime
 dmtxTimeNow(void)
 {
@@ -44,14 +49,14 @@ dmtxTimeNow(void)
 
    return tNow;
 }
+
 #elif defined (_MSC_VER)
-extern DmtxTime
-dmtxTimeNow(void)
-{
-   ; /* MICROSOFT VC++ VERSION GOES HERE */
-}
-#else
+
 #include <time.h>
+
+#define DMTX_TICK_USEC 1000000
+
+/* MICROSOFT VC++ version -- XXX still required */
 extern DmtxTime
 dmtxTimeNow(void)
 {
@@ -67,32 +72,64 @@ dmtxTimeNow(void)
 
    return tNow;
 }
+
+#else
+
+#include <time.h>
+
+#define DMTX_TICK_USEC 1000000
+
+/* Generic 1 second resolution version */
+extern DmtxTime
+dmtxTimeNow(void)
+{
+   time_t s;
+   DmtxTime tNow;
+
+   s = time(NULL);
+   if(errno != 0)
+      ; /* XXX handle error better here */
+
+   tNow.sec = s;
+   tNow.usec = 0;
+
+   return tNow;
+}
+
 #endif
 
 /**
  *
  *
  */
-extern int
-dmtxTimeExceeded(DmtxTime tBeg, long duration)
+extern DmtxTime
+dmtxTimeAdd(DmtxTime t, long duration)
 {
-   DmtxTime tNow;
-   DmtxTime tEnd;
+   /* Round duration to next-higher atomic time unit */
+   if(t.usec % DMTX_TICK_USEC)
+      t.usec = t.usec/DMTX_TICK_USEC + DMTX_TICK_USEC;
 
-   tNow = dmtxTimeNow();
+   t.sec += (duration/1000);
+   t.usec += (duration%1000)*1000;
 
-   tEnd.sec = tBeg.sec + (duration/1000);
-   tEnd.usec = tBeg.usec + (duration%1000)*1000;
-
-   if(tEnd.usec >= 1000000) {
-      tEnd.sec++;
-      tEnd.usec -= 1000000;
+   while(t.usec >= 1000000) {
+      t.sec++;
+      t.usec -= 1000000;
    }
 
-   assert(tEnd.sec < 1000000);
+   return t;
+}
 
-   if(tNow.sec > tEnd.sec || (tNow.sec == tEnd.sec && tNow.usec > tEnd.usec))
-      return 0;
+/**
+ *
+ *
+ */
+extern int
+dmtxTimeExceeded(DmtxTime timeout)
+{
+   DmtxTime now;
 
-   return 1;
+   now = dmtxTimeNow();
+
+   return (now.sec > timeout.sec || (now.sec == timeout.sec && now.usec > timeout.usec));
 }

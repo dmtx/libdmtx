@@ -33,7 +33,7 @@ Contact: mike@dragonflylogic.com
 #include "dmtx.h"
 #include "dmtxstatic.h"
 
-#if !defined(_MSC_VER)
+#ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 
@@ -57,6 +57,7 @@ Contact: mike@dragonflylogic.com
 #define CALLBACK_FINAL(a,b) ((void) 0)
 #endif
 
+#include "dmtxtime.c"
 #include "dmtxscangrid.c"
 #include "dmtxregion.c"
 #include "dmtxdecode.c"
@@ -69,7 +70,6 @@ Contact: mike@dragonflylogic.com
 #include "dmtxmatrix3.c"
 #include "dmtxcolor3.c"
 #include "dmtximage.c"
-#include "dmtxtime.c"
 
 extern char *
 dmtxVersion(void)
