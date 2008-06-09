@@ -23,6 +23,11 @@ Contact: mike@dragonflylogic.com
 /* $Id$ */
 
 /**
+ * @file dmtxvector2.c
+ * @brief 2D Vector math
+ */
+
+/**
  *
  *
  */

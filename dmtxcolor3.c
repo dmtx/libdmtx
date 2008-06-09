@@ -23,6 +23,11 @@ Contact: mike@dragonflylogic.com
 /* $Id$ */
 
 /**
+ * @file dmtxcolor3.c
+ * @brief Color handling
+ */
+
+/**
  *
  *
  */

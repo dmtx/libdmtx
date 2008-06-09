@@ -23,6 +23,11 @@ Contact: mike@dragonflylogic.com
 /* $Id$ */
 
 /**
+ * @file dmtxplacemod.c
+ * @brief Data Matrix module placement
+ */
+
+/**
  * receives symbol row and col and returns status
  * DMTX_MODULE_ON / !DMTX_MODULE_ON (DMTX_MODULE_OFF)
  * DMTX_MODULE_ASSIGNED

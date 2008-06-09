@@ -23,6 +23,11 @@ Contact: mike@dragonflylogic.com
 /* $Id$ */
 
 /**
+ * @file dmtxdecode.c
+ * @brief Decode regions
+ */
+
+/**
  *
  *
  */

@@ -23,6 +23,11 @@ Contact: mike@dragonflylogic.com
 /* $Id$ */
 
 /**
+ * @file dmtxsymbol.c
+ * @brief Data Matrix symbol attributes
+ */
+
+/**
  *
  * @param XXX
  * @return XXX

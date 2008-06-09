@@ -22,6 +22,11 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
+/**
+ * @file dmtxencode.c
+ * @brief Encode messages
+ */
+
 #define DMTX_CHAR_ASCII_PAD            129
 #define DMTX_CHAR_ASCII_UPPER_SHIFT    235
 

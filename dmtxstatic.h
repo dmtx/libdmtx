@@ -22,6 +22,11 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
+/**
+ * @file dmtxstatic.h
+ * @brief Static header
+ */
+
 #ifndef __DMTXSTATIC_H__
 #define __DMTXSTATIC_H__
 

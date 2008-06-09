@@ -15,7 +15,7 @@ libdmtx_la_CFLAGS = -Wall -pedantic
 
 SUBDIRS = . util test
 
-dist_man_MANS = man/libdmtx.3 man/dmtxread.1 man/dmtxwrite.1
+dist_man_MANS = man/libdmtx.3 man/dmtxread.1 man/dmtxwrite.1 man/dmtxquery.1
 
 EXTRA_DIST = KNOWNBUG \
 	script/check_all.sh \

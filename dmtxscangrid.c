@@ -23,6 +23,11 @@ Contact: mike@dragonflylogic.com
 /* $Id$ */
 
 /**
+ * @file dmtxscangrid.c
+ * @brief Scan grid tracking
+ */
+
+/**
  *
  *
  */

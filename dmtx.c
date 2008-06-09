@@ -22,6 +22,11 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
+/**
+ * @file dmtx.c
+ * @brief Main libdmtx source file
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>

@@ -23,8 +23,15 @@ Contact: mike@dragonflylogic.com
 /* $Id$ */
 
 /**
- *
- *
+ * @file dmtximage.c
+ * @brief Image handling
+ */
+
+/**
+ * @fn DmtxImage *dmtxImageMalloc(int width, int height)
+ * @brief allocate libdmtx image memory
+ * @param width image width
+ * @param height image height
  */
 extern DmtxImage *
 dmtxImageMalloc(int width, int height)
@@ -63,8 +70,9 @@ dmtxImageMalloc(int width, int height)
 }
 
 /**
- *
- *
+ * @fn int dmtxImageFree(DmtxImage **img)
+ * @brief free libdmtx image memory
+ * @param img pointer to img location
  */
 extern int
 dmtxImageFree(DmtxImage **img)
@@ -86,8 +94,9 @@ dmtxImageFree(DmtxImage **img)
 }
 
 /**
- *
- *
+ * @fn int dmtxImageGetWidth(DmtxImage *img)
+ * @brief get image width
+ * @param img pointer to image
  */
 extern int
 dmtxImageGetWidth(DmtxImage *img)
@@ -99,8 +108,9 @@ dmtxImageGetWidth(DmtxImage *img)
 }
 
 /**
- *
- *
+ * @fn int dmtxImageGetHeight(DmtxImage *img)
+ * @brief get image height
+ * @param img pointer to image
  */
 extern int
 dmtxImageGetHeight(DmtxImage *img)
@@ -112,8 +122,8 @@ dmtxImageGetHeight(DmtxImage *img)
 }
 
 /**
- *
- *
+ * @fn int dmtxImageGetOffset(DmtxImage *img, DmtxDirection dir, int lineNbr, int offset)
+ * @brief get pixel offset
  */
 extern int
 dmtxImageGetOffset(DmtxImage *img, DmtxDirection dir, int lineNbr, int offset)

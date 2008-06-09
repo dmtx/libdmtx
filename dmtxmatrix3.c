@@ -23,6 +23,11 @@ Contact: mike@dragonflylogic.com
 /* $Id$ */
 
 /**
+ * @file dmtxmatrix3.c
+ * @brief 2D Matrix (3x3) math
+ */
+
+/**
  *
  */
 extern void

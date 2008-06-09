@@ -22,6 +22,11 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
+/**
+ * @file dmtx.h
+ * @brief Main libdmtx header
+ */
+
 #ifndef __DMTX_H__
 #define __DMTX_H__
 
@@ -134,27 +139,47 @@ typedef enum {
 typedef double DmtxMatrix3[3][3];
 typedef unsigned char DmtxRgb[3];
 
+/**
+ * @struct DmtxColor3_struct
+ * @brief DmtxColor3
+ */
 typedef struct DmtxColor3_struct {
    double R;
    double G;
    double B;
 } DmtxColor3;
 
+/**
+ * @struct DmtxPixelLoc_struct
+ * @brief DmtxPixelLoc
+ */
 typedef struct DmtxPixelLoc_struct {
    int X;
    int Y;
 } DmtxPixelLoc;
 
+/**
+ * @struct DmtxVector2_struct
+ * @brief DmtxVector2
+ */
 typedef struct DmtxVector2_struct {
    double X;
    double Y;
 } DmtxVector2;
 
+/**
+ * @struct DmtxRay3_struct
+ * @brief DmtxRay3
+ */
 typedef struct DmtxRay3_struct {
    DmtxColor3 p;
    DmtxColor3 c;
 } DmtxRay3;
 
+/**
+ * @struct DmtxRay2_struct
+ * @brief DmtxRay2
+ */
 typedef struct DmtxRay2_struct {
    char        isDefined;
    double      tMin, tMax;
@@ -162,6 +187,10 @@ typedef struct DmtxRay2_struct {
    DmtxVector2 v;
 } DmtxRay2;
 
+/**
+ * @struct DmtxGradient_struct
+ * @brief DmtxGradient
+ */
 typedef struct DmtxGradient_struct {
    char        isDefined;
    double      tMin, tMax, tMid;
@@ -176,6 +205,10 @@ typedef enum {
    DmtxCompassDir90    = 0x08
 } DmtxCompassDir;
 
+/**
+ * @struct DmtxCompassEdge_struct
+ * @brief DmtxCompassEdge
+ */
 typedef struct DmtxCompassEdge_struct {
    char            assigned;
    double          magnitude;  /* sqrt(R^2 + G^2 + B^2) */
@@ -184,6 +217,10 @@ typedef struct DmtxCompassEdge_struct {
    DmtxCompassDir  scanDir;    /* DmtxCompassDir0 | DmtxCompassDir90 */
 } DmtxCompassEdge;
 
+/**
+ * @struct DmtxImage_struct
+ * @brief DmtxImage
+ */
 typedef struct DmtxImage_struct {
    unsigned int    pageCount;
    unsigned int    width;
@@ -192,12 +229,20 @@ typedef struct DmtxImage_struct {
    DmtxCompassEdge *compass;
 } DmtxImage;
 
+/**
+ * @struct DmtxEdge_struct
+ * @brief DmtxEdge
+ */
 typedef struct DmtxEdge_struct {
-   int             offset;
-   double          t;
-   DmtxColor3     color;
+   int        offset;
+   double     t;
+   DmtxColor3 color;
 } DmtxEdge;
 
+/**
+ * @struct DmtxChain_struct
+ * @brief DmtxChain
+ */
 typedef struct DmtxChain_struct {
    double tx, ty;
    double phi, shx;
@@ -207,6 +252,10 @@ typedef struct DmtxChain_struct {
    double sz;
 } DmtxChain;
 
+/**
+ * @struct DmtxCorners_struct
+ * @brief DmtxCorners
+ */
 typedef struct DmtxCorners_struct {
    DmtxCornerLoc known; /* combination of (DmtxCorner00 | DmtxCorner10 | DmtxCorner11 | DmtxCorner01) */
    DmtxVector2 c00;
@@ -215,6 +264,10 @@ typedef struct DmtxCorners_struct {
    DmtxVector2 c01;
 } DmtxCorners;
 
+/**
+ * @struct DmtxRegion_struct
+ * @brief DmtxRegion
+ */
 typedef struct DmtxRegion_struct {
    int             found;         /* DMTX_REGION_FOUND | DMTX_REGION_NOT_FOUND | DMTX_REGION_EOF */
    DmtxGradient    gradient;      /* Linear blend of colors between background and symbol color */
@@ -229,6 +282,10 @@ typedef struct DmtxRegion_struct {
    int             mappingCols;   /* Number of data columns in symbol */
 } DmtxRegion;
 
+/**
+ * @struct DmtxMessage_struct
+ * @brief DmtxMessage
+ */
 typedef struct DmtxMessage_struct {
    int             arraySize;     /* mappingRows * mappingCols */
    int             codeSize;      /* Size of encoded data (data words + error words) */
@@ -239,6 +296,11 @@ typedef struct DmtxMessage_struct {
    unsigned char   *output;       /* Pointer to internal storage of decoded output */
 } DmtxMessage;
 
+/**
+ * @struct DmtxEdgeFollower_struct
+ * @brief DmtxEdgeFollower
+ */
+/*
 typedef struct DmtxEdgeFollower_struct {
    int             slope;
    int             turnCount;
@@ -249,6 +311,7 @@ typedef struct DmtxEdgeFollower_struct {
    DmtxRay2        line0, line1;
    DmtxDirection   dir;
 } DmtxEdgeFollower;
+*/
 
 typedef struct DmtxScanGrid_struct {
    /* set once */

@@ -23,6 +23,13 @@ Contact: mike@dragonflylogic.com
 /* $Id$ */
 
 /**
+ * @file dmtxregion.c
+ * @brief Detect regions
+ *
+ * This file contains region detection logic.
+ */
+
+/**
  *
  *
  */

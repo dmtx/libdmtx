@@ -22,6 +22,11 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
+/**
+ * @file dmtxreedsol.c
+ * @brief Reed Solomon error correction
+ */
+
 #ifndef GfSum
 #define GfSum(a,b) (a ^ b)
 #endif

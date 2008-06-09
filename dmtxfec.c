@@ -30,6 +30,11 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
+/**
+ * @file dmtxfec.c
+ * @brief Forward Error Correction
+ */
+
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
