@@ -296,23 +296,6 @@ typedef struct DmtxMessage_struct {
    unsigned char   *output;       /* Pointer to internal storage of decoded output */
 } DmtxMessage;
 
-/**
- * @struct DmtxEdgeFollower_struct
- * @brief DmtxEdgeFollower
- */
-/*
-typedef struct DmtxEdgeFollower_struct {
-   int             slope;
-   int             turnCount;
-   int             paraOffset;
-   double          perpOffset;
-   double          tMin, tMid, tMax;
-   DmtxRay3        ray;
-   DmtxRay2        line0, line1;
-   DmtxDirection   dir;
-} DmtxEdgeFollower;
-*/
-
 typedef struct DmtxScanGrid_struct {
    /* set once */
    int minExtent;  /* Smallest cross size used in scan */
