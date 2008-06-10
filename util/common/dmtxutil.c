@@ -1,8 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <assert.h>
 #include "dmtxutil.h"
 
 extern char *programName;
@@ -54,4 +56,20 @@ StringToInt(int *numberInt, char *numberString, char **terminate)
 
    *numberInt = (int)numberLong;
    return DMTXUTIL_SUCCESS;
+}
+
+/**
+ *
+ *
+ *
+ */
+extern char *
+Basename(char *path)
+{
+   assert(path);
+
+   if(strrchr(path, '/'))
+      path = strrchr(programName, '/') + 1;
+
+   return path;
 }

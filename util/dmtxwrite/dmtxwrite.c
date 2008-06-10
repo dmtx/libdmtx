@@ -22,6 +22,10 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,7 +34,6 @@ Contact: mike@dragonflylogic.com
 #include <ctype.h>
 #include <stdarg.h>
 #include <assert.h>
-#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -174,9 +177,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
          {0, 0, 0, 0}
    };
 
-   programName = (*argvp)[0];
-   if(programName && strrchr(programName, '/'))
-      programName = strrchr(programName, '/') + 1;
+   programName = Basename((*argvp)[0]);
 
    /* Set default values before considering arguments */
    encode->moduleSize = 5;

@@ -30,5 +30,6 @@ Contact: mike@dragonflylogic.com
 
 extern int StringToInt(int *numberInt, char *numberString, char **terminate);
 extern void FatalError(int errorCode, char *fmt, ...);
+extern char *Basename(char *path);
 
 #endif

@@ -188,9 +188,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
          {0, 0, 0, 0}
    };
 
-   programName = (*argvp)[0];
-   if(programName && strrchr(programName, '/'))
-      programName = strrchr(programName, '/') + 1;
+   programName = Basename((*argvp)[0]);
 
    *fileIndex = 0;
 

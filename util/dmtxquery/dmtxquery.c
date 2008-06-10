@@ -88,9 +88,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[])
          {0, 0, 0, 0}
    };
 
-   programName = (*argvp)[0];
-   if(programName && strrchr(programName, '/'))
-      programName = strrchr(programName, '/') + 1;
+   programName = Basename((*argvp)[0]);
 
    if(*argcp == 1) /* Program called without arguments */
       return DMTXUTIL_ERROR;
