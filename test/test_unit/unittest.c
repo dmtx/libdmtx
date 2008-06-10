@@ -53,7 +53,12 @@ main(int argc, char *argv[])
 static void
 timePrint(DmtxTime t)
 {
+#ifdef _MSC_VER
    fprintf(stdout, "t.sec: %llu\n", t.sec);
+#else
+   fprintf(stdout, "t.sec: %lu\n", t.sec);
+#endif
+
    fprintf(stdout, "t.usec: %lu\n", t.usec);
 }
 
