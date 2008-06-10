@@ -30,8 +30,10 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- *
- *
+ * @brief  Find next barcode region
+ * @param  dec Pointer to DmtxDecode information struct
+ * @param  timeout Pointer to timeout time (NULL if none)
+ * @return Detected region (if found)
  */
 extern DmtxRegion
 dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
@@ -51,7 +53,7 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
          break;
       }
 
-      /* Pick up where last scan left off */
+      /* Pick up where previous scan left off */
       loc = GetGridCoordinates(grid);
 
       /* Increment grid away from this location to prevent repeat visits */
@@ -75,10 +77,10 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
 }
 
 /**
- * @param dec      pointer to DmtxDecode information struct
- * @param dir      scan direction (DmtxUp|DmtxRight)
- * @param lineNbr  number of image row or column to be scanned
- * @return         number of barcodes scanned
+ * @brief  Scan individual pixel for presence of barcode edge
+ * @param  dec Pointer to DmtxDecode information struct
+ * @param  loc Pixel location
+ * @return Detected region (if any)
  */
 extern DmtxRegion
 dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
@@ -145,8 +147,11 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
 }
 
 /**
- *
- *
+ * @brief Clamp integer to range min <= i <= max
+ * @param value Value to be clamped
+ * @param min Minimum range boundary
+ * @param max Maximum range boundary
+ * @return void
  */
 static void
 ClampIntRange(int *value, int min, int max)
@@ -161,8 +166,12 @@ ClampIntRange(int *value, int min, int max)
 }
 
 /**
- *
- *
+ * @brief Calculate compass edge strength and direction at individual pixel location
+ * @param image
+ * @param x
+ * @param y
+ * @param edgeScanDirs
+ * @return Compass edge
  */
 static DmtxCompassEdge
 GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
@@ -430,10 +439,10 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief Update transformations based on known region attributes
+ * @param image
+ * @param reg
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 MatrixRegionUpdateXfrms(DmtxImage *image, DmtxRegion *reg)
@@ -576,10 +585,13 @@ MatrixRegionUpdateXfrms(DmtxImage *image, DmtxRegion *reg)
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief Align first edge of potential barcode region
+ * @param image
+ * @param reg
+ * @param edgeStart
+ * @param ray0
+ * @param ray1
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 MatrixRegionAlignFirstEdge(DmtxImage *image, DmtxRegion *reg, DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1)
@@ -628,10 +640,11 @@ MatrixRegionAlignFirstEdge(DmtxImage *image, DmtxRegion *reg, DmtxEdgeSubPixel *
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief XXX
+ * @param reg
+ * @param cornerLoc
+ * @param point
+ * @return void
  */
 static void
 SetCornerLoc(DmtxRegion *reg, DmtxCornerLoc cornerLoc, DmtxVector2 point)

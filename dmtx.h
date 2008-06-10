@@ -365,7 +365,7 @@ typedef struct DmtxQuadruplet_struct {
 
 /* dmtxtime.c */
 extern DmtxTime dmtxTimeNow(void);
-extern DmtxTime dmtxTimeAdd(DmtxTime t, long duration);
+extern DmtxTime dmtxTimeAdd(DmtxTime t, long msec);
 extern int dmtxTimeExceeded(DmtxTime timeout);
 
 /* dmtxencode.c */
