@@ -21,16 +21,19 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include <dmtx.h>
 #include "../../util/common/dmtxutil.h"
 
 char *programName;
 
-static int timeAddTest(void);
+static void timeAddTest(void);
 static void timePrint(DmtxTime t);
 
 int
@@ -50,15 +53,15 @@ main(int argc, char *argv[])
 static void
 timePrint(DmtxTime t)
 {
-   fprintf(stdout, "t.sec: %ld\n", t.sec);
-   fprintf(stdout, "t.usec: %ld\n", t.usec);
+   fprintf(stdout, "t.sec: %llu\n", t.sec);
+   fprintf(stdout, "t.usec: %lu\n", t.usec);
 }
 
 /**
  *
  *
  */
-static int
+static void
 timeAddTest(void)
 {
    DmtxTime t0, t1;

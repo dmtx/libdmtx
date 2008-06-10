@@ -66,16 +66,18 @@ extern DmtxTime
 dmtxTimeNow(void)
 {
    FILETIME ft;
-   unsigned __int64 tm = 0;
+   unsigned __int64 tm;
    DmtxTime tNow;
 
    GetSystemTimeAsFileTime(&ft);
 
-   /* Convert to microseconds */
-   tm = ((ft.dwHighDateTime << 32) | ft.dwLowDateTime)/10;
+   tm = ft.dwHighDateTime;
+   tm <<= 32;
+   tm |= ft.dwLowDateTime;
+   tm /= 10;
 
-   tNow.sec = (long)(tm / 1000000UL);
-   tNow.usec = (long)(tm % 1000000UL);
+   tNow.sec = tm / 1000000UL;
+   tNow.usec = tm % 1000000UL;
 
    return tNow;
 }
