@@ -27,6 +27,8 @@ Contact: mike@dragonflylogic.com
  * @brief Time handling
  */
 
+#define DMTX_USEC_PER_SEC 1000000
+
 /**
  *
  *
@@ -35,7 +37,7 @@ Contact: mike@dragonflylogic.com
 
 #include <sys/time.h>
 
-#define DMTX_TICK_USEC 1
+#define DMTX_TIME_PREC_USEC 1
 
 /* GETTIMEOFDAY version */
 extern DmtxTime
@@ -59,7 +61,7 @@ dmtxTimeNow(void)
 
 #include <Windows.h>
 
-#define DMTX_TICK_USEC 1
+#define DMTX_TIME_PREC_USEC 1
 
 /* MICROSOFT VC++ version */
 extern DmtxTime
@@ -86,7 +88,7 @@ dmtxTimeNow(void)
 
 #include <time.h>
 
-#define DMTX_TICK_USEC 1000000
+#define DMTX_TIME_PREC_USEC 1000000
 
 /* Generic 1 second resolution version */
 extern DmtxTime
@@ -112,18 +114,24 @@ dmtxTimeNow(void)
  *
  */
 extern DmtxTime
-dmtxTimeAdd(DmtxTime t, long duration)
+dmtxTimeAdd(DmtxTime t, long msec)
 {
-   /* Round duration to next-higher atomic time unit */
-   if(t.usec % DMTX_TICK_USEC)
-      t.usec = t.usec/DMTX_TICK_USEC + DMTX_TICK_USEC;
+   int usec;
 
-   t.sec += (duration/1000);
-   t.usec += (duration%1000)*1000;
+   usec = msec * 1000;
 
-   while(t.usec >= 1000000) {
+   /* Ensure that time difference will register on local system */
+   if(usec > 0 && usec < DMTX_TIME_PREC_USEC)
+      usec = DMTX_TIME_PREC_USEC;
+
+   /* Add time */
+   t.sec += usec/DMTX_USEC_PER_SEC;
+   t.usec += usec%DMTX_USEC_PER_SEC;
+
+   /* Roll extra usecs into secs */
+   while(t.usec >= DMTX_USEC_PER_SEC) {
       t.sec++;
-      t.usec -= 1000000;
+      t.usec -= DMTX_USEC_PER_SEC;
    }
 
    return t;
@@ -142,3 +150,6 @@ dmtxTimeExceeded(DmtxTime timeout)
 
    return (now.sec > timeout.sec || (now.sec == timeout.sec && now.usec > timeout.usec));
 }
+
+#undef DMTX_TIME_PREC_USEC
+#undef DMTX_USEC_PER_SEC
