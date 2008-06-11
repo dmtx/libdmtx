@@ -25,6 +25,10 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTXUTIL_H__
 #define __DMTXUTIL_H__
 
+#ifdef HAVE_CONFIG_H
+#include "../../config.h"
+#endif
+
 #define DMTXUTIL_SUCCESS     0
 #define DMTXUTIL_ERROR       1
 

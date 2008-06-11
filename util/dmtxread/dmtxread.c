@@ -32,10 +32,13 @@ Contact: mike@dragonflylogic.com
 #include <stdarg.h>
 #include <assert.h>
 #include <png.h>
-#include <tiffio.h>
 #include <dmtx.h>
 #include "dmtxread.h"
 #include "../common/dmtxutil.h"
+
+#ifdef HAVE_LIBTIFF
+#include <tiffio.h>
+#endif
 
 char *programName;
 
@@ -401,8 +404,10 @@ GetImageFormat(char *imagePath)
       return ImageFormatUnknown;
    else if(strncmp(extension, "png", 3) == 0 || strncmp(extension, "PNG", 3) == 0)
       return ImageFormatPng;
+#ifdef HAVE_LIBTIFF
    else if(strncmp(extension, "tif", 3) == 0 || strncmp(extension, "TIF", 3) == 0)
       return ImageFormatTiff;
+#endif
 
    return ImageFormatUnknown;
 }
@@ -419,9 +424,11 @@ LoadImage(char *imagePath, int pageIndex)
       case ImageFormatPng:
          image = (pageIndex == 0) ? LoadImagePng(imagePath) : NULL;
          break;
+#ifdef HAVE_LIBTIFF
       case ImageFormatTiff:
          image = LoadImageTiff(imagePath, pageIndex);
          break;
+#endif
       default:
          image = NULL;
          FatalError(1, _("Unrecognized file type \"%s\""), imagePath);
@@ -573,6 +580,7 @@ LoadImagePng(char *imagePath)
    return image;
 }
 
+#ifdef HAVE_LIBTIFF
 /**
  * Load data from TIFF file into DmtxImage format.
  *
@@ -647,6 +655,7 @@ LoadImageTiff(char *imagePath, int pageIndex)
 
    return image;
 }
+#endif
 
 /**
  * XXX

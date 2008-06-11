@@ -17,6 +17,10 @@ AC_CONFIG_FILES([
  test/test_unit/Makefile
 ])
 
+AC_CHECK_HEADER([tiff.h],
+   AC_CHECK_LIB([tiff], [TIFFReadScanline],
+      AC_DEFINE([HAVE_LIBTIFF], [1], [Define to 1 if you have the libtiff header and library.])))
+
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_FUNCS([gettimeofday])
 
