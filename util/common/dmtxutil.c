@@ -71,5 +71,8 @@ Basename(char *path)
    if(strrchr(path, '/'))
       path = strrchr(path, '/') + 1;
 
+   if(strrchr(path, '\\'))
+      path = strrchr(path, '\\') + 1;
+
    return path;
 }
