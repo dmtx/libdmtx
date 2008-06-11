@@ -76,6 +76,10 @@ typedef enum {
 
 #define DMTX_ALL_COMPASS_DIRS 0x0f
 
+/**
+ * @struct DmtxEdgeSubPixel
+ * @brief DmtxEdgeSubPixel
+ */
 typedef struct DmtxEdgeSubPixel_struct {
    int             isEdge;
    int             xInt;

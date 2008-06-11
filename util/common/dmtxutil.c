@@ -69,7 +69,7 @@ Basename(char *path)
    assert(path);
 
    if(strrchr(path, '/'))
-      path = strrchr(programName, '/') + 1;
+      path = strrchr(path, '/') + 1;
 
    return path;
 }

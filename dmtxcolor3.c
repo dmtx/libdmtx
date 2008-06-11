@@ -28,8 +28,12 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- *
- *
+ * @brief
+ * @param rgb
+ * @param image
+ * @param x
+ * @param y
+ * @return void
  */
 extern void
 dmtxPixelFromImage(DmtxRgb rgb, DmtxImage *image, int x, int y)
@@ -47,8 +51,11 @@ dmtxPixelFromImage(DmtxRgb rgb, DmtxImage *image, int x, int y)
 }
 
 /**
- *
- *
+ * @brief
+ * @param color
+ * @param image
+ * @param p
+ * @return void
  */
 extern void
 dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)

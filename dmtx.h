@@ -140,7 +140,7 @@ typedef double DmtxMatrix3[3][3];
 typedef unsigned char DmtxRgb[3];
 
 /**
- * @struct DmtxColor3_struct
+ * @struct DmtxColor3
  * @brief DmtxColor3
  */
 typedef struct DmtxColor3_struct {
@@ -150,7 +150,7 @@ typedef struct DmtxColor3_struct {
 } DmtxColor3;
 
 /**
- * @struct DmtxPixelLoc_struct
+ * @struct DmtxPixelLoc
  * @brief DmtxPixelLoc
  */
 typedef struct DmtxPixelLoc_struct {
@@ -159,7 +159,7 @@ typedef struct DmtxPixelLoc_struct {
 } DmtxPixelLoc;
 
 /**
- * @struct DmtxVector2_struct
+ * @struct DmtxVector2
  * @brief DmtxVector2
  */
 typedef struct DmtxVector2_struct {
@@ -168,7 +168,7 @@ typedef struct DmtxVector2_struct {
 } DmtxVector2;
 
 /**
- * @struct DmtxRay3_struct
+ * @struct DmtxRay3
  * @brief DmtxRay3
  */
 typedef struct DmtxRay3_struct {
@@ -177,7 +177,7 @@ typedef struct DmtxRay3_struct {
 } DmtxRay3;
 
 /**
- * @struct DmtxRay2_struct
+ * @struct DmtxRay2
  * @brief DmtxRay2
  */
 typedef struct DmtxRay2_struct {
@@ -188,7 +188,7 @@ typedef struct DmtxRay2_struct {
 } DmtxRay2;
 
 /**
- * @struct DmtxGradient_struct
+ * @struct DmtxGradient
  * @brief DmtxGradient
  */
 typedef struct DmtxGradient_struct {
@@ -206,7 +206,7 @@ typedef enum {
 } DmtxCompassDir;
 
 /**
- * @struct DmtxCompassEdge_struct
+ * @struct DmtxCompassEdge
  * @brief DmtxCompassEdge
  */
 typedef struct DmtxCompassEdge_struct {
@@ -218,7 +218,7 @@ typedef struct DmtxCompassEdge_struct {
 } DmtxCompassEdge;
 
 /**
- * @struct DmtxImage_struct
+ * @struct DmtxImage
  * @brief DmtxImage
  */
 typedef struct DmtxImage_struct {
@@ -230,7 +230,7 @@ typedef struct DmtxImage_struct {
 } DmtxImage;
 
 /**
- * @struct DmtxEdge_struct
+ * @struct DmtxEdge
  * @brief DmtxEdge
  */
 typedef struct DmtxEdge_struct {
@@ -240,7 +240,7 @@ typedef struct DmtxEdge_struct {
 } DmtxEdge;
 
 /**
- * @struct DmtxChain_struct
+ * @struct DmtxChain
  * @brief DmtxChain
  */
 typedef struct DmtxChain_struct {
@@ -253,7 +253,7 @@ typedef struct DmtxChain_struct {
 } DmtxChain;
 
 /**
- * @struct DmtxCorners_struct
+ * @struct DmtxCorners
  * @brief DmtxCorners
  */
 typedef struct DmtxCorners_struct {
@@ -265,7 +265,7 @@ typedef struct DmtxCorners_struct {
 } DmtxCorners;
 
 /**
- * @struct DmtxRegion_struct
+ * @struct DmtxRegion
  * @brief DmtxRegion
  */
 typedef struct DmtxRegion_struct {
@@ -283,7 +283,7 @@ typedef struct DmtxRegion_struct {
 } DmtxRegion;
 
 /**
- * @struct DmtxMessage_struct
+ * @struct DmtxMessage
  * @brief DmtxMessage
  */
 typedef struct DmtxMessage_struct {
@@ -296,6 +296,10 @@ typedef struct DmtxMessage_struct {
    unsigned char   *output;       /* Pointer to internal storage of decoded output */
 } DmtxMessage;
 
+/**
+ * @struct DmtxScanGrid
+ * @brief DmtxScanGrid
+ */
 typedef struct DmtxScanGrid_struct {
    /* set once */
    int minExtent;  /* Smallest cross size used in scan */
@@ -316,17 +320,28 @@ typedef struct DmtxScanGrid_struct {
    int yCenter;    /* Y center of current cross pattern */
 } DmtxScanGrid;
 
-typedef struct DmtxDecode_struct DmtxDecode;
-struct DmtxDecode_struct {
+/**
+ * @struct DmtxDecode
+ * @brief DmtxDecode
+ */
+typedef struct DmtxDecode_struct {
    DmtxImage *image;
    DmtxScanGrid grid;
-};
+} DmtxDecode;
 
+/**
+ * @struct DmtxTime
+ * @brief DmtxTime
+ */
 typedef struct DmtxTime_struct {
    time_t sec;
    unsigned long usec;
 } DmtxTime;
 
+/**
+ * @struct DmtxEncode
+ * @brief DmtxEncode
+ */
 typedef struct DmtxEncode_struct {
    int moduleSize;
    int marginSize;
@@ -339,6 +354,10 @@ typedef struct DmtxEncode_struct {
    DmtxMatrix3 rxfrm; /* XXX still necessary? */
 } DmtxEncode;
 
+/**
+ * @struct DmtxChannel
+ * @brief DmtxChannel
+ */
 typedef struct DmtxChannel_struct {
    DmtxSchemeEncode  encScheme;          /* current encodation scheme */
    int               invalid;            /* channel status (invalid if non-zero) */
@@ -351,14 +370,26 @@ typedef struct DmtxChannel_struct {
 } DmtxChannel;
 
 /* Wrap in a struct for fast copies */
+/**
+ * @struct DmtxChannelGroup
+ * @brief DmtxChannelGroup
+ */
 typedef struct DmtxChannelGroup_struct {
    DmtxChannel channel[6];
 } DmtxChannelGroup;
 
+/**
+ * @struct DmtxTriplet
+ * @brief DmtxTriplet
+ */
 typedef struct DmtxTriplet_struct {
    unsigned char value[3];
 } DmtxTriplet;
 
+/**
+ * @struct DmtxQuadruplet
+ * @brief DmtxQuadruplet
+ */
 typedef struct DmtxQuadruplet_struct {
    unsigned char value[4];
 } DmtxQuadruplet;
