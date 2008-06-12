@@ -28,9 +28,10 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  attribute
+ * @param  sizeIdx
+ * @return Attribute value
  */
 extern int
 dmtxGetSymbolAttribute(int attribute, int sizeIdx)

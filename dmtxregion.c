@@ -24,7 +24,7 @@ Contact: mike@dragonflylogic.com
 
 /**
  * @file dmtxregion.c
- * @brief Detect regions
+ * @brief Detect barcode regions
  *
  * This file contains region detection logic.
  */

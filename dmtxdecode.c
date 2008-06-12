@@ -57,10 +57,11 @@ dmtxDecodeStructDeInit(DmtxDecode *dec)
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  dec
+ * @param  region
+ * @param  fix
+ * @return Decoded message
  */
 extern DmtxMessage *
 dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
@@ -95,8 +96,9 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
 }
 
 /**
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  sizeIdx
+ * @return Address of allocated memory
  */
 extern DmtxMessage *
 dmtxMessageMalloc(int sizeIdx)
@@ -150,7 +152,9 @@ dmtxMessageMalloc(int sizeIdx)
 }
 
 /**
- *
+ * @brief  XXX
+ * @param  message
+ * @return void
  */
 extern void
 dmtxMessageFree(DmtxMessage **message)

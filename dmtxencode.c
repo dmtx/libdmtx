@@ -57,9 +57,8 @@ Contact: mike@dragonflylogic.com
 #define DMTX_UNLATCH_IMPLICIT            1
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @return Initialized DmtxEncode struct
  */
 extern DmtxEncode
 dmtxEncodeStructInit(void)
@@ -94,9 +93,9 @@ dmtxEncodeStructInit(void)
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  enc
+ * @return void
  */
 extern void
 dmtxEncodeStructDeInit(DmtxEncode *enc)
@@ -111,9 +110,12 @@ dmtxEncodeStructDeInit(DmtxEncode *enc)
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  enc
+ * @param  inputSize
+ * @param  inputString
+ * @param  sizeIdxRequest
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 extern int
 dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest)
@@ -339,9 +341,11 @@ EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  buf
+ * @param  bufSize
+ * @param  paddedSize
+ * @return void
  */
 static void
 AddPadChars(unsigned char *buf,  int *bufSize, int paddedSize)

@@ -10,11 +10,10 @@
 extern char *programName;
 
 /**
- * Display error message and exit with error status.
- *
- * @param errorCode error code returned to OS
- * @param fmt       error message format for printing
- * @return          void
+ * @brief  Display error message and exit with error status
+ * @param  errorCode error code returned to OS
+ * @param  fmt error message format for printing
+ * @return void
  */
 extern void
 FatalError(int errorCode, char *fmt, ...)
@@ -32,11 +31,11 @@ FatalError(int errorCode, char *fmt, ...)
 }
 
 /**
- * Convert a string of characters to an integer.  If string cannot be
- * converted then the function will abort the program.
- *
- * @param numberString pointer to string of numbers
- * @return             converted long
+ * @brief  Convert character string to integer
+ * @param  numberInt pointer to converted integer
+ * @param  numberString string to be converted
+ * @param  terminate pointer to first invalid address
+ * @return DMTXUTIL_SUCCESS | DMTXUTIL_ERROR
  */
 extern int
 StringToInt(int *numberInt, char *numberString, char **terminate)
@@ -59,9 +58,9 @@ StringToInt(int *numberInt, char *numberString, char **terminate)
 }
 
 /**
- *
- *
- *
+ * @brief  XXX
+ * @param  path
+ * @return pointer to adjusted path string
  */
 extern char *
 Basename(char *path)
