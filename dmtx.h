@@ -444,14 +444,14 @@ extern void dmtxMatrix3Translate(DmtxMatrix3 m, double tx, double ty);
 extern void dmtxMatrix3Rotate(DmtxMatrix3 m, double angle);
 extern void dmtxMatrix3Scale(DmtxMatrix3 m, double sx, double sy);
 extern void dmtxMatrix3Shear(DmtxMatrix3 m, double shx, double shy);
-extern int dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m);
-extern int dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m);
-extern void dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1);
-extern void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1);
 extern void dmtxMatrix3LineSkewTop(DmtxMatrix3 m, double b0, double b1, double sz);
 extern void dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, double b0, double b1, double sz);
 extern void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, double b0, double b1, double sz);
 extern void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, double b0, double b1, double sz);
+extern void dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1);
+extern void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1);
+extern int dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m);
+extern int dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m);
 extern void dmtxMatrix3Print(DmtxMatrix3 m);
 
 extern void dmtxPixelFromImage(DmtxRgb rgb, DmtxImage *img, int x, int y);

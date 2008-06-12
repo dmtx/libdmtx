@@ -28,9 +28,9 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * @brief  XXX
- * @param  m0
- * @param  m1
+ * @brief  Copy matrix contents
+ * @param  m0 Copy target
+ * @param  m1 Copy source
  * @return void
  */
 extern void
@@ -40,11 +40,9 @@ dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1)
 }
 
 /**
- * @brief  XXX
- * @param  m
+ * @brief  Generate identity transformation matrix
+ * @param  m Generated matrix
  * @return void
- *
- * Create Identity Transformation
  *
  *      | 1  0  0 |
  *  m = | 0  1  0 |
@@ -70,13 +68,11 @@ dmtxMatrix3Identity(DmtxMatrix3 m)
 }
 
 /**
- * @brief  XXX
- * @param  m
+ * @brief  Generate translate transformation matrix
+ * @param  m Generated matrix
  * @param  tx
  * @param  ty
  * @return void
- *
- * Translate Transformation
  *
  *      | 1  0  0 |
  *  m = | 0  1  0 |
@@ -100,12 +96,10 @@ void dmtxMatrix3Translate(DmtxMatrix3 m, double tx, double ty)
 }
 
 /**
- * @brief  XXX
- * @param  m
+ * @brief  Generate rotate transformation
+ * @param  m Generated matrix
  * @param  angle
  * @return void
- *
- * Rotate Transformation
  *
  *     |  cos(a)  sin(a)  0 |
  * m = | -sin(a)  cos(a)  0 |
@@ -136,13 +130,11 @@ dmtxMatrix3Rotate(DmtxMatrix3 m, double angle)
 }
 
 /**
- * @brief  XXX
- * @param  m
+ * @brief  Generate scale transformation matrix
+ * @param  m Generated matrix
  * @param  sx
  * @param  sy
  * @return void
- *
- * Scale Transformation
  *
  *     | sx 0  0 |
  * m = | 0  sy 0 |
@@ -167,13 +159,11 @@ dmtxMatrix3Scale(DmtxMatrix3 m, double sx, double sy)
 }
 
 /**
- * @brief  XXX
- * @param  m
+ * @brief  Generate shear transformation matrix
+ * @param  m Generated matrix
  * @param  shx
  * @param  shy
  * @return void
- *
- * Shear Transformation
  *
  *     | 0    shy  0 |
  * m = | shx  0    0 |
@@ -188,91 +178,7 @@ dmtxMatrix3Shear(DmtxMatrix3 m, double shx, double shy)
 }
 
 /**
- * @brief  XXX
- * @param  v
- * @param  m
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-extern int
-dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m)
-{
-   int success;
-   DmtxVector2 vOut;
-
-   success = dmtxMatrix3VMultiply(&vOut, v, m);
-   *v = vOut;
-
-   return success;
-}
-
-/**
- * @brief  XXX
- * @param  vOut
- * @param  vIn
- * @param  m
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-extern int
-dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m)
-{
-   double w;
-
-   vOut->X = vIn->X*m[0][0] + vIn->Y*m[1][0] + m[2][0];
-   vOut->Y = vIn->X*m[0][1] + vIn->Y*m[1][1] + m[2][1];
-   w = vIn->X*m[0][2] + vIn->Y*m[1][2] + m[2][2];
-
-   if(fabs(w) < DMTX_ALMOST_ZERO) {
-      vOut->X = FLT_MAX;
-      vOut->Y = FLT_MAX;
-      return DMTX_FAILURE;
-   }
-
-   dmtxVector2ScaleBy(vOut, 1/w);
-
-   return DMTX_SUCCESS;
-}
-
-/**
- * @brief  XXX
- * @param  mOut
- * @param  m0
- * @param  m1
- * @return void
- */
-extern void
-dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1)
-{
-   int i, j, k;
-   double val;
-
-   for(i = 0; i < 3; i++) {
-      for(j = 0; j < 3; j++) {
-         val = 0.0;
-         for(k = 0; k < 3; k++) {
-            val += m0[i][k] * m1[k][j];
-         }
-         mOut[i][j] = val;
-      }
-   }
-}
-
-/**
- * @brief  XXX
- * @param  m0
- * @param  m1
- * @return void
- */
-extern void
-dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
-{
-   DmtxMatrix3 mTmp;
-
-   dmtxMatrix3Copy(mTmp, m0);
-   dmtxMatrix3Multiply(m0, mTmp, m1);
-}
-
-/**
- * @brief  Line skew transformation for removing perspective
+ * @brief  Generate top line skew transformation
  * @param  m
  * @param  b0
  * @param  b1
@@ -309,7 +215,7 @@ dmtxMatrix3LineSkewTop(DmtxMatrix3 m, double b0, double b1, double sz)
 }
 
 /**
- * @brief  XXX
+ * @brief  Generate top line skew transformation (inverse)
  * @param  m
  * @param  b0
  * @param  b1
@@ -328,7 +234,7 @@ dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, double b0, double b1, double sz)
 }
 
 /**
- * @brief  XXX
+ * @brief  Generate side line skew transformation
  * @param  m
  * @param  b0
  * @param  b1
@@ -347,7 +253,7 @@ dmtxMatrix3LineSkewSide(DmtxMatrix3 m, double b0, double b1, double sz)
 }
 
 /**
- * @brief  XXX
+ * @brief  Generate side line skew transformation (inverse)
  * @param  m
  * @param  b0
  * @param  b1
@@ -366,7 +272,91 @@ dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, double b0, double b1, double sz)
 }
 
 /**
- * @brief  XXX
+ * @brief  Multiply two matrices to create a third
+ * @param  mOut
+ * @param  m0
+ * @param  m1
+ * @return void
+ */
+extern void
+dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1)
+{
+   int i, j, k;
+   double val;
+
+   for(i = 0; i < 3; i++) {
+      for(j = 0; j < 3; j++) {
+         val = 0.0;
+         for(k = 0; k < 3; k++) {
+            val += m0[i][k] * m1[k][j];
+         }
+         mOut[i][j] = val;
+      }
+   }
+}
+
+/**
+ * @brief  Multiply two matrices in place
+ * @param  m0
+ * @param  m1
+ * @return void
+ */
+extern void
+dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
+{
+   DmtxMatrix3 mTmp;
+
+   dmtxMatrix3Copy(mTmp, m0);
+   dmtxMatrix3Multiply(m0, mTmp, m1);
+}
+
+/**
+ * @brief  Multiply vector and matrix
+ * @param  vOut Vector (output)
+ * @param  vIn Vector (input)
+ * @param  m Matrix to be multiplied
+ * @return DMTX_SUCCESS | DMTX_FAILURE
+ */
+extern int
+dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m)
+{
+   double w;
+
+   vOut->X = vIn->X*m[0][0] + vIn->Y*m[1][0] + m[2][0];
+   vOut->Y = vIn->X*m[0][1] + vIn->Y*m[1][1] + m[2][1];
+   w = vIn->X*m[0][2] + vIn->Y*m[1][2] + m[2][2];
+
+   if(fabs(w) < DMTX_ALMOST_ZERO) {
+      vOut->X = FLT_MAX;
+      vOut->Y = FLT_MAX;
+      return DMTX_FAILURE;
+   }
+
+   dmtxVector2ScaleBy(vOut, 1/w);
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ * @brief  Multiply vector and matrix in place
+ * @param  v Vector (input and output)
+ * @param  m Matrix to be multiplied
+ * @return DMTX_SUCCESS | DMTX_FAILURE
+ */
+extern int
+dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m)
+{
+   int success;
+   DmtxVector2 vOut;
+
+   success = dmtxMatrix3VMultiply(&vOut, v, m);
+   *v = vOut;
+
+   return success;
+}
+
+/**
+ * @brief  Print matrix contents to STDOUT
  * @param  m
  * @return void
  */
