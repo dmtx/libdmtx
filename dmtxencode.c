@@ -27,6 +27,15 @@ Contact: mike@dragonflylogic.com
  * @brief Encode messages
  */
 
+/* TODO rewrite this logic to use a push/stack approach. Do not track mid-
+   byte progress. Encode triplet-based schemes pre-encoding as necessary
+   like before, but only track how far up we had to go. Only rule channel
+   loss when unlatch is possible, or at end of channel. Make sure that
+   "remaining words in this schema" works accounts for shift characters,
+   and is used by all terminating conditions. Also see the rewrite comments
+   in EncodeAsciiCodeword().
+*/
+
 #define DMTX_CHAR_ASCII_PAD            129
 #define DMTX_CHAR_ASCII_UPPER_SHIFT    235
 
@@ -306,10 +315,9 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
 }
 
 /**
- *
-This function needs to take both dataWordCount and sizeIdx into account because symbol size is tied to an encodation
-That is, a data stream might be different from one symbol size to another
- *
+ * This function needs to take both dataWordCount and sizeIdx into account
+ * because symbol size is tied to an encodation. That is, a data stream
+ * might be different from one symbol size to another
  */
 static int
 EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
@@ -332,7 +340,7 @@ EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
    }
 
    /* XXX must fix ... will need to handle sizeIdx requests here because it is
-      needed by Encode...() (for triplet termination) */
+      needed by Encode...() for triplet termination */
 
    /* parameter sizeIdx is requested value, returned sizeIdx is decision */
    *sizeIdx = FindCorrectBarcodeSize(dataWordCount, *sizeIdx);
@@ -663,8 +671,6 @@ EncodeAsciiCodeword(DmtxChannel *channel)
 
    inputValue = *(channel->inputPtr);
 
-   /* 2nd digit char in a row - overwrite first digit word with combined value */
-
    /* XXX this is problematic ... We should not be looking backward in the
       channel to determine what state we're in. Add the necessary logic to
       fix the current bug (prevprev != 253) but when rewriting encoder later
@@ -673,6 +679,33 @@ EncodeAsciiCodeword(DmtxChannel *channel)
       channels because currently sitting between byte boundaries (like the
       triplet-based schemes). Much simpler. */
 
+   /* XXX another thought on the future rewrite: if adopting a forward-encoding
+      approach on double digits then the following input situation:
+
+         digit digit c40a c40b c40c
+
+      would create:
+
+         ASCII_double C40_triplet1ab C40_triplet2bc
+
+      although it might be more efficient in some cases to do
+
+         digit C40_triplet1(digit a) C40_triplet2(a b)
+
+      (I can't think of a situation like this, but I can't rule it out either)
+      Unfortunately the forward encoding approach would never allow ascii to unlatch
+      between the ASCII_double input words.
+
+      One approach that would definitely avoid this is to treat ASCII_dd as a
+      separate channel when using "--best".  However, when encoding to single-
+      scheme ascii you would always use the ASCII_dd approach.
+
+      This function, EncodeAsciiCodeword(), should have another parameter to flag
+      whether or not to compress double digits. When encoding in single scheme
+      ascii, then compress the double digits. If using --best then use both options
+      as separate channels. */
+
+   /* 2nd digit char in a row - overwrite first digit word with combined value */
    if(isdigit(inputValue) && channel->currentLength >= channel->schemeStart + 24) {
       prevIndex = (channel->currentLength - 12)/12;
       prevValue = channel->encodedWords[prevIndex] - 1;
