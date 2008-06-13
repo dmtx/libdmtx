@@ -576,7 +576,7 @@ WriteCodewords(DmtxEncode *encode)
 {
    int i, dataWordLength;
 
-   dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, encode->region.sizeIdx);
+   dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, encode->region.sizeIdx);
 
    for(i = 0; i < encode->message->codeSize; i++) {
       fprintf(stdout, "%c:%03d\n", (i < dataWordLength) ?

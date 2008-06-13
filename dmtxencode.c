@@ -137,7 +137,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    assert(sizeIdx != DMTX_SYMBOL_SQUARE_AUTO && sizeIdx != DMTX_SYMBOL_RECT_AUTO);
 
    /* Add pad characters to match a standard symbol size (whether smallest or requested) */
-   AddPadChars(buf, &dataWordCount, dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx));
+   AddPadChars(buf, &dataWordCount, dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx));
 
    /* XXX we can remove a lot of this redundant data */
    enc->region.sizeIdx = sizeIdx;
@@ -1152,7 +1152,7 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
 /* XXX this is broken -- what if someone asks for DMTX_SYMBOL_RECT_AUTO or a specific sizeIdx? */
    sizeIdx = FindCorrectBarcodeSize(currentByte + ((inputCount == 3) ? 2 : inputCount),
          DMTX_SYMBOL_SQUARE_AUTO);
-   remainingCodewords = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) - currentByte;
+   remainingCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 
    /* XXX the big problem with all of these special cases is what if one of
       these last words requires multiple bytes in ASCII (like upper shift?).
@@ -1201,7 +1201,7 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
 /*    assert(remainingCodewords == 0 || remainingCodewords >= 3); */
 
       currentByte = channel->currentLength/12;
-      remainingCodewords = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) - currentByte;
+      remainingCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 
       if(remainingCodewords > 0) {
          ChangeEncScheme(channel, DmtxSchemeEncodeAscii, DMTX_UNLATCH_EXPLICIT);
@@ -1262,7 +1262,7 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
 
    currentByte = channel->currentLength/12;
    sizeIdx = FindCorrectBarcodeSize(currentByte, DMTX_SYMBOL_SQUARE_AUTO);
-   symbolCodewords = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) - currentByte;
+   symbolCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 
    /* Test for special case condition */
    if(channel->currentLength % 12 == 0 &&

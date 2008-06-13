@@ -673,7 +673,7 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
    int rotateInt;
    double rotate;
 
-   dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, region->sizeIdx);
+   dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, region->sizeIdx);
    if(options->verbose) {
 
       rotate = (2 * M_PI) + (atan2(region->fit2raw[0][1], region->fit2raw[1][1]) -
@@ -690,7 +690,7 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
       fprintf(stdout, "    Data Codewords: %d (capacity %d)\n",
             message->outputIdx, dataWordLength);
       fprintf(stdout, "   Error Codewords: %d\n",
-            dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, region->sizeIdx));
+            dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, region->sizeIdx));
       fprintf(stdout, "      Data Regions: %d x %d\n",
             dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions, region->sizeIdx),
             dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, region->sizeIdx));

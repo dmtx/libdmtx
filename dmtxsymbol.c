@@ -66,28 +66,28 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
                                                           6, 6, 6,
                                                     1, 2, 1, 2, 2, 2 };
 
-   static const int dataWordLength[] = { 3, 5, 8, 12,  18,  22,   30,   36,  44,
-                                                  62,  86, 114,  144,  174, 204,
-                                                 280, 368, 456,  576,  696, 816,
-                                                          1050, 1304, 1558,
-                                                   5,  10,  16,   22,   32,  49 };
-
-   static const int errorWordLength[] = { 5, 7, 10, 12,  14,  18,  20,  24,  28,
-                                                    36,  42,  48,  56,  68,  84,
-                                                   112, 144, 192, 224, 272, 336,
-                                                             408, 496, 620,
-                                                     7,  11,  14,  18,  24,  28 };
-
    static const int interleavedBlocks[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1,
                                                      1, 1, 1, 1, 1, 2,
                                                      2, 4, 4, 4, 4, 6,
                                                            6, 8, 8,
                                                      1, 1, 1, 1, 1, 1 };
 
-   static const int maxCorrectable[] = { 2, 3, 5,  6,  7,  9,  10,  12,  14,
-                                                  18, 21, 24,  28,  34,  42,
-                                                  56, 72, 96, 112, 136, 168,
-                                                         204, 248, 310,
+   static const int blockDataWords[] = { 3, 5, 8, 12,  18,  22,  30,  36,  44,
+                                                  62,  86, 114, 144, 174, 102,
+                                                 140,  92, 114, 144, 174, 136,
+                                                           175, 163, 156,
+                                                   5,  10,  16,  22,  32,  49 };
+
+   static const int blockErrorWords[] = { 5, 7, 10, 12, 14, 18, 20, 24, 28,
+                                                    36, 42, 48, 56, 68, 42,
+                                                    56, 36, 48, 56, 68, 56,
+                                                            68, 62, 62,
+                                                     7, 11, 14, 18, 24, 28 };
+
+   static const int blockMaxCorrectable[] = { 2, 3, 5,  6,  7,  9,  10,  12,  14,
+                                                       18, 21, 24,  28,  34,  21,
+                                                       28, 18, 24,  28,  34,  28,
+                                                               34,  31,  31,
                                                    3,  5,  7,   9,  12,  14 };
 
    /* XXX maybe this should be a proper check instead of an assertion */
@@ -118,17 +118,32 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
       case DmtxSymAttribMappingMatrixCols:
          return dataRegionCols[sizeIdx] * horizDataRegions[sizeIdx];
          break;
-      case DmtxSymAttribDataWordLength:
-         return dataWordLength[sizeIdx];
-         break;
-      case DmtxSymAttribErrorWordLength:
-         return errorWordLength[sizeIdx];
-         break;
       case DmtxSymAttribInterleavedBlocks:
          return interleavedBlocks[sizeIdx];
          break;
-      case DmtxSymAttribMaxCorrectable:
-         return maxCorrectable[sizeIdx];
+      case DmtxSymAttribBlockDataWords:
+         return blockDataWords[sizeIdx];
+         break;
+      case DmtxSymAttribBlockErrorWords:
+         return blockErrorWords[sizeIdx];
+         break;
+      case DmtxSymAttribBlockTotalWords:
+         return blockDataWords[sizeIdx] + blockErrorWords[sizeIdx];
+         break;
+      case DmtxSymAttribBlockMaxCorrectable:
+         return blockMaxCorrectable[sizeIdx];
+         break;
+      case DmtxSymAttribSymbolDataWords:
+         return blockDataWords[sizeIdx] * interleavedBlocks[sizeIdx];
+         break;
+      case DmtxSymAttribSymbolErrorWords:
+         return blockErrorWords[sizeIdx] * interleavedBlocks[sizeIdx];
+         break;
+      case DmtxSymAttribSymbolTotalWords:
+         return (blockDataWords[sizeIdx] + blockErrorWords[sizeIdx]) * interleavedBlocks[sizeIdx];
+         break;
+      case DmtxSymAttribSymbolMaxCorrectable:
+         return blockMaxCorrectable[sizeIdx] * interleavedBlocks[sizeIdx];
          break;
       default:
          exit(1); /* error condition */
@@ -158,7 +173,7 @@ FindCorrectBarcodeSize(int dataWords, int sizeIdxRequest)
             DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT;
 
       for(sizeIdx = idxBeg; sizeIdx < idxEnd; sizeIdx++) {
-         if(dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) >= dataWords)
+         if(dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) >= dataWords)
             break;
       }
    }
@@ -166,7 +181,7 @@ FindCorrectBarcodeSize(int dataWords, int sizeIdxRequest)
       sizeIdx = sizeIdxRequest;
    }
 
-   if(dataWords > dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx)) {
+   if(dataWords > dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx)) {
 /**
       if(sizeIdxRequest == DMTX_SYMBOL_SQUARE_AUTO)
          fprintf(stdout, "Message exceeds maximum length of largest Data Matrix symbol\n");

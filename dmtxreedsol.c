@@ -48,8 +48,8 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
    unsigned char g[69], b[68], *bPtr;
    unsigned char *codewords = message->code;
 
-   dataLength = dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx);
-   errorWordCount = dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, sizeIdx);
+   dataLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
+   errorWordCount = dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, sizeIdx);
    totalLength = dataLength + errorWordCount;
 
    step = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
@@ -96,27 +96,46 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
 static int
 DecodeCheckErrors(DmtxMessage *message, int sizeIdx, int fix)
 {
-   int errorWordLength;
-   int maxCorrectable;
-   void *rs;
-   int fixederr;
+   int i, j;
+   int interleavedBlocks;
+   int blockErrorWords;
+   int blockTotalWords;
+   int blockMaxCorrectable;
+   struct rs *rs;
+   int fixedErr, fixedErrSum;
+   unsigned char data[255];
 
-   errorWordLength = dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, sizeIdx);
-   maxCorrectable = dmtxGetSymbolAttribute(DmtxSymAttribMaxCorrectable, sizeIdx);
+   interleavedBlocks = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
+   blockErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
+   blockTotalWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockTotalWords, sizeIdx);
+   blockMaxCorrectable = dmtxGetSymbolAttribute(DmtxSymAttribBlockMaxCorrectable, sizeIdx);
 
-   rs = init_rs_char(errorWordLength, 255 - message->codeSize);
+   rs = init_rs_char(blockErrorWords, 255 - blockTotalWords);
    if(rs == NULL)
       return DMTX_FAILURE;
 
-   fixederr = decode_rs_char(rs, message->code, NULL, 0, fix);
+   fixedErrSum = 0;
+   for(i = 0; i < interleavedBlocks; i++) {
 
-   if(fixederr < 0)
-      return DMTX_FAILURE;
+      for(j = 0; j < blockTotalWords; j++)
+         data[j] = message->code[j*interleavedBlocks+i];
 
-   if(fix >= 0 && fixederr > fix)
-      return DMTX_FAILURE;
+      fixedErr = decode_rs_char(rs, data, NULL, 0, fix);
 
-   if(fixederr > maxCorrectable)
+      if(fixedErr < 0 || fixedErr > blockMaxCorrectable) {
+         free_rs_char(rs);
+         return DMTX_FAILURE;
+      }
+
+      fixedErrSum += fixedErr;
+
+      for(j = 0; j < blockTotalWords; j++)
+         message->code[j*interleavedBlocks+i] = data[j];
+   }
+
+   free_rs_char(rs);
+
+   if(fix >= 0 && fixedErrSum > fix)
       return DMTX_FAILURE;
 
    return DMTX_SUCCESS;

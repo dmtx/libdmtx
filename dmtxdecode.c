@@ -67,28 +67,28 @@ extern DmtxMessage *
 dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
 {
    DmtxMessage *message;
-   int success;
 
    message = dmtxMessageMalloc(region->sizeIdx);
    if(message == NULL)
-      return message;
+      return NULL;
 
    if(PopulateArrayFromMatrix(message, dec->image, region) != DMTX_SUCCESS) {
       dmtxMessageFree(&message);
-      return message;
+      return NULL;
    }
 
    if(0 && PopulateArrayFromMosaic(message, dec->image, region) != DMTX_SUCCESS) {
       dmtxMessageFree(&message);
-      return message;
+      return NULL;
    }
 
    ModulePlacementEcc200(message->array, message->code,
          region->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
 
-   success = DecodeCheckErrors(message, region->sizeIdx, fix);
-   if(!success)
-      return DMTX_FAILURE;
+   if(DecodeCheckErrors(message, region->sizeIdx, fix) != DMTX_SUCCESS) {
+      dmtxMessageFree(&message);
+      return NULL;
+   }
 
    DecodeDataStream(message, region->sizeIdx);
 
@@ -125,8 +125,8 @@ dmtxMessageMalloc(int sizeIdx)
    memset(message->array, 0x00, message->arraySize);
 
    message->codeSize = sizeof(unsigned char) *
-         dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx) +
-         dmtxGetSymbolAttribute(DmtxSymAttribErrorWordLength, sizeIdx);
+         dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) +
+         dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, sizeIdx);
 
    message->code = (unsigned char *)malloc(message->codeSize);
    if(message->code == NULL) {
@@ -189,7 +189,7 @@ DecodeDataStream(DmtxMessage *message, int sizeIdx)
    unsigned char *ptr, *dataEnd;
 
    ptr = message->code;
-   dataEnd = ptr + dmtxGetSymbolAttribute(DmtxSymAttribDataWordLength, sizeIdx);
+   dataEnd = ptr + dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
 
    while(ptr < dataEnd) {
 

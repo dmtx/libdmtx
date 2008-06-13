@@ -51,12 +51,6 @@ typedef unsigned char data_t;
 #undef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
-/* General purpose RS codec, 8-bit symbols */
-static void encode_rs_char(void *rs, unsigned char *data, unsigned char *parity);
-static int decode_rs_char(void *rs, unsigned char *data, int *eras_pos, int no_eras, int max_fixes);
-static void *init_rs_char(int nroots, int pad);
-static void free_rs_char(void *rs);
-
 /* Reed-Solomon codec control block */
 struct rs {
    data_t *alpha_to;    /* log lookup table */
@@ -66,12 +60,18 @@ struct rs {
    int pad;             /* Padding bytes in shortened block */
 };
 
+/* General purpose RS codec, 8-bit symbols */
+static void encode_rs_char(struct rs *rs, unsigned char *data, unsigned char *parity);
+static int decode_rs_char(struct rs *rs, unsigned char *data, int *eras_pos, int no_eras, int max_fixes);
+static struct rs *init_rs_char(int nroots, int pad);
+static void free_rs_char(struct rs *rs);
+
 /**
  *
  *
  */
 static int
-modnn(struct rs *rs, int x)
+modnn(int x)
 {
    while (x >= DMTX_RS_NN) {
       x -= DMTX_RS_NN;
@@ -86,7 +86,7 @@ modnn(struct rs *rs, int x)
  *
  */
 static void
-free_rs_char(void *p)
+free_rs_char(struct rs *p)
 {
    struct rs *rs = (struct rs *)p;
 
@@ -97,11 +97,12 @@ free_rs_char(void *p)
 }
 
 /**
- * Initialize a Reed-Solomon codec
- * nroots  = RS code generator polynomial degree (number of roots)
- * pad     = padding bytes at front of shortened block
+ * @brief  Initialize a Reed-Solomon codec
+ * @param  nroots RS code generator polynomial degree (number of roots)
+ * @param  pad Padding bytes at front of shortened block
+ * @return pointer to rs struct
  */
-static void *
+static struct rs *
 init_rs_char(int nroots, int pad)
 {
    struct rs *rs;
@@ -125,6 +126,7 @@ init_rs_char(int nroots, int pad)
       free(rs);
       return NULL;
    }
+
    rs->index_of = (data_t *)malloc(sizeof(data_t) * (DMTX_RS_NN + 1));
    if(rs->index_of == NULL) {
       free(rs->alpha_to);
@@ -144,6 +146,7 @@ init_rs_char(int nroots, int pad)
          sr ^= DMTX_RS_GFPOLY;
       sr &= DMTX_RS_NN;
    }
+
    if(sr != 1) {
       /* Field generator polynomial is not primitive */
       free(rs->alpha_to);
@@ -169,13 +172,13 @@ init_rs_char(int nroots, int pad)
       /* Multiply rs->genpoly[] by  @**(root + x) */
       for(j = i; j > 0; j--) {
          if(rs->genpoly[j] != 0)
-            rs->genpoly[j] = rs->genpoly[j-1] ^ rs->alpha_to[modnn(rs, rs->index_of[rs->genpoly[j]] + root)];
+            rs->genpoly[j] = rs->genpoly[j-1] ^ rs->alpha_to[modnn(rs->index_of[rs->genpoly[j]] + root)];
          else
             rs->genpoly[j] = rs->genpoly[j-1];
       }
 
       /* rs->genpoly[0] can never be zero */
-      rs->genpoly[0] = rs->alpha_to[modnn(rs, rs->index_of[rs->genpoly[0]] + root)];
+      rs->genpoly[0] = rs->alpha_to[modnn(rs->index_of[rs->genpoly[0]] + root)];
    }
 
    /* convert rs->genpoly[] to index form for quicker encoding */
@@ -204,9 +207,8 @@ init_rs_char(int nroots, int pad)
  * program.
  */
 static void
-encode_rs_char(void *p, data_t *data, data_t *parity)
+encode_rs_char(struct rs *rs, data_t *data, data_t *parity)
 {
-   struct rs *rs = (struct rs *)p;
    int i, j;
    data_t feedback;
 
@@ -218,16 +220,16 @@ encode_rs_char(void *p, data_t *data, data_t *parity)
 #ifdef UNNORMALIZED
       /* This line is unnecessary when rs->genpoly[rs->nroots] is unity, as it must
          always be for the polynomials constructed by init_rs() */
-         feedback = modnn(rs, DMTX_RS_NN - rs->genpoly[rs->nroots] + feedback);
+         feedback = modnn(DMTX_RS_NN - rs->genpoly[rs->nroots] + feedback);
 #endif
          for(j = 1; j < rs->nroots; j++)
-            parity[j] ^= rs->alpha_to[modnn(rs, feedback + rs->genpoly[rs->nroots-j])];
+            parity[j] ^= rs->alpha_to[modnn(feedback + rs->genpoly[rs->nroots-j])];
       }
 
       /* Shift */
       memmove(&parity[0], &parity[1], sizeof(data_t) * (rs->nroots-1));
       if(feedback != DMTX_RS_NN)
-         parity[rs->nroots-1] = rs->alpha_to[modnn(rs, feedback + rs->genpoly[0])];
+         parity[rs->nroots-1] = rs->alpha_to[modnn(feedback + rs->genpoly[0])];
       else
          parity[rs->nroots-1] = 0;
    }
@@ -250,9 +252,8 @@ encode_rs_char(void *p, data_t *data, data_t *parity)
  * program.
  */
 static int
-decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras, int max_fixes)
+decode_rs_char(struct rs *rs, data_t *data, int *eras_pos, int no_eras, int max_fixes)
 {
-   struct rs *rs = (struct rs *)p;
    int deg_lambda, el, deg_omega;
    int i, j, r, k;
    data_t u, q, tmp, num1, num2, den, discr_r;
@@ -274,7 +275,7 @@ decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras, int max_fixes)
 
    for(j = 1; j < DMTX_RS_NN - rs->pad; j++) {
       for(i = 0; i< rs->nroots; i++) {
-         s[i] = (s[i] == 0) ? data[j] : data[j] ^ rs->alpha_to[modnn(rs, rs->index_of[s[i]] + (1+i))];
+         s[i] = (s[i] == 0) ? data[j] : data[j] ^ rs->alpha_to[modnn(rs->index_of[s[i]] + (1+i))];
       }
    }
 
@@ -301,13 +302,13 @@ decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras, int max_fixes)
 
    if(no_eras > 0) {
       /* Init lambda to be the erasure locator polynomial */
-      lambda[1] = rs->alpha_to[modnn(rs, DMTX_RS_NN - 1 - eras_pos[0])];
+      lambda[1] = rs->alpha_to[modnn(DMTX_RS_NN - 1 - eras_pos[0])];
       for(i = 1; i < no_eras; i++) {
-         u = modnn(rs, DMTX_RS_NN - 1 - eras_pos[i]);
+         u = modnn(DMTX_RS_NN - 1 - eras_pos[i]);
          for(j = i+1; j > 0; j--) {
             tmp = rs->index_of[lambda[j - 1]];
             if(tmp != DMTX_RS_NN)
-               lambda[j] ^= rs->alpha_to[modnn(rs,u + tmp)];
+               lambda[j] ^= rs->alpha_to[modnn(u + tmp)];
          }
       }
    }
@@ -323,7 +324,7 @@ decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras, int max_fixes)
       discr_r = 0;
       for(i = 0; i < r; i++) {
          if((lambda[i] != 0) && (s[r-i-1] != DMTX_RS_NN)) {
-            discr_r ^= rs->alpha_to[modnn(rs, rs->index_of[lambda[i]] + s[r-i-1])];
+            discr_r ^= rs->alpha_to[modnn(rs->index_of[lambda[i]] + s[r-i-1])];
          }
       }
       discr_r = rs->index_of[discr_r]; /* Index form */
@@ -336,13 +337,13 @@ decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras, int max_fixes)
          /* 7 lines below: T(x) <-- lambda(x) - discr_r*x*b(x) */
          t[0] = lambda[0];
          for(i = 0 ; i < rs->nroots; i++) {
-            t[i+1] = (b[i] != DMTX_RS_NN) ? lambda[i+1] ^ rs->alpha_to[modnn(rs, discr_r + b[i])] : lambda[i+1];
+            t[i+1] = (b[i] != DMTX_RS_NN) ? lambda[i+1] ^ rs->alpha_to[modnn(discr_r + b[i])] : lambda[i+1];
          }
          if(2 * el <= r + no_eras - 1) {
             el = r + no_eras - el;
             /* 2 lines below: B(x) <-- inv(discr_r) * lambda(x) */
             for(i = 0; i <= rs->nroots; i++)
-               b[i] = (lambda[i] == 0) ? DMTX_RS_NN : modnn(rs, rs->index_of[lambda[i]] - discr_r + DMTX_RS_NN);
+               b[i] = (lambda[i] == 0) ? DMTX_RS_NN : modnn(rs->index_of[lambda[i]] - discr_r + DMTX_RS_NN);
          }
          else {
             /* 2 lines below: B(x) <-- x*B(x) */
@@ -364,11 +365,11 @@ decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras, int max_fixes)
    /* Find roots of the error+erasure locator polynomial by Chien search */
    memcpy(&reg[1], &lambda[1], rs->nroots * sizeof(reg[0]));
    count = 0; /* Number of roots of lambda(x) */
-   for(i = 1,k=0; i <= DMTX_RS_NN; i++,k = modnn(rs,k+1)) {
+   for(i = 1,k=0; i <= DMTX_RS_NN; i++,k = modnn(k+1)) {
       q = 1; /* lambda[0] is always 0 */
       for(j = deg_lambda; j > 0; j--) {
          if(reg[j] != DMTX_RS_NN) {
-            reg[j] = modnn(rs,reg[j] + j);
+            reg[j] = modnn(reg[j] + j);
             q ^= rs->alpha_to[reg[j]];
          }
       }
@@ -398,7 +399,7 @@ decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras, int max_fixes)
       tmp = 0;
       for(j=i;j >= 0; j--) {
          if((s[i - j] != DMTX_RS_NN) && (lambda[j] != DMTX_RS_NN))
-            tmp ^= rs->alpha_to[modnn(rs,s[i - j] + lambda[j])];
+            tmp ^= rs->alpha_to[modnn(s[i - j] + lambda[j])];
       }
       omega[i] = rs->index_of[tmp];
    }
@@ -409,20 +410,20 @@ decode_rs_char(void *p, data_t *data, int *eras_pos, int no_eras, int max_fixes)
       num1 = 0;
       for(i = deg_omega; i >= 0; i--) {
          if(omega[i] != DMTX_RS_NN)
-            num1 ^= rs->alpha_to[modnn(rs,omega[i] + i * root[j])];
+            num1 ^= rs->alpha_to[modnn(omega[i] + i * root[j])];
       }
-      num2 = rs->alpha_to[modnn(rs, DMTX_RS_NN)];
+      num2 = rs->alpha_to[modnn(DMTX_RS_NN)];
       den = 0;
 
       /* lambda[i+1] for i even is the formal derivative lambda_pr of lambda[i] */
       for(i = MIN(deg_lambda, rs->nroots - 1) & ~1; i >= 0; i -=2) {
          if(lambda[i+1] != DMTX_RS_NN)
-            den ^= rs->alpha_to[modnn(rs,lambda[i+1] + i * root[j])];
+            den ^= rs->alpha_to[modnn(lambda[i+1] + i * root[j])];
       }
 
       /* Apply error to data */
       if(num1 != 0 && loc[j] >= rs->pad) {
-         data[loc[j] - rs->pad] ^= rs->alpha_to[modnn(rs, rs->index_of[num1] +
+         data[loc[j] - rs->pad] ^= rs->alpha_to[modnn(rs->index_of[num1] +
                rs->index_of[num2] + DMTX_RS_NN - rs->index_of[den])];
       }
    }
