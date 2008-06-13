@@ -1,7 +1,7 @@
 TODO Items
 -----------------------------------------------------------------
 
-after version 0.5:
+after version 0.6:
   o libdmtx:   Move SetRangeLimit and SetScanRegion into library
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
@@ -34,7 +34,22 @@ after version 0.5:
   o testsuite: 'make test' writes metrics file
   o testsuite: 'make test' confirms performance
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
-  o project:   Copy getopt1.c, getopt.c and getopt.h ... and use if not present (AC_SEARCH_LIBRARY)
+
+version 0.6: (??-???-2008)
+
+version 0.5.1: (??-???-2008)
+  x libdmtx:   Fixed Extended ASCII encoding bug
+  x libdmtx:   Fixed error correction bug related to multiple interleaved blocks
+  x libdmtx:   Added timeout condition for region detection
+  x libdmtx:   Allow partial and complete disabling of error correction
+  x libdmtx:   Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
+  / libdmtx:   Tighter integration with libfec
+  x dmtxread:  Conditional build logic for libtiff
+  / project:   Include local copies of getopt1.c getopt.c getopt.h
+  / dmtxquery: Add new utility to extra information from dmtxread output
+  / testsuite: Started unit test executable for low level testing
+  / project:   Lots of holes filled in comments (Doxygen)
+  / project:   Various things to help compiling in MS VC++
 
 version 0.5: (13-Apr-2008)
   x libdmtx:   Rework encoding and decoding API for consistency and intuitiveness
