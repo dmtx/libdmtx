@@ -881,16 +881,48 @@ EncodeEdifactCodeword(DmtxChannel *channel)
 static void
 EncodeBase256Codeword(DmtxChannel *channel)
 {
+   int i;
    int pos;
+   int newSchemeLength;
+   int headerByteCount;
+   unsigned char *firstBytePtr;
+   unsigned char headerByte[2];
 
    assert(channel->encScheme == DmtxSchemeEncodeBase256);
 
+   firstBytePtr = &(channel->encodedWords[channel->schemeStart/12 - 1]);
+
+   newSchemeLength = (channel->currentLength - channel->schemeStart)/12 + 1;
+   assert(newSchemeLength > 0);
+
+   if(newSchemeLength <= 249) {
+      headerByteCount = 1;
+      headerByte[0] = newSchemeLength;
+   }
+   else if(newSchemeLength <= 1555) {
+      headerByteCount = 2;
+      headerByte[0] = newSchemeLength/250 + 249;
+      headerByte[1] = newSchemeLength%250;
+   }
+   /* else error XXX */
+
+   if(newSchemeLength == 250)
+      memmove(firstBytePtr + 1, firstBytePtr, newSchemeLength - 1);
+
+   /* Write new length to scheme header */
+   for(i = 0; i < headerByteCount; i++)
+      *(firstBytePtr+i) = Randomize255State(headerByte[i], channel->schemeStart/12 + i);
+
    /* Add data codewords to output */
-   pos = (channel->currentLength - channel->schemeStart)/12 + 3; /* XXX 3 only works for small sizes */
-/* pos = 0; */
+   pos = newSchemeLength + headerByteCount + 2;
+
    PushInputWord(channel, Randomize255State(*(channel->inputPtr), pos));
    IncrementProgress(channel, 12);
    channel->inputPtr++;
+
+   /* XXX will need to introduce an EndOfSymbolBase256() that recognizes
+      opportunity to encode headerLength of 0 if remaining Base 256 message
+      exactly matches symbol capacity */
 }
 
 
@@ -1029,7 +1061,6 @@ PushInputWord(DmtxChannel *channel, unsigned char codeword)
    int i;
    int startByte, pos;
    DmtxQuadruplet quad;
-   unsigned char length;
 
    /* XXX should this assertion actually be a legit runtime test? */
    assert(channel->encodedLength/12 <= 3*1558); /* increased for Mosaic */
@@ -1093,9 +1124,6 @@ PushInputWord(DmtxChannel *channel, unsigned char codeword)
       case DmtxSchemeEncodeBase256:
          channel->encodedWords[channel->currentLength/12] = codeword;
          channel->encodedLength += 12;
-         length = (channel->encodedLength - channel->schemeStart)/12;
-         channel->encodedWords[(channel->schemeStart/12)-1] = Randomize255State(length, channel->schemeStart/12);
-
          break;
 
       default:
