@@ -656,7 +656,7 @@ EncodeNextWord(DmtxChannel *channel, DmtxSchemeEncode targetScheme)
 static void
 EncodeAsciiCodeword(DmtxChannel *channel)
 {
-   unsigned char inputValue, prevValue;
+   unsigned char inputValue, prevValue, prevPrevValue;
    int prevIndex;
 
    assert(channel->encScheme == DmtxSchemeEncodeAscii);
@@ -664,11 +664,21 @@ EncodeAsciiCodeword(DmtxChannel *channel)
    inputValue = *(channel->inputPtr);
 
    /* 2nd digit char in a row - overwrite first digit word with combined value */
-   if(isdigit(inputValue) && channel->currentLength >= channel->schemeStart + 12) {
+
+   /* XXX this is problematic ... We should not be looking backward in the
+      channel to determine what state we're in. Add the necessary logic to
+      fix the current bug (prevprev != 253) but when rewriting encoder later
+      make sure double digit ascii as treated as a forward-encoded condition.
+      i.e., encode ahead of where we currently stand, and not comparable to other
+      channels because currently sitting between byte boundaries (like the
+      triplet-based schemes). Much simpler. */
+
+   if(isdigit(inputValue) && channel->currentLength >= channel->schemeStart + 24) {
       prevIndex = (channel->currentLength - 12)/12;
       prevValue = channel->encodedWords[prevIndex] - 1;
+      prevPrevValue = channel->encodedWords[prevIndex-1];
 
-      if(isdigit(prevValue)) {
+      if(prevPrevValue != 235 && isdigit(prevValue)) {
          channel->encodedWords[prevIndex] = 10 * (prevValue - '0') + (inputValue - '0') + 130;
          channel->inputPtr++;
          return;
@@ -676,14 +686,17 @@ EncodeAsciiCodeword(DmtxChannel *channel)
    }
 
    /* Extended ASCII char */
-   if(inputValue > 127) {
+   if(inputValue >= 128) {
       PushInputWord(channel, DMTX_CHAR_ASCII_UPPER_SHIFT);
       IncrementProgress(channel, 12);
       inputValue -= 128;
    }
-
    /* Normal ASCII char */
-   PushInputWord(channel, inputValue + 1);
+   else {
+      inputValue++;
+   }
+
+   PushInputWord(channel, inputValue);
    IncrementProgress(channel, 12);
    channel->inputPtr++;
 }
