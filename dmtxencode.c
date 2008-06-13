@@ -906,15 +906,19 @@ EncodeBase256Codeword(DmtxChannel *channel)
    }
    /* else error XXX */
 
-   if(newSchemeLength == 250)
+   if(newSchemeLength >= 250)
+      exit(70); /* not working yet */
+
+/* if(newSchemeLength == 250) {
       memmove(firstBytePtr + 1, firstBytePtr, newSchemeLength - 1);
+   } */
 
    /* Write new length to scheme header */
    for(i = 0; i < headerByteCount; i++)
       *(firstBytePtr+i) = Randomize255State(headerByte[i], channel->schemeStart/12 + i);
 
    /* Add data codewords to output */
-   pos = newSchemeLength + headerByteCount + 2;
+   pos = newSchemeLength + headerByteCount + 1;
 
    PushInputWord(channel, Randomize255State(*(channel->inputPtr), pos));
    IncrementProgress(channel, 12);
