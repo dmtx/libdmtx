@@ -534,11 +534,11 @@ DecodeSchemeBase256(DmtxMessage *message, unsigned char *ptr, unsigned char *dat
       ptrEnd = dataEnd;
    }
    else if(d0 <= 249) {
-      ptrEnd = ptr + d0; /* XXX not verifed */
+      ptrEnd = ptr + d0;
    }
    else {
       d1 = UnRandomize255State(*(ptr++), i++);
-      ptrEnd = ptr + (d0 - 249) * 250 + d1; /* XXX not verified */
+      ptrEnd = ptr + (d0 - 249) * 250 + d1;
    }
 
    if(ptrEnd > dataEnd) {

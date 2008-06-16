@@ -706,7 +706,7 @@ EncodeAsciiCodeword(DmtxChannel *channel)
       as separate channels. */
 
    /* 2nd digit char in a row - overwrite first digit word with combined value */
-   if(isdigit(inputValue) && channel->currentLength >= channel->schemeStart + 24) {
+   if(isdigit(inputValue) && channel->currentLength >= channel->firstCodeWord + 24) {
       prevIndex = (channel->currentLength - 12)/12;
       prevValue = channel->encodedWords[prevIndex] - 1;
       prevPrevValue = channel->encodedWords[prevIndex-1];
@@ -882,45 +882,57 @@ static void
 EncodeBase256Codeword(DmtxChannel *channel)
 {
    int i;
-   int pos;
-   int newSchemeLength;
+   int newDataLength;
    int headerByteCount;
+   unsigned char valueTmp;
    unsigned char *firstBytePtr;
    unsigned char headerByte[2];
 
    assert(channel->encScheme == DmtxSchemeEncodeBase256);
 
-   firstBytePtr = &(channel->encodedWords[channel->schemeStart/12 - 1]);
+   firstBytePtr = &(channel->encodedWords[channel->firstCodeWord/12]);
+   headerByte[0] = UnRandomize255State(*firstBytePtr, channel->firstCodeWord/12 + 1);
 
-   newSchemeLength = (channel->currentLength - channel->schemeStart)/12 + 1;
-   assert(newSchemeLength > 0);
+   /* newSchemeLength contains size byte(s) too */
+   if(headerByte[0] <= 249) {
+      newDataLength = headerByte[0];
+   }
+   else {
+      newDataLength = 250 * (headerByte[0] - 249);
+      newDataLength += UnRandomize255State(*(firstBytePtr+1), channel->firstCodeWord/12 + 2);
+   }
 
-   if(newSchemeLength <= 249) {
+   newDataLength++;
+
+   if(newDataLength <= 249) {
       headerByteCount = 1;
-      headerByte[0] = newSchemeLength;
+      headerByte[0] = newDataLength;
+      headerByte[1] = 0; /* unused */
    }
-   else if(newSchemeLength <= 1555) {
+   else {
       headerByteCount = 2;
-      headerByte[0] = newSchemeLength/250 + 249;
-      headerByte[1] = newSchemeLength%250;
+      headerByte[0] = newDataLength/250 + 249;
+      headerByte[1] = newDataLength%250;
    }
-   /* else error XXX */
 
-   if(newSchemeLength >= 250)
-      exit(70); /* not working yet */
+   /* newDataLength does not include header bytes */
+   assert(newDataLength > 0 && newDataLength <= 1555);
 
-/* if(newSchemeLength == 250) {
-      memmove(firstBytePtr + 1, firstBytePtr, newSchemeLength - 1);
-   } */
+   /* One time shift of codewords when passing the 250 byte size threshhold */
+   if(newDataLength == 250) {
+      for(i = channel->currentLength/12 - 1; i > channel->firstCodeWord/12; i--) {
+         valueTmp = UnRandomize255State(channel->encodedWords[i], i+1);
+         channel->encodedWords[i+1] = Randomize255State(valueTmp, i+2);
+      }
+      IncrementProgress(channel, 12);
+      channel->encodedLength += 12; /* ugly */
+   }
 
-   /* Write new length to scheme header */
+   /* Update scheme length in Base 256 header */
    for(i = 0; i < headerByteCount; i++)
-      *(firstBytePtr+i) = Randomize255State(headerByte[i], channel->schemeStart/12 + i);
+      *(firstBytePtr+i) = Randomize255State(headerByte[i], channel->firstCodeWord/12 + i + 1);
 
-   /* Add data codewords to output */
-   pos = newSchemeLength + headerByteCount + 1;
-
-   PushInputWord(channel, Randomize255State(*(channel->inputPtr), pos));
+   PushInputWord(channel, Randomize255State(*(channel->inputPtr), channel->currentLength/12 + 1));
    IncrementProgress(channel, 12);
    channel->inputPtr++;
 
@@ -1050,9 +1062,9 @@ ChangeEncScheme(DmtxChannel *channel, DmtxSchemeEncode targetScheme, int unlatch
          break;
    }
    channel->encScheme = targetScheme;
-   channel->schemeStart = channel->currentLength;
+   channel->firstCodeWord = channel->currentLength - 12;
 
-   assert(channel->schemeStart % 12 == 0);
+   assert(channel->firstCodeWord % 12 == 0);
 }
 
 /**

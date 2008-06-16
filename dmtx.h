@@ -370,7 +370,7 @@ typedef struct DmtxChannel_struct {
    unsigned char     *inputStop;         /* pointer to position after final input character */
    int               encodedLength;      /* encoded length (units of 2/3 bits) */
    int               currentLength;      /* current length (units of 2/3 bits) */
-   int               schemeStart;        /* currentLength value before writing 1st encoded word in current scheme */
+   int               firstCodeWord;      /* */
    unsigned char     encodedWords[1558]; /* array of encoded codewords */
 } DmtxChannel;
 
