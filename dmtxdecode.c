@@ -28,8 +28,12 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  image
+ * @param  p0
+ * @param  p1
+ * @param  minGapSize
+ * @return Initialized DmtxDecode struct
  */
 extern DmtxDecode
 dmtxDecodeStructInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
@@ -47,8 +51,9 @@ dmtxDecodeStructInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int min
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  dec
+ * @return void
  */
 extern void
 dmtxDecodeStructDeInit(DmtxDecode *dec)
@@ -177,10 +182,10 @@ dmtxMessageFree(DmtxMessage **message)
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  message
+ * @param  sizeIdx
+ * @return void
  */
 static void
 DecodeDataStream(DmtxMessage *message, int sizeIdx)
@@ -225,9 +230,10 @@ DecodeDataStream(DmtxMessage *message, int sizeIdx)
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  encScheme
+ * @param  ptr
+ * @return Pointer to next undecoded codeword
  */
 static unsigned char *
 NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr)
@@ -260,9 +266,11 @@ NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr)
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  message
+ * @param  ptr
+ * @param  dataEnd
+ * @return Pointer to next undecoded codeword
  */
 static unsigned char *
 DecodeSchemeAsciiStd(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd)
@@ -285,9 +293,11 @@ DecodeSchemeAsciiStd(DmtxMessage *message, unsigned char *ptr, unsigned char *da
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  message
+ * @param  ptr
+ * @param  dataEnd
+ * @return Pointer to next undecoded codeword
  */
 static unsigned char *
 DecodeSchemeAsciiExt(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd)
@@ -298,9 +308,12 @@ DecodeSchemeAsciiExt(DmtxMessage *message, unsigned char *ptr, unsigned char *da
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  message
+ * @param  ptr
+ * @param  dataEnd
+ * @param  encScheme
+ * @return Pointer to next undecoded codeword
  */
 static unsigned char *
 DecodeSchemeC40Text(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme)
@@ -390,9 +403,11 @@ DecodeSchemeC40Text(DmtxMessage *message, unsigned char *ptr, unsigned char *dat
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  message
+ * @param  ptr
+ * @param  dataEnd
+ * @return Pointer to next undecoded codeword
  */
 static unsigned char *
 DecodeSchemeX12(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd)
@@ -438,9 +453,11 @@ DecodeSchemeX12(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  message
+ * @param  ptr
+ * @param  dataEnd
+ * @return Pointer to next undecoded codeword
  */
 static unsigned char *
 DecodeSchemeEdifact(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd)
@@ -515,9 +532,11 @@ DecodeSchemeEdifact(DmtxMessage *message, unsigned char *ptr, unsigned char *dat
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  message
+ * @param  ptr
+ * @param  dataEnd
+ * @return Pointer to next undecoded codeword
  */
 static unsigned char *
 DecodeSchemeBase256(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd)
@@ -572,9 +591,10 @@ UnRandomize253State(unsigned char codewordValue, int codewordPosition)
 */
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  value
+ * @param  idx
+ * @return Unrandomized value
  */
 static unsigned char
 UnRandomize255State(unsigned char value, int idx)
@@ -589,8 +609,11 @@ UnRandomize255State(unsigned char value, int idx)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  message
+ * @param  image
+ * @param  region
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *region)
@@ -655,12 +678,20 @@ PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
       }
    }
 
-   return 1;
+   return DMTX_SUCCESS;
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  image
+ * @param  region
+ * @param  tally
+ * @param  xOrigin
+ * @param  yOrigin
+ * @param  mapWidth
+ * @param  mapHeight
+ * @param  direction
+ * @return void
  */
 static void
 TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, int direction)
@@ -765,10 +796,11 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  message
+ * @param  image
+ * @param  region
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 PopulateArrayFromMosaic(DmtxMessage *message, DmtxImage *image, DmtxRegion *region)

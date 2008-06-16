@@ -28,11 +28,11 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * @brief
- * @param rgb
- * @param image
- * @param x
- * @param y
+ * @brief  XXX
+ * @param  rgb
+ * @param  image
+ * @param  x
+ * @param  y
  * @return void
  */
 extern void
@@ -51,10 +51,10 @@ dmtxPixelFromImage(DmtxRgb rgb, DmtxImage *image, int x, int y)
 }
 
 /**
- * @brief
- * @param color
- * @param image
- * @param p
+ * @brief  XXX
+ * @param  color
+ * @param  image
+ * @param  p
  * @return void
  */
 extern void
@@ -89,8 +89,10 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  color
+ * @param  rgb
+ * @return Pixel color
  */
 extern DmtxColor3 *
 dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb)
@@ -111,8 +113,10 @@ dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  rgb
+ * @param  color
+ * @return void
  */
 extern void
 dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color)
@@ -123,8 +127,10 @@ dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  ray
+ * @param  dist
+ * @return Extracted color
  */
 extern DmtxColor3
 dmtxColor3AlongRay3(DmtxRay3 *ray, double dist)
@@ -139,8 +145,10 @@ dmtxColor3AlongRay3(DmtxRay3 *ray, double dist)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  c1
+ * @param  c2
+ * @return Color sum
  */
 extern DmtxColor3 *
 dmtxColor3AddTo(DmtxColor3 *c1, DmtxColor3 *c2)
@@ -153,8 +161,11 @@ dmtxColor3AddTo(DmtxColor3 *c1, DmtxColor3 *c2)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  cOut
+ * @param  c1
+ * @param  c2
+ * @return Color sum
  */
 extern DmtxColor3 *
 dmtxColor3Add(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
@@ -165,8 +176,10 @@ dmtxColor3Add(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  c1
+ * @param  c2
+ * @return Color difference
  */
 extern DmtxColor3 *
 dmtxColor3SubFrom(DmtxColor3 *c1, DmtxColor3 *c2)
@@ -179,8 +192,11 @@ dmtxColor3SubFrom(DmtxColor3 *c1, DmtxColor3 *c2)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  cOut
+ * @param  c1
+ * @param  c2
+ * @return Color difference
  */
 extern DmtxColor3 *
 dmtxColor3Sub(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
@@ -191,8 +207,10 @@ dmtxColor3Sub(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  c
+ * @param  s
+ * @return Scaled color
  */
 extern DmtxColor3 *
 dmtxColor3ScaleBy(DmtxColor3 *c, double s)
@@ -205,8 +223,11 @@ dmtxColor3ScaleBy(DmtxColor3 *c, double s)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  cOut
+ * @param  c
+ * @param  s
+ * @return Scaled color
  */
 extern DmtxColor3 *
 dmtxColor3Scale(DmtxColor3 *cOut, DmtxColor3 *c, double s)
@@ -217,8 +238,11 @@ dmtxColor3Scale(DmtxColor3 *cOut, DmtxColor3 *c, double s)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  cOut
+ * @param  c1
+ * @param  c2
+ * @return Color cross product
  */
 extern DmtxColor3 *
 dmtxColor3Cross(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
@@ -231,8 +255,9 @@ dmtxColor3Cross(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  c
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 extern int
 dmtxColor3Norm(DmtxColor3 *c)
@@ -250,8 +275,10 @@ dmtxColor3Norm(DmtxColor3 *c)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  c1
+ * @param  c2
+ * @return Color dot product
  */
 extern double
 dmtxColor3Dot(DmtxColor3 *c1, DmtxColor3 *c2)
@@ -261,8 +288,9 @@ dmtxColor3Dot(DmtxColor3 *c1, DmtxColor3 *c2)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  c
+ * @return Color vector magnitude
  */
 extern double
 dmtxColor3Mag(DmtxColor3 *c)
@@ -271,8 +299,10 @@ dmtxColor3Mag(DmtxColor3 *c)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  r
+ * @param  q
+ * @return Distance from color ray
  */
 extern double
 dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q)
@@ -287,8 +317,10 @@ dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  r
+ * @param  q
+ * @return Distance along color ray
  */
 extern double
 dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q)
@@ -302,8 +334,11 @@ dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  point
+ * @param  r
+ * @param  t
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 extern int
 dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t)

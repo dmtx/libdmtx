@@ -154,8 +154,10 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  dataWords
+ * @param  sizeIdxRequest
+ * @return Barcode size index (or -1 if none)
  */
 static int
 FindCorrectBarcodeSize(int dataWords, int sizeIdxRequest)

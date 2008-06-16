@@ -28,8 +28,12 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  image
+ * @param  p0
+ * @param  p1
+ * @param  minGapSize
+ * @return Initialized grid
  */
 static DmtxScanGrid
 InitScanGrid(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
@@ -66,8 +70,9 @@ InitScanGrid(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  cross
+ * @return void
  */
 static void
 IncrementPixelProgress(DmtxScanGrid *cross)
@@ -95,8 +100,9 @@ IncrementPixelProgress(DmtxScanGrid *cross)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  cross
+ * @return void
  */
 static void
 SetDerivedFields(DmtxScanGrid *cross)
@@ -109,8 +115,9 @@ SetDerivedFields(DmtxScanGrid *cross)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  grid
+ * @return Pixel location
  */
 static DmtxPixelLoc
 GetGridCoordinates(DmtxScanGrid *grid)

@@ -185,12 +185,12 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
 }
 
 /**
- * 1) count how many codewords it would take to encode the whole thing
- * 2) take ceiling N of codeword count divided by 3
- * 3) using minimum symbol size that can accomodate N codewords:
- * 4) create several barcodes over iterations of increasing numbers of input codewords until you go one too far
- * 5) if codewords remain after filling R, G, and B barcodes then go back to 3 and try with next larger size
- * 6) take the 3 different images you created and write out a new barcode
+ * @brief  XXX
+ * @param  enc
+ * @param  inputSize
+ * @param  inputString
+ * @param  sizeIdxRequest
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 extern int
 dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest)
@@ -204,6 +204,17 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    unsigned char buf[3][4096];
    DmtxEncode encGreen, encBlue;
    int row, col, mappingRows, mappingCols;
+
+   /*
+    * 1) count how many codewords it would take to encode the whole thing
+    * 2) take ceiling N of codeword count divided by 3
+    * 3) using minimum symbol size that can accomodate N codewords:
+    * 4) create several barcodes over iterations of increasing numbers of
+    *    input codewords until you go one too far
+    * 5) if codewords remain after filling R, G, and B barcodes then go back
+    *    to 3 and try with next larger size
+    * 6) take the 3 different images you created and write out a new barcode
+    */
 
    /* XXX we're going to force ascii until we fix the problem with C40/Text termination */
    enc->scheme = DmtxSchemeEncodeAscii;
@@ -315,15 +326,25 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
 }
 
 /**
- * This function needs to take both dataWordCount and sizeIdx into account
- * because symbol size is tied to an encodation. That is, a data stream
- * might be different from one symbol size to another
+ * @brief  XXX
+ * @param  buf
+ * @param  inputString
+ * @param  inputSize
+ * @param  scheme
+ * @param  sizeIdx
+ * @return Count of encoded data words
  */
 static int
 EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
       int inputSize, DmtxSchemeEncode scheme, int *sizeIdx)
 {
    int dataWordCount;
+
+   /*
+    * This function needs to take both dataWordCount and sizeIdx into account
+    * because symbol size is tied to an encodation. That is, a data stream
+    * might be different from one symbol size to another
+    */
 
    /* Encode input string into data codewords */
    switch(scheme) {
@@ -370,9 +391,10 @@ AddPadChars(unsigned char *buf,  int *bufSize, int paddedSize)
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  codewordValue
+ * @param  codewordPosition
+ * @return Randomized value
  */
 static unsigned char
 Randomize253State(unsigned char codewordValue, int codewordPosition)
@@ -387,9 +409,10 @@ Randomize253State(unsigned char codewordValue, int codewordPosition)
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  codewordValue
+ * @param  codewordPosition
+ * @return Randomized value
  */
 static unsigned char
 Randomize255State(unsigned char codewordValue, int codewordPosition)
@@ -404,9 +427,9 @@ Randomize255State(unsigned char codewordValue, int codewordPosition)
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  enc
+ * @return void
  */
 static void
 PrintPattern(DmtxEncode *enc)
@@ -465,8 +488,11 @@ PrintPattern(DmtxEncode *enc)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  channel
+ * @param  codewords
+ * @param  length
+ * @return void
  */
 static void
 InitChannel(DmtxChannel *channel, unsigned char *codewords, int length)
@@ -479,9 +505,12 @@ InitChannel(DmtxChannel *channel, unsigned char *codewords, int length)
 }
 
 /**
- *
- * XXX needs to change return size
- *
+ * @brief  XXX
+ * @param  buf
+ * @param  codewords
+ * @param  length
+ * @param  scheme
+ * @return Encoded length
  */
 static int
 EncodeSingleScheme(unsigned char *buf, unsigned char *codewords, int length, DmtxSchemeEncode scheme)
@@ -489,19 +518,21 @@ EncodeSingleScheme(unsigned char *buf, unsigned char *codewords, int length, Dmt
    int size;
    DmtxChannel channel;
 
+   /* XXX function needs to change return size */
+
    InitChannel(&channel, codewords, length);
 
    while(channel.inputPtr < channel.inputStop) {
       EncodeNextWord(&channel, scheme);
 
-   /* DumpChannel(&channel); */
+      /* DumpChannel(&channel); */
 
       if(channel.invalid) {
          fprintf(stderr, "Character \"%c\" not supported by requested encodation scheme\n\n", *channel.inputPtr);
          return 0;
       }
    }
-/* DumpChannel(&channel); */
+   /* DumpChannel(&channel); */
 
    size = channel.encodedLength/12;
    memcpy(buf, channel.encodedWords, size);
@@ -510,8 +541,11 @@ EncodeSingleScheme(unsigned char *buf, unsigned char *codewords, int length, Dmt
 }
 
 /**
- * XXX needs to change return size
- *
+ * @brief  XXX
+ * @param  buf
+ * @param  codewords
+ * @param  length
+ * @return Encoded length of winning channel
  */
 static int
 EncodeAutoBest(unsigned char *buf, unsigned char *codewords, int length)
@@ -520,6 +554,8 @@ EncodeAutoBest(unsigned char *buf, unsigned char *codewords, int length)
    int winnerSize;
    DmtxChannelGroup optimal, best;
    DmtxChannel *channel, *winner;
+
+   /* XXX function needs to change return size */
 
    /* Intialize optimizing channels and encode first codeword from default ASCII */
    for(targetScheme = DmtxSchemeEncodeAscii; targetScheme <= DmtxSchemeEncodeBase256; targetScheme++) {
@@ -565,8 +601,10 @@ EncodeAutoBest(unsigned char *buf, unsigned char *codewords, int length)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  group
+ * @param  targetScheme
+ * @return Winning channel
  */
 static DmtxChannel
 FindBestChannel(DmtxChannelGroup group, DmtxSchemeEncode targetScheme)
@@ -611,8 +649,10 @@ FindBestChannel(DmtxChannelGroup group, DmtxSchemeEncode targetScheme)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  channel
+ * @param  targetScheme
+ * @return void
  */
 static void
 EncodeNextWord(DmtxChannel *channel, DmtxSchemeEncode targetScheme)
@@ -658,8 +698,9 @@ EncodeNextWord(DmtxChannel *channel, DmtxSchemeEncode targetScheme)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  channel
+ * @return void
  */
 static void
 EncodeAsciiCodeword(DmtxChannel *channel)
@@ -735,8 +776,9 @@ EncodeAsciiCodeword(DmtxChannel *channel)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  channel
+ * @return void
  */
 static void
 EncodeTripletCodeword(DmtxChannel *channel)
@@ -849,8 +891,9 @@ EncodeTripletCodeword(DmtxChannel *channel)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  channel
+ * @return void
  */
 static void
 EncodeEdifactCodeword(DmtxChannel *channel)
@@ -875,8 +918,9 @@ EncodeEdifactCodeword(DmtxChannel *channel)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  channel
+ * @return void
  */
 static void
 EncodeBase256Codeword(DmtxChannel *channel)
@@ -941,10 +985,12 @@ EncodeBase256Codeword(DmtxChannel *channel)
       exactly matches symbol capacity */
 }
 
-
 /**
- *
- *
+ * @brief  XXX
+ * @param  channel
+ * @param  targetScheme
+ * @param  unlatchType
+ * @return void
  */
 static void
 ChangeEncScheme(DmtxChannel *channel, DmtxSchemeEncode targetScheme, int unlatchType)
@@ -1068,8 +1114,10 @@ ChangeEncScheme(DmtxChannel *channel, DmtxSchemeEncode targetScheme, int unlatch
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  channel
+ * @param  codeword
+ * @return void
  */
 static void
 PushInputWord(DmtxChannel *channel, unsigned char codeword)
@@ -1148,8 +1196,10 @@ PushInputWord(DmtxChannel *channel, unsigned char codeword)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  channel
+ * @param  triplet
+ * @return void
  */
 static void
 PushTriplet(DmtxChannel *channel, DmtxTriplet *triplet)
@@ -1162,10 +1212,10 @@ PushTriplet(DmtxChannel *channel, DmtxTriplet *triplet)
 }
 
 /**
- * XXX this function became a misnomer when we started incrementing by an
- * amount other than what was specified with the C40/Text exception.  Maybe
- * a new name/convention is in order.
- *
+ * @brief  XXX
+ * @param  channel
+ * @param  encodedUnits
+ * @return void
  */
 static void
 IncrementProgress(DmtxChannel *channel, int encodedUnits)
@@ -1173,10 +1223,16 @@ IncrementProgress(DmtxChannel *channel, int encodedUnits)
    int startByte, pos;
    DmtxTriplet triplet;
 
+   /* XXX this function became a misnomer when we started incrementing by
+    * an amount other than what was specified with the C40/Text exception.
+    * Maybe a new name/convention is in order.
+    */
+
    /* In C40 and Text encodation schemes while we normally use 5 1/3 bits
-      to encode a regular character, we also must account for the extra
-      5 1/3 bits (for a total of 10 2/3 bits that gets used for a shifted
-      character. */
+    * to encode a regular character, we also must account for the extra
+    * 5 1/3 bits (for a total of 10 2/3 bits that gets used for a shifted
+    * character.
+    */
 
    if(channel->encScheme == DmtxSchemeEncodeC40 ||
          channel->encScheme == DmtxSchemeEncodeText) {
@@ -1196,32 +1252,12 @@ IncrementProgress(DmtxChannel *channel, int encodedUnits)
 }
 
 /**
- * In this function we process some special cases from the Data Matrix
- * standard, and as such we circumvent the normal functions for
- * accomplishing certain tasks.  This breaks our internal counts, but this
- * function always marks the end of processing so it will not affect
- * anything downstream.  This approach allows the normal encoding functions
- * to be built with very strict checks and assertions.
- *
- * EXIT CONDITIONS:
- *
- *   triplet  symbol  action
- *   -------  ------  -------------------
- *         1       0  need bigger symbol
- *         1       1  special case (d)
- *         1       2  special case (c)
- *         1       3  unlatch ascii pad
- *         1       4  unlatch ascii pad pad
- *         2       0  need bigger symbol
- *         2       1  need bigger symbol
- *         2       2  special case (b)
- *         2       3  unlatch ascii ascii
- *         2       4  unlatch ascii ascii pad
- *         3       0  need bigger symbol
- *         3       1  need bigger symbol
- *         3       2  special case (a)
- *         3       3  c40 c40 unlatch
- *         3       4  c40 c40 unlatch pad
+ * @brief  XXX
+ * @param  channel
+ * @param  triplet
+ * @param  tripletCount
+ * @param  inputCount
+ * @return void
  */
 static void
 ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int tripletCount, int inputCount)
@@ -1230,6 +1266,34 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
    int currentByte;
    int remainingCodewords;
    int inputAdjust;
+
+   /* In this function we process some special cases from the Data Matrix
+    * standard, and as such we circumvent the normal functions for
+    * accomplishing certain tasks.  This breaks our internal counts, but this
+    * function always marks the end of processing so it will not affect
+    * anything downstream.  This approach allows the normal encoding functions
+    * to be built with very strict checks and assertions.
+    *
+    * EXIT CONDITIONS:
+    *
+    *   triplet  symbol  action
+    *   -------  ------  -------------------
+    *         1       0  need bigger symbol
+    *         1       1  special case (d)
+    *         1       2  special case (c)
+    *         1       3  unlatch ascii pad
+    *         1       4  unlatch ascii pad pad
+    *         2       0  need bigger symbol
+    *         2       1  need bigger symbol
+    *         2       2  special case (b)
+    *         2       3  unlatch ascii ascii
+    *         2       4  unlatch ascii ascii pad
+    *         3       0  need bigger symbol
+    *         3       1  need bigger symbol
+    *         3       2  special case (a)
+    *         3       3  c40 c40 unlatch
+    *         3       4  c40 c40 unlatch pad
+    */
 
    /* We should always reach this point on a byte boundary */
    assert(channel->currentLength % 12 == 0);
@@ -1307,27 +1371,9 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
 }
 
 /**
- * This function tests if the remaining input values can be completed using
- * one of the valid end-of-symbol cases, and finishes encodation if possible.
- *
- * This function must exit in ASCII encodation.  EDIFACT must always be
- * unlatched, although implicit Unlatch is possible.
- *
- * End   Symbol  ASCII  EDIFACT  End        Codeword
- * Case  Words   Words  Values   Condition  Sequence
- * ----  ------  -----  -------  ---------  -------------------------------
- * (a)        1      0           Special    PAD
- * (b)        1      1           Special    ASCII (could be 2 digits)
- * (c)        1   >= 2           Continue   Need larger symbol
- * (d)        2      0           Special    PAD PAD
- * (e)        2      1           Special    ASCII PAD
- * (f)        2      2           Special    ASCII ASCII
- * (g)        2   >= 3           Continue   Need larger symbol
- * (h)      N/A    N/A        0  Normal     UNLATCH
- * (i)      N/A    N/A     >= 1  Continue   Not end of symbol
- *
- * Note: All "Special" cases (a,b,d,e,f) require clean byte boundary to start
- *
+ * @brief  XXX
+ * @param  channel
+ * @return void
  */
 static void
 TestForEndOfSymbolEdifact(DmtxChannel *channel)
@@ -1338,6 +1384,28 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
    int symbolCodewords;
    int asciiCodewords;
    int i;
+
+   /* This function tests if the remaining input values can be completed using
+    * one of the valid end-of-symbol cases, and finishes encodation if possible.
+    *
+    * This function must exit in ASCII encodation.  EDIFACT must always be
+    * unlatched, although implicit Unlatch is possible.
+    *
+    * End   Symbol  ASCII  EDIFACT  End        Codeword
+    * Case  Words   Words  Values   Condition  Sequence
+    * ----  ------  -----  -------  ---------  -------------------------------
+    * (a)        1      0           Special    PAD
+    * (b)        1      1           Special    ASCII (could be 2 digits)
+    * (c)        1   >= 2           Continue   Need larger symbol
+    * (d)        2      0           Special    PAD PAD
+    * (e)        2      1           Special    ASCII PAD
+    * (f)        2      2           Special    ASCII ASCII
+    * (g)        2   >= 3           Continue   Need larger symbol
+    * (h)      N/A    N/A        0  Normal     UNLATCH
+    * (i)      N/A    N/A     >= 1  Continue   Not end of symbol
+    *
+    * Note: All "Special" cases (a,b,d,e,f) require clean byte boundary to start
+    */
 
    /* Count remaining input values assuming EDIFACT encodation */
    edifactValues = channel->inputStop - channel->inputPtr;
@@ -1380,8 +1448,11 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  outputWords
+ * @param  inputWord
+ * @param  encScheme
+ * @return Codeword count
  */
 static int
 GetC40TextX12Words(int *outputWords, int inputWord, DmtxSchemeEncode encScheme)
@@ -1468,14 +1539,18 @@ GetC40TextX12Words(int *outputWords, int inputWord, DmtxSchemeEncode encScheme)
 }
 
 /**
- * XXX this really belongs with the decode functions
- *
+ * @brief  XXX
+ * @param  cw1
+ * @param  cw2
+ * @return Triplet data
  */
 static DmtxTriplet
 GetTripletValues(unsigned char cw1, unsigned char cw2)
 {
    int compact;
    DmtxTriplet triplet;
+
+   /* XXX this really belongs with the decode functions */
 
    compact = (cw1 << 8) | cw2;
    triplet.value[0] = ((compact - 1)/1600);
@@ -1486,13 +1561,18 @@ GetTripletValues(unsigned char cw1, unsigned char cw2)
 }
 
 /**
- * XXX this really belongs with the decode functions
- *
+ * @brief  XXX
+ * @param  cw1
+ * @param  cw2
+ * @param  cw3
+ * @return Quadruplet data
  */
 static DmtxQuadruplet
 GetQuadrupletValues(unsigned char cw1, unsigned char cw2, unsigned char cw3)
 {
    DmtxQuadruplet quad;
+
+   /* XXX this really belongs with the decode functions */
 
    quad.value[0] = cw1 >> 2;
    quad.value[1] = ((cw1 & 0x03) << 4) | ((cw2 & 0xf0) >> 4);
@@ -1503,8 +1583,9 @@ GetQuadrupletValues(unsigned char cw1, unsigned char cw2, unsigned char cw3)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  channel
+ * @return void
  */
 /**
 static void
@@ -1528,8 +1609,10 @@ DumpChannel(DmtxChannel *channel)
 */
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  group
+ * @param  encTarget
+ * @return void
  */
 /**
 static void
