@@ -111,8 +111,12 @@ main(int argc, char *argv[])
          if(options.diagnose)
             WriteImagePnm(&options, &decode, message, region.sizeIdx, "debug.pnm");
 
-         /* Decode region based on requested scan mode */
-         message = dmtxDecodeMatrixRegion(&decode, &region, options.maxCorrections);
+         /* Decode region based on requested barcode mode */
+         if(options.mosaic)
+            message = dmtxDecodeMosaicRegion(&decode, &region, options.maxCorrections);
+         else
+            message = dmtxDecodeMatrixRegion(&decode, &region, options.maxCorrections);
+
          if(message == NULL)
             continue;
 

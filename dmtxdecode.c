@@ -82,11 +82,6 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
       return NULL;
    }
 
-   if(0 && PopulateArrayFromMosaic(message, dec->image, region) != DMTX_SUCCESS) {
-      dmtxMessageFree(&message);
-      return NULL;
-   }
-
    ModulePlacementEcc200(message->array, message->code,
          region->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
 
@@ -98,6 +93,42 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
    DecodeDataStream(message, region->sizeIdx);
 
    return message;
+}
+
+/**
+ * @brief  XXX
+ * @param  dec
+ * @param  region
+ * @param  fix
+ * @return Decoded message
+ */
+extern DmtxMessage *
+dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
+{
+   DmtxMessage *rMessage; /* , *gMessage, *bMessage; */
+
+   return NULL; /* function is not ready yet */
+
+   rMessage = dmtxMessageMalloc(region->sizeIdx);
+   if(rMessage == NULL)
+      return NULL;
+
+   if(PopulateArrayFromMosaic(rMessage, dec->image, region) != DMTX_SUCCESS) {
+      dmtxMessageFree(&rMessage);
+      return NULL;
+   }
+
+   ModulePlacementEcc200(rMessage->array, rMessage->code,
+         region->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
+
+   if(DecodeCheckErrors(rMessage, region->sizeIdx, fix) != DMTX_SUCCESS) {
+      dmtxMessageFree(&rMessage);
+      return NULL;
+   }
+
+   DecodeDataStream(rMessage, region->sizeIdx);
+
+   return rMessage;
 }
 
 /**

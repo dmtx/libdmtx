@@ -205,8 +205,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    DmtxEncode encGreen, encBlue;
    int row, col, mappingRows, mappingCols;
 
-   /*
-    * 1) count how many codewords it would take to encode the whole thing
+   /* 1) count how many codewords it would take to encode the whole thing
     * 2) take ceiling N of codeword count divided by 3
     * 3) using minimum symbol size that can accomodate N codewords:
     * 4) create several barcodes over iterations of increasing numbers of
