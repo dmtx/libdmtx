@@ -64,6 +64,7 @@ Contact: mike@dragonflylogic.com
 
 #include "dmtxtime.c"
 #include "dmtxscangrid.c"
+#include "dmtxmessage.c"
 #include "dmtxregion.c"
 #include "dmtxdecode.c"
 #include "dmtxencode.c"
