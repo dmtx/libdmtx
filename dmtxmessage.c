@@ -30,13 +30,16 @@ Contact: mike@dragonflylogic.com
 /**
  * @brief  XXX
  * @param  sizeIdx
+ * @param  symbolFormat DMTX_FORMAT_MATRIX | DMTX_FORMAT_MOSAIC
  * @return Address of allocated memory
  */
 extern DmtxMessage *
-dmtxMessageMalloc(int sizeIdx)
+dmtxMessageMalloc(int sizeIdx, int symbolFormat)
 {
    DmtxMessage *message;
    int mappingRows, mappingCols;
+
+   assert(symbolFormat == DMTX_FORMAT_MATRIX || symbolFormat == DMTX_FORMAT_MOSAIC);
 
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdx);
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
@@ -48,37 +51,37 @@ dmtxMessageMalloc(int sizeIdx)
 
    message->arraySize = sizeof(unsigned char) * mappingRows * mappingCols;
 
-   message->array = (unsigned char *)malloc(message->arraySize);
+   message->array = (unsigned char *)calloc(1, message->arraySize);
    if(message->array == NULL) {
-      perror("Malloc failed");
+      perror("Calloc failed");
       dmtxMessageFree(&message);
       return NULL;
    }
-   memset(message->array, 0x00, message->arraySize);
 
    message->codeSize = sizeof(unsigned char) *
          dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) +
          dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, sizeIdx);
 
-   message->code = (unsigned char *)malloc(message->codeSize);
+   if(symbolFormat == DMTX_FORMAT_MOSAIC)
+      message->codeSize *= 3;
+
+   message->code = (unsigned char *)calloc(message->codeSize, sizeof(unsigned char));
    if(message->code == NULL) {
-      perror("Malloc failed");
+      perror("Calloc failed");
       dmtxMessageFree(&message);
       return NULL;
    }
-   memset(message->code, 0x00, message->codeSize);
 
    /* XXX not sure if this is the right place or even the right approach.
       Trying to allocate memory for the decoded data stream and will
       initially assume that decoded data will not be larger than 2x encoded data */
    message->outputSize = sizeof(unsigned char) * message->codeSize * 10;
-   message->output = (unsigned char *)malloc(message->outputSize);
+   message->output = (unsigned char *)calloc(message->outputSize, sizeof(unsigned char));
    if(message->output == NULL) {
-      perror("Malloc failed");
+      perror("Calloc failed");
       dmtxMessageFree(&message);
       return NULL;
    }
-   memset(message->output, 0x00, message->outputSize);
 
    return message;
 }

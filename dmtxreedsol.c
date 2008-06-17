@@ -94,7 +94,7 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
  * @return XXX
  */
 static int
-DecodeCheckErrors(DmtxMessage *message, int sizeIdx, int fix)
+DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
 {
    int i, j;
    int interleavedBlocks;
@@ -118,7 +118,7 @@ DecodeCheckErrors(DmtxMessage *message, int sizeIdx, int fix)
    for(i = 0; i < interleavedBlocks; i++) {
 
       for(j = 0; j < blockTotalWords; j++)
-         data[j] = message->code[j*interleavedBlocks+i];
+         data[j] = code[j*interleavedBlocks+i];
 
       fixedErr = decode_rs_char(rs, data, NULL, 0, fix);
 
@@ -130,7 +130,7 @@ DecodeCheckErrors(DmtxMessage *message, int sizeIdx, int fix)
       fixedErrSum += fixedErr;
 
       for(j = 0; j < blockTotalWords; j++)
-         message->code[j*interleavedBlocks+i] = data[j];
+         code[j*interleavedBlocks+i] = data[j];
    }
 
    free_rs_char(rs);

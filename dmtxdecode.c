@@ -73,7 +73,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
 {
    DmtxMessage *message;
 
-   message = dmtxMessageMalloc(region->sizeIdx);
+   message = dmtxMessageMalloc(region->sizeIdx, DMTX_FORMAT_MATRIX);
    if(message == NULL)
       return NULL;
 
@@ -85,12 +85,12 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
    ModulePlacementEcc200(message->array, message->code,
          region->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
 
-   if(DecodeCheckErrors(message, region->sizeIdx, fix) != DMTX_SUCCESS) {
+   if(DecodeCheckErrors(message->code, region->sizeIdx, fix) != DMTX_SUCCESS) {
       dmtxMessageFree(&message);
       return NULL;
    }
 
-   DecodeDataStream(message, region->sizeIdx);
+   DecodeDataStream(message, region->sizeIdx, NULL);
 
    return message;
 }
@@ -105,30 +105,62 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
 extern DmtxMessage *
 dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
 {
-   DmtxMessage *rMessage; /* , *gMessage, *bMessage; */
+   int row, col;
+   int mappingRows, mappingCols;
+   DmtxMessage *message;
+   DmtxMessage rMesg, gMesg, bMesg;
 
-   return NULL; /* function is not ready yet */
+   mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, region->sizeIdx);
+   mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, region->sizeIdx);
 
-   rMessage = dmtxMessageMalloc(region->sizeIdx);
-   if(rMessage == NULL)
+   message = dmtxMessageMalloc(region->sizeIdx, DMTX_FORMAT_MOSAIC);
+   if(message == NULL)
       return NULL;
 
-   if(PopulateArrayFromMosaic(rMessage, dec->image, region) != DMTX_SUCCESS) {
-      dmtxMessageFree(&rMessage);
+   rMesg = gMesg = bMesg = *message;
+   rMesg.codeSize = gMesg.codeSize = bMesg.codeSize = message->codeSize/3;
+
+   gMesg.code += gMesg.codeSize;
+   bMesg.code += (bMesg.codeSize * 2);
+
+   if(PopulateArrayFromMosaic(message, dec->image, region) != DMTX_SUCCESS) {
+      dmtxMessageFree(&message);
       return NULL;
    }
 
-   ModulePlacementEcc200(rMessage->array, rMessage->code,
-         region->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
-
-   if(DecodeCheckErrors(rMessage, region->sizeIdx, fix) != DMTX_SUCCESS) {
-      dmtxMessageFree(&rMessage);
+   ModulePlacementEcc200(message->array, rMesg.code, region->sizeIdx, DMTX_MODULE_ON_RED);
+   if(DecodeCheckErrors(rMesg.code, region->sizeIdx, fix) != DMTX_SUCCESS) {
+      dmtxMessageFree(&message);
       return NULL;
    }
 
-   DecodeDataStream(rMessage, region->sizeIdx);
+   for(row = 0; row < mappingRows; row++)
+      for(col = 0; col < mappingCols; col++)
+         message->array[row*mappingCols+col] &= (0xff ^ DMTX_MODULE_VISITED);
 
-   return rMessage;
+   ModulePlacementEcc200(message->array, gMesg.code, region->sizeIdx, DMTX_MODULE_ON_GREEN);
+   if(DecodeCheckErrors(gMesg.code, region->sizeIdx, fix) != DMTX_SUCCESS) {
+      dmtxMessageFree(&message);
+      return NULL;
+   }
+
+   for(row = 0; row < mappingRows; row++)
+      for(col = 0; col < mappingCols; col++)
+         message->array[row*mappingCols+col] &= (0xff ^ DMTX_MODULE_VISITED);
+
+   ModulePlacementEcc200(message->array, bMesg.code, region->sizeIdx, DMTX_MODULE_ON_BLUE);
+   if(DecodeCheckErrors(bMesg.code, region->sizeIdx, fix) != DMTX_SUCCESS) {
+      dmtxMessageFree(&message);
+      return NULL;
+   }
+
+   DecodeDataStream(&rMesg, region->sizeIdx, NULL);
+   DecodeDataStream(&gMesg, region->sizeIdx, rMesg.output + rMesg.outputIdx);
+   DecodeDataStream(&bMesg, region->sizeIdx, gMesg.output + gMesg.outputIdx);
+
+   message->outputIdx = rMesg.outputIdx + gMesg.outputIdx + bMesg.outputIdx;
+
+   return message;
 }
 
 /**
@@ -138,10 +170,13 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
  * @return void
  */
 static void
-DecodeDataStream(DmtxMessage *message, int sizeIdx)
+DecodeDataStream(DmtxMessage *message, int sizeIdx, unsigned char *outputStart)
 {
    DmtxSchemeDecode encScheme;
    unsigned char *ptr, *dataEnd;
+
+   message->output = (outputStart == NULL) ? message->output : outputStart;
+   message->outputIdx = 0;
 
    ptr = message->code;
    dataEnd = ptr + dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);

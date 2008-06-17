@@ -124,7 +124,7 @@ static DmtxColor3 ReadModuleColor(DmtxImage *image, DmtxRegion *region,
 static int MatrixRegionFindSize(DmtxImage *image, DmtxRegion *region);
 
 /* dmtxdecode.c */
-static void DecodeDataStream(DmtxMessage *message, int sizeIdx);
+static void DecodeDataStream(DmtxMessage *message, int sizeIdx, unsigned char *outputStart);
 static unsigned char *NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr);
 static unsigned char *DecodeSchemeAsciiStd(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeAsciiExt(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd);
@@ -178,7 +178,7 @@ static void PlaceModule(unsigned char *modules, int mappingRows, int mappingCols
 
 /* dmtxreedsol.c */
 static void GenReedSolEcc(DmtxMessage *message, int sizeidx);
-static int DecodeCheckErrors(DmtxMessage *message, int sizeIdx, int fix);
+static int DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix);
 static int GfProduct(int a, int b);
 static int GfDoublify(int a, int b);
 

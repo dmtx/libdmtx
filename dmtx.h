@@ -70,6 +70,9 @@ extern "C" {
 #define DMTX_MODULE_VISITED         0x20
 #define DMTX_MODULE_DATA            0x40
 
+#define DMTX_FORMAT_MATRIX             0
+#define DMTX_FORMAT_MOSAIC             1
+
 #define DMTX_SYMBOL_SQUARE_AUTO       -1
 #define DMTX_SYMBOL_SQUARE_COUNT      24
 #define DMTX_SYMBOL_RECT_AUTO         -2
@@ -415,7 +418,7 @@ extern DmtxDecode dmtxDecodeStructInit(DmtxImage *img, DmtxPixelLoc p0, DmtxPixe
 extern void dmtxDecodeStructDeInit(DmtxDecode *dec);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
-extern DmtxMessage *dmtxMessageMalloc(int sizeIdx);
+extern DmtxMessage *dmtxMessageMalloc(int sizeIdx, int symbolFormat);
 extern void dmtxMessageFree(DmtxMessage **mesg);
 
 /* dmtxregion.c */

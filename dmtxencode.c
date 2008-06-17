@@ -156,7 +156,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    enc->region.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
 
    /* Allocate memory for message and array */
-   enc->message = dmtxMessageMalloc(sizeIdx);
+   enc->message = dmtxMessageMalloc(sizeIdx, DMTX_FORMAT_MATRIX);
    memcpy(enc->message->code, buf, dataWordCount);
 
 /* fprintf(stdout, "\n\nsize:    %dx%d w/ %d error codewords\n", rows, cols, errorWordLength(enc->region.sizeIdx)); */
