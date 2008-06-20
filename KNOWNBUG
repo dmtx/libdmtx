@@ -12,12 +12,6 @@ the behavior this will be treated as an experimental feature.
 For now dmtxwrite will encode using a straight ASCII scheme by
 default.
 
-Base256 encoding doesn't always work right (implementation is
-still incomplete).
-
-Scanning "laughton_giant_multi.png" in the libdmtx-images
-package currently produces a segmentation fault.
-
 
 2. dmtxread
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -25,7 +19,6 @@ package currently produces a segmentation fault.
 The follow options are not implemented yet:
   -d, --distortion=K1,K2     radial distortion coefficients
   -D, --diagnose=[op]        diagnostic image output
-  -M, --mosaic               (partial implementation)
 
 When using --verbose output the Data Codeword capacity is often
 reported incorrectly.
@@ -40,7 +33,6 @@ The follow options are not implemented yet:
   -c,  --color=COLOR         barcode color
   -b,  --bgcolor=COLOR       background color
   -r,  --rotate=DEGREES      rotation angle
-  -M,  --mosaic              (partial implementation)
 
 
 4. Test Programs
@@ -51,6 +43,9 @@ gltest:
   * Occasionally hangs
 
 simpletest:
+  * No known issues
+
+unittest:
   * No known issues
 
 

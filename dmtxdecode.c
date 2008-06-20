@@ -167,6 +167,7 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
  * @brief  XXX
  * @param  message
  * @param  sizeIdx
+ * @param  outputStart
  * @return void
  */
 static void

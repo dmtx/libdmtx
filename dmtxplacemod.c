@@ -70,10 +70,12 @@ dmtxSymbolModuleStatus(DmtxMessage *message, int sizeIdx, int symbolRow, int sym
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  modules
+ * @param  codewords
+ * @param  sizeIdx
+ * @param  moduleOnColor
+ * @return Number of codewords read
  */
 static int
 ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int sizeIdx, int moduleOnColor)
@@ -139,10 +141,15 @@ ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int size
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  modules
+ * @param  mappingRows
+ * @param  mappingCols
+ * @param  row
+ * @param  col
+ * @param  codeword
+ * @param  moduleOnColor
+ * @return void
  */
 static void
 PatternShapeStandard(unsigned char *modules, int mappingRows, int mappingCols, int row, int col, unsigned char *codeword, int moduleOnColor)
@@ -158,10 +165,13 @@ PatternShapeStandard(unsigned char *modules, int mappingRows, int mappingCols, i
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  modules
+ * @param  mappingRows
+ * @param  mappingCols
+ * @param  codeword
+ * @param  moduleOnColor
+ * @return void
  */
 static void
 PatternShapeSpecial1(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
@@ -177,10 +187,13 @@ PatternShapeSpecial1(unsigned char *modules, int mappingRows, int mappingCols, u
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  modules
+ * @param  mappingRows
+ * @param  mappingCols
+ * @param  codeword
+ * @param  moduleOnColor
+ * @return void
  */
 static void
 PatternShapeSpecial2(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
@@ -196,10 +209,13 @@ PatternShapeSpecial2(unsigned char *modules, int mappingRows, int mappingCols, u
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  modules
+ * @param  mappingRows
+ * @param  mappingCols
+ * @param  codeword
+ * @param  moduleOnColor
+ * @return void
  */
 static void
 PatternShapeSpecial3(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
@@ -215,10 +231,13 @@ PatternShapeSpecial3(unsigned char *modules, int mappingRows, int mappingCols, u
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  modules
+ * @param  mappingRows
+ * @param  mappingCols
+ * @param  codeword
+ * @param  moduleOnColor
+ * @return void
  */
 static void
 PatternShapeSpecial4(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
@@ -234,10 +253,16 @@ PatternShapeSpecial4(unsigned char *modules, int mappingRows, int mappingCols, u
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  modules
+ * @param  mappingRows
+ * @param  mappingCols
+ * @param  row
+ * @param  col
+ * @param  codeword
+ * @param  mask
+ * @param  moduleOnColor
+ * @return void
  */
 static void
 PlaceModule(unsigned char *modules, int mappingRows, int mappingCols, int row, int col, unsigned char *codeword, DmtxBitMask mask, int moduleOnColor)

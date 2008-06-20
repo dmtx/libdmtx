@@ -1,6 +1,22 @@
 Changes for libdmtx
 -----------------------------------------------------------------
 
+version 0.5.1 [June 2008]
+  Fixed Extended ASCII encoding bug
+  Fixed error correction bug related to multiple interleaved blocks
+  Added timeout condition for region detection
+  Allow partial and complete disabling of error correction
+  Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
+  Tighter integration with libfec
+  Conditional build logic for libtiff
+  Added placeholder for new utility, dmtxquery
+  Added unit test program for testing libdmtx internals
+  Include local copies of getopt1.c, getopt.c, and getopt.h
+  Various things to help compiling in MS VC++
+  Lots of holes filled in comments (Doxygen)
+  Fixed experimental Data Mosaic decoding
+  New iPhone XXX?
+
 version 0.5 [April 2008]
   Error correction using libfec (thanks Florian!)
   Rework encoding and decoding API for consistency and intuitiveness

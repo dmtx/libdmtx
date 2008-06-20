@@ -163,6 +163,11 @@ OPTIONS:\n\
   -V, --version              print program version information\n\
       --help                 display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
+      fprintf(stdout, "\n\
+*****************************************************************\n\
+**** This program does not do anything besides printing this ****\n\
+**** help screen right now. It only exists as a placeholder. ****\n\
+*****************************************************************\n\n");
    }
 
    exit(status);

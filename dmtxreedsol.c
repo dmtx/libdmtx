@@ -32,9 +32,10 @@ Contact: mike@dragonflylogic.com
 #endif
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  message
+ * @param  sizeIdx
+ * @return void
  */
 static void
 GenReedSolEcc(DmtxMessage *message, int sizeIdx)
@@ -88,10 +89,11 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  code
+ * @param  sizeIdx
+ * @param  fix
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
@@ -142,9 +144,10 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
 }
 
 /**
- * a times b
- * @param XXX
- * @return XXX
+ * @brief  Galois Field Arithmetic: a times b
+ * @param  a
+ * @param  b
+ * @return Galois Field Product
  */
 static int
 GfProduct(int a, int b)
@@ -156,9 +159,10 @@ GfProduct(int a, int b)
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  XXX
+ * @param  a
+ * @param  b
+ * @return Result
  */
 static int
 GfDoublify(int a, int b)

@@ -12,10 +12,10 @@ To install everything, place both files in the same directory
 and untar them as follows:
 
 For .bz2 files:
-  $ tar jxvf libdmtx-0.5.0.tar.bz2
+  $ tar jxvf libdmtx-0.5.1.tar.bz2
 
 For .gz files:
-  $ tar zxvf libdmtx-0.5.0.tar.gz
+  $ tar zxvf libdmtx-0.5.1.tar.gz
 
 For .tar files:
   $ tar xvf libdmtx-images-0.5.0.tar
@@ -23,7 +23,7 @@ For .tar files:
 Note: If your system uses an older version of tar you might
       need to do it in two steps, like this:
 
-  $ gunzip libdmtx-0.5.0.tar.gz && tar xvf libdmtx-0.5.0.tar
+  $ gunzip libdmtx-0.5.1.tar.gz && tar xvf libdmtx-0.5.0.tar
 
 
 2. libdmtx - Building and Installing the Core Library
@@ -48,6 +48,7 @@ If you're awesome then it built correctly on the first try and
 you can execute the resulting programs that were built in the
 subdirectories, including:
 
+  * util/dmtxquery/dmtxquery
   * util/dmtxread/dmtxread
   * util/dmtxwrite/dmtxwrite
 
@@ -59,6 +60,7 @@ which builds the following executables:
 
   * test/test_simple/simpletest
   * test/test_opengl/gltest
+  * test/test_unit/unittest
 
 Note: gltest must be executed from the gltest test directory
       due to a relative path embedded in the code.
@@ -82,8 +84,10 @@ above.
 
 Did you encounter any problems?  If you performed all these steps
 and it still won't build properly then please post a message to
-the libdmtx "Help" forum or mailing list so we can review your
-issue and the solution becomes part of the public record.
+the libdmtx "Help" mailing list so we can review your issue and
+the solution becomes part of the public record. Instructions at:
+
+   https://sourceforge.net/mail/?group_id=153603
 
 
 3. Building and Installing the Python Bindings
@@ -95,7 +99,7 @@ bindings/python directory.  See the INSTALL file located
 in that directory for more detailed instructions.
 
 
-4. Building the Test Programs: gltest and simpletest
+4. Building the Test Programs
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 The gltest program uses OpenGL (or Mesa) to simulate raw camera
@@ -107,6 +111,8 @@ optional source package), and you can cycle through them by
 right-clicking anywhere on the gltest window.
 
 The simpletest program is a simple test program.
+
+The unittest program should return 0 and print no output.
 
 
 5. Dependencies
@@ -129,6 +135,12 @@ gltest:
   libpng-devel
 
 simpletest:
+  (none)
+
+unittest:
+  (none)
+
+dmtxquery:
   (none)
 
 dmtxread:

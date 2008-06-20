@@ -668,14 +668,10 @@ SetCornerLoc(DmtxRegion *reg, DmtxCornerLoc cornerLoc, DmtxVector2 point)
 }
 
 /**
- *    T |
- *      |
- *      |
- *      +-----
- *    O      R
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  image
+ * @param  reg
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 MatrixRegionAlignSecondEdge(DmtxImage *image, DmtxRegion *reg)
@@ -691,6 +687,16 @@ MatrixRegionAlignSecondEdge(DmtxImage *image, DmtxRegion *reg)
    int i, bestFit;
    DmtxRay2 rayOT, rayNew;
    double ratio, maxRatio;
+
+   /* Corners are named using the following layout:
+    *
+    *  T |
+    *    |
+    *    |
+    *    +-----
+    *  O      R
+    *
+    */
 
 /*fprintf(stdout, "MatrixRegionAlignSecondEdge()\n"); */
 
@@ -890,10 +896,10 @@ among module samples and proximity of color to initial edge
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  image
+ * @param  reg
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 MatrixRegionAlignRightEdge(DmtxImage *image, DmtxRegion *reg)
@@ -925,10 +931,10 @@ MatrixRegionAlignRightEdge(DmtxImage *image, DmtxRegion *reg)
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  image
+ * @param  reg
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 MatrixRegionAlignTopEdge(DmtxImage *image, DmtxRegion *reg)
@@ -945,10 +951,13 @@ MatrixRegionAlignTopEdge(DmtxImage *image, DmtxRegion *reg)
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  image
+ * @param  reg
+ * @param  edgeLoc
+ * @param  preFit2Raw
+ * @param  postRaw2Fit
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 MatrixRegionAlignCalibEdge(DmtxImage *image, DmtxRegion *reg,
@@ -1016,10 +1025,16 @@ MatrixRegionAlignCalibEdge(DmtxImage *image, DmtxRegion *reg,
 }
 
 /**
- * XXX returns 3 points in raw coordinates
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  image
+ * @param  reg
+ * @param  postRaw2Fit
+ * @param  preFit2Raw
+ * @param  p0
+ * @param  p1
+ * @param  pCorner
+ * @param  weakCount
+ * @return 3 points in raw coordinates
  */
 static int
 MatrixRegionAlignEdge(DmtxImage *image, DmtxRegion *reg,
@@ -1190,10 +1205,14 @@ MatrixRegionAlignEdge(DmtxImage *image, DmtxRegion *reg,
 }
 
 /**
- * XXX receives and returns 2 points in non-skewed raw pixel coordinates
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  image
+ * @param  reg
+ * @param  pProgress
+ * @param  pExact
+ * @param  forward
+ * @param  lateral
+ * @return 2 points in non-skewed raw pixel coordinates
  */
 static int
 StepAlongEdge(DmtxImage *image, DmtxRegion *reg, DmtxVector2 *pProgress,
@@ -1280,10 +1299,13 @@ StepAlongEdge(DmtxImage *image, DmtxRegion *reg, DmtxVector2 *pProgress,
 }
 
 /**
- * XXX new experimental version that operates on sizeIdx instead of region
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  image
+ * @param  reg
+ * @param  symbolRow
+ * @param  symbolCol
+ * @param  sizeIdx
+ * @return Averaged module color
  */
 static DmtxColor3
 ReadModuleColor(DmtxImage *image, DmtxRegion *reg, int symbolRow, int symbolCol, int sizeIdx)
@@ -1319,10 +1341,10 @@ ReadModuleColor(DmtxImage *image, DmtxRegion *reg, int symbolRow, int symbolCol,
 }
 
 /**
- * XXX
- *
- * @param
- * @return XXX
+ * @brief  XXX
+ * @param  image
+ * @param  reg
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)

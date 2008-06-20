@@ -1,7 +1,19 @@
-README for libdmtx version 0.5.0 - April 13, 2008
+README for libdmtx version 0.5.1 - June XX, 2008
 -----------------------------------------------------------------
 
-Version 0.5.0 brings libdmtx a big step closer toward earning
+small release
+why it's happening
+not yet for performance
+better cross platform support
+bug fix summary
+api changes
+
+mention ohloh?
+
+
+
+
+Version 0.5.1 brings libdmtx a big step closer toward earning
 the "Production Ready" label.  As predicted, the major untested
 changes in 0.4.0 required a stabilization period to work out the
 kinks, but the scanning logic now appears more stable and better
@@ -19,12 +31,20 @@ immediately relevant to a number of organizations.
 
 Other new features include:
 
-  * Optimized scan grid pattern now handled within library
-  * Better module color decisions (improving success rates)
-  * library now returns pre-decoded regions -- giving choice
-  * Ability to scan specific portions of an image
-  * More consistent API between encoding and decoding
-  * Faster scanning performance
+  * Fixed Extended ASCII encoding bug
+  * Fixed error correction bug related to multiple interleaved blocks
+  * Added timeout condition for region detection
+  * Allow partial and complete disabling of error correction
+  * Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
+  * Tighter integration with libfec
+  * Conditional build logic for libtiff
+  * Added placeholder for new utility, dmtxquery
+  * Added unit test program for testing libdmtx internals
+  * Include local copies of getopt1.c, getopt.c, and getopt.h
+  * Various things to help compiling in MS VC++
+  * Lots of holes filled in comments (Doxygen)
+  * Fixed experimental Data Mosaic decoding
+  * New iPhone XXX?
 
 At a project level, libdmtx continues to gain new users from
 industry, academia, and the free software community.  The

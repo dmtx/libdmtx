@@ -29,17 +29,16 @@ Contact: mike@dragonflylogic.com
 
 #define DMTX_USEC_PER_SEC 1000000
 
-/**
- *
- *
- */
 #if defined(HAVE_SYS_TIME_H) && defined(HAVE_GETTIMEOFDAY)
 
 #include <sys/time.h>
 
 #define DMTX_TIME_PREC_USEC 1
 
-/* GETTIMEOFDAY version */
+/**
+ * @brief  GETTIMEOFDAY version
+ * @return Time now
+ */
 extern DmtxTime
 dmtxTimeNow(void)
 {
@@ -63,7 +62,10 @@ dmtxTimeNow(void)
 
 #define DMTX_TIME_PREC_USEC 1
 
-/* MICROSOFT VC++ version */
+/**
+ * @brief  MICROSOFT VC++ version
+ * @return Time now
+ */
 extern DmtxTime
 dmtxTimeNow(void)
 {
@@ -90,7 +92,10 @@ dmtxTimeNow(void)
 
 #define DMTX_TIME_PREC_USEC 1000000
 
-/* Generic 1 second resolution version */
+/**
+ * @brief  Generic 1 second resolution version
+ * @return Time now
+ */
 extern DmtxTime
 dmtxTimeNow(void)
 {
@@ -110,8 +115,10 @@ dmtxTimeNow(void)
 #endif
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  t
+ * @param  msec
+ * @return Adjusted time
  */
 extern DmtxTime
 dmtxTimeAdd(DmtxTime t, long msec)
@@ -138,8 +145,9 @@ dmtxTimeAdd(DmtxTime t, long msec)
 }
 
 /**
- *
- *
+ * @brief  XXX
+ * @param  timeout
+ * @return 1 (true) | 0 (false)
  */
 extern int
 dmtxTimeExceeded(DmtxTime timeout)

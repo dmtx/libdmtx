@@ -5,7 +5,7 @@
 .\" To view: $ groff -man -T ascii dmtxquery.1 | less
 .\" To text: $ groff -man -T ascii dmtxquery.1 | col -b | expand
 .\"
-.TH DMTXREAD 1 "April 13, 2008"
+.TH DMTXREAD 1 "June XX, 2008"
 .SH NAME
 dmtxquery \- extract information from dmtxread output
 .SH SYNOPSIS
@@ -17,47 +17,6 @@ dmtxquery extracts information from the XML output from dmtxread for individual 
 .TP
 \fB\-c\fP, \fB\-\-codewords\fP
 Only print the codewords extracted from a Data Matrix, and not the actual decoded message.
-.TP
-\fB\-g\fP, \fB\-\-gap\fP=\fINUM\fP
-Use scan grid with gap of \fINUM\fP pixels (or less) between lines.
-.TP
-\fB\-n\fP, \fB\-\-newline\fP
-Print a newline character at the end of decoded data.
-.TP
-\fB\-d\fP, \fB\-\-distortion\fP=\fIK1,K2\fP (not implemented yet)
-Radial distortion coefficients.
-.TP
-\fB\-x\fP, \fB\-\-x-range-min\fP=\fIN[%]\fP
-Do not scan pixels to the left of pixel column N (or N%).
-.TP
-\fB\-X\fP, \fB\-\-x-range-max\fP=\fIN[%]\fP
-Do not scan pixels to the right of pixel column N (or N%).
-.TP
-\fB\-y\fP, \fB\-\-y-range-min\fP=\fIN[%]\fP
-Do not scan pixels above pixel row N (or N%).
-.TP
-\fB\-Y\fP, \fB\-\-y-range-max\fP=\fIN[%]\fP
-Do not scan pixels below pixel row N (or N%).
-.TP
-\fB\-m\fP, \fB\-\-milliseconds\fP=\fIN\fP
-Stop scan after N milliseconds (per image).
-.TP
-\fB\-C\fP, \fB\-\-corrections-max\fP=\fIN\fP
-Correct at most N errors per image (0 = correction disabled).
-.TP
-\fB\-D\fP, \fB\-\-diagnose\fP=[op] (not implemented yet)
-Make copy of image with added diagnostic data.
-   o = Overlay          overlay image with module colors
-   p = Path             capture path taken by scanning logic
-.TP
-\fB\-M\fP, \fB\-\-mosaic\fP (experimental)
-Interpret detected regions as Data Mosaic barcodes.
-.TP
-\fB\-P\fP, \fB\-\-page\-number\fP
-Print each decoded message with its fax/tiff page number.
-.TP
-\fB\-R\fP, \fB\-\-corners\fP
-Prefix the decoded message with the barcode's corner locations.
 .TP
 \fB\-v\fP, \fB\-\-verbose\fP
 Use verbose messages.
