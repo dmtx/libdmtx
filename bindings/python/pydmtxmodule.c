@@ -61,7 +61,7 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
    PyObject *args;
    DmtxEncode encode;
    int row, col;
-   DmtxPixel pixel;
+   DmtxRgb rgb;
    static char *kwlist[] = { "data", "data_size", "module_size", "margin_size",
                              "scheme", "shape", "plotter", "start", "finish",
                              "context", NULL };
@@ -94,8 +94,8 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
 
    for(row = 0; row < encode.image->height; row++) {
       for(col = 0; col < encode.image->width; col++) {
-         pixel = dmtxPixelFromImage(encode.image, col, row);
-         args = Py_BuildValue("(ii(iii)O)", col, row, pixel.R, pixel.G, pixel.B, context);
+         dmtxPixelFromImage(rgb, encode.image, col, row);
+         args = Py_BuildValue("(ii(iii)O)", col, row, rgb[0], rgb[1], rgb[2], context);
          (void)PyEval_CallObject(plotter, args);
          Py_DECREF(args);
       }
@@ -127,7 +127,7 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    DmtxRegion region;
    DmtxMessage *message;
    PyObject *pilPixel;
-   DmtxPixel dmtxPixel;
+   DmtxRgb dmtxRgb;
    DmtxPixelLoc p0, p1;
    int x, y;
    static char *kwlist[] = { "width", "height", "gap_size", "picker", "context", NULL };
@@ -157,10 +157,12 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
          if(pilPixel == NULL)
             return NULL;
 
-         if(!PyArg_ParseTuple(pilPixel, "iii", &dmtxPixel.R, &dmtxPixel.G, &dmtxPixel.B))
+         if(!PyArg_ParseTuple(pilPixel, "iii", &dmtxRgb[0], &dmtxRgb[1], &dmtxRgb[2]))
             return NULL;
 
-         image->pxl[y * image->width + x] = dmtxPixel;
+         image->pxl[y * image->width + x][0] = dmtxRgb[0];
+         image->pxl[y * image->width + x][1] = dmtxRgb[1];
+         image->pxl[y * image->width + x][2] = dmtxRgb[2];
 
          Py_DECREF(pilPixel);
       }
@@ -172,7 +174,7 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    decode = dmtxDecodeStructInit(image, p0, p1, gap_size);
 
    for(;;) {
-      region = dmtxDecodeFindNextRegion(&decode);
+      region = dmtxDecodeFindNextRegion(&decode, NULL);
       if(region.found == DMTX_REGION_EOF)
          break;
 

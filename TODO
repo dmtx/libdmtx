@@ -56,14 +56,14 @@ Remaining for next release:
     - dmtxquery stub disclaimer
   o Decide on release date and update all resulting files (man pages, TODO, README, other?)
   o Make sure all programs compile and run with final version
-    - dmtxread (run redbox regression test)
-    - dmtxwrite
-    - dmtxquery
-    - python binding
+    x dmtxread (run redbox regression test)
+    x dmtxwrite
+    x dmtxquery
+    x python binding
     - php?
     - iPhone?
-    - unittest
-    - simpletest
+    x unittest
+    x simpletest
     - gltest
 
 version 0.5.1: (??-Jun-2008)
@@ -79,7 +79,7 @@ version 0.5.1: (??-Jun-2008)
   x testsuite: Started unit test executable for low level testing
   x project:   Include local copies of getopt1.c getopt.c getopt.h
   x project:   Various things to help compiling in MS VC++
-  / project:   Lots of holes filled in comments (Doxygen)
+  x project:   Added missing header comments
 
 version 0.5: (13-Apr-2008)
   x libdmtx:   Rework encoding and decoding API for consistency and intuitiveness
