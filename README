@@ -6,13 +6,13 @@ functionality improvements, mainly for the benefit of users who
 don't use the latest code from Subversion. The changes in 0.5.1
 are incremental by nature and stem from a few factors:
 
-  * Feature importance identified by real-world users
   * An incomplete libfec integration introduced in 0.5.0
+  * Feature importance identified by real-world users
   * Increasing use of libdmtx on non-Linux platforms
 
 The next major release will continue to focus on overall barcode
 reading performance, and this release lays some of the necessary
-groundwork. Specific changes for this release include:
+groundwork. Specific changes for this mini-release include:
 
 Bug Fixes
 
