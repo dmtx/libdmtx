@@ -13,13 +13,34 @@ dmtxquery \- extract information from dmtxread output
 \fIPROPERTY\fP [\fIOPTION\fP]... [\fIFILE\fP]...
 .SH DESCRIPTION
 dmtxquery extracts information from the XML output from dmtxread for individual or grouped barcode scan results.
+.SH PROPERTY
+.PP
+barcode.count             count of all barcodes found in image
+.PP
+barcode.\fBN\fP                 print all properties of Nth barcode
+.PP
+barcode.\fBN\fP.\fBBPROP\fP           print BPROP property of Nth barcode
+.PP
+message.count             count of all messages found in image
+.PP
+message.\fBN\fP                 print all properties of Nth message
+.PP
+message.\fBN\fP.\fBMPROP\fP           print MPROP property of Nth message
+.PP
+message.\fBN\fP.barcode.count   count of all barcodes in Nth message
+.PP
+message.\fBN\fP.barcode.\fBM\fP       Mth barcode of Nth message, print all
+.PP
+message.\fBN\fP.barcode.\fBM\fP.\fBBPROP\fP Mth barcode of Nth message, print BPROP
+.PP
+\fBBPROP\fP barcode properties:
+   message        message_number      message_position
+   matrix_size    data_codewords      error_codewords
+   rotation       data_regions_count  interleaved_blocks
+.PP
+\fBMPROP\fP message properties:
+   message        data_codeword       error_codeword
 .SH OPTIONS
-.TP
-\fB\-c\fP, \fB\-\-codewords\fP
-Only print the codewords extracted from a Data Matrix, and not the actual decoded message.
-.TP
-\fB\-v\fP, \fB\-\-verbose\fP
-Use verbose messages.
 .TP
 \fB\-V\fP, \fB\-\-version\fP
 Print program version information.

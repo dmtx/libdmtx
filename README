@@ -1,60 +1,43 @@
 README for libdmtx version 0.5.1 - June XX, 2008
 -----------------------------------------------------------------
 
-small release
-why it's happening
-not yet for performance
-better cross platform support
-bug fix summary
-api changes
+The libdmtx 0.5.1 mini-release provides important bug fixes and
+functionality improvements, mainly for the benefit of users who
+don't use the latest code from Subversion. The changes in 0.5.1
+are incremental by nature and stem from a few factors:
 
-mention ohloh?
+  * Feature importance identified by real-world users
+  * An incomplete libfec integration introduced in 0.5.0
+  * Increasing use of libdmtx on non-Linux platforms
 
+The next major release will continue to focus on overall barcode
+reading performance, and this release lays some of the necessary
+groundwork. Specific changes for this release include:
 
+Bug Fixes
 
-
-Version 0.5.1 brings libdmtx a big step closer toward earning
-the "Production Ready" label.  As predicted, the major untested
-changes in 0.4.0 required a stabilization period to work out the
-kinks, but the scanning logic now appears more stable and better
-equipped to handle mixed-quality input than any previous version.
-This release also introduces a critical feature that many users
-have been waiting for: Reed Solomon error correction!
-
-With a big thanks to the authors of libfec (Forward Error
-Correction library) and a patch submitted by Florian Kandzia,
-libdmtx can reliably fix many barcode errors instead of simply
-printing the dreaded "Rejected due to ECC validation" warning.
-This feature directly improves both the success rates and runtime
-performance of Data Matrix scans, and will make our software
-immediately relevant to a number of organizations.
-
-Other new features include:
-
+  * Fixed error correction bug with interleaved blocks
   * Fixed Extended ASCII encoding bug
-  * Fixed error correction bug related to multiple interleaved blocks
-  * Added timeout condition for region detection
-  * Allow partial and complete disabling of error correction
-  * Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
-  * Tighter integration with libfec
-  * Conditional build logic for libtiff
-  * Added placeholder for new utility, dmtxquery
-  * Added unit test program for testing libdmtx internals
-  * Include local copies of getopt1.c, getopt.c, and getopt.h
-  * Various things to help compiling in MS VC++
-  * Lots of holes filled in comments (Doxygen)
   * Fixed experimental Data Mosaic decoding
-  * New iPhone XXX?
 
-At a project level, libdmtx continues to gain new users from
-industry, academia, and the free software community.  The
-libdmtx.org website now receives nearly 3 times the monthly
-traffic compared to anything before the 2007 project freeze, and
-the software has been used on a number of new platforms including
-Windows, Macintosh, Solaris, and multiple mobile phones (YouTube
-has some cool demos).
+General Improvements
+
+  * Added timeout condition for region detection
+  * Added partial or complete disabling of error correction
+  * Added beginnings of new "dmtxquery" utility
+  * Added unit test program for checking internals
+  * Filled lots of holes in source comments (Doxygen)
+
+Cross Platform Improvements
+
+  * New conditional build logic surrounding libtiff code
+  * Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
+  * New local copies of getopt1.c, getopt.c, and getopt.h
+  * Various preprocessor additions to help compiling in MS VC++
+  * New iPhone/Cocoa wrapper in bindings directory (thanks Stefan!)
 
 As always, please let us know if you find any bugs or have
-trouble installing the software.  This version should be pretty
-stable, but if it crashes or otherwise fails to scan clean
-barcodes then we would like to address it quickly.  Thanks!
+trouble installing the software. Instructions for posting to the
+mailing lists can be found at:
+
+  http://sourceforge.net/mail/?group_id=153603

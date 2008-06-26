@@ -164,10 +164,10 @@ OPTIONS:\n\
       --help                 display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
       fprintf(stdout, "\n\
-*****************************************************************\n\
-**** This program does not do anything besides printing this ****\n\
-**** help screen right now. It only exists as a placeholder. ****\n\
-*****************************************************************\n\n");
+***************************************************************\n\
+**** This program currently does nothing besides printing  ****\n\
+**** this help screen. This program is just a placeholder. ****\n\
+***************************************************************\n\n");
    }
 
    exit(status);

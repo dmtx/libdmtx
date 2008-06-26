@@ -25,7 +25,7 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.5.1
 
 \fBDmtxDecode dmtxDecodeStructInit(DmtxImage *\fIimg\fP, DmtxPixelLoc \fIp0\fP, DmtxPixelLoc \fIp1\fP, int \fIgap\fP);\fP
 
-\fBDmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *\fIdec\fP);\fP
+\fBDmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *\fIdec\fP, DmtxTime *\fItimeout\fP);\fP
 
 \fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
@@ -107,7 +107,7 @@ This example program (available as simpletest.c in the source package) demonstra
   #include <dmtx.h>
 
   int
-  main(int argc, char **argv)
+  main(int argc, char *argv[])
   {
      unsigned char testString[] = "30Q324343430794<OQQ";
      DmtxEncode encode;
@@ -129,7 +129,7 @@ This example program (available as simpletest.c in the source package) demonstra
 
      image = dmtxImageMalloc(encode.image->width, encode.image->height);
      memcpy(image->pxl, encode.image->pxl, image->width * image->height *
-           sizeof(DmtxPixel));
+           sizeof(DmtxRgb));
 
      dmtxEncodeStructDeInit(&encode);
 
@@ -141,7 +141,7 @@ This example program (available as simpletest.c in the source package) demonstra
 
      decode = dmtxDecodeStructInit(image, p0, p1, 5);
 
-     region = dmtxDecodeFindNextRegion(&decode);
+     region = dmtxDecodeFindNextRegion(&decode, NULL);
      if(region.found == DMTX_REGION_EOF)
         exit(0);
 

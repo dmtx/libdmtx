@@ -44,26 +44,26 @@ Remaining for next release:
   x Update NEWS
   x Update KNOWNBUG
   x Update all occurrences of 0.5.0 to be 0.5.1
+  x Test style scripts
+  x Update man pages
+    x usage
+    x simpletest code
+    x dmtxquery stub disclaimer
   / Update ChangeLog
   / Update README
   / Update TODO
   o Add Windows binaries for dmtxread and dmtxwrite?
-  o Test style scripts
   o Include iPhone source?
-  o Update man pages
-    - usage
-    - simpletest code
-    - dmtxquery stub disclaimer
   o Decide on release date and update all resulting files (man pages, TODO, README, other?)
   o Make sure all programs compile and run with final version
-    x dmtxread (run redbox regression test)
+    x dmtxread
     x dmtxwrite
     x dmtxquery
     x python binding
-    - php?
-    - iPhone?
     x unittest
     x simpletest
+    - php?
+    - iPhone?
     - gltest
 
 version 0.5.1: (??-Jun-2008)
