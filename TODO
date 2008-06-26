@@ -53,7 +53,7 @@ Remaining for next release:
   / Update README
   / Update TODO
   o Add Windows binaries for dmtxread and dmtxwrite?
-  o Include iPhone source?
+  o Include Cocoa wrapper?
   o Decide on release date and update all resulting files (man pages, TODO, README, other?)
   o Make sure all programs compile and run with final version
     x dmtxread
@@ -72,8 +72,8 @@ version 0.5.1: (??-Jun-2008)
   x libdmtx:   Added timeout condition for region detection
   x libdmtx:   Allow partial and complete disabling of error correction
   x libdmtx:   Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
-  / libdmtx:   Tighter integration with libfec
-  o libdmtx:   iPhone thing?
+  x libdmtx:   Tighter integration with libfec
+  o libdmtx:   New Cocoa wrapper (iPhone, iPod Touch, OS X)
   x dmtxread:  Conditional build logic for libtiff
   x dmtxquery: Start new utility to extra information from dmtxread output
   x testsuite: Started unit test executable for low level testing
