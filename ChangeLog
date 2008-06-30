@@ -15,7 +15,7 @@ version 0.5.1 [June 2008]
   Various things to help compiling in MS VC++
   Lots of holes filled in comments (Doxygen)
   Fixed experimental Data Mosaic decoding
-  New iPhone XXX?
+  New Cocoa/iPhone wrapper (thanks Stefan!)
 
 version 0.5 [April 2008]
   Error correction using libfec (thanks Florian!)
