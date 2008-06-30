@@ -53,7 +53,9 @@ Remaining for next release:
   x Update README
   x Update TODO
   x Add Cocoa wrapper
-  o Rename bindings to wrappers
+  x Rename bindings to wrappers
+  x Make sure builds still work with bindings-to-wrappers rename
+  o Add php? (look back through emails and figure out status)
   o Decide on release date and update all resulting files (man pages, TODO, README, other?)
   o Make sure all programs compile and run with final version
     x dmtxread
@@ -63,7 +65,6 @@ Remaining for next release:
     x unittest
     x simpletest
     - php?
-    - iPhone?
     - gltest
 
 version 0.5.1: (??-Jun-2008)
@@ -73,7 +74,7 @@ version 0.5.1: (??-Jun-2008)
   x libdmtx:   Allow partial and complete disabling of error correction
   x libdmtx:   Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
   x libdmtx:   Tighter integration with libfec
-  o libdmtx:   New Cocoa wrapper for iPhone, iPod Touch, OS X (thanks Stefan!)
+  x libdmtx:   New Cocoa wrapper for iPhone, iPod Touch, OS X (thanks Stefan!)
   x dmtxread:  Conditional build logic for libtiff
   x dmtxquery: Start new utility to extra information from dmtxread output
   x testsuite: Started unit test executable for low level testing

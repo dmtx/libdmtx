@@ -34,7 +34,7 @@ Cross Platform Improvements
   * Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
   * New local copies of getopt1.c, getopt.c, and getopt.h
   * Various preprocessor additions to help compiling in MS VC++
-  * New Cocoa wrapper in bindings directory (thanks Stefan!)
+  * New Cocoa wrapper for iPhone, iPod Touch, OS X (thanks Stefan!)
 
 As always, please let us know if you find any bugs or have
 trouble installing the software. Instructions for posting to the

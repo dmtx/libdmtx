@@ -30,5 +30,6 @@ EXTRA_DIST = KNOWNBUG \
 	script/check_whitespace.sh \
 	script/dist-image.sh \
 	test/images_opengl/* \
-	bindings/python/* \
-	bindings/php/*
+	wrappers/cocoa/* \
+	wrappers/python/* \
+	wrappers/php/*

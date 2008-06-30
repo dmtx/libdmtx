@@ -5,7 +5,7 @@ Building and Installing pydmtx
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 libdmtx must be installed on your system before trying to
-install and run the Python bindings.  Refer to the INSTALL
+install and run the Python wrapper.  Refer to the INSTALL
 file in the main libdmtx directory for instructions on how
 to do this.
 

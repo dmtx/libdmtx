@@ -95,7 +95,7 @@ the solution becomes part of the public record. Instructions at:
 
 If you wish to call libdmtx from programs written in Python
 then you must also install the Python binding located in the
-bindings/python directory.  See the INSTALL file located
+wrappers/python directory.  See the INSTALL file located
 in that directory for more detailed instructions.
 
 
