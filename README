@@ -11,8 +11,8 @@ are incremental by nature and stem from a few factors:
   * Increasing use of libdmtx on non-Linux platforms
 
 The next major release will continue to focus on overall barcode
-reading performance, and this mini-release lays some of the
-necessary groundwork. These changes include:
+reading performance, and this release lays some of the necessary
+groundwork. These changes include:
 
 Bug Fixes
 
