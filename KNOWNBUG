@@ -12,6 +12,11 @@ the behavior this will be treated as an experimental feature.
 For now dmtxwrite will encode using a straight ASCII scheme by
 default.
 
+Data Mosaic encoding doesn't produce output for certain sizes:
+
+   $ echo -n foo | dmtxwrite -M    <-- works
+   $ echo -n fooo | dmtxwrite -M   <-- doesn't work
+
 
 2. dmtxread
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -49,7 +54,7 @@ unittest:
   * No known issues
 
 
-5. Scripts in $LIBDMTX/script directory
+5. Scripts in the script directory
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 The check_headers.pl script verifies that every function has

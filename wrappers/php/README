@@ -1,0 +1,23 @@
+README for libdmtx PHP extension - July 1, 2008
+-----------------------------------------------------------------
+
+The mechanism for calling libdmtx from PHP is currently in
+an unresolved state. There are two known efforts, both with
+different features and levels of completeness:
+
+1) Christian Hentschel developed a PHP extension for encoding
+   Data Matrix barcodes using libdmtx. He describes it as an
+   early version that he quickly coded for libdmtx version 0.4.
+   He graciously donated his code and is allowing it to be
+   released under LGPLv2.
+
+2) Another effort is underway to develop a complete encoding/
+   decoding PHP wrapper. Their goal is to get the final product
+   included in the PHP Extension Community Library (PECL).
+
+Since the PHP code available today does not compile with recent
+libdmtx versions and the final solution may not be hosted as part
+of the libdtmx package, for now I am leaving out any PHP code and
+making Christian's package available as a separate download:
+
+   http://www.libdmtx.org/Downloads/libdmtx-php.tar.bz2

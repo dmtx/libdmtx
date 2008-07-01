@@ -37,47 +37,17 @@ after version 0.5.1:
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
   o project:   Conditional use of local getopt.c
 
-Remaining for next release:
-  x Finish doxygen function headers
-  x Update dmtxquery to show that it is just a stub
-  x Update INSTALL
-  x Update NEWS
-  x Update KNOWNBUG
-  x Update all occurrences of 0.5.0 to be 0.5.1
-  x Test style scripts
-  x Update man pages
-    x usage
-    x simpletest code
-    x dmtxquery stub disclaimer
-  x Update ChangeLog
-  x Update README
-  x Update TODO
-  x Add Cocoa wrapper
-  x Rename bindings to wrappers
-  x Make sure builds still work with bindings-to-wrappers rename
-  o Add php? (look back through emails and figure out status)
-  o Decide on release date and update all resulting files (man pages, TODO, README, other?)
-  o Make sure all programs compile and run with final version
-    x dmtxread
-    x dmtxwrite
-    x dmtxquery
-    x python binding
-    x unittest
-    x simpletest
-    - php?
-    - gltest
-
-version 0.5.1: (??-Jun-2008)
+version 0.5.1: (01-Jul-2008)
   x libdmtx:   Fixed Extended ASCII encoding bug
   x libdmtx:   Fixed error correction bug related to multiple interleaved blocks
   x libdmtx:   Added timeout condition for region detection
   x libdmtx:   Allow partial and complete disabling of error correction
   x libdmtx:   Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
   x libdmtx:   Tighter integration with libfec
-  x libdmtx:   New Cocoa wrapper for iPhone, iPod Touch, OS X (thanks Stefan!)
   x dmtxread:  Conditional build logic for libtiff
   x dmtxquery: Start new utility to extra information from dmtxread output
   x testsuite: Started unit test executable for low level testing
+  x wrappers:  New Cocoa wrapper for iPhone, iPod Touch, OS X (thanks Stefan!)
   x project:   Include local copies of getopt1.c getopt.c getopt.h
   x project:   Various things to help compiling in MS VC++
   x project:   Added missing header comments

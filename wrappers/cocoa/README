@@ -1,0 +1,12 @@
+README for libdmtx Cocoa wrapper version 0.5.1 - July 1, 2008
+-----------------------------------------------------------------
+
+This is a general Cocoa wrapper that includes CocoaTouch, so it
+can be used for iPhone/iPod Touch and general OS X development.
+It was written by Stefan Hafeneger, who donated the code and made
+it available under the LGPLv2.
+
+This code provides a Cocoa class called SHDataMatrixReader.m,
+which is a singleton with a wrapper function for decoding and an
+image convert method (so there is no need for libpng). Notably,
+it uses the official iPhone SDK so jailbreak is not required.
