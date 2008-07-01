@@ -6,10 +6,10 @@
 
 lib_LTLIBRARIES = libdmtx.la
 libdmtx_la_SOURCES = dmtx.c
-EXTRA_libdmtx_la_SOURCES = dmtxtime.c dmtxscangrid.c dmtxmessage.c \
-	dmtxregion.c dmtxdecode.c dmtxencode.c dmtxplacemod.c dmtxfec.c \
-	dmtxreedsol.c dmtxsymbol.c dmtxvector2.c dmtxmatrix3.c dmtxcolor3.c \
-	dmtximage.c
+EXTRA_libdmtx_la_SOURCES = dmtxcolor3.c dmtxdecode.c dmtxencode.c \
+	dmtxfec.c dmtximage.c dmtxmatrix3.c dmtxmessage.c \
+	dmtxplacemod.c dmtxreedsol.c dmtxregion.c dmtxscangrid.c \
+	dmtxstatic.h dmtxsymbol.c dmtxtime.c dmtxvector2.c
 
 include_HEADERS = dmtx.h
 libdmtx_la_CFLAGS = -Wall -pedantic
@@ -31,5 +31,5 @@ EXTRA_DIST = KNOWNBUG \
 	script/dist-image.sh \
 	test/images_opengl/* \
 	wrappers/cocoa/* \
-	wrappers/python/* \
-	wrappers/php/*
+	wrappers/php/* \
+	wrappers/python/*
