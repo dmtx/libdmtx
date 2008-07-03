@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
          timeout = dmtxTimeAdd(dmtxTimeNow(), 100);
 
          region = dmtxDecodeFindNextRegion(&decode, &timeout);
-         if(region.found == DMTX_REGION_TIMEOUT || region.found == DMTX_REGION_EOF)
+         if(region.found != DMTX_REGION_FOUND)
             break;
 
          message = dmtxDecodeMatrixRegion(&decode, &region, 1);

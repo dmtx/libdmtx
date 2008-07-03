@@ -63,7 +63,7 @@ main(int argc, char *argv[])
    decode = dmtxDecodeStructInit(image, p0, p1, 5);
 
    region = dmtxDecodeFindNextRegion(&decode, NULL);
-   if(region.found == DMTX_REGION_EOF)
+   if(region.found != DMTX_REGION_FOUND)
       exit(0);
 
    message = dmtxDecodeMatrixRegion(&decode, &region, 1);

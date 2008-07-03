@@ -105,7 +105,7 @@ main(int argc, char *argv[])
          region = dmtxDecodeFindNextRegion(&decode, timeout);
 
          /* Finished file or ran out of time before finding another region */
-         if(region.found == DMTX_REGION_TIMEOUT || region.found == DMTX_REGION_EOF)
+         if(region.found != DMTX_REGION_FOUND)
             break;
 
          if(options.diagnose)
