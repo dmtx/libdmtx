@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
       memset(passTwoImage->pxl, 0x00, passTwoImage->width * passTwoImage->height * sizeof(DmtxRgb));
 
       /* Start fresh scan */
-      decode = dmtxDecodeStructInit(captured, p0, p1, 20);
+      decode = dmtxDecodeStructInit(captured);
 
       for(;;) {
 
