@@ -103,7 +103,8 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
 
    /* Test whether this pixel is sitting on a raw edge in any direction */
    compassEdge = GetCompassEdge(dec->image, loc.X, loc.Y, DMTX_ALL_COMPASS_DIRS);
-   if(compassEdge.magnitude < 60)
+
+   if(compassEdge.magnitude < dec->edgeMin * 17.68)
       return reg;
 
    /* If detected edge is strong then find its subpixel location */

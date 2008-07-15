@@ -30,13 +30,10 @@ Contact: mike@dragonflylogic.com
 /**
  * @brief  XXX
  * @param  image
- * @param  p0
- * @param  p1
- * @param  minGapSize
  * @return Initialized DmtxDecode struct
  */
 extern DmtxDecode
-dmtxDecodeStructInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
+dmtxDecodeStructInit(DmtxImage *image)
 {
    DmtxDecode dec;
 
@@ -45,7 +42,14 @@ dmtxDecodeStructInit(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int min
    dec.image = image;
    memset(dec.image->compass, 0x00, image->height * image->width * sizeof(DmtxCompassEdge));
 
-   dec.grid = InitScanGrid(image, p0, p1, minGapSize);
+   dec.edgeMin = 60;
+   dec.scanGap = 10;
+   dec.xMin = 0;
+   dec.xMax = image->width - 1;
+   dec.yMin = 0;
+   dec.yMax = image->height - 1;
+
+   dec.grid = InitScanGrid(image, dec.scanGap, dec.xMin, dec.xMax, dec.yMin, dec.yMax);
 
    return dec;
 }
@@ -59,6 +63,62 @@ extern void
 dmtxDecodeStructDeInit(DmtxDecode *dec)
 {
    memset(dec, 0x00, sizeof(DmtxDecode));
+}
+
+/**
+ * @brief  Set decoding behavior property
+ * @param  dec
+ * @param  prop
+ * @param  value
+ * @return DMTX_SUCCESS | DMTX_FAILURE
+ */
+extern int
+dmtxDecodeSetProp(DmtxDecode *dec, DmtxDecodeProp prop, int value)
+{
+   switch(prop) {
+      case DmtxDecodeEdgeThreshold:
+         dec->edgeMin = value;
+         break;
+      case DmtxDecodeScanGap:
+         dec->scanGap = value;
+         break;
+      case DmtxDecodeXmin:
+         dec->xMin = value;
+         break;
+      case DmtxDecodeXmax:
+         dec->xMax = value;
+         break;
+      case DmtxDecodeYmin:
+         dec->yMin = value;
+         break;
+      case DmtxDecodeYmax:
+         dec->yMax = value;
+         break;
+   }
+
+   /* Specified range has non-positive area */
+   if(dec->xMin >= dec->xMax || dec->yMin >= dec->yMax)
+      return DMTX_FAILURE;
+
+   /* Specified range extends beyond image boundaries */
+   if(dec->xMin < 0 || dec->xMax >= dec->image->width ||
+         dec->yMin < 0 || dec->yMax >= dec->image->height)
+      return DMTX_FAILURE;
+
+   if(dec->scanGap < 1)
+      return DMTX_FAILURE;
+
+   if(dec->edgeMin < 1 || dec->edgeMin > 100)
+      return DMTX_FAILURE;
+
+   /* Reinitialize scangrid if any inputs changed */
+   if(prop == DmtxDecodeXmin || prop == DmtxDecodeXmax ||
+         prop == DmtxDecodeYmin || prop == DmtxDecodeYmax ||
+         prop == DmtxDecodeScanGap) {
+      dec->grid = InitScanGrid(dec->image, dec->scanGap, dec->xMin, dec->xMax, dec->yMin, dec->yMax);
+   }
+
+   return DMTX_SUCCESS;
 }
 
 /**

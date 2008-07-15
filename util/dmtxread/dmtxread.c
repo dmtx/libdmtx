@@ -61,7 +61,6 @@ main(int argc, char *argv[])
    DmtxDecode decode;
    DmtxRegion region;
    DmtxMessage *message;
-   DmtxPixelLoc p0, p1;
 
    SetOptionDefaults(&options);
 
@@ -90,13 +89,23 @@ main(int argc, char *argv[])
 
       assert(image->pageCount > 0 && pageIndex <= image->pageCount);
 
-      /* Set image region to be scanned XXX this is a poorly named function */
-      err = SetScanRegion(&p0, &p1, &options, image); /* XXX parameters are not intuitive */
-      if(err)
-         continue;
-
       /* Initialize decode struct for newly loaded image */
-      decode = dmtxDecodeStructInit(image, p0, p1, options.scanGap);
+      decode = dmtxDecodeStructInit(image);
+
+      dmtxDecodeSetProp(&decode, DmtxDecodeEdgeThreshold, options.minEdge);
+      dmtxDecodeSetProp(&decode, DmtxDecodeScanGap, options.scanGap);
+
+      if(options.xMin)
+         dmtxDecodeSetProp(&decode, DmtxDecodeXmin, ScaleNumberString(options.xMin, image->width));
+
+      if(options.xMax)
+         dmtxDecodeSetProp(&decode, DmtxDecodeXmax, ScaleNumberString(options.xMax, image->width));
+
+      if(options.yMin)
+         dmtxDecodeSetProp(&decode, DmtxDecodeYmin, ScaleNumberString(options.yMin, image->height));
+
+      if(options.yMax)
+         dmtxDecodeSetProp(&decode, DmtxDecodeYmax, ScaleNumberString(options.yMax, image->height));
 
       /* Loop once for each detected barcode region */
       for(;;) {
@@ -144,12 +153,13 @@ SetOptionDefaults(UserOptions *options)
 
    /* Set default options */
    options->codewords = 0;
+   options->minEdge = 20;
    options->scanGap = 2;
    options->newline = 0;
-   options->xRangeMin = NULL;
-   options->xRangeMax = NULL;
-   options->yRangeMin = NULL;
-   options->yRangeMax = NULL;
+   options->xMin = NULL;
+   options->xMax = NULL;
+   options->yMin = NULL;
+   options->yMax = NULL;
    options->msec = -1;
    options->verbose = 0;
    options->maxCorrections = -1;
@@ -178,12 +188,13 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    struct option longOptions[] = {
          {"codewords",        no_argument,       NULL, 'c'},
          {"gap",              required_argument, NULL, 'g'},
+         {"milliseconds",     required_argument, NULL, 'm'},
          {"newline",          no_argument,       NULL, 'n'},
+         {"threshhold",       required_argument, NULL, 't'},
          {"x-range-min",      required_argument, NULL, 'x'},
          {"x-range-max",      required_argument, NULL, 'X'},
          {"y-range-min",      required_argument, NULL, 'y'},
          {"y-range-max",      required_argument, NULL, 'Y'},
-         {"milliseconds",     required_argument, NULL, 'm'},
          {"verbose",          no_argument,       NULL, 'v'},
          {"max-corrections",  required_argument, NULL, 'C'},
          {"diagnose",         no_argument,       NULL, 'D'},
@@ -200,7 +211,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "cg:nx:X:y:Y:m:vC:DMPRV", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "cg:m:nt:x:X:y:Y:vC:DMPRV", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -216,25 +227,31 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             if(err != DMTXUTIL_SUCCESS || options->scanGap <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid gap specified \"%s\""), optarg);
             break;
-         case 'n':
-            options->newline = 1;
-            break;
-         case 'x':
-            options->xRangeMin = optarg;
-            break;
-         case 'X':
-            options->xRangeMax = optarg;
-            break;
-         case 'y':
-            options->yRangeMin = optarg;
-            break;
-         case 'Y':
-            options->yRangeMax = optarg;
-            break;
          case 'm':
             err = StringToInt(&(options->msec), optarg, &ptr);
             if(err != DMTXUTIL_SUCCESS || options->msec < 0 || *ptr != '\0')
                FatalError(1, _("Invalid duration (in milliseconds) specified \"%s\""), optarg);
+            break;
+         case 'n':
+            options->newline = 1;
+            break;
+         case 't':
+            err = StringToInt(&(options->minEdge), optarg, &ptr);
+            if(err != DMTXUTIL_SUCCESS || *ptr != '\0' ||
+                  options->minEdge < 1 || options->minEdge > 100)
+               FatalError(1, _("Invalid edge threshhold specified \"%s\""), optarg);
+            break;
+         case 'x':
+            options->xMin = optarg;
+            break;
+         case 'X':
+            options->xMax = optarg;
+            break;
+         case 'y':
+            options->yMin = optarg;
+            break;
+         case 'Y':
+            options->yMax = optarg;
             break;
          case 'v':
             options->verbose = 1;
@@ -282,59 +299,6 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
 }
 
 /**
- *
- *
- */
-static int
-SetRangeLimit(int *target, char *optionString, int minMax, int limit)
-{
-   int err;
-   int value;
-   char *terminate;
-
-   if(optionString == NULL) {
-      *target = minMax * limit;
-   }
-   if(optionString) {
-      err = StringToInt(&value, optionString, &terminate);
-      if(err != DMTXUTIL_SUCCESS)
-         return DMTXUTIL_ERROR;
-      *target = (*terminate == '%') ? (int)(0.01 * value * limit + 0.5) : value;
-   }
-
-   return DMTXUTIL_SUCCESS;
-}
-
-/**
- *
- *
- */
-static int
-SetScanRegion(DmtxPixelLoc *pMin, DmtxPixelLoc *pMax, UserOptions *options, DmtxImage *image)
-{
-   assert(options && image && image->width != 0 && image->height != 0);
-
-   if(SetRangeLimit(&(pMin->X), options->xRangeMin, 0, image->width - 1) == DMTXUTIL_ERROR ||
-         SetRangeLimit(&(pMin->Y), options->yRangeMin, 0, image->height - 1) == DMTXUTIL_ERROR ||
-         SetRangeLimit(&(pMax->X), options->xRangeMax, 1, image->width - 1) == DMTXUTIL_ERROR ||
-         SetRangeLimit(&(pMax->Y), options->yRangeMax, 1, image->height - 1) == DMTXUTIL_ERROR) {
-      fprintf(stderr, _("Badly formed range parameter\n\n"));
-      return DMTXUTIL_ERROR;
-   }
-
-   if(pMin->X >= pMax->X || pMin->Y >= pMax->Y)
-      FatalError(2, _("Specified range has non-positive area"));
-
-   if(pMin->X < 0 || pMax->X > image->width - 1 ||
-         pMin->Y < 0 || pMax->Y > image->height - 1) {
-      fprintf(stderr, _("Specified range extends beyond image boundaries\n\n"));
-      return DMTXUTIL_ERROR;
-   }
-
-   return DMTXUTIL_SUCCESS;
-}
-
-/**
  * Display program usage and exit with received status.
  *
  * @param status error code returned to OS
@@ -362,14 +326,15 @@ Example: Scan top third of images using gap no larger than 10 pixels\n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
   -c, --codewords            print codewords extracted from barcode pattern\n\
-  -g, --gap=NUM              use scan grid with gap of NUM pixels between lines\n\
-  -n, --newline              print newline character at the end of decoded data\n\
   -d, --distortion=K1,K2     radial distortion coefficients (not implemented)\n\
+  -g, --gap=NUM              use scan grid with gap of NUM pixels between lines\n\
+  -m, --milliseconds=N       stop scan after N milliseconds (per image)\n\
+  -n, --newline              print newline character at the end of decoded data\n\
+  -t, --threshhold=N         ignore weak edges below threshhold N (1-100)\n\
   -x, --x-range-min=N[%%]     do not scan pixels to the left of N (or N%%)\n\
   -X, --x-range-max=N[%%]     do not scan pixels to the right of N (or N%%)\n\
   -y, --y-range-min=N[%%]     do not scan pixels above N (or N%%)\n\
   -Y, --y-range-max=N[%%]     do not scan pixels below N (or N%%)\n\
-  -m, --milliseconds=N       stop scan after N milliseconds (per image)\n\
   -C, --corrections-max=N    correct at most N errors (0 = correction disabled)\n\
   -D, --diagnose=[op]        make copy of image with added diagnostic data\n\
       o = Overlay            overlay image with module colors\n\
@@ -384,6 +349,35 @@ OPTIONS:\n"), programName, programName);
    }
 
    exit(status);
+}
+
+/**
+ *
+ *
+ */
+static int
+ScaleNumberString(char *s, int extent)
+{
+   int err;
+   int numValue;
+   int scaledValue;
+   char *terminate;
+
+   assert(s != NULL);
+
+   err = StringToInt(&numValue, s, &terminate);
+   if(err != DMTXUTIL_SUCCESS)
+      FatalError(1, _("Integer value required"));
+
+   scaledValue = (*terminate == '%') ? (int)(0.01 * numValue * extent + 0.5) : numValue;
+
+   if(scaledValue < 0)
+      scaledValue = 0;
+
+   if(scaledValue >= extent)
+      scaledValue = extent - 1;
+
+   return scaledValue;
 }
 
 /**

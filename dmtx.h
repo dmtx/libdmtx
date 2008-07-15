@@ -144,6 +144,15 @@ typedef enum {
    DmtxCorner01 = 0x01 << 3
 } DmtxCornerLoc;
 
+typedef enum {
+   DmtxDecodeEdgeThreshold,
+   DmtxDecodeScanGap,
+   DmtxDecodeXmin,
+   DmtxDecodeXmax,
+   DmtxDecodeYmin,
+   DmtxDecodeYmax
+} DmtxDecodeProp;
+
 typedef double DmtxMatrix3[3][3];
 typedef unsigned char DmtxRgb[3];
 
@@ -333,8 +342,14 @@ typedef struct DmtxScanGrid_struct {
  * @brief DmtxDecode
  */
 typedef struct DmtxDecode_struct {
-   DmtxImage *image;
-   DmtxScanGrid grid;
+   DmtxImage       *image;
+   DmtxScanGrid    grid;
+   int             edgeMin;
+   int             scanGap;
+   int             xMin;
+   int             xMax;
+   int             yMin;
+   int             yMax;
 } DmtxDecode;
 
 /**
@@ -414,8 +429,9 @@ extern int dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, int si
 extern int dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest);
 
 /* dmtxdecode.c */
-extern DmtxDecode dmtxDecodeStructInit(DmtxImage *img, DmtxPixelLoc p0, DmtxPixelLoc p1, int gap);
+extern DmtxDecode dmtxDecodeStructInit(DmtxImage *img);
 extern void dmtxDecodeStructDeInit(DmtxDecode *dec);
+extern int dmtxDecodeSetProp(DmtxDecode *dec, DmtxDecodeProp prop, int value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxMessageMalloc(int sizeIdx, int symbolFormat);

@@ -183,7 +183,7 @@ static int GfProduct(int a, int b);
 static int GfDoublify(int a, int b);
 
 /* dmtxscangrid.c */
-static DmtxScanGrid InitScanGrid(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize);
+static DmtxScanGrid InitScanGrid(DmtxImage *image, int scanGap, int xMin, int xMax, int yMin, int yMax);
 static void IncrementPixelProgress(DmtxScanGrid *cross);
 static void SetDerivedFields(DmtxScanGrid *cross);
 static DmtxPixelLoc GetGridCoordinates(DmtxScanGrid *grid);

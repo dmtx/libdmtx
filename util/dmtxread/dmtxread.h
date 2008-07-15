@@ -35,12 +35,13 @@ Contact: mike@dragonflylogic.com
 
 typedef struct {
    int codewords;
+   int minEdge;
    int scanGap;
    int newline;
-   char *xRangeMin;
-   char *xRangeMax;
-   char *yRangeMin;
-   char *yRangeMax;
+   char *xMin;
+   char *xMax;
+   char *yMin;
+   char *yMax;
    int msec;
    int verbose;
    int maxCorrections;
@@ -58,9 +59,8 @@ typedef enum {
 
 static void SetOptionDefaults(UserOptions *options);
 static int HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[]);
-static int SetRangeLimit(int *target, char *optionString, int minMax, int limit);
-static int SetScanRegion(DmtxPixelLoc *p0, DmtxPixelLoc *p1, UserOptions *options, DmtxImage *image);
 static void ShowUsage(int status);
+static int ScaleNumberString(char *s, int extent);
 static ImageFormat GetImageFormat(char *imagePath);
 static DmtxImage *LoadImage(char *imagePath, int pageIndex);
 static DmtxImage *LoadImagePng(char *imagePath);

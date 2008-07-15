@@ -36,7 +36,7 @@ Contact: mike@dragonflylogic.com
  * @return Initialized grid
  */
 static DmtxScanGrid
-InitScanGrid(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
+InitScanGrid(DmtxImage *image, int scanGap, int xMin, int xMax, int yMin, int yMax)
 {
    int xExtent, yExtent, maxExtent;
    int extent;
@@ -44,23 +44,23 @@ InitScanGrid(DmtxImage *image, DmtxPixelLoc p0, DmtxPixelLoc p1, int minGapSize)
 
    memset(&grid, 0x00, sizeof(DmtxScanGrid));
 
-   /* values that get set once */
-   xExtent = abs(p0.X - p1.X);
-   yExtent = abs(p0.Y - p1.Y);
+   /* Values that get set once */
+   xExtent = xMax - xMin;
+   yExtent = yMax - yMin;
    maxExtent = (xExtent > yExtent) ? xExtent : yExtent;
 
    assert(maxExtent > 1);
 
    for(extent = 1; extent < maxExtent; extent = ((extent + 1) * 2) - 1) {
-      if((extent / 2) <= minGapSize)
+      if((extent / 2) <= scanGap)
          grid.minExtent = extent;
    }
    grid.maxExtent = extent;
 
-   grid.xOffset = (p0.X + p1.X - grid.maxExtent) / 2;
-   grid.yOffset = (p0.Y + p1.Y - grid.maxExtent) > 2;
+   grid.xOffset = (xMin + xMax - grid.maxExtent) / 2;
+   grid.yOffset = (yMin + yMax - grid.maxExtent) > 2;
 
-   /* values that get reset for every level */
+   /* Values that get reset for every level */
    grid.total = 1;
    grid.extent = grid.maxExtent;
 
