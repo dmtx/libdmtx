@@ -36,7 +36,6 @@ main(int argc, char *argv[])
    DmtxDecode decode;
    DmtxRegion region;
    DmtxMessage *message;
-   DmtxPixelLoc p0, p1;
 
    fprintf(stdout, "input:  \"%s\"\n", testString);
 
@@ -56,11 +55,7 @@ main(int argc, char *argv[])
 
    /* 3) Read back the Data Matrix barcode that was created above */
 
-   p0.X = p0.Y = 0;
-   p1.X = image->width - 1;
-   p1.Y = image->height - 1;
-
-   decode = dmtxDecodeStructInit(image, p0, p1, 5);
+   decode = dmtxDecodeStructInit(image);
 
    region = dmtxDecodeFindNextRegion(&decode, NULL);
    if(region.found != DMTX_REGION_FOUND)
