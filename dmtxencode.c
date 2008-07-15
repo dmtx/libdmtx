@@ -961,7 +961,7 @@ EncodeBase256Codeword(DmtxChannel *channel)
    /* newDataLength does not include header bytes */
    assert(newDataLength > 0 && newDataLength <= 1555);
 
-   /* One time shift of codewords when passing the 250 byte size threshhold */
+   /* One time shift of codewords when passing the 250 byte size threshold */
    if(newDataLength == 250) {
       for(i = channel->currentLength/12 - 1; i > channel->firstCodeWord/12; i--) {
          valueTmp = UnRandomize255State(channel->encodedWords[i], i+1);

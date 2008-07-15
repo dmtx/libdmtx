@@ -190,7 +190,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
          {"gap",              required_argument, NULL, 'g'},
          {"milliseconds",     required_argument, NULL, 'm'},
          {"newline",          no_argument,       NULL, 'n'},
-         {"threshhold",       required_argument, NULL, 't'},
+         {"threshold",        required_argument, NULL, 't'},
          {"x-range-min",      required_argument, NULL, 'x'},
          {"x-range-max",      required_argument, NULL, 'X'},
          {"y-range-min",      required_argument, NULL, 'y'},
@@ -239,7 +239,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             err = StringToInt(&(options->minEdge), optarg, &ptr);
             if(err != DMTXUTIL_SUCCESS || *ptr != '\0' ||
                   options->minEdge < 1 || options->minEdge > 100)
-               FatalError(1, _("Invalid edge threshhold specified \"%s\""), optarg);
+               FatalError(1, _("Invalid edge threshold specified \"%s\""), optarg);
             break;
          case 'x':
             options->xMin = optarg;
@@ -330,7 +330,7 @@ OPTIONS:\n"), programName, programName);
   -g, --gap=NUM              use scan grid with gap of NUM pixels between lines\n\
   -m, --milliseconds=N       stop scan after N milliseconds (per image)\n\
   -n, --newline              print newline character at the end of decoded data\n\
-  -t, --threshhold=N         ignore weak edges below threshhold N (1-100)\n\
+  -t, --threshold=N          ignore weak edges below threshold N (1-100)\n\
   -x, --x-range-min=N[%%]     do not scan pixels to the left of N (or N%%)\n\
   -X, --x-range-max=N[%%]     do not scan pixels to the right of N (or N%%)\n\
   -y, --y-range-min=N[%%]     do not scan pixels above N (or N%%)\n\
