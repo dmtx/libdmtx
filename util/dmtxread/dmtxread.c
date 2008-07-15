@@ -153,7 +153,7 @@ SetOptionDefaults(UserOptions *options)
 
    /* Set default options */
    options->codewords = 0;
-   options->minEdge = 20;
+   options->minEdge = 10;
    options->scanGap = 2;
    options->newline = 0;
    options->xMin = NULL;

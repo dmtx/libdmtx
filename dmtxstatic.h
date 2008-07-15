@@ -98,23 +98,21 @@ static double RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2,
 static void SetCornerLoc(DmtxRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point);
 static int MatrixRegionUpdateXfrms(DmtxImage *image, DmtxRegion *region);
 
-static int MatrixRegionAlignFirstEdge(DmtxImage *image, DmtxRegion *region,
+static int MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *region,
       DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1);
 
-static int MatrixRegionAlignSecondEdge(DmtxImage *image, DmtxRegion *region);
+static int MatrixRegionAlignSecondEdge(DmtxDecode *dec, DmtxRegion *region);
+static int MatrixRegionAlignRightEdge(DmtxDecode *dec, DmtxRegion *region);
+static int MatrixRegionAlignTopEdge(DmtxDecode *dec, DmtxRegion *region);
 
-static int MatrixRegionAlignRightEdge(DmtxImage *image, DmtxRegion *region);
-
-static int MatrixRegionAlignTopEdge( DmtxImage *image, DmtxRegion *region);
-
-static int MatrixRegionAlignCalibEdge(DmtxImage *image, DmtxRegion *region,
+static int MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *region,
       DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit);
 
-static int MatrixRegionAlignEdge(DmtxImage *image, DmtxRegion *region,
+static int MatrixRegionAlignEdge(DmtxDecode *dec, DmtxRegion *region,
       DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0,
       DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount);
 
-static int StepAlongEdge(DmtxImage *image, DmtxRegion *region,
+static int StepAlongEdge(DmtxDecode *dec, DmtxRegion *region,
       DmtxVector2 *pProgress, DmtxVector2 *pExact, DmtxVector2 forward,
       DmtxVector2 lateral);
 

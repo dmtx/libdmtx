@@ -118,7 +118,7 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    ray1 = FollowEdge(dec->image, loc.X, loc.Y, edgeStart, -1);
 
    /* Define first edge based on travel limits of detected edge */
-   if(MatrixRegionAlignFirstEdge(dec->image, &reg, &edgeStart, ray0, ray1) != DMTX_SUCCESS)
+   if(MatrixRegionAlignFirstEdge(dec, &reg, &edgeStart, ray0, ray1) != DMTX_SUCCESS)
       return reg;
 
    /* Capture copy of first edge boundaries */
@@ -127,15 +127,15 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    /* cornerCapture.00 = xyz; cornerCapture.01 = xyz; */
 
    /* Define second edge based on best match of 4 possible orientations */
-   if(MatrixRegionAlignSecondEdge(dec->image, &reg) != DMTX_SUCCESS)
+   if(MatrixRegionAlignSecondEdge(dec, &reg) != DMTX_SUCCESS)
       return reg;
 
    /* Define right edge */
-   if(MatrixRegionAlignRightEdge(dec->image, &reg) != DMTX_SUCCESS)
+   if(MatrixRegionAlignRightEdge(dec, &reg) != DMTX_SUCCESS)
       return reg;
 
    /* Define top edge */
-   if(MatrixRegionAlignTopEdge(dec->image, &reg) != DMTX_SUCCESS)
+   if(MatrixRegionAlignTopEdge(dec, &reg) != DMTX_SUCCESS)
       return reg;
 
    /* Calculate the best fitting symbol size */
@@ -595,7 +595,7 @@ MatrixRegionUpdateXfrms(DmtxImage *image, DmtxRegion *reg)
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-MatrixRegionAlignFirstEdge(DmtxImage *image, DmtxRegion *reg, DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1)
+MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1)
 {
    DmtxRay2 rayFull;
    DmtxVector2 p0, p1, pTmp;
@@ -631,7 +631,7 @@ MatrixRegionAlignFirstEdge(DmtxImage *image, DmtxRegion *reg, DmtxEdgeSubPixel *
    SetCornerLoc(reg, DmtxCorner01, pTmp);
    SetCornerLoc(reg, DmtxCorner00, rayFull.p);
 
-   if(MatrixRegionUpdateXfrms(image, reg) != DMTX_SUCCESS)
+   if(MatrixRegionUpdateXfrms(dec->image, reg) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    /* Top-right pane showing first edge fit */
@@ -675,7 +675,7 @@ SetCornerLoc(DmtxRegion *reg, DmtxCornerLoc cornerLoc, DmtxVector2 point)
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-MatrixRegionAlignSecondEdge(DmtxImage *image, DmtxRegion *reg)
+MatrixRegionAlignSecondEdge(DmtxDecode *dec, DmtxRegion *reg)
 {
    DmtxVector2 p0[4], p1[4], pCorner[4];
    int hitCount[4] = { 0, 0, 0, 0 };
@@ -710,7 +710,7 @@ MatrixRegionAlignSecondEdge(DmtxImage *image, DmtxRegion *reg)
    dmtxMatrix3Shear(postRaw2Fit, 0.0, 1.0);
    dmtxMatrix3Shear(preFit2Raw, 0.0, -1.0);
 
-   hitCount[0] = MatrixRegionAlignEdge(image, reg, postRaw2Fit,
+   hitCount[0] = MatrixRegionAlignEdge(dec, reg, postRaw2Fit,
          preFit2Raw, &p0[0], &p1[0], &pCorner[0], &weakCount[0]);
 
    /* Scan top edge right-to-left (horizontal flip and shear)
@@ -727,7 +727,7 @@ MatrixRegionAlignSecondEdge(DmtxImage *image, DmtxRegion *reg)
    dmtxMatrix3Scale(flip, -1.0, 1.0);
    dmtxMatrix3Multiply(preFit2Raw, shear, flip);
 
-   hitCount[1] = MatrixRegionAlignEdge(image, reg, postRaw2Fit,
+   hitCount[1] = MatrixRegionAlignEdge(dec, reg, postRaw2Fit,
          preFit2Raw, &p0[1], &p1[1], &pCorner[1], &weakCount[1]);
 
    /* Scan bottom edge left-to-right (vertical flip and shear)
@@ -748,7 +748,7 @@ MatrixRegionAlignSecondEdge(DmtxImage *image, DmtxRegion *reg)
    dmtxMatrix3Multiply(preFit2Raw, shear, xlate);
    dmtxMatrix3MultiplyBy(preFit2Raw, flip);
 
-   hitCount[2] = MatrixRegionAlignEdge(image, reg, postRaw2Fit,
+   hitCount[2] = MatrixRegionAlignEdge(dec, reg, postRaw2Fit,
          preFit2Raw, &p0[2], &p1[2], &pCorner[2], &weakCount[2]);
 
    /* Scan bottom edge right-to-left (flip flip shear)
@@ -769,7 +769,7 @@ MatrixRegionAlignSecondEdge(DmtxImage *image, DmtxRegion *reg)
    dmtxMatrix3Multiply(preFit2Raw, shear, xlate);
    dmtxMatrix3MultiplyBy(preFit2Raw, flip);
 
-   hitCount[3] = MatrixRegionAlignEdge(image, reg, postRaw2Fit,
+   hitCount[3] = MatrixRegionAlignEdge(dec, reg, postRaw2Fit,
          preFit2Raw, &p0[3], &p1[3], &pCorner[3], &weakCount[3]);
 
 /**
@@ -887,7 +887,7 @@ among module samples and proximity of color to initial edge
    SetCornerLoc(reg, DmtxCorner01, T);
    SetCornerLoc(reg, DmtxCorner10, R);
 
-   if(MatrixRegionUpdateXfrms(image, reg) != DMTX_SUCCESS)
+   if(MatrixRegionUpdateXfrms(dec->image, reg) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    /* Skewed barcode in the bottom middle pane */
@@ -903,7 +903,7 @@ among module samples and proximity of color to initial edge
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-MatrixRegionAlignRightEdge(DmtxImage *image, DmtxRegion *reg)
+MatrixRegionAlignRightEdge(DmtxDecode *dec, DmtxRegion *reg)
 {
    DmtxMatrix3 rotate, flip, shear, scale;
    DmtxMatrix3 preFit2Raw, postRaw2Fit;
@@ -925,7 +925,7 @@ MatrixRegionAlignRightEdge(DmtxImage *image, DmtxRegion *reg)
    dmtxMatrix3MultiplyBy(preFit2Raw, flip);
    dmtxMatrix3MultiplyBy(preFit2Raw, rotate);
 
-   if(MatrixRegionAlignCalibEdge(image, reg, DmtxEdgeRight, preFit2Raw, postRaw2Fit) != DMTX_SUCCESS)
+   if(MatrixRegionAlignCalibEdge(dec, reg, DmtxEdgeRight, preFit2Raw, postRaw2Fit) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    return DMTX_SUCCESS;
@@ -938,14 +938,14 @@ MatrixRegionAlignRightEdge(DmtxImage *image, DmtxRegion *reg)
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-MatrixRegionAlignTopEdge(DmtxImage *image, DmtxRegion *reg)
+MatrixRegionAlignTopEdge(DmtxDecode *dec, DmtxRegion *reg)
 {
    DmtxMatrix3 preFit2Raw, postRaw2Fit;
 
    dmtxMatrix3Shear(postRaw2Fit, 0.0, 0.5);
    dmtxMatrix3Shear(preFit2Raw, 0.0, -0.5);
 
-   if(MatrixRegionAlignCalibEdge(image, reg, DmtxEdgeTop, preFit2Raw, postRaw2Fit) != DMTX_SUCCESS)
+   if(MatrixRegionAlignCalibEdge(dec, reg, DmtxEdgeTop, preFit2Raw, postRaw2Fit) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    return DMTX_SUCCESS;
@@ -961,7 +961,7 @@ MatrixRegionAlignTopEdge(DmtxImage *image, DmtxRegion *reg)
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-MatrixRegionAlignCalibEdge(DmtxImage *image, DmtxRegion *reg,
+MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg,
       DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit)
 {
    DmtxVector2 p0, p1, pCorner;
@@ -971,13 +971,13 @@ MatrixRegionAlignCalibEdge(DmtxImage *image, DmtxRegion *reg,
 
    assert(edgeLoc == DmtxEdgeTop || edgeLoc == DmtxEdgeRight);
 
-   hitCount = MatrixRegionAlignEdge(image, reg, postRaw2Fit, preFit2Raw, &p0, &p1, &pCorner, &weakCount);
+   hitCount = MatrixRegionAlignEdge(dec, reg, postRaw2Fit, preFit2Raw, &p0, &p1, &pCorner, &weakCount);
    if(hitCount < 2)
       return DMTX_FAILURE;
 
    if(edgeLoc == DmtxEdgeRight) {
       SetCornerLoc(reg, DmtxCorner10, pCorner);
-      if(MatrixRegionUpdateXfrms(image, reg) != DMTX_SUCCESS)
+      if(MatrixRegionUpdateXfrms(dec->image, reg) != DMTX_SUCCESS)
          return DMTX_FAILURE;
 
       dmtxMatrix3VMultiplyBy(&p0, reg->raw2fit);
@@ -999,7 +999,7 @@ MatrixRegionAlignCalibEdge(DmtxImage *image, DmtxRegion *reg,
    }
    else {
       SetCornerLoc(reg, DmtxCorner01, pCorner);
-      if(MatrixRegionUpdateXfrms(image, reg) != DMTX_SUCCESS)
+      if(MatrixRegionUpdateXfrms(dec->image, reg) != DMTX_SUCCESS)
          return DMTX_FAILURE;
 
       dmtxMatrix3VMultiplyBy(&p0, reg->raw2fit);
@@ -1019,7 +1019,7 @@ MatrixRegionAlignCalibEdge(DmtxImage *image, DmtxRegion *reg,
       SetCornerLoc(reg, DmtxCorner01, p0);
       SetCornerLoc(reg, DmtxCorner11, p1);
    }
-   if(MatrixRegionUpdateXfrms(image, reg) != DMTX_SUCCESS)
+   if(MatrixRegionUpdateXfrms(dec->image, reg) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    return DMTX_SUCCESS;
@@ -1038,7 +1038,7 @@ MatrixRegionAlignCalibEdge(DmtxImage *image, DmtxRegion *reg,
  * @return 3 points in raw coordinates
  */
 static int
-MatrixRegionAlignEdge(DmtxImage *image, DmtxRegion *reg,
+MatrixRegionAlignEdge(DmtxDecode *dec, DmtxRegion *reg,
       DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0,
       DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount)
 {
@@ -1118,7 +1118,7 @@ MatrixRegionAlignEdge(DmtxImage *image, DmtxRegion *reg,
          return 0;
 
       prevEdgeHit = edgeHit;
-      edgeHit = StepAlongEdge(image, reg, &pRawProgress, &pRawExact, forward, lateral);
+      edgeHit = StepAlongEdge(dec, reg, &pRawProgress, &pRawExact, forward, lateral);
       dmtxMatrix3VMultiply(&pFitProgress, &pRawProgress, sRaw2Fit);
 
       if(edgeHit == DMTX_EDGE_STEP_EXACT) {
@@ -1169,8 +1169,8 @@ MatrixRegionAlignEdge(DmtxImage *image, DmtxRegion *reg,
          break;
       }
 
-      if(pRawProgress.X < 1 || pRawProgress.X > image->width - 1 ||
-         pRawProgress.Y < 1 || pRawProgress.Y > image->height - 1)
+      if(pRawProgress.X < 1 || pRawProgress.X > dec->image->width - 1 ||
+         pRawProgress.Y < 1 || pRawProgress.Y > dec->image->height - 1)
          break;
    }
 
@@ -1216,7 +1216,7 @@ MatrixRegionAlignEdge(DmtxImage *image, DmtxRegion *reg,
  * @return 2 points in non-skewed raw pixel coordinates
  */
 static int
-StepAlongEdge(DmtxImage *image, DmtxRegion *reg, DmtxVector2 *pProgress,
+StepAlongEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 *pProgress,
       DmtxVector2 *pExact, DmtxVector2 forward, DmtxVector2 lateral)
 {
    int x, y;
@@ -1230,10 +1230,10 @@ StepAlongEdge(DmtxImage *image, DmtxRegion *reg, DmtxVector2 *pProgress,
    y = (int)(pProgress->Y + 0.5);
 
    *pExact = *pProgress;
-   compass = GetCompassEdge(image, x, y, DMTX_ALL_COMPASS_DIRS);
+   compass = GetCompassEdge(dec->image, x, y, DMTX_ALL_COMPASS_DIRS);
 
    /* If pixel shows a weak edge in any direction then advance forward */
-   if(compass.magnitude < 60) {
+   if(compass.magnitude < dec->edgeMin * 17.68) {
       dmtxVector2AddTo(pProgress, &forward);
 /*    CALLBACK_POINT_PLOT(*pProgress, 1, 5, DMTX_DISPLAY_POINT); */
       return DMTX_EDGE_STEP_TOO_WEAK;
@@ -1261,8 +1261,8 @@ StepAlongEdge(DmtxImage *image, DmtxRegion *reg, DmtxVector2 *pProgress,
    }
 
    /* Pixel shows edge in perpendicular direction */
-   compassPrev = GetCompassEdge(image, x-xToward, y-yToward, compass.edgeDir);
-   compassNext = GetCompassEdge(image, x+xToward, y+yToward, compass.edgeDir);
+   compassPrev = GetCompassEdge(dec->image, x-xToward, y-yToward, compass.edgeDir);
+   compassNext = GetCompassEdge(dec->image, x+xToward, y+yToward, compass.edgeDir);
 
    accelPrev = compass.magnitude - compassPrev.magnitude;
    accelNext = compassNext.magnitude - compass.magnitude;

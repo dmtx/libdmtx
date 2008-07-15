@@ -42,7 +42,7 @@ dmtxDecodeStructInit(DmtxImage *image)
    dec.image = image;
    memset(dec.image->compass, 0x00, image->height * image->width * sizeof(DmtxCompassEdge));
 
-   dec.edgeMin = 60;
+   dec.edgeMin = 10;
    dec.scanGap = 10;
    dec.xMin = 0;
    dec.xMax = image->width - 1;
