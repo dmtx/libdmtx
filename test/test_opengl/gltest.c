@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
          if(message == NULL)
             continue;
 
-         fwrite(message->output, sizeof(unsigned char), message->outputSize, stdout);
+         fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
          fputc('\n', stdout);
 
          dmtxMessageFree(&message);
