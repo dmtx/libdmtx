@@ -24,53 +24,50 @@ Contact: mike@dragonflylogic.com
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 #include <dmtx.h>
 
 int
 main(int argc, char *argv[])
 {
-   unsigned char testString[] = "30Q324343430794<OQQ";
-   DmtxEncode encode;
-   DmtxImage *image;
-   DmtxDecode decode;
-   DmtxRegion region;
-   DmtxMessage *message;
+   unsigned char str[] = "30Q324343430794<OQQ";
+   DmtxEncode    enc;
+   DmtxImage    *img;
+   DmtxDecode    dec;
+   DmtxRegion    reg;
+   DmtxMessage  *msg;
 
-   fprintf(stdout, "input:  \"%s\"\n", testString);
+   fprintf(stdout, "input:  \"%s\"\n", str);
 
-   /* 1) Encode a new Data Matrix barcode image and keep in memory */
+   /* 1) ENCODE a new Data Matrix barcode image (in memory only) */
 
-   encode = dmtxEncodeStructInit();
-   dmtxEncodeDataMatrix(&encode, strlen((char *)testString), testString,
-         DMTX_SYMBOL_SQUARE_AUTO);
+   enc = dmtxEncodeStructInit();
+   dmtxEncodeDataMatrix(&enc, strlen(str), str, DMTX_SYMBOL_SQUARE_AUTO);
 
-   /* 2) Take a copy of the new image before freeing DmtxEncode struct */
+   /* 2) COPY the new image data before freeing encoding memory */
 
-   image = dmtxImageMalloc(encode.image->width, encode.image->height);
-   memcpy(image->pxl, encode.image->pxl, image->width * image->height *
-         sizeof(DmtxRgb));
+   img = dmtxImageMalloc(enc.image->width, enc.image->height);
+   memcpy(img->pxl, enc.image->pxl, img->width * img->height * sizeof(DmtxRgb));
 
-   dmtxEncodeStructDeInit(&encode);
+   dmtxEncodeStructDeInit(&enc);
 
-   /* 3) Read back the Data Matrix barcode that was created above */
+   /* 3) DECODE the Data Matrix barcode from the copied image */
 
-   decode = dmtxDecodeStructInit(image);
+   dec = dmtxDecodeStructInit(img);
 
-   region = dmtxDecodeFindNextRegion(&decode, NULL);
-   if(region.found != DMTX_REGION_FOUND)
+   reg = dmtxDecodeFindNextRegion(&dec, NULL);
+   if(reg.found != DMTX_REGION_FOUND)
       exit(0);
 
-   message = dmtxDecodeMatrixRegion(&decode, &region, 1);
-   if(message != NULL) {
+   msg = dmtxDecodeMatrixRegion(&dec, &reg, -1);
+   if(msg != NULL) {
       fputs("output: \"", stdout);
-      fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
+      fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
       fputs("\"\n\n", stdout);
-      dmtxMessageFree(&message);
+      dmtxMessageFree(&msg);
    }
 
-   dmtxDecodeStructDeInit(&decode);
-   dmtxImageFree(&image);
+   dmtxDecodeStructDeInit(&dec);
+   dmtxImageFree(&img);
 
    exit(0);
 }
