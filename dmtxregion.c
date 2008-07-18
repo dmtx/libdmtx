@@ -88,18 +88,14 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    DmtxEdgeSubPixel edgeStart;
    DmtxRay2 ray0, ray1;
    DmtxCompassEdge compassEdge;
-   DmtxRegion reg;
+   DmtxRegion reg = { 0 };
 
    /* Assume region is not found unless scan finds one below */
-   memset(&reg, 0x00, sizeof(DmtxRegion));
    reg.found = DMTX_REGION_NOT_FOUND;
 
    if(loc.X < 0 || loc.X >= dec->image->width ||
          loc.Y < 0 || loc.Y >= dec->image->height)
       return reg;
-
-/* if(dmtxGetMaskProperty(loc.X, loc.Y) == DMTX_DO_NOT_FOLLOW)
-      return reg; */
 
    /* Test whether this pixel is sitting on a raw edge in any direction */
    compassEdge = GetCompassEdge(dec->image, loc.X, loc.Y, DMTX_ALL_COMPASS_DIRS);
@@ -120,11 +116,6 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    /* Define first edge based on travel limits of detected edge */
    if(MatrixRegionAlignFirstEdge(dec, &reg, &edgeStart, ray0, ray1) != DMTX_SUCCESS)
       return reg;
-
-   /* Capture copy of first edge boundaries */
-   /* ... if this turns out to be a dead end then we'll mark this single
-      edge as 'do not follow' for future passes */
-   /* cornerCapture.00 = xyz; cornerCapture.01 = xyz; */
 
    /* Define second edge based on best match of 4 possible orientations */
    if(MatrixRegionAlignSecondEdge(dec, &reg) != DMTX_SUCCESS)
@@ -599,25 +590,42 @@ MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxEdgeSubPixel *e
 {
    DmtxRay2 rayFull;
    DmtxVector2 p0, p1, pTmp;
+   double ratio;
 
    if(!ray0.isDefined && !ray1.isDefined) {
       return DMTX_FAILURE;
    }
    else if(ray0.isDefined && ray1.isDefined) {
-      /* XXX test if reasonably colinear? */
-      dmtxPointAlongRay2(&p0, &ray0, ray0.tMax);
-      dmtxPointAlongRay2(&p1, &ray1, ray1.tMax);
-      rayFull.isDefined = 1;
-      rayFull.p = p1;
 
-      dmtxVector2Sub(&pTmp, &p0, &p1);
-      if(dmtxVector2Norm(&pTmp) != DMTX_SUCCESS)
-         return DMTX_FAILURE;
+      pTmp.X = ray1.v.Y;
+      pTmp.Y = -ray1.v.X;
 
-      rayFull.v = pTmp;
-      rayFull.tMin = 0;
-      rayFull.tMax = dmtxDistanceAlongRay2(&rayFull, &p0);
-      /* XXX else choose longer of the two */
+      /* If rays are relatively colinear then combine them */
+      if(fabs(dmtxVector2Dot(&ray0.v, &pTmp)) < 0.35) {
+         dmtxPointAlongRay2(&p0, &ray0, ray0.tMax);
+         dmtxPointAlongRay2(&p1, &ray1, ray1.tMax);
+         rayFull.isDefined = 1;
+         rayFull.p = p1;
+
+         dmtxVector2Sub(&pTmp, &p0, &p1);
+         if(dmtxVector2Norm(&pTmp) != DMTX_SUCCESS)
+            return DMTX_FAILURE;
+
+         rayFull.v = pTmp;
+         rayFull.tMin = 0;
+         rayFull.tMax = dmtxDistanceAlongRay2(&rayFull, &p0);
+      }
+      else { /* Not colinear */
+         ratio = ray0.tMax / ray1.tMax;
+
+         assert(ray1.tMax > DMTX_ALMOST_ZERO);
+
+         /* Only use longer ray if shorter one is insignificant */
+         if(ratio < 0.2 || ratio > 5)
+            rayFull = (ray0.tMax > ray1.tMax) ? ray0 : ray1;
+         else
+            return DMTX_FAILURE;
+      }
    }
    else {
       rayFull = (ray0.isDefined) ? ray0 : ray1;
