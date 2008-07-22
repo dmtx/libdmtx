@@ -601,7 +601,7 @@ MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxEdgeSubPixel *e
       pTmp.Y = -ray1.v.X;
 
       /* If rays are relatively colinear then combine them */
-      if(fabs(dmtxVector2Dot(&ray0.v, &pTmp)) < 0.35) {
+      if(fabs(dmtxVector2Dot(&ray0.v, &pTmp)) < 0.25) {
          dmtxPointAlongRay2(&p0, &ray0, ray0.tMax);
          dmtxPointAlongRay2(&p1, &ray1, ray1.tMax);
          rayFull.isDefined = 1;
@@ -1319,6 +1319,24 @@ StepAlongEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 *pProgress,
 static DmtxColor3
 ReadModuleColor(DmtxImage *image, DmtxRegion *reg, int symbolRow, int symbolCol, int sizeIdx)
 {
+   int symbolRows, symbolCols;
+   DmtxVector2 p, p0;
+   DmtxColor3 cPoint;
+
+   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
+   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
+
+   p.X = (1.0/symbolCols) * (symbolCol + 0.5);
+   p.Y = (1.0/symbolRows) * (symbolRow + 0.5);
+
+   dmtxMatrix3VMultiply(&p0, &p, reg->fit2raw);
+   dmtxColor3FromImage2(&cPoint, image, p0);
+
+   return cPoint;
+
+/*
+ * This is the older 5-sample approach ... very custly to performance
+ *
    int i;
    int symbolRows, symbolCols;
    double sampleX[] = { 0.5, 0.4, 0.5, 0.6, 0.5 };
@@ -1338,15 +1356,15 @@ ReadModuleColor(DmtxImage *image, DmtxRegion *reg, int symbolRow, int symbolCol,
 
       dmtxMatrix3VMultiply(&p0, &p, reg->fit2raw);
       dmtxColor3FromImage2(&cPoint, image, p0);
-/*    dmtxColor3FromImage(&cPoint, image, p0.X, p0.Y); */
 
       dmtxColor3AddTo(&cAverage, &cPoint);
 
-/*    CALLBACK_DECODE_FUNC4(plotPointCallback, dec, p0, 1, 1, DMTX_DISPLAY_POINT); */
    }
    dmtxColor3ScaleBy(&cAverage, 0.2);
 
    return cAverage;
+*/
+
 }
 
 /**
@@ -1372,7 +1390,7 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
                              26,  7,  6,  5,  4, 24,  3,  2,  1,  0 };
    int *ptr;
 
-   /* First try all sizes to determine which sizeIdx with best contrast */
+   /* First try all sizes to determine which sizeIdx gives best contrast */
    ptr = sizeIdxAttempts;
    gradient.tMin = gradient.tMid = gradient.tMax = 0;
    do {
