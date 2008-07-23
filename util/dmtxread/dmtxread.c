@@ -742,6 +742,7 @@ static void
 WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
    int offset, row, col;
+   int R, G, B;
    FILE *fp;
    DmtxVector2 p;
 
@@ -763,15 +764,19 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 
          dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
 
+         R = dec->image->pxl[offset][0];
+         G = dec->image->pxl[offset][1];
+         B = dec->image->pxl[offset][2];
+
          if(p.X >= 0.0 && p.X <= 1.0 && p.Y >= 0.0 && p.Y <= 1.0) {
-            fputc(dec->image->pxl[offset][0], fp);
-            fputc(dec->image->pxl[offset][1], fp);
-            fputc(dec->image->pxl[offset][2], fp);
+            fputc(R, fp);
+            fputc(G, fp);
+            fputc(B, fp);
          }
          else {
-            fputc(255, fp);
-            fputc(255, fp);
-            fputc(255, fp);
+            fputc(R + 0.7 * (255 - R), fp);
+            fputc(G + 0.7 * (255 - G), fp);
+            fputc(B + 0.7 * (255 - B), fp);
          }
       }
    }
