@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 
       for(;;) {
 
-         timeout = dmtxTimeAdd(dmtxTimeNow(), 100);
+         timeout = dmtxTimeAdd(dmtxTimeNow(), 200);
 
          region = dmtxDecodeFindNextRegion(&decode, &timeout);
          if(region.found != DMTX_REGION_FOUND)

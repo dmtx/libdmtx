@@ -26,7 +26,7 @@ Contact: mblaughton@users.sourceforge.net
 #include <string.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include <SDL.h>
+#include <SDL/SDL.h>
 #include <png.h>
 #include "dmtx.h"
 #include "gltest.h"

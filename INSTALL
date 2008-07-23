@@ -12,10 +12,10 @@ To install everything, place both files in the same directory
 and untar them as follows:
 
 For .bz2 files:
-  $ tar jxvf libdmtx-0.5.1.tar.bz2
+  $ tar jxvf libdmtx-0.5.2.tar.bz2
 
 For .gz files:
-  $ tar zxvf libdmtx-0.5.1.tar.gz
+  $ tar zxvf libdmtx-0.5.2.tar.gz
 
 For .tar files:
   $ tar xvf libdmtx-images-0.5.0.tar
@@ -23,7 +23,7 @@ For .tar files:
 Note: If your system uses an older version of tar you might
       need to do it in two steps, like this:
 
-  $ gunzip libdmtx-0.5.1.tar.gz && tar xvf libdmtx-0.5.0.tar
+  $ gunzip libdmtx-0.5.2.tar.gz && tar xvf libdmtx-0.5.0.tar
 
 
 2. libdmtx - Building and Installing the Core Library

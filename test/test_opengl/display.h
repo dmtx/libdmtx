@@ -23,7 +23,7 @@ Contact: mblaughton@users.sourceforge.net
 
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include <SDL.h>
+#include <SDL/SDL.h>
 
 GLfloat view_rotx, view_roty, view_rotz;
 GLfloat angle;

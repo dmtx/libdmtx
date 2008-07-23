@@ -88,7 +88,9 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    DmtxEdgeSubPixel edgeStart;
    DmtxRay2 ray0, ray1;
    DmtxCompassEdge compassEdge;
-   DmtxRegion reg = { 0 };
+   DmtxRegion reg;
+
+   memset(&reg, 0x00, sizeof(DmtxRegion));
 
    /* Assume region is not found unless scan finds one below */
    reg.found = DMTX_REGION_NOT_FOUND;
