@@ -709,6 +709,57 @@ MatrixRegionAlignSecondEdge(DmtxDecode *dec, DmtxRegion *reg)
     *
     */
 
+/**
+Simplify StepAlongEdge() and avoid complicated error-prone counters.
+
+Step along all 4 edges.
+
+Eliminate any of the edges that are already known to be bad
+
+For those that remain, choose the winner based on least variation
+among module samples and proximity of color to initial edge
+
+   for(each edge orientation option) {
+      if(hitCount[i] < 3)
+         option[i] = invalid;
+      else if(length[p1-p0] < 8 pixels)
+         option[i] = invalid;
+   }
+
+   if(option[0].valid && option[2].valid) {
+      ratio = length[0]/length[2];
+      if(ratio > 8)
+         option[2] = invalid;
+      else if(ration < 1/8)
+         option[0] = invalid;
+   }
+   // XXX then also same thing for option[0] and option[1]
+
+   // Determine winner among remaining options
+   winner = NULL;
+   currentMin = max or first;
+   for(each sizeIdx) {
+      for(each edge orientation option) {
+         if(edge orientation is ruled out)
+            continue;
+
+         if(ColorDevianceSum(sizeIdx, matrix, gradient, &currentMin))
+            winner = thisOrientation;
+      }
+   }
+   if(winner == NULL)
+      return FAILURE;
+
+     - step along imaginary center (same # steps for each test),
+       summing color difference between sample and ON color in known
+       gradient. As soon as sum exceeds previous best, then eliminate
+       from candidacy. record best minimum difference for each leg
+       candidate. candidate with smallest diff wins.
+
+     - maybe round-robin the tests, so the winning leg will get a foot
+       in the door sooner, speeding things up significantly
+*/
+
 /*fprintf(stdout, "MatrixRegionAlignSecondEdge()\n"); */
 
    /* Scan top edge left-to-right (shear only)
@@ -781,60 +832,6 @@ MatrixRegionAlignSecondEdge(DmtxDecode *dec, DmtxRegion *reg)
 
    hitCount[3] = MatrixRegionAlignEdge(dec, reg, postRaw2Fit,
          preFit2Raw, &p0[3], &p1[3], &pCorner[3], &weakCount[3]);
-
-/**
-Simplify StepAlongEdge() and avoid complicated error-prone counters.
-Instead just find all 4 edges, and then prune out edges according to
-early criteria:
-
-   a) Exited based on step limit without touching anything (p0-p1
-      length is <8 pixels)
-
-   b) If length (p0-p1) of top is <1/8 of bottom (or vice versa)
-
-For those that remain, choose the winner based on least variation
-among module samples and proximity of color to initial edge
-
-   for(each edge orientation option) {
-      if(hitCount[i] < 3)
-         option[i] = invalid;
-      else if(length[p1-p0] < 8 pixels)
-         option[i] = invalid;
-   }
-
-   if(option[0].valid && option[2].valid) {
-      ratio = length[0]/length[2];
-      if(ratio > 8)
-         option[2] = invalid;
-      else if(ration < 1/8)
-         option[0] = invalid;
-   }
-   // XXX then also same thing for option[0] and option[1]
-
-   // Determine winner among remaining options
-   winner = NULL;
-   currentMin = max or first;
-   for(each sizeIdx) {
-      for(each edge orientation option) {
-         if(edge orientation is ruled out)
-            continue;
-
-         if(ColorDevianceSum(sizeIdx, matrix, gradient, &currentMin))
-            winner = thisOrientation;
-      }
-   }
-   if(winner == NULL)
-      return FAILURE;
-
-     - step along imaginary center (same # steps for each test),
-       summing color difference between sample and ON color in known
-       gradient. As soon as sum exceeds previous best, then eliminate
-       from candidacy. record best minimum difference for each leg
-       candidate. candidate with smallest diff wins.
-
-     - maybe round-robin the tests, so the winning leg will get a foot
-       in the door sooner, speeding things up significantly
-*/
 
    /* choose orientation with highest hitCount/(weakCount + 1) ratio */
    for(i = 0; i < 4; i++) {
@@ -1337,7 +1334,7 @@ ReadModuleColor(DmtxImage *image, DmtxRegion *reg, int symbolRow, int symbolCol,
    return cPoint;
 
 /*
- * This is the older 5-sample approach ... very custly to performance
+ * This is the older 5-sample approach ... very costly to performance
  *
    int i;
    int symbolRows, symbolCols;

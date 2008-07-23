@@ -118,7 +118,7 @@ main(int argc, char *argv[])
             break;
 
          if(options.diagnose)
-            WriteImagePnm(&options, &decode, message, region.sizeIdx, "debug.pnm");
+            WriteDiagnosticImage(&decode, &region, "debug.pnm");
 
          /* Decode region based on requested barcode mode */
          if(options.mosaic)
@@ -741,16 +741,11 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
  *
  */
 static void
-WriteImagePnm(UserOptions *options, DmtxDecode *decode,
-      DmtxMessage *message, int sizeIdx, char *imagePath)
+WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
-   int row, col;
-   int moduleStatus;
-   int symbolRows, symbolCols;
+   int offset, row, col;
    FILE *fp;
-
-   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
-   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
+   DmtxVector2 p;
 
    fp = fopen(imagePath, "wb");
    if(fp == NULL) {
@@ -758,15 +753,28 @@ WriteImagePnm(UserOptions *options, DmtxDecode *decode,
       exit(3);
    }
 
-   /* Flip rows top-to-bottom to account for PNM "top-left" origin */
-   fprintf(fp, "P6 %d %d 255 ", symbolCols, symbolRows);
-   for(row = symbolRows - 1; row  >= 0; row--) {
-      for(col = 0; col < symbolCols; col++) {
-         moduleStatus = dmtxSymbolModuleStatus(message, sizeIdx, row, col);
+   /* Test each pixel of input image to see if it lies in region */
+   fprintf(fp, "P6 %d %d 255 ", dec->image->width, dec->image->height);
+   for(row = dec->image->height - 1; row >= 0; row--) {
+      for(col = 0; col < dec->image->width; col++) {
 
-         fputc((moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255, fp);
-         fputc((moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255, fp);
-         fputc((moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255, fp);
+         offset = row * dec->image->width + col;
+
+         p.X = col;
+         p.Y = row;
+
+         dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
+
+         if(p.X >= 0.0 && p.X <= 1.0 && p.Y >= 0.0 && p.Y <= 1.0) {
+            fputc(dec->image->pxl[offset][0], fp);
+            fputc(dec->image->pxl[offset][1], fp);
+            fputc(dec->image->pxl[offset][2], fp);
+         }
+         else {
+            fputc(255, fp);
+            fputc(255, fp);
+            fputc(255, fp);
+         }
       }
    }
 

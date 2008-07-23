@@ -67,7 +67,6 @@ static DmtxImage *LoadImagePng(char *imagePath);
 static DmtxImage *LoadImageTiff(char *imagePath, int pageIndex);
 static int PrintDecodedOutput(UserOptions *options, DmtxImage *image,
       DmtxRegion *region, DmtxMessage *message, int pageIndex);
-static void WriteImagePnm(UserOptions *options, DmtxDecode *decode,
-      DmtxMessage *message, int sizeIdx, char *imagePath);
+static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);
 
 #endif
