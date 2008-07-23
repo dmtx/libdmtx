@@ -69,7 +69,7 @@ main(int argc, char *argv[])
 
    /* Process user options */
    err = HandleArgs(&options, &argc, &argv, &encode);
-   if(err)
+   if(err == DMTXUTIL_ERROR)
       ShowUsage(err);
 
    /* Read input data into buffer */
@@ -77,9 +77,12 @@ main(int argc, char *argv[])
 
    /* Create barcode image */
    if(options.mosaic)
-      dmtxEncodeDataMosaic(&encode, codeBufferSize, codeBuffer, options.sizeIdx);
+      err = dmtxEncodeDataMosaic(&encode, codeBufferSize, codeBuffer, options.sizeIdx);
    else
-      dmtxEncodeDataMatrix(&encode, codeBufferSize, codeBuffer, options.sizeIdx);
+      err = dmtxEncodeDataMatrix(&encode, codeBufferSize, codeBuffer, options.sizeIdx);
+
+   if(err == DMTX_FAILURE)
+      FatalError(1, _("Unable to encode message (possibly too large for requested size)"));
 
    /* Write barcode image to requested format */
    switch(options.format) {

@@ -133,14 +133,11 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    int sizeIdx;
    unsigned char buf[4096];
 
-   /* XXX must fix ... will need to handle sizeIdx requests here because it is
-      needed by Encode...() (for triplet termination) */
-
    /* Encode input string into data codewords */
    sizeIdx = sizeIdxRequest;
    dataWordCount = EncodeDataCodewords(buf, inputString, inputSize, enc->scheme, &sizeIdx);
    if(dataWordCount <= 0)
-      exit(1);
+      return(DMTX_FAILURE);
 
    /* EncodeDataCodewords() should have updated any auto sizeIdx to a real one */
    assert(sizeIdx != DMTX_SYMBOL_SQUARE_AUTO && sizeIdx != DMTX_SYMBOL_RECT_AUTO);
@@ -175,7 +172,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
 
    if(enc->image == NULL) {
       perror("image malloc error");
-      exit(2);
+      return DMTX_FAILURE;
    }
 
    /* Insert finder and aligment pattern modules */
@@ -234,6 +231,8 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
 
    /* Use 1/3 (floor) of dataWordCount establish first symbol size attempt */
    splitSizeIdxFirst = FindCorrectBarcodeSize(tmpInputSize, sizeIdxRequest);
+   if(splitSizeIdxFirst == -1)
+      return DMTX_FAILURE;
 
    /* Set the last possible symbol size for this symbol shape or specific size request */
    if(sizeIdxRequest == DMTX_SYMBOL_SQUARE_AUTO)
@@ -364,6 +363,8 @@ EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
 
    /* parameter sizeIdx is requested value, returned sizeIdx is decision */
    *sizeIdx = FindCorrectBarcodeSize(dataWordCount, *sizeIdx);
+   if(*sizeIdx == -1)
+      return 0;
 
    return dataWordCount;
 }
@@ -1305,6 +1306,7 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
 /* XXX this is broken -- what if someone asks for DMTX_SYMBOL_RECT_AUTO or a specific sizeIdx? */
    sizeIdx = FindCorrectBarcodeSize(currentByte + ((inputCount == 3) ? 2 : inputCount),
          DMTX_SYMBOL_SQUARE_AUTO);
+   /* XXX test for sizeIdx == -1 here */
    remainingCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 
    /* XXX the big problem with all of these special cases is what if one of
@@ -1419,6 +1421,7 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
 
    currentByte = channel->currentLength/12;
    sizeIdx = FindCorrectBarcodeSize(currentByte, DMTX_SYMBOL_SQUARE_AUTO);
+   /* XXX test for sizeIdx == -1 here */
    symbolCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 
    /* Test for special case condition */

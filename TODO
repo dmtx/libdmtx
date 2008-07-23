@@ -2,8 +2,12 @@ TODO Items
 -----------------------------------------------------------------
 
 after version 0.5.1:
+  x libdmtx:   Move SetRangeLimit and SetScanRegion into library
+  / libdmtx:   Performance enhancements
+  o libdmtx:   Add right-angle option for flat scanning applications
+  o libdmtx:   Replace DMTXUTIL_ERROR with DMTX_FAILURE (etc...)
+
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
-  o libdmtx:   Move SetRangeLimit and SetScanRegion into library
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)

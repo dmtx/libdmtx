@@ -178,22 +178,16 @@ FindCorrectBarcodeSize(int dataWords, int sizeIdxRequest)
          if(dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) >= dataWords)
             break;
       }
+
+      if(sizeIdx == idxEnd)
+         return -1;
    }
    else {
       sizeIdx = sizeIdxRequest;
    }
 
-   if(dataWords > dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx)) {
-/**
-      if(sizeIdxRequest == DMTX_SYMBOL_SQUARE_AUTO)
-         fprintf(stdout, "Message exceeds maximum length of largest Data Matrix symbol\n");
-      else if(sizeIdxRequest == DMTX_SYMBOL_RECT_AUTO)
-         fprintf(stdout, "Message exceeds maximum length of largest Data Matrix rectangle\n");
-      else
-         fprintf(stdout, "Message exceeds maximum length of requested symbol size\n");
-*/
+   if(dataWords > dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx))
       return -1;
-   }
 
    return sizeIdx;
 }
