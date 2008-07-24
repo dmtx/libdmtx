@@ -133,7 +133,7 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
 
    /* Calculate the best fitting symbol size */
    if(MatrixRegionFindSize(dec->image, &reg) != DMTX_SUCCESS)
-      return reg; /* mark cornerCapture line as 'no not follow' */
+      return reg;
 
    /* Found a valid matrix region */
    reg.found = DMTX_REGION_FOUND;
@@ -141,22 +141,21 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
 }
 
 /**
- * @brief Clamp integer to range min <= i <= max
+ * @brief Clamp integer to range min <= value <= max
  * @param value Value to be clamped
  * @param min Minimum range boundary
  * @param max Maximum range boundary
- * @return void
+ * @return Clamped value
  */
-static void
-ClampIntRange(int *value, int min, int max)
+static int
+ClampIntRange(int value, int min, int max)
 {
-   assert(*value >= min - 1);
-   assert(*value <= max + 1);
+   if(value < min)
+      return min;
+   else if(value > max)
+      return max;
 
-   if(*value < min)
-      *value = min;
-   else if(*value > max)
-      *value = max;
+   return value;
 }
 
 /**
@@ -218,12 +217,10 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
 
       /* Add portion from each position in the convolution matrix pattern */
       for(patternIdx = 0; patternIdx < 8; patternIdx++) {
-         xAdjust = x + patternX[patternIdx];
-         yAdjust = y + patternY[patternIdx];
 
          /* Accommodate 1 pixel beyond edge of image with nearest neighbor value */
-         ClampIntRange(&xAdjust, 0, image->width - 1);
-         ClampIntRange(&yAdjust, 0, image->height - 1);
+         xAdjust = ClampIntRange(x + patternX[patternIdx], 0, image->width - 1);
+         yAdjust = ClampIntRange(y + patternY[patternIdx], 0, image->height - 1);
 
          /* Weight pixel value by appropriate coefficient in convolution matrix */
          coefficientIdx = (patternIdx - dirIdx + 8) % 8;

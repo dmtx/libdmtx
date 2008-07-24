@@ -90,7 +90,7 @@ typedef struct DmtxEdgeSubPixel_struct {
 } DmtxEdgeSubPixel;
 
 /* dmtxregion.c */
-static void ClampIntRange(int *value, int min, int max);
+static int ClampIntRange(int value, int min, int max);
 static DmtxCompassEdge GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs);
 static DmtxEdgeSubPixel FindZeroCrossing(DmtxImage *image, int x, int y, DmtxCompassEdge compassStart);
 static DmtxRay2 FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forward);

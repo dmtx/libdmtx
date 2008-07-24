@@ -5,6 +5,8 @@ today: Finish rb simulation benchmark
 today: Add stricter border module filtering
 today: Update MatrixRegionAlignSecondEdge() logic
 today: Add right-angle option for flat scanning applications ?
+today: Add Stefan to SVN
+today: Make diagnostic version that dumps PNMs for each attempted region
 
 after version 0.5.1:
   x libdmtx:   Move SetRangeLimit and SetScanRegion into library
