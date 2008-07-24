@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <assert.h>
+#include "../../dmtx.h"
 #include "dmtxutil.h"
 
 extern char *programName;
@@ -35,7 +36,7 @@ FatalError(int errorCode, char *fmt, ...)
  * @param  numberInt pointer to converted integer
  * @param  numberString string to be converted
  * @param  terminate pointer to first invalid address
- * @return DMTXUTIL_SUCCESS | DMTXUTIL_ERROR
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 extern int
 StringToInt(int *numberInt, char *numberString, char **terminate)
@@ -50,11 +51,12 @@ StringToInt(int *numberInt, char *numberString, char **terminate)
 
    if(errno != 0 || (**terminate != '\0' && **terminate != '%')) {
       *numberInt = -1;
-      return DMTXUTIL_ERROR;
+      return DMTX_FAILURE;
    }
 
    *numberInt = (int)numberLong;
-   return DMTXUTIL_SUCCESS;
+
+   return DMTX_SUCCESS;
 }
 
 /**

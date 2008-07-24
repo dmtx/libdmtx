@@ -29,9 +29,6 @@ Contact: mike@dragonflylogic.com
 #include "../../config.h"
 #endif
 
-#define DMTXUTIL_SUCCESS     0
-#define DMTXUTIL_ERROR       1
-
 extern int StringToInt(int *numberInt, char *numberString, char **terminate);
 extern void FatalError(int errorCode, char *fmt, ...);
 extern char *Basename(char *path);

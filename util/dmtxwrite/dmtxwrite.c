@@ -69,7 +69,7 @@ main(int argc, char *argv[])
 
    /* Process user options */
    err = HandleArgs(&options, &argc, &argv, &encode);
-   if(err == DMTXUTIL_ERROR)
+   if(err != DMTX_SUCCESS)
       ShowUsage(err);
 
    /* Read input data into buffer */
@@ -142,7 +142,7 @@ InitUserOptions(UserOptions *options)
  * @param options runtime options from defaults or command line
  * @param argcp   pointer to argument count
  * @param argvp   pointer to argument list
- * @return        DMTXUTIL_SUCCESS | DMTXUTIL_ERROR
+ * @return        DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
@@ -210,18 +210,18 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             break;
          case 'd':
             err = StringToInt(&(encode->moduleSize), optarg, &ptr);
-            if(err != DMTXUTIL_SUCCESS || encode->moduleSize <= 0 || *ptr != '\0')
+            if(err != DMTX_SUCCESS || encode->moduleSize <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid module size specified \"%s\""), optarg);
             break;
          case 'm':
             err = StringToInt(&(encode->marginSize), optarg, &ptr);
-            if(err != DMTXUTIL_SUCCESS || encode->marginSize <= 0 || *ptr != '\0')
+            if(err != DMTX_SUCCESS || encode->marginSize <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid margin size specified \"%s\""), optarg);
             break;
          case 'e':
             if(strlen(optarg) != 1) {
                fprintf(stdout, "Invalid encodation scheme \"%s\"\n", optarg);
-               return DMTXUTIL_ERROR;
+               return DMTX_FAILURE;
             }
             switch(*optarg) {
                case 'b':
@@ -230,7 +230,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
                case 'f':
                   encode->scheme = DmtxSchemeEncodeAutoFast;
                   fprintf(stdout, "\"Fast optimized\" not implemented yet\n", opt);
-                  return DMTXUTIL_ERROR;
+                  return DMTX_FAILURE;
                   break;
                case 'a':
                   encode->scheme = DmtxSchemeEncodeAscii;
@@ -252,7 +252,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
                   break;
                default:
                   fprintf(stdout, "Invalid encodation scheme \"%s\"\n", optarg);
-                  return DMTXUTIL_ERROR;
+                  return DMTX_FAILURE;
                   break;
             }
             break;
@@ -262,7 +262,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             if(options->format != 'n' && options->format != 'p' &&
                   options->format != 'm') {
                fprintf(stdout, "Invalid output format \"%c\"\n", options->format);
-               return DMTXUTIL_ERROR;
+               return DMTX_FAILURE;
             }
 
             break;
@@ -275,13 +275,13 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             if(options->preview != 'n' && options->preview != 'a' &&
                   options->preview != 'c') {
                fprintf(stdout, "Invalid preview format \"%c\"\n", options->preview);
-               return DMTXUTIL_ERROR;
+               return DMTX_FAILURE;
             }
 
             break;
          case 'r':
             err = StringToInt(&(options->rotate), optarg, &ptr);
-            if(err != DMTXUTIL_SUCCESS || *ptr != '\0')
+            if(err != DMTX_SUCCESS || *ptr != '\0')
                FatalError(1, _("Invalid rotation angle specified \"%s\""), optarg);
             break;
          case 's':
@@ -300,7 +300,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
                   }
                }
                if(i == DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT)
-                  return DMTXUTIL_ERROR;
+                  return DMTX_FAILURE;
             }
 
             break;
@@ -312,7 +312,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             break;
          case 'R':
             err = StringToInt(&(options->dpi), optarg, &ptr);
-            if(err != DMTXUTIL_SUCCESS || options->dpi <= 0 || *ptr != '\0')
+            if(err != DMTX_SUCCESS || options->dpi <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid dpi specified \"%s\""), optarg);
             break;
          case 'V':
@@ -321,7 +321,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             exit(0);
             break;
          default:
-            return DMTXUTIL_ERROR;
+            return DMTX_FAILURE;
             break;
       }
    }
@@ -331,7 +331,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
    /* XXX here test for incompatibility between options. For example you
       cannot specify dpi if PNM output is requested */
 
-   return DMTXUTIL_SUCCESS;
+   return DMTX_SUCCESS;
 }
 
 /**

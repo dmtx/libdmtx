@@ -72,7 +72,7 @@ SetOptionDefaults(UserOptions *options)
  * @param options    runtime options from defaults or command line
  * @param argcp      pointer to argument count
  * @param argvp      pointer to argument list
- * @return           DMTXUTIL_SUCCESS | DMTXUTIL_ERROR
+ * @return           DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 HandleArgs(UserOptions *options, int *argcp, char **argvp[])
@@ -91,7 +91,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[])
    programName = Basename((*argvp)[0]);
 
    if(*argcp == 1) /* Program called without arguments */
-      return DMTXUTIL_ERROR;
+      return DMTX_FAILURE;
 
    for(;;) {
       opt = getopt_long(*argcp, *argvp, "V", longOptions, &longIndex);
@@ -108,12 +108,12 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[])
             exit(0);
             break;
          default:
-            return DMTXUTIL_ERROR;
+            return DMTX_FAILURE;
             break;
       }
    }
 
-   return DMTXUTIL_SUCCESS;
+   return DMTX_SUCCESS;
 }
 
 /**

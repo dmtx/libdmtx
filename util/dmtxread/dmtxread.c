@@ -65,7 +65,7 @@ main(int argc, char *argv[])
    SetOptionDefaults(&options);
 
    err = HandleArgs(&options, &fileIndex, &argc, &argv);
-   if(err)
+   if(err != DMTX_SUCCESS)
       ShowUsage(err);
 
    timeout = (options.msec == -1) ? NULL : &msec;
@@ -175,7 +175,7 @@ SetOptionDefaults(UserOptions *options)
  * @param argcp      pointer to argument count
  * @param argvp      pointer to argument list
  * @param fileIndex  pointer to index of first non-option arg (if successful)
- * @return           DMTXUTIL_SUCCESS | DMTXUTIL_ERROR
+ * @return           DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
@@ -224,12 +224,12 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'g':
             err = StringToInt(&(options->scanGap), optarg, &ptr);
-            if(err != DMTXUTIL_SUCCESS || options->scanGap <= 0 || *ptr != '\0')
+            if(err != DMTX_SUCCESS || options->scanGap <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid gap specified \"%s\""), optarg);
             break;
          case 'm':
             err = StringToInt(&(options->msec), optarg, &ptr);
-            if(err != DMTXUTIL_SUCCESS || options->msec < 0 || *ptr != '\0')
+            if(err != DMTX_SUCCESS || options->msec < 0 || *ptr != '\0')
                FatalError(1, _("Invalid duration (in milliseconds) specified \"%s\""), optarg);
             break;
          case 'n':
@@ -237,7 +237,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 't':
             err = StringToInt(&(options->minEdge), optarg, &ptr);
-            if(err != DMTXUTIL_SUCCESS || *ptr != '\0' ||
+            if(err != DMTX_SUCCESS || *ptr != '\0' ||
                   options->minEdge < 1 || options->minEdge > 100)
                FatalError(1, _("Invalid edge threshold specified \"%s\""), optarg);
             break;
@@ -258,7 +258,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'C':
             err = StringToInt(&(options->maxCorrections), optarg, &ptr);
-            if(err != DMTXUTIL_SUCCESS || options->maxCorrections < 0 || *ptr != '\0')
+            if(err != DMTX_SUCCESS || options->maxCorrections < 0 || *ptr != '\0')
                FatalError(1, _("Invalid max corrections specified \"%s\""), optarg);
             break;
          case 'D':
@@ -279,7 +279,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             exit(0);
             break;
          default:
-            return DMTXUTIL_ERROR;
+            return DMTX_FAILURE;
             break;
       }
    }
@@ -289,13 +289,13 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    if(*fileIndex == *argcp) {
 
       if(*argcp == 1) /* Program called without arguments */
-         return DMTXUTIL_ERROR;
+         return DMTX_FAILURE;
       else
          FatalError(1, _("Must specify image file"));
 
    }
 
-   return DMTXUTIL_SUCCESS;
+   return DMTX_SUCCESS;
 }
 
 /**
@@ -364,7 +364,7 @@ ScaleNumberString(char *s, int extent)
    assert(s != NULL);
 
    err = StringToInt(&numValue, s, &terminate);
-   if(err != DMTXUTIL_SUCCESS)
+   if(err != DMTX_SUCCESS)
       FatalError(1, _("Integer value required"));
 
    scaledValue = (*terminate == '%') ? (int)(0.01 * numValue * extent + 0.5) : numValue;
@@ -658,7 +658,7 @@ LoadImageTiff(char *imagePath, int pageIndex)
  *
  * @param options   runtime options from defaults or command line
  * @param decode    pointer to DmtxDecode struct
- * @return          DMTXUTIL_SUCCESS | DMTXUTIL_ERROR
+ * @return          DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 PrintDecodedOutput(UserOptions *options, DmtxImage *image,
@@ -732,7 +732,7 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
          fputc('\n', stdout);
    }
 
-   return DMTXUTIL_SUCCESS;
+   return DMTX_SUCCESS;
 }
 
 /**
