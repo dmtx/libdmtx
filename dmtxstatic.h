@@ -120,8 +120,7 @@ static DmtxColor3 ReadModuleColor(DmtxImage *image, DmtxRegion *region,
       int symbolRow, int symbolCol, int sizeIdx);
 
 static int CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDirection dir);
-static int MatrixRegionFindSizeNew(DmtxImage *img, DmtxRegion *region);
-static int MatrixRegionFindSize(DmtxImage *image, DmtxRegion *region);
+static int MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg);
 
 /* dmtxdecode.c */
 static void DecodeDataStream(DmtxMessage *message, int sizeIdx, unsigned char *outputStart);

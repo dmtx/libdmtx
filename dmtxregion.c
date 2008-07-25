@@ -132,7 +132,7 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
       return reg;
 
    /* Calculate the best fitting symbol size */
-   if(MatrixRegionFindSizeNew(dec->image, &reg) != DMTX_SUCCESS)
+   if(MatrixRegionFindSize(dec->image, &reg) != DMTX_SUCCESS)
       return reg;
 
    /* Found a valid matrix region */
@@ -1360,7 +1360,6 @@ ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, i
 
    return cAverage;
 */
-
 }
 
 /* @brief  XXX
@@ -1369,7 +1368,7 @@ ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, i
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-MatrixRegionFindSizeNew(DmtxImage *img, DmtxRegion *reg)
+MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg)
 {
    int row, col;
    int sizeIdx, bestSizeIdx;
@@ -1381,7 +1380,9 @@ MatrixRegionFindSizeNew(DmtxImage *img, DmtxRegion *reg)
    DmtxColor3 black = { 0.0, 0.0, 0.0 };
 
    bestSizeIdx = -1;
-   contrast = 0;
+   contrast = bestContrast = 0;
+   colorDiff = bestColorDiff = black;
+   colorOffAvg = bestColorOffAvg = black;
 
    /* Test each barcode size to find best contrast in calibration modules */
    for(sizeIdx = 0; sizeIdx < DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT; sizeIdx++) {
@@ -1508,8 +1509,8 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
 
    assert(xStart == 0 || yStart == 0);
    assert(dir == DmtxDirRight || dir == DmtxDirUp);
-// assert(xStart >= -1 && xStart <= reg->symbolCols);
-// assert(yStart >= -1 && yStart <= reg->symbolRows);
+/* assert(xStart >= -1 && xStart <= reg->symbolCols); */
+/* assert(yStart >= -1 && yStart <= reg->symbolRows); */
 
    if(dir == DmtxDirRight)
       xInc = 1;
@@ -1557,6 +1558,7 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
  * @param  reg
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
+/*
 static int
 MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
 {
@@ -1574,7 +1576,7 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
                              26,  7,  6,  5,  4, 24,  3,  2,  1,  0 };
    int *ptr;
 
-   /* First try all sizes to determine which sizeIdx gives best contrast */
+   // First try all sizes to determine which sizeIdx gives best contrast
    ptr = sizeIdxAttempts;
    gradient.tMin = gradient.tMid = gradient.tMax = 0;
    do {
@@ -1584,7 +1586,7 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
 
       colorOnAvg = colorOffAvg = black;
 
-      /* Sample each module on and below horizontal finder bar */
+      // Sample each module on and below horizontal finder bar
       for(row = 0, col = 0; col < symbolCols; col++) {
          colorOn = ReadModuleColor(image, reg, row, col, sizeIdx);
          colorOff = ReadModuleColor(image, reg, row-1, col, sizeIdx);
@@ -1592,7 +1594,7 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
          dmtxColor3AddTo(&colorOffAvg, &colorOff);
       }
 
-      /* Sample each module on and left of vertical finder bar */
+      // Sample each module on and left of vertical finder bar
       for(row = 0, col = 0; row < symbolRows; row++) {
          colorOn = ReadModuleColor(image, reg, row, col, sizeIdx);
          colorOff = ReadModuleColor(image, reg, row, col-1, sizeIdx);
@@ -1621,8 +1623,8 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
    if(jumpThreshold < 20)
       return DMTX_FAILURE;
 
-   /* Start with largest possible pattern size and work downward.  If done
-      in other direction then false positive is possible. */
+   // Start with largest possible pattern size and work downward.  If done
+   // in other direction then false positive is possible.
 
    ptr = sizeIdxAttempts;
    minErrorsSizeIdx = *ptr;
@@ -1631,9 +1633,9 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
       symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
       symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
 
-      /* Test each pair of ON/OFF modules in the calibration bars */
+      // Test each pair of ON/OFF modules in the calibration bars
 
-      /* Top calibration row */
+      // Top calibration row
       row = symbolRows - 1;
       for(col = 0; col < symbolCols; col += 2) {
          colorOff = ReadModuleColor(image, reg, row, col + 1, sizeIdx);
@@ -1648,7 +1650,7 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
             break;
       }
 
-      /* Right calibration column */
+      // Right calibration column
       col = symbolCols - 1;
       for(row = 0; row < symbolRows; row += 2) {
          colorOff = ReadModuleColor(image, reg, row + 1, col, sizeIdx);
@@ -1663,7 +1665,7 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
             break;
       }
 
-      /* Track of which sizeIdx has the fewest errors */
+      // Track of which sizeIdx has the fewest errors
       if(errors[sizeIdx] < errors[minErrorsSizeIdx])
          minErrorsSizeIdx = sizeIdx;
 
@@ -1682,3 +1684,4 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
 
    return DMTX_SUCCESS;
 }
+*/
