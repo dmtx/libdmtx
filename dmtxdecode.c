@@ -698,7 +698,6 @@ PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
          xOrigin = xRegionCount * (mapWidth + 2) + 1;
 
          memset(tally, 0x00, 24 * 24 * sizeof(int));
-         /* XXX see if there's a clean way to remove decode from this call */
          TallyModuleJumps(image, region, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirUp);
          TallyModuleJumps(image, region, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirLeft);
          TallyModuleJumps(image, region, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirDown);
@@ -736,11 +735,11 @@ PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
  * @param  yOrigin
  * @param  mapWidth
  * @param  mapHeight
- * @param  direction
+ * @param  dir
  * @return void
  */
 static void
-TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, int direction)
+TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir)
 {
    int extent, weight;
    int travelStep;
@@ -754,15 +753,14 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
    int statusPrev, statusModule;
    double tPrev, tModule;
 
-   assert(direction == DmtxDirUp || direction == DmtxDirLeft ||
-         direction == DmtxDirDown || direction == DmtxDirRight);
+   assert(dir == DmtxDirUp || dir == DmtxDirLeft || dir == DmtxDirDown || dir == DmtxDirRight);
 
-   travelStep = (direction == DmtxDirUp || direction == DmtxDirRight) ? 1 : -1;
+   travelStep = (dir == DmtxDirUp || dir == DmtxDirRight) ? 1 : -1;
 
    /* Abstract row and column progress using pointers to allow grid
       traversal in all 4 directions using same logic */
 
-   if(direction & DmtxDirHorizontal) {
+   if(dir & DmtxDirHorizontal) {
       line = &symbolRow;
       travel = &symbolCol;
       extent = mapWidth;
@@ -772,7 +770,7 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
       travelStop = (travelStep == 1) ? xOrigin + mapWidth : xOrigin - 1;
    }
    else {
-      assert(direction & DmtxDirVertical);
+      assert(dir & DmtxDirVertical);
       line = &symbolCol;
       travel = &symbolRow;
       extent = mapHeight;
@@ -829,10 +827,6 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
 
          if(statusModule == DMTX_MODULE_ON_RGB)
             tally[mapRow][mapCol] += (2 * weight);
-/*       else if(statusModule == DMTX_MODULE_UNSURE)
-            tally[mapRow][mapCol] += weight; */
-
-/*       debug[mapRow][mapCol] = tModule - tPrev; */
 
          weight--;
       }

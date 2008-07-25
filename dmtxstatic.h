@@ -119,6 +119,8 @@ static int StepAlongEdge(DmtxDecode *dec, DmtxRegion *region,
 static DmtxColor3 ReadModuleColor(DmtxImage *image, DmtxRegion *region,
       int symbolRow, int symbolCol, int sizeIdx);
 
+static int CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDirection dir);
+static int MatrixRegionFindSizeNew(DmtxImage *img, DmtxRegion *region);
 static int MatrixRegionFindSize(DmtxImage *image, DmtxRegion *region);
 
 /* dmtxdecode.c */
@@ -133,7 +135,7 @@ static unsigned char *DecodeSchemeBase256(DmtxMessage *message, unsigned char *p
 /* static unsigned char UnRandomize253State(unsigned char codewordValue, int codewordPosition); XXX need later */
 static unsigned char UnRandomize255State(unsigned char value, int idx);
 static int PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *region);
-static void TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, int direction);
+static void TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir);
 static int PopulateArrayFromMosaic(DmtxMessage *message, DmtxImage *image, DmtxRegion *region);
 
 /* dmtxencode.c */

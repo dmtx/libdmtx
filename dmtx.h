@@ -65,7 +65,8 @@ extern "C" {
 #define DMTX_MODULE_ON_GREEN        0x02
 #define DMTX_MODULE_ON_BLUE         0x04
 #define DMTX_MODULE_ON_RGB          0x07  /* ON_RED | ON_GREEN | ON_BLUE */
-#define DMTX_MODULE_UNSURE          0x08  /* ON_RED | ON_GREEN | ON_BLUE */
+#define DMTX_MODULE_ON              0x07
+#define DMTX_MODULE_UNSURE          0x08
 #define DMTX_MODULE_ASSIGNED        0x10
 #define DMTX_MODULE_VISITED         0x20
 #define DMTX_MODULE_DATA            0x40
