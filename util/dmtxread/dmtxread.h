@@ -35,14 +35,15 @@ Contact: mike@dragonflylogic.com
 
 typedef struct {
    int codewords;
-   int minEdge;
    int scanGap;
+   int msec;
    int newline;
+   int squareDevn;
+   int minEdge;
    char *xMin;
    char *xMax;
    char *yMin;
    char *yMax;
-   int msec;
    int verbose;
    int maxCorrections;
    int diagnose;

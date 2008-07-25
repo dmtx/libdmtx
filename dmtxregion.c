@@ -106,14 +106,14 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
       return reg;
 
    /* If detected edge is strong then find its subpixel location */
-   edgeStart = FindZeroCrossing(dec->image, loc.X, loc.Y, compassEdge);
+   edgeStart = FindZeroCrossing(dec, loc.X, loc.Y, compassEdge);
    edgeStart.compass = compassEdge; /* XXX for now ... need to preserve scanDir */
    if(!edgeStart.isEdge)
       return reg;
 
    /* Next follow the edge to its end in both directions */
-   ray0 = FollowEdge(dec->image, loc.X, loc.Y, edgeStart, 1);
-   ray1 = FollowEdge(dec->image, loc.X, loc.Y, edgeStart, -1);
+   ray0 = FollowEdge(dec, loc.X, loc.Y, edgeStart, 1);
+   ray1 = FollowEdge(dec, loc.X, loc.Y, edgeStart, -1);
 
    /* Define first edge based on travel limits of detected edge */
    if(MatrixRegionAlignFirstEdge(dec, &reg, &edgeStart, ray0, ray1) != DMTX_SUCCESS)
@@ -257,11 +257,12 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
  * neighbors)
  */
 static DmtxEdgeSubPixel
-FindZeroCrossing(DmtxImage *image, int x, int y, DmtxCompassEdge compassStart)
+FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge compassStart)
 {
    double accelPrev, accelNext, frac;
    DmtxCompassEdge compassPrev, compassNext;
    DmtxEdgeSubPixel subPixel;
+   DmtxImage *img = dec->image;
 
    assert(compassStart.scanDir == DmtxCompassDir0 || compassStart.scanDir == DmtxCompassDir90);
 
@@ -270,21 +271,21 @@ FindZeroCrossing(DmtxImage *image, int x, int y, DmtxCompassEdge compassStart)
    subPixel.yInt = y;
    subPixel.xFrac = 0.0;
    subPixel.yFrac = 0.0;
-   subPixel.compass = GetCompassEdge(image, x, y, compassStart.edgeDir);
+   subPixel.compass = GetCompassEdge(img, x, y, compassStart.edgeDir);
 
-   if(subPixel.compass.magnitude < 60)
+   if(subPixel.compass.magnitude < dec->edgeMin * 17.68)
       return subPixel;
 
    if(dmtxColor3Dot(&subPixel.compass.intensity, &compassStart.intensity) < 0)
       return subPixel;
 
    if(compassStart.scanDir == DmtxCompassDir0) {
-      compassPrev = GetCompassEdge(image, x-1, y, compassStart.edgeDir);
-      compassNext = GetCompassEdge(image, x+1, y, compassStart.edgeDir);
+      compassPrev = GetCompassEdge(img, x-1, y, compassStart.edgeDir);
+      compassNext = GetCompassEdge(img, x+1, y, compassStart.edgeDir);
    }
    else { /* DmtxCompassDir90 */
-      compassPrev = GetCompassEdge(image, x, y-1, compassStart.edgeDir);
-      compassNext = GetCompassEdge(image, x, y+1, compassStart.edgeDir);
+      compassPrev = GetCompassEdge(img, x, y-1, compassStart.edgeDir);
+      compassNext = GetCompassEdge(img, x, y+1, compassStart.edgeDir);
    }
 
    /* Calculate 2nd derivatives left and right of center */
@@ -309,7 +310,7 @@ FindZeroCrossing(DmtxImage *image, int x, int y, DmtxCompassEdge compassStart)
  *
  */
 static DmtxRay2
-FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forward)
+FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forward)
 {
    int xFollow, yFollow;
    int xIncrement, yIncrement;
@@ -346,14 +347,14 @@ FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forwa
    yFollow = y + yIncrement;
 
    while(edge.isEdge &&
-         xFollow >= 0 && xFollow < image->width &&
-         yFollow >= 0 && yFollow < image->height) {
+         xFollow >= 0 && xFollow < dec->image->width &&
+         yFollow >= 0 && yFollow < dec->image->height) {
 
-      edge = FindZeroCrossing(image, xFollow, yFollow, compass);
+      edge = FindZeroCrossing(dec, xFollow, yFollow, compass);
 
       if(!edge.isEdge) {
-         edge0 = FindZeroCrossing(image, xFollow + yIncrement, yFollow + xIncrement, compass);
-         edge1 = FindZeroCrossing(image, xFollow - yIncrement, yFollow - xIncrement, compass);
+         edge0 = FindZeroCrossing(dec, xFollow + yIncrement, yFollow + xIncrement, compass);
+         edge1 = FindZeroCrossing(dec, xFollow - yIncrement, yFollow - xIncrement, compass);
          if(edge0.isEdge && edge1.isEdge) {
             strong0 = dmtxColor3Dot(&edge0.compass.intensity, &compass.intensity);
             strong1 = dmtxColor3Dot(&edge1.compass.intensity, &compass.intensity);
@@ -364,8 +365,8 @@ FollowEdge(DmtxImage *image, int x, int y, DmtxEdgeSubPixel edgeStart, int forwa
          }
 
          if(!edge.isEdge) {
-            edge0 = FindZeroCrossing(image, xFollow + 2*yIncrement, yFollow + 2*xIncrement, compass);
-            edge1 = FindZeroCrossing(image, xFollow - 2*yIncrement, yFollow - 2*xIncrement, compass);
+            edge0 = FindZeroCrossing(dec, xFollow + 2*yIncrement, yFollow + 2*xIncrement, compass);
+            edge1 = FindZeroCrossing(dec, xFollow - 2*yIncrement, yFollow - 2*xIncrement, compass);
             if(edge0.isEdge && edge1.isEdge) {
                strong0 = dmtxColor3Dot(&edge0.compass.intensity, &compass.intensity);
                strong1 = dmtxColor3Dot(&edge1.compass.intensity, &compass.intensity);
@@ -436,13 +437,14 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-MatrixRegionUpdateXfrms(DmtxImage *image, DmtxRegion *reg)
+MatrixRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
 {
    DmtxVector2 vOT, vOR, vTmp;
    double tx, ty, phi, shx, scx, scy, skx, sky;
    double dimOT, dimOR, dimTX, dimRX, ratio;
    DmtxMatrix3 m, mtxy, mphi, mshx, mscxy, msky, mskx, mTmp;
    DmtxCorners corners;
+   DmtxImage *img = dec->image;
 
    assert((reg->corners.known & DmtxCorner00) && (reg->corners.known & DmtxCorner01));
 
@@ -453,8 +455,8 @@ MatrixRegionUpdateXfrms(DmtxImage *image, DmtxRegion *reg)
       corners.c01.X < 0.0 || corners.c01.Y < 0.0)
       return DMTX_FAILURE;
 
-   if(corners.c00.X > image->width - 1 || corners.c00.Y > image->height - 1 ||
-      corners.c01.X > image->width - 1 || corners.c01.Y > image->height - 1)
+   if(corners.c00.X > img->width - 1 || corners.c00.Y > img->height - 1 ||
+      corners.c01.X > img->width - 1 || corners.c01.Y > img->height - 1)
       return DMTX_FAILURE;
 
    dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &corners.c01, &corners.c00)); /* XXX could use MagSquared() */
@@ -464,8 +466,8 @@ MatrixRegionUpdateXfrms(DmtxImage *image, DmtxRegion *reg)
    /* Bottom-right corner -- validate if known or create temporary value */
    if(corners.known & DmtxCorner10) {
       if(corners.c10.X < 0.0 || corners.c10.Y < 0.0 ||
-            corners.c10.X > image->width - 1 ||
-            corners.c10.Y > image->height - 1)
+            corners.c10.X > img->width - 1 ||
+            corners.c10.Y > img->height - 1)
          return DMTX_FAILURE;
    }
    else {
@@ -479,14 +481,15 @@ MatrixRegionUpdateXfrms(DmtxImage *image, DmtxRegion *reg)
       return DMTX_FAILURE;
 
    /* Solid edges are both defined now */
-   if(RightAngleTrueness(corners.c01, corners.c00, corners.c10, M_PI_2) < 0.7)
-      return DMTX_FAILURE;
+   if(corners.known & DmtxCorner10)
+      if(RightAngleTrueness(corners.c01, corners.c00, corners.c10, M_PI_2) < dec->squareDevn)
+         return DMTX_FAILURE;
 
    /* Top-right corner -- validate if known or create temporary value */
    if(corners.known & DmtxCorner11) {
       if(corners.c11.X < 0.0 || corners.c11.Y < 0.0 ||
-            corners.c11.X > image->width - 1 ||
-            corners.c11.Y > image->height - 1)
+            corners.c11.X > img->width - 1 ||
+            corners.c11.Y > img->height - 1)
          return DMTX_FAILURE;
    }
    else {
@@ -508,16 +511,18 @@ MatrixRegionUpdateXfrms(DmtxImage *image, DmtxRegion *reg)
       return DMTX_FAILURE;
 
    /* Test top-left corner for trueness */
-   if(RightAngleTrueness(corners.c11, corners.c01, corners.c00, M_PI_2) < 0.7)
-      return DMTX_FAILURE;
+   if(corners.known & DmtxCorner11)
+      if(RightAngleTrueness(corners.c11, corners.c01, corners.c00, M_PI_2) < dec->squareDevn)
+         return DMTX_FAILURE;
 
-   /* Test bottom-right corner for trueness */
-   if(RightAngleTrueness(corners.c00, corners.c10, corners.c11, M_PI_2) < 0.7)
-      return DMTX_FAILURE;
-
-   /* Test top-right corner for trueness */
-   if(RightAngleTrueness(corners.c10, corners.c11, corners.c01, M_PI_2) < 0.7)
-      return DMTX_FAILURE;
+   if((corners.known & DmtxCorner10) && (corners.known & DmtxCorner11)) {
+      /* Test bottom-right corner for trueness */
+      if(RightAngleTrueness(corners.c00, corners.c10, corners.c11, M_PI_2) < dec->squareDevn)
+         return DMTX_FAILURE;
+      /* Test top-right corner for trueness */
+      if(RightAngleTrueness(corners.c10, corners.c11, corners.c01, M_PI_2) < dec->squareDevn)
+         return DMTX_FAILURE;
+   }
 
    /* Calculate values needed for transformations */
    tx = -1 * corners.c00.X;
@@ -638,7 +643,7 @@ MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxEdgeSubPixel *e
    SetCornerLoc(reg, DmtxCorner01, pTmp);
    SetCornerLoc(reg, DmtxCorner00, rayFull.p);
 
-   if(MatrixRegionUpdateXfrms(dec->image, reg) != DMTX_SUCCESS)
+   if(MatrixRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    /* Top-right pane showing first edge fit */
@@ -891,7 +896,7 @@ among module samples and proximity of color to initial edge
    SetCornerLoc(reg, DmtxCorner01, T);
    SetCornerLoc(reg, DmtxCorner10, R);
 
-   if(MatrixRegionUpdateXfrms(dec->image, reg) != DMTX_SUCCESS)
+   if(MatrixRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    /* Skewed barcode in the bottom middle pane */
@@ -981,7 +986,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg,
 
    if(edgeLoc == DmtxEdgeRight) {
       SetCornerLoc(reg, DmtxCorner10, pCorner);
-      if(MatrixRegionUpdateXfrms(dec->image, reg) != DMTX_SUCCESS)
+      if(MatrixRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
          return DMTX_FAILURE;
 
       dmtxMatrix3VMultiplyBy(&p0, reg->raw2fit);
@@ -1003,7 +1008,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg,
    }
    else {
       SetCornerLoc(reg, DmtxCorner01, pCorner);
-      if(MatrixRegionUpdateXfrms(dec->image, reg) != DMTX_SUCCESS)
+      if(MatrixRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
          return DMTX_FAILURE;
 
       dmtxMatrix3VMultiplyBy(&p0, reg->raw2fit);
@@ -1023,7 +1028,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg,
       SetCornerLoc(reg, DmtxCorner01, p0);
       SetCornerLoc(reg, DmtxCorner11, p1);
    }
-   if(MatrixRegionUpdateXfrms(dec->image, reg) != DMTX_SUCCESS)
+   if(MatrixRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    return DMTX_SUCCESS;

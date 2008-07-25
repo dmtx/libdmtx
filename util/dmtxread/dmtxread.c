@@ -92,20 +92,23 @@ main(int argc, char *argv[])
       /* Initialize decode struct for newly loaded image */
       decode = dmtxDecodeStructInit(image);
 
-      dmtxDecodeSetProp(&decode, DmtxDecodeEdgeThreshold, options.minEdge);
-      dmtxDecodeSetProp(&decode, DmtxDecodeScanGap, options.scanGap);
+      dmtxDecodeSetProp(&decode, DmtxPropEdgeThresh, options.minEdge);
+      dmtxDecodeSetProp(&decode, DmtxPropScanGap, options.scanGap);
+
+      if(options.squareDevn != -1)
+         dmtxDecodeSetProp(&decode, DmtxPropSquareDevn, options.squareDevn);
 
       if(options.xMin)
-         dmtxDecodeSetProp(&decode, DmtxDecodeXmin, ScaleNumberString(options.xMin, image->width));
+         dmtxDecodeSetProp(&decode, DmtxPropXmin, ScaleNumberString(options.xMin, image->width));
 
       if(options.xMax)
-         dmtxDecodeSetProp(&decode, DmtxDecodeXmax, ScaleNumberString(options.xMax, image->width));
+         dmtxDecodeSetProp(&decode, DmtxPropXmax, ScaleNumberString(options.xMax, image->width));
 
       if(options.yMin)
-         dmtxDecodeSetProp(&decode, DmtxDecodeYmin, ScaleNumberString(options.yMin, image->height));
+         dmtxDecodeSetProp(&decode, DmtxPropYmin, ScaleNumberString(options.yMin, image->height));
 
       if(options.yMax)
-         dmtxDecodeSetProp(&decode, DmtxDecodeYmax, ScaleNumberString(options.yMax, image->height));
+         dmtxDecodeSetProp(&decode, DmtxPropYmax, ScaleNumberString(options.yMax, image->height));
 
       /* Loop once for each detected barcode region */
       for(;;) {
@@ -153,17 +156,19 @@ SetOptionDefaults(UserOptions *options)
 
    /* Set default options */
    options->codewords = 0;
-   options->minEdge = 10;
    options->scanGap = 2;
+   options->msec = -1;
    options->newline = 0;
+   options->squareDevn = -1;
+   options->minEdge = 10;
    options->xMin = NULL;
    options->xMax = NULL;
    options->yMin = NULL;
    options->yMax = NULL;
-   options->msec = -1;
    options->verbose = 0;
    options->maxCorrections = -1;
    options->diagnose = 0;
+   options->mosaic = 0;
    options->pageNumber = 0;
    options->corners = 0;
 }
@@ -190,6 +195,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
          {"gap",              required_argument, NULL, 'g'},
          {"milliseconds",     required_argument, NULL, 'm'},
          {"newline",          no_argument,       NULL, 'n'},
+         {"square-deviation", required_argument, NULL, 's'},
          {"threshold",        required_argument, NULL, 't'},
          {"x-range-min",      required_argument, NULL, 'x'},
          {"x-range-max",      required_argument, NULL, 'X'},
@@ -211,7 +217,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "cg:m:nt:x:X:y:Y:vC:DMPRV", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "cg:m:ns:t:x:X:y:Y:vC:DMPRV", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -234,6 +240,12 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'n':
             options->newline = 1;
+            break;
+         case 's':
+            err = StringToInt(&(options->squareDevn), optarg, &ptr);
+            if(err != DMTX_SUCCESS || *ptr != '\0' ||
+                  options->squareDevn < 0 || options->squareDevn > 90)
+               FatalError(1, _("Invalid squareness deviation specified \"%s\""), optarg);
             break;
          case 't':
             err = StringToInt(&(options->minEdge), optarg, &ptr);
@@ -330,6 +342,7 @@ OPTIONS:\n"), programName, programName);
   -g, --gap=NUM              use scan grid with gap of NUM pixels between lines\n\
   -m, --milliseconds=N       stop scan after N milliseconds (per image)\n\
   -n, --newline              print newline character at the end of decoded data\n\
+  -s, --square-deviation=N   allowed non-squareness of corners in degrees (0-90)\n\
   -t, --threshold=N          ignore weak edges below threshold N (1-100)\n\
   -x, --x-range-min=N[%%]     do not scan pixels to the left of N (or N%%)\n\
   -X, --x-range-max=N[%%]     do not scan pixels to the right of N (or N%%)\n\

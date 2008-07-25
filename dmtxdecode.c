@@ -43,6 +43,7 @@ dmtxDecodeStructInit(DmtxImage *image)
    memset(dec.image->compass, 0x00, image->height * image->width * sizeof(DmtxCompassEdge));
 
    dec.edgeMin = 10;
+   dec.squareDevn = cos(40 * (M_PI/180));
    dec.scanGap = 10;
    dec.xMin = 0;
    dec.xMax = image->width - 1;
@@ -73,25 +74,28 @@ dmtxDecodeStructDeInit(DmtxDecode *dec)
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 extern int
-dmtxDecodeSetProp(DmtxDecode *dec, DmtxDecodeProp prop, int value)
+dmtxDecodeSetProp(DmtxDecode *dec, DmtxProperty prop, int value)
 {
    switch(prop) {
-      case DmtxDecodeEdgeThreshold:
+      case DmtxPropEdgeThresh:
          dec->edgeMin = value;
          break;
-      case DmtxDecodeScanGap:
+      case DmtxPropSquareDevn:
+         dec->squareDevn = cos(value * (M_PI/180.0));
+         break;
+      case DmtxPropScanGap:
          dec->scanGap = value;
          break;
-      case DmtxDecodeXmin:
+      case DmtxPropXmin:
          dec->xMin = value;
          break;
-      case DmtxDecodeXmax:
+      case DmtxPropXmax:
          dec->xMax = value;
          break;
-      case DmtxDecodeYmin:
+      case DmtxPropYmin:
          dec->yMin = value;
          break;
-      case DmtxDecodeYmax:
+      case DmtxPropYmax:
          dec->yMax = value;
          break;
    }
@@ -105,6 +109,9 @@ dmtxDecodeSetProp(DmtxDecode *dec, DmtxDecodeProp prop, int value)
          dec->yMin < 0 || dec->yMax >= dec->image->height)
       return DMTX_FAILURE;
 
+   if(dec->squareDevn < 0.0 || dec->squareDevn > 1.0)
+      return DMTX_FAILURE;
+
    if(dec->scanGap < 1)
       return DMTX_FAILURE;
 
@@ -112,9 +119,9 @@ dmtxDecodeSetProp(DmtxDecode *dec, DmtxDecodeProp prop, int value)
       return DMTX_FAILURE;
 
    /* Reinitialize scangrid if any inputs changed */
-   if(prop == DmtxDecodeXmin || prop == DmtxDecodeXmax ||
-         prop == DmtxDecodeYmin || prop == DmtxDecodeYmax ||
-         prop == DmtxDecodeScanGap) {
+   if(prop == DmtxPropXmin || prop == DmtxPropXmax ||
+         prop == DmtxPropYmin || prop == DmtxPropYmax ||
+         prop == DmtxPropScanGap) {
       dec->grid = InitScanGrid(dec->image, dec->scanGap, dec->xMin, dec->xMax, dec->yMin, dec->yMax);
    }
 
