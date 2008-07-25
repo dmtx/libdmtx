@@ -21,8 +21,14 @@ Only print the codewords extracted from a Data Matrix, and not the actual decode
 \fB\-g\fP, \fB\-\-gap\fP=\fINUM\fP
 Use scan grid with gap of \fINUM\fP pixels (or less) between lines.
 .TP
+\fB\-m\fP, \fB\-\-milliseconds\fP=\fIN\fP
+Stop scan after N milliseconds (per image).
+.TP
 \fB\-n\fP, \fB\-\-newline\fP
 Print a newline character at the end of decoded data.
+.TP
+\fB\-s\fP, \fB\-\-square-deviation\fP=\fIN\fP
+Maximum deviation (degrees) from squareness between adjacent barcode sides. Default value is N=40, but N=10 is recommended for flat applications like faxes and other scanned documents. Barcode regions found with corners <(90-N) or >(90+N) will be ignored by the decoder.
 .TP
 \fB\-d\fP, \fB\-\-distortion\fP=\fIK1,K2\fP (not implemented yet)
 Radial distortion coefficients.
@@ -38,9 +44,6 @@ Do not scan pixels above pixel row N (or N%).
 .TP
 \fB\-Y\fP, \fB\-\-y-range-max\fP=\fIN[%]\fP
 Do not scan pixels below pixel row N (or N%).
-.TP
-\fB\-m\fP, \fB\-\-milliseconds\fP=\fIN\fP
-Stop scan after N milliseconds (per image).
 .TP
 \fB\-C\fP, \fB\-\-corrections-max\fP=\fIN\fP
 Correct at most N errors per image (0 = correction disabled).
