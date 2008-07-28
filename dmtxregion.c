@@ -202,6 +202,9 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
    /* Calculate this pixel's edge intensity for each direction (-45, 0, 45, 90) */
    for(dirIdx = 0; dirIdx <= 3; dirIdx++) {
 
+      if(dirIdx == 0 || dirIdx == 2)
+         continue;
+
       /* Only scan for edge if this direction was requested */
       if(!(dirVal[dirIdx] & edgeScanDirs))
          continue;
