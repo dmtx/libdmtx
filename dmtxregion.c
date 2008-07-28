@@ -87,7 +87,6 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
 {
    DmtxEdgeSubPixel edgeStart;
    DmtxRay2 ray0, ray1;
-   DmtxCompassEdge compassEdge;
    DmtxRegion reg;
 
    memset(&reg, 0x00, sizeof(DmtxRegion));
@@ -99,15 +98,8 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
          loc.Y < 0 || loc.Y >= dec->image->height)
       return reg;
 
-   /* Test whether this pixel is sitting on a raw edge in any direction */
-   compassEdge = GetCompassEdge(dec->image, loc.X, loc.Y, DMTX_ALL_COMPASS_DIRS);
-
-   if(compassEdge.magnitude < dec->edgeMin * 17.68)
-      return reg;
-
-   /* If detected edge is strong then find its subpixel location */
-   edgeStart = FindZeroCrossing(dec, loc.X, loc.Y, compassEdge);
-   edgeStart.compass = compassEdge; /* XXX for now ... need to preserve scanDir */
+   /* Find subpixel location of strongest edge found at this location */
+   edgeStart = FindZeroCrossing(dec, loc.X, loc.Y, NULL);
    if(!edgeStart.isEdge)
       return reg;
 
@@ -277,35 +269,39 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
  * neighbors)
  */
 static DmtxEdgeSubPixel
-FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge compassStart)
+FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compassStart)
 {
    double accelPrev, accelNext, frac;
-   DmtxCompassEdge compassPrev, compassNext;
+   DmtxCompassEdge compare, compassPrev, compassNext;
    DmtxEdgeSubPixel subPixel;
    DmtxImage *img = dec->image;
-
-   assert(compassStart.scanDir == DmtxCompassDir0 || compassStart.scanDir == DmtxCompassDir90);
 
    subPixel.isEdge = 0;
    subPixel.xInt = x;
    subPixel.yInt = y;
    subPixel.xFrac = 0.0;
    subPixel.yFrac = 0.0;
-   subPixel.compass = GetCompassEdge(img, x, y, compassStart.edgeDir);
+
+   if(compassStart == NULL) {
+      subPixel.compass = compare = GetCompassEdge(img, x, y, DMTX_ALL_COMPASS_DIRS);
+      compassStart = &compare;
+   }
+   else {
+      subPixel.compass = GetCompassEdge(img, x, y, compassStart->edgeDir);
+      if(dmtxColor3Dot(&subPixel.compass.intensity, &(compassStart->intensity)) < 0)
+         return subPixel;
+   }
 
    if(subPixel.compass.magnitude < dec->edgeMin * 17.68)
       return subPixel;
 
-   if(dmtxColor3Dot(&subPixel.compass.intensity, &compassStart.intensity) < 0)
-      return subPixel;
-
-   if(compassStart.scanDir == DmtxCompassDir0) {
-      compassPrev = GetCompassEdge(img, x-1, y, compassStart.edgeDir);
-      compassNext = GetCompassEdge(img, x+1, y, compassStart.edgeDir);
+   if(compassStart->scanDir == DmtxCompassDir0) {
+      compassPrev = GetCompassEdge(img, x-1, y, compassStart->edgeDir);
+      compassNext = GetCompassEdge(img, x+1, y, compassStart->edgeDir);
    }
    else { /* DmtxCompassDir90 */
-      compassPrev = GetCompassEdge(img, x, y-1, compassStart.edgeDir);
-      compassNext = GetCompassEdge(img, x, y+1, compassStart.edgeDir);
+      compassPrev = GetCompassEdge(img, x, y-1, compassStart->edgeDir);
+      compassNext = GetCompassEdge(img, x, y+1, compassStart->edgeDir);
    }
 
    /* Calculate 2nd derivatives left and right of center */
@@ -318,8 +314,8 @@ FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge compassStart)
             (accelPrev / (accelPrev - accelNext)) - 0.5 : 0.0;
 
       subPixel.isEdge = 1;
-      subPixel.xFrac = (compassStart.scanDir == DmtxCompassDir0) ? frac : 0.0;
-      subPixel.yFrac = (compassStart.scanDir == DmtxCompassDir90) ? frac : 0.0;
+      subPixel.xFrac = (compassStart->scanDir == DmtxCompassDir0) ? frac : 0.0;
+      subPixel.yFrac = (compassStart->scanDir == DmtxCompassDir90) ? frac : 0.0;
    }
 
    return subPixel;
@@ -370,11 +366,11 @@ FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forwar
          xFollow >= 0 && xFollow < dec->image->width &&
          yFollow >= 0 && yFollow < dec->image->height) {
 
-      edge = FindZeroCrossing(dec, xFollow, yFollow, compass);
+      edge = FindZeroCrossing(dec, xFollow, yFollow, &compass);
 
       if(!edge.isEdge) {
-         edge0 = FindZeroCrossing(dec, xFollow + yIncrement, yFollow + xIncrement, compass);
-         edge1 = FindZeroCrossing(dec, xFollow - yIncrement, yFollow - xIncrement, compass);
+         edge0 = FindZeroCrossing(dec, xFollow + yIncrement, yFollow + xIncrement, &compass);
+         edge1 = FindZeroCrossing(dec, xFollow - yIncrement, yFollow - xIncrement, &compass);
          if(edge0.isEdge && edge1.isEdge) {
             strong0 = dmtxColor3Dot(&edge0.compass.intensity, &compass.intensity);
             strong1 = dmtxColor3Dot(&edge1.compass.intensity, &compass.intensity);
@@ -385,8 +381,8 @@ FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forwar
          }
 
          if(!edge.isEdge) {
-            edge0 = FindZeroCrossing(dec, xFollow + 2*yIncrement, yFollow + 2*xIncrement, compass);
-            edge1 = FindZeroCrossing(dec, xFollow - 2*yIncrement, yFollow - 2*xIncrement, compass);
+            edge0 = FindZeroCrossing(dec, xFollow + 2*yIncrement, yFollow + 2*xIncrement, &compass);
+            edge1 = FindZeroCrossing(dec, xFollow - 2*yIncrement, yFollow - 2*xIncrement, &compass);
             if(edge0.isEdge && edge1.isEdge) {
                strong0 = dmtxColor3Dot(&edge0.compass.intensity, &compass.intensity);
                strong1 = dmtxColor3Dot(&edge1.compass.intensity, &compass.intensity);
