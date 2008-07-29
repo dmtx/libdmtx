@@ -257,10 +257,10 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
  * neighbors)
  */
 static DmtxEdgeSubPixel
-FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compassStart)
+FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compare)
 {
    double accelPrev, accelNext, frac;
-   DmtxCompassEdge compare, compassPrev, compassNext;
+   DmtxCompassEdge selfStart, compassPrev, compassNext;
    DmtxEdgeSubPixel subPixel;
    DmtxImage *img = dec->image;
 
@@ -270,26 +270,27 @@ FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compassStart)
    subPixel.xFrac = 0.0;
    subPixel.yFrac = 0.0;
 
-   if(compassStart == NULL) {
-      subPixel.compass = compare = GetCompassEdge(img, x, y, DmtxCompassDirBoth);
-      compassStart = &compare;
+   if(compare == NULL) {
+      compare = &selfStart;
+      selfStart = GetCompassEdge(img, x, y, DmtxCompassDirBoth);
+      subPixel.compass = selfStart;
    }
    else {
-      subPixel.compass = GetCompassEdge(img, x, y, compassStart->edgeDir);
-      if(dmtxColor3Dot(&subPixel.compass.intensity, &(compassStart->intensity)) < 0)
+      subPixel.compass = GetCompassEdge(img, x, y, compare->edgeDir);
+      if(dmtxColor3Dot(&subPixel.compass.intensity, &(compare->intensity)) < 0)
          return subPixel;
    }
 
    if(subPixel.compass.magnitude < dec->edgeMin * 17.68)
       return subPixel;
 
-   if(compassStart->edgeDir == DmtxCompassDir0) {
-      compassPrev = GetCompassEdge(img, x-1, y, compassStart->edgeDir);
-      compassNext = GetCompassEdge(img, x+1, y, compassStart->edgeDir);
+   if(compare->edgeDir == DmtxCompassDir0) {
+      compassPrev = GetCompassEdge(img, x-1, y, compare->edgeDir);
+      compassNext = GetCompassEdge(img, x+1, y, compare->edgeDir);
    }
    else { /* DmtxCompassDir90 */
-      compassPrev = GetCompassEdge(img, x, y-1, compassStart->edgeDir);
-      compassNext = GetCompassEdge(img, x, y+1, compassStart->edgeDir);
+      compassPrev = GetCompassEdge(img, x, y-1, compare->edgeDir);
+      compassNext = GetCompassEdge(img, x, y+1, compare->edgeDir);
    }
 
    /* Calculate 2nd derivatives left and right of center */
@@ -302,8 +303,8 @@ FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compassStart)
             (accelPrev / (accelPrev - accelNext)) - 0.5 : 0.0;
 
       subPixel.isEdge = 1;
-      subPixel.xFrac = (compassStart->edgeDir == DmtxCompassDir0) ? frac : 0.0;
-      subPixel.yFrac = (compassStart->edgeDir == DmtxCompassDir90) ? frac : 0.0;
+      subPixel.xFrac = (compare->edgeDir == DmtxCompassDir0) ? frac : 0.0;
+      subPixel.yFrac = (compare->edgeDir == DmtxCompassDir90) ? frac : 0.0;
    }
 
    return subPixel;
