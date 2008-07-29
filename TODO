@@ -2,7 +2,6 @@ TODO Items
 -----------------------------------------------------------------
 
 next: Figure out difference between rb and dmtxread behavior
-next: Make diagnostic version that dumps PNMs for each attempted region
 next: Update MatrixRegionAlignSecondEdge() logic
 
 after version 0.5.1:

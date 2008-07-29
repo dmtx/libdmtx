@@ -38,6 +38,10 @@ Contact: mike@dragonflylogic.com
 extern DmtxRegion
 dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
 {
+/*
+   int size, i = 0;
+   char imagePath[128];
+*/
    DmtxScanGrid *grid;
    DmtxPixelLoc loc;
    DmtxRegion   reg;
@@ -61,6 +65,15 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
 
       /* Scan this pixel for presence of a valid barcode edge */
       reg = dmtxScanPixel(dec, loc);
+
+/*
+      if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_2ND) {
+         size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
+         if(size >= 128)
+            exit(1);
+         WriteDiagnosticImage(dec, &reg, imagePath);
+      }
+*/
 
       /* Found a barcode region? */
       if(reg.found == DMTX_REGION_FOUND)
@@ -100,32 +113,44 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
 
    /* Find subpixel location of strongest edge found at this location */
    edgeStart = FindZeroCrossing(dec, loc.X, loc.Y, NULL);
-   if(!edgeStart.isEdge)
+   if(!edgeStart.isEdge) {
+      reg.found = DMTX_REGION_DROPPED_EDGE;
       return reg;
+   }
 
    /* Next follow the edge to its end in both directions */
    ray0 = FollowEdge(dec, loc.X, loc.Y, edgeStart, 1);
    ray1 = FollowEdge(dec, loc.X, loc.Y, edgeStart, -1);
 
    /* Define first edge based on travel limits of detected edge */
-   if(MatrixRegionAlignFirstEdge(dec, &reg, &edgeStart, ray0, ray1) != DMTX_SUCCESS)
+   if(MatrixRegionAlignFirstEdge(dec, &reg, &edgeStart, ray0, ray1) != DMTX_SUCCESS) {
+      reg.found = DMTX_REGION_DROPPED_1ST;
       return reg;
+   }
 
    /* Define second edge based on best match of 4 possible orientations */
-   if(MatrixRegionAlignSecondEdge(dec, &reg) != DMTX_SUCCESS)
+   if(MatrixRegionAlignSecondEdge(dec, &reg) != DMTX_SUCCESS) {
+      reg.found = DMTX_REGION_DROPPED_2ND;
       return reg;
+   }
 
    /* Define right edge */
-   if(MatrixRegionAlignRightEdge(dec, &reg) != DMTX_SUCCESS)
+   if(MatrixRegionAlignRightEdge(dec, &reg) != DMTX_SUCCESS) {
+      reg.found = DMTX_REGION_DROPPED_RIGHT;
       return reg;
+   }
 
    /* Define top edge */
-   if(MatrixRegionAlignTopEdge(dec, &reg) != DMTX_SUCCESS)
+   if(MatrixRegionAlignTopEdge(dec, &reg) != DMTX_SUCCESS) {
+      reg.found = DMTX_REGION_DROPPED_TOP;
       return reg;
+   }
 
    /* Calculate the best fitting symbol size */
-   if(MatrixRegionFindSize(dec->image, &reg) != DMTX_SUCCESS)
+   if(MatrixRegionFindSize(dec->image, &reg) != DMTX_SUCCESS) {
+      reg.found = DMTX_REGION_DROPPED_SIZE;
       return reg;
+   }
 
    /* Found a valid matrix region */
    reg.found = DMTX_REGION_FOUND;
@@ -606,11 +631,8 @@ MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxEdgeSubPixel *e
    }
    else if(ray0.isDefined && ray1.isDefined) {
 
-      pTmp.X = ray1.v.Y;
-      pTmp.Y = -ray1.v.X;
-
       /* If rays are relatively colinear then combine them */
-      if(fabs(dmtxVector2Dot(&ray0.v, &pTmp)) < 0.25) {
+      if(dmtxVector2Dot(&ray0.v, &ray1.v) < -0.99) {
          dmtxPointAlongRay2(&p0, &ray0, ray0.tMax);
          dmtxPointAlongRay2(&p1, &ray1, ray1.tMax);
          rayFull.isDefined = 1;
@@ -640,8 +662,8 @@ MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxEdgeSubPixel *e
       rayFull = (ray0.isDefined) ? ray0 : ray1;
    }
 
-   /* Reject edges shorter than 10 pixels */
-   if(rayFull.tMax < 10)
+   /* Reject edges shorter than 12 pixels */
+   if(rayFull.tMax < 12)
       return DMTX_FAILURE;
 
    dmtxPointAlongRay2(&pTmp, &rayFull, rayFull.tMax);
@@ -1693,5 +1715,54 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
       return DMTX_FAILURE;
 
    return DMTX_SUCCESS;
+}
+*/
+
+/**
+ *
+ */
+/*
+static void
+WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
+{
+   int offset, row, col;
+   int R, G, B;
+   FILE *fp;
+   DmtxVector2 p;
+
+   fp = fopen(imagePath, "wb");
+   if(fp == NULL) {
+      exit(3);
+   }
+
+   fprintf(fp, "P6 %d %d 255 ", dec->image->width, dec->image->height);
+   for(row = dec->image->height - 1; row >= 0; row--) {
+      for(col = 0; col < dec->image->width; col++) {
+
+         offset = row * dec->image->width + col;
+
+         p.X = col;
+         p.Y = row;
+
+         dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
+
+         R = dec->image->pxl[offset][0];
+         G = dec->image->pxl[offset][1];
+         B = dec->image->pxl[offset][2];
+
+         if(p.X >= 0.0 && p.X <= 1.0 && p.Y >= 0.0 && p.Y <= 1.0 && (p.X + p.Y < 1.0)) {
+            fputc(R, fp);
+            fputc(G, fp);
+            fputc(B, fp);
+         }
+         else {
+            fputc(R + 0.7 * (255 - R), fp);
+            fputc(G + 0.7 * (255 - G), fp);
+            fputc(B + 0.7 * (255 - B), fp);
+         }
+      }
+   }
+
+   fclose(fp);
 }
 */

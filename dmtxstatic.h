@@ -117,8 +117,9 @@ static int StepAlongEdge(DmtxDecode *dec, DmtxRegion *region,
 static DmtxColor3 ReadModuleColor(DmtxImage *image, DmtxRegion *region,
       int symbolRow, int symbolCol, int sizeIdx);
 
-static int CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDirection dir);
 static int MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg);
+static int CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDirection dir);
+/*static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);*/
 
 /* dmtxdecode.c */
 static void DecodeDataStream(DmtxMessage *message, int sizeIdx, unsigned char *outputStart);
