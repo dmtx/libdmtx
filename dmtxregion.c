@@ -161,10 +161,9 @@ ClampIntRange(int value, int min, int max)
 static DmtxCompassEdge
 GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
 {
-   int dirIdx, dirVal[] = { DmtxCompassDirNeg45, DmtxCompassDir0, DmtxCompassDir45, DmtxCompassDir90 };
+   int dirIdx, dirVal[] = { DmtxCompassDir0, DmtxCompassDir90 };
    int patternIdx, coefficientIdx;
    int xAdjust, yAdjust;
-   double mag0, mag90;
    static const int coefficient[] = {  0,  1,  2,  1,  0, -1, -2, -1 };
    static const int patternX[] =    { -1,  0,  1,  1,  1,  0, -1, -1 };
    static const int patternY[] =    { -1, -1, -1,  0,  1,  1,  1,  0 };
@@ -172,48 +171,46 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
    DmtxCompassEdge edge, maxEdge, *compassCache;
    DmtxColor3 color, black = { 0.0, 0.0, 0.0 }; /* XXX move black to a global scope later */
 
-   assert(edgeScanDirs);
+   assert(edgeScanDirs == DmtxCompassDir0 ||
+         edgeScanDirs == DmtxCompassDir90 ||
+         edgeScanDirs == DmtxCompassDirBoth);
 
    /* Set maxEdge to invalid state */
-   maxEdge.assigned = 0;
-   maxEdge.edgeDir = -1;
-   maxEdge.scanDir = -1;
-   maxEdge.intensity = black;
+   maxEdge.tested = DmtxCompassDirNone;
+   maxEdge.edgeDir = DmtxCompassDirNone;
    maxEdge.magnitude = 0.0;
+   maxEdge.intensity = black;
 
    if(x <= 0 || x >= image->width - 1 || y <= 0 || y >= image->height - 1)
       return maxEdge; /* XXX should really communicate failure with a dedicated value instead */
 
+   /* Cache always holds result from most recent test. Return cached result
+      if it matches the request. Otherwise recache and return new result. */
+
    compassCache = &(image->compass[y * image->width + x]);
-
-   if(compassCache->assigned == 1 && (edgeScanDirs & compassCache->edgeDir))
-      return *compassCache;
-
-   mag0 = mag90 = -1.0;
+   if(compassCache->tested != DmtxCompassDirNone) {
+      if(edgeScanDirs == compassCache->edgeDir)
+         return *compassCache;
+      if(edgeScanDirs == compassCache->tested)
+         return *compassCache;
+   }
 
    /* Calculate this pixel's edge intensity for each direction (-45, 0, 45, 90) */
-   for(dirIdx = 0; dirIdx <= 3; dirIdx++) {
-
-      if(dirIdx == 0 || dirIdx == 2)
-         continue;
+   for(dirIdx = 0; dirIdx < 2; dirIdx++) {
 
       /* Only scan for edge if this direction was requested */
       if(!(dirVal[dirIdx] & edgeScanDirs))
          continue;
 
+      edge.tested = edgeScanDirs;
       edge.edgeDir = dirVal[dirIdx];
-      edge.scanDir = -1;
-      edge.intensity = black;
       edge.magnitude = 0.0;
-
-      /* Set maxEdge on the first iteration */
-      if(maxEdge.edgeDir == -1)
-         maxEdge = edge;
+      edge.intensity = black;
 
       /* Add portion from each position in the convolution matrix pattern */
       for(patternIdx = 0; patternIdx < 8; patternIdx++) {
 
-         coefficientIdx = (patternIdx - dirIdx + 8) % 8;
+         coefficientIdx = (patternIdx - (dirIdx*2+1) + 8) % 8;
          if(coefficient[coefficientIdx] == 0)
             continue;
 
@@ -242,24 +239,15 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
       }
       edge.magnitude = dmtxColor3Mag(&edge.intensity);
 
-      if(edge.edgeDir == DmtxCompassDir0)
-         mag0 = edge.magnitude;
-      else if(edge.edgeDir == DmtxCompassDir90)
-         mag90 = edge.magnitude;
-
       /* Capture the strongest edge direction and its intensity */
-      if(edge.magnitude > maxEdge.magnitude)
+      if(maxEdge.edgeDir == DmtxCompassDirNone || edge.magnitude > maxEdge.magnitude) {
          maxEdge = edge;
-   }
-   if(mag0 > -1.0 && mag90 > -1.0)
-      maxEdge.scanDir = (mag0 > mag90) ? DmtxCompassDir0 : DmtxCompassDir90;
-
-   if(edgeScanDirs == DMTX_ALL_COMPASS_DIRS) {
-      *compassCache = maxEdge;
-      compassCache->assigned = 1;
+      }
    }
 
-   return maxEdge;
+   *compassCache = maxEdge;
+
+   return *compassCache;
 }
 
 /**
@@ -283,7 +271,7 @@ FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compassStart)
    subPixel.yFrac = 0.0;
 
    if(compassStart == NULL) {
-      subPixel.compass = compare = GetCompassEdge(img, x, y, DMTX_ALL_COMPASS_DIRS);
+      subPixel.compass = compare = GetCompassEdge(img, x, y, DmtxCompassDirBoth);
       compassStart = &compare;
    }
    else {
@@ -295,7 +283,7 @@ FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compassStart)
    if(subPixel.compass.magnitude < dec->edgeMin * 17.68)
       return subPixel;
 
-   if(compassStart->scanDir == DmtxCompassDir0) {
+   if(compassStart->edgeDir == DmtxCompassDir0) {
       compassPrev = GetCompassEdge(img, x-1, y, compassStart->edgeDir);
       compassNext = GetCompassEdge(img, x+1, y, compassStart->edgeDir);
    }
@@ -314,8 +302,8 @@ FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compassStart)
             (accelPrev / (accelPrev - accelNext)) - 0.5 : 0.0;
 
       subPixel.isEdge = 1;
-      subPixel.xFrac = (compassStart->scanDir == DmtxCompassDir0) ? frac : 0.0;
-      subPixel.yFrac = (compassStart->scanDir == DmtxCompassDir90) ? frac : 0.0;
+      subPixel.xFrac = (compassStart->edgeDir == DmtxCompassDir0) ? frac : 0.0;
+      subPixel.yFrac = (compassStart->edgeDir == DmtxCompassDir90) ? frac : 0.0;
    }
 
    return subPixel;
@@ -350,7 +338,7 @@ FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forwar
    compass = edgeStart.compass;
 
    /* If we have a true edge then continue to follow it forward */
-   if(compass.scanDir == DmtxCompassDir0) {
+   if(compass.edgeDir == DmtxCompassDir0) {
       xIncrement = 0;
       yIncrement = forward;
    }
@@ -1255,7 +1243,7 @@ StepAlongEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 *pProgress,
    y = (int)(pProgress->Y + 0.5);
 
    *pExact = *pProgress;
-   compass = GetCompassEdge(dec->image, x, y, DMTX_ALL_COMPASS_DIRS);
+   compass = GetCompassEdge(dec->image, x, y, DmtxCompassDirBoth);
 
    /* If pixel shows a weak edge in any direction then advance forward */
    if(compass.magnitude < dec->edgeMin * 17.68) {
@@ -1268,7 +1256,7 @@ StepAlongEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 *pProgress,
    /* lateral is away from edge */
 
    /* Determine orthagonal step directions */
-   if(compass.scanDir == DmtxCompassDir0) {
+   if(compass.edgeDir == DmtxCompassDir0) {
       yToward = 0;
 
       if(fabs(forward.X) > fabs(lateral.X))

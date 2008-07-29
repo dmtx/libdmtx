@@ -74,8 +74,6 @@ typedef enum {
    DmtxMaskBit8 = 0x01 << 0
 } DmtxBitMask;
 
-#define DMTX_ALL_COMPASS_DIRS 0x0f
-
 /**
  * @struct DmtxEdgeSubPixel
  * @brief DmtxEdgeSubPixel
@@ -131,7 +129,7 @@ static unsigned char *DecodeSchemeC40Text(DmtxMessage *message, unsigned char *p
 static unsigned char *DecodeSchemeX12(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeEdifact(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeBase256(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd);
-/* static unsigned char UnRandomize253State(unsigned char codewordValue, int codewordPosition); XXX need later */
+/* static unsigned char UnRandomize253State(unsigned char codewordValue, int codewordPosition); */
 static unsigned char UnRandomize255State(unsigned char value, int idx);
 static int PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *region);
 static void TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir);

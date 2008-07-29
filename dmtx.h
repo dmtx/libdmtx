@@ -218,10 +218,10 @@ typedef struct DmtxGradient_struct {
 } DmtxGradient;
 
 typedef enum {
-   DmtxCompassDirNeg45 = 0x01,
-   DmtxCompassDir0     = 0x02,
-   DmtxCompassDir45    = 0x04,
-   DmtxCompassDir90    = 0x08
+   DmtxCompassDirNone  = 0x00,
+   DmtxCompassDir0     = 0x01,
+   DmtxCompassDir90    = 0x02,
+   DmtxCompassDirBoth  = DmtxCompassDir0 | DmtxCompassDir90
 } DmtxCompassDir;
 
 /**
@@ -229,11 +229,10 @@ typedef enum {
  * @brief DmtxCompassEdge
  */
 typedef struct DmtxCompassEdge_struct {
-   char            assigned;
+   char            tested;
+   char            edgeDir;
    double          magnitude;  /* sqrt(R^2 + G^2 + B^2) */
    DmtxColor3      intensity;
-   DmtxCompassDir  edgeDir;
-   DmtxCompassDir  scanDir;    /* DmtxCompassDir0 | DmtxCompassDir90 */
 } DmtxCompassEdge;
 
 /**
