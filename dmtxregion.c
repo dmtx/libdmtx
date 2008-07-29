@@ -451,11 +451,11 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
    DmtxVector2 vA, vB;
    DmtxMatrix3 m;
 
-   dmtxVector2Norm(dmtxVector2Sub(&vA, &c1, &c0));
+   dmtxVector2Norm(dmtxVector2Sub(&vA, &c0, &c1));
    dmtxVector2Norm(dmtxVector2Sub(&vB, &c2, &c1));
 
-   dmtxMatrix3Rotate(m, M_PI - angle);
-   dmtxMatrix3VMultiplyBy(&vA, m);
+   dmtxMatrix3Rotate(m, angle);
+   dmtxMatrix3VMultiplyBy(&vB, m);
 
    return dmtxVector2Dot(&vA, &vB);
 }
@@ -1137,12 +1137,11 @@ MatrixRegionAlignEdge(DmtxDecode *dec, DmtxRegion *reg,
       if(dmtxMatrix3VMultiplyBy(&c01, sFit2Raw) != DMTX_SUCCESS)
          return 0;
 
-      if(RightAngleTrueness(c01, c00, c10, M_PI) < 0.1) {
-         /* XXX instead of just failing here, hopefully find what happened
-                upstream to trigger this condition. we can probably avoid
-                this earlier on, and even avoid assertion failures elsewhere */
+      /* XXX instead of just failing here, hopefully find what happened
+             upstream to trigger this condition. we can probably avoid
+             this earlier on, and even avoid assertion failures elsewhere */
+      if(RightAngleTrueness(c01, c00, c10, M_PI) < 0.1)
          return 0;
-      }
 
       /* Calculate forward and lateral directions in raw coordinates */
       dmtxVector2Sub(&forward, &c10, &c00);
