@@ -437,10 +437,11 @@ PrintPattern(DmtxEncode *enc)
    int i, j;
    int symbolRow, symbolCol;
    int pixelRow, pixelCol;
+   int moduleStatus;
    double sxy, txy;
+   DmtxRgb rgb;
    DmtxMatrix3 m1, m2;
    DmtxVector2 vIn, vOut;
-   int moduleStatus;
 
    txy = enc->marginSize;
    sxy = 1.0/enc->moduleSize;
@@ -457,7 +458,7 @@ PrintPattern(DmtxEncode *enc)
       IMPORTANT: DmtxImage is stored with its origin at bottom-right
       (unlike common image file formats) to preserve "right-handed" 2D space */
 
-   memset(enc->image->pxl, 0xff, enc->image->width * enc->image->height * sizeof(DmtxRgb));
+   memset(enc->image->pxl, 0xff, dmtxImageGetProp(enc->image, DmtxPropArea) * sizeof(DmtxRgb));
 
    for(symbolRow = 0; symbolRow < enc->region.symbolRows; symbolRow++) {
       for(symbolCol = 0; symbolCol < enc->region.symbolCols; symbolCol++) {
@@ -474,12 +475,10 @@ PrintPattern(DmtxEncode *enc)
 
          for(i = pixelRow; i < pixelRow + enc->moduleSize; i++) {
             for(j = pixelCol; j < pixelCol + enc->moduleSize; j++) {
-/*             enc->image->pxl[i * enc->image->width + j].R = (moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255;
-               enc->image->pxl[i * enc->image->width + j].G = (moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255;
-               enc->image->pxl[i * enc->image->width + j].B = (moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255; */
-               enc->image->pxl[i * enc->image->width + j][0] = (moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255;
-               enc->image->pxl[i * enc->image->width + j][1] = (moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255;
-               enc->image->pxl[i * enc->image->width + j][2] = (moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255;
+               rgb[0] = (moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255;
+               rgb[1] = (moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255;
+               rgb[2] = (moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255;
+               dmtxImageSetRgb(enc->image, j, i, rgb);
             }
          }
 

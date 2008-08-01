@@ -47,6 +47,7 @@ dmtxImageMalloc(int width, int height)
    image->pageCount = 1;
    image->width = width;
    image->height = height;
+   image->scale = 1;
 
    pixelBufSize = width * height * sizeof(DmtxRgb);
    compassBufSize = width * height * sizeof(DmtxCompassEdge);
@@ -94,43 +95,147 @@ dmtxImageFree(DmtxImage **img)
 }
 
 /**
+ * @brief  Set image property
+ * @param  img pointer to image
+ * @return image width
+ */
+extern int
+dmtxImageSetProp(DmtxImage *img, int prop, int value)
+{
+   if(img == NULL)
+      return DMTX_FAILURE;
+
+   switch(prop) {
+      case DmtxPropWidth:
+         img->width = value;
+         break;
+      case DmtxPropHeight:
+         img->height = value;
+         break;
+      case DmtxPropScale:
+         img->scale = value;
+         break;
+      default:
+         return DMTX_FAILURE;
+         break;
+   }
+
+   return DMTX_SUCCESS;
+}
+
+/**
  * @brief  Get image width
  * @param  img pointer to image
  * @return image width
  */
 extern int
-dmtxImageGetWidth(DmtxImage *img)
+dmtxImageGetProp(DmtxImage *img, int prop)
 {
    if(img == NULL)
-      ; /* Error */
+      return -1;
 
-   return img->width;
+   switch(prop) {
+      case DmtxPropWidth:
+         return img->width;
+         break;
+      case DmtxPropHeight:
+         return img->height;
+         break;
+      case DmtxPropScale:
+         return img->scale;
+         break;
+      case DmtxPropArea:
+         return img->width * img->height;
+         break;
+   }
+
+   return -1;
 }
 
 /**
- * @brief  Get image height
- * @param  img Pointer to image
- * @return Image height
+ * @brief  XXX
+ * @param  img
+ * @param  x
+ * @param  y
+ * @return pixel offset
  */
 extern int
-dmtxImageGetHeight(DmtxImage *img)
+dmtxImageGetOffset(DmtxImage *img, int x, int y)
 {
-   if(img == NULL)
-      ; /* Error */
-
-   return img->height;
+   return (y * img->width + x);
 }
 
 /**
- * @brief  Get pixel offset
- * @param  img Pointer to image
- * @param  dir
- * @param  lineNbr
- * @param  offset
- * @return Pixel offset
+ * @brief  XXX
+ * @param  XXX
+ * @return XXX
+ */
+extern void
+dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
+{
+   int offset;
+
+   offset = dmtxImageGetOffset(img, x, y);
+
+   if(dmtxImageContainsInt(img, 0, x, y))
+      memcpy(img->pxl[offset], rgb, 3);
+   else
+      rgb[0] = rgb[1] = rgb[2] = 0;
+}
+
+/**
+ * @brief  XXX
+ * @param  img
+ * @param  x
+ * @param  y
+ * @param  rgb
+ * @return XXX
+ */
+extern void
+dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
+{
+   int offset;
+
+   offset = dmtxImageGetOffset(img, x, y);
+
+   if(dmtxImageContainsInt(img, 0, x, y))
+      memcpy(rgb, img->pxl[offset], 3);
+   else
+      rgb[0] = rgb[1] = rgb[2] = 0;
+}
+
+/**
+ * @brief  XXX
+ * @param  XXX
+ * @return XXX
  */
 extern int
-dmtxImageGetOffset(DmtxImage *img, DmtxDirection dir, int lineNbr, int offset)
+dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 {
-   return (dir & DmtxDirHorizontal) ? img->width * lineNbr + offset : img->width * offset + lineNbr;
+   if(margin == 0) {
+      if(x >= 0 && y >= 0 && x < img->width && y < img->height)
+         return DMTX_TRUE;
+   }
+   else {
+      if(x - margin >= 0 && y - margin >= 0 && x + margin < img->width && y + margin < img->height)
+         return DMTX_TRUE;
+   }
+
+   return DMTX_FALSE;
+}
+
+/**
+ * @brief  XXX
+ * @param  img
+ * @param  x
+ * @param  y
+ * @return XXX
+ */
+extern int
+dmtxImageContainsFloat(DmtxImage *img, double x, double y)
+{
+   if(x >= 0.0 && y >= 0.0 && x < img->width && y < img->height)
+      return DMTX_TRUE;
+
+   return DMTX_FALSE;
 }

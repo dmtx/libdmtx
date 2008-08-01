@@ -33,24 +33,24 @@ Contact: mike@dragonflylogic.com
  * @return Initialized DmtxDecode struct
  */
 extern DmtxDecode
-dmtxDecodeStructInit(DmtxImage *image)
+dmtxDecodeStructInit(DmtxImage *img)
 {
    DmtxDecode dec;
 
    memset(&dec, 0x00, sizeof(DmtxDecode));
 
-   dec.image = image;
-   memset(dec.image->compass, 0x00, image->height * image->width * sizeof(DmtxCompassEdge));
+   dec.image = img;
+   memset(dec.image->compass, 0x00, dmtxImageGetProp(img, DmtxPropArea) * sizeof(DmtxCompassEdge));
 
    dec.edgeMin = 10;
    dec.squareDevn = cos(40 * (M_PI/180));
    dec.scanGap = 10;
    dec.xMin = 0;
-   dec.xMax = image->width - 1;
+   dec.xMax = dmtxImageGetProp(img, DmtxPropWidth) - 1;
    dec.yMin = 0;
-   dec.yMax = image->height - 1;
+   dec.yMax = dmtxImageGetProp(img, DmtxPropHeight) - 1;
 
-   dec.grid = InitScanGrid(image, dec.scanGap, dec.xMin, dec.xMax, dec.yMin, dec.yMax);
+   dec.grid = InitScanGrid(img, dec.scanGap, dec.xMin, dec.xMax, dec.yMin, dec.yMax);
 
    return dec;
 }
@@ -74,7 +74,7 @@ dmtxDecodeStructDeInit(DmtxDecode *dec)
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 extern int
-dmtxDecodeSetProp(DmtxDecode *dec, DmtxProperty prop, int value)
+dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
 {
    switch(prop) {
       case DmtxPropEdgeThresh:
@@ -105,8 +105,8 @@ dmtxDecodeSetProp(DmtxDecode *dec, DmtxProperty prop, int value)
       return DMTX_FAILURE;
 
    /* Specified range extends beyond image boundaries */
-   if(dec->xMin < 0 || dec->xMax >= dec->image->width ||
-         dec->yMin < 0 || dec->yMax >= dec->image->height)
+   if(dmtxImageContainsInt(dec->image, 0, dec->xMin, dec->yMin) == DMTX_FALSE ||
+         dmtxImageContainsInt(dec->image, 0, dec->xMax, dec->yMax) == DMTX_FALSE)
       return DMTX_FAILURE;
 
    if(dec->squareDevn < 0.0 || dec->squareDevn > 1.0)

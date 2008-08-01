@@ -29,29 +29,6 @@ Contact: mike@dragonflylogic.com
 
 /**
  * @brief  XXX
- * @param  rgb
- * @param  image
- * @param  x
- * @param  y
- * @return void
- */
-extern void
-dmtxPixelFromImage(DmtxRgb rgb, DmtxImage *image, int x, int y)
-{
-   if(x >= 0 && x < image->width && y >= 0 && y < image->height) {
-      rgb[0] = image->pxl[y * image->width + x][0];
-      rgb[1] = image->pxl[y * image->width + x][1];
-      rgb[2] = image->pxl[y * image->width + x][2];
-   }
-   else {
-      rgb[0] = 0;
-      rgb[1] = 0;
-      rgb[2] = 0;
-   }
-}
-
-/**
- * @brief  XXX
  * @param  color
  * @param  image
  * @param  p
@@ -72,10 +49,10 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
    xFrac = p.X - xInt;
    yFrac = p.Y - yInt;
 
-   dmtxPixelFromImage(pxlLL, image, xInt,   yInt);
-   dmtxPixelFromImage(pxlLR, image, xInt+1, yInt);
-   dmtxPixelFromImage(pxlUL, image, xInt,   yInt+1);
-   dmtxPixelFromImage(pxlUR, image, xInt+1, yInt+1);
+   dmtxImageGetRgb(image, xInt,   yInt,   pxlLL);
+   dmtxImageGetRgb(image, xInt+1, yInt,   pxlLR);
+   dmtxImageGetRgb(image, xInt,   yInt+1, pxlUL);
+   dmtxImageGetRgb(image, xInt+1, yInt+1, pxlUR);
 
    dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrLL, pxlLL), (1 - xFrac) * (1 - yFrac));
    dmtxColor3ScaleBy(dmtxColor3FromPixel(&clrLR, pxlLR), xFrac * (1 - yFrac));

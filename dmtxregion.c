@@ -107,8 +107,7 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    /* Assume region is not found unless scan finds one below */
    reg.found = DMTX_REGION_NOT_FOUND;
 
-   if(loc.X < 0 || loc.X >= dec->image->width ||
-         loc.Y < 0 || loc.Y >= dec->image->height)
+   if(dmtxImageContainsInt(dec->image, 0, loc.X, loc.Y) == DMTX_FALSE)
       return reg;
 
    /* Find subpixel location of strongest edge found at this location */
@@ -169,7 +168,8 @@ ClampIntRange(int value, int min, int max)
 {
    if(value < min)
       return min;
-   else if(value > max)
+
+   if(value > max)
       return max;
 
    return value;
@@ -177,15 +177,16 @@ ClampIntRange(int value, int min, int max)
 
 /**
  * @brief Calculate compass edge strength and direction at individual pixel location
- * @param image
+ * @param img
  * @param x
  * @param y
  * @param edgeScanDirs
  * @return Compass edge
  */
 static DmtxCompassEdge
-GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
+GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
 {
+   int width, height, offset;
    int dirIdx, dirVal[] = { DmtxCompassDir0, DmtxCompassDir90 };
    int patternIdx, coefficientIdx;
    int xAdjust, yAdjust;
@@ -206,13 +207,17 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
    maxEdge.magnitude = 0.0;
    maxEdge.intensity = black;
 
-   if(x <= 0 || x >= image->width - 1 || y <= 0 || y >= image->height - 1)
+   if(dmtxImageContainsInt(img, 1, x, y) == DMTX_FALSE)
       return maxEdge; /* XXX should really communicate failure with a dedicated value instead */
 
    /* Cache always holds result from most recent test. Return cached result
       if it matches the request. Otherwise recache and return new result. */
 
-   compassCache = &(image->compass[y * image->width + x]);
+   width = dmtxImageGetProp(img, DmtxPropWidth);
+   height = dmtxImageGetProp(img, DmtxPropHeight);
+   offset = dmtxImageGetOffset(img, x, y);
+
+   compassCache = &(img->compass[offset]);
    if(compassCache->tested != DmtxCompassDirNone) {
       if(edgeScanDirs == compassCache->edgeDir)
          return *compassCache;
@@ -240,11 +245,11 @@ GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs)
             continue;
 
          /* Accommodate 1 pixel beyond edge of image with nearest neighbor value */
-         xAdjust = ClampIntRange(x + patternX[patternIdx], 0, image->width - 1);
-         yAdjust = ClampIntRange(y + patternY[patternIdx], 0, image->height - 1);
+         xAdjust = ClampIntRange(x + patternX[patternIdx], 0, width - 1);
+         yAdjust = ClampIntRange(y + patternY[patternIdx], 0, height - 1);
 
          /* Weight pixel value by appropriate coefficient in convolution matrix */
-         dmtxPixelFromImage(rgb, image, xAdjust, yAdjust);
+         dmtxImageGetRgb(img, xAdjust, yAdjust, rgb);
          dmtxColor3FromPixel(&color, rgb);
 
          switch(coefficient[coefficientIdx]) {
@@ -376,9 +381,7 @@ FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forwar
    xFollow = x + xIncrement;
    yFollow = y + yIncrement;
 
-   while(edge.isEdge &&
-         xFollow >= 0 && xFollow < dec->image->width &&
-         yFollow >= 0 && yFollow < dec->image->height) {
+   while(edge.isEdge && dmtxImageContainsInt(dec->image, 0, xFollow, yFollow) == DMTX_TRUE) {
 
       edge = FindZeroCrossing(dec, xFollow, yFollow, &compass);
 
@@ -474,19 +477,16 @@ MatrixRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
    double dimOT, dimOR, dimTX, dimRX, ratio;
    DmtxMatrix3 m, mtxy, mphi, mshx, mscxy, msky, mskx, mTmp;
    DmtxCorners corners;
-   DmtxImage *img = dec->image;
 
    assert((reg->corners.known & DmtxCorner00) && (reg->corners.known & DmtxCorner01));
 
    /* Make copy of known corners to update with temporary values */
    corners = reg->corners;
 
-   if(corners.c00.X < 0.0 || corners.c00.Y < 0.0 ||
-      corners.c01.X < 0.0 || corners.c01.Y < 0.0)
+   if(dmtxImageContainsFloat(dec->image, corners.c00.X, corners.c00.Y) == DMTX_FALSE)
       return DMTX_FAILURE;
 
-   if(corners.c00.X > img->width - 1 || corners.c00.Y > img->height - 1 ||
-      corners.c01.X > img->width - 1 || corners.c01.Y > img->height - 1)
+   if(dmtxImageContainsFloat(dec->image, corners.c01.X, corners.c01.Y) == DMTX_FALSE)
       return DMTX_FAILURE;
 
    dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &corners.c01, &corners.c00)); /* XXX could use MagSquared() */
@@ -495,9 +495,7 @@ MatrixRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
 
    /* Bottom-right corner -- validate if known or create temporary value */
    if(corners.known & DmtxCorner10) {
-      if(corners.c10.X < 0.0 || corners.c10.Y < 0.0 ||
-            corners.c10.X > img->width - 1 ||
-            corners.c10.Y > img->height - 1)
+      if(dmtxImageContainsFloat(dec->image, corners.c10.X, corners.c10.Y) == DMTX_FALSE)
          return DMTX_FAILURE;
    }
    else {
@@ -517,9 +515,7 @@ MatrixRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
 
    /* Top-right corner -- validate if known or create temporary value */
    if(corners.known & DmtxCorner11) {
-      if(corners.c11.X < 0.0 || corners.c11.Y < 0.0 ||
-            corners.c11.X > img->width - 1 ||
-            corners.c11.Y > img->height - 1)
+      if(dmtxImageContainsFloat(dec->image, corners.c11.X, corners.c11.Y) == DMTX_FALSE)
          return DMTX_FAILURE;
    }
    else {
@@ -1204,8 +1200,7 @@ MatrixRegionAlignEdge(DmtxDecode *dec, DmtxRegion *reg,
          break;
       }
 
-      if(pRawProgress.X < 1 || pRawProgress.X > dec->image->width - 1 ||
-         pRawProgress.Y < 1 || pRawProgress.Y > dec->image->height - 1)
+      if(dmtxImageContainsFloat(dec->image, pRawProgress.X, pRawProgress.Y) == DMTX_FALSE)
          break;
    }
 

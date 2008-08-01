@@ -159,7 +159,14 @@ typedef enum {
    DmtxPropXmax,
    DmtxPropYmin,
    DmtxPropYmax
-} DmtxProperty;
+} DmtxDecodeProperty;
+
+typedef enum {
+   DmtxPropWidth,
+   DmtxPropHeight,
+   DmtxPropScale,
+   DmtxPropArea
+} DmtxImageProperty;
 
 typedef double DmtxMatrix3[3][3];
 typedef unsigned char DmtxRgb[3];
@@ -249,6 +256,7 @@ typedef struct DmtxImage_struct {
    unsigned int    pageCount;
    unsigned int    width;
    unsigned int    height;
+   unsigned int    scale;
    DmtxRgb         *pxl;
    DmtxCompassEdge *compass;
 } DmtxImage;
@@ -439,7 +447,7 @@ extern int dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int si
 /* dmtxdecode.c */
 extern DmtxDecode dmtxDecodeStructInit(DmtxImage *img);
 extern void dmtxDecodeStructDeInit(DmtxDecode *dec);
-extern int dmtxDecodeSetProp(DmtxDecode *dec, DmtxProperty prop, int value);
+extern int dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxMessageMalloc(int sizeIdx, int symbolFormat);
@@ -452,9 +460,13 @@ extern DmtxRegion dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc);
 /* dmtximage.c */
 extern DmtxImage *dmtxImageMalloc(int width, int height);
 extern int dmtxImageFree(DmtxImage **img);
-extern int dmtxImageGetWidth(DmtxImage *img);
-extern int dmtxImageGetHeight(DmtxImage *img);
-extern int dmtxImageGetOffset(DmtxImage *img, DmtxDirection dir, int lineNbr, int offset);
+extern int dmtxImageSetProp(DmtxImage *img, int prop, int value);
+extern int dmtxImageGetProp(DmtxImage *img, int prop);
+extern int dmtxImageGetOffset(DmtxImage *img, int x, int y);
+extern void dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
+extern void dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
+extern int dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);
+extern int dmtxImageContainsFloat(DmtxImage *img, double x, double y);
 
 extern DmtxVector2 *dmtxVector2AddTo(DmtxVector2 *v1, DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2Add(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2);
@@ -487,7 +499,6 @@ extern int dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3
 extern int dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m);
 extern void dmtxMatrix3Print(DmtxMatrix3 m);
 
-extern void dmtxPixelFromImage(DmtxRgb rgb, DmtxImage *img, int x, int y);
 extern void dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *img, DmtxVector2 p);
 extern DmtxColor3 *dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb);
 extern void dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color);

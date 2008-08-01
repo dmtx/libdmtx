@@ -55,6 +55,7 @@ main(int argc, char *argv[])
    int err;
    int fileIndex;
    int pageIndex;
+   int imageWidth, imageHeight;
    UserOptions options;
    DmtxTime  msec, *timeout;
    DmtxImage *image;
@@ -98,17 +99,20 @@ main(int argc, char *argv[])
       if(options.squareDevn != -1)
          dmtxDecodeSetProp(&decode, DmtxPropSquareDevn, options.squareDevn);
 
+      imageWidth = dmtxImageGetProp(image, DmtxPropWidth);
+      imageHeight = dmtxImageGetProp(image, DmtxPropHeight);
+
       if(options.xMin)
-         dmtxDecodeSetProp(&decode, DmtxPropXmin, ScaleNumberString(options.xMin, image->width));
+         dmtxDecodeSetProp(&decode, DmtxPropXmin, ScaleNumberString(options.xMin, imageWidth));
 
       if(options.xMax)
-         dmtxDecodeSetProp(&decode, DmtxPropXmax, ScaleNumberString(options.xMax, image->width));
+         dmtxDecodeSetProp(&decode, DmtxPropXmax, ScaleNumberString(options.xMax, imageWidth));
 
       if(options.yMin)
-         dmtxDecodeSetProp(&decode, DmtxPropYmin, ScaleNumberString(options.yMin, image->height));
+         dmtxDecodeSetProp(&decode, DmtxPropYmin, ScaleNumberString(options.yMin, imageHeight));
 
       if(options.yMax)
-         dmtxDecodeSetProp(&decode, DmtxPropYmax, ScaleNumberString(options.yMax, image->height));
+         dmtxDecodeSetProp(&decode, DmtxPropYmax, ScaleNumberString(options.yMax, imageHeight));
 
       /* Loop once for each detected barcode region */
       for(;;) {
@@ -572,10 +576,8 @@ LoadImagePng(char *imagePath)
 
    /* This copy reverses row order top-to-bottom so image coordinate system
       corresponds with normal "right-handed" 2D space */
-   for(row = 0; row < image->height; row++) {
-      memcpy(image->pxl + (row * image->width),
-            rowPointers[image->height - row - 1],
-            image->width * sizeof(DmtxRgb));
+   for(row = 0; row < height; row++) {
+      memcpy(image->pxl + (row * width), rowPointers[height - row - 1], width * sizeof(DmtxRgb));
    }
 
    for(row = 0; row < height; row++) {
@@ -604,7 +606,7 @@ LoadImageTiff(char *imagePath, int pageIndex)
    int dirIndex = 0;
    TIFF* tif;
    int row, col, offset;
-   uint32 w, h;
+   uint32 width, height;
    uint32* raster;
    size_t npixels;
 
@@ -618,9 +620,9 @@ LoadImageTiff(char *imagePath, int pageIndex)
 
    do {
       if(dirIndex == pageIndex) {
-         TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &w);
-         TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &h);
-         npixels = w * h;
+         TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
+         TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height);
+         npixels = width * height;
 
          raster = (uint32*) _TIFFmalloc(npixels * sizeof (uint32));
          if(raster == NULL) {
@@ -629,9 +631,9 @@ LoadImageTiff(char *imagePath, int pageIndex)
             return NULL;
          }
 
-         if(TIFFReadRGBAImage(tif, w, h, raster, 0)) {
+         if(TIFFReadRGBAImage(tif, width, height, raster, 0)) {
 
-            image = dmtxImageMalloc(w, h);
+            image = dmtxImageMalloc(width, height);
             if(image == NULL) {
                perror(programName);
                /* free first? */
@@ -640,10 +642,10 @@ LoadImageTiff(char *imagePath, int pageIndex)
 
             /* This copy reverses row order top-to-bottom so image coordinate system
                corresponds with normal "right-handed" 2D space */
-            for(row = 0; row < image->height; row++) {
-               for(col = 0; col < image->width; col++) {
+            for(row = 0; row < height; row++) {
+               for(col = 0; col < width; col++) {
                   /* XXX TIFF uses ABGR packed */
-                  offset = row * image->width + col;
+                  offset = dmtxImageGetOffset(image, col, row);
                   image->pxl[offset][0] = raster[offset] & 0x000000ff;
                   image->pxl[offset][1] = (raster[offset] & 0x0000ff00) >> 8;
                   image->pxl[offset][2] = (raster[offset] & 0x00ff0000) >> 16;
@@ -678,6 +680,7 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
       DmtxRegion *region, DmtxMessage *message, int pageIndex)
 {
    int i;
+   int height;
    int dataWordLength;
    int rotateInt;
    double rotate;
@@ -721,16 +724,17 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
       fprintf(stdout, "%d:", pageIndex + 1);
 
    if(options->corners) {
+      height = dmtxImageGetProp(image, DmtxPropHeight);
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
-            image->height - (int)(region->corners.c00.Y + 0.5));
+            height - (int)(region->corners.c00.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c10.X + 0.5),
-            image->height - (int)(region->corners.c10.Y + 0.5));
+            height - (int)(region->corners.c10.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c11.X + 0.5),
-            image->height - (int)(region->corners.c11.Y + 0.5));
+            height - (int)(region->corners.c11.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c01.X + 0.5),
-            image->height - (int)(region->corners.c01.Y + 0.5));
+            height - (int)(region->corners.c01.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
-            image->height - (int)(region->corners.c00.Y + 0.5));
+            height - (int)(region->corners.c00.Y + 0.5));
    }
 
    if(options->codewords) {
@@ -754,9 +758,10 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
 static void
 WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
-   int offset, row, col;
-   int R, G, B;
+   int row, col;
+   int width, height;
    FILE *fp;
+   DmtxRgb rgb;
    DmtxVector2 p;
 
    fp = fopen(imagePath, "wb");
@@ -765,32 +770,27 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
       exit(3);
    }
 
-   /* Test each pixel of input image to see if it lies in region */
-   fprintf(fp, "P6 %d %d 255 ", dec->image->width, dec->image->height);
-   for(row = dec->image->height - 1; row >= 0; row--) {
-      for(col = 0; col < dec->image->width; col++) {
+   width = dmtxImageGetProp(dec->image, DmtxPropWidth);
+   height = dmtxImageGetProp(dec->image, DmtxPropHeight);
 
-         offset = row * dec->image->width + col;
+   /* Test each pixel of input image to see if it lies in region */
+   fprintf(fp, "P6 %d %d 255 ", width, height);
+   for(row = height - 1; row >= 0; row--) {
+      for(col = 0; col < width; col++) {
+
+         dmtxImageGetRgb(dec->image, col, row, rgb);
 
          p.X = col;
          p.Y = row;
-
          dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
 
-         R = dec->image->pxl[offset][0];
-         G = dec->image->pxl[offset][1];
-         B = dec->image->pxl[offset][2];
+         if(p.X < 0.0 || p.X > 1.0 || p.Y < 0.0 || p.Y > 1.0) {
+            rgb[0] += (0.7 * (255 - rgb[0]));
+            rgb[1] += (0.7 * (255 - rgb[1]));
+            rgb[2] += (0.7 * (255 - rgb[2]));
+         }
 
-         if(p.X >= 0.0 && p.X <= 1.0 && p.Y >= 0.0 && p.Y <= 1.0) {
-            fputc(R, fp);
-            fputc(G, fp);
-            fputc(B, fp);
-         }
-         else {
-            fputc(R + 0.7 * (255 - R), fp);
-            fputc(G + 0.7 * (255 - G), fp);
-            fputc(B + 0.7 * (255 - B), fp);
-         }
+         fwrite(rgb, sizeof(char), 3, fp);
       }
    }
 

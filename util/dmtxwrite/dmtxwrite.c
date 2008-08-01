@@ -58,17 +58,17 @@ main(int argc, char *argv[])
 {
    int err;
    UserOptions options;
-   DmtxEncode encode;
+   DmtxEncode enc;
    unsigned char codeBuffer[DMTXWRITE_BUFFER_SIZE];
    int codeBufferSize = sizeof codeBuffer;
 
    InitUserOptions(&options);
 
    /* Create and initialize libdmtx structures */
-   encode = dmtxEncodeStructInit();
+   enc = dmtxEncodeStructInit();
 
    /* Process user options */
-   err = HandleArgs(&options, &argc, &argv, &encode);
+   err = HandleArgs(&options, &argc, &argv, &enc);
    if(err != DMTX_SUCCESS)
       ShowUsage(err);
 
@@ -77,9 +77,9 @@ main(int argc, char *argv[])
 
    /* Create barcode image */
    if(options.mosaic)
-      err = dmtxEncodeDataMosaic(&encode, codeBufferSize, codeBuffer, options.sizeIdx);
+      err = dmtxEncodeDataMosaic(&enc, codeBufferSize, codeBuffer, options.sizeIdx);
    else
-      err = dmtxEncodeDataMatrix(&encode, codeBufferSize, codeBuffer, options.sizeIdx);
+      err = dmtxEncodeDataMatrix(&enc, codeBufferSize, codeBuffer, options.sizeIdx);
 
    if(err == DMTX_FAILURE)
       FatalError(1, _("Unable to encode message (possibly too large for requested size)"));
@@ -89,10 +89,10 @@ main(int argc, char *argv[])
       case 'n':
          break; /* do nothing */
       case 'p':
-         WriteImagePng(&options, &encode);
+         WriteImagePng(&options, &enc);
          break;
       case 'm':
-         WriteImagePnm(&options, &encode);
+         WriteImagePnm(&options, &enc);
          break;
    }
 
@@ -101,15 +101,15 @@ main(int argc, char *argv[])
       case 'n':
          break; /* do nothing */
       case 'a':
-         WriteAsciiBarcode(&encode);
+         WriteAsciiBarcode(&enc);
          break;
       case 'c':
-         WriteCodewords(&encode);
+         WriteCodewords(&enc);
          break;
    }
 
    /* Clean up */
-   dmtxEncodeStructDeInit(&encode);
+   dmtxEncodeStructDeInit(&enc);
 
    exit(0);
 }
@@ -145,7 +145,7 @@ InitUserOptions(UserOptions *options)
  * @return        DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
+HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *enc)
 {
    int err;
    int i;
@@ -183,9 +183,9 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
    programName = Basename((*argvp)[0]);
 
    /* Set default values before considering arguments */
-   encode->moduleSize = 5;
-   encode->marginSize = 10;
-   encode->scheme = DmtxSchemeEncodeAscii;
+   enc->moduleSize = 5;
+   enc->marginSize = 10;
+   enc->scheme = DmtxSchemeEncodeAscii;
 
    for(;;) {
       opt = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:p:r:s:vMR:V", longOptions, &longIndex);
@@ -209,13 +209,13 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             fprintf(stdout, "Option \"%c\" not implemented yet\n", opt);
             break;
          case 'd':
-            err = StringToInt(&(encode->moduleSize), optarg, &ptr);
-            if(err != DMTX_SUCCESS || encode->moduleSize <= 0 || *ptr != '\0')
+            err = StringToInt(&(enc->moduleSize), optarg, &ptr);
+            if(err != DMTX_SUCCESS || enc->moduleSize <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid module size specified \"%s\""), optarg);
             break;
          case 'm':
-            err = StringToInt(&(encode->marginSize), optarg, &ptr);
-            if(err != DMTX_SUCCESS || encode->marginSize <= 0 || *ptr != '\0')
+            err = StringToInt(&(enc->marginSize), optarg, &ptr);
+            if(err != DMTX_SUCCESS || enc->marginSize <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid margin size specified \"%s\""), optarg);
             break;
          case 'e':
@@ -225,30 +225,30 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode)
             }
             switch(*optarg) {
                case 'b':
-                  encode->scheme = DmtxSchemeEncodeAutoBest;
+                  enc->scheme = DmtxSchemeEncodeAutoBest;
                   break;
                case 'f':
-                  encode->scheme = DmtxSchemeEncodeAutoFast;
+                  enc->scheme = DmtxSchemeEncodeAutoFast;
                   fprintf(stdout, "\"Fast optimized\" not implemented yet\n", opt);
                   return DMTX_FAILURE;
                   break;
                case 'a':
-                  encode->scheme = DmtxSchemeEncodeAscii;
+                  enc->scheme = DmtxSchemeEncodeAscii;
                   break;
                case 'c':
-                  encode->scheme = DmtxSchemeEncodeC40;
+                  enc->scheme = DmtxSchemeEncodeC40;
                   break;
                case 't':
-                  encode->scheme = DmtxSchemeEncodeText;
+                  enc->scheme = DmtxSchemeEncodeText;
                   break;
                case 'x':
-                  encode->scheme = DmtxSchemeEncodeX12;
+                  enc->scheme = DmtxSchemeEncodeX12;
                   break;
                case 'e':
-                  encode->scheme = DmtxSchemeEncodeEdifact;
+                  enc->scheme = DmtxSchemeEncodeEdifact;
                   break;
                case '8':
-                  encode->scheme = DmtxSchemeEncodeBase256;
+                  enc->scheme = DmtxSchemeEncodeBase256;
                   break;
                default:
                   fprintf(stdout, "Invalid encodation scheme \"%s\"\n", optarg);
@@ -434,10 +434,11 @@ OPTIONS:\n"), programName, programName);
  *
  */
 static void
-WriteImagePng(UserOptions *options, DmtxEncode *encode)
+WriteImagePng(UserOptions *options, DmtxEncode *enc)
 {
    FILE *fp;
    int row;
+   int width, height;
    png_structp pngPtr;
    png_infop infoPtr;
    png_bytepp rowPointers;
@@ -471,10 +472,13 @@ WriteImagePng(UserOptions *options, DmtxEncode *encode)
       perror(programName);
    }
 
+   width = dmtxImageGetProp(enc->image, DmtxPropWidth);
+   height = dmtxImageGetProp(enc->image, DmtxPropHeight);
+
    /* Set up output control using standard streams */
    png_init_io(pngPtr, fp);
 
-   png_set_IHDR(pngPtr, infoPtr, encode->image->width, encode->image->height,
+   png_set_IHDR(pngPtr, infoPtr, width, height,
          8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
          PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
@@ -483,22 +487,21 @@ WriteImagePng(UserOptions *options, DmtxEncode *encode)
       png_set_pHYs(pngPtr, infoPtr, pixelsPerMeter, pixelsPerMeter, PNG_RESOLUTION_METER);
    }
 
-   rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * encode->image->height);
+   rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * height);
    if(rowPointers == NULL) {
       perror(programName);
    }
 
    /* This copy reverses row order top-to-bottom so image coordinate system
       corresponds with normal "right-handed" 2D space */
-   for(row = 0; row < encode->image->height; row++) {
+   for(row = 0; row < height; row++) {
       rowPointers[row] = (png_bytep)png_malloc(pngPtr, png_get_rowbytes(pngPtr, infoPtr));
 
-      assert(png_get_rowbytes(pngPtr, infoPtr) == encode->image->width * sizeof(DmtxRgb));
+      assert(png_get_rowbytes(pngPtr, infoPtr) == width * sizeof(DmtxRgb));
 
       /* Flip rows top-to-bottom to account for PNM "top-left" origin */
-      memcpy(rowPointers[row],
-            encode->image->pxl + ((encode->image->height - row - 1) * encode->image->width),
-            encode->image->width * sizeof(DmtxRgb));
+      memcpy(rowPointers[row], enc->image->pxl + ((height - row - 1) *
+            width), width * sizeof(DmtxRgb));
    }
 
    png_set_rows(pngPtr, infoPtr, rowPointers);
@@ -508,7 +511,7 @@ WriteImagePng(UserOptions *options, DmtxEncode *encode)
    /* Clean up after the write, and free any memory allocated */
    png_destroy_write_struct(&pngPtr, &infoPtr);
 
-   for(row = 0; row < encode->image->height; row++) {
+   for(row = 0; row < height; row++) {
       png_free(pngPtr, rowPointers[row]);
    }
    png_free(pngPtr, rowPointers);
@@ -521,10 +524,12 @@ WriteImagePng(UserOptions *options, DmtxEncode *encode)
  *
  */
 static void
-WriteImagePnm(UserOptions *options, DmtxEncode *encode)
+WriteImagePnm(UserOptions *options, DmtxEncode *enc)
 {
    int row, col;
+   int width, height;
    FILE *fp;
+   DmtxRgb rgb;
 
    /* Flip rows top-to-bottom to account for PNM "top-left" origin */
    fp = fopen(options->outputPath, "wb");
@@ -533,12 +538,14 @@ WriteImagePnm(UserOptions *options, DmtxEncode *encode)
       exit(3);
    }
 
-   fprintf(fp, "P6 %d %d 255 ", encode->image->width, encode->image->height);
-   for(row = 0; row < encode->image->height; row++) {
-      for(col = 0; col < encode->image->width; col++) {
-         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col][0], fp);
-         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col][1], fp);
-         fputc(encode->image->pxl[(encode->image->height - row - 1) * encode->image->width + col][2], fp);
+   width = dmtxImageGetProp(enc->image, DmtxPropWidth);
+   height = dmtxImageGetProp(enc->image, DmtxPropHeight);
+
+   fprintf(fp, "P6 %d %d 255 ", width, height);
+   for(row = 0; row < height; row++) {
+      for(col = 0; col < width; col++) {
+         dmtxImageGetRgb(enc->image, col, row, rgb);
+         fwrite(rgb, sizeof(char), 3, fp);
       }
    }
    fclose(fp);
@@ -548,7 +555,7 @@ WriteImagePnm(UserOptions *options, DmtxEncode *encode)
  *
  */
 static void
-WriteAsciiBarcode(DmtxEncode *encode)
+WriteAsciiBarcode(DmtxEncode *enc)
 {
    int symbolRow, symbolCol;
    int moduleOnAll;
@@ -558,11 +565,11 @@ WriteAsciiBarcode(DmtxEncode *encode)
    fputc('\n', stdout);
 
    /* ASCII prints from top to bottom */
-   for(symbolRow = encode->region.symbolRows - 1; symbolRow >= 0; symbolRow--) {
+   for(symbolRow = enc->region.symbolRows - 1; symbolRow >= 0; symbolRow--) {
 
       fputs("    ", stdout);
-      for(symbolCol = 0; symbolCol < encode->region.symbolCols; symbolCol++) {
-         fputs((dmtxSymbolModuleStatus(encode->message, encode->region.sizeIdx, symbolRow, symbolCol) &
+      for(symbolCol = 0; symbolCol < enc->region.symbolCols; symbolCol++) {
+         fputs((dmtxSymbolModuleStatus(enc->message, enc->region.sizeIdx, symbolRow, symbolCol) &
                moduleOnAll) ? "XX" : "  ", stdout);
       }
       fputs("\n", stdout);
@@ -575,14 +582,14 @@ WriteAsciiBarcode(DmtxEncode *encode)
  *
  */
 static void
-WriteCodewords(DmtxEncode *encode)
+WriteCodewords(DmtxEncode *enc)
 {
    int i, dataWordLength;
 
-   dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, encode->region.sizeIdx);
+   dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, enc->region.sizeIdx);
 
-   for(i = 0; i < encode->message->codeSize; i++) {
+   for(i = 0; i < enc->message->codeSize; i++) {
       fprintf(stdout, "%c:%03d\n", (i < dataWordLength) ?
-            'd' : 'e', encode->message->code[i]);
+            'd' : 'e', enc->message->code[i]);
    }
 }
