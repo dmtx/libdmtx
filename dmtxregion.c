@@ -311,7 +311,7 @@ FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compare)
          return subPixel;
    }
 
-   if(subPixel.compass.magnitude < dec->edgeMin * 17.68)
+   if(subPixel.compass.magnitude < dec->edgeThresh * 17.68)
       return subPixel;
 
    if(compare->edgeDir == DmtxCompassDir0) {
@@ -1263,7 +1263,7 @@ StepAlongEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 *pProgress,
    compass = GetCompassEdge(dec->image, x, y, DmtxCompassDirBoth);
 
    /* If pixel shows a weak edge in any direction then advance forward */
-   if(compass.magnitude < dec->edgeMin * 17.68) {
+   if(compass.magnitude < dec->edgeThresh * 17.68) {
       dmtxVector2AddTo(pProgress, &forward);
 /*    CALLBACK_POINT_PLOT(*pProgress, 1, 5, DMTX_DISPLAY_POINT); */
       return DMTX_EDGE_STEP_TOO_WEAK;
@@ -1719,8 +1719,10 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
 static void
 WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
-   int offset, row, col;
+   int row, col;
+   int width, height;
    int R, G, B;
+   double shade;
    FILE *fp;
    DmtxVector2 p;
 
@@ -1729,31 +1731,31 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
       exit(3);
    }
 
-   fprintf(fp, "P6 %d %d 255 ", dec->image->width, dec->image->height);
-   for(row = dec->image->height - 1; row >= 0; row--) {
-      for(col = 0; col < dec->image->width; col++) {
+   width = dmtxImageGetProp(dec->image, DmtxPropWidth);
+   height = dmtxImageGetProp(dec->image, DmtxPropHeight);
 
-         offset = row * dec->image->width + col;
+   fprintf(fp, "P6 %d %d 255 ", width, height);
+   for(row = height - 1; row >= 0; row--) {
+      for(col = 0; col < width; col++) {
+
+         dmtxImageGetRgb(dec->image, col, row, rgb);
 
          p.X = col;
          p.Y = row;
-
          dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
 
-         R = dec->image->pxl[offset][0];
-         G = dec->image->pxl[offset][1];
-         B = dec->image->pxl[offset][2];
+         if(p.X < 0.0 || p.X > 1.0 || p.Y < 0.0 || p.Y > 1.0)
+            shade = 0.7;
+         else if(p.X + p.Y < 1.0)
+            shade = 0.0;
+         else
+            shade = 0.4;
 
-         if(p.X >= 0.0 && p.X <= 1.0 && p.Y >= 0.0 && p.Y <= 1.0 && (p.X + p.Y < 1.0)) {
-            fputc(R, fp);
-            fputc(G, fp);
-            fputc(B, fp);
-         }
-         else {
-            fputc(R + 0.7 * (255 - R), fp);
-            fputc(G + 0.7 * (255 - G), fp);
-            fputc(B + 0.7 * (255 - B), fp);
-         }
+         rgb[0] += (shade * (255 - rgb[0]));
+         rgb[1] += (shade * (255 - rgb[1]));
+         rgb[2] += (shade * (255 - rgb[2]));
+
+         fwrite(rgb, sizeof(char), 3, fp);
       }
    }
 

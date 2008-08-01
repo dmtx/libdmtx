@@ -47,6 +47,9 @@ extern "C" {
 #define DMTX_FAILURE                   0
 #define DMTX_SUCCESS                   1
 
+#define DMTX_FALSE                     0
+#define DMTX_TRUE                      1
+
 #define DMTX_STATUS_NOT_SCANNED        0
 #define DMTX_STATUS_VALID              1
 #define DMTX_STATUS_INVALID            2
@@ -152,6 +155,8 @@ typedef enum {
 } DmtxCornerLoc;
 
 typedef enum {
+   DmtxPropShrinkMin,
+   DmtxPropShrinkMax,
    DmtxPropEdgeThresh,
    DmtxPropSquareDevn,
    DmtxPropScanGap,
@@ -165,7 +170,9 @@ typedef enum {
    DmtxPropWidth,
    DmtxPropHeight,
    DmtxPropScale,
-   DmtxPropArea
+   DmtxPropArea,
+   DmtxPropScaledWidth,
+   DmtxPropScaledHeight
 } DmtxImageProperty;
 
 typedef double DmtxMatrix3[3][3];
@@ -359,7 +366,9 @@ typedef struct DmtxScanGrid_struct {
 typedef struct DmtxDecode_struct {
    DmtxImage       *image;
    DmtxScanGrid    grid;
-   int             edgeMin;
+   int             shrinkMin;
+   int             shrinkMax;
+   int             edgeThresh;
    double          squareDevn;
    int             scanGap;
    int             xMin;

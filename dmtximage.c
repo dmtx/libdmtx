@@ -147,6 +147,12 @@ dmtxImageGetProp(DmtxImage *img, int prop)
       case DmtxPropArea:
          return img->width * img->height;
          break;
+      case DmtxPropScaledWidth:
+         return img->width/img->scale;
+         break;
+      case DmtxPropScaledHeight:
+         return img->height/img->scale;
+         break;
    }
 
    return -1;
@@ -162,18 +168,26 @@ dmtxImageGetProp(DmtxImage *img, int prop)
 extern int
 dmtxImageGetOffset(DmtxImage *img, int x, int y)
 {
-   return (y * img->width + x);
+   assert(img != NULL);
+
+/* return (y * img->width + x); */
+   return ((img->height - y - 1) * img->width + x);
 }
 
 /**
  * @brief  XXX
- * @param  XXX
- * @return XXX
+ * @param  img
+ * @param  x
+ * @param  y
+ * @param  rgb
+ * @return void
  */
 extern void
 dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 {
    int offset;
+
+   assert(img != NULL);
 
    offset = dmtxImageGetOffset(img, x, y);
 
@@ -189,12 +203,14 @@ dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
  * @param  x
  * @param  y
  * @param  rgb
- * @return XXX
+ * @return void
  */
 extern void
 dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 {
    int offset;
+
+   assert(img != NULL);
 
    offset = dmtxImageGetOffset(img, x, y);
 
@@ -205,13 +221,18 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 }
 
 /**
- * @brief  XXX
- * @param  XXX
- * @return XXX
+ * @brief  Test whether image contains a coordinate expressed in integers
+ * @param  img
+ * @param  margin
+ * @param  x
+ * @param  y
+ * @return DMTX_TRUE | DMTX_FALSE
  */
 extern int
 dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 {
+   assert(img != NULL);
+
    if(margin == 0) {
       if(x >= 0 && y >= 0 && x < img->width && y < img->height)
          return DMTX_TRUE;
@@ -225,15 +246,17 @@ dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 }
 
 /**
- * @brief  XXX
+ * @brief  Test whether image contains a coordinate expressed in floating points
  * @param  img
  * @param  x
  * @param  y
- * @return XXX
+ * @return DMTX_TRUE | DMTX_FALSE
  */
 extern int
 dmtxImageContainsFloat(DmtxImage *img, double x, double y)
 {
+   assert(img != NULL);
+
    if(x >= 0.0 && y >= 0.0 && x < img->width && y < img->height)
       return DMTX_TRUE;
 

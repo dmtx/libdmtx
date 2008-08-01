@@ -42,7 +42,9 @@ dmtxDecodeStructInit(DmtxImage *img)
    dec.image = img;
    memset(dec.image->compass, 0x00, dmtxImageGetProp(img, DmtxPropArea) * sizeof(DmtxCompassEdge));
 
-   dec.edgeMin = 10;
+   dec.shrinkMin = 1;
+   dec.shrinkMax = 1;
+   dec.edgeThresh = 10;
    dec.squareDevn = cos(40 * (M_PI/180));
    dec.scanGap = 10;
    dec.xMin = 0;
@@ -77,8 +79,14 @@ extern int
 dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
 {
    switch(prop) {
+      case DmtxPropShrinkMin:
+         dec->shrinkMin = value;
+         break;
+      case DmtxPropShrinkMax:
+         dec->shrinkMax = value;
+         break;
       case DmtxPropEdgeThresh:
-         dec->edgeMin = value;
+         dec->edgeThresh = value;
          break;
       case DmtxPropSquareDevn:
          dec->squareDevn = cos(value * (M_PI/180.0));
@@ -100,6 +108,10 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
          break;
    }
 
+   /* Minimum image scale can't be larger than maximum image scale */
+   if(dec->shrinkMin < 1 || dec->shrinkMax < dec->shrinkMin)
+      return DMTX_FAILURE;
+
    /* Specified range has non-positive area */
    if(dec->xMin >= dec->xMax || dec->yMin >= dec->yMax)
       return DMTX_FAILURE;
@@ -115,7 +127,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
    if(dec->scanGap < 1)
       return DMTX_FAILURE;
 
-   if(dec->edgeMin < 1 || dec->edgeMin > 100)
+   if(dec->edgeThresh < 1 || dec->edgeThresh > 100)
       return DMTX_FAILURE;
 
    /* Reinitialize scangrid if any inputs changed */

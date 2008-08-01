@@ -34,22 +34,24 @@ Contact: mike@dragonflylogic.com
 #define N_(String) String
 
 typedef struct {
-   int codewords;
-   int scanGap;
-   int msec;
-   int newline;
-   int squareDevn;
-   int minEdge;
-   char *xMin;
-   char *xMax;
-   char *yMin;
-   char *yMax;
-   int verbose;
-   int maxCorrections;
-   int diagnose;
-   int mosaic;
-   int pageNumber;
-   int corners;
+   int codewords;       /* -c, --codewords */
+   int squareDevn;      /* -d, --square-deviation */
+   int scanGap;         /* -g, --gap */
+   int timeoutMS;       /* -m, --milliseconds */
+   int newline;         /* -n, --newline */
+   int shrinkMax;       /* -s, --shrink */
+   int shrinkMin;       /* -s, --shrink (if range specified) */
+   int edgeThresh;      /* -t, --threshold */
+   char *xMin;          /* -x, --x-range-min */
+   char *xMax;          /* -X, --x-range-max */
+   char *yMin;          /* -y, --y-range-min */
+   char *yMax;          /* -Y, --y-range-max */
+   int correctionsMax;  /* -C, --corrections-max */
+   int diagnose;        /* -D, --diagnose */
+   int mosaic;          /* -M, --mosaic */
+   int pageNumber;      /* -P, --page-number */
+   int corners;         /* -R, --corners */
+   int verbose;         /* -v, --verbose */
 } UserOptions;
 
 typedef enum {

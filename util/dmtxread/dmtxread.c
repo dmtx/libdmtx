@@ -55,10 +55,10 @@ main(int argc, char *argv[])
    int err;
    int fileIndex;
    int pageIndex;
-   int imageWidth, imageHeight;
+   int imgWidth, imgHeight;
    UserOptions options;
    DmtxTime  msec, *timeout;
-   DmtxImage *image;
+   DmtxImage *img;
    DmtxDecode decode;
    DmtxRegion region;
    DmtxMessage *message;
@@ -69,50 +69,52 @@ main(int argc, char *argv[])
    if(err != DMTX_SUCCESS)
       ShowUsage(err);
 
-   timeout = (options.msec == -1) ? NULL : &msec;
+   timeout = (options.timeoutMS == -1) ? NULL : &msec;
 
    /* Loop once for each page of each image listed in parameters */
    for(pageIndex = 0; fileIndex < argc;) {
 
       /* Reset timeout for each new image */
       if(timeout != NULL)
-         msec = dmtxTimeAdd(dmtxTimeNow(), options.msec);
+         msec = dmtxTimeAdd(dmtxTimeNow(), options.timeoutMS);
 
       /* Load image page from file (many formats are single-page only) */
-      image = LoadImage(argv[fileIndex], pageIndex++);
+      img = LoadImage(argv[fileIndex], pageIndex++);
 
       /* If requested page did not load then move to the next image */
-      if(image == NULL) {
+      if(img == NULL) {
          fileIndex++;
          pageIndex = 0;
          continue;
       }
 
-      assert(image->pageCount > 0 && pageIndex <= image->pageCount);
+      imgWidth = dmtxImageGetProp(img, DmtxPropWidth);
+      imgHeight = dmtxImageGetProp(img, DmtxPropHeight);
+
+      assert(img->pageCount > 0 && pageIndex <= img->pageCount);
 
       /* Initialize decode struct for newly loaded image */
-      decode = dmtxDecodeStructInit(image);
+      decode = dmtxDecodeStructInit(img);
 
-      dmtxDecodeSetProp(&decode, DmtxPropEdgeThresh, options.minEdge);
+      dmtxDecodeSetProp(&decode, DmtxPropShrinkMin, options.shrinkMin);
+      dmtxDecodeSetProp(&decode, DmtxPropShrinkMax, options.shrinkMax);
+      dmtxDecodeSetProp(&decode, DmtxPropEdgeThresh, options.edgeThresh);
       dmtxDecodeSetProp(&decode, DmtxPropScanGap, options.scanGap);
 
       if(options.squareDevn != -1)
          dmtxDecodeSetProp(&decode, DmtxPropSquareDevn, options.squareDevn);
 
-      imageWidth = dmtxImageGetProp(image, DmtxPropWidth);
-      imageHeight = dmtxImageGetProp(image, DmtxPropHeight);
-
       if(options.xMin)
-         dmtxDecodeSetProp(&decode, DmtxPropXmin, ScaleNumberString(options.xMin, imageWidth));
+         dmtxDecodeSetProp(&decode, DmtxPropXmin, ScaleNumberString(options.xMin, imgWidth));
 
       if(options.xMax)
-         dmtxDecodeSetProp(&decode, DmtxPropXmax, ScaleNumberString(options.xMax, imageWidth));
+         dmtxDecodeSetProp(&decode, DmtxPropXmax, ScaleNumberString(options.xMax, imgWidth));
 
       if(options.yMin)
-         dmtxDecodeSetProp(&decode, DmtxPropYmin, ScaleNumberString(options.yMin, imageHeight));
+         dmtxDecodeSetProp(&decode, DmtxPropYmin, ScaleNumberString(options.yMin, imgHeight));
 
       if(options.yMax)
-         dmtxDecodeSetProp(&decode, DmtxPropYmax, ScaleNumberString(options.yMax, imageHeight));
+         dmtxDecodeSetProp(&decode, DmtxPropYmax, ScaleNumberString(options.yMax, imgHeight));
 
       /* Loop once for each detected barcode region */
       for(;;) {
@@ -129,21 +131,21 @@ main(int argc, char *argv[])
 
          /* Decode region based on requested barcode mode */
          if(options.mosaic)
-            message = dmtxDecodeMosaicRegion(&decode, &region, options.maxCorrections);
+            message = dmtxDecodeMosaicRegion(&decode, &region, options.correctionsMax);
          else
-            message = dmtxDecodeMatrixRegion(&decode, &region, options.maxCorrections);
+            message = dmtxDecodeMatrixRegion(&decode, &region, options.correctionsMax);
 
          if(message == NULL)
             continue;
 
-         PrintDecodedOutput(&options, image, &region, message, pageIndex);
+         PrintDecodedOutput(&options, img, &region, message, pageIndex);
 
          dmtxMessageFree(&message);
          break; /* XXX for now, break after first barcode is found in image */
       }
 
       dmtxDecodeStructDeInit(&decode);
-      dmtxImageFree(&image);
+      dmtxImageFree(&img);
    }
 
    exit(0);
@@ -160,21 +162,23 @@ SetOptionDefaults(UserOptions *options)
 
    /* Set default options */
    options->codewords = 0;
-   options->scanGap = 2;
-   options->msec = -1;
-   options->newline = 0;
    options->squareDevn = -1;
-   options->minEdge = 10;
+   options->scanGap = 2;
+   options->timeoutMS = -1;
+   options->newline = 0;
+   options->shrinkMin = 1;
+   options->shrinkMax = 1;
+   options->edgeThresh = 10;
    options->xMin = NULL;
    options->xMax = NULL;
    options->yMin = NULL;
    options->yMax = NULL;
-   options->verbose = 0;
-   options->maxCorrections = -1;
+   options->correctionsMax = -1;
    options->diagnose = 0;
    options->mosaic = 0;
    options->pageNumber = 0;
    options->corners = 0;
+   options->verbose = 0;
 }
 
 /**
@@ -199,18 +203,19 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
          {"gap",              required_argument, NULL, 'g'},
          {"milliseconds",     required_argument, NULL, 'm'},
          {"newline",          no_argument,       NULL, 'n'},
-         {"square-deviation", required_argument, NULL, 's'},
+         {"square-deviation", required_argument, NULL, 'q'},
+         {"shrink",           required_argument, NULL, 's'},
          {"threshold",        required_argument, NULL, 't'},
          {"x-range-min",      required_argument, NULL, 'x'},
          {"x-range-max",      required_argument, NULL, 'X'},
          {"y-range-min",      required_argument, NULL, 'y'},
          {"y-range-max",      required_argument, NULL, 'Y'},
-         {"verbose",          no_argument,       NULL, 'v'},
          {"max-corrections",  required_argument, NULL, 'C'},
          {"diagnose",         no_argument,       NULL, 'D'},
          {"mosaic",           no_argument,       NULL, 'M'},
          {"page-number",      no_argument,       NULL, 'P'},
          {"corners",          no_argument,       NULL, 'R'},
+         {"verbose",          no_argument,       NULL, 'v'},
          {"version",          no_argument,       NULL, 'V'},
          {"help",             no_argument,       NULL,  0 },
          {0, 0, 0, 0}
@@ -221,7 +226,7 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "cg:m:ns:t:x:X:y:Y:vC:DMPRV", longOptions, &longIndex);
+      opt = getopt_long(*argcp, *argvp, "cg:m:nq:s:t:x:X:y:Y:vC:DMPRV", longOptions, &longIndex);
       if(opt == -1)
          break;
 
@@ -238,23 +243,29 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
                FatalError(1, _("Invalid gap specified \"%s\""), optarg);
             break;
          case 'm':
-            err = StringToInt(&(options->msec), optarg, &ptr);
-            if(err != DMTX_SUCCESS || options->msec < 0 || *ptr != '\0')
-               FatalError(1, _("Invalid duration (in milliseconds) specified \"%s\""), optarg);
+            err = StringToInt(&(options->timeoutMS), optarg, &ptr);
+            if(err != DMTX_SUCCESS || options->timeoutMS < 0 || *ptr != '\0')
+               FatalError(1, _("Invalid timeout (in milliseconds) specified \"%s\""), optarg);
             break;
          case 'n':
             options->newline = 1;
             break;
-         case 's':
+         case 'q':
             err = StringToInt(&(options->squareDevn), optarg, &ptr);
             if(err != DMTX_SUCCESS || *ptr != '\0' ||
                   options->squareDevn < 0 || options->squareDevn > 90)
                FatalError(1, _("Invalid squareness deviation specified \"%s\""), optarg);
             break;
+         case 's':
+            err = StringToInt(&(options->shrinkMax), optarg, &ptr);
+            if(err != DMTX_SUCCESS || options->shrinkMax < 1 || *ptr != '\0')
+               FatalError(1, _("Invalid shrink factor specified \"%s\""), optarg);
+            /* XXX later also popular shrinkMin based on N-N range */
+            break;
          case 't':
-            err = StringToInt(&(options->minEdge), optarg, &ptr);
+            err = StringToInt(&(options->edgeThresh), optarg, &ptr);
             if(err != DMTX_SUCCESS || *ptr != '\0' ||
-                  options->minEdge < 1 || options->minEdge > 100)
+                  options->edgeThresh < 1 || options->edgeThresh > 100)
                FatalError(1, _("Invalid edge threshold specified \"%s\""), optarg);
             break;
          case 'x':
@@ -273,8 +284,8 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
             options->verbose = 1;
             break;
          case 'C':
-            err = StringToInt(&(options->maxCorrections), optarg, &ptr);
-            if(err != DMTX_SUCCESS || options->maxCorrections < 0 || *ptr != '\0')
+            err = StringToInt(&(options->correctionsMax), optarg, &ptr);
+            if(err != DMTX_SUCCESS || options->correctionsMax < 0 || *ptr != '\0')
                FatalError(1, _("Invalid max corrections specified \"%s\""), optarg);
             break;
          case 'D':
@@ -342,11 +353,11 @@ Example: Scan top third of images using gap no larger than 10 pixels\n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
   -c, --codewords            print codewords extracted from barcode pattern\n\
-  -d, --distortion=K1,K2     radial distortion coefficients (not implemented)\n\
   -g, --gap=NUM              use scan grid with gap of NUM pixels between lines\n\
   -m, --milliseconds=N       stop scan after N milliseconds (per image)\n\
   -n, --newline              print newline character at the end of decoded data\n\
-  -s, --square-deviation=N   allowed non-squareness of corners in degrees (0-90)\n\
+  -q, --square-deviation=N   allowed non-squareness of corners in degrees (0-90)\n\
+  -s, --shrink=N             internally shrink image by a factor of N\n\
   -t, --threshold=N          ignore weak edges below threshold N (1-100)\n\
   -x, --x-range-min=N[%%]     do not scan pixels to the left of N (or N%%)\n\
   -X, --x-range-max=N[%%]     do not scan pixels to the right of N (or N%%)\n\
@@ -574,15 +585,12 @@ LoadImagePng(char *imagePath)
       return NULL;
    }
 
-   /* This copy reverses row order top-to-bottom so image coordinate system
-      corresponds with normal "right-handed" 2D space */
-   for(row = 0; row < height; row++) {
-      memcpy(image->pxl + (row * width), rowPointers[height - row - 1], width * sizeof(DmtxRgb));
-   }
+   for(row = 0; row < height; row++)
+      memcpy(image->pxl + (row * width), rowPointers[row], width * sizeof(DmtxRgb));
 
-   for(row = 0; row < height; row++) {
+   for(row = 0; row < height; row++)
       png_free(pngPtr, rowPointers[row]);
-   }
+
    png_free(pngPtr, rowPointers);
    rowPointers = NULL;
 
@@ -605,7 +613,8 @@ LoadImageTiff(char *imagePath, int pageIndex)
    DmtxImage *image;
    int dirIndex = 0;
    TIFF* tif;
-   int row, col, offset;
+   int row, col;
+   int tiffOffset, dmtxOffset;
    uint32 width, height;
    uint32* raster;
    size_t npixels;
@@ -640,15 +649,15 @@ LoadImageTiff(char *imagePath, int pageIndex)
                return NULL;
             }
 
-            /* This copy reverses row order top-to-bottom so image coordinate system
-               corresponds with normal "right-handed" 2D space */
             for(row = 0; row < height; row++) {
                for(col = 0; col < width; col++) {
-                  /* XXX TIFF uses ABGR packed */
-                  offset = dmtxImageGetOffset(image, col, row);
-                  image->pxl[offset][0] = raster[offset] & 0x000000ff;
-                  image->pxl[offset][1] = (raster[offset] & 0x0000ff00) >> 8;
-                  image->pxl[offset][2] = (raster[offset] & 0x00ff0000) >> 16;
+                  dmtxOffset = dmtxImageGetOffset(image, col, row);
+                  tiffOffset = row * image->width + col;
+
+                  /* TIFF uses ABGR packed */
+                  image->pxl[dmtxOffset][0] = raster[tiffOffset] & 0x000000ff;
+                  image->pxl[dmtxOffset][1] = (raster[tiffOffset] & 0x0000ff00) >> 8;
+                  image->pxl[dmtxOffset][2] = (raster[tiffOffset] & 0x00ff0000) >> 16;
                }
             }
          }
@@ -760,6 +769,7 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
    int row, col;
    int width, height;
+   double shade;
    FILE *fp;
    DmtxRgb rgb;
    DmtxVector2 p;
@@ -784,11 +794,16 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
          p.Y = row;
          dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
 
-         if(p.X < 0.0 || p.X > 1.0 || p.Y < 0.0 || p.Y > 1.0) {
-            rgb[0] += (0.7 * (255 - rgb[0]));
-            rgb[1] += (0.7 * (255 - rgb[1]));
-            rgb[2] += (0.7 * (255 - rgb[2]));
-         }
+         if(p.X < 0.0 || p.X > 1.0 || p.Y < 0.0 || p.Y > 1.0)
+            shade = 0.7;
+         else if(p.X + p.Y < 1.0)
+            shade = 0.0;
+         else
+            shade = 0.4;
+
+         rgb[0] += (shade * (255 - rgb[0]));
+         rgb[1] += (shade * (255 - rgb[1]));
+         rgb[2] += (shade * (255 - rgb[2]));
 
          fwrite(rgb, sizeof(char), 3, fp);
       }

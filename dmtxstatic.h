@@ -30,23 +30,14 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTXSTATIC_H__
 #define __DMTXSTATIC_H__
 
-#define DMTX_END_OF_RANGE      5
-#define DMTX_EDGE_FOUND        6
+#define DMTX_ALMOST_ZERO               0.000001
+#define DMTX_ALMOST_INFINITY          -1
 
-#define DMTX_TURN_CW           1
-#define DMTX_TURN_CCW          2
-
-#define DMTX_ALMOST_ZERO       0.000001
-#define DMTX_ALMOST_INFINITY  -1
-
-#define DMTX_FALSE             0
-#define DMTX_TRUE              1
-
-#define DMTX_EDGE_STEP_TOO_WEAK       1
-#define DMTX_EDGE_STEP_PERPENDICULAR  2
-#define DMTX_EDGE_STEP_NOT_QUITE      3
-#define DMTX_EDGE_STEP_TOO_FAR        4
-#define DMTX_EDGE_STEP_EXACT          5
+#define DMTX_EDGE_STEP_TOO_WEAK        1
+#define DMTX_EDGE_STEP_PERPENDICULAR   2
+#define DMTX_EDGE_STEP_NOT_QUITE       3
+#define DMTX_EDGE_STEP_TOO_FAR         4
+#define DMTX_EDGE_STEP_EXACT           5
 
 #ifndef min
 #define min(X,Y) ((X < Y) ? X : Y)
