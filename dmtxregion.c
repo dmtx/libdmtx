@@ -213,8 +213,8 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
    /* Cache always holds result from most recent test. Return cached result
       if it matches the request. Otherwise recache and return new result. */
 
-   width = dmtxImageGetProp(img, DmtxPropWidth);
-   height = dmtxImageGetProp(img, DmtxPropHeight);
+   width = dmtxImageGetProp(img, DmtxPropScaledWidth);
+   height = dmtxImageGetProp(img, DmtxPropScaledHeight);
    offset = dmtxImageGetOffset(img, x, y);
 
    compassCache = &(img->compass[offset]);
@@ -1715,15 +1715,14 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
 /**
  *
  */
-/*
 static void
 WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
    int row, col;
    int width, height;
-   int R, G, B;
    double shade;
    FILE *fp;
+   DmtxRgb rgb;
    DmtxVector2 p;
 
    fp = fopen(imagePath, "wb");
@@ -1731,29 +1730,31 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
       exit(3);
    }
 
-   width = dmtxImageGetProp(dec->image, DmtxPropWidth);
-   height = dmtxImageGetProp(dec->image, DmtxPropHeight);
+   width = dmtxImageGetProp(dec->image, DmtxPropScaledWidth);
+   height = dmtxImageGetProp(dec->image, DmtxPropScaledHeight);
 
-   fprintf(fp, "P6 %d %d 255 ", width, height);
+   fprintf(fp, "P6\n%d %d\n255\n", width, height);
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
 
          dmtxImageGetRgb(dec->image, col, row, rgb);
 
-         p.X = col;
-         p.Y = row;
-         dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
+         if(reg != NULL) {
+            p.X = col;
+            p.Y = row;
+            dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
 
-         if(p.X < 0.0 || p.X > 1.0 || p.Y < 0.0 || p.Y > 1.0)
-            shade = 0.7;
-         else if(p.X + p.Y < 1.0)
-            shade = 0.0;
-         else
-            shade = 0.4;
+            if(p.X < 0.0 || p.X > 1.0 || p.Y < 0.0 || p.Y > 1.0)
+               shade = 0.7;
+            else if(p.X + p.Y < 1.0)
+               shade = 0.0;
+            else
+               shade = 0.4;
 
-         rgb[0] += (shade * (255 - rgb[0]));
-         rgb[1] += (shade * (255 - rgb[1]));
-         rgb[2] += (shade * (255 - rgb[2]));
+            rgb[0] += (shade * (255 - rgb[0]));
+            rgb[1] += (shade * (255 - rgb[1]));
+            rgb[2] += (shade * (255 - rgb[2]));
+         }
 
          fwrite(rgb, sizeof(char), 3, fp);
       }
@@ -1761,4 +1762,3 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 
    fclose(fp);
 }
-*/

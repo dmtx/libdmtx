@@ -237,8 +237,8 @@ dmtxRemoveLensDistortion(DmtxVector2 point, DmtxImage *img, double k1, double k2
    DmtxVector2 correctedPoint;
 
    /* XXX this function can be rewritten using vector math notation */
-   width = dmtxImageGetProp(img, DmtxPropWidth);
-   height = dmtxImageGetProp(img, DmtxPropHeight);
+   width = dmtxImageGetProp(img, DmtxPropScaledWidth);
+   height = dmtxImageGetProp(img, DmtxPropScaledHeight);
 
    pointShifted.X = point.X - width/2.0;
    pointShifted.Y = point.Y - height/2.0;

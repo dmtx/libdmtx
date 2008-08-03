@@ -780,8 +780,8 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
       exit(3);
    }
 
-   width = dmtxImageGetProp(dec->image, DmtxPropWidth);
-   height = dmtxImageGetProp(dec->image, DmtxPropHeight);
+   width = dmtxImageGetProp(dec->image, DmtxPropScaledWidth);
+   height = dmtxImageGetProp(dec->image, DmtxPropScaledHeight);
 
    /* Test each pixel of input image to see if it lies in region */
    fprintf(fp, "P6 %d %d 255 ", width, height);

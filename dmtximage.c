@@ -147,6 +147,9 @@ dmtxImageGetProp(DmtxImage *img, int prop)
       case DmtxPropArea:
          return img->width * img->height;
          break;
+      case DmtxPropScaledArea:
+         return (img->width/img->scale) * (img->height/img->scale);
+         break;
       case DmtxPropScaledWidth:
          return img->width/img->scale;
          break;
@@ -159,19 +162,24 @@ dmtxImageGetProp(DmtxImage *img, int prop)
 }
 
 /**
- * @brief  XXX
+ * @brief  Returns pixel offset for unscaled image
  * @param  img
- * @param  x
- * @param  y
- * @return pixel offset
+ * @param  x Scaled x coordinate
+ * @param  y Scaled y coordinate
+ * @return Unscaled pixel offset
  */
 extern int
 dmtxImageGetOffset(DmtxImage *img, int x, int y)
 {
+   int scale, widthFull, heightScaled;
+
    assert(img != NULL);
 
-/* return (y * img->width + x); */
-   return ((img->height - y - 1) * img->width + x);
+   widthFull = dmtxImageGetProp(img, DmtxPropWidth);
+   heightScaled = dmtxImageGetProp(img, DmtxPropScaledHeight);
+   scale = dmtxImageGetProp(img, DmtxPropScale);
+
+   return ((heightScaled - y - 1) * scale * widthFull + (x * scale));
 }
 
 /**
@@ -200,8 +208,8 @@ dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 /**
  * @brief  XXX
  * @param  img
- * @param  x
- * @param  y
+ * @param  x Scaled x coordinate
+ * @param  y Scaled y coordinate
  * @param  rgb
  * @return void
  */
@@ -210,6 +218,12 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 {
    int offset;
 
+   /* XXX next: add int return value to indicate if requested pixel is
+      within bounds of image (scaled). Use this to implement perfect range
+      handling. */
+
+   /* XXX test dmtxImageContainsInt() first */
+
    assert(img != NULL);
 
    offset = dmtxImageGetOffset(img, x, y);
@@ -217,28 +231,35 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
    if(dmtxImageContainsInt(img, 0, x, y))
       memcpy(rgb, img->pxl[offset], 3);
    else
-      rgb[0] = rgb[1] = rgb[2] = 0;
+      rgb[0] = rgb[1] = rgb[2] = 0; /* if returning "failed" then leave rgb as-is */
 }
 
 /**
  * @brief  Test whether image contains a coordinate expressed in integers
  * @param  img
- * @param  margin
- * @param  x
- * @param  y
+ * @param  margin Unscaled margin width
+ * @param  x Scaled x coordinate
+ * @param  y Scaled y coordinate
  * @return DMTX_TRUE | DMTX_FALSE
  */
 extern int
 dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 {
+   int width, height;
+
    assert(img != NULL);
 
+   width = dmtxImageGetProp(img, DmtxPropScaledWidth);
+   height = dmtxImageGetProp(img, DmtxPropScaledHeight);
+
+   /* XXX change this test against xMin/yMin and xMax/yMax instead */
+
    if(margin == 0) {
-      if(x >= 0 && y >= 0 && x < img->width && y < img->height)
+      if(x >= 0 && y >= 0 && x < width && y < height)
          return DMTX_TRUE;
    }
    else {
-      if(x - margin >= 0 && y - margin >= 0 && x + margin < img->width && y + margin < img->height)
+      if(x - margin >= 0 && y - margin >= 0 && x + margin < width && y + margin < height)
          return DMTX_TRUE;
    }
 
@@ -248,16 +269,21 @@ dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 /**
  * @brief  Test whether image contains a coordinate expressed in floating points
  * @param  img
- * @param  x
- * @param  y
+ * @param  x Scaled x coordinate
+ * @param  y Scaled y coordinate
  * @return DMTX_TRUE | DMTX_FALSE
  */
 extern int
 dmtxImageContainsFloat(DmtxImage *img, double x, double y)
 {
+   int width, height;
+
    assert(img != NULL);
 
-   if(x >= 0.0 && y >= 0.0 && x < img->width && y < img->height)
+   width = dmtxImageGetProp(img, DmtxPropScaledWidth);
+   height = dmtxImageGetProp(img, DmtxPropScaledHeight);
+
+   if(x >= 0.0 && y >= 0.0 && x < width && y < height)
       return DMTX_TRUE;
 
    return DMTX_FALSE;

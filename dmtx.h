@@ -169,10 +169,11 @@ typedef enum {
 typedef enum {
    DmtxPropWidth,
    DmtxPropHeight,
-   DmtxPropScale,
    DmtxPropArea,
+   DmtxPropScale,
    DmtxPropScaledWidth,
-   DmtxPropScaledHeight
+   DmtxPropScaledHeight,
+   DmtxPropScaledArea
 } DmtxImageProperty;
 
 typedef double DmtxMatrix3[3][3];

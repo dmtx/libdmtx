@@ -29,14 +29,13 @@ Contact: mike@dragonflylogic.com
 
 /**
  * @brief  XXX
- * @param  image
  * @param  p0
  * @param  p1
  * @param  minGapSize
  * @return Initialized grid
  */
 static DmtxScanGrid
-InitScanGrid(DmtxImage *image, int scanGap, int xMin, int xMax, int yMin, int yMax)
+InitScanGrid(int scanGap, int xMin, int xMax, int yMin, int yMax)
 {
    int xExtent, yExtent, maxExtent;
    int extent;
