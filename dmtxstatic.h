@@ -110,7 +110,7 @@ static DmtxColor3 ReadModuleColor(DmtxImage *image, DmtxRegion *region,
 
 static int MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg);
 static int CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDirection dir);
-static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);
+/* static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath); */
 
 /* dmtxdecode.c */
 static void DecodeDataStream(DmtxMessage *message, int sizeIdx, unsigned char *outputStart);
@@ -172,7 +172,7 @@ static int GfProduct(int a, int b);
 static int GfDoublify(int a, int b);
 
 /* dmtxscangrid.c */
-static DmtxScanGrid InitScanGrid(int scanGap, int xMin, int xMax, int yMin, int yMax);
+static DmtxScanGrid InitScanGrid(int scanGap, DmtxImage *img);
 static void IncrementPixelProgress(DmtxScanGrid *cross);
 static void SetDerivedFields(DmtxScanGrid *cross);
 static DmtxPixelLoc GetGridCoordinates(DmtxScanGrid *grid);

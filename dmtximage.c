@@ -37,37 +37,41 @@ extern DmtxImage *
 dmtxImageMalloc(int width, int height)
 {
    int pixelBufSize, compassBufSize;
-   DmtxImage *image;
+   DmtxImage *img;
 
-   image = (DmtxImage *)malloc(sizeof(DmtxImage));
-   if(image == NULL) {
+   img = (DmtxImage *)malloc(sizeof(DmtxImage));
+   if(img == NULL) {
       return NULL;
    }
 
-   image->pageCount = 1;
-   image->width = width;
-   image->height = height;
-   image->scale = 1;
+   img->pageCount = 1;
+   img->width = width;
+   img->height = height;
+   img->scale = 1;
+   img->xMin = 0;
+   img->xMax = width - 1;  /* unscaled */
+   img->yMin = 0;
+   img->yMax = height - 1; /* unscaled */
 
    pixelBufSize = width * height * sizeof(DmtxRgb);
    compassBufSize = width * height * sizeof(DmtxCompassEdge);
 
-   image->pxl = (DmtxRgb *)malloc(pixelBufSize);
-   if(image->pxl == NULL) {
-      free(image);
+   img->pxl = (DmtxRgb *)malloc(pixelBufSize);
+   if(img->pxl == NULL) {
+      free(img);
       return NULL;
    }
-   memset(image->pxl, 0x00, pixelBufSize);
+   memset(img->pxl, 0x00, pixelBufSize);
 
-   image->compass = (DmtxCompassEdge *)malloc(compassBufSize);
-   if(image->compass == NULL) {
-      free(image->pxl);
-      free(image);
+   img->compass = (DmtxCompassEdge *)malloc(compassBufSize);
+   if(img->compass == NULL) {
+      free(img->pxl);
+      free(img);
       return NULL;
    }
-   memset(image->compass, 0x00, compassBufSize);
+   memset(img->compass, 0x00, compassBufSize);
 
-   return image;
+   return img;
 }
 
 /**
@@ -102,6 +106,8 @@ dmtxImageFree(DmtxImage **img)
 extern int
 dmtxImageSetProp(DmtxImage *img, int prop, int value)
 {
+   int width, height;
+
    if(img == NULL)
       return DMTX_FAILURE;
 
@@ -115,10 +121,34 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
       case DmtxPropScale:
          img->scale = value;
          break;
+      case DmtxPropXmin:
+         img->xMin = value;
+         break;
+      case DmtxPropXmax:
+         img->xMax = value;
+         break;
+      case DmtxPropYmin: /* Deliberate y-flip */
+         img->yMax = dmtxImageGetProp(img, DmtxPropHeight) - value - 1;
+         break;
+      case DmtxPropYmax: /* Deliberate y-flip */
+         img->yMin = dmtxImageGetProp(img, DmtxPropHeight) - value - 1;
+         break;
       default:
          return DMTX_FAILURE;
          break;
    }
+
+   /* Specified range has non-positive area */
+   if(img->xMin >= img->xMax || img->yMin >= img->yMax)
+      return DMTX_FAILURE;
+
+   width = dmtxImageGetProp(img, DmtxPropWidth);
+   height = dmtxImageGetProp(img, DmtxPropHeight);
+
+   /* Specified range extends beyond image boundaries */
+   if(img->xMin < 0 || img->xMax >= width ||
+         img->yMin < 0 || img->yMax >= height)
+      return DMTX_FAILURE;
 
    return DMTX_SUCCESS;
 }
@@ -190,19 +220,22 @@ dmtxImageGetOffset(DmtxImage *img, int x, int y)
  * @param  rgb
  * @return void
  */
-extern void
+extern int
 dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 {
    int offset;
 
    assert(img != NULL);
 
+   if(dmtxImageContainsInt(img, 0, x, y) == DMTX_FALSE)
+      return DMTX_FAILURE;
+
    offset = dmtxImageGetOffset(img, x, y);
 
    if(dmtxImageContainsInt(img, 0, x, y))
       memcpy(img->pxl[offset], rgb, 3);
-   else
-      rgb[0] = rgb[1] = rgb[2] = 0;
+
+   return DMTX_SUCCESS;
 }
 
 /**
@@ -213,25 +246,22 @@ dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
  * @param  rgb
  * @return void
  */
-extern void
+extern int
 dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 {
    int offset;
 
-   /* XXX next: add int return value to indicate if requested pixel is
-      within bounds of image (scaled). Use this to implement perfect range
-      handling. */
-
-   /* XXX test dmtxImageContainsInt() first */
-
    assert(img != NULL);
+
+   if(dmtxImageContainsInt(img, 0, x, y) == DMTX_FALSE)
+      return DMTX_FAILURE;
 
    offset = dmtxImageGetOffset(img, x, y);
 
    if(dmtxImageContainsInt(img, 0, x, y))
       memcpy(rgb, img->pxl[offset], 3);
-   else
-      rgb[0] = rgb[1] = rgb[2] = 0; /* if returning "failed" then leave rgb as-is */
+
+   return DMTX_SUCCESS;
 }
 
 /**
@@ -245,22 +275,20 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 extern int
 dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 {
-   int width, height;
+   int scale;
+   int xMin, xMax, yMin, yMax;
 
    assert(img != NULL);
 
-   width = dmtxImageGetProp(img, DmtxPropScaledWidth);
-   height = dmtxImageGetProp(img, DmtxPropScaledHeight);
+   scale = dmtxImageGetProp(img, DmtxPropScale);
+   xMin = img->xMin/scale;
+   xMax = img->xMax/scale;
+   yMin = img->yMin/scale;
+   yMax = img->yMax/scale;
 
-   /* XXX change this test against xMin/yMin and xMax/yMax instead */
-
-   if(margin == 0) {
-      if(x >= 0 && y >= 0 && x < width && y < height)
-         return DMTX_TRUE;
-   }
-   else {
-      if(x - margin >= 0 && y - margin >= 0 && x + margin < width && y + margin < height)
-         return DMTX_TRUE;
+   if(x - margin >= xMin && x + margin <= xMax &&
+         y - margin >= yMin && y + margin <= yMax) {
+      return DMTX_TRUE;
    }
 
    return DMTX_FALSE;
@@ -276,14 +304,19 @@ dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 extern int
 dmtxImageContainsFloat(DmtxImage *img, double x, double y)
 {
-   int width, height;
+/* int width, height; */
+   int scale;
 
    assert(img != NULL);
 
-   width = dmtxImageGetProp(img, DmtxPropScaledWidth);
-   height = dmtxImageGetProp(img, DmtxPropScaledHeight);
+   scale = dmtxImageGetProp(img, DmtxPropScale);
+   x *= scale; /* XXX i think this works ... ideally would scale down xMin, etc... instead for comparison */
+   y *= scale;
 
-   if(x >= 0.0 && y >= 0.0 && x < width && y < height)
+/* width = dmtxImageGetProp(img, DmtxPropScaledWidth);
+   height = dmtxImageGetProp(img, DmtxPropScaledHeight); */
+
+   if(x >= img->xMin && y >= img->yMin && x <= img->xMax && y <= img->yMax)
       return DMTX_TRUE;
 
    return DMTX_FALSE;

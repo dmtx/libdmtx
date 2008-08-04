@@ -63,9 +63,11 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
       /* Increment grid away from this location to prevent repeat visits */
       IncrementPixelProgress(grid);
 
+      if(dmtxImageContainsInt(dec->image, 0, loc.X, loc.Y) == DMTX_FALSE)
+         continue;
+
       /* Scan this pixel for presence of a valid barcode edge */
       reg = dmtxScanPixel(dec, loc);
-
 /*
       if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_2ND) {
          size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
@@ -74,7 +76,6 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
          WriteDiagnosticImage(dec, &reg, imagePath);
       }
 */
-
       /* Found a barcode region? */
       if(reg.found == DMTX_REGION_FOUND)
          break;
@@ -1715,6 +1716,7 @@ MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
 /**
  *
  */
+/*
 static void
 WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
@@ -1762,3 +1764,4 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 
    fclose(fp);
 }
+*/

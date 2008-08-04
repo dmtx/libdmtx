@@ -36,23 +36,24 @@ extern DmtxDecode
 dmtxDecodeStructInit(DmtxImage *img)
 {
    DmtxDecode dec;
+   int cacheSize;
 
    memset(&dec, 0x00, sizeof(DmtxDecode));
 
    dec.image = img;
-   memset(dec.image->compass, 0x00, dmtxImageGetProp(img, DmtxPropArea) * sizeof(DmtxCompassEdge));
+
+   cacheSize = dmtxImageGetProp(img, DmtxPropWidth) *
+         dmtxImageGetProp(img, DmtxPropHeight) * sizeof(DmtxCompassEdge);
+
+   memset(dec.image->compass, 0x00, cacheSize);
 
    dec.shrinkMin = 1;
    dec.shrinkMax = 1;
    dec.edgeThresh = 10;
    dec.squareDevn = cos(40 * (M_PI/180));
    dec.scanGap = 10;
-   dec.xMin = 0;
-   dec.xMax = dmtxImageGetProp(img, DmtxPropScaledWidth) - 1;
-   dec.yMin = 0;
-   dec.yMax = dmtxImageGetProp(img, DmtxPropScaledHeight) - 1;
 
-   dec.grid = InitScanGrid(dec.scanGap, dec.xMin, dec.xMax, dec.yMin, dec.yMax);
+   dec.grid = InitScanGrid(dec.scanGap, img);
 
    return dec;
 }
@@ -78,18 +79,18 @@ dmtxDecodeStructDeInit(DmtxDecode *dec)
 extern int
 dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
 {
+   int err;
+
    switch(prop) {
       case DmtxPropShrinkMin:
          dec->shrinkMin = value;
          break;
       case DmtxPropShrinkMax:
          dec->shrinkMax = value;
-         dec->image->scale = value; /* XXX For now */
-         dec->xMin = 0;
-         dec->xMax = dmtxImageGetProp(dec->image, DmtxPropScaledWidth) - 1;
-         dec->yMin = 0;
-         dec->yMax = dmtxImageGetProp(dec->image, DmtxPropScaledHeight) - 1;
-         dec->grid = InitScanGrid(dec->scanGap, dec->xMin, dec->xMax, dec->yMin, dec->yMax);
+         err = dmtxImageSetProp(dec->image, DmtxPropScale, value);
+         if(err == DMTX_FAILURE)
+            return DMTX_FAILURE;
+         dec->grid = InitScanGrid(dec->scanGap, dec->image);
          break;
       case DmtxPropEdgeThresh:
          dec->edgeThresh = value;
@@ -101,30 +102,29 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
          dec->scanGap = value;
          break;
       case DmtxPropXmin:
-         dec->xMin = value;
+         err = dmtxImageSetProp(dec->image, DmtxPropXmin, value);
+         if(err == DMTX_FAILURE)
+            return DMTX_FAILURE;
          break;
       case DmtxPropXmax:
-         dec->xMax = value;
+         err = dmtxImageSetProp(dec->image, DmtxPropXmax, value);
+         if(err == DMTX_FAILURE)
+            return DMTX_FAILURE;
          break;
       case DmtxPropYmin:
-         dec->yMin = value;
+         err = dmtxImageSetProp(dec->image, DmtxPropYmin, value);
+         if(err == DMTX_FAILURE)
+            return DMTX_FAILURE;
          break;
       case DmtxPropYmax:
-         dec->yMax = value;
+         err = dmtxImageSetProp(dec->image, DmtxPropYmax, value);
+         if(err == DMTX_FAILURE)
+            return DMTX_FAILURE;
          break;
    }
 
    /* Minimum image scale can't be larger than maximum image scale */
    if(dec->shrinkMin < 1 || dec->shrinkMax < dec->shrinkMin)
-      return DMTX_FAILURE;
-
-   /* Specified range has non-positive area */
-   if(dec->xMin >= dec->xMax || dec->yMin >= dec->yMax)
-      return DMTX_FAILURE;
-
-   /* Specified range extends beyond image boundaries */
-   if(dmtxImageContainsInt(dec->image, 0, dec->xMin, dec->yMin) == DMTX_FALSE ||
-         dmtxImageContainsInt(dec->image, 0, dec->xMax, dec->yMax) == DMTX_FALSE)
       return DMTX_FAILURE;
 
    if(dec->squareDevn < 0.0 || dec->squareDevn > 1.0)
@@ -137,11 +137,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
       return DMTX_FAILURE;
 
    /* Reinitialize scangrid if any inputs changed */
-   if(prop == DmtxPropXmin || prop == DmtxPropXmax ||
-         prop == DmtxPropYmin || prop == DmtxPropYmax ||
-         prop == DmtxPropScanGap) {
-      dec->grid = InitScanGrid(dec->scanGap, dec->xMin, dec->xMax, dec->yMin, dec->yMax);
-   }
+   dec->grid = InitScanGrid(dec->scanGap, dec->image);
 
    return DMTX_SUCCESS;
 }

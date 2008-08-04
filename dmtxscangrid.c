@@ -35,13 +35,20 @@ Contact: mike@dragonflylogic.com
  * @return Initialized grid
  */
 static DmtxScanGrid
-InitScanGrid(int scanGap, int xMin, int xMax, int yMin, int yMax)
+InitScanGrid(int scanGap, DmtxImage *img)
 {
+   int scale, xMin, xMax, yMin, yMax;
    int xExtent, yExtent, maxExtent;
    int extent;
    DmtxScanGrid grid;
 
    memset(&grid, 0x00, sizeof(DmtxScanGrid));
+
+   scale = dmtxImageGetProp(img, DmtxPropScale);
+   xMin = img->xMin/scale;
+   xMax = img->xMax/scale;
+   yMin = img->yMin/scale;
+   yMax = img->yMax/scale;
 
    /* Values that get set once */
    xExtent = xMax - xMin;
@@ -57,7 +64,7 @@ InitScanGrid(int scanGap, int xMin, int xMax, int yMin, int yMax)
    grid.maxExtent = extent;
 
    grid.xOffset = (xMin + xMax - grid.maxExtent) / 2;
-   grid.yOffset = (yMin + yMax - grid.maxExtent) > 2;
+   grid.yOffset = (yMin + yMax - grid.maxExtent) / 2;
 
    /* Values that get reset for every level */
    grid.total = 1;

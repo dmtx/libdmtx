@@ -96,25 +96,42 @@ main(int argc, char *argv[])
       /* Initialize decode struct for newly loaded image */
       decode = dmtxDecodeStructInit(img);
 
-      dmtxDecodeSetProp(&decode, DmtxPropShrinkMin, options.shrinkMin);
-      dmtxDecodeSetProp(&decode, DmtxPropShrinkMax, options.shrinkMax);
-      dmtxDecodeSetProp(&decode, DmtxPropEdgeThresh, options.edgeThresh);
-      dmtxDecodeSetProp(&decode, DmtxPropScanGap, options.scanGap);
+      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMin, options.shrinkMin);
+      assert(err == DMTX_SUCCESS);
 
-      if(options.squareDevn != -1)
-         dmtxDecodeSetProp(&decode, DmtxPropSquareDevn, options.squareDevn);
+      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMax, options.shrinkMax);
+      assert(err == DMTX_SUCCESS);
 
-      if(options.xMin)
-         dmtxDecodeSetProp(&decode, DmtxPropXmin, ScaleNumberString(options.xMin, imgWidth));
+      err = dmtxDecodeSetProp(&decode, DmtxPropEdgeThresh, options.edgeThresh);
+      assert(err == DMTX_SUCCESS);
 
-      if(options.xMax)
-         dmtxDecodeSetProp(&decode, DmtxPropXmax, ScaleNumberString(options.xMax, imgWidth));
+      err = dmtxDecodeSetProp(&decode, DmtxPropScanGap, options.scanGap);
+      assert(err == DMTX_SUCCESS);
 
-      if(options.yMin)
-         dmtxDecodeSetProp(&decode, DmtxPropYmin, ScaleNumberString(options.yMin, imgHeight));
+      if(options.squareDevn != -1) {
+         err = dmtxDecodeSetProp(&decode, DmtxPropSquareDevn, options.squareDevn);
+         assert(err == DMTX_SUCCESS);
+      }
 
-      if(options.yMax)
-         dmtxDecodeSetProp(&decode, DmtxPropYmax, ScaleNumberString(options.yMax, imgHeight));
+      if(options.xMin) {
+         err = dmtxDecodeSetProp(&decode, DmtxPropXmin, ScaleNumberString(options.xMin, imgWidth));
+         assert(err == DMTX_SUCCESS);
+      }
+
+      if(options.xMax) {
+         err = dmtxDecodeSetProp(&decode, DmtxPropXmax, ScaleNumberString(options.xMax, imgWidth));
+         assert(err == DMTX_SUCCESS);
+      }
+
+      if(options.yMin) {
+         err = dmtxDecodeSetProp(&decode, DmtxPropYmin, ScaleNumberString(options.yMin, imgHeight));
+         assert(err == DMTX_SUCCESS);
+      }
+
+      if(options.yMax) {
+         err = dmtxDecodeSetProp(&decode, DmtxPropYmax, ScaleNumberString(options.yMax, imgHeight));
+         assert(err == DMTX_SUCCESS);
+      }
 
       /* Loop once for each detected barcode region */
       for(;;) {

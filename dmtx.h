@@ -160,21 +160,18 @@ typedef enum {
    DmtxPropEdgeThresh,
    DmtxPropSquareDevn,
    DmtxPropScanGap,
-   DmtxPropXmin,
-   DmtxPropXmax,
-   DmtxPropYmin,
-   DmtxPropYmax
-} DmtxDecodeProperty;
-
-typedef enum {
    DmtxPropWidth,
    DmtxPropHeight,
    DmtxPropArea,
    DmtxPropScale,
+   DmtxPropXmin,
+   DmtxPropXmax,
+   DmtxPropYmin,
+   DmtxPropYmax,
    DmtxPropScaledWidth,
    DmtxPropScaledHeight,
    DmtxPropScaledArea
-} DmtxImageProperty;
+} DmtxDecodeProperty;
 
 typedef double DmtxMatrix3[3][3];
 typedef unsigned char DmtxRgb[3];
@@ -232,9 +229,9 @@ typedef struct DmtxRay2_struct {
  * @brief DmtxGradient
  */
 typedef struct DmtxGradient_struct {
-   char        isDefined;
-   double      tMin, tMax, tMid;
-   DmtxRay3    ray;
+   char       isDefined;
+   double     tMin, tMax, tMid;
+   DmtxRay3   ray;
    DmtxColor3 color, colorPrev; /* XXX maybe these aren't appropriate variables for a gradient? */
 } DmtxGradient;
 
@@ -250,10 +247,10 @@ typedef enum {
  * @brief DmtxCompassEdge
  */
 typedef struct DmtxCompassEdge_struct {
-   char            tested;
-   char            edgeDir;
-   double          magnitude;  /* sqrt(R^2 + G^2 + B^2) */
-   DmtxColor3      intensity;
+   char       tested;
+   char       edgeDir;
+   double     magnitude;  /* sqrt(R^2 + G^2 + B^2) */
+   DmtxColor3 intensity;
 } DmtxCompassEdge;
 
 /**
@@ -261,10 +258,14 @@ typedef struct DmtxCompassEdge_struct {
  * @brief DmtxImage
  */
 typedef struct DmtxImage_struct {
-   unsigned int    pageCount;
-   unsigned int    width;
-   unsigned int    height;
-   unsigned int    scale;
+   int             width;  /* unscaled */
+   int             height; /* unscaled */
+   int             scale;
+   int             xMin;   /* unscaled */
+   int             xMax;   /* unscaled */
+   int             yMin;   /* unscaled */
+   int             yMax;   /* unscaled */
+   int             pageCount;
    DmtxRgb         *pxl;
    DmtxCompassEdge *compass;
 } DmtxImage;
@@ -372,10 +373,6 @@ typedef struct DmtxDecode_struct {
    int             edgeThresh;
    double          squareDevn;
    int             scanGap;
-   int             xMin;
-   int             xMax;
-   int             yMin;
-   int             yMax;
 } DmtxDecode;
 
 /**
@@ -473,8 +470,8 @@ extern int dmtxImageFree(DmtxImage **img);
 extern int dmtxImageSetProp(DmtxImage *img, int prop, int value);
 extern int dmtxImageGetProp(DmtxImage *img, int prop);
 extern int dmtxImageGetOffset(DmtxImage *img, int x, int y);
-extern void dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
-extern void dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
+extern int dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
+extern int dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
 extern int dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);
 extern int dmtxImageContainsFloat(DmtxImage *img, double x, double y);
 
