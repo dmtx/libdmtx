@@ -500,8 +500,7 @@ WriteImagePng(UserOptions *options, DmtxEncode *enc)
       assert(png_get_rowbytes(pngPtr, infoPtr) == width * sizeof(DmtxRgb));
 
       /* Flip rows top-to-bottom to account for PNM "top-left" origin */
-      memcpy(rowPointers[row], enc->image->pxl + ((height - row - 1) *
-            width), width * sizeof(DmtxRgb));
+      memcpy(rowPointers[row], enc->image->pxl + (row * width), width * sizeof(DmtxRgb));
    }
 
    png_set_rows(pngPtr, infoPtr, rowPointers);
