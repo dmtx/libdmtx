@@ -66,11 +66,11 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
                                                           6, 6, 6,
                                                     1, 2, 1, 2, 2, 2 };
 
-   static const int interleavedBlocks[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                                                     1, 1, 1, 1, 1, 2,
-                                                     2, 4, 4, 4, 4, 6,
-                                                           6, 8, 8,
-                                                     1, 1, 1, 1, 1, 1 };
+   static const int interleavedBlocks[] = { 1, 1, 1, 1, 1, 1, 1,  1, 1,
+                                                     1, 1, 1, 1,  1, 2,
+                                                     2, 4, 4, 4,  4, 6,
+                                                           6, 8, 10,
+                                                     1, 1, 1, 1,  1, 1 };
 
    static const int blockDataWords[] = { 3, 5, 8, 12,  18,  22,  30,  36,  44,
                                                   62,  86, 114, 144, 174, 102,
@@ -127,9 +127,6 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
       case DmtxSymAttribBlockErrorWords:
          return blockErrorWords[sizeIdx];
          break;
-      case DmtxSymAttribBlockTotalWords:
-         return blockDataWords[sizeIdx] + blockErrorWords[sizeIdx];
-         break;
       case DmtxSymAttribBlockMaxCorrectable:
          return blockMaxCorrectable[sizeIdx];
          break;
@@ -138,9 +135,6 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
          break;
       case DmtxSymAttribSymbolErrorWords:
          return blockErrorWords[sizeIdx] * interleavedBlocks[sizeIdx];
-         break;
-      case DmtxSymAttribSymbolTotalWords:
-         return (blockDataWords[sizeIdx] + blockErrorWords[sizeIdx]) * interleavedBlocks[sizeIdx];
          break;
       case DmtxSymAttribSymbolMaxCorrectable:
          return blockMaxCorrectable[sizeIdx] * interleavedBlocks[sizeIdx];

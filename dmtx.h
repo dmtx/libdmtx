@@ -139,11 +139,9 @@ typedef enum {
    DmtxSymAttribInterleavedBlocks,
    DmtxSymAttribBlockDataWords,
    DmtxSymAttribBlockErrorWords,
-   DmtxSymAttribBlockTotalWords,
    DmtxSymAttribBlockMaxCorrectable,
    DmtxSymAttribSymbolDataWords,
    DmtxSymAttribSymbolErrorWords,
-   DmtxSymAttribSymbolTotalWords,
    DmtxSymAttribSymbolMaxCorrectable
 } DmtxSymAttribute;
 

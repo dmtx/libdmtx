@@ -48,6 +48,39 @@ Contact: mike@dragonflylogic.com
 #endif
 
 typedef enum {
+   DmtxSize10x10,
+   DmtxSize12x12,
+   DmtxSize14x14,
+   DmtxSize16x16,
+   DmtxSize18x18,
+   DmtxSize20x20,
+   DmtxSize22x22,
+   DmtxSize24x24,
+   DmtxSize26x26,
+   DmtxSize32x32,
+   DmtxSize36x36,
+   DmtxSize40x40,
+   DmtxSize44x44,
+   DmtxSize48x48,
+   DmtxSize52x52,
+   DmtxSize64x64,
+   DmtxSize72x72,
+   DmtxSize80x80,
+   DmtxSize88x88,
+   DmtxSize96x96,
+   DmtxSize104x104,
+   DmtxSize120x120,
+   DmtxSize132x132,
+   DmtxSize144x144,
+   DmtxSize8x18,
+   DmtxSize8x32,
+   DmtxSize12x26,
+   DmtxSize12x36,
+   DmtxSize16x36,
+   DmtxSize16x48
+} DmtxSize;
+
+typedef enum {
    DmtxEdgeTop    = 0x01 << 0,
    DmtxEdgeBottom = 0x01 << 1,
    DmtxEdgeLeft   = 0x01 << 2,

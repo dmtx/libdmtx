@@ -49,10 +49,7 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
    unsigned char g[69], b[68], *bPtr;
    unsigned char *codewords = message->code;
 
-   dataLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
    errorWordCount = dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, sizeIdx);
-   totalLength = dataLength + errorWordCount;
-
    step = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
    blockSize = errorWordCount / step;
 
@@ -69,6 +66,13 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
 
    /* Populate error codeword array */
    for(block = 0; block < step; block++) {
+
+      /* XXX should this lookup automatically handle this special case? */
+      dataLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
+      if(sizeIdx == DmtxSize144x144 && block > 7)
+         dataLength -= 2;
+
+      totalLength = dataLength + errorWordCount;
 
       memset(b, 0x00, sizeof(b));
       for(i = block; i < dataLength; i += step) {
@@ -101,6 +105,7 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
    int i, j;
    int interleavedBlocks;
    int blockErrorWords;
+   int blockDataWords;
    int blockTotalWords;
    int blockMaxCorrectable;
    struct rs *rs;
@@ -109,8 +114,18 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
 
    interleavedBlocks = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
    blockErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
-   blockTotalWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockTotalWords, sizeIdx);
+   blockDataWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockDataWords, sizeIdx);
    blockMaxCorrectable = dmtxGetSymbolAttribute(DmtxSymAttribBlockMaxCorrectable, sizeIdx);
+   blockTotalWords = blockErrorWords + blockDataWords;
+
+   /* XXX not implemented yet */
+   if(sizeIdx == DmtxSize144x144)
+      return DMTX_FAILURE;
+
+   /* XXX something like this will be necessary to decode 144x144 ... but no time now
+   if(sizeIdx == DmtxSize144x144 && i > 7)
+      blockTotalWords--;
+   */
 
    rs = init_rs_char(blockErrorWords, 255 - blockTotalWords);
    if(rs == NULL)
