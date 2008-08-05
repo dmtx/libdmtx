@@ -137,7 +137,6 @@ typedef enum {
    DmtxSymAttribMappingMatrixRows,
    DmtxSymAttribMappingMatrixCols,
    DmtxSymAttribInterleavedBlocks,
-   DmtxSymAttribBlockDataWords,
    DmtxSymAttribBlockErrorWords,
    DmtxSymAttribBlockMaxCorrectable,
    DmtxSymAttribSymbolDataWords,
@@ -524,6 +523,7 @@ extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
 
 extern int dmtxSymbolModuleStatus(DmtxMessage *mapping, int sizeIdx, int row, int col);
 extern int dmtxGetSymbolAttribute(int attribute, int sizeIdx);
+extern int dmtxGetBlockDataSize(int sizeIdx, int blockIdx);
 
 extern char *dmtxVersion(void);
 

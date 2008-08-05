@@ -72,11 +72,11 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
                                                            6, 8, 10,
                                                      1, 1, 1, 1,  1, 1 };
 
-   static const int blockDataWords[] = { 3, 5, 8, 12,  18,  22,  30,  36,  44,
-                                                  62,  86, 114, 144, 174, 102,
-                                                 140,  92, 114, 144, 174, 136,
-                                                           175, 163, 156,
-                                                   5,  10,  16,  22,  32,  49 };
+   static const int symbolDataWords[] = { 3, 5, 8,  12,   18,   22,   30,   36,  44,
+                                                    62,   86,  114,  144,  174, 204,
+                                                   280,  368,  456,  576,  696, 816,
+                                                              1050, 1304, 1558,
+                                                     5,   10,   16,   22,   32,  49 };
 
    static const int blockErrorWords[] = { 5, 7, 10, 12, 14, 18, 20, 24, 28,
                                                     36, 42, 48, 56, 68, 42,
@@ -90,8 +90,8 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
                                                                34,  31,  31,
                                                    3,  5,  7,   9,  12,  14 };
 
-   /* XXX maybe this should be a proper check instead of an assertion */
-   assert(sizeIdx >= 0 && sizeIdx < DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT);
+   if(sizeIdx < 0 || sizeIdx >= DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT)
+      return -1;
 
    switch(attribute) {
       case DmtxSymAttribSymbolRows:
@@ -121,9 +121,6 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
       case DmtxSymAttribInterleavedBlocks:
          return interleavedBlocks[sizeIdx];
          break;
-      case DmtxSymAttribBlockDataWords:
-         return blockDataWords[sizeIdx];
-         break;
       case DmtxSymAttribBlockErrorWords:
          return blockErrorWords[sizeIdx];
          break;
@@ -131,7 +128,7 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
          return blockMaxCorrectable[sizeIdx];
          break;
       case DmtxSymAttribSymbolDataWords:
-         return blockDataWords[sizeIdx] * interleavedBlocks[sizeIdx];
+         return symbolDataWords[sizeIdx];
          break;
       case DmtxSymAttribSymbolErrorWords:
          return blockErrorWords[sizeIdx] * interleavedBlocks[sizeIdx];
@@ -145,6 +142,29 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
    }
 
    return -1;
+}
+
+/**
+ * @brief  XXX
+ * @param  sizeIdx
+ * @param  blockIdx
+ * @return Attribute value
+ */
+extern int
+dmtxGetBlockDataSize(int sizeIdx, int blockIdx)
+{
+   int symbolDataWords;
+   int interleavedBlocks;
+   int count;
+
+   symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
+   interleavedBlocks = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
+   count = (int)(symbolDataWords/interleavedBlocks);
+
+   if(symbolDataWords < 1 || interleavedBlocks < 1)
+      return -1;
+
+   return (sizeIdx == DmtxSize144x144 && blockIdx > 7) ? count + 1 : count;
 }
 
 /**

@@ -51,7 +51,11 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
 
    errorWordCount = dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, sizeIdx);
    step = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
-   blockSize = errorWordCount / step;
+   blockSize = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
+   dataLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
+   totalLength = dataLength + errorWordCount;
+
+   assert(blockSize == errorWordCount / step);
 
    memset(g, 0x01, sizeof(g));
 
@@ -66,13 +70,6 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
 
    /* Populate error codeword array */
    for(block = 0; block < step; block++) {
-
-      /* XXX should this lookup automatically handle this special case? */
-      dataLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
-      if(sizeIdx == DmtxSize144x144 && block > 7)
-         dataLength -= 2;
-
-      totalLength = dataLength + errorWordCount;
 
       memset(b, 0x00, sizeof(b));
       for(i = block; i < dataLength; i += step) {
@@ -105,7 +102,6 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
    int i, j;
    int interleavedBlocks;
    int blockErrorWords;
-   int blockDataWords;
    int blockTotalWords;
    int blockMaxCorrectable;
    struct rs *rs;
@@ -114,25 +110,16 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
 
    interleavedBlocks = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
    blockErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
-   blockDataWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockDataWords, sizeIdx);
    blockMaxCorrectable = dmtxGetSymbolAttribute(DmtxSymAttribBlockMaxCorrectable, sizeIdx);
-   blockTotalWords = blockErrorWords + blockDataWords;
-
-   /* XXX not implemented yet */
-   if(sizeIdx == DmtxSize144x144)
-      return DMTX_FAILURE;
-
-   /* XXX something like this will be necessary to decode 144x144 ... but no time now
-   if(sizeIdx == DmtxSize144x144 && i > 7)
-      blockTotalWords--;
-   */
-
-   rs = init_rs_char(blockErrorWords, 255 - blockTotalWords);
-   if(rs == NULL)
-      return DMTX_FAILURE;
 
    fixedErrSum = 0;
    for(i = 0; i < interleavedBlocks; i++) {
+
+      blockTotalWords = blockErrorWords + dmtxGetBlockDataSize(sizeIdx, i);
+
+      rs = init_rs_char(blockErrorWords, 255 - blockTotalWords);
+      if(rs == NULL)
+         return DMTX_FAILURE;
 
       for(j = 0; j < blockTotalWords; j++)
          data[j] = code[j*interleavedBlocks+i];
@@ -141,6 +128,7 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
 
       if(fixedErr < 0 || fixedErr > blockMaxCorrectable) {
          free_rs_char(rs);
+fprintf(stdout, "dying\n");
          return DMTX_FAILURE;
       }
 
@@ -148,9 +136,9 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
 
       for(j = 0; j < blockTotalWords; j++)
          code[j*interleavedBlocks+i] = data[j];
-   }
 
-   free_rs_char(rs);
+      free_rs_char(rs);
+   }
 
    if(fix >= 0 && fixedErrSum > fix)
       return DMTX_FAILURE;

@@ -1,7 +1,7 @@
 TODO Items
 -----------------------------------------------------------------
 
-next: Figure out difference between rb and dmtxread behavior
+next: Update MatrixRegionAlignFirstEdge() logic
 next: Update MatrixRegionAlignSecondEdge() logic
 
 after version 0.5.1:
