@@ -746,10 +746,12 @@ EncodeAsciiCodeword(DmtxChannel *channel)
       as separate channels. */
 
    /* 2nd digit char in a row - overwrite first digit word with combined value */
-   if(isdigit(inputValue) && channel->currentLength >= channel->firstCodeWord + 24) {
+   if(isdigit(inputValue) && channel->currentLength >= channel->firstCodeWord + 12) {
       prevIndex = (channel->currentLength - 12)/12;
       prevValue = channel->encodedWords[prevIndex] - 1;
-      prevPrevValue = channel->encodedWords[prevIndex-1];
+
+      prevPrevValue = (prevIndex > channel->firstCodeWord/12) ?
+            channel->encodedWords[prevIndex-1] : 0;
 
       if(prevPrevValue != 235 && isdigit(prevValue)) {
          channel->encodedWords[prevIndex] = 10 * (prevValue - '0') + (inputValue - '0') + 130;
