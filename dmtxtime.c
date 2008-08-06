@@ -32,6 +32,7 @@ Contact: mike@dragonflylogic.com
 #if defined(HAVE_SYS_TIME_H) && defined(HAVE_GETTIMEOFDAY)
 
 #include <sys/time.h>
+#include <time.h>
 
 #define DMTX_TIME_PREC_USEC 1
 

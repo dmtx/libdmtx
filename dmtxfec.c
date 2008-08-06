@@ -37,7 +37,6 @@ Contact: mike@dragonflylogic.com
 
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 
 typedef unsigned char data_t;
 
