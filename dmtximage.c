@@ -202,13 +202,9 @@ dmtxImageGetProp(DmtxImage *img, int prop)
 extern int
 dmtxImageGetOffset(DmtxImage *img, int x, int y)
 {
-   int heightScaled;
-
    assert(img != NULL);
 
-   heightScaled = img->height/img->scale;
-
-   return ((heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
+   return ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
 }
 
 /**
