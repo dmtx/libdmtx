@@ -47,10 +47,10 @@ dmtxImageMalloc(int width, int height)
    img->width = width;
    img->height = height;
    img->scale = 1;
-   img->xMin = 0;
-   img->xMax = width - 1;  /* unscaled */
-   img->yMin = 0;
-   img->yMax = height - 1; /* unscaled */
+   img->xMin = img->xMinScaled = 0;
+   img->xMax = img->xMaxScaled = width - 1;
+   img->yMin = img->yMinScaled = 0;
+   img->yMax = img->yMaxScaled = height - 1;
 
    img->pxl = (DmtxRgb *)calloc(width * height, sizeof(DmtxRgb));
    if(img->pxl == NULL) {
@@ -250,9 +250,7 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
       return DMTX_FAILURE;
 
    offset = dmtxImageGetOffset(img, x, y);
-
-   if(dmtxImageContainsInt(img, 0, x, y))
-      memcpy(rgb, img->pxl[offset], 3);
+   memcpy(rgb, img->pxl[offset], 3);
 
    return DMTX_SUCCESS;
 }

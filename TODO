@@ -49,6 +49,7 @@ version 0.5.2:
   x libdmtx:   Fixed bug in range limit option
   x libdmtx:   Add dynamic image scaling (via pixel skipping)
   x libdmtx:   Add step-by-step diagnostic image dump (debug build)
+  x libdmtx:   Change internal pixel storage to use top-left origin
   / libdmtx:   Performance enhancements
   o libdmtx:   Replace first edge alignment algorithm
   o libdmtx:   New edge neighbor tracking
