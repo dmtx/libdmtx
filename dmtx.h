@@ -257,11 +257,13 @@ typedef struct DmtxCompassEdge_struct {
 typedef struct DmtxImage_struct {
    int             width;  /* unscaled */
    int             height; /* unscaled */
-   int             scale;
    int             xMin;   /* unscaled */
    int             xMax;   /* unscaled */
    int             yMin;   /* unscaled */
    int             yMax;   /* unscaled */
+   int             scale;
+   int             widthScaled;
+   int             heightScaled;
    int             xMinScaled;
    int             xMaxScaled;
    int             yMinScaled;

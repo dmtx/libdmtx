@@ -44,8 +44,8 @@ dmtxImageMalloc(int width, int height)
    }
 
    img->pageCount = 1;
-   img->width = width;
-   img->height = height;
+   img->width = img->widthScaled = width;
+   img->height = img->heightScaled = height;
    img->scale = 1;
    img->xMin = img->xMinScaled = 0;
    img->xMax = img->xMaxScaled = width - 1;
@@ -106,12 +106,16 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
    switch(prop) {
       case DmtxPropWidth:
          img->width = value;
+         img->widthScaled = img->width/img->scale;
          break;
       case DmtxPropHeight:
          img->height = value;
+         img->heightScaled = img->height/img->scale;
          break;
       case DmtxPropScale:
          img->scale = value;
+         img->widthScaled = img->width/value;
+         img->heightScaled = img->height/value;
          img->xMinScaled = img->xMin/value;
          img->xMaxScaled = img->xMax/value;
          img->yMinScaled = img->yMin/value;

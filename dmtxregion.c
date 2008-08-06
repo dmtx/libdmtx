@@ -187,7 +187,7 @@ ClampIntRange(int value, int min, int max)
 static DmtxCompassEdge
 GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
 {
-   int width, height, offset;
+   int offset, widthScaled, heightScaled;
    int dirIdx, dirVal[] = { DmtxCompassDir0, DmtxCompassDir90 };
    int patternIdx, coefficientIdx;
    int xAdjust, yAdjust;
@@ -214,9 +214,9 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
    /* Cache always holds result from most recent test. Return cached result
       if it matches the request. Otherwise recache and return new result. */
 
-   width = dmtxImageGetProp(img, DmtxPropScaledWidth);
-   height = dmtxImageGetProp(img, DmtxPropScaledHeight);
    offset = dmtxImageGetOffset(img, x, y);
+   widthScaled = dmtxImageGetProp(img, DmtxPropScaledWidth);
+   heightScaled = dmtxImageGetProp(img, DmtxPropScaledHeight);
 
    compassCache = &(img->compass[offset]);
    if(compassCache->tested != DmtxCompassDirNone) {
@@ -228,8 +228,8 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
 
    for(patternIdx = 0; patternIdx < 8; patternIdx++) {
       /* Accommodate 1 pixel beyond edge of image with nearest neighbor value */
-      xAdjust = ClampIntRange(x + patternX[patternIdx], 0, width - 1);
-      yAdjust = ClampIntRange(y + patternY[patternIdx], 0, height - 1);
+      xAdjust = ClampIntRange(x + patternX[patternIdx], 0, widthScaled - 1);
+      yAdjust = ClampIntRange(y + patternY[patternIdx], 0, heightScaled - 1);
 
       dmtxImageGetRgb(img, xAdjust, yAdjust, rgb);
       dmtxColor3FromPixel(&(color[patternIdx]), rgb);
@@ -254,14 +254,7 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
          if(coefficient[coefficientIdx] == 0)
             continue;
 
-         /* Accommodate 1 pixel beyond edge of image with nearest neighbor value */
-/*       xAdjust = ClampIntRange(x + patternX[patternIdx], 0, width - 1);
-         yAdjust = ClampIntRange(y + patternY[patternIdx], 0, height - 1); */
-
          /* Weight pixel value by appropriate coefficient in convolution matrix */
-/*       dmtxImageGetRgb(img, xAdjust, yAdjust, rgb);
-         dmtxColor3FromPixel(&color, rgb); */
-
          switch(coefficient[coefficientIdx]) {
             case 2:
                dmtxColor3AddTo(&edge.intensity, &(color[patternIdx]));
