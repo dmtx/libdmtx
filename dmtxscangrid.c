@@ -37,18 +37,17 @@ Contact: mike@dragonflylogic.com
 static DmtxScanGrid
 InitScanGrid(int scanGap, DmtxImage *img)
 {
-   int scale, xMin, xMax, yMin, yMax;
+   int xMin, xMax, yMin, yMax;
    int xExtent, yExtent, maxExtent;
    int extent;
    DmtxScanGrid grid;
 
    memset(&grid, 0x00, sizeof(DmtxScanGrid));
 
-   scale = dmtxImageGetProp(img, DmtxPropScale);
-   xMin = img->xMin/scale;
-   xMax = img->xMax/scale;
-   yMin = img->yMin/scale;
-   yMax = img->yMax/scale;
+   xMin = dmtxImageGetProp(img, DmtxPropScaledXmin);
+   xMax = dmtxImageGetProp(img, DmtxPropScaledXmax);
+   yMin = dmtxImageGetProp(img, DmtxPropScaledYmin);
+   yMax = dmtxImageGetProp(img, DmtxPropScaledYmax);
 
    /* Values that get set once */
    xExtent = xMax - xMin;

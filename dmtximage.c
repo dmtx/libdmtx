@@ -172,20 +172,44 @@ dmtxImageGetProp(DmtxImage *img, int prop)
       case DmtxPropHeight:
          return img->height;
          break;
-      case DmtxPropScale:
-         return img->scale;
-         break;
       case DmtxPropArea:
          return img->width * img->height;
          break;
-      case DmtxPropScaledArea:
-         return (img->width/img->scale) * (img->height/img->scale);
+      case DmtxPropXmin:
+         return img->xMin;
+         break;
+      case DmtxPropXmax:
+         return img->xMax;
+         break;
+      case DmtxPropYmin:
+         return img->yMin;
+         break;
+      case DmtxPropYmax:
+         return img->yMax;
+         break;
+      case DmtxPropScale:
+         return img->scale;
          break;
       case DmtxPropScaledWidth:
          return img->width/img->scale;
          break;
       case DmtxPropScaledHeight:
          return img->height/img->scale;
+         break;
+      case DmtxPropScaledArea:
+         return (img->width/img->scale) * (img->height/img->scale);
+         break;
+      case DmtxPropScaledXmin:
+         return img->xMinScaled;
+         break;
+      case DmtxPropScaledXmax:
+         return img->xMaxScaled;
+         break;
+      case DmtxPropScaledYmin:
+         return img->yMinScaled;
+         break;
+      case DmtxPropScaledYmax:
+         return img->yMaxScaled;
          break;
    }
 

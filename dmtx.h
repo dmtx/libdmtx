@@ -160,14 +160,18 @@ typedef enum {
    DmtxPropWidth,
    DmtxPropHeight,
    DmtxPropArea,
-   DmtxPropScale,
    DmtxPropXmin,
    DmtxPropXmax,
    DmtxPropYmin,
    DmtxPropYmax,
+   DmtxPropScale,
    DmtxPropScaledWidth,
    DmtxPropScaledHeight,
-   DmtxPropScaledArea
+   DmtxPropScaledArea,
+   DmtxPropScaledXmin,
+   DmtxPropScaledXmax,
+   DmtxPropScaledYmin,
+   DmtxPropScaledYmax
 } DmtxDecodeProperty;
 
 typedef double DmtxMatrix3[3][3];
