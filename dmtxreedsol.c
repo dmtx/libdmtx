@@ -42,25 +42,26 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
 {
    int i, j, val;
    int step, block;
-   int blockSize;
-   int dataLength;
-   int errorWordCount;
-   int totalLength;
+   int blockErrorWords;
+   int symbolDataWords;
+   int blockDataWords;
+   int symbolErrorWords;
+   int symbolTotalWords;
    unsigned char g[69], b[68], *bPtr;
    unsigned char *codewords = message->code;
 
-   errorWordCount = dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, sizeIdx);
+   symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
+   symbolErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, sizeIdx);
+   symbolTotalWords = symbolDataWords + symbolErrorWords;
+   blockErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
    step = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
-   blockSize = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
-   dataLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
-   totalLength = dataLength + errorWordCount;
 
-   assert(blockSize == errorWordCount / step);
+   assert(blockErrorWords == symbolErrorWords / step);
 
    memset(g, 0x01, sizeof(g));
 
    /* Generate ECC polynomial */
-   for(i = 1; i <= blockSize; i++) {
+   for(i = 1; i <= blockErrorWords; i++) {
       for(j = i - 1; j >= 0; j--) {
          g[j] = GfDoublify(g[j], i);     /* g[j] *= 2**i */
          if(j > 0)
@@ -72,20 +73,21 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
    for(block = 0; block < step; block++) {
 
       memset(b, 0x00, sizeof(b));
-      for(i = block; i < dataLength; i += step) {
-         val = GfSum(b[blockSize-1], codewords[i]);
-         for(j = blockSize - 1; j > 0; j--) {
+      for(i = block; i < symbolDataWords; i += step) {
+         val = GfSum(b[blockErrorWords-1], codewords[i]);
+         for(j = blockErrorWords - 1; j > 0; j--) {
             b[j] = GfSum(b[j-1], GfProduct(g[j], val));
          }
          b[0] = GfProduct(g[0], val);
       }
 
-      bPtr = b + blockSize - 1;
-      for(i = dataLength + block; i < totalLength; i += step) {
-         codewords[i] = *(bPtr--);
-      }
+      blockDataWords = dmtxGetBlockDataSize(sizeIdx, block);
+      bPtr = b + blockErrorWords;
 
-      assert(b - bPtr == 1);
+      for(i = block + (step * blockDataWords); i < symbolTotalWords; i += step)
+         codewords[i] = *(--bPtr);
+
+      assert(b == bPtr);
    }
 }
 
@@ -128,7 +130,6 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
 
       if(fixedErr < 0 || fixedErr > blockMaxCorrectable) {
          free_rs_char(rs);
-fprintf(stdout, "dying\n");
          return DMTX_FAILURE;
       }
 
