@@ -196,7 +196,7 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
    static const int patternY[] =    { -1, -1, -1,  0,  1,  1,  1,  0 };
    DmtxRgb rgb;
    DmtxCompassEdge edge, maxEdge, *compassCache;
-   DmtxColor3 color, black = { 0.0, 0.0, 0.0 }; /* XXX move black to a global scope later */
+   DmtxColor3 color[8], black = { 0.0, 0.0, 0.0 }; /* XXX move black to a global scope later */
 
    assert(edgeScanDirs == DmtxCompassDir0 ||
          edgeScanDirs == DmtxCompassDir90 ||
@@ -226,6 +226,15 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
          return *compassCache;
    }
 
+   for(patternIdx = 0; patternIdx < 8; patternIdx++) {
+      /* Accommodate 1 pixel beyond edge of image with nearest neighbor value */
+      xAdjust = ClampIntRange(x + patternX[patternIdx], 0, width - 1);
+      yAdjust = ClampIntRange(y + patternY[patternIdx], 0, height - 1);
+
+      dmtxImageGetRgb(img, xAdjust, yAdjust, rgb);
+      dmtxColor3FromPixel(&(color[patternIdx]), rgb);
+   }
+
    /* Calculate this pixel's edge intensity for each direction (-45, 0, 45, 90) */
    for(dirIdx = 0; dirIdx < 2; dirIdx++) {
 
@@ -246,25 +255,25 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
             continue;
 
          /* Accommodate 1 pixel beyond edge of image with nearest neighbor value */
-         xAdjust = ClampIntRange(x + patternX[patternIdx], 0, width - 1);
-         yAdjust = ClampIntRange(y + patternY[patternIdx], 0, height - 1);
+/*       xAdjust = ClampIntRange(x + patternX[patternIdx], 0, width - 1);
+         yAdjust = ClampIntRange(y + patternY[patternIdx], 0, height - 1); */
 
          /* Weight pixel value by appropriate coefficient in convolution matrix */
-         dmtxImageGetRgb(img, xAdjust, yAdjust, rgb);
-         dmtxColor3FromPixel(&color, rgb);
+/*       dmtxImageGetRgb(img, xAdjust, yAdjust, rgb);
+         dmtxColor3FromPixel(&color, rgb); */
 
          switch(coefficient[coefficientIdx]) {
             case 2:
-               dmtxColor3AddTo(&edge.intensity, &color);
+               dmtxColor3AddTo(&edge.intensity, &(color[patternIdx]));
                /* Fall through */
             case 1:
-               dmtxColor3AddTo(&edge.intensity, &color);
+               dmtxColor3AddTo(&edge.intensity, &(color[patternIdx]));
                break;
             case -2:
-               dmtxColor3SubFrom(&edge.intensity, &color);
+               dmtxColor3SubFrom(&edge.intensity, &(color[patternIdx]));
                /* Fall through */
             case -1:
-               dmtxColor3SubFrom(&edge.intensity, &color);
+               dmtxColor3SubFrom(&edge.intensity, &(color[patternIdx]));
                break;
          }
       }

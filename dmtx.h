@@ -262,6 +262,10 @@ typedef struct DmtxImage_struct {
    int             xMax;   /* unscaled */
    int             yMin;   /* unscaled */
    int             yMax;   /* unscaled */
+   int             xMinScaled;
+   int             xMaxScaled;
+   int             yMinScaled;
+   int             yMaxScaled;
    int             pageCount;
    DmtxRgb         *pxl;
    DmtxCompassEdge *compass;
