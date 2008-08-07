@@ -248,10 +248,11 @@ typedef enum {
  * @brief DmtxCompassEdge
  */
 typedef struct DmtxCompassEdge_struct {
-   char       tested;
-   char       edgeDir;
-   double     magnitude;  /* sqrt(R^2 + G^2 + B^2) */
-   DmtxColor3 intensity;
+/* unsigned char dirs; */    /* neighbors experiment */
+   char          tested;
+   char          edgeDir;
+   double        magnitude;  /* sqrt(R^2 + G^2 + B^2) */
+   DmtxColor3    intensity;
 } DmtxCompassEdge;
 
 /**
