@@ -57,7 +57,7 @@ InitScanGrid(int scanGap, DmtxImage *img)
    assert(maxExtent > 1);
 
    for(extent = 1; extent < maxExtent; extent = ((extent + 1) * 2) - 1) {
-      if((extent / 2) <= scanGap)
+      if(extent <= scanGap)
          grid.minExtent = extent;
    }
    grid.maxExtent = extent;

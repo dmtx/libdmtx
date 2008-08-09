@@ -51,7 +51,7 @@ dmtxDecodeStructInit(DmtxImage *img)
    dec.shrinkMax = 1;
    dec.edgeThresh = 10;
    dec.squareDevn = cos(40 * (M_PI/180));
-   dec.scanGap = 10;
+   dec.scanGap = 1;
 
    dec.grid = InitScanGrid(dec.scanGap, img);
 
