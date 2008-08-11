@@ -22,6 +22,8 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
+#define DMTX_HOUGH_RES 32
+
 /**
  * @file dmtxregion.c
  * @brief Detect barcode regions
@@ -102,6 +104,8 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    DmtxEdgeSubPixel edgeStart;
    DmtxRay2 ray0, ray1;
    DmtxRegion reg;
+   int hough[DMTX_HOUGH_RES] = { 0 };
+   int houghStrong;
 
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
@@ -119,8 +123,13 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    }
 
    /* Next follow the edge to its end in both directions */
-   ray0 = FollowEdge(dec, loc.X, loc.Y, edgeStart, 1);
-   ray1 = FollowEdge(dec, loc.X, loc.Y, edgeStart, -1);
+   houghStrong = 0;
+   ray0 = FollowEdge(dec, loc.X, loc.Y, edgeStart, 1, hough, &houghStrong);
+   ray1 = FollowEdge(dec, loc.X, loc.Y, edgeStart, -1, hough, &houghStrong);
+   if(hough[houghStrong] < 8) {
+      reg.found = DMTX_REGION_DROPPED_1ST;
+      return reg;
+   }
 
    /* Define first edge based on travel limits of detected edge */
    if(MatrixRegionAlignFirstEdge(dec, &reg, &edgeStart, ray0, ray1) != DMTX_SUCCESS) {
@@ -348,13 +357,15 @@ FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compare)
  *
  */
 static DmtxRay2
-FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forward)
+FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forward, int hough[], int *strongIdx)
 {
    int xFollow, yFollow;
    int xIncrement, yIncrement;
    DmtxEdgeSubPixel edge, edge0, edge1;
    DmtxVector2 p, pStart, pSoft, pHard, pStep;
    double strong0, strong1;
+   double angle;
+   int angleIdx;
    DmtxCompassEdge compass;
    DmtxRay2 ray;
 
@@ -366,7 +377,7 @@ FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forwar
 
    pStart.X = edgeStart.xInt + edgeStart.xFrac;
    pStart.Y = edgeStart.yInt + edgeStart.yFrac;
-   pSoft = pHard = pStart;
+   p = pSoft = pHard = pStart;
 
    edge = edgeStart;
    compass = edgeStart.compass;
@@ -426,6 +437,16 @@ FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forwar
          if(edge.compass.magnitude > 0.90 * compass.magnitude)
             pHard = p;
       }
+
+      angle = atan2(p.Y-pStart.Y, p.X-pStart.X) + M_PI;
+      angleIdx = (int)(angle * (DMTX_HOUGH_RES/M_PI)) % DMTX_HOUGH_RES;
+
+      hough[angleIdx]++;
+      if(hough[angleIdx] > hough[*strongIdx])
+         *strongIdx = angleIdx;
+
+      if(hough[*strongIdx] > 8 && hough[angleIdx] < 3)
+         break;
 
       xFollow = (int)(edge.xInt + edge.xFrac + 0.5) + xIncrement;
       yFollow = (int)(edge.yInt + edge.yFrac + 0.5) + yIncrement;
