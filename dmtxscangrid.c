@@ -141,7 +141,7 @@ GetGridCoordinates(DmtxScanGrid *grid)
    }
    else {
       half = grid->pixelTotal / 2;
-      quarter = half > 2;
+      quarter = half / 2;
 
       /* horizontal portion */
       if(count < half) {

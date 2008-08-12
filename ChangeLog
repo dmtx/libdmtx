@@ -1,6 +1,8 @@
 Changes for libdmtx
 -----------------------------------------------------------------
 
+version 0.6.0 [??? 2008]
+
 version 0.5.1 [July 2008]
   Fixed Extended ASCII encoding bug
   Fixed error correction bug related to multiple interleaved blocks

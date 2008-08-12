@@ -27,11 +27,11 @@ Stop scan after N milliseconds (per image).
 \fB\-n\fP, \fB\-\-newline\fP
 Print a newline character at the end of decoded data.
 .TP
-\fB\-s\fP, \fB\-\-square-deviation\fP=\fIN\fP
+\fB\-q\fP, \fB\-\-square-deviation\fP=\fIN\fP
 Maximum deviation (degrees) from squareness between adjacent barcode sides. Default value is N=40, but N=10 is recommended for flat applications like faxes and other scanned documents. Barcode regions found with corners <(90-N) or >(90+N) will be ignored by the decoder.
 .TP
-\fB\-d\fP, \fB\-\-distortion\fP=\fIK1,K2\fP (not implemented yet)
-Radial distortion coefficients.
+\fB\-s\fP, \fB\-\-shrink\fP=\fIN\fP
+Internally shrink image by factor of N. Shrinking is accomplished by skipping N-1 pixels at a time, often producing significantly faster scan times. It also improves scan success rate for images taken with poor camera focus provided the image is sufficiently large.
 .TP
 \fB\-x\fP, \fB\-\-x-range-min\fP=\fIN[%]\fP
 Do not scan pixels to the left of pixel column N (or N%).

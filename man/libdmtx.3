@@ -7,7 +7,7 @@
 .\"
 .TH LIBDMTX 3 "July 1, 2008"
 .SH NAME
-libdmtx \- Data Matrix Encoder/Decoder Library 0.5.1
+libdmtx \- Data Matrix Encoder/Decoder Library 0.6.0
 .SH SYNOPSIS
 \fB#include <dmtx.h>\fP
 
@@ -23,7 +23,9 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.5.1
 
 \fIDECODING FUNCTIONS\fP
 
-\fBDmtxDecode dmtxDecodeStructInit(DmtxImage *\fIimg\fP, DmtxPixelLoc \fIp0\fP, DmtxPixelLoc \fIp1\fP, int \fIgap\fP);\fP
+\fBDmtxDecode dmtxDecodeStructInit(DmtxImage *\fIimg\fP);\fP
+
+\fBint dmtxDecodeSetProp(DmtxDecode *\fIdec\fP, int \fIprop\fP, int \fIvalue\fP);\fP
 
 \fBDmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *\fIdec\fP, DmtxTime *\fItimeout\fP);\fP
 
@@ -42,6 +44,12 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.5.1
 \fBDmtxImage *dmtxImageMalloc(int \fIwidth\fP, int \fIheight\fP);\fP
 
 \fBint dmtxImageFree(DmtxImage **\fIimg\fP);\fP
+
+\fBDmtxTime dmtxTimeNow(void);\fP
+
+\fBDmtxTime dmtxTimeAdd(DmtxTime \fIt\fP, long \fImsec\fP);\fP
+
+\fBint dmtxTimeExceeded(DmtxTime \fItimeout\fP);\fP
 
 .SH DESCRIPTION
 \fIlibdmtx\fP is a shared library that provides the ability to read and write Data Matrix barcodes of the modern ECC200 variety.  The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP serve as the official interface to libdmtx from the command line, and also provide a good reference for programmers who wish to write their own programs that interact with libdmtx.
@@ -74,25 +82,29 @@ Allocates memory for received image data.  libdmtx provides its own image struct
 
 Initializes the \fBDmtxDecode\fP struct, which designates the image to be scanned and resets the grid pattern for a new scan.  This function must be called before any other scanning functions.
 
-3. Call \fBdmtxDecodeFindNextRegion()\fP
+3. Call \fBdmtxDecodeSetProp()\fP
+
+XXX.
+
+4. Call \fBdmtxDecodeFindNextRegion()\fP
 
 Searches every pixel location in a recursive grid pattern looking for potential barcode edges.  A \fBDmtxRegion\fP is returned whenever A) a potential barcode region is found, or B) the final pixel has been scanned.  Subsequent calls to this function will resume the search where the previous call left off.
 
 \fIImportant\fP: This function does not dynamically allocate memory and does not decode the barcode contents.  If the calling program receives a region that it wishes to discard, it can simply continue without freeing or cleaning up the previous \fBDmtxRegion\fP struct.  This can be useful for programs that are selective in choosing which regions should be decoded.
 
-4. Call either \fBdmtxDecodeMatrixRegion()\fP or \fBdmtxDecodeMosaicRegion()\fP
+5. Call either \fBdmtxDecodeMatrixRegion()\fP or \fBdmtxDecodeMosaicRegion()\fP
 
 Extract bit values from the barcode region and decode the underlying message.  \fBDmtxMessage\fP values returned from this function must be freed after use.
 
-5. Call \fBdmtxMessageFree()\fP
+6. Call \fBdmtxMessageFree()\fP
 
 Free the memory held by a \fBDmtxMessage\fP struct.  The complementary function, \fBdmtxMessageMalloc()\fP, is automatically called by \fBdmtxDecodeMatrixRegion()\fP and therefore is not normally used by the calling program.
 
-6. Call \fBdmtxDecodeStructDeInit()\fP
+7. Call \fBdmtxDecodeStructDeInit()\fP
 
 Resets the internal decoding values used during the decoding process.
 
-7. Call \fBdmtxImageFree()\fP
+8. Call \fBdmtxImageFree()\fP
 
 Resets and frees memory held by \fBDmtxImage\fP struct.  This is the complement to \fBdmtxImageMalloc()\fP.
 

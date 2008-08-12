@@ -1,10 +1,8 @@
 TODO Items
 -----------------------------------------------------------------
 
-next: Update MatrixRegionAlignFirstEdge() logic
-next: Update MatrixRegionAlignSecondEdge() logic
-
-after version 0.5.2:
+after version 0.6.0:
+  o libdmtx:   New edge neighbor tracking (Hough Transform + 2-way edge cache)
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
@@ -39,7 +37,7 @@ after version 0.5.2:
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
   o project:   Conditional use of local getopt.c
 
-version 0.5.2:
+version 0.6.0:
   x libdmtx:   Move SetRangeLimit and SetScanRegion into library
   x libdmtx:   Replace DMTXUTIL_SUCCESS/ERROR with DMTX_SUCCESS/FAILURE
   x libdmtx:   Add right-angle option for flat scanning applications
@@ -47,12 +45,16 @@ version 0.5.2:
   x libdmtx:   Add encoding support for 144x144 barcodes (special case)
   x libdmtx:   Fixed encoding case when message starts with two digits
   x libdmtx:   Fixed bug in range limit option
-  x libdmtx:   Add dynamic image scaling (via pixel skipping)
+  x libdmtx:   Add dynamic image shrinking (pixel skipping)
   x libdmtx:   Add step-by-step diagnostic image dump (debug build)
   x libdmtx:   Change internal pixel storage to use top-left origin
-  / libdmtx:   Performance enhancements
-  o libdmtx:   Replace first edge alignment algorithm
-  o libdmtx:   New edge neighbor tracking
+  x libdmtx:   Fixed bug in minimum scan gap setting
+  x libdmtx:   Removed y-flip from internal pixel storage
+  x libdmtx:   Added strict border tests to eliminate false positives
+  x libdmtx:   Added squareness deviation filter
+  / libdmtx:   Implement simplified Hough transform for locating first edge
+  o wrapper:   New PHP wrapper code added
+  o wrapper:   Python wrapper update: 15x faster (thanks Jonathan!)
 
 version 0.5.1: (01-Jul-2008)
   x libdmtx:   Fixed Extended ASCII encoding bug

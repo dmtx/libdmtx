@@ -141,11 +141,9 @@ Example: %s barcode.2.rotation scanresults.xml\n\
 PROPERTY:\n"), programName, programName);
       fprintf(stdout, _("\
    barcode.count             count of all barcodes found in image\n\
-   barcode.N                 print all properties of Nth barcode\n\
    barcode.N.BPROP           print BPROP property of Nth barcode\n\
 \n\
    message.count             count of all messages found in image\n\
-   message.N                 print all properties of Nth message\n\
    message.N.MPROP           print MPROP property of Nth message\n\
    message.N.barcode.count   count of all barcodes in Nth message\n\
    message.N.barcode.M       Mth barcode of Nth message, print all\n\

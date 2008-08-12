@@ -42,7 +42,7 @@ extern "C" {
 #define M_PI_2     1.57079632679489661923
 #endif
 
-#define DMTX_VERSION                   "0.5.2"
+#define DMTX_VERSION                   "0.6.0"
 
 #define DMTX_FAILURE                   0
 #define DMTX_SUCCESS                   1
@@ -483,6 +483,7 @@ extern int dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
 extern int dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);
 extern int dmtxImageContainsFloat(DmtxImage *img, double x, double y);
 
+/* dmtxvector2.c */
 extern DmtxVector2 *dmtxVector2AddTo(DmtxVector2 *v1, DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2Add(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2SubFrom(DmtxVector2 *v1, DmtxVector2 *v2);
@@ -498,6 +499,7 @@ extern double dmtxDistanceAlongRay2(DmtxRay2 *r, DmtxVector2 *q);
 extern int dmtxRay2Intersect(DmtxVector2 *point, DmtxRay2 *p0, DmtxRay2 *p1);
 extern int dmtxPointAlongRay2(DmtxVector2 *point, DmtxRay2 *r, double t);
 
+/* dmtxmatrix3.c */
 extern void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1);
 extern void dmtxMatrix3Identity(DmtxMatrix3 m);
 extern void dmtxMatrix3Translate(DmtxMatrix3 m, double tx, double ty);
@@ -514,6 +516,7 @@ extern int dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3
 extern int dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m);
 extern void dmtxMatrix3Print(DmtxMatrix3 m);
 
+/* dmtxcolor3.c */
 extern void dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *img, DmtxVector2 p);
 extern DmtxColor3 *dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb);
 extern void dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color);
@@ -532,6 +535,7 @@ extern double dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern double dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
 
+/* dmtxsymbol.c */
 extern int dmtxSymbolModuleStatus(DmtxMessage *mapping, int sizeIdx, int row, int col);
 extern int dmtxGetSymbolAttribute(int attribute, int sizeIdx);
 extern int dmtxGetBlockDataSize(int sizeIdx, int blockIdx);

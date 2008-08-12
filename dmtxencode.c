@@ -220,7 +220,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    /* XXX buf can be changed here to use all 3 buffers' length */
    dataWordCount = EncodeDataCodewords(buf[0], inputString, inputSize, enc->scheme, &sizeIdx);
    if(dataWordCount <= 0)
-      exit(1);
+      return DMTX_FAILURE;
 
    /* Use 1/3 (ceiling) of inputSize establish input size target */
    tmpInputSize = (inputSize + 2) / 3;
