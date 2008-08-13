@@ -29,41 +29,42 @@ Contact: mike@dragonflylogic.com
 
 /**
  * @brief  XXX
- * @param  p0
- * @param  p1
- * @param  minGapSize
+ * @param  xMin
+ * @param  xMax
+ * @param  yMin
+ * @param  yMax
+ * @param  smallestFeature
  * @return Initialized grid
  */
 static DmtxScanGrid
-InitScanGrid(int scanGap, DmtxImage *img)
+InitScanGrid(DmtxImage *img, int smallestFeature)
 {
-   int xMin, xMax, yMin, yMax;
    int xExtent, yExtent, maxExtent;
    int extent;
    DmtxScanGrid grid;
 
    memset(&grid, 0x00, sizeof(DmtxScanGrid));
 
-   xMin = dmtxImageGetProp(img, DmtxPropScaledXmin);
-   xMax = dmtxImageGetProp(img, DmtxPropScaledXmax);
-   yMin = dmtxImageGetProp(img, DmtxPropScaledYmin);
-   yMax = dmtxImageGetProp(img, DmtxPropScaledYmax);
+   grid.xMin = dmtxImageGetProp(img, DmtxPropScaledXmin);
+   grid.xMax = dmtxImageGetProp(img, DmtxPropScaledXmax);
+   grid.yMin = dmtxImageGetProp(img, DmtxPropScaledYmin);
+   grid.yMax = dmtxImageGetProp(img, DmtxPropScaledYmax);
 
    /* Values that get set once */
-   xExtent = xMax - xMin;
-   yExtent = yMax - yMin;
+   xExtent = grid.xMax - grid.xMin;
+   yExtent = grid.yMax - grid.yMin;
    maxExtent = (xExtent > yExtent) ? xExtent : yExtent;
 
    assert(maxExtent > 1);
 
-   for(extent = 1; extent < maxExtent; extent = ((extent + 1) * 2) - 1) {
-      if(extent <= scanGap)
+   for(extent = 1; extent < maxExtent; extent = ((extent + 1) * 2) - 1)
+      if(extent <= smallestFeature)
          grid.minExtent = extent;
-   }
+
    grid.maxExtent = extent;
 
-   grid.xOffset = (xMin + xMax - grid.maxExtent) / 2;
-   grid.yOffset = (yMin + yMax - grid.maxExtent) / 2;
+   grid.xOffset = (grid.xMin + grid.xMax - grid.maxExtent) / 2;
+   grid.yOffset = (grid.yMin + grid.yMax - grid.maxExtent) / 2;
 
    /* Values that get reset for every level */
    grid.total = 1;
@@ -79,29 +80,40 @@ InitScanGrid(int scanGap, DmtxImage *img)
  * @param  cross
  * @return void
  */
-static void
+static DmtxPixelLoc
 IncrementPixelProgress(DmtxScanGrid *cross)
 {
-   cross->pixelCount++;
+   DmtxPixelLoc loc;
 
-   /* Increment cross horizontally when go exhaust pixels */
-   if(cross->pixelCount >= cross->pixelTotal) {
-      cross->pixelCount = 0;
-      cross->xCenter += cross->jumpSize;
-   }
+   /* Loop until a good location is found or the grid is completely traversed */
+   do {
 
-   /* Increment cross vertically when horizontal step takes us too far */
-   if(cross->xCenter > cross->maxExtent) {
-      cross->xCenter = cross->startPos;
-      cross->yCenter += cross->jumpSize;
-   }
+      cross->pixelCount++;
 
-   /* Increment level when vertical step takes us too far */
-   if(cross->yCenter > cross->maxExtent) {
-      cross->total *= 4;
-      cross->extent /= 2;
-      SetDerivedFields(cross);
-   }
+      /* Increment cross horizontally when go exhaust pixels */
+      if(cross->pixelCount >= cross->pixelTotal) {
+         cross->pixelCount = 0;
+         cross->xCenter += cross->jumpSize;
+      }
+
+      /* Increment cross vertically when horizontal step takes us too far */
+      if(cross->xCenter > cross->maxExtent) {
+         cross->xCenter = cross->startPos;
+         cross->yCenter += cross->jumpSize;
+      }
+
+      /* Increment level when vertical step takes us too far */
+      if(cross->yCenter > cross->maxExtent) {
+         cross->total *= 4;
+         cross->extent /= 2;
+         SetDerivedFields(cross);
+      }
+
+      loc = GetGridCoordinates(cross);
+
+   } while(loc.status != DMTX_RANGE_GOOD && loc.status != DMTX_RANGE_EOF);
+
+   return loc;
 }
 
 /**
@@ -129,6 +141,12 @@ GetGridCoordinates(DmtxScanGrid *grid)
 {
    int count, half, quarter;
    DmtxPixelLoc loc;
+
+   if(grid->extent == 0 || grid->extent < grid->minExtent) {
+      loc.X = loc.Y = -1;
+      loc.status = DMTX_RANGE_EOF;
+      return loc;
+   }
 
    count = grid->pixelCount;
 
@@ -158,6 +176,12 @@ GetGridCoordinates(DmtxScanGrid *grid)
 
    loc.X += grid->xOffset;
    loc.Y += grid->yOffset;
+
+   if(loc.X < grid->xMin || loc.X > grid->xMax ||
+         loc.Y < grid->yMin || loc.Y > grid->yMax)
+      loc.status = DMTX_RANGE_BAD;
+   else
+      loc.status = DMTX_RANGE_GOOD;
 
    return loc;
 }

@@ -40,33 +40,25 @@ Contact: mike@dragonflylogic.com
 extern DmtxRegion
 dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
 {
-/*
-   int size, i = 0;
-   char imagePath[128];
-*/
    DmtxScanGrid *grid;
-   DmtxPixelLoc loc;
+   DmtxPixelLoc loc, locNext;
    DmtxRegion   reg;
+/* int size, i = 0;
+   char imagePath[128]; */
 
    grid = &(dec->grid);
 
    /* Continue scanning until we run out of time or run out of image */
-   for(;;) {
+   for(loc = GetGridCoordinates(grid);; loc = locNext) {
 
-      /* Check if grid has been completely traversed */
-      if(grid->extent < grid->minExtent) {
+      /* Quit if grid has been completely traversed */
+      if(loc.status == DMTX_RANGE_EOF) {
          reg.found = DMTX_REGION_EOF;
          break;
       }
 
-      /* Pick up where previous scan left off */
-      loc = GetGridCoordinates(grid);
-
-      /* Increment grid away from this location to prevent repeat visits */
-      IncrementPixelProgress(grid);
-
-      if(dmtxImageContainsInt(dec->image, 0, loc.X, loc.Y) == DMTX_FALSE)
-         continue;
+      /* First move away from this location to prevent repeat visits */
+      locNext = IncrementPixelProgress(grid);
 
       /* Scan this pixel for presence of a valid barcode edge */
       reg = dmtxScanPixel(dec, loc);

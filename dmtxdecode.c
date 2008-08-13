@@ -53,7 +53,7 @@ dmtxDecodeStructInit(DmtxImage *img)
    dec.squareDevn = cos(40 * (M_PI/180));
    dec.scanGap = 1;
 
-   dec.grid = InitScanGrid(dec.scanGap, img);
+   dec.grid = InitScanGrid(img, dec.scanGap);
 
    return dec;
 }
@@ -90,7 +90,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
          err = dmtxImageSetProp(dec->image, DmtxPropScale, value);
          if(err == DMTX_FAILURE)
             return DMTX_FAILURE;
-         dec->grid = InitScanGrid(dec->scanGap, dec->image);
+         dec->grid = InitScanGrid(dec->image, dec->scanGap);
          break;
       case DmtxPropEdgeThresh:
          dec->edgeThresh = value;
@@ -137,7 +137,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
       return DMTX_FAILURE;
 
    /* Reinitialize scangrid if any inputs changed */
-   dec->grid = InitScanGrid(dec->scanGap, dec->image);
+   dec->grid = InitScanGrid(dec->image, dec->scanGap);
 
    return DMTX_SUCCESS;
 }

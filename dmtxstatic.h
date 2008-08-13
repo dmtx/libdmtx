@@ -39,6 +39,10 @@ Contact: mike@dragonflylogic.com
 #define DMTX_EDGE_STEP_TOO_FAR         4
 #define DMTX_EDGE_STEP_EXACT           5
 
+#define DMTX_RANGE_GOOD                0
+#define DMTX_RANGE_BAD                 1
+#define DMTX_RANGE_EOF                 2
+
 #ifndef min
 #define min(X,Y) ((X < Y) ? X : Y)
 #endif
@@ -205,8 +209,8 @@ static int GfProduct(int a, int b);
 static int GfDoublify(int a, int b);
 
 /* dmtxscangrid.c */
-static DmtxScanGrid InitScanGrid(int scanGap, DmtxImage *img);
-static void IncrementPixelProgress(DmtxScanGrid *cross);
+static DmtxScanGrid InitScanGrid(DmtxImage *img, int smallestFeature);
+static DmtxPixelLoc IncrementPixelProgress(DmtxScanGrid *cross);
 static void SetDerivedFields(DmtxScanGrid *cross);
 static DmtxPixelLoc GetGridCoordinates(DmtxScanGrid *grid);
 

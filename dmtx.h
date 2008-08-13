@@ -194,6 +194,7 @@ typedef struct DmtxColor3_struct {
 typedef struct DmtxPixelLoc_struct {
    int X;
    int Y;
+   int status;
 } DmtxPixelLoc;
 
 /**
@@ -248,7 +249,6 @@ typedef enum {
  * @brief DmtxCompassEdge
  */
 typedef struct DmtxCompassEdge_struct {
-/* unsigned char dirs; */    /* neighbors experiment */
    char          tested;
    char          edgeDir;
    double        magnitude;  /* sqrt(R^2 + G^2 + B^2) */
@@ -355,6 +355,10 @@ typedef struct DmtxScanGrid_struct {
    int maxExtent;  /* Size of bounding grid region (2^N - 1) */
    int xOffset;    /* Offset to obtain image X coordinate */
    int yOffset;    /* Offset to obtain image Y coordinate */
+   int xMin;       /* Minimum X in image coordinate system */
+   int xMax;       /* Maximum X in image coordinate system */
+   int yMin;       /* Minimum Y in image coordinate system */
+   int yMax;       /* Maximum Y in image coordinate system */
 
    /* reset for each level */
    int total;      /* Total number of crosses at this size */
