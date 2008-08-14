@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
    DmtxRegion      region;
    DmtxMessage     *message;
    DmtxTime        timeout;
+   DmtxImage       *imgTmp;
 
    // Initialize display window
    screen = initDisplay();
@@ -92,6 +93,10 @@ int main(int argc, char *argv[])
    loadTextureImage(&textureImage);
 
    captured = dmtxImageMalloc(320, 320);
+   if(captured == NULL)
+      exit(4);
+
+   imgTmp = dmtxImageMalloc(320, 320);
    if(captured == NULL)
       exit(4);
 
@@ -119,7 +124,7 @@ int main(int argc, char *argv[])
       DrawGeneratedImage(screen);
 
       /* Capture screenshot of generated image */
-      captureImage(captured);
+      captureImage(captured, imgTmp);
 
       memset(passOneImage->pxl, 0x00, passOneImage->width * passOneImage->height * sizeof(DmtxRgb));
       memset(passTwoImage->pxl, 0x00, passTwoImage->width * passTwoImage->height * sizeof(DmtxRgb));
@@ -153,7 +158,12 @@ int main(int argc, char *argv[])
       SDL_GL_SwapBuffers();
    }
 
+   dmtxImageFree(&passTwoImage);
+   dmtxImageFree(&passOneImage);
+   dmtxImageFree(&imgTmp);
+   dmtxImageFree(&captured);
    dmtxImageFree(&textureImage);
+
    dmtxDecodeStructDeInit(&decode);
 
    exit(0);

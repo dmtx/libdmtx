@@ -36,10 +36,10 @@ typedef enum {
    ColorYellow = 0x01 << 4
 } ColorEnum;
 
-void captureImage(DmtxImage *image);
-int loadTextureImage(DmtxImage **image);
+void captureImage(DmtxImage *img, DmtxImage *imgTmp);
+int loadTextureImage(DmtxImage **img);
 DmtxImage *loadPng(char *filename);
-void plotPoint(DmtxImage *image, float rowFloat, float colFloat, int targetColor);
+void plotPoint(DmtxImage *img, float rowFloat, float colFloat, int targetColor);
 int clampRGB(float color);
 
 #endif

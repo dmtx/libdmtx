@@ -37,16 +37,25 @@ Contact: mblaughton@users.sourceforge.net
  *
  *
  */
-void captureImage(DmtxImage *captured)
+void captureImage(DmtxImage *captured, DmtxImage *imgTmp)
 {
-   glReadPixels(2, 324, 320, 320, GL_RGB, GL_UNSIGNED_BYTE, captured->pxl);
+   int i, fromOffset, toOffset;
+
+   glReadPixels(2, 324, 320, 320, GL_RGB, GL_UNSIGNED_BYTE, imgTmp->pxl);
+
+   for(i = 0; i < 320; i++) {
+      fromOffset = i * captured->width;
+      toOffset = (captured->height - i - 1) * captured->width;
+      memcpy(captured->pxl + toOffset, imgTmp->pxl + fromOffset,
+            320 * sizeof(DmtxRgb));
+   }
 }
 
 /**
  *
  *
  */
-int loadTextureImage(DmtxImage **image)
+int loadTextureImage(DmtxImage **img)
 {
    int error;
    char filepath[128];
@@ -55,10 +64,10 @@ int loadTextureImage(DmtxImage **image)
    strcat(filepath, gFilename[gFileIdx]);
    fprintf(stdout, "Opening %s\n", filepath);
 
-   dmtxImageFree(image);
+   dmtxImageFree(img);
 
-   *image = loadPng(filepath);
-   if(*image == NULL)
+   *img = loadPng(filepath);
+   if(*img == NULL)
       exit(1);
 
    gFileIdx++;
@@ -76,7 +85,7 @@ int loadTextureImage(DmtxImage **image)
    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
    /* Read barcode image */
-   gluBuild2DMipmaps(GL_TEXTURE_2D, 3, (*image)->width, (*image)->height, GL_RGB, GL_UNSIGNED_BYTE, (*image)->pxl);
+   gluBuild2DMipmaps(GL_TEXTURE_2D, 3, (*img)->width, (*img)->height, GL_RGB, GL_UNSIGNED_BYTE, (*img)->pxl);
 
    /* Create the barcode list */
    barcodeList = glGenLists(1);
@@ -104,7 +113,7 @@ DmtxImage *loadPng(char *filename)
    png_infop       info_ptr;
    png_infop       end_info;
    png_bytepp      row_pointers;
-   DmtxImage       *image;
+   DmtxImage       *img;
 
    fp = fopen(filename, "rb");
    if(!fp)
@@ -177,13 +186,13 @@ DmtxImage *loadPng(char *filename)
    png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
 
    // Use PNG information to populate DmtxImage information
-   image = dmtxImageMalloc(width, height);
-   if(image == NULL)
+   img = dmtxImageMalloc(width, height);
+   if(img == NULL)
       return NULL;
 
-   for(row = 0; row < image->height; row++) {
-      memcpy(image->pxl + (row * image->width), row_pointers[image->height - row - 1],
-            image->width * sizeof(DmtxRgb));
+   for(row = 0; row < img->height; row++) {
+      memcpy(img->pxl + (row * img->width), row_pointers[img->height - row - 1],
+            img->width * sizeof(DmtxRgb));
    }
 
    for(row = 0; row < height; row++) {
@@ -193,14 +202,14 @@ DmtxImage *loadPng(char *filename)
 
    fclose(fp);
 
-   return image;
+   return img;
 }
 
 /**
  *
  *
  */
-void plotPoint(DmtxImage *image, float rowFloat, float colFloat, int targetColor)
+void plotPoint(DmtxImage *img, float rowFloat, float colFloat, int targetColor)
 {
    int i, row, col;
    float xFloat, yFloat;
@@ -213,10 +222,10 @@ void plotPoint(DmtxImage *image, float rowFloat, float colFloat, int targetColor
    xFloat = colFloat - col;
    yFloat = rowFloat - row;
 
-   offset[0] = row * image->width + col;
-   offset[1] = row * image->width + (col + 1);
-   offset[2] = (row + 1) * image->width + col;
-   offset[3] = (row + 1) * image->width + (col + 1);
+   offset[0] = row * img->width + col;
+   offset[1] = row * img->width + (col + 1);
+   offset[2] = (row + 1) * img->width + col;
+   offset[3] = (row + 1) * img->width + (col + 1);
 
    color[0] = clampRGB(255.0 * ((1.0 - xFloat) * (1.0 - yFloat)));
    color[1] = clampRGB(255.0 * (xFloat * (1.0 - yFloat)));
@@ -230,13 +239,13 @@ void plotPoint(DmtxImage *image, float rowFloat, float colFloat, int targetColor
          continue;
 
       if(targetColor & (ColorWhite | ColorRed | ColorYellow))
-         image->pxl[offset[i]][0] = max(image->pxl[offset[i]][0], color[i]);
+         img->pxl[offset[i]][0] = max(img->pxl[offset[i]][0], color[i]);
 
       if(targetColor & (ColorWhite | ColorGreen | ColorYellow))
-         image->pxl[offset[i]][1] = max(image->pxl[offset[i]][1], color[i]);
+         img->pxl[offset[i]][1] = max(img->pxl[offset[i]][1], color[i]);
 
       if(targetColor & (ColorWhite | ColorBlue))
-         image->pxl[offset[i]][2] = max(image->pxl[offset[i]][2], color[i]);
+         img->pxl[offset[i]][2] = max(img->pxl[offset[i]][2], color[i]);
    }
 }
 
