@@ -148,9 +148,9 @@ main(int argc, char *argv[])
 
          /* Decode region based on requested barcode mode */
          if(options.mosaic)
-            message = dmtxDecodeMosaicRegion(&decode, &region, options.correctionsMax);
+            message = dmtxDecodeMosaicRegion(img, &region, options.correctionsMax);
          else
-            message = dmtxDecodeMatrixRegion(&decode, &region, options.correctionsMax);
+            message = dmtxDecodeMatrixRegion(img, &region, options.correctionsMax);
 
          if(message == NULL)
             continue;
