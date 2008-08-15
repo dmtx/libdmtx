@@ -43,6 +43,10 @@ dmtxImageMalloc(int width, int height)
       return NULL;
    }
 
+   /* Consider moving scaling factor to decode as "lens" factors or
+      something ... otherwise image needs to be remalloced whenever
+      decode is reinitialized ...*/
+
    img->pageCount = 1;
    img->width = img->widthScaled = width;
    img->height = img->heightScaled = height;

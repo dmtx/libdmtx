@@ -47,6 +47,13 @@ dmtxDecodeStructInit(DmtxImage *img)
 
    memset(dec.image->compass, 0x00, cacheSize);
 
+   /* These values should probably be stored in the decode struct */
+   img->scale = 1;
+   img->xMin = img->xMinScaled = 0;
+   img->xMax = img->xMaxScaled = img->width - 1;
+   img->yMin = img->yMinScaled = 0;
+   img->yMax = img->yMaxScaled = img->height - 1;
+
    dec.shrinkMin = 1;
    dec.shrinkMax = 1;
    dec.edgeThresh = 10;
@@ -90,7 +97,6 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
          err = dmtxImageSetProp(dec->image, DmtxPropScale, value);
          if(err == DMTX_FAILURE)
             return DMTX_FAILURE;
-         dec->grid = InitScanGrid(dec->image, dec->scanGap);
          break;
       case DmtxPropEdgeThresh:
          dec->edgeThresh = value;
@@ -150,7 +156,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
  * @return Decoded message
  */
 extern DmtxMessage *
-dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
+dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *region, int fix)
 {
    DmtxMessage *message;
 
@@ -158,7 +164,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
    if(message == NULL)
       return NULL;
 
-   if(PopulateArrayFromMatrix(message, dec->image, region) != DMTX_SUCCESS) {
+   if(PopulateArrayFromMatrix(message, img, region) != DMTX_SUCCESS) {
       dmtxMessageFree(&message);
       return NULL;
    }
@@ -184,7 +190,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
  * @return Decoded message
  */
 extern DmtxMessage *
-dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
+dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *region, int fix)
 {
    int row, col;
    int mappingRows, mappingCols;
@@ -204,7 +210,7 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *region, int fix)
    gMesg.code += gMesg.codeSize;
    bMesg.code += (bMesg.codeSize * 2);
 
-   if(PopulateArrayFromMosaic(message, dec->image, region) != DMTX_SUCCESS) {
+   if(PopulateArrayFromMosaic(message, img, region) != DMTX_SUCCESS) {
       dmtxMessageFree(&message);
       return NULL;
    }

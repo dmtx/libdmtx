@@ -467,8 +467,8 @@ extern int dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int si
 extern DmtxDecode dmtxDecodeStructInit(DmtxImage *img);
 extern void dmtxDecodeStructDeInit(DmtxDecode *dec);
 extern int dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
-extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
-extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
+extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix);
+extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxMessageMalloc(int sizeIdx, int symbolFormat);
 extern void dmtxMessageFree(DmtxMessage **mesg);
 
