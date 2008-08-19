@@ -37,7 +37,7 @@ after version 0.6.0:
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
   o project:   Conditional use of local getopt.c
 
-version 0.6.0:
+version 0.6.0: (??-Sep-2008)
   x libdmtx:   Move SetRangeLimit and SetScanRegion into library
   x libdmtx:   Replace DMTXUTIL_SUCCESS/ERROR with DMTX_SUCCESS/FAILURE
   x libdmtx:   Add right-angle option for flat scanning applications
@@ -53,6 +53,7 @@ version 0.6.0:
   x libdmtx:   Added strict border tests to eliminate false positives
   x libdmtx:   Added squareness deviation filter
   x libdmtx:   Implement simplified Hough transform for locating first edge
+  x libdmtx:   Several behind-the-scenes performance enhancements
   o libdmtx:   Incorporate Luigi's comments about building for FreeBSD
   o wrapper:   New PHP wrapper code added
   o wrapper:   Python wrapper update: 15x faster (thanks Jonathan!)
