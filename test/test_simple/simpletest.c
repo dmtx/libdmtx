@@ -58,7 +58,7 @@ main(int argc, char *argv[])
    if(reg.found != DMTX_REGION_FOUND)
       exit(0);
 
-   msg = dmtxDecodeMatrixRegion(&dec, &reg, -1);
+   msg = dmtxDecodeMatrixRegion(img, &reg, -1);
    if(msg != NULL) {
       fputs("output: \"", stdout);
       fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
