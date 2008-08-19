@@ -52,7 +52,8 @@ version 0.6.0:
   x libdmtx:   Removed y-flip from internal pixel storage
   x libdmtx:   Added strict border tests to eliminate false positives
   x libdmtx:   Added squareness deviation filter
-  / libdmtx:   Implement simplified Hough transform for locating first edge
+  x libdmtx:   Implement simplified Hough transform for locating first edge
+  o libdmtx:   Incorporate Luigi's comments about building for FreeBSD
   o wrapper:   New PHP wrapper code added
   o wrapper:   Python wrapper update: 15x faster (thanks Jonathan!)
 
