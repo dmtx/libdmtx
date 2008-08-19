@@ -1151,39 +1151,41 @@ MatrixRegionAlignEdge(DmtxDecode *dec, DmtxRegion *reg,
    prevEdgeHit = edgeHit = DMTX_EDGE_STEP_EXACT;
 
    for(;;) {
-      /* XXX technically we don't need to recalculate lateral & forward once we have left the finder bar */
+
       dmtxMatrix3VMultiply(&pTmp, &pRawProgress, sRaw2Fit);
 
-      /* XXX move this outside of this loop ? */
-      c00 = pTmp;
-      c10.X = c00.X + 1;
-      c10.Y = c00.Y;
-      c01.X = c00.X - 0.087155743;
-      c01.Y = c00.Y + 0.996194698;
+      /* Only update forward and lateral vectors before leaving finder bar */
+      if(pTmp.X < 0.05) {
+         c00 = pTmp;
+         c10.X = c00.X + 1;
+         c10.Y = c00.Y;
+         c01.X = c00.X - 0.087155743;
+         c01.Y = c00.Y + 0.996194698;
 
-      if(dmtxMatrix3VMultiplyBy(&c00, sFit2Raw) != DMTX_SUCCESS)
-         return 0;
+         if(dmtxMatrix3VMultiplyBy(&c00, sFit2Raw) != DMTX_SUCCESS)
+            return 0;
 
-      if(dmtxMatrix3VMultiplyBy(&c10, sFit2Raw) != DMTX_SUCCESS)
-         return 0;
+         if(dmtxMatrix3VMultiplyBy(&c10, sFit2Raw) != DMTX_SUCCESS)
+            return 0;
 
-      if(dmtxMatrix3VMultiplyBy(&c01, sFit2Raw) != DMTX_SUCCESS)
-         return 0;
+         if(dmtxMatrix3VMultiplyBy(&c01, sFit2Raw) != DMTX_SUCCESS)
+            return 0;
 
-      /* XXX instead of just failing here, hopefully find what happened
-             upstream to trigger this condition. we can probably avoid
-             this earlier on, and even avoid assertion failures elsewhere */
-      if(RightAngleTrueness(c01, c00, c10, M_PI) < 0.1)
-         return 0;
+         /* XXX instead of just failing here, hopefully find what happened
+                upstream to trigger this condition. we can probably avoid
+                this earlier on, and even avoid assertion failures elsewhere */
+         if(RightAngleTrueness(c01, c00, c10, M_PI) < 0.1)
+            return 0;
 
-      /* Calculate forward and lateral directions in raw coordinates */
-      dmtxVector2Sub(&forward, &c10, &c00);
-      if(dmtxVector2Norm(&forward) != DMTX_SUCCESS)
-         return 0;
+         /* Calculate forward and lateral directions in raw coordinates */
+         dmtxVector2Sub(&forward, &c10, &c00);
+         if(dmtxVector2Norm(&forward) != DMTX_SUCCESS)
+            return 0;
 
-      dmtxVector2Sub(&lateral, &c01, &c00);
-      if(dmtxVector2Norm(&lateral) != DMTX_SUCCESS)
-         return 0;
+         dmtxVector2Sub(&lateral, &c01, &c00);
+         if(dmtxVector2Norm(&lateral) != DMTX_SUCCESS)
+            return 0;
+      }
 
       prevEdgeHit = edgeHit;
       edgeHit = StepAlongEdge(dec, reg, &pRawProgress, &pRawExact, forward, lateral);
