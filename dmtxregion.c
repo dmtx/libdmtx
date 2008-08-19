@@ -491,7 +491,7 @@ MatrixRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
    DmtxVector2 vOT, vOR, vTmp;
    double tx, ty, phi, shx, scx, scy, skx, sky;
    double dimOT, dimOR, dimTX, dimRX, ratio;
-   DmtxMatrix3 m, mtxy, mphi, mshx, mscxy, msky, mskx, mTmp;
+   DmtxMatrix3 m, mtxy, mphi, mshx, mscx, mscy, mscxy, msky, mskx, mTmp;
    DmtxCorners corners;
 
    assert((reg->corners.known & DmtxCorner00) && (reg->corners.known & DmtxCorner01));
@@ -573,50 +573,47 @@ MatrixRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
 
    phi = atan2(vOT.X, vOT.Y);
    dmtxMatrix3Rotate(mphi, phi);
-
-   /* Update transformation with values known so far */
    dmtxMatrix3Multiply(m, mtxy, mphi);
 
    dmtxMatrix3VMultiply(&vTmp, &corners.c10, m);
-
    shx = -vTmp.Y / vTmp.X;
    dmtxMatrix3Shear(mshx, 0.0, shx);
+   dmtxMatrix3MultiplyBy(m, mshx);
 
    scx = 1.0/vTmp.X;
-   scy = 1.0/dmtxVector2Mag(&vOT);
-   dmtxMatrix3Scale(mscxy, scx, scy);
+   dmtxMatrix3Scale(mscx, scx, 1.0);
+   dmtxMatrix3MultiplyBy(m, mscx);
 
-   /* Update transformation with values known so far */
-   dmtxMatrix3MultiplyBy(m, mshx);
-   dmtxMatrix3MultiplyBy(m, mscxy);
+   dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
+   scy = 1.0/vTmp.Y;
+   dmtxMatrix3Scale(mscy, 1.0, scy);
+   dmtxMatrix3MultiplyBy(m, mscy);
 
    dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
    skx = vTmp.X;
    dmtxMatrix3LineSkewSide(mskx, 1.0, skx, 1.0);
-
-   /* Update transformation with values known so far */
    dmtxMatrix3MultiplyBy(m, mskx);
 
-   /* Update transformation with values known so far */
-   dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
+   dmtxMatrix3VMultiply(&vTmp, &corners.c01, m);
    sky = vTmp.Y;
-   dmtxMatrix3LineSkewTop(msky, 1.0, sky, 1.0);
-
-   /* Update region with final update */
+   dmtxMatrix3LineSkewTop(msky, sky, 1.0, 1.0);
    dmtxMatrix3Multiply(reg->raw2fit, m, msky);
 
    /* Create inverse matrix by reverse (avoid straight matrix inversion) */
-   dmtxMatrix3LineSkewTopInv(msky, 1.0, sky, 1.0);
+   dmtxMatrix3LineSkewTopInv(msky, sky, 1.0, 1.0);
    dmtxMatrix3LineSkewSideInv(mskx, 1.0, skx, 1.0);
-   dmtxMatrix3Scale(mscxy, 1.0/scx, 1.0/scy);
-   dmtxMatrix3Shear(mshx, 0.0, -shx);
-   dmtxMatrix3Rotate(mphi, -phi);
-   dmtxMatrix3Translate(mtxy, -tx, -ty);
-
    dmtxMatrix3Multiply(m, msky, mskx);
+
+   dmtxMatrix3Scale(mscxy, 1.0/scx, 1.0/scy);
    dmtxMatrix3MultiplyBy(m, mscxy);
+
+   dmtxMatrix3Shear(mshx, 0.0, -shx);
    dmtxMatrix3MultiplyBy(m, mshx);
+
+   dmtxMatrix3Rotate(mphi, -phi);
    dmtxMatrix3MultiplyBy(m, mphi);
+
+   dmtxMatrix3Translate(mtxy, -tx, -ty);
    dmtxMatrix3Multiply(reg->fit2raw, m, mtxy);
 
    return DMTX_SUCCESS;
