@@ -277,6 +277,17 @@ dmtxColor3Mag(DmtxColor3 *c)
 
 /**
  * @brief  XXX
+ * @param  c
+ * @return Color vector magnitude
+ */
+extern double
+dmtxColor3MagSquared(DmtxColor3 *c)
+{
+   return (c->R * c->R + c->G * c->G + c->B * c->B);
+}
+
+/**
+ * @brief  XXX
  * @param  r
  * @param  q
  * @return Distance from color ray

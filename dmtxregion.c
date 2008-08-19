@@ -199,22 +199,22 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
    DmtxCompassEdge maxEdge, *compassCache;
    DmtxColor3 color[8], black = { 0.0, 0.0, 0.0 }; /* XXX move black to a global scope later */
    int dir, maxDirOrtho, maxDirAll;
-   double mag, maxMagOrtho, maxMagAll;
+   double magSq, maxMagSqOrtho, maxMagSqAll;
    DmtxColor3 col, maxColOrtho, maxColAll;;
 
    /* Set maxEdge to invalid state */
    maxEdge.dirsTested = DmtxCompassDirNone;
    maxEdge.maxDirAll = maxDirAll = DmtxCompassDirNone;
    maxEdge.maxDirOrtho = maxDirOrtho = DmtxCompassDirNone;
-   maxEdge.magnitude = mag = maxMagAll = maxMagOrtho = 0.0;
+   maxEdge.magnitude = magSq = maxMagSqAll = maxMagSqOrtho = 0.0;
    maxEdge.intensity = col = maxColAll = maxColOrtho = black;
 
    if(dmtxImageContainsInt(img, 1, x, y) == DMTX_FALSE)
       return maxEdge; /* XXX should really communicate failure with a dedicated value instead */
 
    offset = dmtxImageGetOffset(img, x, y);
-   widthScaled = dmtxImageGetProp(img, DmtxPropScaledWidth);
-   heightScaled = dmtxImageGetProp(img, DmtxPropScaledHeight);
+   widthScaled = img->width/img->scale;   /* dmtxImageGetProp(img, DmtxPropScaledWidth); */
+   heightScaled = img->height/img->scale; /* dmtxImageGetProp(img, DmtxPropScaledHeight); */
 
    /* Cache always holds result from most recent test. Return cached result
       if it matches the request. Otherwise recache and return new result. */
@@ -253,7 +253,7 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
       if(!(dir & edgeScanDirs))
          continue;
 
-      mag = 0.0;
+      magSq = 0.0;
       col = black;
 
       /* Add portion from each position in the convolution matrix pattern */
@@ -279,20 +279,20 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
                break;
          }
       }
-      mag = dmtxColor3Mag(&col);
+      magSq = dmtxColor3MagSquared(&col);
 
       /* Capture the strongest edge direction and its intensity */
       if((dir & DmtxCompassDirOrtho) &&
-            (maxDirOrtho == DmtxCompassDirNone || mag > maxMagOrtho)) {
+            (maxDirOrtho == DmtxCompassDirNone || magSq > maxMagSqOrtho)) {
          maxDirOrtho = dir;
-         maxMagOrtho = mag;
+         maxMagSqOrtho = magSq;
          maxColOrtho = col;
       }
 
       /* Capture the strongest edge direction and its intensity */
-      if(maxDirAll == DmtxCompassDirNone || mag > maxMagAll) {
+      if(maxDirAll == DmtxCompassDirNone || magSq > maxMagSqAll) {
          maxDirAll = dir;
-         maxMagAll = mag;
+         maxMagSqAll = magSq;
          maxColAll = col;
       }
    }
@@ -300,7 +300,7 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
    maxEdge.dirsTested = edgeScanDirs;
    maxEdge.maxDirAll = maxDirAll;
    maxEdge.maxDirOrtho = maxDirOrtho;
-   maxEdge.magnitude = maxMagAll;
+   maxEdge.magnitude = sqrt(maxMagSqAll);
    maxEdge.intensity = maxColAll;
 
    *compassCache = maxEdge;

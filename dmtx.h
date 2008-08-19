@@ -539,6 +539,7 @@ extern DmtxColor3 *dmtxColor3Cross(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 
 extern int dmtxColor3Norm(DmtxColor3 *v);
 extern double dmtxColor3Dot(DmtxColor3 *v1, DmtxColor3 *v2);
 extern double dmtxColor3Mag(DmtxColor3 *v);
+extern double dmtxColor3MagSquared(DmtxColor3 *v);
 extern double dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern double dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
