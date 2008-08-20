@@ -499,7 +499,7 @@ extern DmtxVector2 *dmtxVector2Sub(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVecto
 extern DmtxVector2 *dmtxVector2ScaleBy(DmtxVector2 *v, double s);
 extern DmtxVector2 *dmtxVector2Scale(DmtxVector2 *vOut, DmtxVector2 *v, double s);
 extern double dmtxVector2Cross(DmtxVector2 *v1, DmtxVector2 *v2);
-extern int dmtxVector2Norm(DmtxVector2 *v);
+extern double dmtxVector2Norm(DmtxVector2 *v);
 extern double dmtxVector2Dot(DmtxVector2 *v1, DmtxVector2 *v2);
 extern double dmtxVector2Mag(DmtxVector2 *v);
 extern double dmtxDistanceFromRay2(DmtxRay2 *r, DmtxVector2 *q);
@@ -536,7 +536,7 @@ extern DmtxColor3 *dmtxColor3Sub(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v
 extern DmtxColor3 *dmtxColor3ScaleBy(DmtxColor3 *v, double s);
 extern DmtxColor3 *dmtxColor3Scale(DmtxColor3 *vOut, DmtxColor3 *v, double s);
 extern DmtxColor3 *dmtxColor3Cross(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
-extern int dmtxColor3Norm(DmtxColor3 *v);
+extern double dmtxColor3Norm(DmtxColor3 *v);
 extern double dmtxColor3Dot(DmtxColor3 *v1, DmtxColor3 *v2);
 extern double dmtxColor3Mag(DmtxColor3 *v);
 extern double dmtxColor3MagSquared(DmtxColor3 *v);

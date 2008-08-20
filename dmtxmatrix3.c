@@ -322,17 +322,15 @@ dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m)
 {
    double w;
 
-   vOut->X = vIn->X*m[0][0] + vIn->Y*m[1][0] + m[2][0];
-   vOut->Y = vIn->X*m[0][1] + vIn->Y*m[1][1] + m[2][1];
    w = vIn->X*m[0][2] + vIn->Y*m[1][2] + m[2][2];
-
    if(fabs(w) < DMTX_ALMOST_ZERO) {
       vOut->X = FLT_MAX;
       vOut->Y = FLT_MAX;
       return DMTX_FAILURE;
    }
 
-   dmtxVector2ScaleBy(vOut, 1/w);
+   vOut->X = (vIn->X*m[0][0] + vIn->Y*m[1][0] + m[2][0])/w;
+   vOut->Y = (vIn->X*m[0][1] + vIn->Y*m[1][1] + m[2][1])/w;
 
    return DMTX_SUCCESS;
 }

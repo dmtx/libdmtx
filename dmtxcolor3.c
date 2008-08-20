@@ -236,7 +236,7 @@ dmtxColor3Cross(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
  * @param  c
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
-extern int
+extern double
 dmtxColor3Norm(DmtxColor3 *c)
 {
    double mag;
@@ -244,11 +244,11 @@ dmtxColor3Norm(DmtxColor3 *c)
    mag = dmtxColor3Mag(c);
 
    if(mag < DMTX_ALMOST_ZERO)
-      return DMTX_FAILURE;
+      return -1.0;
 
    dmtxColor3ScaleBy(c, 1/mag);
 
-   return DMTX_SUCCESS;
+   return mag;
 }
 
 /**

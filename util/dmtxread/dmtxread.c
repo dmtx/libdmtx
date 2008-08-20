@@ -374,13 +374,15 @@ OPTIONS:\n"), programName, programName);
   -m, --milliseconds=N       stop scan after N milliseconds (per image)\n\
   -n, --newline              print newline character at the end of decoded data\n\
   -q, --square-deviation=N   allowed non-squareness of corners in degrees (0-90)\n\
-  -s, --shrink=N             internally shrink image by a factor of N\n\
+  -s, --shrink=N             internally shrink image by a factor of N\n"));
+      fprintf(stdout, _("\
   -t, --threshold=N          ignore weak edges below threshold N (1-100)\n\
   -x, --x-range-min=N[%%]     do not scan pixels to the left of N (or N%%)\n\
   -X, --x-range-max=N[%%]     do not scan pixels to the right of N (or N%%)\n\
   -y, --y-range-min=N[%%]     do not scan pixels above N (or N%%)\n\
   -Y, --y-range-max=N[%%]     do not scan pixels below N (or N%%)\n\
-  -C, --corrections-max=N    correct at most N errors (0 = correction disabled)\n\
+  -C, --corrections-max=N    correct at most N errors (0 = correction disabled)\n"));
+      fprintf(stdout, _("\
   -D, --diagnose             make copy of image with additional diagnostic data\n\
   -M, --mosaic               interpret detected regions as Data Mosaic barcodes\n\
   -P, --page-number          prefix decoded message with fax/tiff page number\n\

@@ -116,7 +116,7 @@ dmtxVector2Cross(DmtxVector2 *v1, DmtxVector2 *v2)
  *
  *
  */
-extern int
+extern double
 dmtxVector2Norm(DmtxVector2 *v)
 {
    double mag;
@@ -124,11 +124,11 @@ dmtxVector2Norm(DmtxVector2 *v)
    mag = dmtxVector2Mag(v);
 
    if(mag < DMTX_ALMOST_ZERO)
-      return DMTX_FAILURE;
+      return -1.0;
 
    dmtxVector2ScaleBy(v, 1/mag);
 
-   return DMTX_SUCCESS;
+   return mag;
 }
 
 /**

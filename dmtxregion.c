@@ -188,37 +188,41 @@ ClampIntRange(int value, int min, int max)
 static DmtxCompassEdge
 GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
 {
-   int offset, widthScaled, heightScaled;
-   int idx, dirVal[] = { DmtxCompassDirNeg45, DmtxCompassDir0, DmtxCompassDir45, DmtxCompassDir90 };
-   int patternIdx, coefficientIdx;
-   int xAdjust, yAdjust;
    static const int coefficient[] = {  0,  1,  2,  1,  0, -1, -2, -1 };
    static const int patternX[] =    { -1,  0,  1,  1,  1,  0, -1, -1 };
    static const int patternY[] =    { -1, -1, -1,  0,  1,  1,  1,  0 };
+   int idx, dirVal[] = { DmtxCompassDirNeg45, DmtxCompassDir0, DmtxCompassDir45, DmtxCompassDir90 };
+
+   int offset, widthScaled, heightScaled;
+   int patternIdx, coefficientIdx;
+   int xAdjust, yAdjust;
+   int rgbCol[3], rgbInt[8][3], *rgbIntPtr;
+   int dir, maxDirOrtho, maxDirAll;
+   long magSq, maxMagSqOrtho, maxMagSqAll;
+   int maxColOrtho[3], maxColAll[3];
    DmtxRgb rgb;
    DmtxCompassEdge maxEdge, *compassCache;
-   DmtxColor3 color[8], black = { 0.0, 0.0, 0.0 }; /* XXX move black to a global scope later */
-   int dir, maxDirOrtho, maxDirAll;
-   double magSq, maxMagSqOrtho, maxMagSqAll;
-   DmtxColor3 col, maxColOrtho, maxColAll;;
+   DmtxColor3 black = { 0.0, 0.0, 0.0 }; /* XXX move black to a global scope later */
 
    /* Set maxEdge to invalid state */
    maxEdge.dirsTested = DmtxCompassDirNone;
    maxEdge.maxDirAll = maxDirAll = DmtxCompassDirNone;
    maxEdge.maxDirOrtho = maxDirOrtho = DmtxCompassDirNone;
-   maxEdge.magnitude = magSq = maxMagSqAll = maxMagSqOrtho = 0.0;
-   maxEdge.intensity = col = maxColAll = maxColOrtho = black;
+   maxEdge.magnitude = maxMagSqAll = maxMagSqOrtho = 0.0;
+   maxEdge.intensity = black;
+   memset(maxColAll, 0x00, 3 * sizeof(int));
+   memset(maxColOrtho, 0x00, 3 * sizeof(int));
 
    if(dmtxImageContainsInt(img, 1, x, y) == DMTX_FALSE)
       return maxEdge; /* XXX should really communicate failure with a dedicated value instead */
 
-   offset = dmtxImageGetOffset(img, x, y);
    widthScaled = img->width/img->scale;   /* dmtxImageGetProp(img, DmtxPropScaledWidth); */
    heightScaled = img->height/img->scale; /* dmtxImageGetProp(img, DmtxPropScaledHeight); */
 
    /* Cache always holds result from most recent test. Return cached result
       if it matches the request. Otherwise recache and return new result. */
 
+   offset = dmtxImageGetOffset(img, x, y);
    compassCache = &(img->compass[offset]);
 
    /* Requested test was already performed */
@@ -241,7 +245,10 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
       yAdjust = ClampIntRange(y + patternY[patternIdx], 0, heightScaled - 1);
 
       dmtxImageGetRgb(img, xAdjust, yAdjust, rgb);
-      dmtxColor3FromPixel(&(color[patternIdx]), rgb);
+      rgbIntPtr = &(rgbInt[patternIdx][0]);
+      rgbIntPtr[0] = rgb[0];
+      rgbIntPtr[1] = rgb[1];
+      rgbIntPtr[2] = rgb[2];
    }
 
    /* Calculate this pixel's edge intensity for each direction (-45, 0, 45, 90) */
@@ -253,8 +260,7 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
       if(!(dir & edgeScanDirs))
          continue;
 
-      magSq = 0.0;
-      col = black;
+      memset(rgbCol, 0x00, 3 * sizeof(int));
 
       /* Add portion from each position in the convolution matrix pattern */
       for(patternIdx = 0; patternIdx < 8; patternIdx++) {
@@ -263,45 +269,58 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
          if(coefficient[coefficientIdx] == 0)
             continue;
 
+         rgbIntPtr = &(rgbInt[patternIdx][0]);
+
          /* Weight pixel value by appropriate coefficient in convolution matrix */
          switch(coefficient[coefficientIdx]) {
             case 2:
-               dmtxColor3AddTo(&col, &(color[patternIdx]));
+               rgbCol[0] += rgbIntPtr[0];
+               rgbCol[1] += rgbIntPtr[1];
+               rgbCol[2] += rgbIntPtr[2];
                /* Fall through */
             case 1:
-               dmtxColor3AddTo(&col, &(color[patternIdx]));
+               rgbCol[0] += rgbIntPtr[0];
+               rgbCol[1] += rgbIntPtr[1];
+               rgbCol[2] += rgbIntPtr[2];
                break;
             case -2:
-               dmtxColor3SubFrom(&col, &(color[patternIdx]));
+               rgbCol[0] -= rgbIntPtr[0];
+               rgbCol[1] -= rgbIntPtr[1];
+               rgbCol[2] -= rgbIntPtr[2];
                /* Fall through */
             case -1:
-               dmtxColor3SubFrom(&col, &(color[patternIdx]));
+               rgbCol[0] -= rgbIntPtr[0];
+               rgbCol[1] -= rgbIntPtr[1];
+               rgbCol[2] -= rgbIntPtr[2];
                break;
          }
       }
-      magSq = dmtxColor3MagSquared(&col);
+      magSq = rgbCol[0] * rgbCol[0] + rgbCol[1] * rgbCol[1] + rgbCol[2] * rgbCol[2];
 
       /* Capture the strongest edge direction and its intensity */
       if((dir & DmtxCompassDirOrtho) &&
             (maxDirOrtho == DmtxCompassDirNone || magSq > maxMagSqOrtho)) {
          maxDirOrtho = dir;
          maxMagSqOrtho = magSq;
-         maxColOrtho = col;
+         memcpy(maxColOrtho, rgbCol, 3 * sizeof(int));
       }
 
       /* Capture the strongest edge direction and its intensity */
       if(maxDirAll == DmtxCompassDirNone || magSq > maxMagSqAll) {
          maxDirAll = dir;
          maxMagSqAll = magSq;
-         maxColAll = col;
+         memcpy(maxColAll, rgbCol, 3 * sizeof(int));
       }
    }
 
    maxEdge.dirsTested = edgeScanDirs;
    maxEdge.maxDirAll = maxDirAll;
    maxEdge.maxDirOrtho = maxDirOrtho;
-   maxEdge.magnitude = sqrt(maxMagSqAll);
-   maxEdge.intensity = maxColAll;
+
+   maxEdge.intensity.R = maxColAll[0];
+   maxEdge.intensity.G = maxColAll[1];
+   maxEdge.intensity.B = maxColAll[2];
+   maxEdge.magnitude = dmtxColor3Norm(&maxEdge.intensity);
 
    *compassCache = maxEdge;
 
@@ -469,17 +488,16 @@ FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forwar
    }
 
 /* CALLBACK_POINT_PLOT(pHard, 1, 4, DMTX_DISPLAY_SQUARE); */
-
    dmtxVector2Sub(&pStep, &pHard, &pStart);
-   if(dmtxVector2Mag(&pStep) < 4)
+   if(dmtxVector2Norm(&pStep) < 4.0)
       return ray;
 
-   ray.isDefined = 1;
-   ray.tMin = 0;
    ray.p = pStart;
-   dmtxVector2Norm(&pStep);
    ray.v = pStep;
+   ray.tMin = 0;
    ray.tMax = dmtxDistanceAlongRay2(&ray, &pSoft);
+
+   ray.isDefined = (ray.tMax > 4) ? 1 : 0;
 
    return ray;
 }
@@ -672,7 +690,7 @@ MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxEdgeSubPixel *e
          rayFull.p = p1;
 
          dmtxVector2Sub(&pTmp, &p0, &p1);
-         if(dmtxVector2Norm(&pTmp) != DMTX_SUCCESS)
+         if(dmtxVector2Norm(&pTmp) < 0.0)
             return DMTX_FAILURE;
 
          rayFull.v = pTmp;
@@ -923,12 +941,12 @@ among module samples and proximity of color to initial edge
 
    rayOT.p = oldRawO;
    dmtxVector2Sub(&rayOT.v, &oldRawT, &oldRawO);
-   if(dmtxVector2Norm(&rayOT.v) != DMTX_SUCCESS)
+   if(dmtxVector2Norm(&rayOT.v) < 0.0)
       return DMTX_FAILURE;
 
    rayNew.p = p0[bestFit];
    dmtxVector2Sub(&rayNew.v, &p1[bestFit], &p0[bestFit]);
-   if(dmtxVector2Norm(&rayNew.v) != DMTX_SUCCESS)
+   if(dmtxVector2Norm(&rayNew.v) < 0.0)
       return DMTX_FAILURE;
 
    /* New origin is always origin of both known edges */
@@ -1179,11 +1197,11 @@ MatrixRegionAlignEdge(DmtxDecode *dec, DmtxRegion *reg,
 
          /* Calculate forward and lateral directions in raw coordinates */
          dmtxVector2Sub(&forward, &c10, &c00);
-         if(dmtxVector2Norm(&forward) != DMTX_SUCCESS)
+         if(dmtxVector2Norm(&forward) < 0.0)
             return 0;
 
          dmtxVector2Sub(&lateral, &c01, &c00);
-         if(dmtxVector2Norm(&lateral) != DMTX_SUCCESS)
+         if(dmtxVector2Norm(&lateral) < 0.0)
             return 0;
       }
 
