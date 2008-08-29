@@ -24,7 +24,8 @@ Contact: mblaughton@users.sourceforge.net
 #ifndef __SCANDEMO_H__
 #define __SCANDEMO_H__
 
-#include <GL/gl.h>
+#include "SDL/SDL.h"
+#include "SDL/SDL_opengl.h"
 #include "dmtx.h"
 
 #define max(X,Y) (X > Y) ? X : Y

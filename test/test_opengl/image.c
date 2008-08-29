@@ -24,13 +24,11 @@ Contact: mblaughton@users.sourceforge.net
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
 #include <SDL/SDL.h>
+#include <SDL/SDL_opengl.h>
 #include <png.h>
 #include "dmtx.h"
 #include "gltest.h"
-#include "display.h"
 #include "image.h"
 
 /**

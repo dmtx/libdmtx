@@ -24,9 +24,8 @@ Contact: mblaughton@users.sourceforge.net
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <GL/gl.h>
-#include <GL/glu.h>
 #include <SDL/SDL.h>
+#include <SDL/SDL_opengl.h>
 #include "dmtx.h"
 #include "image.h"
 #include "display.h"
