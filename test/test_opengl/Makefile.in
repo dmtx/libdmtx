@@ -174,7 +174,8 @@ top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I../..
 gltest_SOURCES = gltest.c callback.c display.c image.c dmtx.c
 EXTRA_gltest_SOURCES = callback.h display.h gltest.h image.h
-gltest_LDFLAGS = -lm -lpng -lGL -lGLU -lSDL -lpthread
+@TARGET_MACOSX_FALSE@gltest_LDFLAGS = -lm -lpng -lGL -lGLU -lSDL -lpthread
+@TARGET_MACOSX_TRUE@gltest_LDFLAGS = -lm -lpng -framework OpenGL -lSDL -lSDLmain -framework Cocoa -lpthread
 all: all-am
 
 .SUFFIXES:

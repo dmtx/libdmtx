@@ -17,6 +17,13 @@ AC_CONFIG_FILES([
  test/test_unit/Makefile
 ])
 
+case $host_os in
+   darwin*)
+      ARCH=macosx
+      ;;
+esac
+AM_CONDITIONAL(TARGET_MACOSX, test "$ARCH" = macosx)
+
 AC_CHECK_HEADER([tiff.h],
    AC_CHECK_LIB([tiff], [TIFFReadScanline],
       AC_DEFINE([HAVE_LIBTIFF], [1], [Define to 1 if you have the libtiff header and library.])))
