@@ -3,6 +3,7 @@ pydmtx - Python wrapper for libdmtx
 
 Copyright (c) 2006 Dan Watson
 Copyright (c) 2008 Mike Laughton
+Copyright (c) 2008 Jonathan Lung
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -18,8 +19,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-Contact: dcwatson@gmail.com
-         mike@dragonflylogic.com
+Contact: mike@dragonflylogic.com
 */
 
 /* $Id$ */
@@ -30,6 +30,7 @@ Contact: dcwatson@gmail.com
 
 static PyObject *dmtx_encode(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *dmtx_decode(PyObject *self, PyObject *args, PyObject *kwargs);
+static PyObject *dmtx_decode2(PyObject *self, PyObject *args, PyObject *kwargs);
 
 static PyMethodDef dmtxMethods[] = {
    { "encode",
@@ -40,6 +41,10 @@ static PyMethodDef dmtxMethods[] = {
      (PyCFunction)dmtx_decode,
      METH_VARARGS | METH_KEYWORDS,
      "Decodes data from a matrix and returns data." },
+   { "decode2",
+     (PyCFunction)dmtx_decode2,
+     METH_VARARGS | METH_KEYWORDS,
+     "Decodes data from a bitmap stored in a buffer and returns the encoded data." },
    { NULL,
      NULL,
      0,
@@ -94,7 +99,7 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
 
    for(row = 0; row < encode.image->height; row++) {
       for(col = 0; col < encode.image->width; col++) {
-         dmtxPixelFromImage(rgb, encode.image, col, row);
+         dmtxImageGetRgb(encode.image, col, row, rgb);
          args = Py_BuildValue("(ii(iii)O)", col, row, rgb[0], rgb[1], rgb[2], context);
          (void)PyEval_CallObject(plotter, args);
          Py_DECREF(args);
@@ -128,7 +133,6 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    DmtxMessage *message;
    PyObject *pilPixel;
    DmtxRgb dmtxRgb;
-   DmtxPixelLoc p0, p1;
    int x, y;
    static char *kwlist[] = { "width", "height", "gap_size", "picker", "context", NULL };
 
@@ -160,25 +164,21 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
          if(!PyArg_ParseTuple(pilPixel, "iii", &dmtxRgb[0], &dmtxRgb[1], &dmtxRgb[2]))
             return NULL;
 
-         image->pxl[y * image->width + x][0] = dmtxRgb[0];
-         image->pxl[y * image->width + x][1] = dmtxRgb[1];
-         image->pxl[y * image->width + x][2] = dmtxRgb[2];
+         dmtxImageSetRgb(image, x, y, dmtxRgb);
 
          Py_DECREF(pilPixel);
       }
    }
 
-   p0.X = p0.Y = 0; /* XXX this should be moved to the library */
-   p1.X = image->width - 1;
-   p1.Y = image->height - 1;
-   decode = dmtxDecodeStructInit(image, p0, p1, gap_size);
+   decode = dmtxDecodeStructInit(image);
+   dmtxDecodeSetProp(&decode, DmtxPropScanGap, gap_size);
 
    for(;;) {
       region = dmtxDecodeFindNextRegion(&decode, NULL);
       if(region.found == DMTX_REGION_EOF)
          break;
 
-      message = dmtxDecodeMatrixRegion(&decode, &region, 1);
+      message = dmtxDecodeMatrixRegion(image, &region, -1);
       if(message == NULL)
          continue;
 
@@ -194,6 +194,71 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
 
    return output;
 }
+
+static PyObject *dmtx_decode2(PyObject *self, PyObject *arglist, PyObject *kwargs)
+{
+   int width;  // Width of image
+   int height;  // Height of image
+   int gap_size;
+
+   PyObject *dataBuffer = NULL;
+   Py_ssize_t dataLen;
+   PyObject *context = Py_None;
+   PyObject *output = NULL;
+   DmtxImage *image;
+   char *imageAsPtrArray;  // The libdmtx array for the image
+   DmtxDecode decode;
+   DmtxRegion region;
+   DmtxMessage *message;
+   const char *pixelData;  // The input image buffer
+
+   static char *kwlist[] = { "width", "height", "gap_size", "data", "context", NULL };
+
+   // Get parameters from Python for libdmtx.
+   if(!PyArg_ParseTupleAndKeywords(arglist, kwargs, "iii|OO", kwlist,
+         &width, &height, &gap_size, &dataBuffer, &context))
+      return NULL;
+
+   Py_INCREF(context);
+
+   if((dataBuffer == NULL)) {
+      PyErr_SetString(PyExc_TypeError, "Interleaved bitmapped data in buffer missing");
+      return NULL;
+   }
+
+   image = dmtxImageMalloc(width, height);
+   imageAsPtrArray = (char*) &image->pxl[0][0];
+
+   PyObject_AsCharBuffer(dataBuffer, &pixelData, &dataLen);
+
+   /* Populate libdmtx image with image data */
+   memcpy(image->pxl, pixelData, image->width * image->height * 3);
+
+   decode = dmtxDecodeStructInit(image);
+   dmtxDecodeSetProp(&decode, DmtxPropScanGap, gap_size);
+
+   for(;;) {
+      region = dmtxDecodeFindNextRegion(&decode, NULL);
+      if(region.found == DMTX_REGION_EOF)
+         break;
+
+      message = dmtxDecodeMatrixRegion(image, &region, -1);
+      if(message == NULL)
+         continue;
+
+      output = Py_BuildValue("s", message->output);
+      Py_INCREF(output);
+
+      dmtxMessageFree(&message);
+      break; /* XXX for now, break after first barcode is found in image */
+   }
+
+   dmtxImageFree(&image);
+   Py_DECREF(context);
+
+   return output;
+}
+
 
 PyMODINIT_FUNC init_pydmtx(void)
 {

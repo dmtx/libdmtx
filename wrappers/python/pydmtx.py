@@ -2,6 +2,7 @@
 #
 # Copyright (c) 2006 Dan Watson
 # Copyright (c) 2007 Mike Laughton
+# Copyright (c) 2008 Jonathan Lung
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -96,3 +97,6 @@ class DataMatrix (object):
 
 	def _pick( self, x, y, context ):
 		return self._image.getpixel( (x,self.height-y-1) )
+
+	def decode2( self, width, height, data, **kwargs):
+		return _pydmtx.decode2( width, height, self.gap_size, data, **kwargs)
