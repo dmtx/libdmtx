@@ -8,8 +8,8 @@ dm_write.encode( "hello, world" * 20 )
 dm_write.save( 'hello.png', 'png' )
 
 # Read a Data Matrix barcode using the original method
-timeStart = time.time()
 dm_read = DataMatrix( gap_size=10 )
+timeStart = time.time()
 print dm_read.decode( 'hello.png' )
 print "Old decode: ", time.time() - timeStart, "s"
 

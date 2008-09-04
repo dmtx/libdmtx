@@ -12,10 +12,10 @@ To install everything, place both files in the same directory
 and untar them as follows:
 
 For .bz2 files:
-  $ tar jxvf libdmtx-0.6.0.tar.bz2
+  $ tar jxvf libdmtx-0.5.2.tar.bz2
 
 For .gz files:
-  $ tar zxvf libdmtx-0.6.0.tar.gz
+  $ tar zxvf libdmtx-0.5.2.tar.gz
 
 For .tar files:
   $ tar xvf libdmtx-images-0.5.0.tar
@@ -23,7 +23,7 @@ For .tar files:
 Note: If your system uses an older version of tar you might
       need to do it in two steps, like this:
 
-  $ gunzip libdmtx-0.6.0.tar.gz && tar xvf libdmtx-0.5.0.tar
+  $ gunzip libdmtx-0.5.2.tar.gz && tar xvf libdmtx-0.5.2.tar
 
 
 2. libdmtx - Building and Installing the Core Library
@@ -83,23 +83,34 @@ you specified a different "--prefix" during the configure step
 above.
 
 Did you encounter any problems?  If you performed all these steps
-and it still won't build properly then please post a message to
-the libdmtx "Help" mailing list so we can review your issue and
-the solution becomes part of the public record. Instructions at:
+and it still won't build right then please send a message to the
+mailing list so the solution becomes part of the public record:
 
-   https://sourceforge.net/mail/?group_id=153603
+   libdmtx-open_discussion@lists.sourceforge.net
 
 
-3. Building and Installing the Python Bindings
+3. Building and Installing the Cocoa wrapper
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-If you wish to call libdmtx from programs written in Python
-then you must also install the Python binding located in the
-wrappers/python directory.  See the INSTALL file located
-in that directory for more detailed instructions.
+See the README file located in the wrapper/cocoa directory for
+details.
 
 
-4. Building the Test Programs
+4. Building and Installing the Python wrapper
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+See the README and INSTALL files located in the wrapper/python
+directory for details.
+
+
+5. Building and Installing the PHP wrapper
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+See the README and INSTALL files located in the wrapper/php
+directory for details.
+
+
+6. Building the Test Programs
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 The gltest program uses OpenGL (or Mesa) to simulate raw camera
@@ -115,7 +126,7 @@ The simpletest program is a simple test program.
 The unittest program should return 0 and print no output.
 
 
-5. Dependencies
+7. Dependencies
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 The following packages are required to build libdmtx and its
@@ -160,9 +171,11 @@ these in one shot, you can give it one of these:
         mesa-libGL-devel mesa-libGLU mesa-libGLU-devel SDL SDL-devel
 
 
-6. Anything Else?
+8. Anything Else?
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-Did I leave anything out?  If you spent hours searching for a
-solution that you feel should be included in this file, then
-please drop me an email at mike@dragonflylogic.com.
+Is something missing from these instructions?  If you spent hours
+searching for a solution that you feel should be included in this
+file then please send a message to the mailing list:
+
+   libdmtx-open_discussion@lists.sourceforge.net

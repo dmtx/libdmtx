@@ -1,43 +1,43 @@
-README for libdmtx version 0.6.0 - July 1, 2008
+README for libdmtx version 0.5.2 - September 4, 2008
 -----------------------------------------------------------------
 
-The libdmtx 0.6.0 release provides important bug fixes and
-functionality improvements, mainly for the benefit of users who
-don't use the latest code from Subversion. The changes in 0.6.0
-are incremental by nature and stem from a few factors:
+A minor release in name only, libdmtx 0.5.2 delivers several
+performance enhancements, bux fixes, and general improvements
+over previous versions. We still have a few enhancements that
+haven't made it in yet, which is why this is a minor release, but
+most users will already see big performance gains by ugrading to
+0.5.2. Depending on the images being scanned, but it's not
+uncommon to see a 500x (or better) speedup over 0.5.1 runtimes
+when proper tuning parameters are used.
 
-  * An incomplete libfec integration from version 0.5.0
-  * Feature importance identified by real-world users
-  * Increasing use of libdmtx on non-Linux platforms
+For users of pydmtx (the libdmtx Python wrapper), Jonathan Lung
+has also written a new decode2() function which is showing 15x
+faster decode times than the original pydmtx decode function.
 
-The next major release will continue to focus on overall barcode
-reading performance, and this release lays some of the necessary
-groundwork. These changes include:
+The performance tuning effort has been a good learning
+experience, and has resulted in plans for more significant
+changes down the road that will enable even faster performance
+and improved scanning of mixed-quality images. The goal is to
+deliver these changes in small chunks to minimize regressions
+and avoid long release cycles.
 
-Bug Fixes
+Other notable changes in 0.5.2 include:
 
-  * Fixed error correction bug with interleaved blocks
-  * Fixed Extended ASCII encoding bug
-  * Fixed experimental Data Mosaic decoding
+Performance Improvements
+  * New dynamic image shrinking feature (pixel skipping)
+  * New squareness deviation feature
+  * Simplified Hough transform for locating first edge
+  * Several other internal performance enhancements
 
 General Improvements
-
-  * Added timeout condition for region detection
-  * Added optional disabling of error correction
-  * Added beginnings of new "dmtxquery" utility
-  * Added unit test program for verifying internals
-  * Filled lots of holes in source comments (Doxygen)
-
-Cross Platform Improvements
-
-  * New conditional build logic surrounding libtiff code
-  * Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
-  * New local copies of getopt1.c, getopt.c, and getopt.h
-  * Various preprocessor additions to help compiling in MS VC++
-  * New Cocoa wrapper for iPhone, iPod Touch, OS X (thanks Stefan!)
+  * Encoding support for 144x144 barcodes (largest possible)
+  * Changed internal pixel storage to use top-left origin
+  * Various improvements when building for OS X and FreeBSD
+  * Added new experimental PHP wrapper code (Thanks Christian!)
+  * Several bugs fixed (see ChangeLog)
 
 As always, please let us know if you find any bugs or have
-trouble installing the software. Instructions for posting to the
-mailing lists can be found at:
+trouble installing the software. Messages should be sent to the
+mailing list:
 
-  http://sourceforge.net/mail/?group_id=153603
+   libdmtx-open_discussion@lists.sourceforge.net

@@ -1,7 +1,24 @@
 Changes for libdmtx
 -----------------------------------------------------------------
 
-version 0.6.0 [??? 2008]
+version 0.5.2 [September 2008]
+  Move SetRangeLimit and SetScanRegion into library
+  Replace DMTXUTIL_SUCCESS/ERROR with DMTX_SUCCESS/FAILURE
+  Add edge threshold filtering
+  Add encoding support for 144x144 barcodes
+  Fixed encoding case when message starts with two digits
+  Fixed bug in range limit option
+  Add dynamic image shrinking (pixel skipping)
+  Add step-by-step diagnostic image dump (debug build)
+  Fixed bug in minimum scan gap setting
+  Removed y-flip from internal pixel storage
+  Added strict border tests to eliminate false positives
+  Added squareness deviation filter
+  Implement simplified Hough transform for locating first edge
+  Several behind-the-scenes performance enhancements
+  Python wrapper update; 15x faster (thanks Jonathan!)
+  New PHP wrapper code added
+  Various improvements when building for OS X and FreeBSD
 
 version 0.5.1 [July 2008]
   Fixed Extended ASCII encoding bug

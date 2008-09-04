@@ -24,6 +24,7 @@ Contact: mike@dragonflylogic.com
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include <string.h>
 #include <getopt.h>
 #include <dmtx.h>

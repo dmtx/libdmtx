@@ -5,9 +5,9 @@
 .\" To view: $ groff -man -T ascii libdmtx.3 | less
 .\" To text: $ groff -man -T ascii libdmtx.3 | col -b | expand
 .\"
-.TH LIBDMTX 3 "July 1, 2008"
+.TH LIBDMTX 3 "September 4, 2008"
 .SH NAME
-libdmtx \- Data Matrix Encoder/Decoder Library 0.6.0
+libdmtx \- Data Matrix Encoder/Decoder Library 0.5.2
 .SH SYNOPSIS
 \fB#include <dmtx.h>\fP
 
@@ -29,9 +29,9 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.6.0
 
 \fBDmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *\fIdec\fP, DmtxTime *\fItimeout\fP);\fP
 
-\fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
+\fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxImage *\fIimg\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
-\fBDmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
+\fBDmtxMessage *dmtxDecodeMosaicRegion(DmtxImage *\fIimg\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
 \fBvoid dmtxDecodeStructDeInit(DmtxDecode *\fIdec\fP);\fP
 
@@ -45,6 +45,10 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.6.0
 
 \fBint dmtxImageFree(DmtxImage **\fIimg\fP);\fP
 
+\fBint dmtxImageSetProp(DmtxImage *\fIimg\fP, int \fIprop\fP, int \fIvalue\fP);\fP
+
+\fBint dmtxImageGetProp(DmtxImage *\fIimg\fP, int \fIprop\fP);\fP
+
 \fBDmtxTime dmtxTimeNow(void);\fP
 
 \fBDmtxTime dmtxTimeAdd(DmtxTime \fIt\fP, long \fImsec\fP);\fP
@@ -52,7 +56,7 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.6.0
 \fBint dmtxTimeExceeded(DmtxTime \fItimeout\fP);\fP
 
 .SH DESCRIPTION
-\fIlibdmtx\fP is a shared library that provides the ability to read and write Data Matrix barcodes of the modern ECC200 variety.  The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP serve as the official interface to libdmtx from the command line, and also provide a good reference for programmers who wish to write their own programs that interact with libdmtx.
+\fIlibdmtx\fP is a shared library that enables programs to read and write ECC200 Data Matrix barcodes.  The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP serve as the official interface to libdmtx from the command line, and also provide a good reference for programmers who wish to write their own programs that interact with libdmtx.
 
 Data Matrix barcodes are two dimensional patterns that resemble a checkerboard in appearance, and hold a high density of data with built-in error correction.  They can exist in either square or rectangular configurations, and support several different encodation schemes for optimized storage of binary and text data.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
 
@@ -84,7 +88,7 @@ Initializes the \fBDmtxDecode\fP struct, which designates the image to be scanne
 
 3. Call \fBdmtxDecodeSetProp()\fP
 
-XXX.
+Set internal properties to control decoding behavior. This feature allows applications to tune performance and accuracy for specific image conditions.
 
 4. Call \fBdmtxDecodeFindNextRegion()\fP
 
@@ -149,7 +153,7 @@ This example program (available as simpletest.c in the source package) demonstra
      if(reg.found != DMTX_REGION_FOUND)
         exit(0);
 
-     msg = dmtxDecodeMatrixRegion(&dec, &reg, -1);
+     msg = dmtxDecodeMatrixRegion(img, &reg, -1);
      if(msg != NULL) {
         fputs("output: \\"", stdout);
         fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);

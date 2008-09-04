@@ -29,12 +29,13 @@ Contact: mike@dragonflylogic.com
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
-#include <assert.h>
-#include <string.h>
-#include <math.h>
+#include <sys/types.h>
 #include <ctype.h>
 #include <float.h>
+#include <string.h>
+#include <errno.h>
+#include <assert.h>
+#include <math.h>
 #include "dmtx.h"
 #include "dmtxstatic.h"
 

@@ -62,7 +62,7 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
 
       /* Scan this pixel for presence of a valid barcode edge */
       reg = dmtxScanPixel(dec, loc);
-/*
+/**
       if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_2ND) {
          size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
          if(size >= 128)
@@ -1412,40 +1412,10 @@ ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, i
    dmtxColor3FromImage2(&cPoint, img, p0);
 
    return cPoint;
-
-/*
- * This is the older 5-sample approach ... very costly to performance
- *
-   int i;
-   int symbolRows, symbolCols;
-   double sampleX[] = { 0.5, 0.4, 0.5, 0.6, 0.5 };
-   double sampleY[] = { 0.5, 0.5, 0.4, 0.5, 0.6 };
-   DmtxVector2 p, p0;
-   DmtxColor3 cPoint, cAverage;
-
-   cAverage.R = cAverage.G = cAverage.B = 0.0;
-
-   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
-   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
-
-   for(i = 0; i < 5; i++) {
-
-      p.X = (1.0/symbolCols) * (symbolCol + sampleX[i]);
-      p.Y = (1.0/symbolRows) * (symbolRow + sampleY[i]);
-
-      dmtxMatrix3VMultiply(&p0, &p, reg->fit2raw);
-      dmtxColor3FromImage2(&cPoint, image, p0);
-
-      dmtxColor3AddTo(&cAverage, &cPoint);
-
-   }
-   dmtxColor3ScaleBy(&cAverage, 0.2);
-
-   return cAverage;
-*/
 }
 
-/* @brief  XXX
+/**
+ * @brief  XXX
  * @param  image
  * @param  reg
  * @return DMTX_SUCCESS | DMTX_FAILURE
@@ -1636,143 +1606,9 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
 }
 
 /**
- * @brief  XXX
- * @param  image
- * @param  reg
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-/*
-static int
-MatrixRegionFindSize(DmtxImage *image, DmtxRegion *reg)
-{
-   int sizeIdx;
-   int errors[30] = { 0 };
-   int minErrorsSizeIdx;
-   int row, col, symbolRows, symbolCols;
-   double tOff, tOn, jumpThreshold;
-   DmtxColor3 colorOn, colorOff;
-   DmtxColor3 colorOnAvg, colorOffAvg;
-   DmtxColor3 black = { 0.0, 0.0, 0.0 };
-   DmtxGradient gradient, testGradient;
-   int sizeIdxAttempts[] = { 23, 22, 21, 20, 19, 18, 17, 16, 15, 14,
-                             13, 29, 12, 11, 10, 28, 27,  9, 25,  8,
-                             26,  7,  6,  5,  4, 24,  3,  2,  1,  0 };
-   int *ptr;
-
-   // First try all sizes to determine which sizeIdx gives best contrast
-   ptr = sizeIdxAttempts;
-   gradient.tMin = gradient.tMid = gradient.tMax = 0;
-   do {
-      sizeIdx = *ptr;
-      symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
-      symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
-
-      colorOnAvg = colorOffAvg = black;
-
-      // Sample each module on and below horizontal finder bar
-      for(row = 0, col = 0; col < symbolCols; col++) {
-         colorOn = ReadModuleColor(image, reg, row, col, sizeIdx);
-         colorOff = ReadModuleColor(image, reg, row-1, col, sizeIdx);
-         dmtxColor3AddTo(&colorOnAvg, &colorOn);
-         dmtxColor3AddTo(&colorOffAvg, &colorOff);
-      }
-
-      // Sample each module on and left of vertical finder bar
-      for(row = 0, col = 0; row < symbolRows; row++) {
-         colorOn = ReadModuleColor(image, reg, row, col, sizeIdx);
-         colorOff = ReadModuleColor(image, reg, row, col-1, sizeIdx);
-         dmtxColor3AddTo(&colorOnAvg, &colorOn);
-         dmtxColor3AddTo(&colorOffAvg, &colorOff);
-      }
-
-      dmtxColor3ScaleBy(&colorOnAvg, 1.0/(symbolRows + symbolCols));
-      dmtxColor3ScaleBy(&colorOffAvg, 1.0/(symbolRows + symbolCols));
-
-      testGradient.ray.p = colorOffAvg;
-      dmtxColor3Sub(&testGradient.ray.c, &colorOnAvg, &colorOffAvg);
-      if(dmtxColor3Mag(&testGradient.ray.c) < 20)
-         continue;
-
-      dmtxColor3Norm(&testGradient.ray.c);
-      testGradient.tMin = 0;
-      testGradient.tMax = dmtxDistanceAlongRay3(&testGradient.ray, &colorOnAvg);
-      testGradient.tMid = (testGradient.tMin + testGradient.tMax) / 2.0;
-
-      if(testGradient.tMax > gradient.tMax)
-         gradient = testGradient;
-   } while(*(ptr++) != 0);
-
-   jumpThreshold = 0.4 * (gradient.tMax - gradient.tMin);
-   if(jumpThreshold < 20)
-      return DMTX_FAILURE;
-
-   // Start with largest possible pattern size and work downward.  If done
-   // in other direction then false positive is possible.
-
-   ptr = sizeIdxAttempts;
-   minErrorsSizeIdx = *ptr;
-   do {
-      sizeIdx = *ptr;
-      symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
-      symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
-
-      // Test each pair of ON/OFF modules in the calibration bars
-
-      // Top calibration row
-      row = symbolRows - 1;
-      for(col = 0; col < symbolCols; col += 2) {
-         colorOff = ReadModuleColor(image, reg, row, col + 1, sizeIdx);
-         tOff = dmtxDistanceAlongRay3(&gradient.ray, &colorOff);
-         colorOn = ReadModuleColor(image, reg, row, col, sizeIdx);
-         tOn = dmtxDistanceAlongRay3(&gradient.ray, &colorOn);
-
-         if(tOn - tOff < jumpThreshold)
-            errors[sizeIdx]++;
-
-         if(errors[sizeIdx] > errors[minErrorsSizeIdx])
-            break;
-      }
-
-      // Right calibration column
-      col = symbolCols - 1;
-      for(row = 0; row < symbolRows; row += 2) {
-         colorOff = ReadModuleColor(image, reg, row + 1, col, sizeIdx);
-         tOff = dmtxDistanceAlongRay3(&gradient.ray, &colorOff);
-         colorOn = ReadModuleColor(image, reg, row, col, sizeIdx);
-         tOn = dmtxDistanceAlongRay3(&gradient.ray, &colorOn);
-
-         if(tOn - tOff < jumpThreshold)
-            errors[sizeIdx]++;
-
-         if(errors[sizeIdx] > errors[minErrorsSizeIdx])
-            break;
-      }
-
-      // Track of which sizeIdx has the fewest errors
-      if(errors[sizeIdx] < errors[minErrorsSizeIdx])
-         minErrorsSizeIdx = sizeIdx;
-
-   } while(*(ptr++) != 0);
-
-   reg->gradient = gradient;
-   reg->sizeIdx = minErrorsSizeIdx;
-
-   reg->symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, reg->sizeIdx);
-   reg->symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, reg->sizeIdx);
-   reg->mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, reg->sizeIdx);
-   reg->mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, reg->sizeIdx);
-
-   if(errors[minErrorsSizeIdx] >= 4)
-      return DMTX_FAILURE;
-
-   return DMTX_SUCCESS;
-}
-*/
-
-/**
  *
  */
-/*
+/**
 static void
 WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {

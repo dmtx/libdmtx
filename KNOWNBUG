@@ -4,48 +4,50 @@ Bugs in libdmtx
 1. libdtmx - Core Library
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-The encoding optimizer still occasionally generates codeword
-sequences that are not 100% legal according to the ISO
-specification.  Everything still appears to decode properly, but
-until I have time to go through every corner case and validate
-the behavior this will be treated as an experimental feature.
-For now dmtxwrite will encode using a straight ASCII scheme by
-default.
+While regular encoder works fine, the optimizer feature (--best)
+still occasionally generates codeword sequences that are not 100%
+legal according to the ISO specification.  Everything still
+appears to decode properly, but until I have time to go through
+every corner case and validate the behavior this will be treated
+as an experimental feature.  For now dmtxwrite will encode using
+a straight ASCII scheme by default.
 
 Data Mosaic encoding doesn't produce output for certain sizes:
 
    $ echo -n foo | dmtxwrite -M    <-- works
    $ echo -n fooo | dmtxwrite -M   <-- doesn't work
+   $ echo -n foooo | dmtxwrite -M  <-- works
 
 
 2. dmtxread
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-The follow options are not implemented yet:
-  -d, --distortion=K1,K2     radial distortion coefficients
-  -D, --diagnose=[op]        diagnostic image output
+The follow options are considered experimental:
+  -M,  --mosaic              interpret as Data Mosaic barcodes
 
-When using --verbose output the Data Codeword capacity is often
+When using --verbose output, the Data Codeword capacity is often
 reported incorrectly.
 
 
 3. dmtxwrite
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-The follow options are not implemented yet:
+The follow options are considered experimental:
   -eb, --encodation=b        best encodation (beta only)
+
+The follow options are not implemented yet:
   -ef, --encodation=f        fast encodation
   -c,  --color=COLOR         barcode color
   -b,  --bgcolor=COLOR       background color
   -r,  --rotate=DEGREES      rotation angle
+  -M,  --mosaic              create Data Mosaic barcode
 
 
 4. Test Programs
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 gltest:
-  * Performance can be slow sometimes (unoptimized logic)
-  * Occasionally hangs
+  * No known issues
 
 simpletest:
   * No known issues
@@ -54,7 +56,14 @@ unittest:
   * No known issues
 
 
-5. Scripts in the script directory
+5. Wrappers
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+libdmtx-php:
+  * Does not compile with recent libdmtx versions (needs update)
+
+
+6. Scripts in the script directory
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 The check_headers.pl script verifies that every function has

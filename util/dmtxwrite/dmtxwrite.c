@@ -419,7 +419,7 @@ OPTIONS:\n"), programName, programName);
             88x88,   96x96, 104x104, 120x120, 132x132, 144x144\n\
         Manually specified SIZE options for rectangular symbols:\n\
              8x18,    8x32,   12x26,   12x36,   16x36,   16x48\n\
-  -M, --mosaic               create non-standard Data Mosaic barcode\n\
+  -M, --mosaic               create Data Mosaic barcode (non-standard)\n\
   -R, --resolution=NUM       set image print resolution (dpi)\n\
   -v, --verbose              use verbose messages\n\
   -V, --version              print version information\n\
