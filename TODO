@@ -1,6 +1,31 @@
 TODO Items
 -----------------------------------------------------------------
 
+Big proposed changes:
+  * Change image memory handling. Programs pass pointer to their own memory
+    instead of copying into separately malloc'd DmtxImage buffer. New
+    functions are required to specify native image format, include origin
+    location and RGB/K packing order.
+  * Use new loop-based approach instead of heavy caching of compass edge
+    values and cludgy line detection. Cache only the trails left by
+    following strongest-neighbor determination. Loop process will find
+    strongest of 8 possible directions at each pixel loc (actually 4, but
+    with numeric sign).
+  * Upon completing a loop, re-trace the loop with a Hough transform to
+    extract 2 or more edges. Possibly use loop results to find bounds of
+    region for initializing Hough.
+  * Cache a small 1-byte "flags" array and a larger uninitilized data array.
+    This will speed things by only zero'ing the small array and writing to
+    the full data cache only when needed.
+  * Treat RGB images as 3 separate images. When testing a pixel for barcode
+    presence, see which color plane gives best contrast and go from there.
+    Track red, green, blue, grey loop trails separately. Compass/Sobel
+    detection operates on single channel at a time, and should use integer
+    math for fast and exact comparison. In case of tie between neighbors, use
+    orthagonal direction as tie breaker.
+  * Make finder bar detection pluggable so a separate future version can be
+    made for dot peen pattern detection (remaining steps would be unchanged).
+
 after version 0.5.2:
   o libdmtx:   New edge neighbor tracking (Hough Transform + 2-way edge cache)
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
