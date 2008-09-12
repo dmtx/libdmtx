@@ -716,6 +716,8 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
    dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, region->sizeIdx);
    if(options->verbose) {
 
+      height = dmtxImageGetProp(image, DmtxPropHeight);
+
       rotate = (2 * M_PI) + (atan2(region->fit2raw[0][1], region->fit2raw[1][1]) -
             atan2(region->fit2raw[1][0], region->fit2raw[0][0])) / 2.0;
 
@@ -738,13 +740,13 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
             dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, region->sizeIdx));
       fprintf(stdout, "    Rotation Angle: %d\n", rotateInt);
       fprintf(stdout, "          Corner 0: (%0.1f, %0.1f)\n",
-            region->corners.c00.X, region->corners.c00.Y);
+            region->corners.c00.X, height - 1 - region->corners.c00.Y);
       fprintf(stdout, "          Corner 1: (%0.1f, %0.1f)\n",
-            region->corners.c10.X, region->corners.c10.Y);
+            region->corners.c10.X, height - 1 - region->corners.c10.Y);
       fprintf(stdout, "          Corner 2: (%0.1f, %0.1f)\n",
-            region->corners.c11.X, region->corners.c11.Y);
+            region->corners.c11.X, height - 1 - region->corners.c11.Y);
       fprintf(stdout, "          Corner 3: (%0.1f, %0.1f)\n",
-            region->corners.c01.X, region->corners.c01.Y);
+            region->corners.c01.X, height - 1 - region->corners.c01.Y);
       fprintf(stdout, "--------------------------------------------------\n");
    }
 
@@ -752,17 +754,16 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
       fprintf(stdout, "%d:", pageIndex + 1);
 
    if(options->corners) {
-      height = dmtxImageGetProp(image, DmtxPropHeight);
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
-            height - (int)(region->corners.c00.Y + 0.5));
+            height - 1 - (int)(region->corners.c00.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c10.X + 0.5),
-            height - (int)(region->corners.c10.Y + 0.5));
+            height - 1 - (int)(region->corners.c10.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c11.X + 0.5),
-            height - (int)(region->corners.c11.Y + 0.5));
+            height - 1 - (int)(region->corners.c11.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c01.X + 0.5),
-            height - (int)(region->corners.c01.Y + 0.5));
+            height - 1 - (int)(region->corners.c01.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
-            height - (int)(region->corners.c00.Y + 0.5));
+            height - 1 - (int)(region->corners.c00.Y + 0.5));
    }
 
    if(options->codewords) {

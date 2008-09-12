@@ -2,7 +2,7 @@ README for libdmtx version 0.5.2 - September 4, 2008
 -----------------------------------------------------------------
 
 A minor release in name only, libdmtx 0.5.2 delivers several
-performance enhancements, bux fixes, and general improvements
+performance enhancements, bug fixes, and general improvements
 over previous versions. We still have a few enhancements that
 haven't made it in yet, which is why this is a minor release, but
 most users will already see big performance gains by ugrading to
