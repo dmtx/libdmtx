@@ -30,6 +30,12 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTX_H__
 #define __DMTX_H__
 
+#include <time.h>
+
+#if defined(HAVE_SYS_TIME_H)
+#include <sys/time.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
