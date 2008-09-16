@@ -121,8 +121,6 @@ static DmtxCompassEdge GetCompassEdge(DmtxImage *image, int x, int y, int edgeSc
 static DmtxEdgeSubPixel FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compare);
 static DmtxRay2 FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forward, int hough[], int *strongIdx);
 static double RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle);
-static void SetCornerLoc(DmtxRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point);
-static int MatrixRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);
 
 static int MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg,
       DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1);

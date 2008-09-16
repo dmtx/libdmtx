@@ -310,7 +310,7 @@ typedef struct DmtxChain_struct {
  * @brief DmtxCorners
  */
 typedef struct DmtxCorners_struct {
-   DmtxCornerLoc known; /* combination of (DmtxCorner00 | DmtxCorner10 | DmtxCorner11 | DmtxCorner01) */
+   DmtxCornerLoc known; /* combo DmtxCorner00|DmtxCorner10|DmtxCorner11|DmtxCorner01 */
    DmtxVector2 c00;
    DmtxVector2 c10;
    DmtxVector2 c11;
@@ -478,7 +478,9 @@ extern void dmtxMessageFree(DmtxMessage **mesg);
 
 /* dmtxregion.c */
 extern DmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *decode, DmtxTime *timeout);
-extern DmtxRegion dmtxScanPixel(DmtxDecode *decode, DmtxPixelLoc loc);
+extern DmtxRegion dmtxRegionScanPixel(DmtxDecode *decode, DmtxPixelLoc loc);
+extern void dmtxRegionSetCornerLoc(DmtxRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point);
+extern int dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);
 
 /* dmtximage.c */
 extern DmtxImage *dmtxImageMalloc(int width, int height);

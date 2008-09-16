@@ -61,7 +61,7 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
       locNext = IncrementPixelProgress(grid);
 
       /* Scan this pixel for presence of a valid barcode edge */
-      reg = dmtxScanPixel(dec, loc);
+      reg = dmtxRegionScanPixel(dec, loc);
 /**
       if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_2ND) {
          size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
@@ -91,7 +91,7 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
  * @return Detected region (if any)
  */
 extern DmtxRegion
-dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
+dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
 {
    DmtxEdgeSubPixel edgeStart;
    DmtxRay2 ray0, ray1;
@@ -156,6 +156,174 @@ dmtxScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    /* Found a valid matrix region */
    reg.found = DMTX_REGION_FOUND;
    return reg;
+}
+
+/**
+ * @brief XXX
+ * @param reg
+ * @param cornerLoc
+ * @param point
+ * @return void
+ */
+extern void
+dmtxRegionSetCornerLoc(DmtxRegion *reg, DmtxCornerLoc cornerLoc, DmtxVector2 point)
+{
+   switch(cornerLoc) {
+      case DmtxCorner00:
+         reg->corners.c00 = point;
+         break;
+      case DmtxCorner10:
+         reg->corners.c10 = point;
+         break;
+      case DmtxCorner11:
+         reg->corners.c11 = point;
+         break;
+      case DmtxCorner01:
+         reg->corners.c01 = point;
+         break;
+   }
+
+   reg->corners.known |= cornerLoc;
+}
+
+/**
+ * @brief Update transformations based on known region attributes
+ * @param image
+ * @param reg
+ * @return DMTX_SUCCESS | DMTX_FAILURE
+ */
+extern int
+dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
+{
+   DmtxVector2 vOT, vOR, vTmp;
+   double tx, ty, phi, shx, scx, scy, skx, sky;
+   double dimOT, dimOR, dimTX, dimRX, ratio;
+   DmtxMatrix3 m, mtxy, mphi, mshx, mscx, mscy, mscxy, msky, mskx, mTmp;
+   DmtxCorners corners;
+
+   assert((reg->corners.known & DmtxCorner00) && (reg->corners.known & DmtxCorner01));
+
+   /* Make copy of known corners to update with temporary values */
+   corners = reg->corners;
+
+   if(dmtxImageContainsFloat(dec->image, corners.c00.X, corners.c00.Y) == DMTX_FALSE)
+      return DMTX_FAILURE;
+
+   if(dmtxImageContainsFloat(dec->image, corners.c01.X, corners.c01.Y) == DMTX_FALSE)
+      return DMTX_FAILURE;
+
+   dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &corners.c01, &corners.c00)); /* XXX could use MagSquared() */
+   if(dimOT < 8)
+      return DMTX_FAILURE;
+
+   /* Bottom-right corner -- validate if known or create temporary value */
+   if(corners.known & DmtxCorner10) {
+      if(dmtxImageContainsFloat(dec->image, corners.c10.X, corners.c10.Y) == DMTX_FALSE)
+         return DMTX_FAILURE;
+   }
+   else {
+      dmtxMatrix3Rotate(mTmp, -M_PI_2);
+      dmtxMatrix3VMultiply(&vTmp, &vOT, mTmp);
+      dmtxVector2Add(&corners.c10, &corners.c00, &vTmp);
+   }
+
+   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vOR, &corners.c10, &corners.c00)); /* XXX could use MagSquared() */
+   if(dimOR < 8)
+      return DMTX_FAILURE;
+
+   /* Solid edges are both defined now */
+   if(corners.known & DmtxCorner10)
+      if(RightAngleTrueness(corners.c01, corners.c00, corners.c10, M_PI_2) < dec->squareDevn)
+         return DMTX_FAILURE;
+
+   /* Top-right corner -- validate if known or create temporary value */
+   if(corners.known & DmtxCorner11) {
+      if(dmtxImageContainsFloat(dec->image, corners.c11.X, corners.c11.Y) == DMTX_FALSE)
+         return DMTX_FAILURE;
+   }
+   else {
+      dmtxVector2Add(&corners.c11, &corners.c01, &vOR);
+   }
+
+   /* Verify that the 4 corners define a reasonably fat quadrilateral */
+   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c01)); /* XXX could use MagSquared() */
+   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c10)); /* XXX could use MagSquared() */
+   if(dimTX < 8 || dimRX < 8)
+      return DMTX_FAILURE;
+
+   ratio = dimOT / dimRX;
+   if(ratio < 0.5 || ratio > 2.0)
+      return DMTX_FAILURE;
+
+   ratio = dimOR / dimTX;
+   if(ratio < 0.5 || ratio > 2.0)
+      return DMTX_FAILURE;
+
+   /* Test top-left corner for trueness */
+   if(corners.known & DmtxCorner11)
+      if(RightAngleTrueness(corners.c11, corners.c01, corners.c00, M_PI_2) < dec->squareDevn)
+         return DMTX_FAILURE;
+
+   if((corners.known & DmtxCorner10) && (corners.known & DmtxCorner11)) {
+      /* Test bottom-right corner for trueness */
+      if(RightAngleTrueness(corners.c00, corners.c10, corners.c11, M_PI_2) < dec->squareDevn)
+         return DMTX_FAILURE;
+      /* Test top-right corner for trueness */
+      if(RightAngleTrueness(corners.c10, corners.c11, corners.c01, M_PI_2) < dec->squareDevn)
+         return DMTX_FAILURE;
+   }
+
+   /* Calculate values needed for transformations */
+   tx = -1 * corners.c00.X;
+   ty = -1 * corners.c00.Y;
+   dmtxMatrix3Translate(mtxy, tx, ty);
+
+   phi = atan2(vOT.X, vOT.Y);
+   dmtxMatrix3Rotate(mphi, phi);
+   dmtxMatrix3Multiply(m, mtxy, mphi);
+
+   dmtxMatrix3VMultiply(&vTmp, &corners.c10, m);
+   shx = -vTmp.Y / vTmp.X;
+   dmtxMatrix3Shear(mshx, 0.0, shx);
+   dmtxMatrix3MultiplyBy(m, mshx);
+
+   scx = 1.0/vTmp.X;
+   dmtxMatrix3Scale(mscx, scx, 1.0);
+   dmtxMatrix3MultiplyBy(m, mscx);
+
+   dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
+   scy = 1.0/vTmp.Y;
+   dmtxMatrix3Scale(mscy, 1.0, scy);
+   dmtxMatrix3MultiplyBy(m, mscy);
+
+   dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
+   skx = vTmp.X;
+   dmtxMatrix3LineSkewSide(mskx, 1.0, skx, 1.0);
+   dmtxMatrix3MultiplyBy(m, mskx);
+
+   dmtxMatrix3VMultiply(&vTmp, &corners.c01, m);
+   sky = vTmp.Y;
+   dmtxMatrix3LineSkewTop(msky, sky, 1.0, 1.0);
+   dmtxMatrix3Multiply(reg->raw2fit, m, msky);
+
+   /* Create inverse matrix by reverse (avoid straight matrix inversion) */
+   dmtxMatrix3LineSkewTopInv(msky, sky, 1.0, 1.0);
+   dmtxMatrix3LineSkewSideInv(mskx, 1.0, skx, 1.0);
+   dmtxMatrix3Multiply(m, msky, mskx);
+
+   dmtxMatrix3Scale(mscxy, 1.0/scx, 1.0/scy);
+   dmtxMatrix3MultiplyBy(m, mscxy);
+
+   dmtxMatrix3Shear(mshx, 0.0, -shx);
+   dmtxMatrix3MultiplyBy(m, mshx);
+
+   dmtxMatrix3Rotate(mphi, -phi);
+   dmtxMatrix3MultiplyBy(m, mphi);
+
+   dmtxMatrix3Translate(mtxy, -tx, -ty);
+   dmtxMatrix3Multiply(reg->fit2raw, m, mtxy);
+
+   return DMTX_SUCCESS;
 }
 
 /**
@@ -522,146 +690,6 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
 }
 
 /**
- * @brief Update transformations based on known region attributes
- * @param image
- * @param reg
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-static int
-MatrixRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
-{
-   DmtxVector2 vOT, vOR, vTmp;
-   double tx, ty, phi, shx, scx, scy, skx, sky;
-   double dimOT, dimOR, dimTX, dimRX, ratio;
-   DmtxMatrix3 m, mtxy, mphi, mshx, mscx, mscy, mscxy, msky, mskx, mTmp;
-   DmtxCorners corners;
-
-   assert((reg->corners.known & DmtxCorner00) && (reg->corners.known & DmtxCorner01));
-
-   /* Make copy of known corners to update with temporary values */
-   corners = reg->corners;
-
-   if(dmtxImageContainsFloat(dec->image, corners.c00.X, corners.c00.Y) == DMTX_FALSE)
-      return DMTX_FAILURE;
-
-   if(dmtxImageContainsFloat(dec->image, corners.c01.X, corners.c01.Y) == DMTX_FALSE)
-      return DMTX_FAILURE;
-
-   dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &corners.c01, &corners.c00)); /* XXX could use MagSquared() */
-   if(dimOT < 8)
-      return DMTX_FAILURE;
-
-   /* Bottom-right corner -- validate if known or create temporary value */
-   if(corners.known & DmtxCorner10) {
-      if(dmtxImageContainsFloat(dec->image, corners.c10.X, corners.c10.Y) == DMTX_FALSE)
-         return DMTX_FAILURE;
-   }
-   else {
-      dmtxMatrix3Rotate(mTmp, -M_PI_2);
-      dmtxMatrix3VMultiply(&vTmp, &vOT, mTmp);
-      dmtxVector2Add(&corners.c10, &corners.c00, &vTmp);
-   }
-
-   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vOR, &corners.c10, &corners.c00)); /* XXX could use MagSquared() */
-   if(dimOR < 8)
-      return DMTX_FAILURE;
-
-   /* Solid edges are both defined now */
-   if(corners.known & DmtxCorner10)
-      if(RightAngleTrueness(corners.c01, corners.c00, corners.c10, M_PI_2) < dec->squareDevn)
-         return DMTX_FAILURE;
-
-   /* Top-right corner -- validate if known or create temporary value */
-   if(corners.known & DmtxCorner11) {
-      if(dmtxImageContainsFloat(dec->image, corners.c11.X, corners.c11.Y) == DMTX_FALSE)
-         return DMTX_FAILURE;
-   }
-   else {
-      dmtxVector2Add(&corners.c11, &corners.c01, &vOR);
-   }
-
-   /* Verify that the 4 corners define a reasonably fat quadrilateral */
-   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c01)); /* XXX could use MagSquared() */
-   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c10)); /* XXX could use MagSquared() */
-   if(dimTX < 8 || dimRX < 8)
-      return DMTX_FAILURE;
-
-   ratio = dimOT / dimRX;
-   if(ratio < 0.5 || ratio > 2.0)
-      return DMTX_FAILURE;
-
-   ratio = dimOR / dimTX;
-   if(ratio < 0.5 || ratio > 2.0)
-      return DMTX_FAILURE;
-
-   /* Test top-left corner for trueness */
-   if(corners.known & DmtxCorner11)
-      if(RightAngleTrueness(corners.c11, corners.c01, corners.c00, M_PI_2) < dec->squareDevn)
-         return DMTX_FAILURE;
-
-   if((corners.known & DmtxCorner10) && (corners.known & DmtxCorner11)) {
-      /* Test bottom-right corner for trueness */
-      if(RightAngleTrueness(corners.c00, corners.c10, corners.c11, M_PI_2) < dec->squareDevn)
-         return DMTX_FAILURE;
-      /* Test top-right corner for trueness */
-      if(RightAngleTrueness(corners.c10, corners.c11, corners.c01, M_PI_2) < dec->squareDevn)
-         return DMTX_FAILURE;
-   }
-
-   /* Calculate values needed for transformations */
-   tx = -1 * corners.c00.X;
-   ty = -1 * corners.c00.Y;
-   dmtxMatrix3Translate(mtxy, tx, ty);
-
-   phi = atan2(vOT.X, vOT.Y);
-   dmtxMatrix3Rotate(mphi, phi);
-   dmtxMatrix3Multiply(m, mtxy, mphi);
-
-   dmtxMatrix3VMultiply(&vTmp, &corners.c10, m);
-   shx = -vTmp.Y / vTmp.X;
-   dmtxMatrix3Shear(mshx, 0.0, shx);
-   dmtxMatrix3MultiplyBy(m, mshx);
-
-   scx = 1.0/vTmp.X;
-   dmtxMatrix3Scale(mscx, scx, 1.0);
-   dmtxMatrix3MultiplyBy(m, mscx);
-
-   dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
-   scy = 1.0/vTmp.Y;
-   dmtxMatrix3Scale(mscy, 1.0, scy);
-   dmtxMatrix3MultiplyBy(m, mscy);
-
-   dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
-   skx = vTmp.X;
-   dmtxMatrix3LineSkewSide(mskx, 1.0, skx, 1.0);
-   dmtxMatrix3MultiplyBy(m, mskx);
-
-   dmtxMatrix3VMultiply(&vTmp, &corners.c01, m);
-   sky = vTmp.Y;
-   dmtxMatrix3LineSkewTop(msky, sky, 1.0, 1.0);
-   dmtxMatrix3Multiply(reg->raw2fit, m, msky);
-
-   /* Create inverse matrix by reverse (avoid straight matrix inversion) */
-   dmtxMatrix3LineSkewTopInv(msky, sky, 1.0, 1.0);
-   dmtxMatrix3LineSkewSideInv(mskx, 1.0, skx, 1.0);
-   dmtxMatrix3Multiply(m, msky, mskx);
-
-   dmtxMatrix3Scale(mscxy, 1.0/scx, 1.0/scy);
-   dmtxMatrix3MultiplyBy(m, mscxy);
-
-   dmtxMatrix3Shear(mshx, 0.0, -shx);
-   dmtxMatrix3MultiplyBy(m, mshx);
-
-   dmtxMatrix3Rotate(mphi, -phi);
-   dmtxMatrix3MultiplyBy(m, mphi);
-
-   dmtxMatrix3Translate(mtxy, -tx, -ty);
-   dmtxMatrix3Multiply(reg->fit2raw, m, mtxy);
-
-   return DMTX_SUCCESS;
-}
-
-/**
  * @brief Align first edge of potential barcode region
  * @param image
  * @param reg
@@ -718,44 +746,16 @@ MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxEdgeSubPixel *e
       return DMTX_FAILURE;
 
    dmtxPointAlongRay2(&pTmp, &rayFull, rayFull.tMax);
-   SetCornerLoc(reg, DmtxCorner01, pTmp);
-   SetCornerLoc(reg, DmtxCorner00, rayFull.p);
+   dmtxRegionSetCornerLoc(reg, DmtxCorner01, pTmp);
+   dmtxRegionSetCornerLoc(reg, DmtxCorner00, rayFull.p);
 
-   if(MatrixRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
+   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    /* Top-right pane showing first edge fit */
 /* CALLBACK_DECODE_FUNC1(buildMatrixCallback2, dec, reg); */
 
    return DMTX_SUCCESS;
-}
-
-/**
- * @brief XXX
- * @param reg
- * @param cornerLoc
- * @param point
- * @return void
- */
-static void
-SetCornerLoc(DmtxRegion *reg, DmtxCornerLoc cornerLoc, DmtxVector2 point)
-{
-   switch(cornerLoc) {
-      case DmtxCorner00:
-         reg->corners.c00 = point;
-         break;
-      case DmtxCorner10:
-         reg->corners.c10 = point;
-         break;
-      case DmtxCorner11:
-         reg->corners.c11 = point;
-         break;
-      case DmtxCorner01:
-         reg->corners.c01 = point;
-         break;
-   }
-
-   reg->corners.known |= cornerLoc;
 }
 
 /**
@@ -970,11 +970,11 @@ among module samples and proximity of color to initial edge
       R = oldRawT;
    }
 
-   SetCornerLoc(reg, DmtxCorner00, O);
-   SetCornerLoc(reg, DmtxCorner01, T);
-   SetCornerLoc(reg, DmtxCorner10, R);
+   dmtxRegionSetCornerLoc(reg, DmtxCorner00, O);
+   dmtxRegionSetCornerLoc(reg, DmtxCorner01, T);
+   dmtxRegionSetCornerLoc(reg, DmtxCorner10, R);
 
-   if(MatrixRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
+   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    /* Skewed barcode in the bottom middle pane */
@@ -1063,8 +1063,8 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg,
       return DMTX_FAILURE;
 
    if(edgeLoc == DmtxEdgeRight) {
-      SetCornerLoc(reg, DmtxCorner10, pCorner);
-      if(MatrixRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
+      dmtxRegionSetCornerLoc(reg, DmtxCorner10, pCorner);
+      if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
          return DMTX_FAILURE;
 
       dmtxMatrix3VMultiplyBy(&p0, reg->raw2fit);
@@ -1081,12 +1081,12 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg,
       dmtxMatrix3VMultiplyBy(&p0, reg->fit2raw);
       dmtxMatrix3VMultiplyBy(&p1, reg->fit2raw);
 
-      SetCornerLoc(reg, DmtxCorner10, p0);
-      SetCornerLoc(reg, DmtxCorner11, p1);
+      dmtxRegionSetCornerLoc(reg, DmtxCorner10, p0);
+      dmtxRegionSetCornerLoc(reg, DmtxCorner11, p1);
    }
    else {
-      SetCornerLoc(reg, DmtxCorner01, pCorner);
-      if(MatrixRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
+      dmtxRegionSetCornerLoc(reg, DmtxCorner01, pCorner);
+      if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
          return DMTX_FAILURE;
 
       dmtxMatrix3VMultiplyBy(&p0, reg->raw2fit);
@@ -1103,10 +1103,10 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg,
       dmtxMatrix3VMultiplyBy(&p0, reg->fit2raw);
       dmtxMatrix3VMultiplyBy(&p1, reg->fit2raw);
 
-      SetCornerLoc(reg, DmtxCorner01, p0);
-      SetCornerLoc(reg, DmtxCorner11, p1);
+      dmtxRegionSetCornerLoc(reg, DmtxCorner01, p0);
+      dmtxRegionSetCornerLoc(reg, DmtxCorner11, p1);
    }
-   if(MatrixRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
+   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    return DMTX_SUCCESS;
