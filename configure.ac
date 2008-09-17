@@ -22,11 +22,21 @@ case $host_os in
       ARCH=macosx
       ;;
 esac
-AM_CONDITIONAL(TARGET_MACOSX, test "$ARCH" = macosx)
+AM_CONDITIONAL([TARGET_MACOSX], [test x$ARCH = xmacosx])
 
-AC_CHECK_HEADER([tiff.h],
-   AC_CHECK_LIB([tiff], [TIFFReadScanline],
-      AC_DEFINE([HAVE_LIBTIFF], [1], [Define to 1 if you have the libtiff header and library.])))
+tiff_ok=no
+AC_CHECK_LIB([tiff], [TIFFReadScanline],
+   [AC_CHECK_HEADER([tiff.h],
+      [tiff_ok=yes],
+      [AC_MSG_WARN([*** TIFF support will not be included (header not found) ***])]
+   )],
+   [AC_MSG_WARN([*** TIFF support will not be included (library not found) ***])]
+)
+
+if test x$tiff_ok = xyes; then
+   AC_DEFINE([HAVE_LIBTIFF], [1], [Define to 1 if you have the libtiff header and library.])
+fi
+AM_CONDITIONAL([HAVE_LIBTIFF], [test x$tiff_ok = xyes])
 
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_FUNCS([gettimeofday])
