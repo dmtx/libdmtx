@@ -2,6 +2,7 @@
 libdmtx - Data Matrix Encoding/Decoding Library
 
 Copyright (c) 2008 Mike Laughton
+Copyright (c) 2008 Ryan Raasch
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public

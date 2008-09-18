@@ -1,5 +1,5 @@
 /**
- *      Copyright (C) 2005 Christian Hentschel.
+ *      Copyright (c) 2005 Christian Hentschel.
  *
  *      This file is part of the libdmtx-php extension.
  *

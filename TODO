@@ -49,7 +49,6 @@ after version 0.5.2:
                - When module is determined to be "on" then subtract half of color vector
                - resulting image should clearly show misread modules
   o dmtxread:  Change dmtxread to print out trail left by scanning logic (future)
-  o dmtxread:  JPEG reading support
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
   o dmtxwrite: Print character values (not just codewords) from --format=c (-fc) option
   o dmtxwrite: Verbose messages describing encoding process
@@ -61,6 +60,9 @@ after version 0.5.2:
   o testsuite: 'make test' confirms performance
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
   o project:   Conditional use of local getopt.c
+
+version 0.6.0: (??-??-2008)
+  x dmtxread:  JPEG reading support (thanks Ryan!)
 
 version 0.5.2: (04-Sep-2008)
   x libdmtx:   Move SetRangeLimit and SetScanRegion into library
