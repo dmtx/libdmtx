@@ -24,8 +24,22 @@ case $host_os in
 esac
 AM_CONDITIONAL([TARGET_MACOSX], [test x$ARCH = xmacosx])
 
+jpeg_ok=no
+AC_SEARCH_LIBS([jpeg_read_scanlines], [jpeg],
+   [AC_CHECK_HEADER([jpeglib.h],
+      [jpeg_ok=yes],
+      [AC_MSG_WARN([*** JPEG support will not be included (header not found) ***])]
+   )],
+   [AC_MSG_WARN([*** JPEG support will not be included (library not found) ***])]
+)
+
+if test x$jpeg_ok = xyes; then
+   AC_DEFINE([HAVE_LIBJPEG], [1], [Define to 1 if you have the libjpeg header and library.])
+fi
+AM_CONDITIONAL([HAVE_LIBJPEG], [test x$jpeg_ok = xyes])
+
 tiff_ok=no
-AC_CHECK_LIB([tiff], [TIFFReadScanline],
+AC_SEARCH_LIBS([TIFFReadRGBAImage], [tiff],
    [AC_CHECK_HEADER([tiff.h],
       [tiff_ok=yes],
       [AC_MSG_WARN([*** TIFF support will not be included (header not found) ***])]

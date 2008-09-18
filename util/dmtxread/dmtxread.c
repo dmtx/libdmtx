@@ -36,6 +36,12 @@ Contact: mike@dragonflylogic.com
 #include "dmtxread.h"
 #include "../common/dmtxutil.h"
 
+#ifdef HAVE_LIBJPEG
+#include "jpeglib.h"
+#include "jerror.h"
+#include <setjmp.h>
+#endif
+
 #ifdef HAVE_LIBTIFF
 #include <tiffio.h>
 #endif
@@ -447,8 +453,16 @@ GetImageFormat(char *imagePath)
       return ImageFormatUnknown;
    else if(strncmp(extension, "png", 3) == 0 || strncmp(extension, "PNG", 3) == 0)
       return ImageFormatPng;
+#ifdef HAVE_LIBJPEG
+   else if(strncmp(extension, "jpg", 3) == 0 || strncmp(extension, "JPG", 3) == 0)
+      return ImageFormatJpeg;
+   else if(strncmp(extension, "jpeg", 4) == 0 || strncmp(extension, "JPEG", 4) == 0)
+      return ImageFormatJpeg;
+#endif
 #ifdef HAVE_LIBTIFF
    else if(strncmp(extension, "tif", 3) == 0 || strncmp(extension, "TIF", 3) == 0)
+      return ImageFormatTiff;
+   else if(strncmp(extension, "tiff", 4) == 0 || strncmp(extension, "TIFF", 4) == 0)
       return ImageFormatTiff;
 #endif
 
@@ -467,6 +481,11 @@ LoadImage(char *imagePath, int pageIndex)
       case ImageFormatPng:
          image = (pageIndex == 0) ? LoadImagePng(imagePath) : NULL;
          break;
+#ifdef HAVE_LIBJPEG
+      case ImageFormatJpeg:
+         image = (pageIndex == 0) ? LoadImageJpeg(imagePath) : NULL;
+         break;
+#endif
 #ifdef HAVE_LIBTIFF
       case ImageFormatTiff:
          image = LoadImageTiff(imagePath, pageIndex);
@@ -617,6 +636,109 @@ LoadImagePng(char *imagePath)
 
    return image;
 }
+
+/**
+ * Load data from JPEG file into DmtxImage format.
+ *
+ * @param image     pointer to DmtxImage structure to be populated
+ * @param imagePath path/name of JPEG image
+ * @return          DMTX_SUCCESS | DMTX_FAILURE
+ */
+#ifdef HAVE_LIBJPEG
+struct my_error_mgr {
+   struct jpeg_error_mgr pub;    /* "public" fields */
+
+   jmp_buf setjmp_buffer;        /* for return to caller */
+};
+
+typedef struct my_error_mgr * my_error_ptr;
+
+METHODDEF(void)
+my_error_exit (j_common_ptr cinfo)
+{
+   /* cinfo->err really points to a my_error_mgr struct, so coerce pointer */
+   my_error_ptr myerr = (my_error_ptr) cinfo->err;
+
+   /* Always display the message. */
+   /* We could postpone this until after returning, if we chose. */
+   (*cinfo->err->output_message) (cinfo);
+
+   /* Return control to the setjmp point */
+   longjmp(myerr->setjmp_buffer, 1);
+}
+
+/**
+ * Load data from JPEG file into DmtxImage format.
+ *
+ * @param image     pointer to DmtxImage structure to be populated
+ * @param imagePath path/name of JPEG image
+ * @return          DMTX_SUCCESS | DMTX_FAILURE
+ */
+static DmtxImage *
+LoadImageJpeg(char *imagePath)
+{
+   DmtxImage *image;
+   struct jpeg_decompress_struct cinfo;
+   struct my_error_mgr jerr;
+   FILE *infile;        /* source file */
+   JSAMPARRAY buffer;   /* Output row buffer */
+   int row_stride;      /* physical row width in output buffer */
+   DmtxRgb *ptr;
+   int dmtxOffset;
+
+   if((infile = fopen(imagePath, "rb")) == NULL) {
+      fprintf(stderr, "can't open %s\n", imagePath);
+      return 0;
+   }
+
+   /* Set up the normal JPEG error routines, then override error_exit */
+   cinfo.err = jpeg_std_error(&jerr.pub);
+   jerr.pub.error_exit = my_error_exit;
+
+   /* Establish the setjmp return context for my_error_exit to use */
+   if(setjmp(jerr.setjmp_buffer)) {
+      jpeg_destroy_decompress(&cinfo);
+      fclose(infile);
+      return 0;
+   }
+
+   /* Now we can initialize the JPEG decompression object */
+   jpeg_create_decompress(&cinfo);
+   jpeg_stdio_src(&cinfo, infile);
+
+   jpeg_read_header(&cinfo, TRUE);
+   jpeg_start_decompress(&cinfo);
+
+   /* If RGB, the width * 3 */
+   row_stride = cinfo.output_width * cinfo.output_components;
+
+   /* Allocate destination dmtx image */
+   image = dmtxImageMalloc(cinfo.output_width, cinfo.output_height);
+   if(image == NULL) {
+      perror(programName);
+      /* free first? */
+      return NULL;
+   }
+
+   /* Make a one-row-high sample array that will go away when done with image */
+   buffer = (*cinfo.mem->alloc_sarray)
+         ((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
+
+   ptr = image->pxl;
+   while(cinfo.output_scanline < cinfo.output_height) {
+      jpeg_read_scanlines(&cinfo, buffer, 1);
+
+      memcpy(ptr, buffer[0], row_stride);
+      ptr += (row_stride/3);
+   }
+
+   jpeg_finish_decompress(&cinfo);
+   jpeg_destroy_decompress(&cinfo);
+   fclose(infile);
+
+   return image;
+}
+#endif
 
 #ifdef HAVE_LIBTIFF
 /**

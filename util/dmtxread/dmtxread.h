@@ -57,6 +57,7 @@ typedef struct {
 typedef enum {
    ImageFormatUnknown,
    ImageFormatPng,
+   ImageFormatJpeg,
    ImageFormatTiff
 } ImageFormat;
 
@@ -67,6 +68,7 @@ static int ScaleNumberString(char *s, int extent);
 static ImageFormat GetImageFormat(char *imagePath);
 static DmtxImage *LoadImage(char *imagePath, int pageIndex);
 static DmtxImage *LoadImagePng(char *imagePath);
+static DmtxImage *LoadImageJpeg(char *imagePath);
 static DmtxImage *LoadImageTiff(char *imagePath, int pageIndex);
 static int PrintDecodedOutput(UserOptions *options, DmtxImage *image,
       DmtxRegion *region, DmtxMessage *message, int pageIndex);
