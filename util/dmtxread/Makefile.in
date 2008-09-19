@@ -34,8 +34,10 @@ build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = dmtxread$(EXEEXT)
 noinst_PROGRAMS = dmtxread.debug$(EXEEXT)
-@HAVE_LIBTIFF_TRUE@am__append_1 = -ltiff
-@HAVE_LIBTIFF_TRUE@am__append_2 = -ltiff
+@HAVE_LIBJPEG_TRUE@am__append_1 = -ljpeg
+@HAVE_LIBJPEG_TRUE@am__append_2 = -ljpeg
+@HAVE_LIBTIFF_TRUE@am__append_3 = -ltiff
+@HAVE_LIBTIFF_TRUE@am__append_4 = -ltiff
 subdir = util/dmtxread
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -188,9 +190,10 @@ target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 dmtxread_SOURCES = dmtxread.c dmtxread.h ../common/dmtxutil.c ../common/dmtxutil.h
-dmtxread_LDFLAGS = -lm -lpng $(am__append_1)
+dmtxread_LDFLAGS = -lm -lpng $(am__append_1) $(am__append_3)
 dmtxread_debug_SOURCES = dmtxread.c dmtxread.h ../common/dmtxutil.c ../common/dmtxutil.h
-dmtxread_debug_LDFLAGS = -lm -lpng -static $(am__append_2)
+dmtxread_debug_LDFLAGS = -lm -lpng -static $(am__append_2) \
+	$(am__append_4)
 EXTRA_dmtxread_SOURCES = ../common/getopt1.c ../common/getopt.c \
         ../common/getopt.h ../common/getopt_int.h ../common/gettext.h
 

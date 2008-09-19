@@ -372,7 +372,7 @@ first barcode in an image.\n\
 \n\
 Example: Scan top third of images using gap no larger than 10 pixels\n\
 \n\
-   %s -Y33%% -g10 IMAGE001.png IMAGE002.png\n\
+   %s -Y33%% -g10 IMAGE001.png IMAGE002.jpg\n\
 \n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
