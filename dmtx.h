@@ -48,7 +48,7 @@ extern "C" {
 #define M_PI_2     1.57079632679489661923
 #endif
 
-#define DMTX_VERSION                   "0.5.2"
+#define DMTX_VERSION                   "0.5.3"
 
 #define DMTX_FAILURE                   0
 #define DMTX_SUCCESS                   1
