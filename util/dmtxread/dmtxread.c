@@ -192,7 +192,7 @@ SetOptionDefaults(UserOptions *options)
    options->newline = 0;
    options->shrinkMin = 1;
    options->shrinkMax = 1;
-   options->edgeThresh = 10;
+   options->edgeThresh = 5;
    options->xMin = NULL;
    options->xMax = NULL;
    options->yMin = NULL;

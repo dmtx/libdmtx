@@ -33,6 +33,9 @@ Maximum deviation (degrees) from squareness between adjacent barcode sides. Defa
 \fB\-s\fP, \fB\-\-shrink\fP=\fIN\fP
 Internally shrink image by factor of N. Shrinking is accomplished by skipping N-1 pixels at a time, often producing significantly faster scan times. It also improves scan success rate for images taken with poor camera focus provided the image is sufficiently large.
 .TP
+\fB\-t\fP, \fB\-\-threshold\fP=\fIN\fP
+Set the minimum edge threshold as a percentage of maximum. For example, an edge between a perfectly white and perfectly black pixel would have 100% intensity. Pixels with intensities below the indicated threshold will be ignored by the decoding process. Lowering the threshold will increase the amount of work to be done, but may be necessary for low contrast or blurry images.
+.TP
 \fB\-x\fP, \fB\-\-x-range-min\fP=\fIN[%]\fP
 Do not scan pixels to the left of pixel column N (or N%).
 .TP
