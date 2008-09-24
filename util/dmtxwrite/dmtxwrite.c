@@ -403,7 +403,7 @@ OPTIONS:\n"), programName, programName);
         n = None             do not create barcode image\n\
         p = PNG    [default] PNG image\n\
         m = PNM              PNM image\n\
-  -o, --output=FILE          path of file containing barcode image output\n\
+  -o, --output=FILE          output filename, or \"-\" for STDOUT\n\
   -p, --preview=[ac]         print preview of barcode data to STDOUT\n\
         a = ASCII            ASCII-art representation\n\
         c = Codewords        list data and error codewords\n\
@@ -444,7 +444,9 @@ WriteImagePng(UserOptions *options, DmtxEncode *enc)
    png_bytepp rowPointers;
    png_uint_32 pixelsPerMeter;
 
-   fp = fopen(options->outputPath, "wb");
+   fp = (strncmp(options->outputPath, "-", 2) == 0) ? stdout :
+         fopen(options->outputPath, "wb");
+
    if(fp == NULL) {
       perror(programName);
       exit(3);
@@ -453,21 +455,27 @@ WriteImagePng(UserOptions *options, DmtxEncode *enc)
    /* Create and initialize the png_struct with the desired error handler functions */
    pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
    if(pngPtr == NULL) {
-      fclose(fp);
+      if(fp != stdout) {
+         fclose(fp);
+      }
       perror(programName);
    }
 
    /* Create and initialize image information struct */
    infoPtr = png_create_info_struct(pngPtr);
    if(infoPtr == NULL) {
-      fclose(fp);
+      if(fp != stdout) {
+         fclose(fp);
+      }
       png_destroy_write_struct(&pngPtr,  png_infopp_NULL);
       perror(programName);
    }
 
    /* Set error handling */
    if(setjmp(png_jmpbuf(pngPtr))) {
-      fclose(fp);
+      if(fp != stdout) {
+         fclose(fp);
+      }
       png_destroy_write_struct(&pngPtr, &infoPtr);
       perror(programName);
    }
@@ -516,7 +524,9 @@ WriteImagePng(UserOptions *options, DmtxEncode *enc)
    png_free(pngPtr, rowPointers);
    rowPointers = NULL;
 
-   fclose(fp);
+   if(fp != stdout) {
+      fclose(fp);
+   }
 }
 
 /**
@@ -531,7 +541,9 @@ WriteImagePnm(UserOptions *options, DmtxEncode *enc)
    DmtxRgb rgb;
 
    /* Flip rows top-to-bottom to account for PNM "top-left" origin */
-   fp = fopen(options->outputPath, "wb");
+   fp = (strncmp(options->outputPath, "-", 2) == 0) ? stdout :
+         fopen(options->outputPath, "wb");
+
    if(fp == NULL) {
       perror(programName);
       exit(3);
@@ -541,13 +553,16 @@ WriteImagePnm(UserOptions *options, DmtxEncode *enc)
    height = dmtxImageGetProp(enc->image, DmtxPropHeight);
 
    fprintf(fp, "P6 %d %d 255 ", width, height);
-   for(row = 0; row < height; row++) {
+   for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
          dmtxImageGetRgb(enc->image, col, row, rgb);
          fwrite(rgb, sizeof(char), 3, fp);
       }
    }
-   fclose(fp);
+
+   if(fp != stdout) {
+      fclose(fp);
+   }
 }
 
 /**
