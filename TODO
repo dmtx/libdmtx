@@ -22,13 +22,12 @@ Big proposed changes:
     Track red, green, blue, grey loop trails separately. Compass/Sobel
     detection operates on single channel at a time, and should use integer
     math for fast and exact comparison. In case of tie between neighbors, use
-    orthagonal direction as tie breaker.
+    non-orthagonal direction as tie breaker.
   * Make finder bar detection pluggable so a separate future version can be
     made for dot peen pattern detection (remaining steps would be unchanged).
 
-after version 0.5.2:
-  o libdmtx:   New edge neighbor tracking (Hough Transform + 2-way edge cache)
-  o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
+after version 0.6.0:
+  o libdmtx:   New edge neighbor tracking (Hough Transform + 1-way edge cache)
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
@@ -62,7 +61,9 @@ after version 0.5.2:
   o project:   Conditional use of local getopt.c
 
 version 0.6.0: (??-??-2008)
+  o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   x dmtxread:  JPEG reading support (thanks Ryan!)
+  x dmtxwrite: Option to write output to STDOUT (thanks Olivier!)
 
 version 0.5.2: (04-Sep-2008)
   x libdmtx:   Move SetRangeLimit and SetScanRegion into library
