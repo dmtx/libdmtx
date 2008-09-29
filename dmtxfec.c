@@ -40,9 +40,10 @@ Contact: mike@dragonflylogic.com
 
 typedef unsigned char data_t;
 
-#define DMTX_RS_MM         8 /* Bits per symbol */
-#define DMTX_RS_NN       255 /* Symbols per RS block */
-#define DMTX_RS_GFPOLY 0x12d /* Field generator polynomial coefficients */
+#define DMTX_RS_MM          8 /* Bits per symbol */
+#define DMTX_RS_NN        255 /* Symbols per RS block */
+#define DMTX_RS_GFPOLY  0x12d /* Field generator polynomial coefficients */
+#define DMTX_RS_MAX_NROOTS 68 /* Maximum value of nroots for Data Matrix */
 
 #undef NULL
 #define NULL ((void *)0)
@@ -52,9 +53,9 @@ typedef unsigned char data_t;
 
 /* Reed-Solomon codec control block */
 struct rs {
-   data_t *genpoly;     /* Generator polynomial */
-   int nroots;          /* Number of generator roots = number of parity symbols */
-   int pad;             /* Padding bytes in shortened block */
+   data_t genpoly[DMTX_RS_MAX_NROOTS+1]; /* Generator polynomial */
+   int nroots;                           /* Number of generator roots = number of parity symbols */
+   int pad;                              /* Padding bytes in shortened block */
 };
 
 /* General purpose RS codec, 8-bit symbols */
@@ -87,7 +88,6 @@ free_rs_char(struct rs *p)
 {
    struct rs *rs = (struct rs *)p;
 
-   free(rs->genpoly);
    free(rs);
 }
 
@@ -103,6 +103,8 @@ init_rs_char(int nroots, int pad)
    struct rs *rs;
    int i, j, root;
 
+   assert(nroots <= DMTX_RS_MAX_NROOTS);
+
    /* Check parameter ranges */
    if(nroots < 0 || nroots > DMTX_RS_NN)
       return NULL; /* Can't have more roots than symbol values! */
@@ -114,18 +116,12 @@ init_rs_char(int nroots, int pad)
    if(rs == NULL)
       return NULL;
 
-   rs->pad = pad;
-
    /* Form RS code generator polynomial from its roots */
-   rs->genpoly = (data_t *)malloc(sizeof(data_t)*(nroots+1));
-   if(rs->genpoly == NULL) {
-      free(rs);
-      return NULL;
-   }
+   rs->pad = pad;
    rs->nroots = nroots;
 
    rs->genpoly[0] = 1;
-   for(i = 0,root=1; i < nroots; i++,root += 1) {
+   for(i = 0, root = 1; i < nroots; i++, root++) {
       rs->genpoly[i+1] = 1;
 
       /* Multiply rs->genpoly[] by  @**(root + x) */
@@ -211,14 +207,14 @@ decode_rs_char(struct rs *rs, data_t *data, int *eras_pos, int no_eras, int max_
    int syn_error, count;
 
    /* Err+Eras Locator poly and syndrome poly */
-   data_t *lambda = malloc((rs->nroots+1) * sizeof(data_t));
-   data_t *s      = malloc(rs->nroots * sizeof(data_t));
-   data_t *b      = malloc((rs->nroots+1) * sizeof(data_t));
-   data_t *t      = malloc((rs->nroots+1) * sizeof(data_t));
-   data_t *omega  = malloc((rs->nroots+1) * sizeof(data_t));
-   data_t *root   = malloc(rs->nroots * sizeof(data_t));
-   data_t *reg    = malloc((rs->nroots+1) * sizeof(data_t));
-   data_t *loc    = malloc(rs->nroots * sizeof(data_t));
+   data_t lambda[DMTX_RS_MAX_NROOTS+1];
+   data_t s[DMTX_RS_MAX_NROOTS];
+   data_t b[DMTX_RS_MAX_NROOTS+1];
+   data_t t[DMTX_RS_MAX_NROOTS+1];
+   data_t omega[DMTX_RS_MAX_NROOTS+1];
+   data_t root[DMTX_RS_MAX_NROOTS];
+   data_t reg[DMTX_RS_MAX_NROOTS+1];
+   data_t loc[DMTX_RS_MAX_NROOTS];
 
    /* Form the syndromes; i.e., evaluate data(x) at roots of g(x) */
    for(i = 0; i < rs->nroots; i++)
@@ -384,15 +380,6 @@ finish:
       for(i = 0; i < count; i++)
          eras_pos[i] = loc[i];
    }
-
-   free(lambda);
-   free(s);
-   free(b);
-   free(t);
-   free(omega);
-   free(root);
-   free(reg);
-   free(loc);
 
    return count;
 }
