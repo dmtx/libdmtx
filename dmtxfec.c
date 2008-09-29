@@ -105,12 +105,13 @@ init_rs_char(int nroots, int pad)
 
    assert(nroots <= DMTX_RS_MAX_NROOTS);
 
-   /* Check parameter ranges */
+   /* Can't have more roots than symbol values */
    if(nroots < 0 || nroots > DMTX_RS_NN)
-      return NULL; /* Can't have more roots than symbol values! */
+      return NULL;
 
+   /* Too much padding */
    if(pad < 0 || pad >= (DMTX_RS_NN - nroots))
-      return NULL; /* Too much padding */
+      return NULL;
 
    rs = (struct rs *)calloc(1, sizeof(struct rs));
    if(rs == NULL)
@@ -124,12 +125,10 @@ init_rs_char(int nroots, int pad)
    for(i = 0, root = 1; i < nroots; i++, root++) {
       rs->genpoly[i+1] = 1;
 
-      /* Multiply rs->genpoly[] by  @**(root + x) */
+      /* Multiply rs->genpoly[] by @**(root + x) */
       for(j = i; j > 0; j--) {
-         if(rs->genpoly[j] != 0)
-            rs->genpoly[j] = rs->genpoly[j-1] ^ alphaTo[modnn(indexOf[rs->genpoly[j]] + root)];
-         else
-            rs->genpoly[j] = rs->genpoly[j-1];
+         rs->genpoly[j] = (rs->genpoly[j] == 0) ? rs->genpoly[j-1] :
+               rs->genpoly[j-1] ^ alphaTo[modnn(indexOf[rs->genpoly[j]] + root)];
       }
 
       /* rs->genpoly[0] can never be zero */
@@ -168,13 +167,8 @@ encode_rs_char(struct rs *rs, data_t *data, data_t *parity)
    for(i = 0; i < DMTX_RS_NN - rs->nroots - rs->pad; i++) {
       feedback = indexOf[data[i] ^ parity[0]];
       if(feedback != DMTX_RS_NN) { /* feedback term is non-zero */
-#ifdef UNNORMALIZED
-      /* This line is unnecessary when rs->genpoly[rs->nroots] is unity, as it must
-         always be for the polynomials constructed by init_rs() */
-         feedback = modnn(DMTX_RS_NN - rs->genpoly[rs->nroots] + feedback);
-#endif
          for(j = 1; j < rs->nroots; j++)
-            parity[j] ^= alphaTo[modnn(feedback + rs->genpoly[rs->nroots-j])];
+            parity[j] ^= alphaTo[modnn(feedback + rs->genpoly[rs->nroots - j])];
       }
 
       /* Shift */
