@@ -1,31 +1,6 @@
 TODO Items
 -----------------------------------------------------------------
 
-Big proposed changes:
-  * Change image memory handling. Programs pass pointer to their own memory
-    instead of copying into separately malloc'd DmtxImage buffer. New
-    functions are required to specify native image format, include origin
-    location and RGB/K packing order.
-  * Use new loop-based approach instead of heavy caching of compass edge
-    values and cludgy line detection. Cache only the trails left by
-    following strongest-neighbor determination. Loop process will find
-    strongest of 8 possible directions at each pixel loc (actually 4, but
-    with numeric sign).
-  * Upon completing a loop, re-trace the loop with a Hough transform to
-    extract 2 or more edges. Possibly use loop results to find bounds of
-    region for initializing Hough.
-  * Cache a small 1-byte "flags" array and a larger uninitilized data array.
-    This will speed things by only zero'ing the small array and writing to
-    the full data cache only when needed.
-  * Treat RGB images as 3 separate images. When testing a pixel for barcode
-    presence, see which color plane gives best contrast and go from there.
-    Track red, green, blue, grey loop trails separately. Compass/Sobel
-    detection operates on single channel at a time, and should use integer
-    math for fast and exact comparison. In case of tie between neighbors, use
-    non-orthagonal direction as tie breaker.
-  * Make finder bar detection pluggable so a separate future version can be
-    made for dot peen pattern detection (remaining steps would be unchanged).
-
 after version 0.6.0:
   o libdmtx:   New edge neighbor tracking (Hough Transform + 1-way edge cache)
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
@@ -61,7 +36,7 @@ after version 0.6.0:
   o project:   Conditional use of local getopt.c
 
 version 0.6.0: (??-??-2008)
-  o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
+  / libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   x dmtxread:  JPEG reading support (thanks Ryan!)
   x dmtxwrite: Option to write output to STDOUT (thanks Olivier!)
 
@@ -218,3 +193,293 @@ Website:
   o Explore using single background image instead of split
   o Add what we currently do, don't do, would like to do in the future
   o Add http://hosted-projects.com/trac/hudora/public/wiki/huBarcode to resources page
+
+
+Big proposed changes:
+---------------------------------------------------------------------------
+  * Change image memory handling. Programs pass pointer to their own memory
+    instead of copying into separately malloc'd DmtxImage buffer. New
+    functions are required to specify native image format, include origin
+    location and RGB/K packing order. (see "No copies of pixel data")
+  * Treat RGB images as 3 separate images. When testing a pixel for barcode
+    presence, see which color plane gives best contrast and go from there.
+    Track red, green, blue, grey loop trails separately. Compass/Sobel
+    detection operates on single channel at a time, and should use integer
+    math for fast and exact comparison. In case of tie between neighbors, use
+    non-orthagonal direction as tie breaker. (see "No copies of pixel data")
+  * Use new loop-based approach instead of heavy caching of compass edge
+    values and cludgy line detection. Cache only the trails left by
+    following strongest-neighbor determination. Loop process will find
+    strongest of 8 possible directions at each pixel loc (actually 4, but
+    with numeric sign).
+  * Upon completing a loop, re-trace the loop with a Hough transform to
+    extract 2 or more edges. Possibly use loop results to find bounds of
+    region for initializing Hough.
+  * Cache a small 1-byte "flags" array and a larger uninitilized data array.
+    This will speed things by only zero'ing the small array and writing to
+    the full data cache only when needed.
+  * Make finder bar detection pluggable so a separate future version can be
+    made for dot peen pattern detection (remaining steps would be unchanged).
+
+
+No copies of pixel data
+---------------------------------------------------------------------------
+libdmtx only cares about potential channels, which need not be
+combined.
+
+assumptions:
+  * each pixel has a predictable, fixed number of bits that may
+    or may not fall along byte boundaries (1/8/16/24/32/etc...)
+  * up to 4 (more if needed) channels can be used
+  * unused portions of pixel data can be ignored (not even mentioned)
+  * pixel buffers always hold the first pixel as their origin, but that
+    origin might be the top-left or the bottom-left of the image (other?)
+  * what about channels that are larger than 1 byte?
+  * any chance that image rows will have padding between them?
+
+--------------------
+
+typedef enum {
+   DmtxOriginTopLeft,
+   DmtxOriginBottomLeft,
+   DmtxOriginTopRight,
+   DmtxOriginBottomRight
+} DmtxOriginType;
+
+typedef enum {
+   DmtxPack1bppK,
+   DmtxPack8bppCustom,
+   DmtxPack8bppK,
+   DmtxPack16bppCustom,
+   DmtxPack16bppRGB,
+   DmtxPack24bppCustom,
+   DmtxPack24bppRGB,
+   DmtxPack24bppBGR,
+   DmtxPack24bppYCbCr,
+   DmtxPack32bppCustom,
+   DmtxPack32bppCMYK,
+   DmtxPack32bppRGBX
+} DmtxPackingOrder;
+
+/**
+ * still on the fence whether image scaling factors should be maintained in
+ * DmtxDecode ... but right now leaning that way. Thinking goes that any
+ * caching will be tied to scale, and scale change should not affect image
+ * object. Basically, load the image once and then don't touch it anymore.
+ */
+typedef struct DmtxDecode_struct {
+   int scale;
+   int xMin;
+   int xMax;
+   int yMin;
+   int yMax;
+   int xMinScaled;
+   int xMaxScaled;
+   int yMinScaled;
+   int yMaxScaled;
+} DmtxDecode;
+
+typedef struct DmtxImage_struct {
+   unsigned char *pxl;
+   int width;
+   int height;
+   int originType;
+   int channelCount;
+   int bitsPerChannel[4];
+   int channelStart[4];
+} DmtxImage;
+
+/* Beeswax, none of mine */
+pxlBuf = (unsigned char *)malloc(width * height * sizeof(pixel));
+
+/* Call this for pre-defined packing orders */
+img = dmtxImageSet(pxlBuf, width, height, DmtxOriginTopLeft, DmtxPack24bppRGB);
+
+/* -OR- Call this for custom packing order */
+img = dmtxImageSet(pxlBuf, width, height, DmtxOriginTopLeft, DmtxPack24bppCustom);
+err = dmtxImageAddChannel(&img, 8, 0);                /* red    */
+err = dmtxImageAddChannel(&img, 8, 8);                /* green  */
+err = dmtxImageAddChannel(&img, 8, 16);               /* blue   */
+
+/**
+ *
+ *
+ */
+extern DmtxImage
+dmtxImageSet(unsigned char *pxlBuf, int width, int height, int originType, int packing);
+{
+   DmtxImage img;
+
+   memset(&img, 0x00, sizeof(DmtxImage));
+
+   img.pxl = pxlBuf;
+   img.width = width;
+   img.height = height;
+   img.originType = originType;
+
+   switch(packing) {
+      case DmtxPack1bppCustom:
+      case DmtxPack1bppK:
+         img.bitsPerPixel = 1;
+         break;
+      case DmtxPack8bppCustom:
+      case DmtxPack8bppK:
+         img.bitsPerPixel = 8;
+         break;
+      case DmtxPack16bppCustom:
+      case DmtxPack16bppRGB:
+         img.bitsPerPixel = 16;
+         break;
+      case DmtxPack24bppCustom:
+      case DmtxPack24bppRGB:
+      case DmtxPack24bppBGR:
+      case DmtxPack24bppYCbCr:
+         img.bitsPerPixel = 24;
+         break;
+      case DmtxPack32bppCustom:
+      case DmtxPack32bppCMYK:
+      case DmtxPack32bppRGBA:
+      case DmtxPack32bppRGBX:
+         img.bitsPerPixel = 32;
+         break;
+      default:
+         return DMTX_FAILURE;
+         break;
+   }
+
+   switch(packing) {
+      case DmtxPack1bppK:
+         err = dmtxImageAddChannel(&img, 1, 0);
+         break;
+
+      case DmtxPack16bppRGB:
+      case DmtxPack16bppBGR:
+         err = dmtxImageAddChannel(&img, 5, 0);
+         err = dmtxImageAddChannel(&img, 5, 5);
+         err = dmtxImageAddChannel(&img, 5, 10);
+         break;
+
+      case DmtxPack8bppK:
+      case DmtxPack24bppYCbCr:
+         err = dmtxImageAddChannel(&img, 8, 0);
+         break;
+
+      case DmtxPack24bppRGB:
+      case DmtxPack24bppBGR:
+      case DmtxPack32bppRGBA:
+      case DmtxPack32bppRGBX:
+         err = dmtxImageAddChannel(&img, 8, 0);
+         err = dmtxImageAddChannel(&img, 8, 8);
+         err = dmtxImageAddChannel(&img, 8, 16);
+         break;
+
+      case DmtxPack32bppCMYK:
+         err = dmtxImageAddChannel(&img, 8, 0);
+         err = dmtxImageAddChannel(&img, 8, 8);
+         err = dmtxImageAddChannel(&img, 8, 16);
+         err = dmtxImageAddChannel(&img, 8, 24);
+         break;
+
+      case DmtxPack1bppCustom:
+      case DmtxPack8bppCustom:
+      case DmtxPack15bppCustom:
+      case DmtxPack24bppCustom:
+      case DmtxPack32bppCustom:
+         break;
+
+      default:
+         return DMTX_FAILURE;
+         break;
+   }
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ *
+ *
+ */
+dmtxImageAddChannel(DmtxImage *img, int bitsPerChannel, int channelStart)
+{
+   /* New channel extends beyond pixel data */
+   if(channelStart + bitsPerChannel > img->bitsPerPixel)
+      return DMTX_FAILURE;
+
+   img->bitsPerChannel[img->channelCount] = bitsPerChannel;
+   img->channelStart[img->channelCount] = channelStart;
+   (img->channelCount)++;
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ *
+ *
+ */
+extern int
+dmtxImageGetOffset(DmtxImage *img, int x, int y)
+{
+   int offset;
+
+   if(img == NULL); // maybe check boundaries too?
+      return -1;
+
+   switch(img->originType) {
+      case DmtxOriginTopLeft:
+         offset = ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
+         break;
+      case DmtxOriginBottomLeft:
+         offset = img->scale * (y * img->width + x);
+         break;
+      default:
+         return -1;
+         break;
+   }
+
+   return offset;
+}
+
+/**
+ *
+ *
+ */
+extern int
+dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
+{
+   int offset;
+
+   if(img == NULL || channel >= img->channelCount);
+      return DMTX_FAILURE;
+
+   if(dmtxImageContainsInt(img, 0, x, y) == DMTX_FALSE)
+      return DMTX_FAILURE;
+
+   offset = dmtxImageGetOffset(img, x, y);
+   if(offset < 0)
+      return DMTX_FAILURE;
+
+   switch(img->bitsPerChannel[channel]) {
+      case 1:
+         assert(img->bitsPerPixel == 1);
+         mask = 0x01 << (7 - offset%8);
+         *value = (img->pxl[offset/8] & mask) ? 255 : 0;
+         break;
+      case 5:
+         /* XXX might be expensive if we want to scale perfect 0x00-0xff range */
+         assert(img->bitsPerPixel == 16);
+         pixel = img->pxl[offset * (img->bitsPerPixel/8)];
+         pixelValue = (*pixel << 8) | (*(pixel+1));
+         bitShift = img->bitsPerPixel - 5 - img->channelStart[channel];
+         mask = 0x1f << bitShift;
+         value = ((pixelValue & mask) >> bitShift) << 3;
+         break;
+      case 8:
+         assert(img->channelStart % 8 == 0);
+         *value = img->pxl[offset * (img->bitsPerPixel/8) + (img->bitsPerChannel[channel]/8)];
+         break;
+   }
+
+   return DMTX_SUCCESS;
+}
+
+---------------------------------------------------------------------------
