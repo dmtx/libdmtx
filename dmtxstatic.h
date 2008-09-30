@@ -43,13 +43,11 @@ Contact: mike@dragonflylogic.com
 #define DMTX_RANGE_BAD                 1
 #define DMTX_RANGE_EOF                 2
 
-#ifndef min
-#define min(X,Y) ((X < Y) ? X : Y)
-#endif
+#undef min
+#define min(X,Y) (((X) < (Y)) ? (X) : (Y))
 
-#ifndef max
-#define max(X,Y) ((X > Y) ? X : Y)
-#endif
+#undef max
+#define max(X,Y) (((X) > (Y)) ? (X) : (Y))
 
 typedef enum {
    DmtxSize10x10,

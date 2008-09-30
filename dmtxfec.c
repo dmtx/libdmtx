@@ -48,10 +48,14 @@ typedef unsigned char data_t;
 #undef NULL
 #define NULL ((void *)0)
 
-#undef MIN
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-
-/* Reed-Solomon codec control block */
+/* Reed-Solomon codec control block
+ *
+ * rs->nroots  - the number of roots in the RS code generator polynomial,
+ *               which is the same as the number of parity symbols in a block.
+ *               Integer variable or literal.
+ * rs->pad     - the number of pad symbols in a block. Integer variable or literal.
+ * rs->genpoly - an array of rs->nroots+1 elements containing the generator polynomial in index form
+ */
 struct rs {
    data_t genpoly[DMTX_RS_MAX_NROOTS+1]; /* Generator polynomial */
    int nroots;                           /* Number of generator roots = number of parity symbols */
@@ -65,8 +69,9 @@ static struct rs *init_rs_char(int nroots, int pad);
 static void free_rs_char(struct rs *rs);
 
 /**
- *
- *
+ * @brief  Calculate x mod NN (255)
+ * @param  x
+ * @return Modulus
  */
 static int
 modnn(int x)
@@ -80,8 +85,9 @@ modnn(int x)
 }
 
 /**
- *
- *
+ * @brief  Free memory used for Reed Solomon struct
+ * @param  p
+ * @return rs
  */
 static void
 free_rs_char(struct rs *p)
@@ -95,7 +101,7 @@ free_rs_char(struct rs *p)
  * @brief  Initialize a Reed-Solomon codec
  * @param  nroots RS code generator polynomial degree (number of roots)
  * @param  pad Padding bytes at front of shortened block
- * @return pointer to rs struct
+ * @return Pointer to rs struct
  */
 static struct rs *
 init_rs_char(int nroots, int pad)
@@ -143,18 +149,11 @@ init_rs_char(int nroots, int pad)
 }
 
 /**
- * data_t          - a typedef for the data symbol
- * data_t data[]   - array of DMTX_RS_NN -(rs->nroots)-(rs->pad) and type data_t to be encoded
- * data_t parity[] - an array of rs->nroots and type data_t to be written with parity symbols
- * rs->nroots      - the number of roots in the RS code generator polynomial,
- *                   which is the same as the number of parity symbols in a block.
- *                   Integer variable or literal.
- * rs->pad         - the number of pad symbols in a block. Integer variable or literal.
- * rs->genpoly     - an array of rs->nroots+1 elements containing the generator polynomial in index form
- *
- * The memset() and memmove() functions are used. The appropriate header
- * file declaring these functions (usually <string.h>) must be included by the calling
- * program.
+ * @brief  XXX
+ * @param  rs Reed-Solomon codec control block
+ * @param  data Array of data_t to be encoded
+ * @param  parity Array of data_t to be written with parity symbols
+ * @return void
  */
 static void
 encode_rs_char(struct rs *rs, data_t *data, data_t *parity)
@@ -181,16 +180,13 @@ encode_rs_char(struct rs *rs, data_t *data, data_t *parity)
 }
 
 /**
- * data_t         Typedef for the data symbol
- * data_t data[]  Array of DMTX_RS_NN data and parity symbols to be corrected in place
- * rs->nroots     the number of roots in the RS code generator polynomial,
- *                which is the same as the number of parity symbols in a block.
- *                Integer variable or literal.
- * rs->pad        Number of pad symbols in a block. Integer variable or literal.
- *
- * The memset(), memmove(), and memcpy() functions are used. The appropriate header
- * file declaring these functions (usually <string.h>) must be included by the calling
- * program.
+ * @brief  XXX
+ * @param  rs Reed-Solomon codec control block
+ * @param  data Array of data and parity symbols to be corrected in place
+ * @param  eras_pos
+ * @param  no_eras
+ * @param  max_fixes
+ * @return count
  */
 static int
 decode_rs_char(struct rs *rs, data_t *data, int *eras_pos, int no_eras, int max_fixes)
@@ -357,7 +353,7 @@ decode_rs_char(struct rs *rs, data_t *data, int *eras_pos, int no_eras, int max_
       den = 0;
 
       /* lambda[i+1] for i even is the formal derivative lambda_pr of lambda[i] */
-      for(i = MIN(deg_lambda, rs->nroots - 1) & ~1; i >= 0; i -=2) {
+      for(i = min(deg_lambda, rs->nroots - 1) & ~1; i >= 0; i -=2) {
          if(lambda[i+1] != DMTX_RS_NN)
             den ^= alphaTo[modnn(lambda[i+1] + i * root[j])];
       }
