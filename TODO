@@ -266,6 +266,14 @@ typedef enum {
  * DmtxDecode ... but right now leaning that way. Thinking goes that any
  * caching will be tied to scale, and scale change should not affect image
  * object. Basically, load the image once and then don't touch it anymore.
+ *
+ * However, I also want to be able to say:
+ *
+ *    offset = dmtxImageGetOffset(img, x, y)
+ *
+ * ... and have the result take scaling into account. This statement really
+ * has nothing to do with the decoding process (and therefore decode struct).
+ * hmmm ...
  */
 typedef struct DmtxDecode_struct {
    int scale;
@@ -297,9 +305,9 @@ img = dmtxImageSet(pxlBuf, width, height, DmtxOriginTopLeft, DmtxPack24bppRGB);
 
 /* -OR- Call this for custom packing order */
 img = dmtxImageSet(pxlBuf, width, height, DmtxOriginTopLeft, DmtxPack24bppCustom);
-err = dmtxImageAddChannel(&img, 8, 0);                /* red    */
-err = dmtxImageAddChannel(&img, 8, 8);                /* green  */
-err = dmtxImageAddChannel(&img, 8, 16);               /* blue   */
+err = dmtxImageAddChannel(&img, 8, 0);  /* red    */
+err = dmtxImageAddChannel(&img, 8, 8);  /* green  */
+err = dmtxImageAddChannel(&img, 8, 16); /* blue   */
 
 /**
  *

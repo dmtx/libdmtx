@@ -107,21 +107,53 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    if(dmtxImageContainsInt(dec->image, 0, loc.X, loc.Y) == DMTX_FALSE)
       return reg;
 
-   /* Find subpixel location of strongest edge found at this location */
-   edgeStart = FindZeroCrossing(dec, loc.X, loc.Y, NULL);
-   if(!edgeStart.isEdge) {
-      reg.found = DMTX_REGION_DROPPED_EDGE;
-      return reg;
-   }
+   if(1) {
+      /* Find subpixel location of strongest edge found at this location */
+      edgeStart = FindZeroCrossing(dec, loc.X, loc.Y, NULL);
+      if(!edgeStart.isEdge) {
+         reg.found = DMTX_REGION_DROPPED_EDGE;
+         return reg;
+      }
 
-   /* Next follow the edge to its end in both directions */
-   houghStrong = 0;
-   ray0 = FollowEdge(dec, loc.X, loc.Y, edgeStart, 1, hough, &houghStrong);
-   ray1 = FollowEdge(dec, loc.X, loc.Y, edgeStart, -1, hough, &houghStrong);
-   if(hough[houghStrong] < 8) {
-      reg.found = DMTX_REGION_DROPPED_1ST;
-      return reg;
+      /* Next follow the edge to its end in both directions */
+      houghStrong = 0;
+      ray0 = FollowEdge(dec, loc.X, loc.Y, edgeStart, 1, hough, &houghStrong);
+      ray1 = FollowEdge(dec, loc.X, loc.Y, edgeStart, -1, hough, &houghStrong);
+      if(hough[houghStrong] < 8) {
+         reg.found = DMTX_REGION_DROPPED_1ST;
+         return reg;
+      }
    }
+/*
+   else {
+// edge contains:
+//   neighborDir
+//   edgeDir
+      redEdge = GetPointEdge(dec, 0, x, y);
+      grnEdge = GetPointEdge(dec, 1, x, y);
+      bluEdge = GetPointEdge(dec, 2, x, y);
+// we use colorDelta, edgeDir, and colorPlane later
+
+// critically important: each direction is its own bit ... zero means not linked
+
+      maxEdge = (abs(redEdge.colorDelta) > abs(grnEdge.colorDelta)) ? redEdge : grnEdge;
+      maxEdge = (abs(bluEdge.colorDelta) > abs(maxEdge.colorDelta)) ? bluEdge : maxEdge;
+
+      if(abs(maxEdge.colorDelta) < 20) {
+         reg.found = DMTX_REGION_DROPPED_EDGE;
+         return reg;
+      }
+
+      // Next follow the edge to its end in both directions
+      houghStrong = 0;
+      distPos = FollowEdge2(dec, loc.X, loc.Y, maxEdge, 1, hough, &houghStrong);
+      distNeg = FollowEdge2(dec, loc.X, loc.Y, maxEdge, -1, hough, &houghStrong);
+      if(distPos + distNeg < 10.0 || hough[houghStrong] < 8) {
+         reg.found = DMTX_REGION_DROPPED_1ST;
+         return reg;
+      }
+   }
+*/
 
    /* Define first edge based on travel limits of detected edge */
    if(MatrixRegionAlignFirstEdge(dec, &reg, &edgeStart, ray0, ray1) != DMTX_SUCCESS) {
@@ -381,7 +413,8 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
    memset(maxColAll, 0x00, 3 * sizeof(int));
    memset(maxColOrtho, 0x00, 3 * sizeof(int));
 
-   if(dmtxImageContainsInt(img, 1, x, y) == DMTX_FALSE)
+   offset = dmtxImageGetOffset(img, x, y);
+   if(offset == -1)
       return maxEdge; /* XXX should really communicate failure with a dedicated value instead */
 
    widthScaled = img->width/img->scale;   /* dmtxImageGetProp(img, DmtxPropScaledWidth); */
@@ -390,7 +423,6 @@ GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
    /* Cache always holds result from most recent test. Return cached result
       if it matches the request. Otherwise recache and return new result. */
 
-   offset = dmtxImageGetOffset(img, x, y);
    compassCache = &(img->compass[offset]);
 
    /* Requested test was already performed */
