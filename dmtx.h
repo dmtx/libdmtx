@@ -94,6 +94,7 @@ extern "C" {
 #define DMTX_SYMBOL_RECT_AUTO         -2
 #define DMTX_SYMBOL_RECT_COUNT         6
 
+/* XXX big redundancies between the following 3 direction enums - revisit later */
 typedef enum {
    DmtxDirNone       = 0x00,
    DmtxDirUp         = 0x01 << 0,
@@ -105,6 +106,28 @@ typedef enum {
    DmtxDirRightUp    = DmtxDirRight | DmtxDirUp,
    DmtxDirLeftDown   = DmtxDirLeft  | DmtxDirDown
 } DmtxDirection;
+
+typedef enum {
+   DmtxCompassDirNone  = 0x00,
+   DmtxCompassDirNeg45 = 0x01,
+   DmtxCompassDir0     = 0x02,
+   DmtxCompassDir45    = 0x04,
+   DmtxCompassDir90    = 0x08,
+   DmtxCompassDirOrtho = DmtxCompassDir0 | DmtxCompassDir90,
+   DmtxCompassDirAll   = DmtxCompassDirNeg45 | DmtxCompassDir0 | DmtxCompassDir45 | DmtxCompassDir90
+} DmtxCompassDir;
+
+typedef enum {
+   DmtxNeighborSW,
+   DmtxNeighborS,
+   DmtxNeighborSE,
+   DmtxNeighborE,
+   DmtxNeighborNE,
+   DmtxNeighborN,
+   DmtxNeighborNW,
+   DmtxNeighborW,
+   DmtxNeighborNone
+} DmtxNeighbors;
 
 typedef enum {
    DmtxEncodeAutoBest,
@@ -242,16 +265,6 @@ typedef struct DmtxGradient_struct {
    DmtxRay3   ray;
    DmtxColor3 color, colorPrev; /* XXX maybe these aren't appropriate variables for a gradient? */
 } DmtxGradient;
-
-typedef enum {
-   DmtxCompassDirNone  = 0x00,
-   DmtxCompassDirNeg45 = 0x01,
-   DmtxCompassDir0     = 0x02,
-   DmtxCompassDir45    = 0x04,
-   DmtxCompassDir90    = 0x08,
-   DmtxCompassDirOrtho = DmtxCompassDir0 | DmtxCompassDir90,
-   DmtxCompassDirAll   = DmtxCompassDirNeg45 | DmtxCompassDir0 | DmtxCompassDir45 | DmtxCompassDir90
-} DmtxCompassDir;
 
 /**
  * @struct DmtxCompassEdge
