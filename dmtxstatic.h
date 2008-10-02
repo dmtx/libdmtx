@@ -113,6 +113,16 @@ typedef struct DmtxEdgeSubPixel_struct {
    DmtxCompassEdge compass;
 } DmtxEdgeSubPixel;
 
+/**
+ * @struct DmtxPointEdge
+ * @brief DmtxPointEdge
+ */
+typedef struct DmtxPointEdge_struct {
+   int colorDelta;
+   unsigned char compass;  /* DmtxNeighbors (values 0-8) */
+   unsigned char inbound;  /* DmtxNeighbors (values 0-8) */
+} DmtxPointEdge;
+
 /* dmtxregion.c */
 static int ClampIntRange(int value, int min, int max);
 static DmtxCompassEdge GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs);
@@ -212,6 +222,10 @@ static DmtxPixelLoc GetGridCoordinates(DmtxScanGrid *grid);
 
 /* dmtxsymbol.c */
 static int FindCorrectBarcodeSize(int dataWords, int symbolShape);
+
+static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };
+static const int dmtxPatternY[] = { -1, -1, -1,  0,  1,  1,  1,  0 };
+static const DmtxPointEdge dmtxBlankEdge = { 0, DmtxNeighborNone, DmtxNeighborNone };
 
 /* Galois Field log values */
 static int logVal[] =

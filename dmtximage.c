@@ -233,7 +233,7 @@ dmtxImageGetOffset(DmtxImage *img, int x, int y)
    assert(img != NULL);
 
    if(dmtxImageContainsInt(img, 0, x, y) == DMTX_FALSE)
-      return -1;
+      return DMTX_BAD_OFFSET;
 
    return ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
 }
@@ -254,7 +254,7 @@ dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
    assert(img != NULL);
 
    offset = dmtxImageGetOffset(img, x, y);
-   if(offset == -1)
+   if(offset == DMTX_BAD_OFFSET)
       return DMTX_FAILURE;
 
    memcpy(img->pxl[offset], rgb, 3);
@@ -278,7 +278,7 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
    assert(img != NULL);
 
    offset = dmtxImageGetOffset(img, x, y);
-   if(offset == -1)
+   if(offset == DMTX_BAD_OFFSET)
       return DMTX_FAILURE;
 
    memcpy(rgb, img->pxl[offset], 3);

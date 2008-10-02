@@ -56,6 +56,8 @@ extern "C" {
 #define DMTX_FALSE                     0
 #define DMTX_TRUE                      1
 
+#define DMTX_BAD_OFFSET               -1
+
 #define DMTX_STATUS_NOT_SCANNED        0
 #define DMTX_STATUS_VALID              1
 #define DMTX_STATUS_INVALID            2
@@ -94,7 +96,7 @@ extern "C" {
 #define DMTX_SYMBOL_RECT_AUTO         -2
 #define DMTX_SYMBOL_RECT_COUNT         6
 
-/* XXX big redundancies between the following 3 direction enums - revisit later */
+/* XXX some redundancy between following 3 direction enums - revisit later */
 typedef enum {
    DmtxDirNone       = 0x00,
    DmtxDirUp         = 0x01 << 0,
