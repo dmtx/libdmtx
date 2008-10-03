@@ -685,7 +685,6 @@ LoadImageJpeg(char *imagePath)
    JSAMPARRAY buffer;   /* Output row buffer */
    int row_stride;      /* physical row width in output buffer */
    DmtxRgb *ptr;
-   int dmtxOffset;
 
    if((infile = fopen(imagePath, "rb")) == NULL) {
       fprintf(stderr, "can't open %s\n", imagePath);
