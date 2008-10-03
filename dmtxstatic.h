@@ -153,6 +153,10 @@ static DmtxColor3 ReadModuleColor(DmtxImage *image, DmtxRegion *region,
 
 static int MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg);
 static int CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDirection dir);
+static DmtxPointEdge GetPointEdge(DmtxDecode *dec, int colorPlane, int x, int y);
+static int FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0, DmtxPointEdge start, int sign, int hough[], int *houghStrong);
+static int FindTravelDirection(DmtxDecode *dec, int x0, int y0, DmtxPointEdge edge, int sign, unsigned char *m1, unsigned char *m2);
+static DmtxPointEdge FindStrongestNeighbor(DmtxDecode *dec, int colorPlane, int x0, int y0, unsigned char mAttempt);
 /* static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath); */
 
 /* dmtxdecode.c */

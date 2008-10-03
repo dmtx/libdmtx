@@ -278,6 +278,7 @@ typedef struct DmtxCompassEdge_struct {
    char          maxDirOrtho;
    double        magnitude;  /* sqrt(R^2 + G^2 + B^2) */
    DmtxColor3    intensity;
+   unsigned char neighbor;
 } DmtxCompassEdge;
 
 /**
