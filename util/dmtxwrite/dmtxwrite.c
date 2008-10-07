@@ -42,8 +42,6 @@ Contact: mike@dragonflylogic.com
 #include "dmtxwrite.h"
 #include "../common/dmtxutil.h"
 
-#define MIN(x,y) ((x < y) ? x : y)
-
 char *programName;
 
 /**
@@ -57,47 +55,47 @@ int
 main(int argc, char *argv[])
 {
    int err;
-   UserOptions options;
+   UserOptions opt;
    DmtxEncode enc;
    unsigned char codeBuffer[DMTXWRITE_BUFFER_SIZE];
    int codeBufferSize = sizeof codeBuffer;
 
-   InitUserOptions(&options);
+   InitUserOptions(&opt);
 
    /* Create and initialize libdmtx structures */
    enc = dmtxEncodeStructInit();
 
    /* Process user options */
-   err = HandleArgs(&options, &argc, &argv, &enc);
+   err = HandleArgs(&opt, &argc, &argv, &enc);
    if(err != DMTX_SUCCESS)
       ShowUsage(err);
 
    /* Read input data into buffer */
-   ReadData(&options, &codeBufferSize, codeBuffer);
+   ReadData(&opt, &codeBufferSize, codeBuffer);
 
    /* Create barcode image */
-   if(options.mosaic)
-      err = dmtxEncodeDataMosaic(&enc, codeBufferSize, codeBuffer, options.sizeIdx);
+   if(opt.mosaic)
+      err = dmtxEncodeDataMosaic(&enc, codeBufferSize, codeBuffer, opt.sizeIdx);
    else
-      err = dmtxEncodeDataMatrix(&enc, codeBufferSize, codeBuffer, options.sizeIdx);
+      err = dmtxEncodeDataMatrix(&enc, codeBufferSize, codeBuffer, opt.sizeIdx);
 
    if(err == DMTX_FAILURE)
       FatalError(1, _("Unable to encode message (possibly too large for requested size)"));
 
    /* Write barcode image to requested format */
-   switch(options.format) {
+   switch(opt.format) {
       case 'n':
          break; /* do nothing */
       case 'p':
-         WriteImagePng(&options, &enc);
+         WriteImagePng(&opt, &enc);
          break;
       case 'm':
-         WriteImagePnm(&options, &enc);
+         WriteImagePnm(&opt, &enc);
          break;
    }
 
    /* Write barcode preview if requested */
-   switch(options.preview) {
+   switch(opt.preview) {
       case 'n':
          break; /* do nothing */
       case 'a':
@@ -119,21 +117,21 @@ main(int argc, char *argv[])
  *
  */
 static void
-InitUserOptions(UserOptions *options)
+InitUserOptions(UserOptions *opt)
 {
-   memset(options, 0x00, sizeof(UserOptions));
+   memset(opt, 0x00, sizeof(UserOptions));
 
-/* options->color = ""; */
-/* options->bgColor = ""; */
-   options->format = 'p';
-   options->inputPath = NULL;
-   options->outputPath = "dmtxwrite.png"; /* XXX needs to have different extensions for other formats */
-   options->preview = 'n';
-   options->rotate = 0;
-   options->sizeIdx = DMTX_SYMBOL_SQUARE_AUTO;
-   options->verbose = 0;
-   options->mosaic = 0;
-   options->dpi = 0; /* default to native resolution of requested image format */
+/* opt->color = ""; */
+/* opt->bgColor = ""; */
+   opt->format = 'p';
+   opt->inputPath = NULL;    /* default stdin */
+   opt->outputPath = NULL;   /* default stdout */
+   opt->preview = 'n';
+   opt->rotate = 0;
+   opt->sizeIdx = DMTX_SYMBOL_SQUARE_AUTO;
+   opt->verbose = 0;
+   opt->mosaic = 0;
+   opt->dpi = 0; /* default to native resolution of requested image format */
 }
 
 /**
@@ -145,11 +143,11 @@ InitUserOptions(UserOptions *options)
  * @return        DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *enc)
+HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
 {
    int err;
    int i;
-   int opt;
+   int optchr;
    int longIndex;
    char *ptr;
 
@@ -188,25 +186,25 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *enc)
    enc->scheme = DmtxSchemeEncodeAscii;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:p:r:s:vMR:V", longOptions, &longIndex);
-      if(opt == -1)
+      optchr = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:p:r:s:vMR:V", longOptions, &longIndex);
+      if(optchr == -1)
          break;
 
-      switch(opt) {
+      switch(optchr) {
          case 0: /* --help */
             ShowUsage(0);
             break;
          case 'c':
-            options->color[0] = 0;
-            options->color[1] = 0;
-            options->color[2] = 0;
-            fprintf(stdout, "Option \"%c\" not implemented yet\n", opt);
+            opt->color[0] = 0;
+            opt->color[1] = 0;
+            opt->color[2] = 0;
+            fprintf(stdout, "Option \"%c\" not implemented yet\n", optchr);
             break;
          case 'b':
-            options->bgColor[0] = 255;
-            options->bgColor[1] = 255;
-            options->bgColor[2] = 255;
-            fprintf(stdout, "Option \"%c\" not implemented yet\n", opt);
+            opt->bgColor[0] = 255;
+            opt->bgColor[1] = 255;
+            opt->bgColor[2] = 255;
+            fprintf(stdout, "Option \"%c\" not implemented yet\n", optchr);
             break;
          case 'd':
             err = StringToInt(&(enc->moduleSize), optarg, &ptr);
@@ -229,7 +227,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *enc)
                   break;
                case 'f':
                   enc->scheme = DmtxSchemeEncodeAutoFast;
-                  fprintf(stdout, "\"Fast optimized\" not implemented yet\n", opt);
+                  fprintf(stdout, "\"Fast optimized\" not implemented yet\n");
                   return DMTX_FAILURE;
                   break;
                case 'a':
@@ -257,45 +255,45 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *enc)
             }
             break;
          case 'f':
-            options->format = *optarg;
+            opt->format = *optarg;
 
-            if(options->format != 'n' && options->format != 'p' &&
-                  options->format != 'm') {
-               fprintf(stdout, "Invalid output format \"%c\"\n", options->format);
+            if(opt->format != 'n' && opt->format != 'p' &&
+                  opt->format != 'm') {
+               fprintf(stdout, "Invalid output format \"%c\"\n", opt->format);
                return DMTX_FAILURE;
             }
 
             break;
          case 'o':
-            options->outputPath = optarg;
+            opt->outputPath = optarg;
             break;
          case 'p':
-            options->preview = *optarg;
+            opt->preview = *optarg;
 
-            if(options->preview != 'n' && options->preview != 'a' &&
-                  options->preview != 'c') {
-               fprintf(stdout, "Invalid preview format \"%c\"\n", options->preview);
+            if(opt->preview != 'n' && opt->preview != 'a' &&
+                  opt->preview != 'c') {
+               fprintf(stdout, "Invalid preview format \"%c\"\n", opt->preview);
                return DMTX_FAILURE;
             }
 
             break;
          case 'r':
-            err = StringToInt(&(options->rotate), optarg, &ptr);
+            err = StringToInt(&(opt->rotate), optarg, &ptr);
             if(err != DMTX_SUCCESS || *ptr != '\0')
                FatalError(1, _("Invalid rotation angle specified \"%s\""), optarg);
             break;
          case 's':
             /* Determine correct barcode size and/or shape */
             if(*optarg == 's') {
-               options->sizeIdx = DMTX_SYMBOL_SQUARE_AUTO;
+               opt->sizeIdx = DMTX_SYMBOL_SQUARE_AUTO;
             }
             else if(*optarg == 'r') {
-               options->sizeIdx = DMTX_SYMBOL_RECT_AUTO;
+               opt->sizeIdx = DMTX_SYMBOL_RECT_AUTO;
             }
             else {
                for(i = 0; i < DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT; i++) {
                   if(strncmp(optarg, symbolSizes[i], 8) == 0) {
-                     options->sizeIdx = i;
+                     opt->sizeIdx = i;
                      break;
                   }
                }
@@ -305,14 +303,14 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *enc)
 
             break;
          case 'v':
-            options->verbose = 1;
+            opt->verbose = 1;
             break;
          case 'M':
-            options->mosaic = 1;
+            opt->mosaic = 1;
             break;
          case 'R':
-            err = StringToInt(&(options->dpi), optarg, &ptr);
-            if(err != DMTX_SUCCESS || options->dpi <= 0 || *ptr != '\0')
+            err = StringToInt(&(opt->dpi), optarg, &ptr);
+            if(err != DMTX_SUCCESS || opt->dpi <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid dpi specified \"%s\""), optarg);
             break;
          case 'V':
@@ -326,7 +324,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *enc)
       }
    }
 
-   options->inputPath = (*argvp)[optind];
+   opt->inputPath = (*argvp)[optind];
 
    /* XXX here test for incompatibility between options. For example you
       cannot specify dpi if PNM output is requested */
@@ -338,20 +336,14 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *enc)
  *
  */
 static void
-ReadData(UserOptions *options, int *codeBufferSize, unsigned char *codeBuffer)
+ReadData(UserOptions *opt, int *codeBufferSize, unsigned char *codeBuffer)
 {
    int fd;
 
    /* Open file or stdin for reading */
-   if(options->inputPath == NULL) {
-      fd = 0;
-   }
-   else {
-      fd = open(options->inputPath, O_RDONLY);
-      if(fd == -1) {
-         FatalError(1, _("Error while opening file \"%s\""), options->inputPath);
-      }
-   }
+   fd = (opt->inputPath == NULL) ? 0 : open(opt->inputPath, O_RDONLY);
+   if(fd == -1)
+      FatalError(1, _("Error while opening file \"%s\""), opt->inputPath);
 
    /* Read input contents into buffer */
    *codeBufferSize = read(fd, codeBuffer, DMTXWRITE_BUFFER_SIZE);
@@ -434,7 +426,7 @@ OPTIONS:\n"), programName, programName);
  *
  */
 static void
-WriteImagePng(UserOptions *options, DmtxEncode *enc)
+WriteImagePng(UserOptions *opt, DmtxEncode *enc)
 {
    FILE *fp;
    int row;
@@ -444,9 +436,8 @@ WriteImagePng(UserOptions *options, DmtxEncode *enc)
    png_bytepp rowPointers;
    png_uint_32 pixelsPerMeter;
 
-   fp = (strncmp(options->outputPath, "-", 2) == 0) ? stdout :
-         fopen(options->outputPath, "wb");
-
+   /* Open file or stdin for writing */
+   fp = (opt->outputPath == NULL) ? stdout : fopen(opt->outputPath, "wb");
    if(fp == NULL) {
       perror(programName);
       exit(3);
@@ -490,8 +481,8 @@ WriteImagePng(UserOptions *options, DmtxEncode *enc)
          8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
          PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
-   if(options->dpi > 0) {
-      pixelsPerMeter = (png_uint_32)(39.3700787 * options->dpi + 0.5);
+   if(opt->dpi > 0) {
+      pixelsPerMeter = (png_uint_32)(39.3700787 * opt->dpi + 0.5);
       png_set_pHYs(pngPtr, infoPtr, pixelsPerMeter, pixelsPerMeter, PNG_RESOLUTION_METER);
    }
 
@@ -533,17 +524,14 @@ WriteImagePng(UserOptions *options, DmtxEncode *enc)
  *
  */
 static void
-WriteImagePnm(UserOptions *options, DmtxEncode *enc)
+WriteImagePnm(UserOptions *opt, DmtxEncode *enc)
 {
    int row, col;
    int width, height;
    FILE *fp;
    DmtxRgb rgb;
 
-   /* Flip rows top-to-bottom to account for PNM "top-left" origin */
-   fp = (strncmp(options->outputPath, "-", 2) == 0) ? stdout :
-         fopen(options->outputPath, "wb");
-
+   fp = (opt->outputPath == NULL) ? stdout : fopen(opt->outputPath, "wb");
    if(fp == NULL) {
       perror(programName);
       exit(3);
@@ -552,6 +540,7 @@ WriteImagePnm(UserOptions *options, DmtxEncode *enc)
    width = dmtxImageGetProp(enc->image, DmtxPropWidth);
    height = dmtxImageGetProp(enc->image, DmtxPropHeight);
 
+   /* Flip rows top-to-bottom to account for PNM "top-left" origin */
    fprintf(fp, "P6 %d %d 255 ", width, height);
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
