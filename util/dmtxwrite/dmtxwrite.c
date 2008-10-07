@@ -45,11 +45,10 @@ Contact: mike@dragonflylogic.com
 char *programName;
 
 /**
- * Main function for the dmtxwrite Data Matrix scanning utility.
- *
+ * @brief  Main function for the dmtxwrite Data Matrix scanning utility.
  * @param  argc count of arguments passed from command line
  * @param  argv list of argument passed strings from command line
- * @return      numeric success / failure exit code
+ * @return Numeric exit code
  */
 int
 main(int argc, char *argv[])
@@ -135,12 +134,11 @@ InitUserOptions(UserOptions *opt)
 }
 
 /**
- * Sets and validates user-requested options from command line arguments.
- *
- * @param options runtime options from defaults or command line
- * @param argcp   pointer to argument count
- * @param argvp   pointer to argument list
- * @return        DMTX_SUCCESS | DMTX_FAILURE
+ * @brief  Set and validate user-requested options from command line arguments.
+ * @param  opt runtime options from defaults or command line
+ * @param  argcp pointer to argument count
+ * @param  argvp pointer to argument list
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
@@ -334,6 +332,7 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
 
 /**
  *
+ *
  */
 static void
 ReadData(UserOptions *opt, int *codeBufferSize, unsigned char *codeBuffer)
@@ -356,10 +355,9 @@ ReadData(UserOptions *opt, int *codeBufferSize, unsigned char *codeBuffer)
 }
 
 /**
- * Display program usage and exit with received status.
- *
- * @param status error code returned to OS
- * @return       void
+ * @brief  Display program usage and exit with received status.
+ * @param  status error code returned to OS
+ * @return void
  */
 static void
 ShowUsage(int status)
@@ -424,6 +422,7 @@ OPTIONS:\n"), programName, programName);
 
 /**
  *
+ *
  */
 static void
 WriteImagePng(UserOptions *opt, DmtxEncode *enc)
@@ -446,27 +445,24 @@ WriteImagePng(UserOptions *opt, DmtxEncode *enc)
    /* Create and initialize the png_struct with the desired error handler functions */
    pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
    if(pngPtr == NULL) {
-      if(fp != stdout) {
+      if(fp != stdout)
          fclose(fp);
-      }
       perror(programName);
    }
 
    /* Create and initialize image information struct */
    infoPtr = png_create_info_struct(pngPtr);
    if(infoPtr == NULL) {
-      if(fp != stdout) {
+      if(fp != stdout)
          fclose(fp);
-      }
       png_destroy_write_struct(&pngPtr,  png_infopp_NULL);
       perror(programName);
    }
 
    /* Set error handling */
    if(setjmp(png_jmpbuf(pngPtr))) {
-      if(fp != stdout) {
+      if(fp != stdout)
          fclose(fp);
-      }
       png_destroy_write_struct(&pngPtr, &infoPtr);
       perror(programName);
    }
@@ -515,12 +511,12 @@ WriteImagePng(UserOptions *opt, DmtxEncode *enc)
    png_free(pngPtr, rowPointers);
    rowPointers = NULL;
 
-   if(fp != stdout) {
+   if(fp != stdout)
       fclose(fp);
-   }
 }
 
 /**
+ *
  *
  */
 static void
@@ -556,6 +552,7 @@ WriteImagePnm(UserOptions *opt, DmtxEncode *enc)
 
 /**
  *
+ *
  */
 static void
 WriteAsciiBarcode(DmtxEncode *enc)
@@ -582,6 +579,7 @@ WriteAsciiBarcode(DmtxEncode *enc)
 }
 
 /**
+ *
  *
  */
 static void

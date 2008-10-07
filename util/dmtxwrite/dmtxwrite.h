@@ -49,12 +49,12 @@ typedef struct {
    int dpi;
 } UserOptions;
 
-static void InitUserOptions(UserOptions *options);
-static int HandleArgs(UserOptions *options, int *argcp, char **argvp[], DmtxEncode *encode);
-static void ReadData(UserOptions *options, int *codeBuffer, unsigned char *codeBufferSize);
+static void InitUserOptions(UserOptions *opt);
+static int HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *encode);
+static void ReadData(UserOptions *opt, int *codeBuffer, unsigned char *codeBufferSize);
 static void ShowUsage(int status);
-static void WriteImagePng(UserOptions *options, DmtxEncode *encode);
-static void WriteImagePnm(UserOptions *options, DmtxEncode *encode);
+static void WriteImagePng(UserOptions *opt, DmtxEncode *encode);
+static void WriteImagePnm(UserOptions *opt, DmtxEncode *encode);
 static void WriteAsciiBarcode(DmtxEncode *encode);
 static void WriteCodewords(DmtxEncode *encode);
 

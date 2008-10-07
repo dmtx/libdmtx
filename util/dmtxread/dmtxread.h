@@ -61,8 +61,8 @@ typedef enum {
    ImageFormatTiff
 } ImageFormat;
 
-static void SetOptionDefaults(UserOptions *options);
-static int HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[]);
+static void SetOptionDefaults(UserOptions *opt);
+static int HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[]);
 static void ShowUsage(int status);
 static int ScaleNumberString(char *s, int extent);
 static ImageFormat GetImageFormat(char *imagePath);
@@ -70,7 +70,7 @@ static DmtxImage *LoadImage(char *imagePath, int pageIndex);
 static DmtxImage *LoadImagePng(char *imagePath);
 static DmtxImage *LoadImageJpeg(char *imagePath);
 static DmtxImage *LoadImageTiff(char *imagePath, int pageIndex);
-static int PrintDecodedOutput(UserOptions *options, DmtxImage *image,
+static int PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       DmtxRegion *region, DmtxMessage *message, int pageIndex);
 static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);
 

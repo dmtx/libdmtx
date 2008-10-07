@@ -50,11 +50,10 @@ Contact: mike@dragonflylogic.com
 char *programName;
 
 /**
- * Main function for the dmtxread Data Matrix scanning utility.
- *
- * @param argc count of arguments passed from command line
- * @param argv list of argument passed strings from command line
- * @return     numeric success / failure exit code
+ * @brief  Main function for the dmtxread Data Matrix scanning utility.
+ * @param  argc count of arguments passed from command line
+ * @param  argv list of argument passed strings from command line
+ * @return Numeric exit code
  */
 int
 main(int argc, char *argv[])
@@ -63,30 +62,37 @@ main(int argc, char *argv[])
    int fileIndex;
    int pageIndex;
    int imgWidth, imgHeight;
-   UserOptions options;
+   UserOptions opt;
    DmtxTime  msec, *timeout;
    DmtxImage *img;
    DmtxDecode decode;
    DmtxRegion region;
    DmtxMessage *message;
 
-   SetOptionDefaults(&options);
+   SetOptionDefaults(&opt);
 
-   err = HandleArgs(&options, &fileIndex, &argc, &argv);
+   err = HandleArgs(&opt, &fileIndex, &argc, &argv);
    if(err != DMTX_SUCCESS)
       ShowUsage(err);
 
-   timeout = (options.timeoutMS == -1) ? NULL : &msec;
+   timeout = (opt.timeoutMS == -1) ? NULL : &msec;
 
    /* Loop once for each page of each image listed in parameters */
    for(pageIndex = 0; fileIndex < argc;) {
 
       /* Reset timeout for each new image */
       if(timeout != NULL)
-         msec = dmtxTimeAdd(dmtxTimeNow(), options.timeoutMS);
+         msec = dmtxTimeAdd(dmtxTimeNow(), opt.timeoutMS);
 
       /* Load image page from file (many formats are single-page only) */
-      img = LoadImage(argv[fileIndex], pageIndex++);
+      /* XXX this whole approach a bit hackish -- revisit after GraphicsMagick patch */
+      if(fileIndex == -1) {
+         img = LoadImage(NULL, pageIndex++);
+         fileIndex = argc;
+      }
+      else {
+         img = LoadImage(argv[fileIndex], pageIndex++);
+      }
 
       /* If requested page did not load then move to the next image */
       if(img == NULL) {
@@ -103,40 +109,40 @@ main(int argc, char *argv[])
       /* Initialize decode struct for newly loaded image */
       decode = dmtxDecodeStructInit(img);
 
-      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMin, options.shrinkMin);
+      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMin, opt.shrinkMin);
       assert(err == DMTX_SUCCESS);
 
-      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMax, options.shrinkMax);
+      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMax, opt.shrinkMax);
       assert(err == DMTX_SUCCESS);
 
-      err = dmtxDecodeSetProp(&decode, DmtxPropEdgeThresh, options.edgeThresh);
+      err = dmtxDecodeSetProp(&decode, DmtxPropEdgeThresh, opt.edgeThresh);
       assert(err == DMTX_SUCCESS);
 
-      err = dmtxDecodeSetProp(&decode, DmtxPropScanGap, options.scanGap);
+      err = dmtxDecodeSetProp(&decode, DmtxPropScanGap, opt.scanGap);
       assert(err == DMTX_SUCCESS);
 
-      if(options.squareDevn != -1) {
-         err = dmtxDecodeSetProp(&decode, DmtxPropSquareDevn, options.squareDevn);
+      if(opt.squareDevn != -1) {
+         err = dmtxDecodeSetProp(&decode, DmtxPropSquareDevn, opt.squareDevn);
          assert(err == DMTX_SUCCESS);
       }
 
-      if(options.xMin) {
-         err = dmtxDecodeSetProp(&decode, DmtxPropXmin, ScaleNumberString(options.xMin, imgWidth));
+      if(opt.xMin) {
+         err = dmtxDecodeSetProp(&decode, DmtxPropXmin, ScaleNumberString(opt.xMin, imgWidth));
          assert(err == DMTX_SUCCESS);
       }
 
-      if(options.xMax) {
-         err = dmtxDecodeSetProp(&decode, DmtxPropXmax, ScaleNumberString(options.xMax, imgWidth));
+      if(opt.xMax) {
+         err = dmtxDecodeSetProp(&decode, DmtxPropXmax, ScaleNumberString(opt.xMax, imgWidth));
          assert(err == DMTX_SUCCESS);
       }
 
-      if(options.yMin) {
-         err = dmtxDecodeSetProp(&decode, DmtxPropYmin, ScaleNumberString(options.yMin, imgHeight));
+      if(opt.yMin) {
+         err = dmtxDecodeSetProp(&decode, DmtxPropYmin, ScaleNumberString(opt.yMin, imgHeight));
          assert(err == DMTX_SUCCESS);
       }
 
-      if(options.yMax) {
-         err = dmtxDecodeSetProp(&decode, DmtxPropYmax, ScaleNumberString(options.yMax, imgHeight));
+      if(opt.yMax) {
+         err = dmtxDecodeSetProp(&decode, DmtxPropYmax, ScaleNumberString(opt.yMax, imgHeight));
          assert(err == DMTX_SUCCESS);
       }
 
@@ -150,19 +156,19 @@ main(int argc, char *argv[])
          if(region.found != DMTX_REGION_FOUND)
             break;
 
-         if(options.diagnose)
+         if(opt.diagnose)
             WriteDiagnosticImage(&decode, &region, "debug.pnm");
 
          /* Decode region based on requested barcode mode */
-         if(options.mosaic)
-            message = dmtxDecodeMosaicRegion(img, &region, options.correctionsMax);
+         if(opt.mosaic)
+            message = dmtxDecodeMosaicRegion(img, &region, opt.correctionsMax);
          else
-            message = dmtxDecodeMatrixRegion(img, &region, options.correctionsMax);
+            message = dmtxDecodeMatrixRegion(img, &region, opt.correctionsMax);
 
          if(message == NULL)
             continue;
 
-         PrintDecodedOutput(&options, img, &region, message, pageIndex);
+         PrintDecodedOutput(&opt, img, &region, message, pageIndex);
 
          dmtxMessageFree(&message);
          break; /* XXX for now, break after first barcode is found in image */
@@ -180,45 +186,44 @@ main(int argc, char *argv[])
  *
  */
 static void
-SetOptionDefaults(UserOptions *options)
+SetOptionDefaults(UserOptions *opt)
 {
-   memset(options, 0x00, sizeof(UserOptions));
+   memset(opt, 0x00, sizeof(UserOptions));
 
    /* Set default options */
-   options->codewords = 0;
-   options->squareDevn = -1;
-   options->scanGap = 2;
-   options->timeoutMS = -1;
-   options->newline = 0;
-   options->shrinkMin = 1;
-   options->shrinkMax = 1;
-   options->edgeThresh = 5;
-   options->xMin = NULL;
-   options->xMax = NULL;
-   options->yMin = NULL;
-   options->yMax = NULL;
-   options->correctionsMax = -1;
-   options->diagnose = 0;
-   options->mosaic = 0;
-   options->pageNumber = 0;
-   options->corners = 0;
-   options->verbose = 0;
+   opt->codewords = 0;
+   opt->squareDevn = -1;
+   opt->scanGap = 2;
+   opt->timeoutMS = -1;
+   opt->newline = 0;
+   opt->shrinkMin = 1;
+   opt->shrinkMax = 1;
+   opt->edgeThresh = 5;
+   opt->xMin = NULL;
+   opt->xMax = NULL;
+   opt->yMin = NULL;
+   opt->yMax = NULL;
+   opt->correctionsMax = -1;
+   opt->diagnose = 0;
+   opt->mosaic = 0;
+   opt->pageNumber = 0;
+   opt->corners = 0;
+   opt->verbose = 0;
 }
 
 /**
- * Sets and validates user-requested options from command line arguments.
- *
- * @param options    runtime options from defaults or command line
- * @param argcp      pointer to argument count
- * @param argvp      pointer to argument list
- * @param fileIndex  pointer to index of first non-option arg (if successful)
- * @return           DMTX_SUCCESS | DMTX_FAILURE
+ * @brief  Set and validate user-requested options from command line arguments.
+ * @param  opt runtime options from defaults or command line
+ * @param  argcp pointer to argument count
+ * @param  argvp pointer to argument list
+ * @param  fileIndex pointer to index of first non-option arg (if successful)
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
+HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
 {
    int err;
-   int opt;
+   int optchr;
    int longIndex;
    char *ptr;
 
@@ -250,79 +255,79 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      opt = getopt_long(*argcp, *argvp, "cg:m:nq:s:t:x:X:y:Y:vC:DMPRV", longOptions, &longIndex);
-      if(opt == -1)
+      optchr = getopt_long(*argcp, *argvp, "cg:m:nq:s:t:x:X:y:Y:vC:DMPRV", longOptions, &longIndex);
+      if(optchr == -1)
          break;
 
-      switch(opt) {
+      switch(optchr) {
          case 0: /* --help */
             ShowUsage(0);
             break;
          case 'c':
-            options->codewords = 1;
+            opt->codewords = 1;
             break;
          case 'g':
-            err = StringToInt(&(options->scanGap), optarg, &ptr);
-            if(err != DMTX_SUCCESS || options->scanGap <= 0 || *ptr != '\0')
+            err = StringToInt(&(opt->scanGap), optarg, &ptr);
+            if(err != DMTX_SUCCESS || opt->scanGap <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid gap specified \"%s\""), optarg);
             break;
          case 'm':
-            err = StringToInt(&(options->timeoutMS), optarg, &ptr);
-            if(err != DMTX_SUCCESS || options->timeoutMS < 0 || *ptr != '\0')
+            err = StringToInt(&(opt->timeoutMS), optarg, &ptr);
+            if(err != DMTX_SUCCESS || opt->timeoutMS < 0 || *ptr != '\0')
                FatalError(1, _("Invalid timeout (in milliseconds) specified \"%s\""), optarg);
             break;
          case 'n':
-            options->newline = 1;
+            opt->newline = 1;
             break;
          case 'q':
-            err = StringToInt(&(options->squareDevn), optarg, &ptr);
+            err = StringToInt(&(opt->squareDevn), optarg, &ptr);
             if(err != DMTX_SUCCESS || *ptr != '\0' ||
-                  options->squareDevn < 0 || options->squareDevn > 90)
+                  opt->squareDevn < 0 || opt->squareDevn > 90)
                FatalError(1, _("Invalid squareness deviation specified \"%s\""), optarg);
             break;
          case 's':
-            err = StringToInt(&(options->shrinkMax), optarg, &ptr);
-            if(err != DMTX_SUCCESS || options->shrinkMax < 1 || *ptr != '\0')
+            err = StringToInt(&(opt->shrinkMax), optarg, &ptr);
+            if(err != DMTX_SUCCESS || opt->shrinkMax < 1 || *ptr != '\0')
                FatalError(1, _("Invalid shrink factor specified \"%s\""), optarg);
             /* XXX later also popular shrinkMin based on N-N range */
             break;
          case 't':
-            err = StringToInt(&(options->edgeThresh), optarg, &ptr);
+            err = StringToInt(&(opt->edgeThresh), optarg, &ptr);
             if(err != DMTX_SUCCESS || *ptr != '\0' ||
-                  options->edgeThresh < 1 || options->edgeThresh > 100)
+                  opt->edgeThresh < 1 || opt->edgeThresh > 100)
                FatalError(1, _("Invalid edge threshold specified \"%s\""), optarg);
             break;
          case 'x':
-            options->xMin = optarg;
+            opt->xMin = optarg;
             break;
          case 'X':
-            options->xMax = optarg;
+            opt->xMax = optarg;
             break;
          case 'y':
-            options->yMin = optarg;
+            opt->yMin = optarg;
             break;
          case 'Y':
-            options->yMax = optarg;
+            opt->yMax = optarg;
             break;
          case 'v':
-            options->verbose = 1;
+            opt->verbose = 1;
             break;
          case 'C':
-            err = StringToInt(&(options->correctionsMax), optarg, &ptr);
-            if(err != DMTX_SUCCESS || options->correctionsMax < 0 || *ptr != '\0')
+            err = StringToInt(&(opt->correctionsMax), optarg, &ptr);
+            if(err != DMTX_SUCCESS || opt->correctionsMax < 0 || *ptr != '\0')
                FatalError(1, _("Invalid max corrections specified \"%s\""), optarg);
             break;
          case 'D':
-            options->diagnose = 1;
+            opt->diagnose = 1;
             break;
          case 'M':
-            options->mosaic = 1;
+            opt->mosaic = 1;
             break;
          case 'P':
-            options->pageNumber = 1;
+            opt->pageNumber = 1;
             break;
          case 'R':
-            options->corners = 1;
+            opt->corners = 1;
             break;
          case 'V':
             fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
@@ -336,24 +341,17 @@ HandleArgs(UserOptions *options, int *fileIndex, int *argcp, char **argvp[])
    }
    *fileIndex = optind;
 
-   /* File not specified */
-   if(*fileIndex == *argcp) {
-
-      if(*argcp == 1) /* Program called without arguments */
-         return DMTX_FAILURE;
-      else
-         FatalError(1, _("Must specify image file"));
-
-   }
+   /* File not specified - use stdin */
+   if(*fileIndex == *argcp)
+      *fileIndex = -1;
 
    return DMTX_SUCCESS;
 }
 
 /**
- * Display program usage and exit with received status.
- *
- * @param status error code returned to OS
- * @return       void
+ * @brief  Display program usage and exit with received status.
+ * @param  status error code returned to OS
+ * @return void
  */
 static void
 ShowUsage(int status)
@@ -434,6 +432,7 @@ ScaleNumberString(char *s, int extent)
 
 /**
  *
+ *
  */
 static ImageFormat
 GetImageFormat(char *imagePath)
@@ -442,7 +441,10 @@ GetImageFormat(char *imagePath)
 
    /* XXX Right now this determines file type based on filename extension.
     * XXX Not ideal -- but only temporary. */
-   assert(imagePath != NULL);
+
+   /* Image data from stdin is assumed to be PNG format */
+   if(imagePath == NULL)
+      return ImageFormatPng;
 
    ptr = strrchr(imagePath, '/');
    extension = (ptr == NULL) ? imagePath : ptr + 1;
@@ -471,6 +473,7 @@ GetImageFormat(char *imagePath)
 }
 
 /**
+ *
  *
  */
 static DmtxImage *
@@ -502,11 +505,10 @@ LoadImage(char *imagePath, int pageIndex)
 }
 
 /**
- * Load data from PNG file into DmtxImage format.
- *
- * @param image     pointer to DmtxImage structure to be populated
- * @param imagePath path/name of PNG image
- * @return          DMTX_SUCCESS | DMTX_FAILURE
+ * @brief  Load data from PNG file into DmtxImage format.
+ * @param  image pointer to DmtxImage structure to be populated
+ * @param  imagePath path/name of PNG image
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static DmtxImage *
 LoadImagePng(char *imagePath)
@@ -526,7 +528,7 @@ LoadImagePng(char *imagePath)
 
    /* XXX should be setting set_jmpbuf */
 
-   fp = fopen(imagePath, "rb");
+   fp = (imagePath == NULL) ? stdin : fopen(imagePath, "rb");
    if(fp == NULL) {
       perror(programName);
       return NULL;
@@ -534,31 +536,41 @@ LoadImagePng(char *imagePath)
 
    fread(pngHeader, 1, sizeof(pngHeader), fp);
    isPng = !png_sig_cmp(pngHeader, 0, sizeof(pngHeader));
-   if(!isPng)
+   if(!isPng) {
+      if(fp != stdin)
+         fclose(fp);
       return NULL;
+   }
 
    pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
    if(pngPtr == NULL) {
       png_destroy_read_struct(&pngPtr, (png_infopp)NULL, (png_infopp)NULL);
+      if(fp != stdin)
+         fclose(fp);
       return NULL;
    }
 
    infoPtr = png_create_info_struct(pngPtr);
    if(infoPtr == NULL) {
       png_destroy_read_struct(&pngPtr, (png_infopp)NULL, (png_infopp)NULL);
+      if(fp != stdin)
+         fclose(fp);
       return NULL;
    }
 
    endInfo = png_create_info_struct(pngPtr);
    if(endInfo == NULL) {
       png_destroy_read_struct(&pngPtr, &infoPtr, (png_infopp)NULL);
+      if(fp != stdin)
+         fclose(fp);
       return NULL;
    }
 
    if(setjmp(png_jmpbuf(pngPtr))) {
       png_destroy_read_struct(&pngPtr, &infoPtr, &endInfo);
-      fclose(fp);
+      if(fp != stdin)
+         fclose(fp);
       return NULL;
    }
 
@@ -601,8 +613,10 @@ LoadImagePng(char *imagePath)
 
    rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * height);
    if(rowPointers == NULL) {
-      perror(programName);
       /* free first? */
+      perror(programName);
+      if(fp != stdin)
+         fclose(fp);
       return NULL;
    }
 
@@ -619,8 +633,10 @@ LoadImagePng(char *imagePath)
 
    image = dmtxImageMalloc(width, height);
    if(image == NULL) {
-      perror(programName);
       /* free first? */
+      perror(programName);
+      if(fp != stdin)
+         fclose(fp);
       return NULL;
    }
 
@@ -633,17 +649,17 @@ LoadImagePng(char *imagePath)
    png_free(pngPtr, rowPointers);
    rowPointers = NULL;
 
-   fclose(fp);
+   if(fp != stdin)
+      fclose(fp);
 
    return image;
 }
 
 /**
- * Load data from JPEG file into DmtxImage format.
- *
- * @param image     pointer to DmtxImage structure to be populated
- * @param imagePath path/name of JPEG image
- * @return          DMTX_SUCCESS | DMTX_FAILURE
+ * @brief  Load data from JPEG file into DmtxImage format.
+ * @param  image pointer to DmtxImage structure to be populated
+ * @param  imagePath path/name of JPEG image
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 #ifdef HAVE_LIBJPEG
 struct my_error_mgr {
@@ -669,11 +685,10 @@ my_error_exit (j_common_ptr cinfo)
 }
 
 /**
- * Load data from JPEG file into DmtxImage format.
- *
- * @param image     pointer to DmtxImage structure to be populated
- * @param imagePath path/name of JPEG image
- * @return          DMTX_SUCCESS | DMTX_FAILURE
+ * @brief  Load data from JPEG file into DmtxImage format.
+ * @param  image pointer to DmtxImage structure to be populated
+ * @param  imagePath path/name of JPEG image
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static DmtxImage *
 LoadImageJpeg(char *imagePath)
@@ -742,11 +757,10 @@ LoadImageJpeg(char *imagePath)
 
 #ifdef HAVE_LIBTIFF
 /**
- * Load data from TIFF file into DmtxImage format.
- *
- * @param image    pointer to DmtxImage structure to be populated
- * @param filename path/name of PNG image
- * @return         number of pages contained in image file
+ * @brief  Load data from TIFF file into DmtxImage format.
+ * @param  image pointer to DmtxImage structure to be populated
+ * @param  filename path/name of PNG image
+ * @return number of pages contained in image file
  */
 static DmtxImage *
 LoadImageTiff(char *imagePath, int pageIndex)
@@ -819,14 +833,13 @@ LoadImageTiff(char *imagePath, int pageIndex)
 #endif
 
 /**
- * XXX
- *
- * @param options   runtime options from defaults or command line
- * @param decode    pointer to DmtxDecode struct
- * @return          DMTX_SUCCESS | DMTX_FAILURE
+ * @brief  XXX
+ * @param  opt runtime options from defaults or command line
+ * @param  decode pointer to DmtxDecode struct
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-PrintDecodedOutput(UserOptions *options, DmtxImage *image,
+PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       DmtxRegion *region, DmtxMessage *message, int pageIndex)
 {
    int i;
@@ -836,7 +849,7 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
    double rotate;
 
    dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, region->sizeIdx);
-   if(options->verbose) {
+   if(opt->verbose) {
 
       height = dmtxImageGetProp(image, DmtxPropHeight);
 
@@ -872,10 +885,10 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
       fprintf(stdout, "--------------------------------------------------\n");
    }
 
-   if(options->pageNumber)
+   if(opt->pageNumber)
       fprintf(stdout, "%d:", pageIndex + 1);
 
-   if(options->corners) {
+   if(opt->corners) {
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
             height - 1 - (int)(region->corners.c00.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c10.X + 0.5),
@@ -888,7 +901,7 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
             height - 1 - (int)(region->corners.c00.Y + 0.5));
    }
 
-   if(options->codewords) {
+   if(opt->codewords) {
       for(i = 0; i < message->codeSize; i++) {
          fprintf(stdout, "%c:%03d\n", (i < dataWordLength) ?
                'd' : 'e', message->code[i]);
@@ -896,7 +909,7 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
    }
    else {
       fwrite(message->output, sizeof(char), message->outputIdx, stdout);
-      if(options->newline)
+      if(opt->newline)
          fputc('\n', stdout);
    }
 
@@ -904,6 +917,7 @@ PrintDecodedOutput(UserOptions *options, DmtxImage *image,
 }
 
 /**
+ *
  *
  */
 static void
