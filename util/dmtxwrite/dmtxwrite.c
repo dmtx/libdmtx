@@ -395,7 +395,7 @@ OPTIONS:\n"), programName, programName);
         n = None             do not create barcode image\n\
         p = PNG    [default] PNG image\n\
         m = PNM              PNM image\n\
-  -o, --output=FILE          output filename, or \"-\" for STDOUT\n\
+  -o, --output=FILE          output filename (default is STDOUT)\n\
   -p, --preview=[ac]         print preview of barcode data to STDOUT\n\
         a = ASCII            ASCII-art representation\n\
         c = Codewords        list data and error codewords\n\
@@ -411,7 +411,7 @@ OPTIONS:\n"), programName, programName);
             88x88,   96x96, 104x104, 120x120, 132x132, 144x144\n\
         Manually specified SIZE options for rectangular symbols:\n\
              8x18,    8x32,   12x26,   12x36,   16x36,   16x48\n\
-  -M, --mosaic               create Data Mosaic barcode (non-standard)\n\
+  -M, --mosaic               create non-standard Data Mosaic barcode\n\
   -R, --resolution=NUM       set image print resolution (dpi)\n\
   -v, --verbose              use verbose messages\n\
   -V, --version              print version information\n\
