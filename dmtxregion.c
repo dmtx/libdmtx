@@ -94,14 +94,16 @@ extern DmtxRegion
 dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
 {
    DmtxEdgeSubPixel edgeStart;
-   DmtxRay2 ray0, ray1;
    DmtxRegion reg;
-/* DmtxPointEdge edges[3];
-   int i;
-   int distSqPos, distSqNeg;
-   int strongColor; */
    int hough[DMTX_HOUGH_RES] = { 0 };
    int houghStrong;
+/*
+   DmtxPointEdge edges[3];
+   DmtxPixelLoc p0, p1;
+   int i;
+   int strongColor;
+*/
+   DmtxRay2 ray0, ray1;
 
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
@@ -117,20 +119,8 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
       reg.found = DMTX_REGION_DROPPED_EDGE;
       return reg;
    }
-
-   /* Next follow the edge to its end in both directions */
-   houghStrong = 0;
-   ray0 = FollowEdge(dec, loc.X, loc.Y, edgeStart, 1, hough, &houghStrong);
-   ray1 = FollowEdge(dec, loc.X, loc.Y, edgeStart, -1, hough, &houghStrong);
-   if(hough[houghStrong] < 8) {
-      reg.found = DMTX_REGION_DROPPED_1ST;
-      return reg;
-   }
-
-/*************************************************************************/
-
-   /* Find whether red, green, or blue shows the strongest edge */
 /*
+   // Find whether red, green, or blue shows the strongest edge
    strongColor = 0;
    for(i = 0; i < 3; i++) {
       edges[i] = GetPointEdge(dec, i, loc.X, loc.Y);
@@ -143,19 +133,36 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
       reg.found = DMTX_REGION_DROPPED_EDGE;
       return reg;
    }
-*/
-   /* Next follow the edge to its end in both directions */
-/*
+
+   // Next follow the edge to its end in both directions
    houghStrong = 0;
-   distSqPos = FollowEdge2(dec, strongColor, loc.X, loc.Y, edges[strongColor], 1, hough, &houghStrong);
-   distSqNeg = FollowEdge2(dec, strongColor, loc.X, loc.Y, edges[strongColor], -1, hough, &houghStrong);
-   if(distSqPos + distSqNeg < 10.0 || hough[houghStrong] < 8) {
+   p0 = FollowEdge2(dec, strongColor, loc.X, loc.Y, edges[strongColor], -1, hough, &houghStrong);
+   p1 = FollowEdge2(dec, strongColor, loc.X, loc.Y, edges[strongColor], 1, hough, &houghStrong);
+
+   if(hough[houghStrong] < 8) {
+      reg.found = DMTX_REGION_DROPPED_1ST;
+      return reg;
+   }
+
+   // Define first edge based on travel limits of detected edge
+   if(MatrixRegionAlignFirstEdge2(dec, &reg, p0, p1) != DMTX_SUCCESS) {
       reg.found = DMTX_REGION_DROPPED_1ST;
       return reg;
    }
 */
+   /* Next follow the edge to its end in both directions */
+   houghStrong = 0;
+   ray0 = FollowEdge(dec, loc.X, loc.Y, edgeStart, 1, hough, &houghStrong);
+   ray1 = FollowEdge(dec, loc.X, loc.Y, edgeStart, -1, hough, &houghStrong);
+   if(hough[houghStrong] < 8) {
+      reg.found = DMTX_REGION_DROPPED_1ST;
+      return reg;
+   }
 
-/*************************************************************************/
+   if(hough[houghStrong] < 8) {
+      reg.found = DMTX_REGION_DROPPED_1ST;
+      return reg;
+   }
 
    /* Define first edge based on travel limits of detected edge */
    if(MatrixRegionAlignFirstEdge(dec, &reg, &edgeStart, ray0, ray1) != DMTX_SUCCESS) {
@@ -665,7 +672,7 @@ FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forwar
          p.Y = edge.yInt + edge.yFrac;
 
          /* Outline of follower in 2nd pane */
-         CALLBACK_POINT_PLOT(p, 1, 1, DMTX_DISPLAY_POINT);
+/*       CALLBACK_POINT_PLOT(p, 1, 1, DMTX_DISPLAY_POINT); */
 
          if(edge.compass.magnitude > 0.50 * compass.magnitude)
             pSoft = p;
@@ -789,6 +796,44 @@ MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxEdgeSubPixel *e
 
    return DMTX_SUCCESS;
 }
+
+#ifdef NOTDEFINED
+/**
+ * @brief Align first edge of potential barcode region
+ * @param image
+ * @param reg
+ * @param edgeStart
+ * @param ray0
+ * @param ray1
+ * @return DMTX_SUCCESS | DMTX_FAILURE
+ */
+static int
+MatrixRegionAlignFirstEdge2(DmtxDecode *dec, DmtxRegion *reg, DmtxPixelLoc p0, DmtxPixelLoc p1)
+{
+   int xDelta, yDelta;
+   DmtxVector2 pTmp;
+
+   xDelta = p1.X - p0.X;
+   yDelta = p1.Y - p0.Y;
+
+   /* Reject edges shorter than 10 pixels */
+   if(xDelta * xDelta + yDelta * yDelta < 100)
+      return DMTX_FAILURE;
+
+   pTmp.X = p0.X;
+   pTmp.Y = p0.Y;
+   dmtxRegionSetCornerLoc(reg, DmtxCorner00, pTmp);
+
+   pTmp.X = p1.X;
+   pTmp.Y = p1.Y;
+   dmtxRegionSetCornerLoc(reg, DmtxCorner01, pTmp);
+
+   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
+      return DMTX_FAILURE;
+
+   return DMTX_SUCCESS;
+}
+#endif
 
 /**
  * @brief  XXX
@@ -1635,6 +1680,7 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
    return jumpCount;
 }
 
+#ifdef NOTDEFINED
 /**
  *
  *
@@ -1660,6 +1706,7 @@ GetPointEdge(DmtxDecode *dec, int colorPlane, int x, int y)
    }
 
    /* Calculate this pixel's edge intensity for each direction (-45, 0, 45, 90) */
+   maxIdx = 0;
    for(i = 0; i < 4; i++) {
 
       edge[i] = dmtxBlankEdge;
@@ -1689,8 +1736,8 @@ GetPointEdge(DmtxDecode *dec, int colorPlane, int x, int y)
          }
       }
 
-      /* Identify strongest conpass edge */
-      if(i == 0 || abs(edge[i].colorDelta) > abs(edge[maxIdx].colorDelta))
+      /* Identify strongest compass edge */
+      if(i != 0 && abs(edge[i].colorDelta) > abs(edge[maxIdx].colorDelta))
          maxIdx = i;
    }
 
@@ -1708,8 +1755,9 @@ GetPointEdge(DmtxDecode *dec, int colorPlane, int x, int y)
  *
  *
  */
-static int
-FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0, DmtxPointEdge start, int sign, int hough[], int *houghStrong)
+static DmtxPixelLoc
+FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0,
+      DmtxPointEdge start, int sign, int hough[], int *houghStrong)
 {
    int x, y;
    int offset;
@@ -1721,10 +1769,12 @@ FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0, DmtxPointEdge start
    double angle;
    DmtxPointEdge strong;
    DmtxPixelLoc longHit;
-   DmtxCompassEdge loc;
+   DmtxCompassEdge *loc;
+   DmtxVector2 p;
 
-   x = x0;
-   y = y0;
+   longHit.status = 0; /* XXX this needs to go away */
+   longHit.X = x = x0;
+   longHit.Y = y = y0;
    strong = start;
 
    strongDir = -1; /* No previous direction for first step */
@@ -1733,6 +1783,10 @@ FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0, DmtxPointEdge start
       offset = dmtxImageGetOffset(dec->image, x, y);
       if(offset == DMTX_BAD_OFFSET)
          break;
+
+      p.X = x;
+      p.Y = y;
+      CALLBACK_POINT_PLOT(p, 1, 1, DMTX_DISPLAY_POINT);
 
       /* Decide which neighbors should be visited for testing */
       err = FindTravelDirection(dec, x, y, strong, sign, &m1, &m2);
@@ -1747,7 +1801,9 @@ FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0, DmtxPointEdge start
          break;
 
       /* Mark strongest neighbor */
-      dec->image->compass[offset].neighbor = strong.inbound;
+      loc = &(dec->image->compass[offset]);
+      loc->neighbor = strong.inbound;
+      loc->visited = 0xff;
 
       /* Increment Hough accumulator */
       angle = atan2(y - y0, x - x0) + M_PI;
@@ -1755,12 +1811,12 @@ FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0, DmtxPointEdge start
 
       hough[angleIdx]++;
 
+      if(hough[angleIdx] > hough[*houghStrong])
+         *houghStrong = angleIdx;
+
       if(angleIdx == *houghStrong) {
          longHit.X = x;
          longHit.Y = y;
-      }
-      if(hough[angleIdx] > hough[*houghStrong]) {
-         *houghStrong = angleIdx;
       }
 
       if(hough[*houghStrong] > 8 && hough[angleIdx] < 3)
@@ -1777,21 +1833,22 @@ FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0, DmtxPointEdge start
       if(offset == DMTX_BAD_OFFSET)
          break;
 
-      loc = dec->image->compass[offset];
-      if(loc.neighbor == DmtxNeighborNone)
+      loc = &(dec->image->compass[offset]);
+
+      if(loc->visited == 0xff)
+         loc->visited = 0x00;
+      else
          break;
 
-      x += dmtxPatternX[loc.neighbor];
-      y += dmtxPatternY[loc.neighbor];
-
-      loc.neighbor = DmtxNeighborNone;
+      x += dmtxPatternX[loc->neighbor];
+      y += dmtxPatternY[loc->neighbor];
    }
 
    distX = longHit.X - x0;
    distY = longHit.Y - y0;
 
    /* Return squared distance along strongest hough angle */
-   return distX * distX + distY * distY;
+   return longHit;
 }
 
 /**
@@ -1799,20 +1856,19 @@ FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0, DmtxPointEdge start
  *
  */
 static int
-FindTravelDirection(DmtxDecode *dec, int x0, int y0, DmtxPointEdge edge, int sign, unsigned char *m1, unsigned char *m2)
+FindTravelDirection(DmtxDecode *dec, int x0, int y0, DmtxPointEdge edge,
+      int sign, unsigned char *m1, unsigned char *m2)
 {
    int i;
    int mask;
-   int mAvoidBacktrack;
-   int mAvoidBadClosure;
-   int mAvoidOutOfBounds;
+   int mAvoid;
    int mAttemptGradient;
    int mAttemptNeighbor;
    int offset;
    int x, y;
-   unsigned char neighbor;
+   DmtxCompassEdge *loc;
 
-   mAttemptNeighbor = mAvoidBacktrack = mAvoidBadClosure = mAvoidOutOfBounds = 0x00;
+   mAttemptNeighbor = mAvoid = 0x00;
    mAttemptGradient = (sign > 0) ? (0x01 << edge.compass) : (0x01 << ((edge.compass + 4) % 8));
 
    /* Check all potential neighbors for avoidances and alternatives */
@@ -1826,21 +1882,15 @@ FindTravelDirection(DmtxDecode *dec, int x0, int y0, DmtxPointEdge edge, int sig
       /* Neighbor is out of bounds - avoid */
       offset = dmtxImageGetOffset(dec->image, x, y);
       if(offset == DMTX_BAD_OFFSET) {
-         mAvoidOutOfBounds |= mask;
+         mAvoid |= mask;
          continue;
       }
 
       /* Perform tests for already-marked neighbors */
-      neighbor = dec->image->compass[offset].neighbor;
-      if(neighbor != DmtxNeighborNone) {
-         /* Can't backtrack */
-         if(abs(neighbor - i) == 4) {
-            mAvoidBacktrack |= mask;
-         }
-         else {
-            mAvoidBadClosure |= mask;
-            mAttemptNeighbor |= (0x01 << ((neighbor + 4) % 8));
-         }
+      loc = &(dec->image->compass[offset]);
+      if(loc->visited == 0xff) {
+         mAvoid |= mask;
+         mAttemptNeighbor |= (0x01 << ((loc->neighbor + 4) % 8));
       }
    }
 
@@ -1862,8 +1912,11 @@ FindTravelDirection(DmtxDecode *dec, int x0, int y0, DmtxPointEdge edge, int sig
       }
    }
 
-   *m1 = mAttemptGradient & ((mAvoidOutOfBounds | mAvoidBacktrack) ^ 0xff);
-   *m2 = mAttemptNeighbor & ((*m1 | mAvoidBadClosure) ^ 0xff);
+   /* Places to test first */
+   *m1 = mAttemptGradient & (mAvoid ^ 0xff);
+
+   /* Places to test second */
+   *m2 = mAttemptNeighbor & ((mAvoid | *m1) ^ 0xff);
    assert(*m1 + *m2 < 255);
 
    return DMTX_SUCCESS;
@@ -1908,6 +1961,7 @@ FindStrongestNeighbor(DmtxDecode *dec, int colorPlane, int x0, int y0, unsigned 
 
    return (strongIdx == -1) ? dmtxBlankEdge : edge[strongIdx];
 }
+#endif
 
 /**
  *
