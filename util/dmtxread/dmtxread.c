@@ -3,6 +3,7 @@ libdmtx - Data Matrix Encoding/Decoding Library
 
 Copyright (c) 2008 Mike Laughton
 Copyright (c) 2008 Ryan Raasch
+Copyright (c) 2008 Olivier Guilyardi
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -32,20 +33,10 @@ Contact: mike@dragonflylogic.com
 #include <math.h>
 #include <stdarg.h>
 #include <assert.h>
-#include <png.h>
+#include <magick/api.h>
 #include <dmtx.h>
 #include "dmtxread.h"
 #include "../common/dmtxutil.h"
-
-#ifdef HAVE_LIBJPEG
-#include "jpeglib.h"
-#include "jerror.h"
-#include <setjmp.h>
-#endif
-
-#ifdef HAVE_LIBTIFF
-#include <tiffio.h>
-#endif
 
 char *programName;
 
@@ -68,8 +59,11 @@ main(int argc, char *argv[])
    DmtxDecode decode;
    DmtxRegion region;
    DmtxMessage *message;
+   ImageReader reader;
+   int nFiles;
 
    SetOptionDefaults(&opt);
+   InitializeMagick(*argv);
 
    err = HandleArgs(&opt, &fileIndex, &argc, &argv);
    if(err != DMTX_SUCCESS)
@@ -77,25 +71,35 @@ main(int argc, char *argv[])
 
    timeout = (opt.timeoutMS == -1) ? NULL : &msec;
 
+   reader.image = NULL;
+   nFiles = argc - fileIndex;
+
    /* Loop once for each page of each image listed in parameters */
-   for(pageIndex = 0; fileIndex < argc;) {
+   for(pageIndex = 0; fileIndex < argc || (nFiles == 0 && fileIndex == argc);) {
 
       /* Reset timeout for each new image */
       if(timeout != NULL)
          msec = dmtxTimeAdd(dmtxTimeNow(), opt.timeoutMS);
 
-      /* Load image page from file (many formats are single-page only) */
-      /* XXX this whole approach a bit hackish -- revisit after GraphicsMagick patch */
-      if(fileIndex == -1) {
-         img = LoadImage(NULL, pageIndex++);
-         fileIndex = argc;
+      /* Open image file/stream */
+      if (!reader.image) {
+         if (argc == fileIndex)
+            OpenImage(&reader, "-", opt.resolution);
+         else
+            OpenImage(&reader, argv[fileIndex], opt.resolution);
+
+         if (!reader.image) {
+            fileIndex++;
+            continue;
+         }
       }
-      else {
-         img = LoadImage(argv[fileIndex], pageIndex++);
-      }
+
+      /* Read next image page (many formats are single-page only) */
+      img = ReadImagePage(&reader, pageIndex++);
 
       /* If requested page did not load then move to the next image */
       if(img == NULL) {
+         CloseImage(&reader);
          fileIndex++;
          pageIndex = 0;
          continue;
@@ -178,6 +182,8 @@ main(int argc, char *argv[])
       dmtxImageFree(&img);
    }
 
+   DestroyMagick();
+
    exit(0);
 }
 
@@ -209,6 +215,7 @@ SetOptionDefaults(UserOptions *opt)
    opt->pageNumber = 0;
    opt->corners = 0;
    opt->verbose = 0;
+   opt->resolution = NULL;
 }
 
 /**
@@ -230,9 +237,11 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
    struct option longOptions[] = {
          {"codewords",        no_argument,       NULL, 'c'},
          {"gap",              required_argument, NULL, 'g'},
+         {"list-formats",     no_argument,       NULL, 'l'},
          {"milliseconds",     required_argument, NULL, 'm'},
          {"newline",          no_argument,       NULL, 'n'},
          {"square-deviation", required_argument, NULL, 'q'},
+         {"resolution",       required_argument, NULL, 'r'},
          {"shrink",           required_argument, NULL, 's'},
          {"threshold",        required_argument, NULL, 't'},
          {"x-range-min",      required_argument, NULL, 'x'},
@@ -255,13 +264,16 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      optchr = getopt_long(*argcp, *argvp, "cg:m:nq:s:t:x:X:y:Y:vC:DMPRV", longOptions, &longIndex);
+      optchr = getopt_long(*argcp, *argvp, "cg:lm:nq:r:s:t:x:X:y:Y:vC:DMPRV", longOptions, &longIndex);
       if(optchr == -1)
          break;
 
       switch(optchr) {
          case 0: /* --help */
             ShowUsage(0);
+            break;
+         case 'l': /* --help */
+            ListImageFormats();
             break;
          case 'c':
             opt->codewords = 1;
@@ -284,6 +296,9 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             if(err != DMTX_SUCCESS || *ptr != '\0' ||
                   opt->squareDevn < 0 || opt->squareDevn > 90)
                FatalError(1, _("Invalid squareness deviation specified \"%s\""), optarg);
+            break;
+         case 'r':
+            opt->resolution = optarg;
             break;
          case 's':
             err = StringToInt(&(opt->shrinkMax), optarg, &ptr);
@@ -341,10 +356,6 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
    }
    *fileIndex = optind;
 
-   /* File not specified - use stdin */
-   if(*fileIndex == *argcp)
-      *fileIndex = -1;
-
    return DMTX_SUCCESS;
 }
 
@@ -376,9 +387,11 @@ OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
   -c, --codewords            print codewords extracted from barcode pattern\n\
   -g, --gap=NUM              use scan grid with gap of NUM pixels between lines\n\
+  -l, --list-formats         list supported input image formats\n\
   -m, --milliseconds=N       stop scan after N milliseconds (per image)\n\
   -n, --newline              print newline character at the end of decoded data\n\
   -q, --square-deviation=N   allowed non-squareness of corners in degrees (0-90)\n\
+  -r, --resolution=N         decoding resolution for vectorial images (PDF, ..)\n\
   -s, --shrink=N             internally shrink image by a factor of N\n"));
       fprintf(stdout, _("\
   -t, --threshold=N          ignore weak edges below threshold N (1-100)\n\
@@ -431,406 +444,133 @@ ScaleNumberString(char *s, int extent)
 }
 
 /**
- *
- *
+ * @brief  List supported input image formats on stdout
+ * @return void
  */
-static ImageFormat
-GetImageFormat(char *imagePath)
+static void
+ListImageFormats(void)
 {
-   char *extension, *ptr;
+   MagickInfo **formats;
+   int i;
+   ExceptionInfo exception;
 
-   /* XXX Right now this determines file type based on filename extension.
-    * XXX Not ideal -- but only temporary. */
+   GetExceptionInfo(&exception);
+   formats=GetMagickInfoArray(&exception);
+   CatchException(&exception);
+   if (formats) {
+      printf("   Format  Description\n");
+      printf("--------------------------------------------------------"
+             "-----------------------\n");
+      for (i=0; formats[i] != 0; i++) {
+         if (formats[i]->stealth || !formats[i]->decoder)
+           continue;
 
-   /* Image data from stdin is assumed to be PNG format */
-   if(imagePath == NULL)
-      return ImageFormatPng;
+         printf("%9s",formats[i]->name ? formats[i]->name : "");
+         if (formats[i]->description != (char *) NULL)
+            printf("  %s\n",formats[i]->description);
+      }
+      free(formats);
+   }
 
-   ptr = strrchr(imagePath, '/');
-   extension = (ptr == NULL) ? imagePath : ptr + 1;
-
-   ptr = strrchr(extension, '.');
-   extension = (ptr == NULL) ? NULL : ptr + 1;
-
-   if(extension == NULL)
-      return ImageFormatUnknown;
-   else if(strncmp(extension, "png", 3) == 0 || strncmp(extension, "PNG", 3) == 0)
-      return ImageFormatPng;
-#ifdef HAVE_LIBJPEG
-   else if(strncmp(extension, "jpg", 3) == 0 || strncmp(extension, "JPG", 3) == 0)
-      return ImageFormatJpeg;
-   else if(strncmp(extension, "jpeg", 4) == 0 || strncmp(extension, "JPEG", 4) == 0)
-      return ImageFormatJpeg;
-#endif
-#ifdef HAVE_LIBTIFF
-   else if(strncmp(extension, "tif", 3) == 0 || strncmp(extension, "TIF", 3) == 0)
-      return ImageFormatTiff;
-   else if(strncmp(extension, "tiff", 4) == 0 || strncmp(extension, "TIFF", 4) == 0)
-      return ImageFormatTiff;
-#endif
-
-   return ImageFormatUnknown;
+   DestroyExceptionInfo(&exception);
+   exit(0);
 }
 
 /**
- *
- *
+ * @brief  Open an image input file
+ * @param  reader     pointer to ImageReader struct
+ * @param  imagePath  image path or "-" for stdin
+ * @return DMTX_SUCCESS | DMTX_FAILURE
  */
-static DmtxImage *
-LoadImage(char *imagePath, int pageIndex)
+static int
+OpenImage(ImageReader *reader, char *imagePath, char *resolution)
 {
-   DmtxImage *image;
+   reader->image = NULL;
+   GetExceptionInfo(&reader->exception);
+   reader->info = CloneImageInfo((ImageInfo *) NULL);
 
-   switch(GetImageFormat(imagePath)) {
-      case ImageFormatPng:
-         image = (pageIndex == 0) ? LoadImagePng(imagePath) : NULL;
+   strcpy((reader->info)->filename, imagePath);
+   if (resolution) {
+      reader->info->density = strdup(resolution);
+      reader->info->units = PixelsPerInchResolution;
+   }
+   reader->image = ReadImage(reader->info, &reader->exception);
+
+   switch (reader->exception.severity) {
+      case UndefinedException:
          break;
-#ifdef HAVE_LIBJPEG
-      case ImageFormatJpeg:
-         image = (pageIndex == 0) ? LoadImageJpeg(imagePath) : NULL;
+      case OptionError:
+      case MissingDelegateError:
+         fprintf(stderr,
+                 "%s: unsupported file format. Use -l to see the available ones.\n",
+                 imagePath);
          break;
-#endif
-#ifdef HAVE_LIBTIFF
-      case ImageFormatTiff:
-         image = LoadImageTiff(imagePath, pageIndex);
-         break;
-#endif
       default:
-         image = NULL;
-         FatalError(1, _("Unrecognized file type \"%s\""), imagePath);
-         break;
+         CatchException(&reader->exception);
    }
 
-   return image;
+   if (!reader->image)
+      CloseImage(reader);
+
+   return reader->image ? DMTX_SUCCESS : DMTX_FAILURE;
 }
 
 /**
- * @brief  Load data from PNG file into DmtxImage format.
- * @param  image pointer to DmtxImage structure to be populated
- * @param  imagePath path/name of PNG image
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @brief  Read an image page
+ * @param  reader pointer to ImageReader struct
+ * @param  index page index
+ * @return pointer to allocated DmtxImage or NULL
  */
 static DmtxImage *
-LoadImagePng(char *imagePath)
+ReadImagePage(ImageReader *reader, int index)
 {
-   DmtxImage       *image;
-   png_byte        pngHeader[8];
-   FILE            *fp;
-   int             isPng;
-   int             bitDepth, colorType, interlaceType, compressionType, filterMethod;
-   int             row;
-   png_uint_32     width, height;
-   png_structp     pngPtr;
-   png_infop       infoPtr;
-   png_infop       endInfo;
-   png_bytepp      rowPointers;
-   png_color_16p   image_background;
-
-   /* XXX should be setting set_jmpbuf */
-
-   fp = (imagePath == NULL) ? stdin : fopen(imagePath, "rb");
-   if(fp == NULL) {
-      perror(programName);
-      return NULL;
-   }
-
-   fread(pngHeader, 1, sizeof(pngHeader), fp);
-   isPng = !png_sig_cmp(pngHeader, 0, sizeof(pngHeader));
-   if(!isPng) {
-      if(fp != stdin)
-         fclose(fp);
-      return NULL;
-   }
-
-   pngPtr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-
-   if(pngPtr == NULL) {
-      png_destroy_read_struct(&pngPtr, (png_infopp)NULL, (png_infopp)NULL);
-      if(fp != stdin)
-         fclose(fp);
-      return NULL;
-   }
-
-   infoPtr = png_create_info_struct(pngPtr);
-   if(infoPtr == NULL) {
-      png_destroy_read_struct(&pngPtr, (png_infopp)NULL, (png_infopp)NULL);
-      if(fp != stdin)
-         fclose(fp);
-      return NULL;
-   }
-
-   endInfo = png_create_info_struct(pngPtr);
-   if(endInfo == NULL) {
-      png_destroy_read_struct(&pngPtr, &infoPtr, (png_infopp)NULL);
-      if(fp != stdin)
-         fclose(fp);
-      return NULL;
-   }
-
-   if(setjmp(png_jmpbuf(pngPtr))) {
-      png_destroy_read_struct(&pngPtr, &infoPtr, &endInfo);
-      if(fp != stdin)
-         fclose(fp);
-      return NULL;
-   }
-
-   png_init_io(pngPtr, fp);
-   png_set_sig_bytes(pngPtr, sizeof(pngHeader));
-
-   png_read_info(pngPtr, infoPtr);
-   png_get_IHDR(pngPtr, infoPtr, &width, &height, &bitDepth, &colorType,
-         &interlaceType, &compressionType, &filterMethod);
-
-   if(colorType == PNG_COLOR_TYPE_PALETTE && bitDepth <= 8)
-      png_set_expand(pngPtr);
-
-   if(colorType == PNG_COLOR_TYPE_GRAY && bitDepth < 8)
-      png_set_expand(pngPtr);
-
-   if(png_get_valid(pngPtr, infoPtr, PNG_INFO_tRNS))
-      png_set_expand(pngPtr);
-
-   if(bitDepth < 8)
-      png_set_packing(pngPtr);
-
-   png_set_strip_16(pngPtr);
-   png_set_strip_alpha(pngPtr);
-   png_set_packswap(pngPtr);
-
-   if(colorType == PNG_COLOR_TYPE_PALETTE)
-      png_set_palette_to_rgb(pngPtr);
-
-   if(colorType == PNG_COLOR_TYPE_GRAY || PNG_COLOR_TYPE_GRAY_ALPHA)
-      png_set_gray_to_rgb(pngPtr);
-
-   if(png_get_bKGD(pngPtr, infoPtr, &image_background))
-      png_set_background(pngPtr, image_background, PNG_BACKGROUND_GAMMA_FILE, 1, 1.0);
-
-   png_read_update_info(pngPtr, infoPtr);
-
-   png_get_IHDR(pngPtr, infoPtr, &width, &height, &bitDepth, &colorType,
-         &interlaceType, &compressionType, &filterMethod);
-
-   rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * height);
-   if(rowPointers == NULL) {
-      /* free first? */
-      perror(programName);
-      if(fp != stdin)
-         fclose(fp);
-      return NULL;
-   }
-
-   for(row = 0; row < height; row++) {
-      rowPointers[row] = (png_bytep)png_malloc(pngPtr,
-            png_get_rowbytes(pngPtr, infoPtr));
-      assert(rowPointers[row] != NULL);
-   }
-
-   png_read_image(pngPtr, rowPointers);
-   png_read_end(pngPtr, infoPtr);
-
-   png_destroy_read_struct(&pngPtr, &infoPtr, &endInfo);
-
-   image = dmtxImageMalloc(width, height);
-   if(image == NULL) {
-      /* free first? */
-      perror(programName);
-      if(fp != stdin)
-         fclose(fp);
-      return NULL;
-   }
-
-   for(row = 0; row < height; row++)
-      memcpy(image->pxl + (row * width), rowPointers[row], width * sizeof(DmtxRgb));
-
-   for(row = 0; row < height; row++)
-      png_free(pngPtr, rowPointers[row]);
-
-   png_free(pngPtr, rowPointers);
-   rowPointers = NULL;
-
-   if(fp != stdin)
-      fclose(fp);
-
-   return image;
-}
-
-/**
- * @brief  Load data from JPEG file into DmtxImage format.
- * @param  image pointer to DmtxImage structure to be populated
- * @param  imagePath path/name of JPEG image
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-#ifdef HAVE_LIBJPEG
-struct my_error_mgr {
-   struct jpeg_error_mgr pub;    /* "public" fields */
-
-   jmp_buf setjmp_buffer;        /* for return to caller */
-};
-
-typedef struct my_error_mgr * my_error_ptr;
-
-METHODDEF(void)
-my_error_exit (j_common_ptr cinfo)
-{
-   /* cinfo->err really points to a my_error_mgr struct, so coerce pointer */
-   my_error_ptr myerr = (my_error_ptr) cinfo->err;
-
-   /* Always display the message. */
-   /* We could postpone this until after returning, if we chose. */
-   (*cinfo->err->output_message) (cinfo);
-
-   /* Return control to the setjmp point */
-   longjmp(myerr->setjmp_buffer, 1);
-}
-
-/**
- * @brief  Load data from JPEG file into DmtxImage format.
- * @param  image pointer to DmtxImage structure to be populated
- * @param  imagePath path/name of JPEG image
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-static DmtxImage *
-LoadImageJpeg(char *imagePath)
-{
-   DmtxImage *image;
-   struct jpeg_decompress_struct cinfo;
-   struct my_error_mgr jerr;
-   FILE *infile;        /* source file */
-   JSAMPARRAY buffer;   /* Output row buffer */
-   int row_stride;      /* physical row width in output buffer */
-   DmtxRgb *ptr;
-
-   if((infile = fopen(imagePath, "rb")) == NULL) {
-      fprintf(stderr, "can't open %s\n", imagePath);
-      return 0;
-   }
-
-   /* Set up the normal JPEG error routines, then override error_exit */
-   cinfo.err = jpeg_std_error(&jerr.pub);
-   jerr.pub.error_exit = my_error_exit;
-
-   /* Establish the setjmp return context for my_error_exit to use */
-   if(setjmp(jerr.setjmp_buffer)) {
-      jpeg_destroy_decompress(&cinfo);
-      fclose(infile);
-      return 0;
-   }
-
-   /* Now we can initialize the JPEG decompression object */
-   jpeg_create_decompress(&cinfo);
-   jpeg_stdio_src(&cinfo, infile);
-
-   jpeg_read_header(&cinfo, TRUE);
-   jpeg_start_decompress(&cinfo);
-
-   /* If RGB, the width * 3 */
-   row_stride = cinfo.output_width * cinfo.output_components;
-
-   /* Allocate destination dmtx image */
-   image = dmtxImageMalloc(cinfo.output_width, cinfo.output_height);
-   if(image == NULL) {
-      perror(programName);
-      /* free first? */
-      return NULL;
-   }
-
-   /* Make a one-row-high sample array that will go away when done with image */
-   buffer = (*cinfo.mem->alloc_sarray)
-         ((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
-
-   ptr = image->pxl;
-   while(cinfo.output_scanline < cinfo.output_height) {
-      jpeg_read_scanlines(&cinfo, buffer, 1);
-
-      memcpy(ptr, buffer[0], row_stride);
-      ptr += (row_stride/3);
-   }
-
-   jpeg_finish_decompress(&cinfo);
-   jpeg_destroy_decompress(&cinfo);
-   fclose(infile);
-
-   return image;
-}
-#endif
-
-#ifdef HAVE_LIBTIFF
-/**
- * @brief  Load data from TIFF file into DmtxImage format.
- * @param  image pointer to DmtxImage structure to be populated
- * @param  filename path/name of PNG image
- * @return number of pages contained in image file
- */
-static DmtxImage *
-LoadImageTiff(char *imagePath, int pageIndex)
-{
-   DmtxImage *image;
-   int dirIndex = 0;
-   TIFF* tif;
-   int row, col;
-   int tiffOffset, dmtxOffset;
-   uint32 width, height;
-   uint32* raster;
-   size_t npixels;
+   DmtxImage    *image;
+   unsigned int dispatchResult;
+   int          pageCount;
 
    image = NULL;
+   if (reader->image) {
+      pageCount = GetImageListLength(reader->image);
+      if (index < pageCount)
+      {
+         reader->image = GetImageFromList(reader->image, index);
 
-   tif = TIFFOpen(imagePath, "r");
-   if(tif == NULL) {
-      perror(programName);
-      return NULL;
-   }
+         image = dmtxImageMalloc(reader->image->columns, reader->image->rows);
 
-   do {
-      if(dirIndex == pageIndex) {
-         TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &width);
-         TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &height);
-         npixels = width * height;
-
-         raster = (uint32*) _TIFFmalloc(npixels * sizeof (uint32));
-         if(raster == NULL) {
+         if(image) {
+            image->pageCount = pageCount;
+            dispatchResult = DispatchImage(reader->image, 0, 0, reader->image->columns,
+                                           reader->image->rows, "RGB", CharPixel,
+                                           image->pxl, &reader->exception);
+            if (dispatchResult == MagickFail) {
+               dmtxImageFree(&image);
+               CatchException(&reader->exception);
+            }
+         }
+         else {
             perror(programName);
-            /* free before returning */
-            return NULL;
          }
-
-         if(TIFFReadRGBAImage(tif, width, height, raster, 0)) {
-
-            image = dmtxImageMalloc(width, height);
-            if(image == NULL) {
-               perror(programName);
-               /* free first? */
-               return NULL;
-            }
-
-            for(row = 0; row < height; row++) {
-               for(col = 0; col < width; col++) {
-                  dmtxOffset = dmtxImageGetOffset(image, col, row);
-                  tiffOffset = row * image->width + col;
-
-                  /* TIFF uses ABGR packed */
-                  image->pxl[dmtxOffset][0] = raster[tiffOffset] & 0x000000ff;
-                  image->pxl[dmtxOffset][1] = (raster[tiffOffset] & 0x0000ff00) >> 8;
-                  image->pxl[dmtxOffset][2] = (raster[tiffOffset] & 0x00ff0000) >> 16;
-               }
-            }
-         }
-
-         _TIFFfree(raster);
       }
-
-      dirIndex++;
-   } while(TIFFReadDirectory(tif));
-
-   TIFFClose(tif);
-
-   if(image != NULL)
-      image->pageCount = dirIndex;
-
+   }
    return image;
 }
-#endif
+
+/**
+ * @brief  Close an image
+ * @param  reader  pointer to ImageReader struct
+ * @return void
+ */
+static void
+CloseImage(ImageReader * reader)
+{
+   if (reader->image) {
+      DestroyImage(reader->image);
+      reader->image = NULL;
+   }
+
+   DestroyImageInfo(reader->info);
+   DestroyExceptionInfo(&reader->exception);
+}
 
 /**
  * @brief  XXX

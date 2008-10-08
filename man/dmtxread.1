@@ -12,7 +12,9 @@ dmtxread \- scan Data Matrix barcodes
 .B dmtxread
 [\fIOPTION\fP]... [\fIFILE\fP]...
 .SH DESCRIPTION
-dmtxread finds and decodes ECC200 Data Matrix barcodes within images (PNG, JPEG, TIFF) and writes the decoded messages to standard output. Note: dmtxread currently stops scanning after it decodes the first barcode in an image.
+dmtxread finds and decodes ECC200 Data Matrix barcodes within images and writes the decoded messages to standard output. Note: dmtxread currently stops scanning after it decodes the first barcode in an image.
+
+If you don't specify any file, or use "-" as filename, dmtxread will read image data from STDIN.
 .SH OPTIONS
 .TP
 \fB\-c\fP, \fB\-\-codewords\fP
@@ -20,6 +22,9 @@ Only print the codewords extracted from a Data Matrix, and not the actual decode
 .TP
 \fB\-g\fP, \fB\-\-gap\fP=\fINUM\fP
 Use scan grid with gap of \fINUM\fP pixels (or less) between lines.
+.TP
+\fB\-l\fP, \fB\-\-list-formats\fP
+List the supported input image formats.
 .TP
 \fB\-m\fP, \fB\-\-milliseconds\fP=\fIN\fP
 Stop scan after N milliseconds (per image).
@@ -29,6 +34,9 @@ Print a newline character at the end of decoded data.
 .TP
 \fB\-q\fP, \fB\-\-square-deviation\fP=\fIN\fP
 Maximum deviation (degrees) from squareness between adjacent barcode sides. Default value is N=40, but N=10 is recommended for flat applications like faxes and other scanned documents. Barcode regions found with corners <(90-N) or >(90+N) will be ignored by the decoder.
+.TP
+\fB\-r\fP, \fB\-\-resolution\fP=\fIN\fP
+Decoding resolution in dots per inch (DPI). Only used for vectorial input images such as SVG, PDF, etc... This option accepts a single argument (eg: 300) as well as horizontal and vertical resolutions (eg: 300x150). The default resolution is 72dpi.
 .TP
 \fB\-s\fP, \fB\-\-shrink\fP=\fIN\fP
 Internally shrink image by factor of N. Shrinking is accomplished by skipping N-1 pixels at a time, often producing significantly faster scan times. It also improves scan success rate for images taken with poor camera focus provided the image is sufficiently large.

@@ -3,6 +3,7 @@ AM_INIT_AUTOMAKE([-Wall -Werror gnu])
 
 AC_PROG_CC
 AC_PROG_LIBTOOL
+AM_PROG_CC_C_O
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
@@ -24,33 +25,10 @@ case $host_os in
 esac
 AM_CONDITIONAL([TARGET_MACOSX], [test x$ARCH = xmacosx])
 
-jpeg_ok=no
-AC_CHECK_LIB([jpeg], [jpeg_read_scanlines],
-   [AC_CHECK_HEADER([jpeglib.h],
-      [jpeg_ok=yes],
-      [AC_MSG_WARN([*** JPEG support will not be included (header not found) ***])]
-   )],
-   [AC_MSG_WARN([*** JPEG support will not be included (library not found) ***])]
-)
-
-if test x$jpeg_ok = xyes; then
-   AC_DEFINE([HAVE_LIBJPEG], [1], [Define to 1 if you have the libjpeg header and library.])
-fi
-AM_CONDITIONAL([HAVE_LIBJPEG], [test x$jpeg_ok = xyes])
-
-tiff_ok=no
-AC_CHECK_LIB([tiff], [TIFFReadRGBAImage],
-   [AC_CHECK_HEADER([tiff.h],
-      [tiff_ok=yes],
-      [AC_MSG_WARN([*** TIFF support will not be included (header not found) ***])]
-   )],
-   [AC_MSG_WARN([*** TIFF support will not be included (library not found) ***])]
-)
-
-if test x$tiff_ok = xyes; then
-   AC_DEFINE([HAVE_LIBTIFF], [1], [Define to 1 if you have the libtiff header and library.])
-fi
-AM_CONDITIONAL([HAVE_LIBTIFF], [test x$tiff_ok = xyes])
+PKG_CHECK_MODULES(MAGICK, GraphicsMagick >= 1.1.7, true,
+                  AC_MSG_ERROR([you need GraphicsMagick >= 1.1.7]))
+AC_SUBST(MAGICK_CFLAGS)
+AC_SUBST(MAGICK_LIBS)
 
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_FUNCS([gettimeofday])

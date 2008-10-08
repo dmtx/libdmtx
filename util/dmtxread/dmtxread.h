@@ -2,6 +2,7 @@
 libdmtx - Data Matrix Encoding/Decoding Library
 
 Copyright (c) 2008 Mike Laughton
+Copyright (c) 2008 Olivier Guilyardi
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -39,6 +40,7 @@ typedef struct {
    int scanGap;         /* -g, --gap */
    int timeoutMS;       /* -m, --milliseconds */
    int newline;         /* -n, --newline */
+   char *resolution;    /* -r, --resolution */
    int shrinkMax;       /* -s, --shrink */
    int shrinkMin;       /* -s, --shrink (if range specified) */
    int edgeThresh;      /* -t, --threshold */
@@ -54,24 +56,22 @@ typedef struct {
    int verbose;         /* -v, --verbose */
 } UserOptions;
 
-typedef enum {
-   ImageFormatUnknown,
-   ImageFormatPng,
-   ImageFormatJpeg,
-   ImageFormatTiff
-} ImageFormat;
+typedef struct _ImageReader {
+   Image *        image;
+   ImageInfo *    info;
+   ExceptionInfo  exception;
+} ImageReader;
 
 static void SetOptionDefaults(UserOptions *opt);
 static int HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[]);
 static void ShowUsage(int status);
 static int ScaleNumberString(char *s, int extent);
-static ImageFormat GetImageFormat(char *imagePath);
-static DmtxImage *LoadImage(char *imagePath, int pageIndex);
-static DmtxImage *LoadImagePng(char *imagePath);
-static DmtxImage *LoadImageJpeg(char *imagePath);
-static DmtxImage *LoadImageTiff(char *imagePath, int pageIndex);
+static void ListImageFormats(void);
+static int OpenImage(ImageReader *reader, char *imagePath, char *resolution);
+static DmtxImage *ReadImagePage(ImageReader *reader, int index);
+static void CloseImage(ImageReader *reader);
 static int PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
-      DmtxRegion *region, DmtxMessage *message, int pageIndex);
+                              DmtxRegion *region, DmtxMessage *message, int pageIndex);
 static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);
 
 #endif
