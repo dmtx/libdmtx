@@ -37,6 +37,7 @@ after version 0.6.0:
 
 version 0.6.0: (??-??-2008)
   / libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
+  x dmtxread:  GraphicsMagick support for dmtxread (thanks Olivier!)
   x dmtxread:  JPEG reading support (thanks Ryan!)
   x dmtxwrite: Option to write output to STDOUT (thanks Olivier!)
 

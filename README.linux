@@ -9,47 +9,21 @@ using libdmtx on GNU/Linux and similar systems. The general
 README file, also found in this directory, contains a higher
 level summary of libdmtx and its components.
 
-1. Unpackaging
+1. Building from Source Code
+-----------------------------------------------------------------
+See the general README file
+
+
+2. Installing Pre-Compiled Binaries
 -----------------------------------------------------------------
 
-libdmtx is distributed as 2 files: one for source code and
-another for additional test images.  The test images are
-strictly optional, but are occasionally useful for testing.
+Debian
 
-To install everything, place both files in the same directory
-and untar them as follows:
+Debian users are the big winners because libdmtx is already
+included as part of the distribution. To install the latest
+release, just run the following:
 
-For .bz2 files:
-  $ tar jxvf libdmtx-0.5.2.tar.bz2
-
-For .gz files:
-  $ tar zxvf libdmtx-0.5.2.tar.gz
-
-For .tar files:
-  $ tar xvf libdmtx-images-0.5.0.tar
-
-Note: If your system uses an older version of tar you might
-      need to do it in two steps, like this:
-
-  $ gunzip libdmtx-0.5.2.tar.gz && tar xvf libdmtx-0.5.2.tar
-
-
-2. Fedora
------------------------------------------------------------------
-
-If you have an RPM-based system and you want to test for all of
-these in one shot, you can give it one of these:
-
-  $ rpm -q libpng libpng-devel libtiff libtiff-devel mesa-libGL \
-        mesa-libGL-devel mesa-libGLU mesa-libGLU-devel SDL SDL-devel
-
-
-2. Debian
------------------------------------------------------------------
-
-If you have a Debian-based system and you want to install all
-dependencies in one pass, use the following incantation:
-
-  $ sudo aptitude install autotools-dev libc6 libdmtx0 libgl1-mesa-dev \
-       libgl1-mesa-glx libglu1-mesa libglu1-mesa-dev libpng12-0 libpng12-dev \
-       libsdl1.2-dev libsdl1.2debian-all libtiff4 libtiff4-dev
+  $ sudo aptitude install autotools-dev libc6 libdmtx0 \
+       libgl1-mesa-dev libgl1-mesa-glx libglu1-mesa \
+       libglu1-mesa-dev libpng12-0 libpng12-dev libsdl1.2-dev \
+       libsdl1.2debian-all libtiff4 libtiff4-dev
