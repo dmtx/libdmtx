@@ -98,6 +98,8 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    int hough[DMTX_HOUGH_RES] = { 0 };
    int houghStrong;
 /*
+   int hough2[DMTX_HOUGH_RES] = { 0 };
+   int hough2Strong, hough2Total;
    DmtxPointEdge edges[3];
    DmtxPixelLoc p0, p1;
    int i;
@@ -119,6 +121,7 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
       reg.found = DMTX_REGION_DROPPED_EDGE;
       return reg;
    }
+
 /*
    // Find whether red, green, or blue shows the strongest edge
    strongColor = 0;
@@ -135,11 +138,19 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    }
 
    // Next follow the edge to its end in both directions
-   houghStrong = 0;
-   p0 = FollowEdge2(dec, strongColor, loc.X, loc.Y, edges[strongColor], -1, hough, &houghStrong);
-   p1 = FollowEdge2(dec, strongColor, loc.X, loc.Y, edges[strongColor], 1, hough, &houghStrong);
+   hough2Strong = 0;
+   memset(hough2, 0x00, sizeof(hough2));
+   p0 = FollowEdge2(dec, strongColor, loc.X, loc.Y, edges[strongColor], -1, hough2, &hough2Strong);
 
-   if(hough[houghStrong] < 8) {
+   hough2Total = hough2[hough2Strong];
+
+   hough2Strong = 0;
+   memset(hough2, 0x00, sizeof(hough2));
+   p1 = FollowEdge2(dec, strongColor, loc.X, loc.Y, edges[strongColor], 1, hough2, &hough2Strong);
+
+   hough2Total += hough2[hough2Strong];
+
+   if(hough2Total < 8) {
       reg.found = DMTX_REGION_DROPPED_1ST;
       return reg;
    }
@@ -1736,14 +1747,14 @@ GetPointEdge(DmtxDecode *dec, int colorPlane, int x, int y)
          }
       }
 
+      /* 6 5 4
+       * 7   3
+       * 0 1 2 */
+
       /* Identify strongest compass edge */
       if(i != 0 && abs(edge[i].colorDelta) > abs(edge[maxIdx].colorDelta))
          maxIdx = i;
    }
-
-   /* 6 5 4
-    * 7   3
-    * 0 1 2 */
 
    /* Convert direction to compass index */
    edge[maxIdx].compass = (edge[maxIdx].colorDelta > 0) ? maxIdx + 4 : maxIdx;
@@ -1764,7 +1775,6 @@ FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0,
    int strongDir;
    int err;
    int angleIdx;
-   int distX, distY;
    unsigned char m1, m2;
    double angle;
    DmtxPointEdge strong;
@@ -1843,9 +1853,6 @@ FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0,
       x += dmtxPatternX[loc->neighbor];
       y += dmtxPatternY[loc->neighbor];
    }
-
-   distX = longHit.X - x0;
-   distY = longHit.Y - y0;
 
    /* Return squared distance along strongest hough angle */
    return longHit;

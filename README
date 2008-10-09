@@ -4,10 +4,11 @@
 
                libdmtx README file (all platforms)
 
-The following summary of libdmtx and its components applies
-generally to all platforms. For more specific instructions please
-also read the README.xxx file in this directory that matches your
-platform (e.g., README.linux, README.windows, etc...).
+This summary of the libdmtx package applies generally to all
+platforms. For instructions regarding your specific platform
+please also read the README.xxx file in this directory that
+matches your system (e.g., README.linux, README.windows,
+README.osx, etc...).
 
 
 1. Introduction
@@ -30,40 +31,47 @@ freely under these terms.
 2. Installation
 -----------------------------------------------------------------
 
-libdmtx uses GNU Autotools so the installation should be familiar
-to free software veterans. If your platform cannot easily run the
+libdmtx uses GNU Autotools so installation should be familiar to
+free software veterans. If your platform cannot easily run the
 Autotools scripts (e.g., MS Visual Studio) then please refer to
 the appropriate platform-specific README.xxx located in this
-directory for detailed instructions.
+directory for alternate instructions.
 
-Most people can simply run the following commands:
+Most people can simply run the following:
 
-  $ ./autogen.sh
   $ ./configure
   $ make
   $ sudo make install
 
 Note: If the 'sudo' command is not configured on your system then
 you can alternatively yell "Yeeehaww!" as you log in as root and
-run this command instead:
+run this instead:
 
   $ make install
 
-For more details on the "./configure" step please read the
-INSTALL file located in this directory. If the INSTALL file does
-not exist then you may need to run the "./autogen.sh" step first.
+If you're awesome and it compiled on the first try then you can
+now use the newly built library and utility programs that were
+just installed system-wide.
+
+However, if something when wrong then keep reading.
+
+If you obtained libdmtx from its Subversion repository then you
+probably got an error saying something like "configure: error:
+cannot find install-sh". Run this command and try again:
+
+  $ ./autogen.sh
+
+The autogen.sh command requires autoconf, automake, libtool, and
+pkgconfig to be installed on your system.
 
 Errors encountered during the "make" step are often a result of
 missing software dependencies. These dependencies are listed in
-the "Components" section of this document. Install any missing
-software and try again.
+Appendix A. of this document. Install any missing software and
+try again.
 
-However, if you're awesome and it compiled on the first try then
-you can execute the newly built programs, including:
-
-  * util/dmtxread/dmtxread
-  * util/dmtxwrite/dmtxwrite
-  * util/dmtxquery/dmtxquery
+For more information on the "./configure" step please read the
+INSTALL file located in this directory. If the INSTALL file does
+not exist then you may need to run the "./autogen.sh" step first.
 
 If you want to ensure that everything built correctly you can
 optionally build the test programs like this:
@@ -75,7 +83,7 @@ optionally build the test programs like this:
 -----------------------------------------------------------------
 
 libdmtx serves a diverse audience and contains several unrelated
-components, some of which may not be useful to you. Package
+components, many of which may not be useful to you. Package
 components generally fall into one of four categories:
 
   * Core library      (useful to all libdmtx users)
@@ -92,9 +100,9 @@ these components and their properties.
 
 New users are encouraged to read the man pages for the library
 and command line utilities. However, here are a few simple cases
-to get you started using the utilities:
+to get you started:
 
-The dmtxwrite utility turns a message into a barcode image.
+The dmtxwrite utility turns messages into a barcode images.
 Messages can be passed to the utility via STDIN or file, and
 likewise the output images can be written to STDOUT or file. The
 following examples all produce equivalent results:
@@ -122,6 +130,12 @@ You can even combine the utilities like this:
   $ echo 'Hello, world!' | dmtxwrite | dmtxread
   Hello, world!
 
+  $ dmtxread image1.png | dmtxwrite -o image2.png
+
+Note in this last example that the resulting image2.png might
+look nothing like image1.png. They will both contain barcodes
+that hold the same message, but the similarities end there.
+
 
 5. Contact
 -----------------------------------------------------------------
@@ -132,7 +146,7 @@ OhLoh.net page:        https://www.ohloh.net/projects/libdmtx
 Open mailing list:     libdmtx-open_discussion@lists.sourceforge.net
 
 
-Appendix A. Full libdmtx Component Listing
+Appendix A. Full Listing of libdmtx Components
 -----------------------------------------------------------------
 
 Name:        libdmtx
@@ -172,28 +186,28 @@ Requires:    No dependencies
 -----------------------------------
 
 Name:        pydmtx
-Type:        x
-Description: x
+Type:        Language wrapper
+Description: Python libdmtx wrapper
 Location:    libdmtx/wrappers/python
-Build:       x
-Requires:    x
+Build:       See INSTALL file in libdmtx/wrappers/python directory
+Requires:    python, pil
 
 -----------------------------------
 
 Name:        libdmtx-php
-Type:        x
-Description: x
+Type:        Language wrapper
+Description: PHP libdmtx wrapper
 Location:    libdmtx/wrappers/php
-Build:       x
-Requires:    x
+Build:       See INSTALL file in libdmtx/wrappers/php directory
+Requires:    php, php-cli, php-common
 
 -----------------------------------
 
 Name:        libdmtx Cocoa wrapper
-Type:        x
-Description: x
+Type:        Language wrapper
+Description: Cocoa libdmtx wrapper
 Location:    libdmtx/wrappers/cocoa
-Build:       x
+Build:       See INSTALL file in libdmtx/wrappers/cocoa directory
 Requires:    x
 
 -----------------------------------
