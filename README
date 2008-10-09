@@ -1,43 +1,224 @@
-README for libdmtx version 0.5.2 - September 4, 2008
+=================================================================
+            libdmtx - Open Source Data Matrix Software
+=================================================================
+
+               libdmtx README file (all platforms)
+
+The following summary of libdmtx and its components applies
+generally to all platforms. For more specific instructions please
+also read the README.xxx file in this directory that matches your
+platform (e.g., README.linux, README.windows, etc...).
+
+
+1. Introduction
 -----------------------------------------------------------------
 
-A minor release in name only, libdmtx 0.5.2 delivers several
-performance enhancements, bug fixes, and general improvements
-over previous versions. We still have a few enhancements that
-haven't made it in yet, which is why this is a minor release, but
-most users will already see big performance gains by ugrading to
-0.5.2. Depending on the images being scanned, but it's not
-uncommon to see a 500x (or better) speedup over 0.5.1 runtimes
-when proper tuning parameters are used.
+libdmtx is open source software for reading and writing Data
+Matrix barcodes on Linux, Unix, OS X, Windows, and certain mobile
+devices. At its core libdmtx is a shared library, allowing C/C++
+programs to use its capabilities without restrictions or
+overhead.
 
-For users of pydmtx (the libdmtx Python wrapper), Jonathan Lung
-has also written a new decode2() function which is showing 15x
-faster decode times than the original pydmtx decode function.
+The included utility programs, dmtxread and dmtxwrite, serve as
+the official interface to libdmtx from the command line, and also
+provide a good reference for programmers who wish to write their
+own programs that interact with libdmtx. All of the software in
+the libdmtx package is distributed under the LGPL and can be used
+freely under these terms.
 
-The performance tuning effort has been a good learning
-experience, and has resulted in plans for more significant
-changes down the road that will enable even faster performance
-and improved scanning of mixed-quality images. The goal is to
-deliver these changes in small chunks to minimize regressions
-and avoid long release cycles.
 
-Other notable changes in 0.5.2 include:
+2. Installation
+-----------------------------------------------------------------
 
-Performance Improvements
-  * New dynamic image shrinking feature (pixel skipping)
-  * New squareness deviation feature
-  * Simplified Hough transform for locating first edge
-  * Several other internal performance enhancements
+libdmtx uses GNU Autotools so the installation should be familiar
+to free software veterans. If your platform cannot easily run the
+Autotools scripts (e.g., MS Visual Studio) then please refer to
+the appropriate platform-specific README.xxx located in this
+directory.
 
-General Improvements
-  * Encoding support for 144x144 barcodes (largest possible)
-  * Changed internal pixel storage to use top-left origin
-  * Various improvements when building for OS X and FreeBSD
-  * Added new experimental PHP wrapper code (Thanks Christian!)
-  * Several bugs fixed (see ChangeLog)
+Most people can simply run the following as yourself:
 
-As always, please let us know if you find any bugs or have
-trouble installing the software. Messages should be sent to the
-mailing list:
+  $ ./autogen.sh
+  $ ./configure
+  $ make
+  $ sudo make install
 
-   libdmtx-open_discussion@lists.sourceforge.net
+Note: If the 'sudo' command is not configured on your system then
+alternatively you can yell "Yeeehaww!" as you log in as root and
+run this command instead:
+
+  $ make install
+
+For more details on the "./configure" step please read the
+INSTALL file located in this directory. If the INSTALL file does
+not exist then you may need to run the "./autogen.sh" step.
+
+Errors encountered during the "make" step are often a result of
+missing software dependencies. These dependencies are listed in
+the "Components" section of this document. Install any missing
+software and try again.
+
+However, if you're awesome and it compiled on the first try then
+you can execute the newly built programs, including:
+
+  * util/dmtxread/dmtxread
+  * util/dmtxwrite/dmtxwrite
+  * util/dmtxquery/dmtxquery
+
+If you want to ensure that everything built correctly you can
+optionally build the test programs by running:
+
+  $ make check
+
+
+3. Components
+-----------------------------------------------------------------
+
+libdmtx serves a diverse audience and contains several unrelated
+components, some of which may not be useful to you. Package
+components generally fall into one of four categories:
+
+  * Core library      (useful to all libdmtx users)
+  * Utility programs  (useful to command line users)
+  * Language Wrappers (useful to non-C/C++ developers)
+  * Test programs     (useful to libdmtx developers)
+
+Appendix A. at the end of this document provides a full list of
+these components and their properties.
+
+
+4. Basic Usage
+-----------------------------------------------------------------
+
+New users are encouraged to read the man pages for the library
+and command line utilities. However, here are a few simple cases
+to get you started:
+
+The dmtxwrite utility turns a message into a barcode image.
+Messages can be passed to the utility by either STDIN or file,
+and likewise the output images can be written to STDOUT or file.
+The following examples all produce equivalent results:
+
+  $ echo -n 123456 | dmtxwrite > image.png
+  $ echo -n 123456 | dmtxwrite -o image.png
+  $ echo -n 123456 > message.txt; dmtxwrite message.txt > image.png
+  $ dmtxwrite <(echo -n 123456) -o image.png
+
+The dmtxread utility turns barcode images into messages. Images
+can be passed to the utility by either STDIN or file, and the
+output is written to STDOUT. The following examples both produce
+equivalent results:
+
+  $ dmtxread -n image.png
+  $ cat image.png | dmtxread -n
+
+Other typical cases:
+
+  $ dmtxread -n image1.png image2.png image3.png
+  $ dmtxread -m500 -n image.png
+
+You can even combine them like this:
+
+  $ echo 'Hello, world!' | dmtxwrite | dmtxread
+  Hello, world!
+
+
+5. Contact
+-----------------------------------------------------------------
+
+Official website:      http://www.libdmtx.org
+SourceForge.net page:  http://www.sourceforge.net/projects/libdmtx
+OhLoh.net page:        https://www.ohloh.net/projects/libdmtx
+Open mailing list:     libdmtx-open_discussion@lists.sourceforge.net
+
+
+Appendix A. Full libdmtx Component Listing
+-----------------------------------------------------------------
+
+Name:        libdmtx
+Type:        Core library
+Description: Data Matrix encoding/decoding logic
+Location:    libdmtx
+Build:       make
+Requires:    No dependencies
+
+-----------------------------------
+
+Name:        dmtxread
+Type:        Utility program
+Description: Read Data Matrix barcodes from the command line
+Location:    libdmtx/util/dmtxread
+Build:       make
+Requires:    GraphicsMagick
+
+-----------------------------------
+
+Name:        dmtxwrite
+Type:        Utility program
+Description: Create Data Matrix barcodes from the command line
+Location:    libdmtx/util/dmtxwrite
+Build:       make
+Requires:    libpng
+
+-----------------------------------
+
+Name:        dmtxquery
+Type:        Utility program (currently non functional)
+Description: Query and merge scan results from dmtxread utility
+Location:    libdmtx/util/dmtxquery
+Build:       make
+Requires:    No dependencies
+
+-----------------------------------
+
+Name:        pydmtx
+Type:        x
+Description: x
+Location:    libdmtx/wrappers/python
+Build:       x
+Requires:    x
+
+-----------------------------------
+
+Name:        libdmtx-php
+Type:        x
+Description: x
+Location:    libdmtx/wrappers/php
+Build:       x
+Requires:    x
+
+-----------------------------------
+
+Name:        libdmtx Cocoa wrapper
+Type:        x
+Description: x
+Location:    libdmtx/wrappers/cocoa
+Build:       x
+Requires:    x
+
+-----------------------------------
+
+Name:        gltest
+Type:        test program
+Description: Scan simulated camera input from OpenGL in realtime
+Location:    libdmtx/
+Build:       make check
+Requires:    mesa-libGL, mesa-libGLU, SDL, libpng
+
+-----------------------------------
+
+Name:        simpletest
+Type:        test program
+Description: Simple round-trip encoding and decoding test
+Build:       make check
+Requires:    No dependencies
+
+-----------------------------------
+
+Name:        unittest
+Type:        test program
+Description: Unit test program
+Build:       make check
+Requires:    No dependencies
+
+-----------------------------------
