@@ -34,9 +34,9 @@ libdmtx uses GNU Autotools so the installation should be familiar
 to free software veterans. If your platform cannot easily run the
 Autotools scripts (e.g., MS Visual Studio) then please refer to
 the appropriate platform-specific README.xxx located in this
-directory.
+directory for detailed instructions.
 
-Most people can simply run the following as yourself:
+Most people can simply run the following commands:
 
   $ ./autogen.sh
   $ ./configure
@@ -44,14 +44,14 @@ Most people can simply run the following as yourself:
   $ sudo make install
 
 Note: If the 'sudo' command is not configured on your system then
-alternatively you can yell "Yeeehaww!" as you log in as root and
+you can alternatively yell "Yeeehaww!" as you log in as root and
 run this command instead:
 
   $ make install
 
 For more details on the "./configure" step please read the
 INSTALL file located in this directory. If the INSTALL file does
-not exist then you may need to run the "./autogen.sh" step.
+not exist then you may need to run the "./autogen.sh" step first.
 
 Errors encountered during the "make" step are often a result of
 missing software dependencies. These dependencies are listed in
@@ -66,7 +66,7 @@ you can execute the newly built programs, including:
   * util/dmtxquery/dmtxquery
 
 If you want to ensure that everything built correctly you can
-optionally build the test programs by running:
+optionally build the test programs like this:
 
   $ make check
 
@@ -92,12 +92,12 @@ these components and their properties.
 
 New users are encouraged to read the man pages for the library
 and command line utilities. However, here are a few simple cases
-to get you started:
+to get you started using the utilities:
 
 The dmtxwrite utility turns a message into a barcode image.
-Messages can be passed to the utility by either STDIN or file,
-and likewise the output images can be written to STDOUT or file.
-The following examples all produce equivalent results:
+Messages can be passed to the utility via STDIN or file, and
+likewise the output images can be written to STDOUT or file. The
+following examples all produce equivalent results:
 
   $ echo -n 123456 | dmtxwrite > image.png
   $ echo -n 123456 | dmtxwrite -o image.png
@@ -105,9 +105,9 @@ The following examples all produce equivalent results:
   $ dmtxwrite <(echo -n 123456) -o image.png
 
 The dmtxread utility turns barcode images into messages. Images
-can be passed to the utility by either STDIN or file, and the
-output is written to STDOUT. The following examples both produce
-equivalent results:
+can be passed to the utility via STDIN or file, and the output is
+written to STDOUT. The following examples both produce equivalent
+results:
 
   $ dmtxread -n image.png
   $ cat image.png | dmtxread -n
@@ -117,7 +117,7 @@ Other typical cases:
   $ dmtxread -n image1.png image2.png image3.png
   $ dmtxread -m500 -n image.png
 
-You can even combine them like this:
+You can even combine the utilities like this:
 
   $ echo 'Hello, world!' | dmtxwrite | dmtxread
   Hello, world!
