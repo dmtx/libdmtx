@@ -22,7 +22,7 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
-#define DMTX_HOUGH_RES 90
+#define DMTX_HOUGH_RES 180
 
 /**
  * @file dmtxregion.c
@@ -32,9 +32,8 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * TODO: Build proper XfrmUpdate
- * TODO: Try leaving trails again if established as lines (and prevent starting there)
  * TODO: Tighten line fitting (through hough+offset?)
+ * TODO: Try leaving trails again if established as lines (and prevent starting there)
  * TODO: Remove status from DmtxPixelLoc
  */
 
@@ -1174,44 +1173,41 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
 {
    int i;
    int distSq, distSqMax;
-   double posDiff, negDiff;
-   double posMinDevn, posMinDevnLock;
-   double posMaxDevn, posMaxDevnLock;
-   double negMinDevn, negMinDevnLock;
-   double negMaxDevn, negMaxDevnLock;
-   DmtxRay2 rH;
-   DmtxVector2 posLoc, negLoc;
+   int xDiff, yDiff;
+   int posDiff, negDiff;
+   int posMinDevn, posMinDevnLock;
+   int posMaxDevn, posMaxDevnLock;
+   int negMinDevn, negMinDevnLock;
+   int negMaxDevn, negMaxDevnLock;
+   int cosAngle, sinAngle;
    DmtxFollow followPos, followNeg;
-   DmtxPixelLoc posMax, negMax;
-
-   memset(&rH, 0x00, sizeof(DmtxRay2));
-
-   followPos = followNeg = FollowSeek(dec, reg, line->stepBeg);
+   DmtxPixelLoc loc0, posMax, negMax;
 
    /* line->stepBeg is already known to sit on the best Hough line */
-   rH.p.X = followPos.loc.X;
-   rH.p.Y = followPos.loc.Y;
-   rH.v.X = cos(line->angle * (M_PI/DMTX_HOUGH_RES)); /* precalculate later */
-   rH.v.Y = sin(line->angle * (M_PI/DMTX_HOUGH_RES)); /* precalculate later */
+   followPos = followNeg = FollowSeek(dec, reg, line->stepBeg);
+   loc0 = followPos.loc;
+
+   cosAngle = rHvX[line->angle];
+   sinAngle = rHvY[line->angle];
 
    distSqMax = 0;
    posMax = negMax = followPos.loc;
-
-   posMinDevn = posMinDevnLock = 0.0;
-   posMaxDevn = posMaxDevnLock = 0.0;
-   negMinDevn = negMinDevnLock = 0.0;
-   negMaxDevn = negMaxDevnLock = 0.0;
+   posMinDevn = posMinDevnLock = 0;
+   posMaxDevn = posMaxDevnLock = 0;
+   negMinDevn = negMinDevnLock = 0;
+   negMaxDevn = negMaxDevnLock = 0;
 
    for(i = 0; i < reg->stepsTotal/2; i++) {
-      posLoc.X = followPos.loc.X;
-      posLoc.Y = followPos.loc.Y;
-      posDiff = dmtxDistanceFromRay2(&rH, &posLoc);
 
-      negLoc.X = followNeg.loc.X;
-      negLoc.Y = followNeg.loc.Y;
-      negDiff = dmtxDistanceFromRay2(&rH, &negLoc);
+      xDiff = followPos.loc.X - loc0.X;
+      yDiff = followPos.loc.Y - loc0.Y;
+      posDiff = (cosAngle * yDiff) - (sinAngle * xDiff);
 
-      if(fabs(posDiff) < 2.0) {
+      xDiff = followNeg.loc.X - loc0.X;
+      yDiff = followNeg.loc.Y - loc0.Y;
+      negDiff = (cosAngle * yDiff) - (sinAngle * xDiff);
+
+      if(posDiff > -256*3 && posDiff < 256*3) {
          distSq = DistanceSquared(followPos.loc, negMax);
          if(distSq > distSqMax) {
             posMax = followPos.loc;
@@ -1227,7 +1223,7 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
          posMaxDevn = max(posMaxDevn, posDiff);
       }
 
-      if(fabs(negDiff) < 2.0) {
+      if(negDiff > -256*3 && negDiff < 256*3) {
          distSq = DistanceSquared(followNeg.loc, posMax);
          if(distSq > distSqMax) {
             negMax = followNeg.loc;
@@ -1249,7 +1245,7 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
       followPos = FollowStep(dec, reg, followPos, +1);
       followNeg = FollowStep(dec, reg, followNeg, -1);
    }
-   line->devn = max(posMaxDevnLock - posMinDevnLock, negMaxDevnLock - negMinDevnLock);
+   line->devn = max(posMaxDevnLock - posMinDevnLock, negMaxDevnLock - negMinDevnLock)/256.0;
    line->distSq = distSqMax;
 
 /* CALLBACK_POINT_PLOT(posMax, 2, 1, DMTX_DISPLAY_SQUARE);
@@ -1461,13 +1457,19 @@ BresLineHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
    else {
       if(travelStep < 0) {
          BresLineStep(line, -1, 1);
-         CALLBACK_POINT_PLOT(line->loc, 2, 1, DMTX_DISPLAY_POINT);
+         CALLBACK_POINT_PLOT(line->loc, 1, 1, DMTX_DISPLAY_POINT);
          return DMTX_FAILURE;
       }
       else {
          BresLineStep(line, travelStep, sideStep);
-         CALLBACK_POINT_PLOT(line->loc, 2, 1, DMTX_DISPLAY_POINT);
-         return DMTX_SUCCESS;
+         if(travelStep == 0) {
+            CALLBACK_POINT_PLOT(line->loc, 1, 1, DMTX_DISPLAY_POINT);
+            return DMTX_FAILURE;
+         }
+         else {
+            CALLBACK_POINT_PLOT(line->loc, 2, 1, DMTX_DISPLAY_POINT);
+            return DMTX_SUCCESS;
+         }
       }
    }
 
