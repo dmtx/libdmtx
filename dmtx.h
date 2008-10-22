@@ -267,41 +267,6 @@ typedef struct DmtxImage_struct {
 } DmtxImage;
 
 /**
- * @struct DmtxEdge
- * @brief DmtxEdge
- */
-typedef struct DmtxEdge_struct {
-   int        offset;
-   double     t;
-   DmtxColor3 color;
-} DmtxEdge;
-
-/**
- * @struct DmtxChain
- * @brief DmtxChain
- */
-typedef struct DmtxChain_struct {
-   double tx, ty;
-   double phi, shx;
-   double scx, scy;
-   double bx0, bx1;
-   double by0, by1;
-   double sz;
-} DmtxChain;
-
-/**
- * @struct DmtxCorners
- * @brief DmtxCorners
- */
-typedef struct DmtxCorners_struct {
-   DmtxCornerLoc known; /* combo DmtxCorner00|DmtxCorner10|DmtxCorner11|DmtxCorner01 */
-   DmtxVector2 c00;
-   DmtxVector2 c10;
-   DmtxVector2 c11;
-   DmtxVector2 c01;
-} DmtxCorners;
-
-/**
  * @struct DmtxPointFlow
  * @brief DmtxPointFlow
  */
@@ -319,28 +284,36 @@ typedef struct DmtxPointFlow_struct {
  */
 typedef struct DmtxRegion_struct {
    int             found;         /* DMTX_REGION_FOUND | DMTX_REGION_NOT_FOUND | DMTX_REGION_EOF */
-   int             polarity;      /* */
+
+   /* Trail blazing values */
    int             jumpToPos;     /* */
    int             jumpToNeg;     /* */
-   int             outsidePos;    /* */
-   int             outsideNeg;    /* */
    int             stepsTotal;    /* */
-   int             leftAngle;     /* */
-   int             bottomAngle;   /* */
-   int             topAngle;      /* */
-   int             rightAngle;    /* */
-   DmtxPixelLoc    bottomLoc;     /* */
-   DmtxPixelLoc    topLoc;        /* */
-   DmtxPixelLoc    rightLoc;      /* */
-   DmtxGradient    gradient;      /* Linear blend of colors between background and symbol color */
-   DmtxPointFlow   flowBegin;     /* */
    DmtxPixelLoc    finalPos;      /* */
    DmtxPixelLoc    finalNeg;      /* */
+   DmtxPointFlow   flowBegin;     /* */
+
+   /* Orientation values */
+   int             polarity;      /* */
    DmtxPixelLoc    locR;          /* */
    DmtxPixelLoc    locT;          /* */
+
+   /* Region fitting values */
+   char            leftKnown;     /* */
+   int             leftAngle;     /* */
    DmtxPixelLoc    leftLoc;       /* */
-   DmtxChain       chain;         /* List of values that are used to build a transformation matrix */
-   DmtxCorners     corners;       /* Corners of barcode region */
+   char            bottomKnown;   /* */
+   int             bottomAngle;   /* */
+   DmtxPixelLoc    bottomLoc;     /* */
+   char            topKnown;      /* */
+   int             topAngle;      /* */
+   DmtxPixelLoc    topLoc;        /* */
+   char            rightKnown;    /* */
+   int             rightAngle;    /* */
+   DmtxPixelLoc    rightLoc;      /* */
+
+   /* Region fitting values */
+   DmtxGradient    gradient;      /* Linear blend of colors between background and symbol color */
    DmtxMatrix3     raw2fit;       /* 3x3 transformation from raw image to fitted barcode grid */
    DmtxMatrix3     fit2raw;       /* 3x3 transformation from fitted barcode grid to raw image */
    int             sizeIdx;       /* Index of arrays that store Data Matrix constants */
@@ -494,9 +467,9 @@ extern void dmtxMessageFree(DmtxMessage **mesg);
 /* dmtxregion.c */
 extern DmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *decode, DmtxTime *timeout);
 extern DmtxRegion dmtxRegionScanPixel(DmtxDecode *decode, DmtxPixelLoc loc);
-extern void dmtxRegionSetCornerLoc(DmtxRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point);
+extern int dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
+      DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 extern int dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);
-extern int dmtxRegionUpdateXfrms2(DmtxDecode *dec, DmtxRegion *reg);
 
 /* dmtximage.c */
 extern DmtxImage *dmtxImageMalloc(int width, int height);

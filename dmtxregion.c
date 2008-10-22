@@ -32,6 +32,7 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
+ * TODO: Build proper XfrmUpdate
  * TODO: Try leaving trails again if established as lines (and prevent starting there)
  * TODO: Tighten line fitting (through hough+offset?)
  * TODO: Remove status from DmtxPixelLoc
@@ -145,13 +146,6 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
       return reg;
    }
 
-   /* Final region transform update */
-   // Remember that AlignTop should take affect in Xfrms before AlignRight runs
-   if(dmtxRegionUpdateXfrms2(dec, &reg) != DMTX_SUCCESS) {
-      reg.found = DMTX_REGION_DROPPED_RIGHT;
-      return reg;
-   }
-
    CALLBACK_MATRIX(&reg);
 
    /* Calculate the best fitting symbol size */
@@ -240,8 +234,6 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    int cross;
    DmtxBestLine line1x, line2x;
    DmtxBestLine line2n, line2p;
-   DmtxVector2 pTmp;
-   DmtxRay2 r1, r2;
    DmtxFollow fTmp;
 
    /* Follow to end in both directions */
@@ -329,30 +321,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    CALLBACK_POINT_PLOT(reg->locR, 2, 1, DMTX_DISPLAY_SQUARE);
    CALLBACK_POINT_PLOT(reg->locT, 2, 1, DMTX_DISPLAY_SQUARE);
 
-   /* Find intersection of 2 known lines */
-   r1.p.X = line1x.locNeg.X;
-   r1.p.Y = line1x.locNeg.Y;
-   r1.v.X = line1x.locPos.X - line1x.locNeg.X;
-   r1.v.Y = line1x.locPos.Y - line1x.locNeg.Y;
-   r1.tMin = 0.0;
-   r1.tMax = dmtxVector2Norm(&r1.v);
-
-   r2.p.X = line2x.locNeg.X;
-   r2.p.Y = line2x.locNeg.Y;
-   r2.v.X = line2x.locPos.X - line2x.locNeg.X;
-   r2.v.Y = line2x.locPos.Y - line2x.locNeg.Y;
-   r2.tMin = 0.0;
-   r2.tMax = dmtxVector2Norm(&r2.v);
-
-   err = dmtxRay2Intersect(&pTmp, &r1, &r2);
-   dmtxRegionSetCornerLoc(reg, DmtxCorner00, pTmp);
-
-   pTmp.X = reg->locR.X;
-   pTmp.Y = reg->locR.Y;
-   dmtxRegionSetCornerLoc(reg, DmtxCorner10, pTmp);
-   pTmp.X = reg->locT.X;
-   pTmp.Y = reg->locT.Y;
-   dmtxRegionSetCornerLoc(reg, DmtxCorner01, pTmp);
+   reg->leftKnown = reg->bottomKnown = 1;
 
    if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
       return DMTX_FAILURE;
@@ -376,95 +345,34 @@ DistanceSquared(DmtxPixelLoc a, DmtxPixelLoc b)
 }
 
 /**
- * @brief XXX
- * @param reg
- * @param cornerLoc
- * @param point
- * @return void
- */
-extern void
-dmtxRegionSetCornerLoc(DmtxRegion *reg, DmtxCornerLoc cornerLoc, DmtxVector2 point)
-{
-   switch(cornerLoc) {
-      case DmtxCorner00:
-         reg->corners.c00 = point;
-         break;
-      case DmtxCorner10:
-         reg->corners.c10 = point;
-         break;
-      case DmtxCorner11:
-         reg->corners.c11 = point;
-         break;
-      case DmtxCorner01:
-         reg->corners.c01 = point;
-         break;
-   }
-
-   reg->corners.known |= cornerLoc;
-}
-
-/**
- * @brief Update transformations based on known region attributes
- * @param image
- * @param reg
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ *
+ *
  */
 extern int
-dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
+dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
+      DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01)
 {
    DmtxVector2 vOT, vOR, vTmp;
    double tx, ty, phi, shx, scx, scy, skx, sky;
    double dimOT, dimOR, dimTX, dimRX, ratio;
-   DmtxMatrix3 m, mtxy, mphi, mshx, mscx, mscy, mscxy, msky, mskx, mTmp;
-   DmtxCorners corners;
+   DmtxMatrix3 m, mtxy, mphi, mshx, mscx, mscy, mscxy, msky, mskx;
 
-   assert((reg->corners.known & DmtxCorner00) && (reg->corners.known & DmtxCorner01));
-
-   /* Make copy of known corners to update with temporary values */
-   corners = reg->corners;
-
-   if(dmtxImageContainsFloat(dec->image, corners.c00.X, corners.c00.Y) == DMTX_FALSE)
+   if(dmtxImageContainsFloat(dec->image, p00.X, p00.Y) == DMTX_FALSE ||
+         dmtxImageContainsFloat(dec->image, p01.X, p01.Y) == DMTX_FALSE ||
+         dmtxImageContainsFloat(dec->image, p10.X, p10.Y) == DMTX_FALSE)
       return DMTX_FAILURE;
 
-   if(dmtxImageContainsFloat(dec->image, corners.c01.X, corners.c01.Y) == DMTX_FALSE)
-      return DMTX_FAILURE;
-
-   dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &corners.c01, &corners.c00)); /* XXX could use MagSquared() */
+   dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &p01, &p00)); /* XXX could use MagSquared() */
    if(dimOT < 8)
       return DMTX_FAILURE;
 
-   /* Bottom-right corner -- validate if known or create temporary value */
-   if(corners.known & DmtxCorner10) {
-      if(dmtxImageContainsFloat(dec->image, corners.c10.X, corners.c10.Y) == DMTX_FALSE)
-         return DMTX_FAILURE;
-   }
-   else {
-      dmtxMatrix3Rotate(mTmp, -M_PI_2);
-      dmtxMatrix3VMultiply(&vTmp, &vOT, mTmp);
-      dmtxVector2Add(&corners.c10, &corners.c00, &vTmp);
-   }
-
-   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vOR, &corners.c10, &corners.c00)); /* XXX could use MagSquared() */
+   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vOR, &p10, &p00)); /* XXX could use MagSquared() */
    if(dimOR < 8)
       return DMTX_FAILURE;
 
-   /* Solid edges are both defined now */
-   if(corners.known & DmtxCorner10)
-      if(RightAngleTrueness(corners.c01, corners.c00, corners.c10, M_PI_2) < dec->squareDevn)
-         return DMTX_FAILURE;
-
-   /* Top-right corner -- validate if known or create temporary value */
-   if(corners.known & DmtxCorner11) {
-      if(dmtxImageContainsFloat(dec->image, corners.c11.X, corners.c11.Y) == DMTX_FALSE)
-         return DMTX_FAILURE;
-   }
-   else {
-      dmtxVector2Add(&corners.c11, &corners.c01, &vOR);
-   }
-
    /* Verify that the 4 corners define a reasonably fat quadrilateral */
-   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c01)); /* XXX could use MagSquared() */
-   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &corners.c11, &corners.c10)); /* XXX could use MagSquared() */
+   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &p11, &p01)); /* XXX could use MagSquared() */
+   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &p11, &p10)); /* XXX could use MagSquared() */
    if(dimTX < 8 || dimRX < 8)
       return DMTX_FAILURE;
 
@@ -476,30 +384,21 @@ dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
    if(ratio < 0.5 || ratio > 2.0)
       return DMTX_FAILURE;
 
-   /* Test top-left corner for trueness */
-   if(corners.known & DmtxCorner11)
-      if(RightAngleTrueness(corners.c11, corners.c01, corners.c00, M_PI_2) < dec->squareDevn)
-         return DMTX_FAILURE;
-
-   if((corners.known & DmtxCorner10) && (corners.known & DmtxCorner11)) {
-      /* Test bottom-right corner for trueness */
-      if(RightAngleTrueness(corners.c00, corners.c10, corners.c11, M_PI_2) < dec->squareDevn)
-         return DMTX_FAILURE;
-      /* Test top-right corner for trueness */
-      if(RightAngleTrueness(corners.c10, corners.c11, corners.c01, M_PI_2) < dec->squareDevn)
-         return DMTX_FAILURE;
-   }
+   if(RightAngleTrueness(p00, p10, p11, M_PI_2) < dec->squareDevn)
+      return DMTX_FAILURE;
+   if(RightAngleTrueness(p10, p11, p01, M_PI_2) < dec->squareDevn)
+      return DMTX_FAILURE;
 
    /* Calculate values needed for transformations */
-   tx = -1 * corners.c00.X;
-   ty = -1 * corners.c00.Y;
+   tx = -1 * p00.X;
+   ty = -1 * p00.Y;
    dmtxMatrix3Translate(mtxy, tx, ty);
 
    phi = atan2(vOT.X, vOT.Y);
    dmtxMatrix3Rotate(mphi, phi);
    dmtxMatrix3Multiply(m, mtxy, mphi);
 
-   dmtxMatrix3VMultiply(&vTmp, &corners.c10, m);
+   dmtxMatrix3VMultiply(&vTmp, &p10, m);
    shx = -vTmp.Y / vTmp.X;
    dmtxMatrix3Shear(mshx, 0.0, shx);
    dmtxMatrix3MultiplyBy(m, mshx);
@@ -508,17 +407,17 @@ dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
    dmtxMatrix3Scale(mscx, scx, 1.0);
    dmtxMatrix3MultiplyBy(m, mscx);
 
-   dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
+   dmtxMatrix3VMultiply(&vTmp, &p11, m);
    scy = 1.0/vTmp.Y;
    dmtxMatrix3Scale(mscy, 1.0, scy);
    dmtxMatrix3MultiplyBy(m, mscy);
 
-   dmtxMatrix3VMultiply(&vTmp, &corners.c11, m);
+   dmtxMatrix3VMultiply(&vTmp, &p11, m);
    skx = vTmp.X;
    dmtxMatrix3LineSkewSide(mskx, 1.0, skx, 1.0);
    dmtxMatrix3MultiplyBy(m, mskx);
 
-   dmtxMatrix3VMultiply(&vTmp, &corners.c01, m);
+   dmtxMatrix3VMultiply(&vTmp, &p01, m);
    sky = vTmp.Y;
    dmtxMatrix3LineSkewTop(msky, sky, 1.0, 1.0);
    dmtxMatrix3Multiply(reg->raw2fit, m, msky);
@@ -546,17 +445,18 @@ dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
 /**
  *
  *
- *
- *
  */
 extern int
-dmtxRegionUpdateXfrms2(DmtxDecode *dec, DmtxRegion *reg)
+dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
 {
    int err;
    double radians;
    DmtxRay2 rLeft, rBottom, rTop, rRight;
    DmtxVector2 p00, p10, p11, p01;
 
+   assert(reg->leftKnown != 0 && reg->bottomKnown != 0);
+
+   /* Build ray representing left edge */
    rLeft.p.X = reg->leftLoc.X;
    rLeft.p.Y = reg->leftLoc.Y;
    radians = reg->leftAngle * (M_PI/DMTX_HOUGH_RES);
@@ -565,6 +465,7 @@ dmtxRegionUpdateXfrms2(DmtxDecode *dec, DmtxRegion *reg)
    rLeft.tMin = 0.0;
    rLeft.tMax = dmtxVector2Norm(&rLeft.v);
 
+   /* Build ray representing bottom edge */
    rBottom.p.X = reg->bottomLoc.X;
    rBottom.p.Y = reg->bottomLoc.Y;
    radians = reg->bottomAngle * (M_PI/DMTX_HOUGH_RES);
@@ -573,58 +474,57 @@ dmtxRegionUpdateXfrms2(DmtxDecode *dec, DmtxRegion *reg)
    rBottom.tMin = 0.0;
    rBottom.tMax = dmtxVector2Norm(&rBottom.v);
 
-   rTop.p.X = reg->topLoc.X;
-   rTop.p.Y = reg->topLoc.Y;
-   radians = reg->topAngle * (M_PI/DMTX_HOUGH_RES);
-   rTop.v.X = cos(radians);
-   rTop.v.Y = sin(radians);
-   rTop.tMin = 0.0;
-   rTop.tMax = dmtxVector2Norm(&rTop.v);
+   /* Build ray representing top edge */
+   if(reg->topKnown != 0) {
+      rTop.p.X = reg->topLoc.X;
+      rTop.p.Y = reg->topLoc.Y;
+      radians = reg->topAngle * (M_PI/DMTX_HOUGH_RES);
+      rTop.v.X = cos(radians);
+      rTop.v.Y = sin(radians);
+      rTop.tMin = 0.0;
+      rTop.tMax = dmtxVector2Norm(&rTop.v);
+   }
+   else {
+      rTop.p.X = reg->locT.X;
+      rTop.p.Y = reg->locT.Y;
+      radians = reg->bottomAngle * (M_PI/DMTX_HOUGH_RES);
+      rTop.v.X = cos(radians);
+      rTop.v.Y = sin(radians);
+      rTop.tMin = 0.0;
+      rTop.tMax = rBottom.tMax;
+   }
 
-   rRight.p.X = reg->rightLoc.X;
-   rRight.p.Y = reg->rightLoc.Y;
-   radians = reg->rightAngle * (M_PI/DMTX_HOUGH_RES);
-   rRight.v.X = cos(radians);
-   rRight.v.Y = sin(radians);
-   rRight.tMin = 0.0;
-   rRight.tMax = dmtxVector2Norm(&rRight.v);
+   /* Build ray representing right edge */
+   if(reg->rightKnown != 0) {
+      rRight.p.X = reg->rightLoc.X;
+      rRight.p.Y = reg->rightLoc.Y;
+      radians = reg->rightAngle * (M_PI/DMTX_HOUGH_RES);
+      rRight.v.X = cos(radians);
+      rRight.v.Y = sin(radians);
+      rRight.tMin = 0.0;
+      rRight.tMax = dmtxVector2Norm(&rRight.v);
+   }
+   else {
+      rRight.p.X = reg->locR.X;
+      rRight.p.Y = reg->locR.Y;
+      radians = reg->leftAngle * (M_PI/DMTX_HOUGH_RES);
+      rRight.v.X = cos(radians);
+      rRight.v.Y = sin(radians);
+      rRight.tMin = 0.0;
+      rRight.tMax = rLeft.tMax;
+   }
 
+   /* Calculate 4 corners, real or imagined */
    err = dmtxRay2Intersect(&p00, &rLeft, &rBottom);
    err = dmtxRay2Intersect(&p10, &rBottom, &rRight);
    err = dmtxRay2Intersect(&p11, &rRight, &rTop);
    err = dmtxRay2Intersect(&p01, &rTop, &rLeft);
 
-   dmtxRegionSetCornerLoc(reg, DmtxCorner00, p00);
-   dmtxRegionSetCornerLoc(reg, DmtxCorner10, p10);
-   dmtxRegionSetCornerLoc(reg, DmtxCorner11, p11);
-   dmtxRegionSetCornerLoc(reg, DmtxCorner01, p01);
-
-   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
+   if(dmtxRegionUpdateCorners(dec, reg, p00, p10, p11, p01) != DMTX_SUCCESS)
       return DMTX_FAILURE;
 
    return DMTX_SUCCESS;
 }
-
-/**
- * @brief Clamp integer to range min <= value <= max
- * @param value Value to be clamped
- * @param min Minimum range boundary
- * @param max Maximum range boundary
- * @return Clamped value
- */
-/*
-static int
-ClampIntRange(int value, int min, int max)
-{
-   if(value < min)
-      return min;
-
-   if(value > max)
-      return max;
-
-   return value;
-}
-*/
 
 /**
  *
@@ -1397,8 +1297,11 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
    loc1.status = DMTX_RANGE_GOOD;
 
    /* Initialize line, including travel and sidestep directions */
-   locOrigin.X = (int)(reg->corners.c00.X + 0.5);
-   locOrigin.Y = (int)(reg->corners.c00.Y + 0.5);
+   pTmp.X = 0.0;
+   pTmp.Y = 0.0;
+   dmtxMatrix3VMultiplyBy(&pTmp, reg->fit2raw);
+   locOrigin.X = (int)(pTmp.X + 0.5);
+   locOrigin.Y = (int)(pTmp.Y + 0.5);
    locOrigin.status = DMTX_RANGE_GOOD;
    line = BresLineInit(loc0, loc1, locOrigin);
 
@@ -1441,13 +1344,19 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
    }
 
    if(edge == DmtxEdgeTop) {
-      reg->topLoc = loc0;
+      reg->topKnown = 1;
       reg->topAngle = angle;
+      reg->topLoc = loc0;
    }
    else {
-      reg->rightLoc = loc0;
+      reg->rightKnown = 1;
       reg->rightAngle = angle;
+      reg->rightLoc = loc0;
    }
+
+   /* Update region transform with new geometry */
+   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
+      return DMTX_FAILURE;
 
    return DMTX_SUCCESS;
 }

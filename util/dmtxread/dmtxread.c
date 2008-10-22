@@ -614,6 +614,8 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       fprintf(stdout, "Interleaved Blocks: %d\n",
             dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, region->sizeIdx));
       fprintf(stdout, "    Rotation Angle: %d\n", rotateInt);
+/*
+      sorry -- temporarily need to disable this
       fprintf(stdout, "          Corner 0: (%0.1f, %0.1f)\n",
             region->corners.c00.X, height - 1 - region->corners.c00.Y);
       fprintf(stdout, "          Corner 1: (%0.1f, %0.1f)\n",
@@ -622,6 +624,7 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
             region->corners.c11.X, height - 1 - region->corners.c11.Y);
       fprintf(stdout, "          Corner 3: (%0.1f, %0.1f)\n",
             region->corners.c01.X, height - 1 - region->corners.c01.Y);
+*/
       fprintf(stdout, "--------------------------------------------------\n");
    }
 
@@ -629,6 +632,8 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       fprintf(stdout, "%d:", pageIndex + 1);
 
    if(opt->corners) {
+/*
+      sorry -- temporarily need to disable this
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
             height - 1 - (int)(region->corners.c00.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c10.X + 0.5),
@@ -639,6 +644,7 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
             height - 1 - (int)(region->corners.c01.Y + 0.5));
       fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
             height - 1 - (int)(region->corners.c00.Y + 0.5));
+*/
    }
 
    if(opt->codewords) {

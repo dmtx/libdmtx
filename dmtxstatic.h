@@ -144,9 +144,7 @@ typedef struct DmtxBresLine_struct {
 } DmtxBresLine;
 
 /* dmtxregion.c */
-/*static int ClampIntRange(int value, int min, int max);*/
 static double RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle);
-
 static DmtxPointFlow MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc0);
 static int MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin);
 static long DistanceSquared(DmtxPixelLoc a, DmtxPixelLoc b);
