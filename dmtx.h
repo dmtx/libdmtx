@@ -71,11 +71,10 @@ extern "C" {
 #define DMTX_REGION_TIMEOUT            2
 #define DMTX_REGION_EOF                3
 #define DMTX_REGION_DROPPED_EDGE       4
-#define DMTX_REGION_DROPPED_1ST        5
-#define DMTX_REGION_DROPPED_2ND        6
-#define DMTX_REGION_DROPPED_RIGHT      7
-#define DMTX_REGION_DROPPED_TOP        8
-#define DMTX_REGION_DROPPED_SIZE       9
+#define DMTX_REGION_DROPPED_FINDER     5
+#define DMTX_REGION_DROPPED_RIGHT      6
+#define DMTX_REGION_DROPPED_TOP        7
+#define DMTX_REGION_DROPPED_SIZE       8
 
 #define DMTX_MODULE_OFF             0x00
 #define DMTX_MODULE_ON_RED          0x01
@@ -96,7 +95,6 @@ extern "C" {
 #define DMTX_SYMBOL_RECT_AUTO         -2
 #define DMTX_SYMBOL_RECT_COUNT         6
 
-/* XXX some redundancy between following 3 direction enums - revisit later */
 typedef enum {
    DmtxDirNone       = 0x00,
    DmtxDirUp         = 0x01 << 0,
@@ -108,28 +106,6 @@ typedef enum {
    DmtxDirRightUp    = DmtxDirRight | DmtxDirUp,
    DmtxDirLeftDown   = DmtxDirLeft  | DmtxDirDown
 } DmtxDirection;
-
-typedef enum {
-   DmtxCompassDirNone  = 0x00,
-   DmtxCompassDirNeg45 = 0x01,
-   DmtxCompassDir0     = 0x02,
-   DmtxCompassDir45    = 0x04,
-   DmtxCompassDir90    = 0x08,
-   DmtxCompassDirOrtho = DmtxCompassDir0 | DmtxCompassDir90,
-   DmtxCompassDirAll   = DmtxCompassDirNeg45 | DmtxCompassDir0 | DmtxCompassDir45 | DmtxCompassDir90
-} DmtxCompassDir;
-
-typedef enum {
-   DmtxNeighborSW,
-   DmtxNeighborS,
-   DmtxNeighborSE,
-   DmtxNeighborE,
-   DmtxNeighborNE,
-   DmtxNeighborN,
-   DmtxNeighborNW,
-   DmtxNeighborW,
-   DmtxNeighborNone
-} DmtxNeighbors;
 
 typedef enum {
    DmtxEncodeAutoBest,
@@ -263,24 +239,9 @@ typedef struct DmtxRay2_struct {
  */
 typedef struct DmtxGradient_struct {
    char       isDefined;
-   double     tMin, tMax, tMid;
+   double     tMin, tMax;
    DmtxRay3   ray;
-   DmtxColor3 color, colorPrev; /* XXX maybe these aren't appropriate variables for a gradient? */
 } DmtxGradient;
-
-/**
- * @struct DmtxCompassEdge
- * @brief DmtxCompassEdge
- */
-typedef struct DmtxCompassEdge_struct {
-   char          dirsTested;
-   char          maxDirAll;
-   char          maxDirOrtho;
-   double        magnitude;  /* sqrt(R^2 + G^2 + B^2) */
-   DmtxColor3    intensity;
-/* unsigned char visited;
-   unsigned char neighbor; */
-} DmtxCompassEdge;
 
 /**
  * @struct DmtxImage
@@ -301,8 +262,8 @@ typedef struct DmtxImage_struct {
    int             yMinScaled;
    int             yMaxScaled;
    int             pageCount;
+   unsigned char   *cache;
    DmtxRgb         *pxl;
-   DmtxCompassEdge *compass;
 } DmtxImage;
 
 /**
@@ -341,12 +302,43 @@ typedef struct DmtxCorners_struct {
 } DmtxCorners;
 
 /**
+ * @struct DmtxPointFlow
+ * @brief DmtxPointFlow
+ */
+typedef struct DmtxPointFlow_struct {
+   int plane;
+   int arrive;
+   int depart;
+   int mag;
+   DmtxPixelLoc loc;
+} DmtxPointFlow;
+
+/**
  * @struct DmtxRegion
  * @brief DmtxRegion
  */
 typedef struct DmtxRegion_struct {
    int             found;         /* DMTX_REGION_FOUND | DMTX_REGION_NOT_FOUND | DMTX_REGION_EOF */
+   int             polarity;      /* */
+   int             jumpToPos;     /* */
+   int             jumpToNeg;     /* */
+   int             outsidePos;    /* */
+   int             outsideNeg;    /* */
+   int             stepsTotal;    /* */
+   int             leftAngle;     /* */
+   int             bottomAngle;   /* */
+   int             topAngle;      /* */
+   int             rightAngle;    /* */
+   DmtxPixelLoc    bottomLoc;     /* */
+   DmtxPixelLoc    topLoc;        /* */
+   DmtxPixelLoc    rightLoc;      /* */
    DmtxGradient    gradient;      /* Linear blend of colors between background and symbol color */
+   DmtxPointFlow   flowBegin;     /* */
+   DmtxPixelLoc    finalPos;      /* */
+   DmtxPixelLoc    finalNeg;      /* */
+   DmtxPixelLoc    locR;          /* */
+   DmtxPixelLoc    locT;          /* */
+   DmtxPixelLoc    leftLoc;       /* */
    DmtxChain       chain;         /* List of values that are used to build a transformation matrix */
    DmtxCorners     corners;       /* Corners of barcode region */
    DmtxMatrix3     raw2fit;       /* 3x3 transformation from raw image to fitted barcode grid */
@@ -504,6 +496,7 @@ extern DmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *decode, DmtxTime *timeout
 extern DmtxRegion dmtxRegionScanPixel(DmtxDecode *decode, DmtxPixelLoc loc);
 extern void dmtxRegionSetCornerLoc(DmtxRegion *region, DmtxCornerLoc cornerLoc, DmtxVector2 point);
 extern int dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);
+extern int dmtxRegionUpdateXfrms2(DmtxDecode *dec, DmtxRegion *reg);
 
 /* dmtximage.c */
 extern DmtxImage *dmtxImageMalloc(int width, int height);
@@ -513,6 +506,7 @@ extern int dmtxImageGetProp(DmtxImage *img, int prop);
 extern int dmtxImageGetOffset(DmtxImage *img, int x, int y);
 extern int dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
 extern int dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
+extern int dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane);
 extern int dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);
 extern int dmtxImageContainsFloat(DmtxImage *img, double x, double y);
 

@@ -184,10 +184,14 @@ void BuildMatrixCallback4(DmtxMatrix3 mChainInv)
  *
  *
  */
-void PlotPointCallback(DmtxVector2 point, int colorInt, int paneNbr, int dispType)
+void PlotPointCallback(DmtxPixelLoc loc, int colorInt, int paneNbr, int dispType)
 {
    int color;
    DmtxImage *image = NULL;
+   DmtxVector2 point;
+
+   point.X = loc.X;
+   point.Y = loc.Y;
 
    switch(paneNbr) {
       case 1:
@@ -305,7 +309,7 @@ void XfrmPlotPointCallback(DmtxVector2 point, DmtxMatrix3 xfrm, int paneNbr, int
    dmtxMatrix3MultiplyBy(m, m1);
 
    dmtxMatrix3VMultiplyBy(&point, m);
-   PlotPointCallback(point, 3, paneNbr, dispType);
+/* PlotPointCallback(point, 3, paneNbr, dispType); */
 }
 
 /**

@@ -56,12 +56,19 @@ Contact: mike@dragonflylogic.com
 #endif
 
 #ifndef CALLBACK_MATRIX
-#define CALLBACK_MATRIX(a,b) ((void) 0)
+#define CALLBACK_MATRIX(a) ((void) 0)
 #endif
 
 #ifndef CALLBACK_FINAL
 #define CALLBACK_FINAL(a,b) ((void) 0)
 #endif
+
+/**
+ * Although unconventional, the following use of #include to merge .c
+ * files together is done intentionally. This approach allows the code
+ * to be grouped into files of like-functionality while still allowing
+ * static (private) functions to be accessed across files.
+ */
 
 #include "dmtxtime.c"
 #include "dmtxscangrid.c"

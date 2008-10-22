@@ -43,9 +43,9 @@ dmtxDecodeStructInit(DmtxImage *img)
    dec.image = img;
 
    cacheSize = dmtxImageGetProp(img, DmtxPropWidth) *
-         dmtxImageGetProp(img, DmtxPropHeight) * sizeof(DmtxCompassEdge);
+         dmtxImageGetProp(img, DmtxPropHeight) * sizeof(unsigned char);
 
-   memset(dec.image->compass, 0x00, cacheSize);
+   memset(dec.image->cache, 0x00, cacheSize);
 
    /* These values should probably be stored in the decode struct */
    img->scale = 1;

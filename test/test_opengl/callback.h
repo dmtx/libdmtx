@@ -27,7 +27,7 @@ Contact: mblaughton@users.sourceforge.net
 void BuildMatrixCallback2(DmtxRegion *region);
 void BuildMatrixCallback3(DmtxMatrix3 region);
 void BuildMatrixCallback4(DmtxMatrix3 region);
-void PlotPointCallback(DmtxVector2 point, int colorInt, int paneNbr, int dispType);
+void PlotPointCallback(DmtxPixelLoc loc, int colorInt, int paneNbr, int dispType);
 void XfrmPlotPointCallback(DmtxVector2 point, DmtxMatrix3 xfrm, int paneNbr, int dispType);
 void FinalCallback(DmtxDecode *decode, DmtxRegion *region);
 void PlotModuleCallback(DmtxDecode *info, DmtxRegion *region, int row, int col, DmtxColor3 color);

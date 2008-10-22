@@ -33,12 +33,6 @@ Contact: mike@dragonflylogic.com
 #define DMTX_ALMOST_ZERO               0.000001
 #define DMTX_ALMOST_INFINITY          -1
 
-#define DMTX_EDGE_STEP_TOO_WEAK        1
-#define DMTX_EDGE_STEP_PERPENDICULAR   2
-#define DMTX_EDGE_STEP_NOT_QUITE       3
-#define DMTX_EDGE_STEP_TOO_FAR         4
-#define DMTX_EDGE_STEP_EXACT           5
-
 #define DMTX_RANGE_GOOD                0
 #define DMTX_RANGE_BAD                 1
 #define DMTX_RANGE_EOF                 2
@@ -101,67 +95,78 @@ typedef enum {
 } DmtxBitMask;
 
 /**
- * @struct DmtxEdgeSubPixel
- * @brief DmtxEdgeSubPixel
+ * @struct DmtxFollow
+ * @brief DmtxFollow
  */
-typedef struct DmtxEdgeSubPixel_struct {
-   int             isEdge;
-   int             xInt;
-   int             yInt;
-   double          xFrac;
-   double          yFrac;
-   DmtxCompassEdge compass;
-} DmtxEdgeSubPixel;
+typedef struct DmtxFollow_struct {
+   unsigned char *ptr;
+   unsigned char neighbor;
+   int step;
+   DmtxPixelLoc loc;
+} DmtxFollow;
 
 /**
- * @struct DmtxPointEdge
- * @brief DmtxPointEdge
+ * @struct DmtxBestLine
+ * @brief DmtxBestLine
  */
-typedef struct DmtxPointEdge_struct {
-   int colorDelta;
-   unsigned char compass;  /* DmtxNeighbors (values 0-8) */
-   unsigned char inbound;  /* DmtxNeighbors (values 0-8) */
-} DmtxPointEdge;
+typedef struct DmtxBestLine_struct {
+   int angle;
+   int mag;
+   int stepBeg;
+   int stepPos;
+   int stepNeg;
+   int distSq;
+   double devn;
+   DmtxPixelLoc locBeg;
+   DmtxPixelLoc locPos;
+   DmtxPixelLoc locNeg;
+} DmtxBestLine;
+
+/**
+ * @struct DmtxBresLine
+ * @brief DmtxBresLine
+ */
+typedef struct DmtxBresLine_struct {
+   int xStep;
+   int yStep;
+   int xDelta;
+   int yDelta;
+   int steep;
+   int travelLength;
+   int xOut;
+   int yOut;
+   int travel;
+   int outward;
+   int error;
+   DmtxPixelLoc loc;
+   DmtxPixelLoc loc0;
+   DmtxPixelLoc loc1;
+} DmtxBresLine;
 
 /* dmtxregion.c */
-static int ClampIntRange(int value, int min, int max);
-static DmtxCompassEdge GetCompassEdge(DmtxImage *image, int x, int y, int edgeScanDirs);
-static DmtxEdgeSubPixel FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compare);
-static DmtxRay2 FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forward, int hough[], int *strongIdx);
+/*static int ClampIntRange(int value, int min, int max);*/
 static double RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle);
 
-static int MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg,
-      DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1);
-/*static int MatrixRegionAlignFirstEdge2(DmtxDecode *dec, DmtxRegion *reg,
-      DmtxPixelLoc p0, DmtxPixelLoc p1); */
-
-static int MatrixRegionAlignSecondEdge(DmtxDecode *dec, DmtxRegion *reg);
-static int MatrixRegionAlignRightEdge(DmtxDecode *dec, DmtxRegion *reg);
-static int MatrixRegionAlignTopEdge(DmtxDecode *dec, DmtxRegion *reg);
-
-static int MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *region,
-      DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit);
-
-static int MatrixRegionAlignEdge(DmtxDecode *dec, DmtxRegion *region,
-      DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0,
-      DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount);
-
-static int StepAlongEdge(DmtxDecode *dec, DmtxRegion *region,
-      DmtxVector2 *pProgress, DmtxVector2 *pExact, DmtxVector2 forward,
-      DmtxVector2 lateral);
-
+static DmtxPointFlow MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc0);
+static int MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin);
+static long DistanceSquared(DmtxPixelLoc a, DmtxPixelLoc b);
 static DmtxColor3 ReadModuleColor(DmtxImage *image, DmtxRegion *region,
       int symbolRow, int symbolCol, int sizeIdx);
 
 static int MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg);
 static int CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDirection dir);
-/*
-static DmtxPointEdge GetPointEdge(DmtxDecode *dec, int colorPlane, int x, int y);
-static DmtxPixelLoc FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0, DmtxPointEdge start, int sign, int hough[], int *houghStrong);
-static int FindTravelDirection(DmtxDecode *dec, int x0, int y0, DmtxPointEdge edge, int sign, unsigned char *m1, unsigned char *m2);
-static DmtxPointEdge FindStrongestNeighbor(DmtxDecode *dec, int colorPlane, int x0, int y0, unsigned char mAttempt);
-*/
-/* static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath); */
+static DmtxPointFlow GetPointFlow(DmtxDecode *dec, int colorPlane, DmtxPixelLoc loc, int arrive);
+static DmtxPointFlow FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center, int sign);
+static DmtxFollow FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek);
+static DmtxFollow FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
+static int BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin);
+static DmtxBestLine FindBestLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int houghAvoid);
+static int FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line);
+static int MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge);
+static DmtxBresLine BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locOrigin);
+static int BresLineHit(DmtxBresLine *line, DmtxPixelLoc targetLoc);
+static int BresLineStep(DmtxBresLine *line, int travel, int outward);
+/*static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);*/
 
 /* dmtxdecode.c */
 static void DecodeDataStream(DmtxMessage *message, int sizeIdx, unsigned char *outputStart);
@@ -231,9 +236,10 @@ static DmtxPixelLoc GetGridCoordinates(DmtxScanGrid *grid);
 /* dmtxsymbol.c */
 static int FindCorrectBarcodeSize(int dataWords, int symbolShape);
 
+static const int dmtxNeighborNone = 8;
 static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };
 static const int dmtxPatternY[] = { -1, -1, -1,  0,  1,  1,  1,  0 };
-static const DmtxPointEdge dmtxBlankEdge = { 0, DmtxNeighborNone, DmtxNeighborNone };
+static const DmtxPointFlow dmtxBlankEdge = { 0, 0, 0, -1, { -1, -1 } };
 
 /* Galois Field log values */
 static int logVal[] =
@@ -310,5 +316,21 @@ static unsigned char alphaTo[] =
      222, 145,  15,  30,  60, 120, 240, 205, 183,  67, 134,  33,  66, 132,  37,  74,
      148,   5,  10,  20,  40,  80, 160, 109, 218, 153,  31,  62, 124, 248, 221, 151,
        3,   6,  12,  24,  48,  96, 192, 173, 119, 238, 241, 207, 179,  75, 150,   0 };
+
+static int rHvX[] =
+    { 256,  256,  255,  255,  254,  252,  250,  248,  246,  243,  241,  237,  234,  230,  226,
+      222,  217,  212,  207,  202,  196,  190,  184,  178,  171,  165,  158,  150,  143,  136,
+      128,  120,  112,  104,   96,   88,   79,   71,   62,   53,   44,   36,   27,   18,    9,
+        0,   -9,  -18,  -27,  -36,  -44,  -53,  -62,  -71,  -79,  -88,  -96, -104, -112, -120,
+     -128, -136, -143, -150, -158, -165, -171, -178, -184, -190, -196, -202, -207, -212, -217,
+     -222, -226, -230, -234, -237, -241, -243, -246, -248, -250, -252, -254, -255, -255, -256 };
+
+static int rHvY[] =
+    {   0,    9,   18,   27,   36,   44,   53,   62,   71,   79,   88,   96,  104,  112,  120,
+      128,  136,  143,  150,  158,  165,  171,  178,  184,  190,  196,  202,  207,  212,  217,
+      222,  226,  230,  234,  237,  241,  243,  246,  248,  250,  252,  254,  255,  255,  256,
+      256,  256,  255,  255,  254,  252,  250,  248,  246,  243,  241,  237,  234,  230,  226,
+      222,  217,  212,  207,  202,  196,  190,  184,  178,  171,  165,  158,  150,  143,  136,
+      128,  120,  112,  104,   96,   88,   79,   71,   62,   53,   44,   36,   27,   18,    9 };
 
 #endif

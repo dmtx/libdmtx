@@ -22,13 +22,19 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
-#define DMTX_HOUGH_RES 32
+#define DMTX_HOUGH_RES 90
 
 /**
  * @file dmtxregion.c
  * @brief Detect barcode regions
  *
  * This file contains region detection logic.
+ */
+
+/**
+ * TODO: Try leaving trails again if established as lines (and prevent starting there)
+ * TODO: Tighten line fitting (through hough+offset?)
+ * TODO: Remove status from DmtxPixelLoc
  */
 
 /**
@@ -43,9 +49,10 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
    DmtxScanGrid *grid;
    DmtxPixelLoc loc, locNext;
    DmtxRegion   reg;
-/* int size, i = 0;
-   char imagePath[128]; */
-
+/*
+   int size, i = 0;
+   char imagePath[128];
+*/
    grid = &(dec->grid);
 
    /* Continue scanning until we run out of time or run out of image */
@@ -62,14 +69,21 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
 
       /* Scan this pixel for presence of a valid barcode edge */
       reg = dmtxRegionScanPixel(dec, loc);
-/**
-      if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_2ND) {
+/*
+      if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_EDGE) {
          size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
          if(size >= 128)
             exit(1);
          WriteDiagnosticImage(dec, &reg, imagePath);
       }
+      if(reg.found >= DMTX_REGION_DROPPED_FINDER) {
+         size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
+         if(size >= 128)
+            exit(1);
+         WriteDiagnosticImage2(dec, &reg, imagePath);
+      }
 */
+
       /* Found a barcode region? */
       if(reg.found == DMTX_REGION_FOUND)
          break;
@@ -93,111 +107,52 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
 extern DmtxRegion
 dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
 {
-   DmtxEdgeSubPixel edgeStart;
+   int offset;
    DmtxRegion reg;
-   int hough[DMTX_HOUGH_RES] = { 0 };
-   int houghStrong;
-/*
-   int hough2[DMTX_HOUGH_RES] = { 0 };
-   int hough2Strong, hough2Total;
-   DmtxPointEdge edges[3];
-   DmtxPixelLoc p0, p1;
-   int i;
-   int strongColor;
-*/
-   DmtxRay2 ray0, ray1;
+   DmtxPointFlow flowBegin;
 
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
-   /* Assume region is not found unless scan finds one below */
-   reg.found = DMTX_REGION_NOT_FOUND;
-
-   if(dmtxImageContainsInt(dec->image, 0, loc.X, loc.Y) == DMTX_FALSE)
+   offset = dmtxImageGetOffset(dec->image, loc.X, loc.Y);
+   if(offset == DMTX_BAD_OFFSET) {
+/* if(offset == DMTX_BAD_OFFSET || dec->image->cache[offset] & 0x40) { */
+      reg.found = DMTX_REGION_NOT_FOUND;
       return reg;
+   }
 
-   /* Find subpixel location of strongest edge found at this location */
-   edgeStart = FindZeroCrossing(dec, loc.X, loc.Y, NULL);
-   if(!edgeStart.isEdge) {
+   /* Test gravitational pull of nearby edges on all color planes */
+   flowBegin = MatrixRegionSeekEdge(dec, loc);
+   if(flowBegin.mag < 10) {
       reg.found = DMTX_REGION_DROPPED_EDGE;
       return reg;
    }
 
-/*
-   // Find whether red, green, or blue shows the strongest edge
-   strongColor = 0;
-   for(i = 0; i < 3; i++) {
-      edges[i] = GetPointEdge(dec, i, loc.X, loc.Y);
-
-      if(i > 0 && abs(edges[i].colorDelta) > abs(edges[strongColor].colorDelta))
-         strongColor = i;
-   }
-
-   if(abs(edges[strongColor].colorDelta) < 20) {
-      reg.found = DMTX_REGION_DROPPED_EDGE;
-      return reg;
-   }
-
-   // Next follow the edge to its end in both directions
-   hough2Strong = 0;
-   memset(hough2, 0x00, sizeof(hough2));
-   p0 = FollowEdge2(dec, strongColor, loc.X, loc.Y, edges[strongColor], -1, hough2, &hough2Strong);
-
-   hough2Total = hough2[hough2Strong];
-
-   hough2Strong = 0;
-   memset(hough2, 0x00, sizeof(hough2));
-   p1 = FollowEdge2(dec, strongColor, loc.X, loc.Y, edges[strongColor], 1, hough2, &hough2Strong);
-
-   hough2Total += hough2[hough2Strong];
-
-   if(hough2Total < 8) {
-      reg.found = DMTX_REGION_DROPPED_1ST;
-      return reg;
-   }
-
-   // Define first edge based on travel limits of detected edge
-   if(MatrixRegionAlignFirstEdge2(dec, &reg, p0, p1) != DMTX_SUCCESS) {
-      reg.found = DMTX_REGION_DROPPED_1ST;
-      return reg;
-   }
-*/
-   /* Next follow the edge to its end in both directions */
-   houghStrong = 0;
-   ray0 = FollowEdge(dec, loc.X, loc.Y, edgeStart, 1, hough, &houghStrong);
-   ray1 = FollowEdge(dec, loc.X, loc.Y, edgeStart, -1, hough, &houghStrong);
-   if(hough[houghStrong] < 8) {
-      reg.found = DMTX_REGION_DROPPED_1ST;
-      return reg;
-   }
-
-   if(hough[houghStrong] < 8) {
-      reg.found = DMTX_REGION_DROPPED_1ST;
-      return reg;
-   }
-
-   /* Define first edge based on travel limits of detected edge */
-   if(MatrixRegionAlignFirstEdge(dec, &reg, &edgeStart, ray0, ray1) != DMTX_SUCCESS) {
-      reg.found = DMTX_REGION_DROPPED_1ST;
-      return reg;
-   }
-
-   /* Define second edge based on best match of 4 possible orientations */
-   if(MatrixRegionAlignSecondEdge(dec, &reg) != DMTX_SUCCESS) {
-      reg.found = DMTX_REGION_DROPPED_2ND;
-      return reg;
-   }
-
-   /* Define right edge */
-   if(MatrixRegionAlignRightEdge(dec, &reg) != DMTX_SUCCESS) {
-      reg.found = DMTX_REGION_DROPPED_RIGHT;
+   /* Determine barcode orientation */
+   if(MatrixRegionOrientation(dec, &reg, flowBegin) != DMTX_SUCCESS) {
+      reg.found = DMTX_REGION_DROPPED_FINDER;
       return reg;
    }
 
    /* Define top edge */
-   if(MatrixRegionAlignTopEdge(dec, &reg) != DMTX_SUCCESS) {
+   if(MatrixRegionAlignCalibEdge(dec, &reg, DmtxEdgeTop) != DMTX_SUCCESS) {
       reg.found = DMTX_REGION_DROPPED_TOP;
       return reg;
    }
+
+   /* Define right edge */
+   if(MatrixRegionAlignCalibEdge(dec, &reg, DmtxEdgeRight) != DMTX_SUCCESS) {
+      reg.found = DMTX_REGION_DROPPED_RIGHT;
+      return reg;
+   }
+
+   /* Final region transform update */
+   // Remember that AlignTop should take affect in Xfrms before AlignRight runs
+   if(dmtxRegionUpdateXfrms2(dec, &reg) != DMTX_SUCCESS) {
+      reg.found = DMTX_REGION_DROPPED_RIGHT;
+      return reg;
+   }
+
+   CALLBACK_MATRIX(&reg);
 
    /* Calculate the best fitting symbol size */
    if(MatrixRegionFindSize(dec->image, &reg) != DMTX_SUCCESS) {
@@ -208,6 +163,216 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    /* Found a valid matrix region */
    reg.found = DMTX_REGION_FOUND;
    return reg;
+}
+
+/**
+ *
+ *
+ */
+static DmtxPointFlow
+MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc)
+{
+   int i;
+   int strongIdx;
+   int posMatch, negMatch;
+   DmtxPointFlow flow, flowPlane[3];
+   DmtxPointFlow flowPos, flowPosBack;
+   DmtxPointFlow flowNeg, flowNegBack;
+
+   /* Find whether red, green, or blue shows the strongest edge */
+   strongIdx = 0;
+   for(i = 0; i < 3; i++) {
+      flowPlane[i] = GetPointFlow(dec, i, loc, dmtxNeighborNone);
+      if(i > 0 && flowPlane[i].mag > flowPlane[strongIdx].mag)
+         strongIdx = i;
+   }
+
+   if(flowPlane[strongIdx].mag < 10)
+      return dmtxBlankEdge;
+
+   flow = flowPlane[strongIdx];
+
+   /* Attempt to find a solid 2-way edge from here */
+   for(i = 0; i < 1; i++) {
+      CALLBACK_POINT_PLOT(flow.loc, 1, 1, DMTX_DISPLAY_POINT);
+
+      flowPos = FindStrongestNeighbor(dec, flow, +1);
+      flowNeg = FindStrongestNeighbor(dec, flow, -1);
+      if(flowPos.mag == 0 || flowNeg.mag == 0) {
+         if(flowPos.mag == flowNeg.mag)
+            break;
+         else
+            flow = (flowPos.mag > flowNeg.mag) ? flowPos : flowNeg;
+      }
+      else if(flowPos.arrive == flowNeg.arrive) {
+         flow = flowPos;
+      }
+      else {
+         flowPosBack = FindStrongestNeighbor(dec, flowPos, -1);
+         posMatch = (flowPos.arrive == (flowPosBack.arrive+4)%8);
+         flowNegBack = FindStrongestNeighbor(dec, flowNeg, +1);
+         negMatch = (flowNeg.arrive == (flowNegBack.arrive+4)%8);
+         if(posMatch && negMatch) {
+            flow.arrive = dmtxNeighborNone;
+            CALLBACK_POINT_PLOT(flow.loc, 1, 1, DMTX_DISPLAY_SQUARE);
+            return flow;
+         }
+         else if(!posMatch && !negMatch) {
+            flow = (flowPos.mag > flowNeg.mag) ? flowPos : flowNeg;
+         }
+         else {
+            flow = (posMatch) ? flowPos : flowNeg;
+         }
+      }
+   }
+
+   return dmtxBlankEdge;
+}
+
+/**
+ *
+ *
+ */
+static int
+MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
+{
+   int err;
+   int cross;
+   DmtxBestLine line1x, line2x;
+   DmtxBestLine line2n, line2p;
+   DmtxVector2 pTmp;
+   DmtxRay2 r1, r2;
+   DmtxFollow fTmp;
+
+   /* Follow to end in both directions */
+   BlazeTrail(dec, reg, begin);
+   if(reg->stepsTotal < 40)
+      return DMTX_FAILURE;
+/*
+   if(BoundingBoxTest() == DMTX_FALSE)
+      return DMTX_FAILURE;
+*/
+   line1x = FindBestLine(dec, reg, 0, 0, -1);
+   if(line1x.mag < 5)
+      return DMTX_FAILURE;
+
+   err = FindTravelLimits(dec, reg, &line1x);
+   if(line1x.distSq < 100 || line1x.devn / sqrt(line1x.distSq) > 0.1)
+      return DMTX_FAILURE;
+   assert(line1x.stepPos >= line1x.stepNeg);
+
+   fTmp = FollowSeek(dec, reg, line1x.stepPos + 5);
+   line2p = FindBestLine(dec, reg, fTmp.step, line1x.stepNeg, line1x.angle);
+
+   fTmp = FollowSeek(dec, reg, line1x.stepNeg - 5);
+   line2n = FindBestLine(dec, reg, fTmp.step, line1x.stepPos, line1x.angle);
+   if(max(line2p.mag, line2n.mag) < 5)
+      return DMTX_FAILURE;
+
+   if(line2p.mag > line2n.mag) {
+      line2x = line2p;
+      err = FindTravelLimits(dec, reg, &line2x);
+      if(line2x.distSq < 100 || line2x.devn / sqrt(line2x.distSq) > 0.1)
+         return DMTX_FAILURE;
+
+      cross = ((line1x.locPos.X - line1x.locNeg.X) * (line2x.locPos.Y - line2x.locNeg.Y)) -
+            ((line1x.locPos.Y - line1x.locNeg.Y) * (line2x.locPos.X - line2x.locNeg.X));
+      if(cross > 0) {
+         /* Condition 2 */
+         reg->polarity = +1;
+         reg->locR = line2x.locPos;
+         reg->locT = line1x.locNeg;
+         reg->leftLoc = line1x.locBeg;
+         reg->leftAngle = line1x.angle;
+         reg->bottomLoc = line2x.locBeg;
+         reg->bottomAngle = line2x.angle;
+      }
+      else {
+         /* Condition 3 */
+         reg->polarity = -1;
+         reg->locR = line1x.locNeg;
+         reg->locT = line2x.locPos;
+         reg->leftLoc = line2x.locBeg;
+         reg->leftAngle = line2x.angle;
+         reg->bottomLoc = line1x.locBeg;
+         reg->bottomAngle = line1x.angle;
+      }
+   }
+   else {
+      line2x = line2n;
+      err = FindTravelLimits(dec, reg, &line2x);
+      if(line2x.distSq < 100 || line2x.devn / sqrt(line2x.distSq) > 0.1)
+         return DMTX_FAILURE;
+      cross = ((line1x.locNeg.X - line1x.locPos.X) * (line2x.locNeg.Y - line2x.locPos.Y)) -
+            ((line1x.locNeg.Y - line1x.locPos.Y) * (line2x.locNeg.X - line2x.locPos.X));
+      if(cross > 0) {
+         /* Condition 1 */
+         reg->polarity = -1;
+         reg->locR = line2x.locNeg;
+         reg->locT = line1x.locPos;
+         reg->leftLoc = line1x.locBeg;
+         reg->leftAngle = line1x.angle;
+         reg->bottomLoc = line2x.locBeg;
+         reg->bottomAngle = line2x.angle;
+      }
+      else {
+         /* Condition 4 */
+         reg->polarity = +1;
+         reg->locR = line1x.locPos; /* follow + */
+         reg->locT = line2x.locNeg; /* follow - */
+         reg->leftLoc = line2x.locBeg;
+         reg->leftAngle = line2x.angle;
+         reg->bottomLoc = line1x.locBeg;
+         reg->bottomAngle = line1x.angle;
+      }
+   }
+   CALLBACK_POINT_PLOT(reg->locR, 2, 1, DMTX_DISPLAY_SQUARE);
+   CALLBACK_POINT_PLOT(reg->locT, 2, 1, DMTX_DISPLAY_SQUARE);
+
+   /* Find intersection of 2 known lines */
+   r1.p.X = line1x.locNeg.X;
+   r1.p.Y = line1x.locNeg.Y;
+   r1.v.X = line1x.locPos.X - line1x.locNeg.X;
+   r1.v.Y = line1x.locPos.Y - line1x.locNeg.Y;
+   r1.tMin = 0.0;
+   r1.tMax = dmtxVector2Norm(&r1.v);
+
+   r2.p.X = line2x.locNeg.X;
+   r2.p.Y = line2x.locNeg.Y;
+   r2.v.X = line2x.locPos.X - line2x.locNeg.X;
+   r2.v.Y = line2x.locPos.Y - line2x.locNeg.Y;
+   r2.tMin = 0.0;
+   r2.tMax = dmtxVector2Norm(&r2.v);
+
+   err = dmtxRay2Intersect(&pTmp, &r1, &r2);
+   dmtxRegionSetCornerLoc(reg, DmtxCorner00, pTmp);
+
+   pTmp.X = reg->locR.X;
+   pTmp.Y = reg->locR.Y;
+   dmtxRegionSetCornerLoc(reg, DmtxCorner10, pTmp);
+   pTmp.X = reg->locT.X;
+   pTmp.Y = reg->locT.Y;
+   dmtxRegionSetCornerLoc(reg, DmtxCorner01, pTmp);
+
+   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
+      return DMTX_FAILURE;
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ *
+ *
+ */
+long
+DistanceSquared(DmtxPixelLoc a, DmtxPixelLoc b)
+{
+   long xDelta, yDelta;
+
+   xDelta = a.X - b.X;
+   yDelta = a.Y - b.Y;
+
+   return (xDelta * xDelta) + (yDelta * yDelta);
 }
 
 /**
@@ -379,12 +544,75 @@ dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
 }
 
 /**
+ *
+ *
+ *
+ *
+ */
+extern int
+dmtxRegionUpdateXfrms2(DmtxDecode *dec, DmtxRegion *reg)
+{
+   int err;
+   double radians;
+   DmtxRay2 rLeft, rBottom, rTop, rRight;
+   DmtxVector2 p00, p10, p11, p01;
+
+   rLeft.p.X = reg->leftLoc.X;
+   rLeft.p.Y = reg->leftLoc.Y;
+   radians = reg->leftAngle * (M_PI/DMTX_HOUGH_RES);
+   rLeft.v.X = cos(radians);
+   rLeft.v.Y = sin(radians);
+   rLeft.tMin = 0.0;
+   rLeft.tMax = dmtxVector2Norm(&rLeft.v);
+
+   rBottom.p.X = reg->bottomLoc.X;
+   rBottom.p.Y = reg->bottomLoc.Y;
+   radians = reg->bottomAngle * (M_PI/DMTX_HOUGH_RES);
+   rBottom.v.X = cos(radians);
+   rBottom.v.Y = sin(radians);
+   rBottom.tMin = 0.0;
+   rBottom.tMax = dmtxVector2Norm(&rBottom.v);
+
+   rTop.p.X = reg->topLoc.X;
+   rTop.p.Y = reg->topLoc.Y;
+   radians = reg->topAngle * (M_PI/DMTX_HOUGH_RES);
+   rTop.v.X = cos(radians);
+   rTop.v.Y = sin(radians);
+   rTop.tMin = 0.0;
+   rTop.tMax = dmtxVector2Norm(&rTop.v);
+
+   rRight.p.X = reg->rightLoc.X;
+   rRight.p.Y = reg->rightLoc.Y;
+   radians = reg->rightAngle * (M_PI/DMTX_HOUGH_RES);
+   rRight.v.X = cos(radians);
+   rRight.v.Y = sin(radians);
+   rRight.tMin = 0.0;
+   rRight.tMax = dmtxVector2Norm(&rRight.v);
+
+   err = dmtxRay2Intersect(&p00, &rLeft, &rBottom);
+   err = dmtxRay2Intersect(&p10, &rBottom, &rRight);
+   err = dmtxRay2Intersect(&p11, &rRight, &rTop);
+   err = dmtxRay2Intersect(&p01, &rTop, &rLeft);
+
+   dmtxRegionSetCornerLoc(reg, DmtxCorner00, p00);
+   dmtxRegionSetCornerLoc(reg, DmtxCorner10, p10);
+   dmtxRegionSetCornerLoc(reg, DmtxCorner11, p11);
+   dmtxRegionSetCornerLoc(reg, DmtxCorner01, p01);
+
+   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
+      return DMTX_FAILURE;
+
+   return DMTX_SUCCESS;
+}
+
+/**
  * @brief Clamp integer to range min <= value <= max
  * @param value Value to be clamped
  * @param min Minimum range boundary
  * @param max Maximum range boundary
  * @return Clamped value
  */
+/*
 static int
 ClampIntRange(int value, int min, int max)
 {
@@ -396,329 +624,7 @@ ClampIntRange(int value, int min, int max)
 
    return value;
 }
-
-/**
- * @brief Calculate compass edge strength and direction at individual pixel location
- * @param img
- * @param x
- * @param y
- * @param edgeScanDirs
- * @return Compass edge
- */
-static DmtxCompassEdge
-GetCompassEdge(DmtxImage *img, int x, int y, int edgeScanDirs)
-{
-   static const int coefficient[] = {  0,  1,  2,  1,  0, -1, -2, -1 };
-   int idx, dirVal[] = { DmtxCompassDirNeg45, DmtxCompassDir0, DmtxCompassDir45, DmtxCompassDir90 };
-
-   int offset, widthScaled, heightScaled;
-   int patternIdx, coefficientIdx;
-   int xAdjust, yAdjust;
-   int rgbCol[3], rgbInt[8][3], *rgbIntPtr;
-   int dir, maxDirOrtho, maxDirAll;
-   long magSq, maxMagSqOrtho, maxMagSqAll;
-   int maxColOrtho[3], maxColAll[3];
-   DmtxRgb rgb;
-   DmtxCompassEdge maxEdge, *compassCache;
-   DmtxColor3 black = { 0.0, 0.0, 0.0 }; /* XXX move black to a global scope later */
-
-   /* Set maxEdge to invalid state */
-   maxEdge.dirsTested = DmtxCompassDirNone;
-   maxEdge.maxDirAll = maxDirAll = DmtxCompassDirNone;
-   maxEdge.maxDirOrtho = maxDirOrtho = DmtxCompassDirNone;
-   maxEdge.magnitude = maxMagSqAll = maxMagSqOrtho = 0.0;
-   maxEdge.intensity = black;
-   memset(maxColAll, 0x00, 3 * sizeof(int));
-   memset(maxColOrtho, 0x00, 3 * sizeof(int));
-
-   offset = dmtxImageGetOffset(img, x, y);
-   if(offset == DMTX_BAD_OFFSET)
-      return maxEdge; /* XXX should really communicate failure with a dedicated value instead */
-
-   widthScaled = img->width/img->scale;   /* dmtxImageGetProp(img, DmtxPropScaledWidth); */
-   heightScaled = img->height/img->scale; /* dmtxImageGetProp(img, DmtxPropScaledHeight); */
-
-   /* Cache always holds result from most recent test. Return cached result
-      if it matches the request. Otherwise recache and return new result. */
-
-   compassCache = &(img->compass[offset]);
-
-   /* Requested test was already performed */
-   if(edgeScanDirs == compassCache->dirsTested)
-      return *compassCache;
-
-   /* Requested answer is already cached */
-   if(edgeScanDirs == compassCache->maxDirAll)
-      return *compassCache;
-
-   /* Previously found max ortho by virtue of max all test */
-   if(edgeScanDirs == DmtxCompassDirOrtho &&
-         compassCache->dirsTested == DmtxCompassDirAll &&
-         (compassCache->maxDirAll & DmtxCompassDirOrtho))
-      return *compassCache;
-
-   for(patternIdx = 0; patternIdx < 8; patternIdx++) {
-      /* Accommodate 1 pixel beyond edge of image with nearest neighbor value */
-      xAdjust = ClampIntRange(x + dmtxPatternX[patternIdx], 0, widthScaled - 1);
-      yAdjust = ClampIntRange(y + dmtxPatternY[patternIdx], 0, heightScaled - 1);
-
-      dmtxImageGetRgb(img, xAdjust, yAdjust, rgb);
-      rgbIntPtr = &(rgbInt[patternIdx][0]);
-      rgbIntPtr[0] = rgb[0];
-      rgbIntPtr[1] = rgb[1];
-      rgbIntPtr[2] = rgb[2];
-   }
-
-   /* Calculate this pixel's edge intensity for each direction (-45, 0, 45, 90) */
-   for(idx = 0; idx < 4; idx++) {
-
-      dir = dirVal[idx];
-
-      /* Only scan for edge if this direction was requested */
-      if(!(dir & edgeScanDirs))
-         continue;
-
-      memset(rgbCol, 0x00, 3 * sizeof(int));
-
-      /* Add portion from each position in the convolution matrix pattern */
-      for(patternIdx = 0; patternIdx < 8; patternIdx++) {
-
-         coefficientIdx = (patternIdx - idx + 8) % 8;
-         if(coefficient[coefficientIdx] == 0)
-            continue;
-
-         rgbIntPtr = &(rgbInt[patternIdx][0]);
-
-         /* Weight pixel value by appropriate coefficient in convolution matrix */
-         switch(coefficient[coefficientIdx]) {
-            case 2:
-               rgbCol[0] += rgbIntPtr[0];
-               rgbCol[1] += rgbIntPtr[1];
-               rgbCol[2] += rgbIntPtr[2];
-               /* Fall through */
-            case 1:
-               rgbCol[0] += rgbIntPtr[0];
-               rgbCol[1] += rgbIntPtr[1];
-               rgbCol[2] += rgbIntPtr[2];
-               break;
-            case -2:
-               rgbCol[0] -= rgbIntPtr[0];
-               rgbCol[1] -= rgbIntPtr[1];
-               rgbCol[2] -= rgbIntPtr[2];
-               /* Fall through */
-            case -1:
-               rgbCol[0] -= rgbIntPtr[0];
-               rgbCol[1] -= rgbIntPtr[1];
-               rgbCol[2] -= rgbIntPtr[2];
-               break;
-         }
-      }
-      magSq = rgbCol[0] * rgbCol[0] + rgbCol[1] * rgbCol[1] + rgbCol[2] * rgbCol[2];
-
-      /* Capture the strongest edge direction and its intensity */
-      if((dir & DmtxCompassDirOrtho) &&
-            (maxDirOrtho == DmtxCompassDirNone || magSq > maxMagSqOrtho)) {
-         maxDirOrtho = dir;
-         maxMagSqOrtho = magSq;
-         memcpy(maxColOrtho, rgbCol, 3 * sizeof(int));
-      }
-
-      /* Capture the strongest edge direction and its intensity */
-      if(maxDirAll == DmtxCompassDirNone || magSq > maxMagSqAll) {
-         maxDirAll = dir;
-         maxMagSqAll = magSq;
-         memcpy(maxColAll, rgbCol, 3 * sizeof(int));
-      }
-   }
-
-   maxEdge.dirsTested = edgeScanDirs;
-   maxEdge.maxDirAll = maxDirAll;
-   maxEdge.maxDirOrtho = maxDirOrtho;
-
-   maxEdge.intensity.R = maxColAll[0];
-   maxEdge.intensity.G = maxColAll[1];
-   maxEdge.intensity.B = maxColAll[2];
-   maxEdge.magnitude = dmtxColor3Norm(&maxEdge.intensity);
-
-   *compassCache = maxEdge;
-
-   return *compassCache;
-}
-
-/**
- * We have found an edge candidate whenever we find 3 pixels in a
- * row that share the same strongest direction and the middle one
- * had the highest intensity (or a first-place tie with one of its
- * neighbors)
- */
-static DmtxEdgeSubPixel
-FindZeroCrossing(DmtxDecode *dec, int x, int y, DmtxCompassEdge *compare)
-{
-   double accelPrev, accelNext, frac;
-   DmtxCompassEdge selfStart, compassPrev, compassNext;
-   DmtxEdgeSubPixel subPixel;
-   DmtxImage *img = dec->image;
-
-   subPixel.isEdge = 0;
-   subPixel.xInt = x;
-   subPixel.yInt = y;
-   subPixel.xFrac = 0.0;
-   subPixel.yFrac = 0.0;
-
-   if(compare == NULL) {
-      compare = &selfStart;
-      selfStart = GetCompassEdge(img, x, y, DmtxCompassDirAll);
-      subPixel.compass = selfStart;
-   }
-   else {
-      subPixel.compass = GetCompassEdge(img, x, y, compare->maxDirAll);
-      if(dmtxColor3Dot(&subPixel.compass.intensity, &(compare->intensity)) < 0)
-         return subPixel;
-   }
-
-   if(subPixel.compass.magnitude < dec->edgeThresh * 17.68)
-      return subPixel;
-
-   if(compare->maxDirOrtho == DmtxCompassDir0) {
-      compassPrev = GetCompassEdge(img, x-1, y, compare->maxDirAll);
-      compassNext = GetCompassEdge(img, x+1, y, compare->maxDirAll);
-   }
-   else { /* DmtxCompassDir90 */
-      compassPrev = GetCompassEdge(img, x, y-1, compare->maxDirAll);
-      compassNext = GetCompassEdge(img, x, y+1, compare->maxDirAll);
-   }
-
-   /* Calculate 2nd derivatives left and right of center */
-   accelPrev = subPixel.compass.magnitude - compassPrev.magnitude;
-   accelNext = compassNext.magnitude - subPixel.compass.magnitude;
-
-   /* If it looks like an edge then interpolate subpixel loc based on 0 crossing */
-   if(accelPrev * accelNext < DMTX_ALMOST_ZERO) {
-      frac = (fabs(accelNext - accelPrev) > DMTX_ALMOST_ZERO) ?
-            (accelPrev / (accelPrev - accelNext)) - 0.5 : 0.0;
-
-      subPixel.isEdge = 1;
-      subPixel.xFrac = (compare->maxDirOrtho == DmtxCompassDir0) ? frac : 0.0;
-      subPixel.yFrac = (compare->maxDirOrtho == DmtxCompassDir90) ? frac : 0.0;
-   }
-
-   return subPixel;
-}
-
-/**
- *
- *
- */
-static DmtxRay2
-FollowEdge(DmtxDecode *dec, int x, int y, DmtxEdgeSubPixel edgeStart, int forward, int hough[], int *strongIdx)
-{
-   int xFollow, yFollow;
-   int xIncrement, yIncrement;
-   DmtxEdgeSubPixel edge, edge0, edge1;
-   DmtxVector2 p, pStart, pSoft, pHard, pStep;
-   double strong0, strong1;
-   double angle;
-   int angleIdx;
-   DmtxCompassEdge compass;
-   DmtxRay2 ray;
-
-   memset(&ray, 0x00, sizeof(DmtxRay2));
-
-   /* No edge here, thanks for playing */
-   if(!edgeStart.isEdge)
-      return ray;
-
-   pStart.X = edgeStart.xInt + edgeStart.xFrac;
-   pStart.Y = edgeStart.yInt + edgeStart.yFrac;
-   p = pSoft = pHard = pStart;
-
-   edge = edgeStart;
-   compass = edgeStart.compass;
-
-   /* If we have a true edge then continue to follow it forward */
-   if(compass.maxDirOrtho == DmtxCompassDir0) {
-      xIncrement = 0;
-      yIncrement = forward;
-   }
-   else {
-      xIncrement = forward;
-      yIncrement = 0;
-   }
-
-   xFollow = x + xIncrement;
-   yFollow = y + yIncrement;
-
-   while(edge.isEdge && dmtxImageContainsInt(dec->image, 0, xFollow, yFollow) == DMTX_TRUE) {
-
-      edge = FindZeroCrossing(dec, xFollow, yFollow, &compass);
-
-      if(!edge.isEdge) {
-         edge0 = FindZeroCrossing(dec, xFollow + yIncrement, yFollow + xIncrement, &compass);
-         edge1 = FindZeroCrossing(dec, xFollow - yIncrement, yFollow - xIncrement, &compass);
-         if(edge0.isEdge && edge1.isEdge) {
-            strong0 = dmtxColor3Dot(&edge0.compass.intensity, &compass.intensity);
-            strong1 = dmtxColor3Dot(&edge1.compass.intensity, &compass.intensity);
-            edge = (strong0 > strong1) ? edge0 : edge1;
-         }
-         else {
-            edge = (edge0.isEdge) ? edge0 : edge1;
-         }
-
-         if(!edge.isEdge) {
-            edge0 = FindZeroCrossing(dec, xFollow + 2*yIncrement, yFollow + 2*xIncrement, &compass);
-            edge1 = FindZeroCrossing(dec, xFollow - 2*yIncrement, yFollow - 2*xIncrement, &compass);
-            if(edge0.isEdge && edge1.isEdge) {
-               strong0 = dmtxColor3Dot(&edge0.compass.intensity, &compass.intensity);
-               strong1 = dmtxColor3Dot(&edge1.compass.intensity, &compass.intensity);
-               edge = (strong0 > strong1) ? edge0 : edge1;
-            }
-            else {
-               edge = (edge0.isEdge) ? edge0 : edge1;
-            }
-         }
-      }
-
-      if(edge.isEdge) {
-         p.X = edge.xInt + edge.xFrac;
-         p.Y = edge.yInt + edge.yFrac;
-
-         /* Outline of follower in 2nd pane */
-/*       CALLBACK_POINT_PLOT(p, 1, 1, DMTX_DISPLAY_POINT); */
-
-         if(edge.compass.magnitude > 0.50 * compass.magnitude)
-            pSoft = p;
-         if(edge.compass.magnitude > 0.90 * compass.magnitude)
-            pHard = p;
-      }
-
-      angle = atan2(p.Y-pStart.Y, p.X-pStart.X) + M_PI;
-      angleIdx = (int)(angle * (DMTX_HOUGH_RES/M_PI)) % DMTX_HOUGH_RES;
-
-      hough[angleIdx]++;
-      if(hough[angleIdx] > hough[*strongIdx])
-         *strongIdx = angleIdx;
-
-      if(hough[*strongIdx] > 8 && hough[angleIdx] < 3)
-         break;
-
-      xFollow = (int)(edge.xInt + edge.xFrac + 0.5) + xIncrement;
-      yFollow = (int)(edge.yInt + edge.yFrac + 0.5) + yIncrement;
-   }
-
-/* CALLBACK_POINT_PLOT(pHard, 1, 4, DMTX_DISPLAY_SQUARE); */
-   dmtxVector2Sub(&pStep, &pHard, &pStart);
-   if(dmtxVector2Norm(&pStep) < 4.0)
-      return ray;
-
-   ray.p = pStart;
-   ray.v = pStep;
-   ray.tMin = 0;
-   ray.tMax = dmtxDistanceAlongRay2(&ray, &pSoft);
-
-   ray.isDefined = (ray.tMax > 4) ? 1 : 0;
-
-   return ray;
-}
+*/
 
 /**
  *
@@ -737,741 +643,6 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
    dmtxMatrix3VMultiplyBy(&vB, m);
 
    return dmtxVector2Dot(&vA, &vB);
-}
-
-/**
- * @brief Align first edge of potential barcode region
- * @param image
- * @param reg
- * @param edgeStart
- * @param ray0
- * @param ray1
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-static int
-MatrixRegionAlignFirstEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxEdgeSubPixel *edgeStart, DmtxRay2 ray0, DmtxRay2 ray1)
-{
-   DmtxRay2 rayFull;
-   DmtxVector2 p0, p1, pTmp;
-   double ratio;
-
-   if(!ray0.isDefined && !ray1.isDefined) {
-      return DMTX_FAILURE;
-   }
-   else if(ray0.isDefined && ray1.isDefined) {
-
-      /* If rays are relatively colinear then combine them */
-      if(dmtxVector2Dot(&ray0.v, &ray1.v) < -0.99) {
-         dmtxPointAlongRay2(&p0, &ray0, ray0.tMax);
-         dmtxPointAlongRay2(&p1, &ray1, ray1.tMax);
-         rayFull.isDefined = 1;
-         rayFull.p = p1;
-
-         dmtxVector2Sub(&pTmp, &p0, &p1);
-         if(dmtxVector2Norm(&pTmp) < 0.0)
-            return DMTX_FAILURE;
-
-         rayFull.v = pTmp;
-         rayFull.tMin = 0;
-         rayFull.tMax = dmtxDistanceAlongRay2(&rayFull, &p0);
-      }
-      else { /* Not colinear */
-         ratio = ray0.tMax / ray1.tMax;
-
-         assert(ray1.tMax > DMTX_ALMOST_ZERO);
-
-         /* Only use longer ray if shorter one is insignificant */
-         if(ratio < 0.2 || ratio > 5)
-            rayFull = (ray0.tMax > ray1.tMax) ? ray0 : ray1;
-         else
-            return DMTX_FAILURE;
-      }
-   }
-   else {
-      rayFull = (ray0.isDefined) ? ray0 : ray1;
-   }
-
-   /* Reject edges shorter than 12 pixels */
-   if(rayFull.tMax < 12)
-      return DMTX_FAILURE;
-
-   dmtxPointAlongRay2(&pTmp, &rayFull, rayFull.tMax);
-   dmtxRegionSetCornerLoc(reg, DmtxCorner01, pTmp);
-   dmtxRegionSetCornerLoc(reg, DmtxCorner00, rayFull.p);
-
-   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
-      return DMTX_FAILURE;
-
-   /* Top-right pane showing first edge fit */
-/* CALLBACK_DECODE_FUNC1(buildMatrixCallback2, dec, reg); */
-
-   return DMTX_SUCCESS;
-}
-
-#ifdef NOTDEFINED
-/**
- * @brief Align first edge of potential barcode region
- * @param image
- * @param reg
- * @param edgeStart
- * @param ray0
- * @param ray1
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-static int
-MatrixRegionAlignFirstEdge2(DmtxDecode *dec, DmtxRegion *reg, DmtxPixelLoc p0, DmtxPixelLoc p1)
-{
-   int xDelta, yDelta;
-   DmtxVector2 pTmp;
-
-   xDelta = p1.X - p0.X;
-   yDelta = p1.Y - p0.Y;
-
-   /* Reject edges shorter than 10 pixels */
-   if(xDelta * xDelta + yDelta * yDelta < 100)
-      return DMTX_FAILURE;
-
-   pTmp.X = p0.X;
-   pTmp.Y = p0.Y;
-   dmtxRegionSetCornerLoc(reg, DmtxCorner00, pTmp);
-
-   pTmp.X = p1.X;
-   pTmp.Y = p1.Y;
-   dmtxRegionSetCornerLoc(reg, DmtxCorner01, pTmp);
-
-   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
-      return DMTX_FAILURE;
-
-   return DMTX_SUCCESS;
-}
-#endif
-
-/**
- * @brief  XXX
- * @param  image
- * @param  reg
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-static int
-MatrixRegionAlignSecondEdge(DmtxDecode *dec, DmtxRegion *reg)
-{
-   DmtxVector2 p0[4], p1[4], pCorner[4];
-   int hitCount[4] = { 0, 0, 0, 0 };
-   int weakCount[4] = { 0, 0, 0, 0 };
-   DmtxMatrix3 xlate, flip, shear;
-   DmtxMatrix3 preFit2Raw, postRaw2Fit;
-   DmtxVector2 O, T, R;
-   DmtxVector2 fitO, fitT;
-   DmtxVector2 oldRawO, oldRawT;
-   int i, bestFit;
-   DmtxRay2 rayOT, rayNew;
-   double ratio, maxRatio;
-
-   /* Corners are named using the following layout:
-    *
-    *  T |
-    *    |
-    *    |
-    *    +-----
-    *  O      R
-    *
-    */
-
-/**
-Simplify StepAlongEdge() and avoid complicated error-prone counters.
-
-Step along all 4 edges.
-
-Eliminate any of the edges that are already known to be bad
-
-For those that remain, choose the winner based on least variation
-among module samples and proximity of color to initial edge
-
-   for(each edge orientation option) {
-      if(hitCount[i] < 3)
-         option[i] = invalid;
-      else if(length[p1-p0] < 8 pixels)
-         option[i] = invalid;
-   }
-
-   if(option[0].valid && option[2].valid) {
-      ratio = length[0]/length[2];
-      if(ratio > 8)
-         option[2] = invalid;
-      else if(ration < 1/8)
-         option[0] = invalid;
-   }
-   // XXX then also same thing for option[0] and option[1]
-
-   // Determine winner among remaining options
-   winner = NULL;
-   currentMin = max or first;
-   for(each sizeIdx) {
-      for(each edge orientation option) {
-         if(edge orientation is ruled out)
-            continue;
-
-         if(ColorDevianceSum(sizeIdx, matrix, gradient, &currentMin))
-            winner = thisOrientation;
-      }
-   }
-   if(winner == NULL)
-      return FAILURE;
-
-     - step along imaginary center (same # steps for each test),
-       summing color difference between sample and ON color in known
-       gradient. As soon as sum exceeds previous best, then eliminate
-       from candidacy. record best minimum difference for each leg
-       candidate. candidate with smallest diff wins.
-
-     - maybe round-robin the tests, so the winning leg will get a foot
-       in the door sooner, speeding things up significantly
-*/
-
-/*fprintf(stdout, "MatrixRegionAlignSecondEdge()\n"); */
-
-   /* Scan top edge left-to-right (shear only)
-
-      +---   O = intersection of known edges
-      |      T = farthest known point along scanned edge
-      |      R = old O
-   */
-   dmtxMatrix3Shear(postRaw2Fit, 0.0, 1.0);
-   dmtxMatrix3Shear(preFit2Raw, 0.0, -1.0);
-
-   hitCount[0] = MatrixRegionAlignEdge(dec, reg, postRaw2Fit,
-         preFit2Raw, &p0[0], &p1[0], &pCorner[0], &weakCount[0]);
-
-   /* Scan top edge right-to-left (horizontal flip and shear)
-
-      ---+   O = intersection of known edges
-         |   T = old O
-         |   R = farthest known point along scanned edge
-   */
-   dmtxMatrix3Scale(flip, -1.0, 1.0);
-   dmtxMatrix3Shear(shear, 0.0, 1.0);
-   dmtxMatrix3Multiply(postRaw2Fit, flip, shear);
-
-   dmtxMatrix3Shear(shear, 0.0, -1.0);
-   dmtxMatrix3Scale(flip, -1.0, 1.0);
-   dmtxMatrix3Multiply(preFit2Raw, shear, flip);
-
-   hitCount[1] = MatrixRegionAlignEdge(dec, reg, postRaw2Fit,
-         preFit2Raw, &p0[1], &p1[1], &pCorner[1], &weakCount[1]);
-
-   /* Scan bottom edge left-to-right (vertical flip and shear)
-
-      |      O = intersection of known edges
-      |      T = old T
-      +---   R = farthest known point along scanned edge
-   */
-   dmtxMatrix3Scale(flip, 1.0, -1.0);
-   dmtxMatrix3Translate(xlate, 0.0, 1.0);
-   dmtxMatrix3Shear(shear, 0.0, 1.0);
-   dmtxMatrix3Multiply(postRaw2Fit, flip, xlate);
-   dmtxMatrix3MultiplyBy(postRaw2Fit, shear);
-
-   dmtxMatrix3Shear(shear, 0.0, -1.0);
-   dmtxMatrix3Translate(xlate, 0.0, -1.0);
-   dmtxMatrix3Scale(flip, 1.0, -1.0);
-   dmtxMatrix3Multiply(preFit2Raw, shear, xlate);
-   dmtxMatrix3MultiplyBy(preFit2Raw, flip);
-
-   hitCount[2] = MatrixRegionAlignEdge(dec, reg, postRaw2Fit,
-         preFit2Raw, &p0[2], &p1[2], &pCorner[2], &weakCount[2]);
-
-   /* Scan bottom edge right-to-left (flip flip shear)
-
-         |   O = intersection of known edges
-         |   T = farthest known point along scanned edge
-      ---+   R = old T
-   */
-   dmtxMatrix3Scale(flip, -1.0, -1.0);
-   dmtxMatrix3Translate(xlate, 0.0, 1.0);
-   dmtxMatrix3Shear(shear, 0.0, 1.0);
-   dmtxMatrix3Multiply(postRaw2Fit, flip, xlate);
-   dmtxMatrix3MultiplyBy(postRaw2Fit, shear);
-
-   dmtxMatrix3Shear(shear, 0.0, -1.0);
-   dmtxMatrix3Translate(xlate, 0.0, -1.0);
-   dmtxMatrix3Scale(flip, -1.0, -1.0);
-   dmtxMatrix3Multiply(preFit2Raw, shear, xlate);
-   dmtxMatrix3MultiplyBy(preFit2Raw, flip);
-
-   hitCount[3] = MatrixRegionAlignEdge(dec, reg, postRaw2Fit,
-         preFit2Raw, &p0[3], &p1[3], &pCorner[3], &weakCount[3]);
-
-   /* choose orientation with highest hitCount/(weakCount + 1) ratio */
-   for(i = 0; i < 4; i++) {
-      ratio = (double)hitCount[i]/(weakCount[i] + 1);
-
-      if(i == 0 || ratio > maxRatio) {
-         bestFit = i;
-         maxRatio = ratio;
-      }
-   }
-
-   if(hitCount[bestFit] < 5)
-      return DMTX_FAILURE;
-
-   fitT.X = 0.0;
-   fitT.Y = 1.0;
-   dmtxMatrix3VMultiply(&oldRawT, &fitT, reg->fit2raw);
-
-   fitO.X = 0.0;
-   fitO.Y = 0.0;
-   dmtxMatrix3VMultiply(&oldRawO, &fitO, reg->fit2raw);
-
-   if(bestFit == 0 || bestFit == 1)
-      oldRawT = pCorner[bestFit];
-   else
-      oldRawO = pCorner[bestFit];
-
-   rayOT.p = oldRawO;
-   dmtxVector2Sub(&rayOT.v, &oldRawT, &oldRawO);
-   if(dmtxVector2Norm(&rayOT.v) < 0.0)
-      return DMTX_FAILURE;
-
-   rayNew.p = p0[bestFit];
-   dmtxVector2Sub(&rayNew.v, &p1[bestFit], &p0[bestFit]);
-   if(dmtxVector2Norm(&rayNew.v) < 0.0)
-      return DMTX_FAILURE;
-
-   /* New origin is always origin of both known edges */
-   dmtxRay2Intersect(&O, &rayOT, &rayNew);
-
-   if(bestFit == 0) {
-      T = p1[bestFit];
-      R = oldRawO;
-   }
-   else if(bestFit == 1) {
-      T = oldRawO;
-      R = p1[bestFit];
-   }
-   else if(bestFit == 2) {
-      T = oldRawT;
-      R = p1[bestFit];
-   }
-   else {
-      assert(bestFit == 3);
-      T = p1[bestFit];
-      R = oldRawT;
-   }
-
-   dmtxRegionSetCornerLoc(reg, DmtxCorner00, O);
-   dmtxRegionSetCornerLoc(reg, DmtxCorner01, T);
-   dmtxRegionSetCornerLoc(reg, DmtxCorner10, R);
-
-   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
-      return DMTX_FAILURE;
-
-   /* Skewed barcode in the bottom middle pane */
-/* CALLBACK_DECODE_FUNC1(buildMatrixCallback4, dec, reg->fit2raw); */
-
-   return DMTX_SUCCESS;
-}
-
-/**
- * @brief  XXX
- * @param  image
- * @param  reg
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-static int
-MatrixRegionAlignRightEdge(DmtxDecode *dec, DmtxRegion *reg)
-{
-   DmtxMatrix3 rotate, flip, shear, scale;
-   DmtxMatrix3 preFit2Raw, postRaw2Fit;
-
-   dmtxMatrix3Rotate(rotate, -M_PI_2);
-   dmtxMatrix3Scale(flip, 1.0, -1.0);
-   dmtxMatrix3Shear(shear, 0.0, 0.5);
-   dmtxMatrix3Scale(scale, 1.25, 1.0);
-
-   dmtxMatrix3Multiply(postRaw2Fit, rotate, flip);
-   dmtxMatrix3MultiplyBy(postRaw2Fit, shear);
-   dmtxMatrix3MultiplyBy(postRaw2Fit, scale);
-
-   dmtxMatrix3Scale(scale, 0.8, 1.0);
-   dmtxMatrix3Shear(shear, 0.0, -0.5);
-   dmtxMatrix3Scale(flip, 1.0, -1.0);
-   dmtxMatrix3Rotate(rotate, M_PI_2);
-   dmtxMatrix3Multiply(preFit2Raw, scale, shear);
-   dmtxMatrix3MultiplyBy(preFit2Raw, flip);
-   dmtxMatrix3MultiplyBy(preFit2Raw, rotate);
-
-   if(MatrixRegionAlignCalibEdge(dec, reg, DmtxEdgeRight, preFit2Raw, postRaw2Fit) != DMTX_SUCCESS)
-      return DMTX_FAILURE;
-
-   return DMTX_SUCCESS;
-}
-
-/**
- * @brief  XXX
- * @param  image
- * @param  reg
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-static int
-MatrixRegionAlignTopEdge(DmtxDecode *dec, DmtxRegion *reg)
-{
-   DmtxMatrix3 preFit2Raw, postRaw2Fit;
-
-   dmtxMatrix3Shear(postRaw2Fit, 0.0, 0.5);
-   dmtxMatrix3Shear(preFit2Raw, 0.0, -0.5);
-
-   if(MatrixRegionAlignCalibEdge(dec, reg, DmtxEdgeTop, preFit2Raw, postRaw2Fit) != DMTX_SUCCESS)
-      return DMTX_FAILURE;
-
-   return DMTX_SUCCESS;
-}
-
-/**
- * @brief  XXX
- * @param  image
- * @param  reg
- * @param  edgeLoc
- * @param  preFit2Raw
- * @param  postRaw2Fit
- * @return DMTX_SUCCESS | DMTX_FAILURE
- */
-static int
-MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg,
-      DmtxEdgeLoc edgeLoc, DmtxMatrix3 preFit2Raw, DmtxMatrix3 postRaw2Fit)
-{
-   DmtxVector2 p0, p1, pCorner;
-   double slope;
-   int hitCount;
-   int weakCount;
-
-   assert(edgeLoc == DmtxEdgeTop || edgeLoc == DmtxEdgeRight);
-
-   hitCount = MatrixRegionAlignEdge(dec, reg, postRaw2Fit, preFit2Raw, &p0, &p1, &pCorner, &weakCount);
-   if(hitCount < 2)
-      return DMTX_FAILURE;
-
-   if(edgeLoc == DmtxEdgeRight) {
-      dmtxRegionSetCornerLoc(reg, DmtxCorner10, pCorner);
-      if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
-         return DMTX_FAILURE;
-
-      dmtxMatrix3VMultiplyBy(&p0, reg->raw2fit);
-      dmtxMatrix3VMultiplyBy(&p1, reg->raw2fit);
-
-      assert(fabs(p1.Y - p0.Y) > DMTX_ALMOST_ZERO);
-      slope = (p1.X - p0.X) / (p1.Y - p0.Y);
-
-      p0.X = p0.X - slope * p0.Y;
-      p0.Y = 0.0;
-      p1.X = p0.X + slope;
-      p1.Y = 1.0;
-
-      dmtxMatrix3VMultiplyBy(&p0, reg->fit2raw);
-      dmtxMatrix3VMultiplyBy(&p1, reg->fit2raw);
-
-      dmtxRegionSetCornerLoc(reg, DmtxCorner10, p0);
-      dmtxRegionSetCornerLoc(reg, DmtxCorner11, p1);
-   }
-   else {
-      dmtxRegionSetCornerLoc(reg, DmtxCorner01, pCorner);
-      if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
-         return DMTX_FAILURE;
-
-      dmtxMatrix3VMultiplyBy(&p0, reg->raw2fit);
-      dmtxMatrix3VMultiplyBy(&p1, reg->raw2fit);
-
-      assert(fabs(p1.X - p0.X) > DMTX_ALMOST_ZERO);
-      slope = (p1.Y - p0.Y) / (p1.X - p0.X);
-
-      p0.Y = p0.Y - slope * p0.X;
-      p0.X = 0.0;
-      p1.Y = p0.Y + slope;
-      p1.X = 1.0;
-
-      dmtxMatrix3VMultiplyBy(&p0, reg->fit2raw);
-      dmtxMatrix3VMultiplyBy(&p1, reg->fit2raw);
-
-      dmtxRegionSetCornerLoc(reg, DmtxCorner01, p0);
-      dmtxRegionSetCornerLoc(reg, DmtxCorner11, p1);
-   }
-   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
-      return DMTX_FAILURE;
-
-   return DMTX_SUCCESS;
-}
-
-/**
- * @brief  XXX
- * @param  image
- * @param  reg
- * @param  postRaw2Fit
- * @param  preFit2Raw
- * @param  p0
- * @param  p1
- * @param  pCorner
- * @param  weakCount
- * @return 3 points in raw coordinates
- */
-static int
-MatrixRegionAlignEdge(DmtxDecode *dec, DmtxRegion *reg,
-      DmtxMatrix3 postRaw2Fit, DmtxMatrix3 preFit2Raw, DmtxVector2 *p0,
-      DmtxVector2 *p1, DmtxVector2 *pCorner, int *weakCount)
-{
-   int hitCount, edgeHit, prevEdgeHit;
-   DmtxVector2 c00, c10, c01;
-   DmtxMatrix3 sRaw2Fit, sFit2Raw;
-   DmtxVector2 forward, lateral;
-   DmtxVector2 pFitExact, pFitProgress, pRawProgress, pRawExact, pLast;
-   double interceptTest, intercept[8];
-   DmtxVector2 adjust[8];
-   double slope[8];
-   int i;
-   int stepsSinceStarAdjust;
-   DmtxVector2 pTmp;
-
-/*fprintf(stdout, "MatrixRegionAlignEdge()\n"); */
-   dmtxMatrix3Multiply(sRaw2Fit, reg->raw2fit, postRaw2Fit);
-   dmtxMatrix3Multiply(sFit2Raw, preFit2Raw, reg->fit2raw);
-
-   /* Draw skewed image in bottom left pane */
-/* CALLBACK_DECODE_FUNC1(buildMatrixCallback3, dec, sFit2Raw); */
-
-   /* Set starting point */
-   pFitProgress.X = -0.003;
-   pFitProgress.Y = 0.9;
-   *pCorner = pFitExact = pFitProgress;
-   dmtxMatrix3VMultiply(&pRawProgress, &pFitProgress, sFit2Raw);
-
-   /* Initialize star lines */
-   for(i = 0; i < 8; i++) {
-      slope[i] = tan((M_PI_2/8.0) * i);
-      intercept[i] = 0.9;
-      adjust[i].X = 0.0;
-      adjust[i].Y = 0.9;
-   }
-
-   hitCount = 0;
-   stepsSinceStarAdjust = 0;
-   *weakCount = 0;
-
-   prevEdgeHit = edgeHit = DMTX_EDGE_STEP_EXACT;
-
-   for(;;) {
-
-      dmtxMatrix3VMultiply(&pTmp, &pRawProgress, sRaw2Fit);
-
-      /* Only update forward and lateral vectors before leaving finder bar */
-      if(pTmp.X < 0.05) {
-         c00 = pTmp;
-         c10.X = c00.X + 1;
-         c10.Y = c00.Y;
-         c01.X = c00.X - 0.087155743;
-         c01.Y = c00.Y + 0.996194698;
-
-         if(dmtxMatrix3VMultiplyBy(&c00, sFit2Raw) != DMTX_SUCCESS)
-            return 0;
-
-         if(dmtxMatrix3VMultiplyBy(&c10, sFit2Raw) != DMTX_SUCCESS)
-            return 0;
-
-         if(dmtxMatrix3VMultiplyBy(&c01, sFit2Raw) != DMTX_SUCCESS)
-            return 0;
-
-         /* XXX instead of just failing here, hopefully find what happened
-                upstream to trigger this condition. we can probably avoid
-                this earlier on, and even avoid assertion failures elsewhere */
-         if(RightAngleTrueness(c01, c00, c10, M_PI) < 0.1)
-            return 0;
-
-         /* Calculate forward and lateral directions in raw coordinates */
-         dmtxVector2Sub(&forward, &c10, &c00);
-         if(dmtxVector2Norm(&forward) < 0.0)
-            return 0;
-
-         dmtxVector2Sub(&lateral, &c01, &c00);
-         if(dmtxVector2Norm(&lateral) < 0.0)
-            return 0;
-      }
-
-      prevEdgeHit = edgeHit;
-      edgeHit = StepAlongEdge(dec, reg, &pRawProgress, &pRawExact, forward, lateral);
-      dmtxMatrix3VMultiply(&pFitProgress, &pRawProgress, sRaw2Fit);
-
-      if(edgeHit == DMTX_EDGE_STEP_EXACT) {
-/**
-         if(prevEdgeHit == DMTX_EDGE_STEP_TOO_WEAK) <-- XXX REVIST LATER ... doesn't work
-            hitCount++;
-*/
-         hitCount++;
-
-         dmtxMatrix3VMultiply(&pFitExact, &pRawExact, sRaw2Fit);
-
-         /* Adjust star lines upward (non-vertical) */
-         for(i = 0; i < 8; i++) {
-            interceptTest = pFitExact.Y - slope[i] * pFitExact.X;
-            if(interceptTest > intercept[i]) {
-               intercept[i] = interceptTest;
-               adjust[i] = pFitExact;
-               stepsSinceStarAdjust = 0;
-
-               /* XXX still "turning corner" but not as bad anymore */
-               if(i == 7) {
-                  *pCorner = pFitExact;
-/*                CALLBACK_DECODE_FUNC4(plotPointCallback, dec, pRawExact, 1, 1, DMTX_DISPLAY_POINT); */
-               }
-
-               if(i == 0) {
-                  pLast = pFitExact;
-/*                CALLBACK_DECODE_FUNC4(plotPointCallback, dec, pRawExact, 1, 1, DMTX_DISPLAY_POINT); */
-               }
-            }
-         }
-
-         /* Draw edge hits along skewed edge in bottom left pane */
-/*       CALLBACK_DECODE_FUNC4(xfrmPlotPointCallback, dec, pFitExact, NULL, 4, DMTX_DISPLAY_POINT); */
-      }
-      else if(edgeHit == DMTX_EDGE_STEP_TOO_WEAK) {
-         stepsSinceStarAdjust++;
-         if(prevEdgeHit == DMTX_EDGE_STEP_TOO_WEAK)
-            (*weakCount)++;
-      }
-
-      /* XXX also change stepsSinceNear and use this in the break condition */
-      if(hitCount >= 20 && stepsSinceStarAdjust > hitCount)
-         break;
-
-      if(pFitProgress.X > 1.0) {
-/*       CALLBACK_DECODE_FUNC4(plotPointCallback, dec, pRawProgress, 1, 1, DMTX_DISPLAY_SQUARE); */
-         break;
-      }
-
-      if(dmtxImageContainsFloat(dec->image, pRawProgress.X, pRawProgress.Y) == DMTX_FALSE)
-         break;
-   }
-
-   /* Find lowest available horizontal starline adjustment */
-   for(i = 0; i < 8; i++) {
-      if(adjust[i].X < 0.1)
-         break;
-   }
-   if(i == -1)
-      return 0;
-
-   *p0 = adjust[i];
-
-   /* Find highest available non-horizontal starline adjustment */
-   for(i = 7; i > 1; i--) {
-      if(adjust[i].X > 0.8)
-         break;
-   }
-   if(i == -1)
-      return 0;
-
-   *p1 = adjust[i];
-
-   if(fabs(p0->X - p1->X) < 0.1 || p0->Y < 0.2 || p1->Y < 0.2) {
-      return 0;
-   }
-
-   dmtxMatrix3VMultiplyBy(pCorner, sFit2Raw);
-   dmtxMatrix3VMultiplyBy(p0, sFit2Raw);
-   dmtxMatrix3VMultiplyBy(p1, sFit2Raw);
-
-   return hitCount;
-}
-
-/**
- * @brief  XXX
- * @param  image
- * @param  reg
- * @param  pProgress
- * @param  pExact
- * @param  forward
- * @param  lateral
- * @return 2 points in non-skewed raw pixel coordinates
- */
-static int
-StepAlongEdge(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 *pProgress,
-      DmtxVector2 *pExact, DmtxVector2 forward, DmtxVector2 lateral)
-{
-   int x, y;
-   int xToward, yToward;
-   double frac, accelPrev, accelNext;
-   DmtxCompassEdge compass, compassPrev, compassNext;
-   DmtxVector2 vTmp;
-
-/*fprintf(stdout, "StepAlongEdge()\n"); */
-   x = (int)(pProgress->X + 0.5);
-   y = (int)(pProgress->Y + 0.5);
-
-   *pExact = *pProgress;
-   compass = GetCompassEdge(dec->image, x, y, DmtxCompassDirOrtho);
-
-   /* If pixel shows a weak edge in any direction then advance forward */
-   if(compass.magnitude < dec->edgeThresh * 17.68) {
-      dmtxVector2AddTo(pProgress, &forward);
-/*    CALLBACK_POINT_PLOT(*pProgress, 1, 5, DMTX_DISPLAY_POINT); */
-      return DMTX_EDGE_STEP_TOO_WEAK;
-   }
-
-   /* forward is toward edge */
-   /* lateral is away from edge */
-
-   /* Determine orthagonal step directions */
-   if(compass.maxDirOrtho == DmtxCompassDir0) {
-      yToward = 0;
-
-      if(fabs(forward.X) > fabs(lateral.X))
-         xToward = (forward.X > 0) ? 1 : -1;
-      else
-         xToward = (lateral.X > 0) ? -1 : 1;
-   }
-   else {
-      xToward = 0;
-
-      if(fabs(forward.Y) > fabs(lateral.Y))
-         yToward = (forward.Y > 0) ? 1 : -1;
-      else
-         yToward = (lateral.Y > 0) ? -1 : 1;
-   }
-
-   /* Pixel shows edge in perpendicular direction */
-   compassPrev = GetCompassEdge(dec->image, x-xToward, y-yToward, compass.maxDirAll);
-   compassNext = GetCompassEdge(dec->image, x+xToward, y+yToward, compass.maxDirAll);
-
-   accelPrev = compass.magnitude - compassPrev.magnitude;
-   accelNext = compassNext.magnitude - compass.magnitude;
-
-   /* If we found a strong edge then calculate the zero crossing */
-   /* XXX explore expanding this test to allow a little more fudge (without
-      screwing up edge placement later) */
-   if(accelPrev * accelNext < DMTX_ALMOST_ZERO) {
-
-      dmtxVector2AddTo(pProgress, &lateral);
-
-      frac = (fabs(accelNext - accelPrev) > DMTX_ALMOST_ZERO) ?
-            (accelPrev / (accelPrev - accelNext)) - 0.5 : 0.0;
-
-      vTmp.X = xToward;
-      vTmp.Y = yToward;
-      dmtxVector2ScaleBy(&vTmp, frac);
-      dmtxVector2AddTo(pExact, &vTmp);
-
-/*    CALLBACK_POINT_PLOT(*pExact, 2, 1, DMTX_DISPLAY_POINT); */
-      return DMTX_EDGE_STEP_EXACT;
-   }
-
-   /* Passed edge */
-   if(compassPrev.magnitude > compass.magnitude) {
-/*    CALLBACK_DECODE_FUNC4(plotPointCallback, dec, *pProgress, 3, 1, DMTX_DISPLAY_POINT); */
-      dmtxVector2AddTo(pProgress, &lateral);
-      return DMTX_EDGE_STEP_TOO_FAR;
-   }
-
-   /* Approaching edge but not there yet */
-/* CALLBACK_DECODE_FUNC4(plotPointCallback, dec, *pProgress, 4, 1, DMTX_DISPLAY_POINT); */
-   dmtxVector2AddTo(pProgress, &forward);
-   return DMTX_EDGE_STEP_NOT_QUITE;
 }
 
 /**
@@ -1579,7 +750,6 @@ MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg)
    reg->gradient.ray.p = bestColorOffAvg;
    reg->gradient.tMin = 0;
    reg->gradient.tMax = bestContrast;
-   reg->gradient.tMid = bestContrast / 2.0;
 
    reg->symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, reg->sizeIdx);
    reg->symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, reg->sizeIdx);
@@ -1691,240 +861,303 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
    return jumpCount;
 }
 
-#ifdef NOTDEFINED
 /**
  *
  *
  */
-static DmtxPointEdge
-GetPointEdge(DmtxDecode *dec, int colorPlane, int x, int y)
+static DmtxPointFlow
+GetPointFlow(DmtxDecode *dec, int colorPlane, DmtxPixelLoc loc, int arrive)
 {
    static const int coefficient[] = {  0,  1,  2,  1,  0, -1, -2, -1 };
-   unsigned char color;
-   int i, maxIdx;
-   int err;
-   int xAdjust, yAdjust;
    int patternIdx, coefficientIdx;
-   DmtxPointEdge edge[4];
-   DmtxRgb rgbInt[8];
+   int compass, compassMax;
+   int mag[4] = { 0 };
+   int xAdjust, yAdjust;
+   int color, colorPattern[8];
+   DmtxPointFlow flow;
 
    for(patternIdx = 0; patternIdx < 8; patternIdx++) {
-      xAdjust = x + dmtxPatternX[patternIdx];
-      yAdjust = y + dmtxPatternY[patternIdx];
-      err = dmtxImageGetRgb(dec->image, xAdjust, yAdjust, rgbInt[patternIdx]);
-      if(err != DMTX_SUCCESS)
+      xAdjust = loc.X + dmtxPatternX[patternIdx];
+      yAdjust = loc.Y + dmtxPatternY[patternIdx];
+      colorPattern[patternIdx] = dmtxImageGetColor(dec->image, xAdjust, yAdjust, colorPlane);
+      if(colorPattern[patternIdx] == -1)
          return dmtxBlankEdge;
    }
 
-   /* Calculate this pixel's edge intensity for each direction (-45, 0, 45, 90) */
-   maxIdx = 0;
-   for(i = 0; i < 4; i++) {
-
-      edge[i] = dmtxBlankEdge;
+   /* Calculate this pixel's flow intensity for each direction (-45, 0, 45, 90) */
+   compassMax = 0;
+   for(compass = 0; compass < 4; compass++) {
 
       /* Add portion from each position in the convolution matrix pattern */
       for(patternIdx = 0; patternIdx < 8; patternIdx++) {
 
-         coefficientIdx = (patternIdx - i + 8) % 8;
+         coefficientIdx = (patternIdx - compass + 8) % 8;
          if(coefficient[coefficientIdx] == 0)
             continue;
 
-         color = rgbInt[patternIdx][colorPlane];
+         color = colorPattern[patternIdx];
 
          switch(coefficient[coefficientIdx]) {
             case 2:
-               edge[i].colorDelta += color;
+               mag[compass] += color;
                /* Fall through */
             case 1:
-               edge[i].colorDelta += color;
+               mag[compass] += color;
                break;
             case -2:
-               edge[i].colorDelta -= color;
+               mag[compass] -= color;
                /* Fall through */
             case -1:
-               edge[i].colorDelta -= color;
+               mag[compass] -= color;
                break;
          }
       }
 
-      /* 6 5 4
-       * 7   3
-       * 0 1 2 */
-
-      /* Identify strongest compass edge */
-      if(i != 0 && abs(edge[i].colorDelta) > abs(edge[maxIdx].colorDelta))
-         maxIdx = i;
+      /* Identify strongest compass flow */
+      if(compass != 0 && abs(mag[compass]) > abs(mag[compassMax]))
+         compassMax = compass;
    }
 
-   /* Convert direction to compass index */
-   edge[maxIdx].compass = (edge[maxIdx].colorDelta > 0) ? maxIdx + 4 : maxIdx;
+   /* Convert signed compass direction into unique flow directions (0-7) */
+   flow.plane = colorPlane;
+   flow.arrive = arrive;
+   flow.depart = (mag[compassMax] > 0) ? compassMax + 4 : compassMax;
+   flow.mag = abs(mag[compassMax]);
+   flow.loc = loc;
 
-   return edge[maxIdx];
+   return flow;
 }
 
 /**
  *
  *
  */
-static DmtxPixelLoc
-FollowEdge2(DmtxDecode *dec, int colorPlane, int x0, int y0,
-      DmtxPointEdge start, int sign, int hough[], int *houghStrong)
-{
-   int x, y;
-   int offset;
-   int strongDir;
-   int err;
-   int angleIdx;
-   unsigned char m1, m2;
-   double angle;
-   DmtxPointEdge strong;
-   DmtxPixelLoc longHit;
-   DmtxCompassEdge *loc;
-   DmtxVector2 p;
-
-   longHit.status = 0; /* XXX this needs to go away */
-   longHit.X = x = x0;
-   longHit.Y = y = y0;
-   strong = start;
-
-   strongDir = -1; /* No previous direction for first step */
-   for(;;) {
-
-      offset = dmtxImageGetOffset(dec->image, x, y);
-      if(offset == DMTX_BAD_OFFSET)
-         break;
-
-      p.X = x;
-      p.Y = y;
-      CALLBACK_POINT_PLOT(p, 1, 1, DMTX_DISPLAY_POINT);
-
-      /* Decide which neighbors should be visited for testing */
-      err = FindTravelDirection(dec, x, y, strong, sign, &m1, &m2);
-      if(err != DMTX_SUCCESS)
-         break;
-
-      /* Find strongest edge among candidate neighbors */
-      strong = FindStrongestNeighbor(dec, colorPlane, x, y, m1);
-      if(strong.inbound == DmtxNeighborNone)
-         strong = FindStrongestNeighbor(dec, colorPlane, x, y, m2);
-      if(strong.inbound == DmtxNeighborNone)
-         break;
-
-      /* Mark strongest neighbor */
-      loc = &(dec->image->compass[offset]);
-      loc->neighbor = strong.inbound;
-      loc->visited = 0xff;
-
-      /* Increment Hough accumulator */
-      angle = atan2(y - y0, x - x0) + M_PI;
-      angleIdx = (int)(angle * (DMTX_HOUGH_RES/M_PI)) % DMTX_HOUGH_RES;
-
-      hough[angleIdx]++;
-
-      if(hough[angleIdx] > hough[*houghStrong])
-         *houghStrong = angleIdx;
-
-      if(angleIdx == *houghStrong) {
-         longHit.X = x;
-         longHit.Y = y;
-      }
-
-      if(hough[*houghStrong] > 8 && hough[angleIdx] < 3)
-         break;
-
-      /* Advance to strongest neighbor */
-      x += dmtxPatternX[strong.inbound];
-      y += dmtxPatternY[strong.inbound];
-   }
-
-   /* Erase tracks */
-   for(x = x0, y = y0;;) {
-      offset = dmtxImageGetOffset(dec->image, x, y);
-      if(offset == DMTX_BAD_OFFSET)
-         break;
-
-      loc = &(dec->image->compass[offset]);
-
-      if(loc->visited == 0xff)
-         loc->visited = 0x00;
-      else
-         break;
-
-      x += dmtxPatternX[loc->neighbor];
-      y += dmtxPatternY[loc->neighbor];
-   }
-
-   /* Return squared distance along strongest hough angle */
-   return longHit;
-}
-
-/**
- * @brief Find bitmask representing which neighbors to test
- *
- */
-static int
-FindTravelDirection(DmtxDecode *dec, int x0, int y0, DmtxPointEdge edge,
-      int sign, unsigned char *m1, unsigned char *m2)
+static DmtxPointFlow
+FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center, int sign)
 {
    int i;
-   int mask;
-   int mAvoid;
-   int mAttemptGradient;
-   int mAttemptNeighbor;
    int offset;
-   int x, y;
-   DmtxCompassEdge *loc;
+   int strongIdx;
+   int attempt, attemptDiff;
+   int occupied;
+   unsigned char *cache;
+   DmtxPixelLoc loc;
+   DmtxPointFlow flow[8];
 
-   mAttemptNeighbor = mAvoid = 0x00;
-   mAttemptGradient = (sign > 0) ? (0x01 << edge.compass) : (0x01 << ((edge.compass + 4) % 8));
+   attempt = (sign < 0) ? center.depart : (center.depart+4)%8;
 
-   /* Check all potential neighbors for avoidances and alternatives */
+   occupied = 0;
+   strongIdx = -1;
    for(i = 0; i < 8; i++) {
 
-      mask = (0x01 << i);
+      loc.X = center.loc.X + dmtxPatternX[i];
+      loc.Y = center.loc.Y + dmtxPatternY[i];
 
-      x = x0 + dmtxPatternX[i];
-      y = y0 + dmtxPatternY[i];
-
-      /* Neighbor is out of bounds - avoid */
-      offset = dmtxImageGetOffset(dec->image, x, y);
+      offset = dmtxImageGetOffset(dec->image, loc.X, loc.Y);
       if(offset == DMTX_BAD_OFFSET) {
-         mAvoid |= mask;
+         loc.status = DMTX_RANGE_BAD;
          continue;
       }
+      else {
+         loc.status = DMTX_RANGE_GOOD;
+      }
 
-      /* Perform tests for already-marked neighbors */
-      loc = &(dec->image->compass[offset]);
-      if(loc->visited == 0xff) {
-         mAvoid |= mask;
-         mAttemptNeighbor |= (0x01 << ((loc->neighbor + 4) % 8));
+      cache = &(dec->image->cache[offset]);
+      if(*cache & 0x80) {
+         if(++occupied > 2)
+            return dmtxBlankEdge;
+         else
+            continue;
+      }
+
+      attemptDiff = abs(attempt - i);
+      if(attemptDiff > 4)
+         attemptDiff = 8 - attemptDiff;
+      if(attemptDiff > 1)
+         continue;
+
+      flow[i] = GetPointFlow(dec, center.plane, loc, i);
+
+      if(strongIdx == -1 || flow[i].mag > flow[strongIdx].mag ||
+            (flow[i].mag == flow[strongIdx].mag && ((i & 0x01) == 0))) {
+         strongIdx = i;
       }
    }
 
-   /* Pad gradient suggestions with an extra bit on each side */
-   mask = mAttemptGradient;
-   for(i = 0; i < 8; i++) {
-      if(mask & (0x01 << i)) {
-         mAttemptGradient |= (0x01 << ((i+1)%8));
-         mAttemptGradient |= (0x01 << ((i+7)%8));
-      }
+   return (strongIdx == -1) ? dmtxBlankEdge : flow[strongIdx];
+}
+
+/**
+ *
+ *
+ */
+static DmtxFollow
+FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek)
+{
+   int i;
+   int sign;
+   int offset;
+   DmtxFollow follow;
+
+   follow.loc = reg->flowBegin.loc;
+   offset = dmtxImageGetOffset(dec->image, follow.loc.X, follow.loc.Y);
+   assert(offset != DMTX_BAD_OFFSET);
+
+   follow.step = 0;
+   follow.ptr = &(dec->image->cache[offset]);
+   follow.neighbor = *follow.ptr;
+
+   sign = (seek > 0) ? +1 : -1;
+   for(i = 0; i != seek; i += sign) {
+      follow = FollowStep(dec, reg, follow, sign);
+      assert(follow.ptr != NULL);
+      assert(abs(follow.step) <= reg->stepsTotal);
    }
 
-   /* Pad collision suggestions with an extra bit on each side */
-   mask = mAttemptNeighbor;
-   for(i = 0; i < 8; i++) {
-      if(mask & (0x01 << i)) {
-         mAttemptNeighbor |= (0x01 << ((i+1)%8));
-         mAttemptNeighbor |= (0x01 << ((i+7)%8));
-      }
+   return follow;
+}
+
+/**
+ *
+ *
+ */
+static DmtxFollow
+FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
+{
+   int offset;
+   int patternIdx;
+   int stepMod;
+   int factor;
+   DmtxFollow follow;
+
+   assert(abs(sign) == 1);
+   assert(followBeg.neighbor & 0x40);
+
+   factor = reg->stepsTotal + 1;
+   if(sign > 0)
+      stepMod = (factor + (followBeg.step % factor)) % factor;
+   else
+      stepMod = (factor - (followBeg.step % factor)) % factor;
+
+   /* End of positive trail -- magic jump */
+   if(sign > 0 && stepMod == reg->jumpToNeg) {
+      follow.loc = reg->finalNeg;
+   }
+   /* End of negative trail -- magic jump */
+   else if(sign < 0 && stepMod == reg->jumpToPos) {
+      follow.loc = reg->finalPos;
+   }
+   /* Trail in progress -- normal jump */
+   else {
+      patternIdx = (sign < 0) ? followBeg.neighbor & 0x07 : ((followBeg.neighbor & 0x38) >> 3);
+      follow.loc.X = followBeg.loc.X + dmtxPatternX[patternIdx];
+      follow.loc.Y = followBeg.loc.Y + dmtxPatternY[patternIdx];
+      follow.loc.status = DMTX_RANGE_GOOD;
    }
 
-   /* Places to test first */
-   *m1 = mAttemptGradient & (mAvoid ^ 0xff);
+   offset = dmtxImageGetOffset(dec->image, follow.loc.X, follow.loc.Y);
+   assert(offset != DMTX_BAD_OFFSET);
 
-   /* Places to test second */
-   *m2 = mAttemptNeighbor & ((mAvoid | *m1) ^ 0xff);
-   assert(*m1 + *m2 < 255);
+   follow.step = followBeg.step + sign;
+   follow.ptr = &(dec->image->cache[offset]);
+   follow.neighbor = *follow.ptr;
+
+   return follow;
+}
+
+/**
+ * vaiiiooo
+ * --------
+ * 0x80 v = visited bit
+ * 0x40 a = assigned bit
+ * 0x38 u = 3 bits points upstream 0-7
+ * 0x07 d = 3 bits points downstream 0-7
+ */
+static int
+BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
+{
+   int posAssigns, negAssigns, clears;
+   int sign;
+   int steps;
+   int offset;
+   DmtxPointFlow flow, flowNext;
+   unsigned char *cache, *cacheNext, *cacheBeg;
+   DmtxFollow follow;
+
+   /* check offset before starting */
+   offset = dmtxImageGetOffset(dec->image, flowBegin.loc.X, flowBegin.loc.Y);
+   if(offset == DMTX_BAD_OFFSET)
+      return DMTX_FAILURE;
+
+   cacheBeg = &(dec->image->cache[offset]);
+   *cacheBeg = (0x80 | 0x40); /* Mark location as visited and assigned */
+
+   reg->flowBegin = flowBegin;
+
+   posAssigns = negAssigns = 0;
+   for(sign = 1; sign >= -1; sign -= 2) {
+
+      flow = flowBegin;
+      cache = cacheBeg;
+
+      for(steps = 0; ; steps++) {
+
+         /* Find the strongest eligible neighbor */
+         flowNext = FindStrongestNeighbor(dec, flow, sign);
+         if(flowNext.mag < 50)
+            break;
+
+         offset = dmtxImageGetOffset(dec->image, flowNext.loc.X, flowNext.loc.Y);
+         if(offset == DMTX_BAD_OFFSET)
+            break;
+
+         /* Get the neighbor's cache location */
+         cacheNext = &(dec->image->cache[offset]);
+         assert(!(*cacheNext & 0x80));
+
+         /* Mark departure from current location. If flowing downstream
+          * (sign < 0) then departure vector here is the arrival vector
+          * of the next location. Upstream flow uses the opposite rule. */
+         *cache |= (sign < 0) ? flowNext.arrive : flowNext.arrive << 3;
+
+         /* Mark known direction for next location */
+         /*if testing downstream (sign < 0) then next upstream is opposite of next arrival*/
+         /*if testing upstream (sign > 0) then next downstream is opposite of next arrival*/
+         *cacheNext = (sign < 0) ? (((flowNext.arrive + 4)%8) << 3) : ((flowNext.arrive + 4)%8);
+         *cacheNext |= (0x80 | 0x40); /* Mark location as visited and assigned */
+         if(sign > 0)
+            posAssigns++;
+         else
+            negAssigns++;
+         cache = cacheNext;
+         flow = flowNext;
+
+/*       CALLBACK_POINT_PLOT(flow.loc, (sign > 0) ? 2 : 3, 1, DMTX_DISPLAY_POINT); */
+      }
+
+      if(sign > 0) {
+         reg->finalPos = flow.loc;
+         reg->jumpToNeg = steps;
+      }
+      else {
+         reg->finalNeg = flow.loc;
+         reg->jumpToPos = steps;
+      }
+   }
+   reg->stepsTotal = reg->jumpToPos + reg->jumpToNeg;
+
+   /* Clear "visited" bit from trail */
+   clears = 0;
+   follow = FollowSeek(dec, reg, 0);
+   while(abs(follow.step) <= reg->stepsTotal) {
+      assert(*follow.ptr & 0x40);
+      assert(*follow.ptr & 0x80);
+      *follow.ptr &= (0x80 ^ 0xff);
+      follow = FollowStep(dec, reg, follow, +1);
+      clears++;
+   }
+
+   assert(posAssigns + negAssigns == clears - 1);
 
    return DMTX_SUCCESS;
 }
@@ -1933,48 +1166,478 @@ FindTravelDirection(DmtxDecode *dec, int x0, int y0, DmtxPointEdge edge,
  *
  *
  */
-static DmtxPointEdge
-FindStrongestNeighbor(DmtxDecode *dec, int colorPlane, int x0, int y0, unsigned char mAttempt)
+static DmtxBestLine
+FindBestLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int houghAvoid)
 {
-   int strongIdx;
-   int magTmp;
-   int x, y;
-   int mask;
+   int hough[DMTX_HOUGH_RES] = { 0 };
+   int houghMin, houghMax;
+   char houghTest[DMTX_HOUGH_RES];
    int i;
-   DmtxPointEdge edge[8];
+   int step;
+   int sign;
+   int tripSteps;
+   int angle;
+   int xDiff, yDiff;
+   double dH;
+   DmtxRay2 rH;
+   DmtxFollow follow;
+   DmtxBestLine line;
+   DmtxPixelLoc rHp;
 
-   strongIdx = -1;
-   for(i = 0; i < 8; i++) {
+   memset(&line, 0x00, sizeof(DmtxBestLine));
+   memset(&rH, 0x00, sizeof(DmtxRay2));
+   angle = 0;
 
-      mask = (0x01 << i);
+   /* Always follow path flowing away from the trail start */
+   if(step0 != 0) {
+      if(step0 > 0) {
+         sign = +1;
+         tripSteps = (step1 - step0 + reg->stepsTotal) % reg->stepsTotal;
+      }
+      else {
+         sign = -1;
+         tripSteps = (step0 - step1 + reg->stepsTotal) % reg->stepsTotal;
+      }
+      if(tripSteps == 0)
+         tripSteps = reg->stepsTotal;
+   }
+   else if(step1 != 0) {
+      sign = (step1 > 0) ? +1 : -1;
+      tripSteps = abs(step1);
+   }
+   else if(step1 == 0) {
+      sign = +1;
+      tripSteps = reg->stepsTotal;
+   }
 
-      /* Only test neighbors indicated by mask */
-      if(!(mask & mAttempt))
-         continue;
+   follow = FollowSeek(dec, reg, step0);
+   rHp = follow.loc;
 
-      x = x0 + dmtxPatternX[i];
-      y = y0 + dmtxPatternY[i];
+   line.stepBeg = line.stepPos = line.stepNeg = step0;
+   line.locBeg = follow.loc;
+   line.locPos = follow.loc;
+   line.locNeg = follow.loc;
 
-      edge[i] = GetPointEdge(dec, colorPlane, x, y);
-      edge[i].inbound = i;
-
-      magTmp = abs(edge[i].colorDelta);
-
-      if(strongIdx == -1 || magTmp > abs(edge[strongIdx].colorDelta) ||
-            (magTmp == abs(edge[strongIdx].colorDelta) && ((i & 0x01) == 0))) {
-         strongIdx = i;
+   /* Predetermine which angles to test */
+   for(i = 0; i < DMTX_HOUGH_RES; i++) {
+      if(houghAvoid == -1) {
+         houghTest[i] = 1;
+      }
+      else {
+         houghMin = (houghAvoid + DMTX_HOUGH_RES/6) % DMTX_HOUGH_RES;
+         houghMax = (houghAvoid - DMTX_HOUGH_RES/6 + DMTX_HOUGH_RES) % DMTX_HOUGH_RES;
+         if(houghMin > houghMax)
+            houghTest[i] = (i > houghMin || i < houghMax) ? 1 : 0;
+         else
+            houghTest[i] = (i > houghMin && i < houghMax) ? 1 : 0;
       }
    }
 
-   return (strongIdx == -1) ? dmtxBlankEdge : edge[strongIdx];
+   /* Test each angle for steps along path */
+   for(step = 0; step < tripSteps; step++) {
+
+      xDiff = follow.loc.X - rHp.X;
+      yDiff = follow.loc.Y - rHp.Y;
+
+      /* Increment Hough accumulator */
+      for(i = 0; i < DMTX_HOUGH_RES; i++) {
+
+         if(houghTest[i] == 0)
+            continue;
+
+         dH = (rHvX[i] * yDiff) - (rHvY[i] * xDiff);
+         if(dH > -256 && dH < 256)
+            hough[i]++;
+
+         /* New angle takes over lead */
+         if(hough[i] > hough[angle])
+            angle = i;
+      }
+
+/*    CALLBACK_POINT_PLOT(follow.loc, (sign > 1) ? 4 : 3, 1, DMTX_DISPLAY_POINT); */
+
+      follow = FollowStep(dec, reg, follow, sign);
+   }
+
+   line.angle = angle;
+   line.mag = hough[angle];
+
+   return line;
 }
-#endif
 
 /**
  *
  *
  */
+static int
+FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
+{
+   int i;
+   int distSq, distSqMax;
+   double posDiff, negDiff;
+   double posMinDevn, posMinDevnLock;
+   double posMaxDevn, posMaxDevnLock;
+   double negMinDevn, negMinDevnLock;
+   double negMaxDevn, negMaxDevnLock;
+   DmtxRay2 rH;
+   DmtxVector2 posLoc, negLoc;
+   DmtxFollow followPos, followNeg;
+   DmtxPixelLoc posMax, negMax;
+
+   memset(&rH, 0x00, sizeof(DmtxRay2));
+
+   followPos = followNeg = FollowSeek(dec, reg, line->stepBeg);
+
+   /* line->stepBeg is already known to sit on the best Hough line */
+   rH.p.X = followPos.loc.X;
+   rH.p.Y = followPos.loc.Y;
+   rH.v.X = cos(line->angle * (M_PI/DMTX_HOUGH_RES)); /* precalculate later */
+   rH.v.Y = sin(line->angle * (M_PI/DMTX_HOUGH_RES)); /* precalculate later */
+
+   distSqMax = 0;
+   posMax = negMax = followPos.loc;
+
+   posMinDevn = posMinDevnLock = 0.0;
+   posMaxDevn = posMaxDevnLock = 0.0;
+   negMinDevn = negMinDevnLock = 0.0;
+   negMaxDevn = negMaxDevnLock = 0.0;
+
+   for(i = 0; i < reg->stepsTotal/2; i++) {
+      posLoc.X = followPos.loc.X;
+      posLoc.Y = followPos.loc.Y;
+      posDiff = dmtxDistanceFromRay2(&rH, &posLoc);
+
+      negLoc.X = followNeg.loc.X;
+      negLoc.Y = followNeg.loc.Y;
+      negDiff = dmtxDistanceFromRay2(&rH, &negLoc);
+
+      if(fabs(posDiff) < 2.0) {
+         distSq = DistanceSquared(followPos.loc, negMax);
+         if(distSq > distSqMax) {
+            posMax = followPos.loc;
+            distSqMax = distSq;
+            line->stepPos = followPos.step;
+            line->locPos = followPos.loc;
+            posMinDevnLock = posMinDevn;
+            posMaxDevnLock = posMaxDevn;
+         }
+      }
+      else {
+         posMinDevn = min(posMinDevn, posDiff);
+         posMaxDevn = max(posMaxDevn, posDiff);
+      }
+
+      if(fabs(negDiff) < 2.0) {
+         distSq = DistanceSquared(followNeg.loc, posMax);
+         if(distSq > distSqMax) {
+            negMax = followNeg.loc;
+            distSqMax = distSq;
+            line->stepNeg = followNeg.step;
+            line->locNeg = followNeg.loc;
+            negMinDevnLock = negMinDevn;
+            negMaxDevnLock = negMaxDevn;
+         }
+      }
+      else {
+         negMinDevn = min(negMinDevn, negDiff);
+         negMaxDevn = max(negMaxDevn, negDiff);
+      }
+
+/*  CALLBACK_POINT_PLOT(followPos.loc, 2, 1, DMTX_DISPLAY_POINT);
+    CALLBACK_POINT_PLOT(followNeg.loc, 4, 1, DMTX_DISPLAY_POINT); */
+
+      followPos = FollowStep(dec, reg, followPos, +1);
+      followNeg = FollowStep(dec, reg, followNeg, -1);
+   }
+   line->devn = max(posMaxDevnLock - posMinDevnLock, negMaxDevnLock - negMinDevnLock);
+   line->distSq = distSqMax;
+
+/* CALLBACK_POINT_PLOT(posMax, 2, 1, DMTX_DISPLAY_SQUARE);
+   CALLBACK_POINT_PLOT(negMax, 2, 1, DMTX_DISPLAY_SQUARE); */
+
+   return DMTX_SUCCESS;
+}
+
 /**
+ *
+ *
+ */
+static int
+MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
+{
+   int streamDir;
+   int xDiff, yDiff;
+   int distSq, totalDistSq;
+   int dH;
+   int i, angle;
+   int hough[DMTX_HOUGH_RES] = { 0 };
+   DmtxVector2 pTmp;
+   DmtxPixelLoc loc0, loc1, locOrigin;
+   DmtxBresLine line;
+   DmtxPointFlow flow;
+
+   if(edge == DmtxEdgeTop) {
+      streamDir = reg->polarity * -1;
+      loc0 = reg->locT;
+      pTmp.X = 0.8;
+      pTmp.Y = 0.6;
+   }
+   else {
+      assert(edge == DmtxEdgeRight);
+      streamDir = reg->polarity;
+      loc0 = reg->locR;
+      pTmp.X = 0.8;
+      pTmp.Y = 0.8;
+   }
+
+   /* Line ends at approximated midpoint between corners c10 and c11 */
+   dmtxMatrix3VMultiplyBy(&pTmp, reg->fit2raw);
+   loc1.X = (int)(pTmp.X + 0.5);
+   loc1.Y = (int)(pTmp.Y + 0.5);
+   loc1.status = DMTX_RANGE_GOOD;
+
+   /* Initialize line, including travel and sidestep directions */
+   locOrigin.X = (int)(reg->corners.c00.X + 0.5);
+   locOrigin.Y = (int)(reg->corners.c00.Y + 0.5);
+   locOrigin.status = DMTX_RANGE_GOOD;
+   line = BresLineInit(loc0, loc1, locOrigin);
+
+   totalDistSq = (line.xDelta * line.xDelta) + (line.yDelta * line.yDelta);
+   angle = 0;
+
+   /* Function follows Bresenham */
+   flow = GetPointFlow(dec, reg->flowBegin.plane, loc0, dmtxNeighborNone);
+   for(;;) {
+
+      /* Flow direction is determined by region polarity */
+      flow = FindStrongestNeighbor(dec, flow, streamDir);
+      if(flow.mag == -1)
+         return DMTX_FAILURE;
+      else if(flow.mag < 20)
+         BresLineStep(&line, 1, 0);
+
+      xDiff = flow.loc.X - loc0.X;
+      yDiff = flow.loc.Y - loc0.Y;
+
+      distSq = (xDiff * xDiff) + (yDiff * yDiff);
+      if(distSq > totalDistSq)
+         break;
+
+      if(BresLineHit(&line, flow.loc) == DMTX_SUCCESS) {
+         for(i = 0; i < DMTX_HOUGH_RES; i++) {
+
+            dH = (rHvX[i] * yDiff) - (rHvY[i] * xDiff);
+            if(dH > -256 && dH < 256)
+               hough[i]++;
+
+            /* New angle takes over lead */
+            if(hough[i] > hough[angle])
+               angle = i;
+         }
+      }
+
+      /* XXX this may be unnecessary ... try removing later and see what happens */
+      flow = GetPointFlow(dec, reg->flowBegin.plane, line.loc, dmtxNeighborNone);
+   }
+
+   if(edge == DmtxEdgeTop) {
+      reg->topLoc = loc0;
+      reg->topAngle = angle;
+   }
+   else {
+      reg->rightLoc = loc0;
+      reg->rightAngle = angle;
+   }
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ *
+ *
+ */
+static DmtxBresLine
+BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locOrigin)
+{
+   int cp;
+   DmtxBresLine line;
+   DmtxPixelLoc *locBeg, *locEnd;
+
+   /* XXX Verify that loc0 and loc1 are inbounds */
+
+   /* Values that stay the same after initialization */
+   line.loc0 = loc0;
+   line.loc1 = loc1;
+   line.xStep = (loc0.X < loc1.X) ? +1 : -1;
+   line.yStep = (loc0.Y < loc1.Y) ? +1 : -1;
+   line.xDelta = abs(loc1.X - loc0.X);
+   line.yDelta = abs(loc1.Y - loc0.Y);
+   line.steep = (line.yDelta > line.xDelta);
+   line.travelLength = max(line.xDelta, line.yDelta);
+
+   /* Take cross product to determine outward step */
+   if(line.steep) {
+      /* Point first vector up to get correct sign */
+      if(loc0.Y < loc1.Y) {
+         locBeg = &loc0;
+         locEnd = &loc1;
+      }
+      else {
+         locBeg = &loc1;
+         locEnd = &loc0;
+      }
+      cp = (((locEnd->X - locBeg->X) * (locOrigin.Y - locEnd->Y)) -
+            ((locEnd->Y - locBeg->Y) * (locOrigin.X - locEnd->X)));
+
+      line.xOut = (cp > 0) ? +1 : -1;
+      line.yOut = 0;
+   }
+   else {
+      /* Point first vector left to get correct sign */
+      if(loc0.X > loc1.X) {
+         locBeg = &loc0;
+         locEnd = &loc1;
+      }
+      else {
+         locBeg = &loc1;
+         locEnd = &loc0;
+      }
+      cp = (((locEnd->X - locBeg->X) * (locOrigin.Y - locEnd->Y)) -
+            ((locEnd->Y - locBeg->Y) * (locOrigin.X - locEnd->X)));
+
+      line.xOut = 0;
+      line.yOut = (cp > 0) ? +1 : -1;
+   }
+
+   /* Values that change while stepping through line */
+   line.loc = loc0;
+   line.travel = 0;
+   line.outward = 0;
+   line.error = (line.steep) ? line.yDelta/2 : line.xDelta/2;
+
+   CALLBACK_POINT_PLOT(loc0, 3, 1, DMTX_DISPLAY_SQUARE);
+   CALLBACK_POINT_PLOT(loc1, 3, 1, DMTX_DISPLAY_SQUARE);
+
+   return line;
+}
+
+/**
+ * Try to step us in the direction requested by stepDir, but only
+ * using steps forward or outward from region center. If too low,
+ * then just advance along travel. If trying to go backward, then
+ * just move directly away from the center.
+ */
+static int
+BresLineHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
+{
+   int travelStep, sideStep;
+
+   if(line->steep) {
+      travelStep = (line->yStep > 0) ? targetLoc.Y - line->loc.Y : line->loc.Y - targetLoc.Y;
+      sideStep = (line->xOut > 0) ? targetLoc.X - line->loc.X : line->loc.X - targetLoc.X;
+      assert(line->yOut == 0);
+   }
+   else {
+      travelStep = (line->xStep > 0) ? targetLoc.X - line->loc.X : line->loc.X - targetLoc.X;
+      sideStep = (line->yOut > 0) ? targetLoc.Y - line->loc.Y : line->loc.Y - targetLoc.Y;
+      assert(line->xOut == 0);
+   }
+
+   if(sideStep < 0) {
+      /* Line cannot ratchet inward */
+      BresLineStep(line, 1, 0);
+      CALLBACK_POINT_PLOT(line->loc, 1, 1, DMTX_DISPLAY_POINT);
+      return DMTX_FAILURE;
+   }
+   else {
+      if(travelStep < 0) {
+         BresLineStep(line, -1, 1);
+         CALLBACK_POINT_PLOT(line->loc, 2, 1, DMTX_DISPLAY_POINT);
+         return DMTX_FAILURE;
+      }
+      else {
+         BresLineStep(line, travelStep, sideStep);
+         CALLBACK_POINT_PLOT(line->loc, 2, 1, DMTX_DISPLAY_POINT);
+         return DMTX_SUCCESS;
+      }
+   }
+
+   return DMTX_FAILURE;
+}
+
+/**
+ *
+ *
+ */
+static int
+BresLineStep(DmtxBresLine *line, int travel, int outward)
+{
+   DmtxBresLine lineNew;
+
+   lineNew = *line;
+
+   /* Perform forward step */
+   if(travel > 0) {
+      lineNew.travel++;
+      if(lineNew.steep) {
+         lineNew.loc.Y += lineNew.yStep;
+         lineNew.error -= lineNew.xDelta;
+         if(lineNew.error < 0) {
+            lineNew.loc.X += lineNew.xStep;
+            lineNew.error += lineNew.yDelta;
+         }
+      }
+      else {
+         lineNew.loc.X += lineNew.xStep;
+         lineNew.error -= lineNew.yDelta;
+         if(lineNew.error < 0) {
+            lineNew.loc.Y += lineNew.yStep;
+            lineNew.error += lineNew.xDelta;
+         }
+      }
+   }
+   else if(travel < 0) {
+      lineNew.travel--;
+      if(lineNew.steep) {
+         lineNew.loc.Y -= lineNew.yStep;
+         lineNew.error += lineNew.xDelta;
+         if(lineNew.error >= lineNew.yDelta) {
+            lineNew.loc.X -= lineNew.xStep;
+            lineNew.error -= lineNew.yDelta;
+         }
+      }
+      else {
+         lineNew.loc.X -= lineNew.xStep;
+         lineNew.error += lineNew.yDelta;
+         if(lineNew.error >= lineNew.xDelta) {
+            lineNew.loc.Y -= lineNew.yStep;
+            lineNew.error -= lineNew.xDelta;
+         }
+      }
+   }
+
+   if(outward > 0) {
+      /* Outward step */
+      lineNew.outward++;
+      lineNew.loc.X += lineNew.xOut;
+      lineNew.loc.Y += lineNew.yOut;
+   }
+   else if(outward < 0) {
+      /* Outward step */
+      lineNew.outward--;
+      lineNew.loc.X -= lineNew.xOut;
+      lineNew.loc.Y -= lineNew.yOut;
+   }
+   *line = lineNew;
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ *
+ *
+ */
+/*
 static void
 WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {

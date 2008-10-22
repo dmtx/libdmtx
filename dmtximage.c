@@ -62,8 +62,8 @@ dmtxImageMalloc(int width, int height)
       return NULL;
    }
 
-   img->compass = (DmtxCompassEdge *)calloc(width * height, sizeof(DmtxCompassEdge));
-   if(img->compass == NULL) {
+   img->cache = (unsigned char *)malloc(width * height * sizeof(unsigned char));
+   if(img->cache == NULL) {
       free(img->pxl);
       free(img);
       return NULL;
@@ -86,8 +86,8 @@ dmtxImageFree(DmtxImage **img)
    if((*img)->pxl != NULL)
       free((*img)->pxl);
 
-   if((*img)->compass != NULL)
-      free((*img)->compass);
+   if((*img)->cache != NULL)
+      free((*img)->cache);
 
    free(*img);
 
@@ -284,6 +284,28 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
    memcpy(rgb, img->pxl[offset], 3);
 
    return DMTX_SUCCESS;
+}
+
+/**
+ * @brief  XXX
+ * @param  img
+ * @param  x Scaled x coordinate
+ * @param  y Scaled y coordinate
+ * @param  rgb
+ * @return void
+ */
+extern int
+dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane)
+{
+   int offset;
+
+   assert(img != NULL);
+
+   offset = dmtxImageGetOffset(img, x, y);
+   if(offset == DMTX_BAD_OFFSET)
+      return -1;
+
+   return img->pxl[offset][colorPlane];
 }
 
 /**

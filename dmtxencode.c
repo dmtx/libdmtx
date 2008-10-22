@@ -80,9 +80,6 @@ dmtxEncodeStructInit(void)
    enc.moduleSize = 5;
    enc.marginSize = 10;
 
-   /* This can be cleaned up later */
-   enc.region.gradient.isDefined = DMTX_TRUE;
-
    /* Initialize background color to white */
    enc.region.gradient.ray.p.R = 255.0;
    enc.region.gradient.ray.p.G = 255.0;
@@ -91,7 +88,6 @@ dmtxEncodeStructInit(void)
    /* Initialize foreground color to black */
    enc.region.gradient.tMin = 0.0;
    enc.region.gradient.tMax = dmtxColor3Mag(&(enc.region.gradient.ray.p));
-   enc.region.gradient.tMid = (enc.region.gradient.tMin + enc.region.gradient.tMax)/2.0;
 
    dmtxColor3Scale(&(enc.region.gradient.ray.c),
          &(enc.region.gradient.ray.p), -1.0/enc.region.gradient.tMax);

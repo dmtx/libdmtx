@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
    SDL_Event       event;
    SDL_Surface     *screen;
    unsigned char   outputString[1024];
-   DmtxPixelLoc    p0, p1;
+   DmtxPixelLoc    p;
    DmtxDecode      decode;
    DmtxRegion      region;
    DmtxMessage     *message;
@@ -107,10 +107,6 @@ int main(int argc, char *argv[])
    if(passTwoImage == NULL)
       exit(6);
 
-   p0.X = p0.Y = 0;
-   p1.X = captured->width - 1;
-   p1.Y = captured->height - 1;
-
    done = 0;
    while(!done) {
 
@@ -134,19 +130,28 @@ int main(int argc, char *argv[])
       for(;;) {
 
          timeout = dmtxTimeAdd(dmtxTimeNow(), 200);
-
+/*
          region = dmtxDecodeFindNextRegion(&decode, &timeout);
+         if(region.found != DMTX_REGION_FOUND)
+            break;
+*/
+/*       p.X = 55; */
+         p.X = 130;
+         p.Y = 190;
+         region = dmtxRegionScanPixel(&decode, p);
          if(region.found != DMTX_REGION_FOUND)
             break;
 
          message = dmtxDecodeMatrixRegion(captured, &region, 1);
          if(message == NULL)
-            continue;
+            break;
+/*          continue; */
 
          fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
          fputc('\n', stdout);
 
          dmtxMessageFree(&message);
+
          break;
       }
 
