@@ -1281,8 +1281,8 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
    if(edge == DmtxEdgeTop) {
       streamDir = reg->polarity * -1;
       loc0 = reg->locT;
-      pTmp.X = 0.8;
-      pTmp.Y = 0.6;
+      pTmp.X = 0.9;
+      pTmp.Y = 0.5;
    }
    else {
       assert(edge == DmtxEdgeRight);
@@ -1312,12 +1312,10 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
 
    /* Function follows Bresenham */
    flow = GetPointFlow(dec, reg->flowBegin.plane, loc0, dmtxNeighborNone);
-   flow = FindStrongestNeighbor(dec, flow, streamDir);
 
    for(;;) {
-
-      xDiff = line.loc.X - loc0.X;
-      yDiff = line.loc.Y - loc0.Y;
+      xDiff = flow.loc.X - loc0.X;
+      yDiff = flow.loc.Y - loc0.Y;
 
       distSq = (xDiff * xDiff) + (yDiff * yDiff);
       if(distSq > totalDistSq)
@@ -1332,6 +1330,9 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
          BresLineStep(&line, 1, 0);
       }
       else if(BresLineHit(&line, flow.loc) == DMTX_SUCCESS) {
+
+         xDiff = line.loc.X - loc0.X;
+         yDiff = line.loc.Y - loc0.Y;
          for(i = 0; i < DMTX_HOUGH_RES; i++) {
 
             dH = (rHvX[i] * yDiff) - (rHvY[i] * xDiff);
@@ -1445,15 +1446,20 @@ static int
 BresLineHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
 {
    int travelStep, sideStep;
+   DmtxBresLine lineTmp;
 
+   /* this sideStep calc is wrong ... travelStep calculation works I think */
+   lineTmp = *line;
    if(line->steep) {
       travelStep = (line->yStep > 0) ? targetLoc.Y - line->loc.Y : line->loc.Y - targetLoc.Y;
-      sideStep = (line->xOut > 0) ? targetLoc.X - line->loc.X : line->loc.X - targetLoc.X;
+      BresLineStep(&lineTmp, travelStep, 0);
+      sideStep = (line->xOut > 0) ? targetLoc.X - lineTmp.loc.X : lineTmp.loc.X - targetLoc.X;
       assert(line->yOut == 0);
    }
    else {
       travelStep = (line->xStep > 0) ? targetLoc.X - line->loc.X : line->loc.X - targetLoc.X;
-      sideStep = (line->yOut > 0) ? targetLoc.Y - line->loc.Y : line->loc.Y - targetLoc.Y;
+      BresLineStep(&lineTmp, travelStep, 0);
+      sideStep = (line->yOut > 0) ? targetLoc.Y - lineTmp.loc.Y : lineTmp.loc.Y - targetLoc.Y;
       assert(line->xOut == 0);
    }
 
@@ -1465,9 +1471,9 @@ BresLineHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
    }
    else {
       if(travelStep < 0) {
-         BresLineStep(line, -1, 1);
+         BresLineStep(line, travelStep, sideStep);
          CALLBACK_POINT_PLOT(line->loc, 3, 1, DMTX_DISPLAY_POINT);
-         return DMTX_FAILURE;
+         return DMTX_SUCCESS;
       }
       else {
          BresLineStep(line, travelStep, sideStep);
@@ -1492,9 +1498,13 @@ BresLineHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
 static int
 BresLineStep(DmtxBresLine *line, int travel, int outward)
 {
+   int i;
    DmtxBresLine lineNew;
 
    lineNew = *line;
+
+   assert(abs(travel) < 2);
+   assert(abs(outward) >= 0);
 
    /* Perform forward step */
    if(travel > 0) {
@@ -1536,18 +1546,19 @@ BresLineStep(DmtxBresLine *line, int travel, int outward)
       }
    }
 
-   if(outward > 0) {
-      /* Outward step */
+   for(i = 0; i < outward; i++) {
+      /* Outward steps */
       lineNew.outward++;
       lineNew.loc.X += lineNew.xOut;
       lineNew.loc.Y += lineNew.yOut;
    }
+/*
    else if(outward < 0) {
-      /* Outward step */
       lineNew.outward--;
       lineNew.loc.X -= lineNew.xOut;
       lineNew.loc.Y -= lineNew.yOut;
    }
+*/
    *line = lineNew;
 
    return DMTX_SUCCESS;
