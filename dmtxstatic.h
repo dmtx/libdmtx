@@ -162,7 +162,7 @@ static DmtxBestLine FindBestLine(DmtxDecode *dec, DmtxRegion *reg, int step0, in
 static int FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line);
 static int MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge);
 static DmtxBresLine BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locOrigin);
-static int BresLineHit(DmtxBresLine *line, DmtxPixelLoc targetLoc);
+static int BresLineStepHit(DmtxBresLine *line, DmtxPixelLoc targetLoc);
 static int BresLineStep(DmtxBresLine *line, int travel, int outward);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);*/
 

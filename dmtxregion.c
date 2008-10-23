@@ -32,12 +32,11 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * TODO: First: use gltest to investigate any new behaviors
- * TODO: Try leaving trails again if established as lines (and prevent starting there)
- * TODO: Remove status from DmtxPixelLoc
  * TODO: add +1 and -1 offset to FindBestLine()
+ * TODO: Try leaving trails again if established as lines (and prevent starting there)
  * TODO: run hough test on AlignCalib for different starting points along earlier edge
  * TODO: try -s2 again after tightening fit logic
+ * TODO: Remove status from DmtxPixelLoc
  */
 
 /**
@@ -1040,8 +1039,6 @@ BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
    reg->stepsTotal = reg->jumpToPos + reg->jumpToNeg;
    reg->boundMin = boundMin;
    reg->boundMax = boundMax;
-CALLBACK_POINT_PLOT(boundMin, 3, 1, DMTX_DISPLAY_SQUARE);
-CALLBACK_POINT_PLOT(boundMax, 3, 1, DMTX_DISPLAY_SQUARE);
 
    /* Clear "visited" bit from trail */
    clears = 0;
@@ -1264,6 +1261,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
    int distSq, totalDistSq;
    int dH;
    int i, angle;
+   int hit;
    int hough[DMTX_HOUGH_RES] = { 0 };
    DmtxVector2 pTmp;
    DmtxPixelLoc loc0, loc1, locOrigin;
@@ -1284,7 +1282,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
       pTmp.Y = 0.8;
    }
 
-   /* Line ends at approximated midpoint between corners c10 and c11 */
+   /* Line ends at approximate midpoint of opposite calibration edge */
    dmtxMatrix3VMultiplyBy(&pTmp, reg->fit2raw);
    loc1.X = (int)(pTmp.X + 0.5);
    loc1.Y = (int)(pTmp.Y + 0.5);
@@ -1321,22 +1319,22 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
       else if(flow.mag < 20) {
          BresLineStep(&line, 1, 0);
       }
-      else if(BresLineHit(&line, flow.loc) == DMTX_SUCCESS) {
-         xDiff = line.loc.X - loc0.X;
-         yDiff = line.loc.Y - loc0.Y;
-         for(i = 0; i < DMTX_HOUGH_RES; i++) {
-
-            dH = (rHvX[i] * yDiff) - (rHvY[i] * xDiff);
-            if(dH > -256 && dH < 256)
-               hough[i]++;
-
-            /* New angle takes over lead */
-            if(hough[i] > hough[angle])
-               angle = i;
-         }
-      }
       else {
-         ; /* this is left in as reminder to refactor BresLineHit() to not move anything */
+         hit = BresLineStepHit(&line, flow.loc);
+         if(hit == DMTX_SUCCESS) {
+            xDiff = line.loc.X - loc0.X;
+            yDiff = line.loc.Y - loc0.Y;
+            for(i = 0; i < DMTX_HOUGH_RES; i++) {
+
+               dH = (rHvX[i] * yDiff) - (rHvY[i] * xDiff);
+               if(dH > -256 && dH < 256)
+                  hough[i]++;
+
+               /* New angle takes over lead */
+               if(hough[i] > hough[angle])
+                  angle = i;
+            }
+         }
       }
 
       /* XXX this may be unnecessary ... try removing later and see what happens */
@@ -1437,12 +1435,12 @@ BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locOrigin)
  * just move directly away from the center.
  */
 static int
-BresLineHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
+BresLineStepHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
 {
    int travelStep, sideStep;
    DmtxBresLine lineTmp;
 
-   /* this sideStep calc is wrong ... travelStep calculation works I think */
+   /* Determine necessary steps along and away from Bresenham line */
    lineTmp = *line;
    if(line->steep) {
       travelStep = (line->yStep > 0) ? targetLoc.Y - line->loc.Y : line->loc.Y - targetLoc.Y;
@@ -1464,17 +1462,18 @@ BresLineHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
       return DMTX_FAILURE;
    }
    else {
-      /* travelStep < 0 && sideStep == 0 */
+      /* travelStep < 0 && sideStep >= 0 */
       if(travelStep < 0) {
          BresLineStep(line, -1, 1);
          CALLBACK_POINT_PLOT(line->loc, 3, 1, DMTX_DISPLAY_POINT);
          return DMTX_SUCCESS;
       }
+      /* travelStep >= 0 && sideStep >= 0 */
       else {
          BresLineStep(line, travelStep, sideStep);
          if(travelStep == 0) {
             CALLBACK_POINT_PLOT(line->loc, 1, 1, DMTX_DISPLAY_POINT);
-            return DMTX_FAILURE;
+            return DMTX_SUCCESS;
          }
          else {
             CALLBACK_POINT_PLOT(line->loc, 2, 1, DMTX_DISPLAY_POINT);
