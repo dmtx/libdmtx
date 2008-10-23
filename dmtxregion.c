@@ -163,7 +163,6 @@ MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc)
 {
    int i;
    int strongIdx;
-   int posMatch, negMatch;
    DmtxPointFlow flow, flowPlane[3];
    DmtxPointFlow flowPos, flowPosBack;
    DmtxPointFlow flowNeg, flowNegBack;
@@ -181,37 +180,16 @@ MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc)
 
    flow = flowPlane[strongIdx];
 
-   /* Attempt to find a solid 2-way edge from here */
-   for(i = 0; i < 1; i++) {
-      CALLBACK_POINT_PLOT(flow.loc, 1, 1, DMTX_DISPLAY_POINT);
-
-      flowPos = FindStrongestNeighbor(dec, flow, +1);
-      flowNeg = FindStrongestNeighbor(dec, flow, -1);
-      if(flowPos.mag == 0 || flowNeg.mag == 0) {
-         if(flowPos.mag == flowNeg.mag)
-            break;
-         else
-            flow = (flowPos.mag > flowNeg.mag) ? flowPos : flowNeg;
-      }
-      else if(flowPos.arrive == flowNeg.arrive) {
-         flow = flowPos;
-      }
-      else {
-         flowPosBack = FindStrongestNeighbor(dec, flowPos, -1);
-         posMatch = (flowPos.arrive == (flowPosBack.arrive+4)%8);
-         flowNegBack = FindStrongestNeighbor(dec, flowNeg, +1);
-         negMatch = (flowNeg.arrive == (flowNegBack.arrive+4)%8);
-         if(posMatch && negMatch) {
-            flow.arrive = dmtxNeighborNone;
-            CALLBACK_POINT_PLOT(flow.loc, 1, 1, DMTX_DISPLAY_SQUARE);
-            return flow;
-         }
-         else if(!posMatch && !negMatch) {
-            flow = (flowPos.mag > flowNeg.mag) ? flowPos : flowNeg;
-         }
-         else {
-            flow = (posMatch) ? flowPos : flowNeg;
-         }
+   flowPos = FindStrongestNeighbor(dec, flow, +1);
+   flowNeg = FindStrongestNeighbor(dec, flow, -1);
+   if(flowPos.mag != 0 && flowNeg.mag != 0) {
+      flowPosBack = FindStrongestNeighbor(dec, flowPos, -1);
+      flowNegBack = FindStrongestNeighbor(dec, flowNeg, +1);
+      if(flowPos.arrive == (flowPosBack.arrive+4)%8 &&
+            flowNeg.arrive == (flowNegBack.arrive+4)%8) {
+         flow.arrive = dmtxNeighborNone;
+         CALLBACK_POINT_PLOT(flow.loc, 1, 1, DMTX_DISPLAY_SQUARE);
+         return flow;
       }
    }
 
