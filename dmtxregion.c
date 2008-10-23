@@ -448,7 +448,6 @@ dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
 extern int
 dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
 {
-   int err;
    double radians;
    DmtxRay2 rLeft, rBottom, rTop, rRight;
    DmtxVector2 p00, p10, p11, p01;
@@ -514,10 +513,17 @@ dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg)
    }
 
    /* Calculate 4 corners, real or imagined */
-   err = dmtxRay2Intersect(&p00, &rLeft, &rBottom);
-   err = dmtxRay2Intersect(&p10, &rBottom, &rRight);
-   err = dmtxRay2Intersect(&p11, &rRight, &rTop);
-   err = dmtxRay2Intersect(&p01, &rTop, &rLeft);
+   if(dmtxRay2Intersect(&p00, &rLeft, &rBottom) == DMTX_FAILURE)
+      return DMTX_FAILURE;
+
+   if(dmtxRay2Intersect(&p10, &rBottom, &rRight) == DMTX_FAILURE)
+      return DMTX_FAILURE;
+
+   if(dmtxRay2Intersect(&p11, &rRight, &rTop) == DMTX_FAILURE)
+      return DMTX_FAILURE;
+
+   if(dmtxRay2Intersect(&p01, &rTop, &rLeft) == DMTX_FAILURE)
+      return DMTX_FAILURE;
 
    if(dmtxRegionUpdateCorners(dec, reg, p00, p10, p11, p01) != DMTX_SUCCESS)
       return DMTX_FAILURE;
@@ -1306,23 +1312,26 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
 
    /* Function follows Bresenham */
    flow = GetPointFlow(dec, reg->flowBegin.plane, loc0, dmtxNeighborNone);
+   flow = FindStrongestNeighbor(dec, flow, streamDir);
+
    for(;;) {
 
-      /* Flow direction is determined by region polarity */
-      flow = FindStrongestNeighbor(dec, flow, streamDir);
-      if(flow.mag == -1)
-         return DMTX_FAILURE;
-      else if(flow.mag < 20)
-         BresLineStep(&line, 1, 0);
-
-      xDiff = flow.loc.X - loc0.X;
-      yDiff = flow.loc.Y - loc0.Y;
+      xDiff = line.loc.X - loc0.X;
+      yDiff = line.loc.Y - loc0.Y;
 
       distSq = (xDiff * xDiff) + (yDiff * yDiff);
       if(distSq > totalDistSq)
          break;
 
-      if(BresLineHit(&line, flow.loc) == DMTX_SUCCESS) {
+      /* Flow direction is determined by region polarity */
+      flow = FindStrongestNeighbor(dec, flow, streamDir);
+      if(flow.mag == -1) {
+         return DMTX_FAILURE;
+      }
+      else if(flow.mag < 20) {
+         BresLineStep(&line, 1, 0);
+      }
+      else if(BresLineHit(&line, flow.loc) == DMTX_SUCCESS) {
          for(i = 0; i < DMTX_HOUGH_RES; i++) {
 
             dH = (rHvX[i] * yDiff) - (rHvY[i] * xDiff);
@@ -1457,7 +1466,7 @@ BresLineHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
    else {
       if(travelStep < 0) {
          BresLineStep(line, -1, 1);
-         CALLBACK_POINT_PLOT(line->loc, 1, 1, DMTX_DISPLAY_POINT);
+         CALLBACK_POINT_PLOT(line->loc, 3, 1, DMTX_DISPLAY_POINT);
          return DMTX_FAILURE;
       }
       else {
