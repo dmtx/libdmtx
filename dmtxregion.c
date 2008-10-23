@@ -1330,7 +1330,6 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
          BresLineStep(&line, 1, 0);
       }
       else if(BresLineHit(&line, flow.loc) == DMTX_SUCCESS) {
-
          xDiff = line.loc.X - loc0.X;
          yDiff = line.loc.Y - loc0.Y;
          for(i = 0; i < DMTX_HOUGH_RES; i++) {
@@ -1343,6 +1342,9 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
             if(hough[i] > hough[angle])
                angle = i;
          }
+      }
+      else {
+         ; /* this is left in as reminder to refactor BresLineHit() to not move anything */
       }
 
       /* XXX this may be unnecessary ... try removing later and see what happens */
@@ -1470,8 +1472,9 @@ BresLineHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
       return DMTX_FAILURE;
    }
    else {
+      /* travelStep < 0 && sideStep == 0 */
       if(travelStep < 0) {
-         BresLineStep(line, travelStep, sideStep);
+         BresLineStep(line, -1, 1);
          CALLBACK_POINT_PLOT(line->loc, 3, 1, DMTX_DISPLAY_POINT);
          return DMTX_SUCCESS;
       }
@@ -1552,13 +1555,7 @@ BresLineStep(DmtxBresLine *line, int travel, int outward)
       lineNew.loc.X += lineNew.xOut;
       lineNew.loc.Y += lineNew.yOut;
    }
-/*
-   else if(outward < 0) {
-      lineNew.outward--;
-      lineNew.loc.X -= lineNew.xOut;
-      lineNew.loc.Y -= lineNew.yOut;
-   }
-*/
+
    *line = lineNew;
 
    return DMTX_SUCCESS;
