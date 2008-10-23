@@ -32,9 +32,12 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * TODO: Tighten line fitting (through hough+offset?)
+ * TODO: First: use gltest to investigate any new behaviors
  * TODO: Try leaving trails again if established as lines (and prevent starting there)
  * TODO: Remove status from DmtxPixelLoc
+ * TODO: add +1 and -1 offset to FindBestLine()
+ * TODO: run hough test on AlignCalib for different starting points along earlier edge
+ * TODO: try -s2 again after tightening fit logic
  */
 
 /**
@@ -70,20 +73,13 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
       /* Scan this pixel for presence of a valid barcode edge */
       reg = dmtxRegionScanPixel(dec, loc);
 /*
-      if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_EDGE) {
+      if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_FINDER) {
          size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
          if(size >= 128)
             exit(1);
          WriteDiagnosticImage(dec, &reg, imagePath);
       }
-      if(reg.found >= DMTX_REGION_DROPPED_FINDER) {
-         size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
-         if(size >= 128)
-            exit(1);
-         WriteDiagnosticImage2(dec, &reg, imagePath);
-      }
 */
-
       /* Found a barcode region? */
       if(reg.found == DMTX_REGION_FOUND)
          break;
@@ -237,12 +233,15 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
 
    /* Follow to end in both directions */
    BlazeTrail(dec, reg, begin);
-   if(reg->stepsTotal < 40)
+/* if(reg->stepsTotal < 40)
+      return DMTX_FAILURE; */
+
+/* if(BoundingBoxTest() == DMTX_FALSE)
+      return DMTX_FAILURE; */
+
+   if((reg->boundMax.X - reg->boundMin.X) * (reg->boundMax.Y - reg->boundMin.Y) < 3000)
       return DMTX_FAILURE;
-/*
-   if(BoundingBoxTest() == DMTX_FALSE)
-      return DMTX_FAILURE;
-*/
+
    line1x = FindBestLine(dec, reg, 0, 0, -1);
    if(line1x.mag < 5)
       return DMTX_FAILURE;
@@ -985,15 +984,17 @@ BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
    int sign;
    int steps;
    int offset;
-   DmtxPointFlow flow, flowNext;
    unsigned char *cache, *cacheNext, *cacheBeg;
+   DmtxPointFlow flow, flowNext;
    DmtxFollow follow;
+   DmtxPixelLoc boundMin, boundMax;
 
    /* check offset before starting */
    offset = dmtxImageGetOffset(dec->image, flowBegin.loc.X, flowBegin.loc.Y);
    if(offset == DMTX_BAD_OFFSET)
       return DMTX_FAILURE;
 
+   boundMin = boundMax = flowBegin.loc;
    cacheBeg = &(dec->image->cache[offset]);
    *cacheBeg = (0x80 | 0x40); /* Mark location as visited and assigned */
 
@@ -1037,7 +1038,16 @@ BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
          cache = cacheNext;
          flow = flowNext;
 
-/*       CALLBACK_POINT_PLOT(flow.loc, (sign > 0) ? 2 : 3, 1, DMTX_DISPLAY_POINT); */
+         if(flow.loc.X > boundMax.X)
+            boundMax.X = flow.loc.X;
+         else if(flow.loc.X < boundMin.X)
+            boundMin.X = flow.loc.X;
+         if(flow.loc.Y > boundMax.Y)
+            boundMax.Y = flow.loc.Y;
+         else if(flow.loc.Y < boundMin.Y)
+            boundMin.Y = flow.loc.Y;
+
+         CALLBACK_POINT_PLOT(flow.loc, (sign > 0) ? 2 : 3, 1, DMTX_DISPLAY_POINT);
       }
 
       if(sign > 0) {
@@ -1050,6 +1060,10 @@ BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
       }
    }
    reg->stepsTotal = reg->jumpToPos + reg->jumpToNeg;
+   reg->boundMin = boundMin;
+   reg->boundMax = boundMax;
+CALLBACK_POINT_PLOT(boundMin, 3, 1, DMTX_DISPLAY_SQUARE);
+CALLBACK_POINT_PLOT(boundMax, 3, 1, DMTX_DISPLAY_SQUARE);
 
    /* Clear "visited" bit from trail */
    clears = 0;

@@ -72,8 +72,8 @@ extern "C" {
 #define DMTX_REGION_EOF                3
 #define DMTX_REGION_DROPPED_EDGE       4
 #define DMTX_REGION_DROPPED_FINDER     5
-#define DMTX_REGION_DROPPED_RIGHT      6
-#define DMTX_REGION_DROPPED_TOP        7
+#define DMTX_REGION_DROPPED_TOP        6
+#define DMTX_REGION_DROPPED_RIGHT      7
 #define DMTX_REGION_DROPPED_SIZE       8
 
 #define DMTX_MODULE_OFF             0x00
@@ -291,6 +291,8 @@ typedef struct DmtxRegion_struct {
    int             stepsTotal;    /* */
    DmtxPixelLoc    finalPos;      /* */
    DmtxPixelLoc    finalNeg;      /* */
+   DmtxPixelLoc    boundMin;      /* */
+   DmtxPixelLoc    boundMax;      /* */
    DmtxPointFlow   flowBegin;     /* */
 
    /* Orientation values */
