@@ -1216,10 +1216,10 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
       if(posRunning) {
          xDiff = followPos.loc.X - loc0.X;
          yDiff = followPos.loc.Y - loc0.Y;
-         posTravel = ((cosAngle * xDiff) + (sinAngle * yDiff))/256;
-         posWander = ((cosAngle * yDiff) - (sinAngle * xDiff))/256;
+         posTravel = (cosAngle * xDiff) + (sinAngle * yDiff);
+         posWander = (cosAngle * yDiff) - (sinAngle * xDiff);
 
-         if(posWander > -3 && posWander < 3) {
+         if(posWander >= -3*256 && posWander <= 3*256) {
             distSq = DistanceSquared(followPos.loc, negMax);
             if(distSq > distSqMax) {
                posMax = followPos.loc;
@@ -1242,10 +1242,10 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
       if(negRunning) {
          xDiff = followNeg.loc.X - loc0.X;
          yDiff = followNeg.loc.Y - loc0.Y;
-         negTravel = ((cosAngle * xDiff) + (sinAngle * yDiff))/256;
-         negWander = ((cosAngle * yDiff) - (sinAngle * xDiff))/256;
+         negTravel = (cosAngle * xDiff) + (sinAngle * yDiff);
+         negWander = (cosAngle * yDiff) - (sinAngle * xDiff);
 
-         if(negWander > -3 && negWander < 3) {
+         if(negWander >= -3*256 && negWander < 3*256) {
             distSq = DistanceSquared(followNeg.loc, posMax);
             if(distSq > distSqMax) {
                negMax = followNeg.loc;
@@ -1271,7 +1271,7 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
       followPos = FollowStep(dec, reg, followPos, +1);
       followNeg = FollowStep(dec, reg, followNeg, -1);
    }
-   line->devn = max(posWanderMaxLock - posWanderMinLock, negWanderMaxLock - negWanderMinLock);
+   line->devn = max(posWanderMaxLock - posWanderMinLock, negWanderMaxLock - negWanderMinLock)/256;
    line->distSq = distSqMax;
 
 /* CALLBACK_POINT_PLOT(posMax, 2, 1, DMTX_DISPLAY_SQUARE);
