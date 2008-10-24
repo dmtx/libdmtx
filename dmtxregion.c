@@ -35,7 +35,6 @@ Contact: mike@dragonflylogic.com
  * TODO: add +1 and -1 offset to FindBestSolidLine()
  *       - break AlignCalib into 2 separate functions. Inner one that simply
  *       follows the line, and outer one that calls inner one over and over until a best hough is found.
- * TODO: Try leaving trails again if established as lines (and prevent starting there)
  * TODO: try -s2 again after tightening fit logic
  * TODO: Remove status from DmtxPixelLoc
  */
@@ -110,8 +109,7 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
    offset = dmtxImageGetOffset(dec->image, loc.X, loc.Y);
-   if(offset == DMTX_BAD_OFFSET) {
-/* if(offset == DMTX_BAD_OFFSET || dec->image->cache[offset] & 0x40) { */
+   if(offset == DMTX_BAD_OFFSET || dec->image->cache[offset] & 0x40) {
       reg.found = DMTX_REGION_NOT_FOUND;
       return reg;
    }
@@ -211,22 +209,27 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
 
    /* Follow to end in both directions */
    BlazeTrail(dec, reg, begin);
-/* if(reg->stepsTotal < 40)
-      return DMTX_FAILURE; */
-
-/* if(BoundingBoxTest() == DMTX_FALSE)
-      return DMTX_FAILURE; */
-
-   if((reg->boundMax.X - reg->boundMin.X) * (reg->boundMax.Y - reg->boundMin.Y) < 3000)
+   if(reg->stepsTotal < 40) {
+      ClearTrail(dec, reg, 0x40);
       return DMTX_FAILURE;
+   }
+
+   if((reg->boundMax.X - reg->boundMin.X) * (reg->boundMax.Y - reg->boundMin.Y) < 3000) {
+      ClearTrail(dec, reg, 0x40);
+      return DMTX_FAILURE;
+   }
 
    line1x = FindBestSolidLine(dec, reg, 0, 0, -1);
-   if(line1x.mag < 5)
+   if(line1x.mag < 5) {
+      ClearTrail(dec, reg, 0x40);
       return DMTX_FAILURE;
+   }
 
    err = FindTravelLimits(dec, reg, &line1x);
-   if(line1x.distSq < 100 || line1x.devn / sqrt(line1x.distSq) > 0.1)
+   if(line1x.distSq < 100 || line1x.devn / sqrt(line1x.distSq) > 0.1) {
+      ClearTrail(dec, reg, 0x40);
       return DMTX_FAILURE;
+   }
    assert(line1x.stepPos >= line1x.stepNeg);
 
    fTmp = FollowSeek(dec, reg, line1x.stepPos + 5);
@@ -271,6 +274,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
       err = FindTravelLimits(dec, reg, &line2x);
       if(line2x.distSq < 100 || line2x.devn / sqrt(line2x.distSq) > 0.1)
          return DMTX_FAILURE;
+
       cross = ((line1x.locNeg.X - line1x.locPos.X) * (line2x.locNeg.Y - line2x.locPos.Y)) -
             ((line1x.locNeg.Y - line1x.locPos.Y) * (line2x.locNeg.X - line2x.locPos.X));
       if(cross > 0) {
@@ -965,7 +969,6 @@ BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
    int offset;
    unsigned char *cache, *cacheNext, *cacheBeg;
    DmtxPointFlow flow, flowNext;
-   DmtxFollow follow;
    DmtxPixelLoc boundMin, boundMax;
 
    /* check offset before starting */
@@ -1043,19 +1046,33 @@ BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
    reg->boundMax = boundMax;
 
    /* Clear "visited" bit from trail */
+   clears = ClearTrail(dec, reg, 0x80);
+   assert(posAssigns + negAssigns == clears - 1);
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ *
+ *
+ */
+static int
+ClearTrail(DmtxDecode *dec, DmtxRegion *reg, unsigned char clearMask)
+{
+   int clears;
+   DmtxFollow follow;
+
+   /* Clear "visited" bit from trail */
    clears = 0;
    follow = FollowSeek(dec, reg, 0);
    while(abs(follow.step) <= reg->stepsTotal) {
-      assert(*follow.ptr & 0x40);
-      assert(*follow.ptr & 0x80);
-      *follow.ptr &= (0x80 ^ 0xff);
+      assert(*follow.ptr & clearMask);
+      *follow.ptr &= (clearMask ^ 0xff);
       follow = FollowStep(dec, reg, follow, +1);
       clears++;
    }
 
-   assert(posAssigns + negAssigns == clears - 1);
-
-   return DMTX_SUCCESS;
+   return clears;
 }
 
 /**
@@ -1171,7 +1188,8 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
    int i;
    int distSq, distSqMax;
    int xDiff, yDiff;
-   int posDiff, negDiff;
+   int posWander, negWander;
+   int posTravel, negTravel;
    int posMinDevn, posMinDevnLock;
    int posMaxDevn, posMaxDevnLock;
    int negMinDevn, negMinDevnLock;
@@ -1198,13 +1216,18 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
 
       xDiff = followPos.loc.X - loc0.X;
       yDiff = followPos.loc.Y - loc0.Y;
-      posDiff = (cosAngle * yDiff) - (sinAngle * xDiff);
+      posTravel = ((cosAngle * xDiff) + (sinAngle * yDiff))/256;
+      posWander = ((cosAngle * yDiff) - (sinAngle * xDiff))/256;
 
       xDiff = followNeg.loc.X - loc0.X;
       yDiff = followNeg.loc.Y - loc0.Y;
-      negDiff = (cosAngle * yDiff) - (sinAngle * xDiff);
+      negTravel = ((cosAngle * xDiff) + (sinAngle * yDiff))/256;
+      negWander = ((cosAngle * yDiff) - (sinAngle * xDiff))/256;
 
-      if(posDiff > -256*3 && posDiff < 256*3) {
+      if(i > 10 && abs(posWander) > abs(posTravel) && abs(negWander) > abs(negTravel))
+         break;
+
+      if(posWander > -3 && posWander < 3) {
          distSq = DistanceSquared(followPos.loc, negMax);
          if(distSq > distSqMax) {
             posMax = followPos.loc;
@@ -1216,11 +1239,11 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
          }
       }
       else {
-         posMinDevn = min(posMinDevn, posDiff);
-         posMaxDevn = max(posMaxDevn, posDiff);
+         posMinDevn = min(posMinDevn, posWander);
+         posMaxDevn = max(posMaxDevn, posWander);
       }
 
-      if(negDiff > -256*3 && negDiff < 256*3) {
+      if(negWander > -3 && negWander < 3) {
          distSq = DistanceSquared(followNeg.loc, posMax);
          if(distSq > distSqMax) {
             negMax = followNeg.loc;
@@ -1232,8 +1255,8 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
          }
       }
       else {
-         negMinDevn = min(negMinDevn, negDiff);
-         negMaxDevn = max(negMaxDevn, negDiff);
+         negMinDevn = min(negMinDevn, negWander);
+         negMaxDevn = max(negMaxDevn, negWander);
       }
 
 /*  CALLBACK_POINT_PLOT(followPos.loc, 2, 1, DMTX_DISPLAY_POINT);
@@ -1242,7 +1265,7 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
       followPos = FollowStep(dec, reg, followPos, +1);
       followNeg = FollowStep(dec, reg, followNeg, -1);
    }
-   line->devn = max(posMaxDevnLock - posMinDevnLock, negMaxDevnLock - negMinDevnLock)/256.0;
+   line->devn = max(posMaxDevnLock - posMinDevnLock, negMaxDevnLock - negMinDevnLock);
    line->distSq = distSqMax;
 
 /* CALLBACK_POINT_PLOT(posMax, 2, 1, DMTX_DISPLAY_SQUARE);

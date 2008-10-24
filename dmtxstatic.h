@@ -157,6 +157,7 @@ static DmtxPointFlow FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center
 static DmtxFollow FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek);
 static DmtxFollow FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
 static int BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin);
+static int ClearTrail(DmtxDecode *dec, DmtxRegion *reg, unsigned char clearMask);
 static DmtxBestLine FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int houghAvoid);
 static int FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line);
 static int MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge);

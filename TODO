@@ -1,6 +1,9 @@
 TODO Items
 -----------------------------------------------------------------
 
+specify minimum size of smallest edge (default 10)
+specify rectangle vs square (default square)
+
 after version 0.6.0:
   o libdmtx:   New edge neighbor tracking (Hough Transform + 1-way edge cache)
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
