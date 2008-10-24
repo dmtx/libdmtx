@@ -226,7 +226,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    }
 
    err = FindTravelLimits(dec, reg, &line1x);
-   if(line1x.distSq < 100 || line1x.devn / sqrt(line1x.distSq) > 0.1) {
+   if(line1x.distSq < 100 || line1x.devn * 10 > sqrt(line1x.distSq)) {
       ClearTrail(dec, reg, 0x40);
       return DMTX_FAILURE;
    }
@@ -243,7 +243,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    if(line2p.mag > line2n.mag) {
       line2x = line2p;
       err = FindTravelLimits(dec, reg, &line2x);
-      if(line2x.distSq < 100 || line2x.devn / sqrt(line2x.distSq) > 0.1)
+      if(line2x.distSq < 100 || line2x.devn * 10 > sqrt(line2x.distSq))
          return DMTX_FAILURE;
 
       cross = ((line1x.locPos.X - line1x.locNeg.X) * (line2x.locPos.Y - line2x.locNeg.Y)) -
@@ -1188,12 +1188,10 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
    int i;
    int distSq, distSqMax;
    int xDiff, yDiff;
-   int posWander, negWander;
+   int posRunning, negRunning;
    int posTravel, negTravel;
-   int posMinDevn, posMinDevnLock;
-   int posMaxDevn, posMaxDevnLock;
-   int negMinDevn, negMinDevnLock;
-   int negMaxDevn, negMaxDevnLock;
+   int posWander, posWanderMin, posWanderMax, posWanderMinLock, posWanderMaxLock;
+   int negWander, negWanderMin, negWanderMax, negWanderMinLock, negWanderMaxLock;
    int cosAngle, sinAngle;
    DmtxFollow followPos, followNeg;
    DmtxPixelLoc loc0, posMax, negMax;
@@ -1207,56 +1205,66 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
 
    distSqMax = 0;
    posMax = negMax = followPos.loc;
-   posMinDevn = posMinDevnLock = 0;
-   posMaxDevn = posMaxDevnLock = 0;
-   negMinDevn = negMinDevnLock = 0;
-   negMaxDevn = negMaxDevnLock = 0;
+
+   posTravel = negTravel = 0;
+   posWander = posWanderMin = posWanderMax = posWanderMinLock = posWanderMaxLock = 0;
+   negWander = negWanderMin = negWanderMax = negWanderMinLock = negWanderMaxLock = 0;
 
    for(i = 0; i < reg->stepsTotal/2; i++) {
 
-      xDiff = followPos.loc.X - loc0.X;
-      yDiff = followPos.loc.Y - loc0.Y;
-      posTravel = ((cosAngle * xDiff) + (sinAngle * yDiff))/256;
-      posWander = ((cosAngle * yDiff) - (sinAngle * xDiff))/256;
+      posRunning = (i < 10 || abs(posWander) < abs(posTravel));
+      negRunning = (i < 10 || abs(negWander) < abs(negTravel));
 
-      xDiff = followNeg.loc.X - loc0.X;
-      yDiff = followNeg.loc.Y - loc0.Y;
-      negTravel = ((cosAngle * xDiff) + (sinAngle * yDiff))/256;
-      negWander = ((cosAngle * yDiff) - (sinAngle * xDiff))/256;
+      if(posRunning) {
+         xDiff = followPos.loc.X - loc0.X;
+         yDiff = followPos.loc.Y - loc0.Y;
+         posTravel = ((cosAngle * xDiff) + (sinAngle * yDiff))/256;
+         posWander = ((cosAngle * yDiff) - (sinAngle * xDiff))/256;
 
-      if(i > 10 && abs(posWander) > abs(posTravel) && abs(negWander) > abs(negTravel))
+         if(posWander > -3 && posWander < 3) {
+            distSq = DistanceSquared(followPos.loc, negMax);
+            if(distSq > distSqMax) {
+               posMax = followPos.loc;
+               distSqMax = distSq;
+               line->stepPos = followPos.step;
+               line->locPos = followPos.loc;
+               posWanderMinLock = posWanderMin;
+               posWanderMaxLock = posWanderMax;
+            }
+         }
+         else {
+            posWanderMin = min(posWanderMin, posWander);
+            posWanderMax = max(posWanderMax, posWander);
+         }
+      }
+      else if(!negRunning) {
          break;
-
-      if(posWander > -3 && posWander < 3) {
-         distSq = DistanceSquared(followPos.loc, negMax);
-         if(distSq > distSqMax) {
-            posMax = followPos.loc;
-            distSqMax = distSq;
-            line->stepPos = followPos.step;
-            line->locPos = followPos.loc;
-            posMinDevnLock = posMinDevn;
-            posMaxDevnLock = posMaxDevn;
-         }
-      }
-      else {
-         posMinDevn = min(posMinDevn, posWander);
-         posMaxDevn = max(posMaxDevn, posWander);
       }
 
-      if(negWander > -3 && negWander < 3) {
-         distSq = DistanceSquared(followNeg.loc, posMax);
-         if(distSq > distSqMax) {
-            negMax = followNeg.loc;
-            distSqMax = distSq;
-            line->stepNeg = followNeg.step;
-            line->locNeg = followNeg.loc;
-            negMinDevnLock = negMinDevn;
-            negMaxDevnLock = negMaxDevn;
+      if(negRunning) {
+         xDiff = followNeg.loc.X - loc0.X;
+         yDiff = followNeg.loc.Y - loc0.Y;
+         negTravel = ((cosAngle * xDiff) + (sinAngle * yDiff))/256;
+         negWander = ((cosAngle * yDiff) - (sinAngle * xDiff))/256;
+
+         if(negWander > -3 && negWander < 3) {
+            distSq = DistanceSquared(followNeg.loc, posMax);
+            if(distSq > distSqMax) {
+               negMax = followNeg.loc;
+               distSqMax = distSq;
+               line->stepNeg = followNeg.step;
+               line->locNeg = followNeg.loc;
+               negWanderMinLock = negWanderMin;
+               negWanderMaxLock = negWanderMax;
+            }
+         }
+         else {
+            negWanderMin = min(negWanderMin, negWander);
+            negWanderMax = max(negWanderMax, negWander);
          }
       }
-      else {
-         negMinDevn = min(negMinDevn, negWander);
-         negMaxDevn = max(negMaxDevn, negWander);
+      else if(!posRunning) {
+         break;
       }
 
 /*  CALLBACK_POINT_PLOT(followPos.loc, 2, 1, DMTX_DISPLAY_POINT);
@@ -1265,7 +1273,7 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
       followPos = FollowStep(dec, reg, followPos, +1);
       followNeg = FollowStep(dec, reg, followNeg, -1);
    }
-   line->devn = max(posMaxDevnLock - posMinDevnLock, negMaxDevnLock - negMinDevnLock);
+   line->devn = max(posWanderMaxLock - posWanderMinLock, negWanderMaxLock - negWanderMinLock);
    line->distSq = distSqMax;
 
 /* CALLBACK_POINT_PLOT(posMax, 2, 1, DMTX_DISPLAY_SQUARE);
