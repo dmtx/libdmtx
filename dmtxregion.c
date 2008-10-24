@@ -33,8 +33,6 @@ Contact: mike@dragonflylogic.com
 
 /**
  * TODO: add +1 and -1 offset to FindBestSolidLine()
- *       - break AlignCalib into 2 separate functions. Inner one that simply
- *       follows the line, and outer one that calls inner one over and over until a best hough is found.
  * TODO: try -s2 again after tightening fit logic
  * TODO: Remove status from DmtxPixelLoc
  */
@@ -109,7 +107,7 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
    offset = dmtxImageGetOffset(dec->image, loc.X, loc.Y);
-   if(offset == DMTX_BAD_OFFSET || dec->image->cache[offset] & 0x40) {
+   if(offset == DMTX_BAD_OFFSET /* || dec->image->cache[offset] & 0x40 */) {
       reg.found = DMTX_REGION_NOT_FOUND;
       return reg;
    }
@@ -1680,16 +1678,22 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
             p.Y = row;
             dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
 
-            if(p.X < 0.0 || p.X > 1.0 || p.Y < 0.0 || p.Y > 1.0)
+            if(p.X < 0.0 || p.X > 1.0 || p.Y < 0.0 || p.Y > 1.0) {
                shade = 0.7;
-            else if(p.X + p.Y < 1.0)
-               shade = 0.0;
-            else
-               shade = 0.4;
+               rgb[0] += (shade * (255 - rgb[0]));
+               rgb[1] += (shade * (255 - rgb[1]));
+               rgb[2] = 255;
+            }
+            else {
+               if(p.X + p.Y < 1.0)
+                  shade = 0.0;
+               else
+                  shade = 0.4;
 
-            rgb[0] += (shade * (255 - rgb[0]));
-            rgb[1] += (shade * (255 - rgb[1]));
-            rgb[2] += (shade * (255 - rgb[2]));
+               rgb[0] += (shade * (255 - rgb[0]));
+               rgb[1] += (shade * (255 - rgb[1]));
+               rgb[2] += (shade * (255 - rgb[2]));
+            }
          }
 
          fwrite(rgb, sizeof(char), 3, fp);
