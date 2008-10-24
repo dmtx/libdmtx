@@ -132,7 +132,6 @@ typedef struct DmtxBresLine_struct {
    int xDelta;
    int yDelta;
    int steep;
-   int travelLength;
    int xOut;
    int yOut;
    int travel;
@@ -158,9 +157,11 @@ static DmtxPointFlow FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center
 static DmtxFollow FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek);
 static DmtxFollow FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
 static int BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin);
-static DmtxBestLine FindBestLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int houghAvoid);
+static DmtxBestLine FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int houghAvoid);
 static int FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line);
 static int MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge);
+static int FindBestGappedLine(DmtxDecode *dec, DmtxRegion *reg, int streamDir,
+      DmtxBresLine line, int *angle, int *strength, DmtxPixelLoc *final);
 static DmtxBresLine BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locOrigin);
 static int BresLineStepHit(DmtxBresLine *line, DmtxPixelLoc targetLoc);
 static int BresLineStep(DmtxBresLine *line, int travel, int outward);

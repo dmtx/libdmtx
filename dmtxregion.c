@@ -32,9 +32,10 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * TODO: add +1 and -1 offset to FindBestLine()
+ * TODO: add +1 and -1 offset to FindBestSolidLine()
+ *       - break AlignCalib into 2 separate functions. Inner one that simply
+ *       follows the line, and outer one that calls inner one over and over until a best hough is found.
  * TODO: Try leaving trails again if established as lines (and prevent starting there)
- * TODO: run hough test on AlignCalib for different starting points along earlier edge
  * TODO: try -s2 again after tightening fit logic
  * TODO: Remove status from DmtxPixelLoc
  */
@@ -219,7 +220,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    if((reg->boundMax.X - reg->boundMin.X) * (reg->boundMax.Y - reg->boundMin.Y) < 3000)
       return DMTX_FAILURE;
 
-   line1x = FindBestLine(dec, reg, 0, 0, -1);
+   line1x = FindBestSolidLine(dec, reg, 0, 0, -1);
    if(line1x.mag < 5)
       return DMTX_FAILURE;
 
@@ -229,10 +230,10 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    assert(line1x.stepPos >= line1x.stepNeg);
 
    fTmp = FollowSeek(dec, reg, line1x.stepPos + 5);
-   line2p = FindBestLine(dec, reg, fTmp.step, line1x.stepNeg, line1x.angle);
+   line2p = FindBestSolidLine(dec, reg, fTmp.step, line1x.stepNeg, line1x.angle);
 
    fTmp = FollowSeek(dec, reg, line1x.stepNeg - 5);
-   line2n = FindBestLine(dec, reg, fTmp.step, line1x.stepPos, line1x.angle);
+   line2n = FindBestSolidLine(dec, reg, fTmp.step, line1x.stepPos, line1x.angle);
    if(max(line2p.mag, line2n.mag) < 5)
       return DMTX_FAILURE;
 
@@ -1024,7 +1025,7 @@ BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
          else if(flow.loc.Y < boundMin.Y)
             boundMin.Y = flow.loc.Y;
 
-         CALLBACK_POINT_PLOT(flow.loc, (sign > 0) ? 2 : 3, 1, DMTX_DISPLAY_POINT);
+/*       CALLBACK_POINT_PLOT(flow.loc, (sign > 0) ? 2 : 3, 1, DMTX_DISPLAY_POINT); */
       }
 
       if(sign > 0) {
@@ -1061,7 +1062,7 @@ BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
  *
  */
 static DmtxBestLine
-FindBestLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int houghAvoid)
+FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int houghAvoid)
 {
    int hough[DMTX_HOUGH_RES] = { 0 };
    int houghMin, houghMax;
@@ -1256,21 +1257,30 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
 static int
 MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
 {
+   int i, err;
    int streamDir;
-   int xDiff, yDiff;
-   int distSq, totalDistSq;
-   int dH;
-   int i, angle;
-   int hit;
-   int hough[DMTX_HOUGH_RES] = { 0 };
+   int angle, bestAngle;
+   int strength, bestStrength;
+   int inward;
    DmtxVector2 pTmp;
-   DmtxPixelLoc loc0, loc1, locOrigin;
-   DmtxBresLine line;
-   DmtxPointFlow flow;
+   DmtxPixelLoc locOrigin, loc0, loc1;
+   DmtxPixelLoc locFinal, bestFinal;
+   DmtxBresLine *startLine, startLineOut, startLineIn;
+   DmtxBresLine testLine;
 
+   /* Determine pixel coordinates of origin */
+   pTmp.X = 0.0;
+   pTmp.Y = 0.0;
+   dmtxMatrix3VMultiplyBy(&pTmp, reg->fit2raw);
+   locOrigin.X = (int)(pTmp.X + 0.5);
+   locOrigin.Y = (int)(pTmp.Y + 0.5);
+   locOrigin.status = DMTX_RANGE_GOOD;
+
+   /* Determine locations of test line and start line */
    if(edge == DmtxEdgeTop) {
       streamDir = reg->polarity * -1;
       loc0 = reg->locT;
+      startLineOut = BresLineInit(loc0, locOrigin, reg->locR);
       pTmp.X = 0.9;
       pTmp.Y = 0.5;
    }
@@ -1278,27 +1288,85 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
       assert(edge == DmtxEdgeRight);
       streamDir = reg->polarity;
       loc0 = reg->locR;
+      startLineOut = BresLineInit(loc0, locOrigin, reg->locT);
       pTmp.X = 0.8;
       pTmp.Y = 0.8;
    }
-
-   /* Line ends at approximate midpoint of opposite calibration edge */
    dmtxMatrix3VMultiplyBy(&pTmp, reg->fit2raw);
    loc1.X = (int)(pTmp.X + 0.5);
    loc1.Y = (int)(pTmp.Y + 0.5);
    loc1.status = DMTX_RANGE_GOOD;
 
-   /* Initialize line, including travel and sidestep directions */
-   pTmp.X = 0.0;
-   pTmp.Y = 0.0;
-   dmtxMatrix3VMultiplyBy(&pTmp, reg->fit2raw);
-   locOrigin.X = (int)(pTmp.X + 0.5);
-   locOrigin.Y = (int)(pTmp.Y + 0.5);
-   locOrigin.status = DMTX_RANGE_GOOD;
-   line = BresLineInit(loc0, loc1, locOrigin);
+   bestAngle = 0;
+   bestStrength = 0;
 
+   startLineIn = startLineOut;
+   err = BresLineStep(&startLineIn, +1, 0);
+
+   /* Test for presence of gapped lines at up to N places along start line */
+   for(i = 0; i < 10; i++) {
+      inward = (i & 0x01);
+      startLine = (inward) ? &startLineIn : &startLineOut;
+
+      testLine = BresLineInit(startLine->loc, loc1, locOrigin);
+      err = FindBestGappedLine(dec, reg, streamDir, testLine, &angle, &strength, &locFinal);
+      if(err == DMTX_FAILURE)
+         return DMTX_FAILURE;
+
+      if(i == 0 || strength > bestStrength) {
+         bestStrength = strength;
+         bestAngle = angle;
+         bestFinal = locFinal;
+      }
+      else if(strength < bestStrength/2) {
+         break;
+      }
+
+      err = BresLineStep(startLine, ((inward) ? +1 : -1), 0);
+   }
+
+   if(edge == DmtxEdgeTop) {
+      reg->topKnown = 1;
+      reg->topAngle = bestAngle;
+      reg->topLoc = locFinal;
+   }
+   else {
+      reg->rightKnown = 1;
+      reg->rightAngle = bestAngle;
+      reg->rightLoc = locFinal;
+   }
+
+   /* Update region transform with new geometry */
+   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
+      return DMTX_FAILURE;
+
+   return DMTX_SUCCESS;
+}
+
+/**
+ *
+ *
+ */
+static int
+FindBestGappedLine(DmtxDecode *dec, DmtxRegion *reg, int streamDir, DmtxBresLine line,
+      int *angle, int *strength, DmtxPixelLoc *locFinal)
+{
+   int xDiff, yDiff;
+   int distSq, totalDistSq;
+   int dH;
+   int i, bestAngle;
+   int hit;
+   int hough[DMTX_HOUGH_RES] = { 0 };
+   DmtxPixelLoc loc0, final;
+   DmtxPointFlow flow;
+
+   loc0 = line.loc0;
    totalDistSq = (line.xDelta * line.xDelta) + (line.yDelta * line.yDelta);
-   angle = 0;
+
+   bestAngle = 0;
+   final.X = 0;
+   final.Y = 0;
+   final.status = DMTX_RANGE_GOOD;
 
    /* Function follows Bresenham */
    flow = GetPointFlow(dec, reg->flowBegin.plane, loc0, dmtxNeighborNone);
@@ -1327,34 +1395,25 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge)
             for(i = 0; i < DMTX_HOUGH_RES; i++) {
 
                dH = (rHvX[i] * yDiff) - (rHvY[i] * xDiff);
-               if(dH > -256 && dH < 256)
+               if(dH >= -128 && dH < 128)
                   hough[i]++;
 
                /* New angle takes over lead */
-               if(hough[i] > hough[angle])
-                  angle = i;
+               if(hough[i] > hough[bestAngle])
+                  bestAngle = i;
+
+               if(i == bestAngle)
+                  final = flow.loc;
             }
          }
       }
 
-      /* XXX this may be unnecessary ... try removing later and see what happens */
       flow = GetPointFlow(dec, reg->flowBegin.plane, line.loc, dmtxNeighborNone);
    }
 
-   if(edge == DmtxEdgeTop) {
-      reg->topKnown = 1;
-      reg->topAngle = angle;
-      reg->topLoc = loc0;
-   }
-   else {
-      reg->rightKnown = 1;
-      reg->rightAngle = angle;
-      reg->rightLoc = loc0;
-   }
-
-   /* Update region transform with new geometry */
-   if(dmtxRegionUpdateXfrms(dec, reg) != DMTX_SUCCESS)
-      return DMTX_FAILURE;
+   *angle = bestAngle;
+   *strength = hough[bestAngle];
+   *locFinal = final;
 
    return DMTX_SUCCESS;
 }
@@ -1380,7 +1439,6 @@ BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locOrigin)
    line.xDelta = abs(loc1.X - loc0.X);
    line.yDelta = abs(loc1.Y - loc0.Y);
    line.steep = (line.yDelta > line.xDelta);
-   line.travelLength = max(line.xDelta, line.yDelta);
 
    /* Take cross product to determine outward step */
    if(line.steep) {
@@ -1422,8 +1480,8 @@ BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locOrigin)
    line.outward = 0;
    line.error = (line.steep) ? line.yDelta/2 : line.xDelta/2;
 
-   CALLBACK_POINT_PLOT(loc0, 3, 1, DMTX_DISPLAY_SQUARE);
-   CALLBACK_POINT_PLOT(loc1, 3, 1, DMTX_DISPLAY_SQUARE);
+/* CALLBACK_POINT_PLOT(loc0, 3, 1, DMTX_DISPLAY_SQUARE);
+   CALLBACK_POINT_PLOT(loc1, 3, 1, DMTX_DISPLAY_SQUARE); */
 
    return line;
 }
@@ -1458,25 +1516,29 @@ BresLineStepHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
    if(sideStep < 0) {
       /* Line cannot ratchet inward */
       BresLineStep(line, 1, 0);
-      CALLBACK_POINT_PLOT(line->loc, 1, 1, DMTX_DISPLAY_POINT);
+/*    CALLBACK_POINT_PLOT(line->loc, 1, 1, DMTX_DISPLAY_POINT); */
       return DMTX_FAILURE;
    }
    else {
       /* travelStep < 0 && sideStep >= 0 */
       if(travelStep < 0) {
          BresLineStep(line, -1, 1);
-         CALLBACK_POINT_PLOT(line->loc, 3, 1, DMTX_DISPLAY_POINT);
-         return DMTX_SUCCESS;
+/*       CALLBACK_POINT_PLOT(line->loc, 2, 1, DMTX_DISPLAY_POINT); */
+         return DMTX_FAILURE;
       }
       /* travelStep >= 0 && sideStep >= 0 */
       else {
          BresLineStep(line, travelStep, sideStep);
-         if(travelStep == 0) {
-            CALLBACK_POINT_PLOT(line->loc, 1, 1, DMTX_DISPLAY_POINT);
+         if(travelStep == 0 && sideStep > 0) {
+            CALLBACK_POINT_PLOT(line->loc, 3, 1, DMTX_DISPLAY_POINT);
             return DMTX_SUCCESS;
          }
-         else {
-            CALLBACK_POINT_PLOT(line->loc, 2, 1, DMTX_DISPLAY_POINT);
+         if(travelStep > 0 && sideStep == 0) {
+/*          CALLBACK_POINT_PLOT(line->loc, 4, 1, DMTX_DISPLAY_POINT); */
+            return DMTX_FAILURE;
+         }
+         if(travelStep > 0 && sideStep > 0) {
+            CALLBACK_POINT_PLOT(line->loc, 5, 1, DMTX_DISPLAY_POINT);
             return DMTX_SUCCESS;
          }
       }
