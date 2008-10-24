@@ -1080,14 +1080,15 @@ ClearTrail(DmtxDecode *dec, DmtxRegion *reg, unsigned char clearMask)
 static DmtxBestLine
 FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int houghAvoid)
 {
-   int hough[DMTX_HOUGH_RES] = { 0 };
+   int hough[3][DMTX_HOUGH_RES] = { { 0 } };
    int houghMin, houghMax;
    char houghTest[DMTX_HOUGH_RES];
    int i;
    int step;
    int sign;
    int tripSteps;
-   int angle;
+   int angleBest;
+   int hOffset, hOffsetBest;
    int xDiff, yDiff;
    double dH;
    DmtxRay2 rH;
@@ -1097,7 +1098,8 @@ FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int ho
 
    memset(&line, 0x00, sizeof(DmtxBestLine));
    memset(&rH, 0x00, sizeof(DmtxRay2));
-   angle = 0;
+   angleBest = 0;
+   hOffset = hOffsetBest = 0;
 
    /* Always follow path flowing away from the trail start */
    if(step0 != 0) {
@@ -1157,12 +1159,24 @@ FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int ho
             continue;
 
          dH = (rHvX[i] * yDiff) - (rHvY[i] * xDiff);
-         if(dH > -256 && dH < 256)
-            hough[i]++;
 
-         /* New angle takes over lead */
-         if(hough[i] > hough[angle])
-            angle = i;
+         if(dH >= -384 && dH <= 384) {
+
+            if(dH > 128)
+               hOffset = 2;
+            else if(dH < -128)
+               hOffset = 0;
+            else
+               hOffset = 1;
+
+            hough[hOffset][i]++;
+
+            /* New angle takes over lead */
+            if(hough[hOffset][i] > hough[hOffsetBest][angleBest]) {
+               angleBest = i;
+               hOffsetBest = hOffset;
+            }
+         }
       }
 
 /*    CALLBACK_POINT_PLOT(follow.loc, (sign > 1) ? 4 : 3, 1, DMTX_DISPLAY_POINT); */
@@ -1170,8 +1184,9 @@ FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int ho
       follow = FollowStep(dec, reg, follow, sign);
    }
 
-   line.angle = angle;
-   line.mag = hough[angle];
+   line.angle = angleBest;
+/* line.hOffset = hOffsetBest; */
+   line.mag = hough[hOffsetBest][angleBest];
 
    return line;
 }
@@ -1412,7 +1427,7 @@ FindBestGappedLine(DmtxDecode *dec, DmtxRegion *reg, int streamDir, DmtxBresLine
       /* Flow direction is determined by region polarity */
       flow = FindStrongestNeighbor(dec, flow, streamDir);
       if(flow.mag == -1) {
-         return DMTX_FAILURE;
+         break;
       }
       else if(flow.mag < 20) {
          BresLineStep(&line, 1, 0);
@@ -1679,9 +1694,8 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
             dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
 
             if(p.X < 0.0 || p.X > 1.0 || p.Y < 0.0 || p.Y > 1.0) {
-               shade = 0.7;
-               rgb[0] += (shade * (255 - rgb[0]));
-               rgb[1] += (shade * (255 - rgb[1]));
+               rgb[0] = 0;
+               rgb[1] = 0;
                rgb[2] = 255;
             }
             else {
