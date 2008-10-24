@@ -328,7 +328,7 @@ extern int
 dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
       DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01)
 {
-   DmtxVector2 vOT, vOR, vTmp;
+   DmtxVector2 vOT, vOR, vTX, vRX, vTmp;
    double tx, ty, phi, shx, scx, scy, skx, sky;
    double dimOT, dimOR, dimTX, dimRX, ratio;
    DmtxMatrix3 m, mtxy, mphi, mshx, mscx, mscy, mscxy, msky, mskx;
@@ -339,25 +339,26 @@ dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
       return DMTX_FAILURE;
 
    dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &p01, &p00)); /* XXX could use MagSquared() */
-   if(dimOT < 8)
-      return DMTX_FAILURE;
-
    dimOR = dmtxVector2Mag(dmtxVector2Sub(&vOR, &p10, &p00)); /* XXX could use MagSquared() */
-   if(dimOR < 8)
+   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTX, &p11, &p01)); /* XXX could use MagSquared() */
+   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vRX, &p11, &p10)); /* XXX could use MagSquared() */
+
+   /* Verify that sides are reasonably long */
+   if(dimOT < 8 || dimOR < 8 || dimTX < 8 || dimRX < 8)
       return DMTX_FAILURE;
 
    /* Verify that the 4 corners define a reasonably fat quadrilateral */
-   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &p11, &p01)); /* XXX could use MagSquared() */
-   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vTmp, &p11, &p10)); /* XXX could use MagSquared() */
-   if(dimTX < 8 || dimRX < 8)
-      return DMTX_FAILURE;
-
    ratio = dimOT / dimRX;
    if(ratio < 0.5 || ratio > 2.0)
       return DMTX_FAILURE;
 
    ratio = dimOR / dimTX;
    if(ratio < 0.5 || ratio > 2.0)
+      return DMTX_FAILURE;
+
+   /* Verify this is not a bowtie shape */
+   if(dmtxVector2Cross(&vOR, &vRX) < 0.0 ||
+         dmtxVector2Cross(&vOT, &vTX) > 0.0)
       return DMTX_FAILURE;
 
    if(RightAngleTrueness(p00, p10, p11, M_PI_2) < dec->squareDevn)
