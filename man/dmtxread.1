@@ -41,7 +41,7 @@ Maximum deviation (degrees) from squareness between adjacent barcode sides. Defa
 \fB\-r\fP, \fB\-\-resolution\fP=\fIN\fP
 Decoding resolution in dots per inch (DPI). Only used for vectorial input images such as SVG, PDF, etc... This option accepts a single argument (eg: 300) as well as horizontal and vertical resolutions (eg: 300x150). The default resolution is 72dpi.
 .TP
-\fB\-s\fP, \fB\-\---symbol-size\fP=\fI[asr|RxC]\fP
+\fB\-s\fP, \fB\-\-symbol-size\fP=\fI[asr|RxC]\fP
 Only consider barcodes of specific size or shape.
    a = All sizes     [default]
    s = Only squares
@@ -71,6 +71,9 @@ Make copy of image with additional diagnostic data.
 .TP
 \fB\-M\fP, \fB\-\-mosaic\fP (experimental)
 Interpret detected regions as Data Mosaic barcodes.
+.TP
+\fB\-N\fP, \fB\-\-stop-after\fP=\fIN\fP
+Stop scanning after Nth barcode is returned.
 .TP
 \fB\-P\fP, \fB\-\-page\-number\fP
 Print each decoded message with its fax/tiff page number.

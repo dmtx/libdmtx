@@ -51,6 +51,7 @@ typedef struct {
    int correctionsMax;  /* -C, --corrections-max */
    int diagnose;        /* -D, --diagnose */
    int mosaic;          /* -M, --mosaic */
+   int stopAfter;       /* -N, --stop-after */
    int pageNumber;      /* -P, --page-number */
    int corners;         /* -R, --corners */
    int shrinkMax;       /* -s, --shrink */

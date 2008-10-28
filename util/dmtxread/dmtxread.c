@@ -53,11 +53,12 @@ main(int argc, char *argv[])
    int fileIndex;
    int pageIndex;
    int imgWidth, imgHeight;
+   int scanCount;
    UserOptions opt;
    DmtxTime  msec, *timeout;
    DmtxImage *img;
-   DmtxDecode decode;
-   DmtxRegion region;
+   DmtxDecode dec;
+   DmtxRegion reg;
    DmtxMessage *message;
    ImageReader reader;
    int nFiles;
@@ -69,6 +70,7 @@ main(int argc, char *argv[])
    if(err != DMTX_SUCCESS)
       ShowUsage(err);
 
+   scanCount = 0;
    timeout = (opt.timeoutMS == -1) ? NULL : &msec;
 
    reader.image = NULL;
@@ -111,82 +113,84 @@ main(int argc, char *argv[])
       assert(img->pageCount > 0 && pageIndex <= img->pageCount);
 
       /* Initialize decode struct for newly loaded image */
-      decode = dmtxDecodeStructInit(img);
+      dec = dmtxDecodeStructInit(img);
 
-      err = dmtxDecodeSetProp(&decode, DmtxPropScanGap, opt.scanGap);
+      err = dmtxDecodeSetProp(&dec, DmtxPropScanGap, opt.scanGap);
       assert(err == DMTX_SUCCESS);
 
       if(opt.edgeMin != -1) {
-         err = dmtxDecodeSetProp(&decode, DmtxPropEdgeMin, opt.edgeMin);
+         err = dmtxDecodeSetProp(&dec, DmtxPropEdgeMin, opt.edgeMin);
          assert(err == DMTX_SUCCESS);
       }
 
       if(opt.squareDevn != -1) {
-         err = dmtxDecodeSetProp(&decode, DmtxPropSquareDevn, opt.squareDevn);
+         err = dmtxDecodeSetProp(&dec, DmtxPropSquareDevn, opt.squareDevn);
          assert(err == DMTX_SUCCESS);
       }
 
-      err = dmtxDecodeSetProp(&decode, DmtxPropSymbolSize, opt.sizeIdxExpected);
+      err = dmtxDecodeSetProp(&dec, DmtxPropSymbolSize, opt.sizeIdxExpected);
       assert(err == DMTX_SUCCESS);
 
-      err = dmtxDecodeSetProp(&decode, DmtxPropEdgeThresh, opt.edgeThresh);
+      err = dmtxDecodeSetProp(&dec, DmtxPropEdgeThresh, opt.edgeThresh);
       assert(err == DMTX_SUCCESS);
 
       if(opt.xMin) {
-         err = dmtxDecodeSetProp(&decode, DmtxPropXmin, ScaleNumberString(opt.xMin, imgWidth));
+         err = dmtxDecodeSetProp(&dec, DmtxPropXmin, ScaleNumberString(opt.xMin, imgWidth));
          assert(err == DMTX_SUCCESS);
       }
 
       if(opt.xMax) {
-         err = dmtxDecodeSetProp(&decode, DmtxPropXmax, ScaleNumberString(opt.xMax, imgWidth));
+         err = dmtxDecodeSetProp(&dec, DmtxPropXmax, ScaleNumberString(opt.xMax, imgWidth));
          assert(err == DMTX_SUCCESS);
       }
 
       if(opt.yMin) {
-         err = dmtxDecodeSetProp(&decode, DmtxPropYmin, ScaleNumberString(opt.yMin, imgHeight));
+         err = dmtxDecodeSetProp(&dec, DmtxPropYmin, ScaleNumberString(opt.yMin, imgHeight));
          assert(err == DMTX_SUCCESS);
       }
 
       if(opt.yMax) {
-         err = dmtxDecodeSetProp(&decode, DmtxPropYmax, ScaleNumberString(opt.yMax, imgHeight));
+         err = dmtxDecodeSetProp(&dec, DmtxPropYmax, ScaleNumberString(opt.yMax, imgHeight));
          assert(err == DMTX_SUCCESS);
       }
 
-      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMin, opt.shrinkMin);
+      err = dmtxDecodeSetProp(&dec, DmtxPropShrinkMin, opt.shrinkMin);
       assert(err == DMTX_SUCCESS);
 
-      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMax, opt.shrinkMax);
+      err = dmtxDecodeSetProp(&dec, DmtxPropShrinkMax, opt.shrinkMax);
       assert(err == DMTX_SUCCESS);
 
       /* Loop once for each detected barcode region */
       for(;;) {
 
          /* Find next barcode region within image, but do not decode yet */
-         region = dmtxDecodeFindNextRegion(&decode, timeout);
+         reg = dmtxDecodeFindNextRegion(&dec, timeout);
 
          /* Finished file or ran out of time before finding another region */
-         if(region.found != DMTX_REGION_FOUND)
+         if(reg.found != DMTX_REGION_FOUND)
             break;
 
          if(opt.diagnose)
-            WriteDiagnosticImage(&decode, &region, "debug.pnm");
+            WriteDiagnosticImage(&dec, &reg, "debug.pnm");
 
          /* Decode region based on requested barcode mode */
          if(opt.mosaic)
-            message = dmtxDecodeMosaicRegion(img, &region, opt.correctionsMax);
+            message = dmtxDecodeMosaicRegion(img, &reg, opt.correctionsMax);
          else
-            message = dmtxDecodeMatrixRegion(img, &region, opt.correctionsMax);
+            message = dmtxDecodeMatrixRegion(img, &reg, opt.correctionsMax);
 
          if(message == NULL)
             continue;
 
-         PrintDecodedOutput(&opt, img, &region, message, pageIndex);
+         PrintDecodedOutput(&opt, img, &reg, message, pageIndex);
 
          dmtxMessageFree(&message);
-         break; /* XXX for now, break after first barcode is found in image */
+
+         if(opt.stopAfter != -1 && ++scanCount >= opt.stopAfter)
+            break;
       }
 
-      dmtxDecodeStructDeInit(&decode);
+      dmtxDecodeStructDeInit(&dec);
       dmtxImageFree(&img);
    }
 
@@ -223,6 +227,7 @@ SetOptionDefaults(UserOptions *opt)
    option.correctionsMax = -1;
    option.diagnose = 0;
    option.mosaic = 0;
+   option.stopAfter = -1;
    option.pageNumber = 0;
    option.corners = 0;
    option.shrinkMin = 1;
@@ -267,6 +272,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          {"max-corrections",  required_argument, NULL, 'C'},
          {"diagnose",         no_argument,       NULL, 'D'},
          {"mosaic",           no_argument,       NULL, 'M'},
+         {"stop-after",       required_argument, NULL, 'N'},
          {"page-number",      no_argument,       NULL, 'P'},
          {"corners",          no_argument,       NULL, 'R'},
          {"shrink",           required_argument, NULL, 'S'},
@@ -281,7 +287,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      optchr = getopt_long(*argcp, *argvp, "ce:g:lm:nq:r:s:t:x:X:y:Y:vC:DMPRS:V", longOptions, &longIndex);
+      optchr = getopt_long(*argcp, *argvp, "ce:g:lm:nq:r:s:t:x:X:y:Y:vC:DMN:PRS:V", longOptions, &longIndex);
       if(optchr == -1)
          break;
 
@@ -376,6 +382,11 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          case 'M':
             opt->mosaic = 1;
             break;
+         case 'N':
+            err = StringToInt(&(opt->stopAfter), optarg, &ptr);
+            if(err != DMTX_SUCCESS || opt->stopAfter < 1 || *ptr != '\0')
+               FatalError(1, _("Invalid count specified \"%s\""), optarg);
+            break;
          case 'P':
             opt->pageNumber = 1;
             break;
@@ -453,6 +464,7 @@ OPTIONS:\n"), programName, programName);
   -D, --diagnose              make copy of image with additional diagnostic data\n\
   -M, --mosaic                interpret detected regions as Data Mosaic barcodes\n"));
       fprintf(stdout, _("\
+  -N, --stop-after=N          stop scanning after Nth barcode is returned\n\
   -P, --page-number           prefix decoded message with fax/tiff page number\n\
   -R, --corners               prefix decoded message with corner locations\n\
   -S, --shrink=N              internally shrink image by a factor of N\n\
@@ -626,26 +638,34 @@ CloseImage(ImageReader * reader)
 /**
  * @brief  XXX
  * @param  opt runtime options from defaults or command line
- * @param  decode pointer to DmtxDecode struct
+ * @param  dec pointer to DmtxDecode struct
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
 PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
-      DmtxRegion *region, DmtxMessage *message, int pageIndex)
+      DmtxRegion *reg, DmtxMessage *message, int pageIndex)
 {
    int i;
    int height;
    int dataWordLength;
    int rotateInt;
    double rotate;
+   DmtxVector2 p00, p10, p11, p01;
 
-   dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, region->sizeIdx);
+   height = dmtxImageGetProp(image, DmtxPropScaledHeight);
+
+   p00.X = p00.Y = p10.Y = p01.X = 0.0;
+   p10.X = p01.Y = p11.X = p11.Y = 1.0;
+   dmtxMatrix3VMultiplyBy(&p00, reg->fit2raw);
+   dmtxMatrix3VMultiplyBy(&p10, reg->fit2raw);
+   dmtxMatrix3VMultiplyBy(&p11, reg->fit2raw);
+   dmtxMatrix3VMultiplyBy(&p01, reg->fit2raw);
+
+   dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, reg->sizeIdx);
    if(opt->verbose) {
 
-      height = dmtxImageGetProp(image, DmtxPropHeight);
-
-      rotate = (2 * M_PI) + (atan2(region->fit2raw[0][1], region->fit2raw[1][1]) -
-            atan2(region->fit2raw[1][0], region->fit2raw[0][0])) / 2.0;
+      rotate = (2 * M_PI) + (atan2(reg->fit2raw[0][1], reg->fit2raw[1][1]) -
+            atan2(reg->fit2raw[1][0], reg->fit2raw[0][0])) / 2.0;
 
       rotateInt = (int)(rotate * 180/M_PI + 0.5);
       if(rotateInt >= 360)
@@ -653,29 +673,22 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
 
       fprintf(stdout, "--------------------------------------------------\n");
       fprintf(stdout, "       Matrix Size: %d x %d\n",
-            dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx),
-            dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx));
+            dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, reg->sizeIdx),
+            dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, reg->sizeIdx));
       fprintf(stdout, "    Data Codewords: %d (capacity %d)\n",
             message->outputIdx, dataWordLength);
       fprintf(stdout, "   Error Codewords: %d\n",
-            dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, region->sizeIdx));
+            dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, reg->sizeIdx));
       fprintf(stdout, "      Data Regions: %d x %d\n",
-            dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions, region->sizeIdx),
-            dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, region->sizeIdx));
+            dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions, reg->sizeIdx),
+            dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, reg->sizeIdx));
       fprintf(stdout, "Interleaved Blocks: %d\n",
-            dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, region->sizeIdx));
+            dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, reg->sizeIdx));
       fprintf(stdout, "    Rotation Angle: %d\n", rotateInt);
-/*
-      sorry -- temporarily need to disable this
-      fprintf(stdout, "          Corner 0: (%0.1f, %0.1f)\n",
-            region->corners.c00.X, height - 1 - region->corners.c00.Y);
-      fprintf(stdout, "          Corner 1: (%0.1f, %0.1f)\n",
-            region->corners.c10.X, height - 1 - region->corners.c10.Y);
-      fprintf(stdout, "          Corner 2: (%0.1f, %0.1f)\n",
-            region->corners.c11.X, height - 1 - region->corners.c11.Y);
-      fprintf(stdout, "          Corner 3: (%0.1f, %0.1f)\n",
-            region->corners.c01.X, height - 1 - region->corners.c01.Y);
-*/
+      fprintf(stdout, "          Corner 0: (%0.1f, %0.1f)\n", p00.X, height - 1 - p00.Y);
+      fprintf(stdout, "          Corner 1: (%0.1f, %0.1f)\n", p10.X, height - 1 - p10.Y);
+      fprintf(stdout, "          Corner 2: (%0.1f, %0.1f)\n", p11.X, height - 1 - p11.Y);
+      fprintf(stdout, "          Corner 3: (%0.1f, %0.1f)\n", p01.X, height - 1 - p01.Y);
       fprintf(stdout, "--------------------------------------------------\n");
    }
 
@@ -683,19 +696,10 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       fprintf(stdout, "%d:", pageIndex + 1);
 
    if(opt->corners) {
-/*
-      sorry -- temporarily need to disable this
-      fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
-            height - 1 - (int)(region->corners.c00.Y + 0.5));
-      fprintf(stdout, "%d,%d:", (int)(region->corners.c10.X + 0.5),
-            height - 1 - (int)(region->corners.c10.Y + 0.5));
-      fprintf(stdout, "%d,%d:", (int)(region->corners.c11.X + 0.5),
-            height - 1 - (int)(region->corners.c11.Y + 0.5));
-      fprintf(stdout, "%d,%d:", (int)(region->corners.c01.X + 0.5),
-            height - 1 - (int)(region->corners.c01.Y + 0.5));
-      fprintf(stdout, "%d,%d:", (int)(region->corners.c00.X + 0.5),
-            height - 1 - (int)(region->corners.c00.Y + 0.5));
-*/
+      fprintf(stdout, "%d,%d:", (int)(p00.X + 0.5), height - 1 - (int)(p00.Y + 0.5));
+      fprintf(stdout, "%d,%d:", (int)(p10.X + 0.5), height - 1 - (int)(p10.Y + 0.5));
+      fprintf(stdout, "%d,%d:", (int)(p11.X + 0.5), height - 1 - (int)(p11.Y + 0.5));
+      fprintf(stdout, "%d,%d:", (int)(p01.X + 0.5), height - 1 - (int)(p01.Y + 0.5));
    }
 
    if(opt->codewords) {

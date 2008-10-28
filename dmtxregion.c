@@ -108,7 +108,12 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
    offset = dmtxImageGetOffset(dec->image, loc.X, loc.Y);
-   if(offset == DMTX_BAD_OFFSET) { /* || dec->image->cache[offset] & 0x40 */
+   if(offset == DMTX_BAD_OFFSET /* || dec->image->cache[offset] & 0x40 */) {
+      reg.found = DMTX_REGION_NOT_FOUND;
+      return reg;
+   }
+
+   if(dec->image->cache[offset] & 0x80) {
       reg.found = DMTX_REGION_NOT_FOUND;
       return reg;
    }

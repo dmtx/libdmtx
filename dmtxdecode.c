@@ -166,7 +166,11 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
 extern DmtxMessage *
 dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
 {
+   int row, col;
+   int width, height;
+   int offset;
    DmtxMessage *msg;
+   DmtxVector2 p;
 
    msg = dmtxMessageMalloc(reg->sizeIdx, DMTX_FORMAT_MATRIX);
    if(msg == NULL)
@@ -183,6 +187,25 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
    if(DecodeCheckErrors(msg->code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
       dmtxMessageFree(&msg);
       return NULL;
+   }
+
+   width = dmtxImageGetProp(img, DmtxPropScaledWidth);
+   height = dmtxImageGetProp(img, DmtxPropScaledHeight);
+   for(row = 0; row < height; row++) {
+      for(col = 0; col < width; col++) {
+         p.X = col;
+         p.Y = row;
+         dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
+         /* XXX these boundaries are currently a big hack */
+         if(p.X >= -0.1 && p.X <= 1.1 && p.Y >= -0.1 && p.Y <= 1.1) {
+
+            offset = dmtxImageGetOffset(img, col, row);
+            if(offset == DMTX_BAD_OFFSET)
+               continue;
+            else
+               img->cache[offset] |= 0x80; /* Mark as visited */
+         }
+      }
    }
 
    DecodeDataStream(msg, reg->sizeIdx, NULL);
