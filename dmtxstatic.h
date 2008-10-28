@@ -109,6 +109,7 @@ typedef struct DmtxFollow_struct {
  * @struct DmtxBestLine
  * @brief DmtxBestLine
  */
+/*
 typedef struct DmtxBestLine_struct {
    int angle;
    int mag;
@@ -121,6 +122,7 @@ typedef struct DmtxBestLine_struct {
    DmtxPixelLoc locPos;
    DmtxPixelLoc locNeg;
 } DmtxBestLine;
+*/
 
 /**
  * @struct DmtxBresLine
@@ -146,6 +148,7 @@ typedef struct DmtxBresLine_struct {
 static double RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle);
 static DmtxPointFlow MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc0);
 static int MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin);
+static int MatrixRegionTightenEdge(DmtxDecode *dec, DmtxRegion *reg, int whichEdge);
 static long DistanceSquared(DmtxPixelLoc a, DmtxPixelLoc b);
 static DmtxColor3 ReadModuleColor(DmtxImage *image, DmtxRegion *region,
       int symbolRow, int symbolCol, int sizeIdx);
@@ -160,13 +163,13 @@ static int BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
 static int ClearTrail(DmtxDecode *dec, DmtxRegion *reg, unsigned char clearMask);
 static DmtxBestLine FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int houghAvoid);
 static int FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line);
-static int MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edge);
+static int MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int whichEdge);
 static int FindBestGappedLine(DmtxDecode *dec, DmtxRegion *reg, int streamDir,
       DmtxBresLine line, int *angle, int *strength, DmtxPixelLoc *final);
-static DmtxBresLine BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locOrigin);
+static DmtxBresLine BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locInside);
 static int BresLineStepHit(DmtxBresLine *line, DmtxPixelLoc targetLoc);
 static int BresLineStep(DmtxBresLine *line, int travel, int outward);
-/*static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);*/
+static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);
 
 /* dmtxdecode.c */
 static void DecodeDataStream(DmtxMessage *message, int sizeIdx, unsigned char *outputStart);

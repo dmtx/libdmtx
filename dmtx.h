@@ -279,6 +279,24 @@ typedef struct DmtxPointFlow_struct {
 } DmtxPointFlow;
 
 /**
+ * @struct DmtxBestLine
+ * @brief DmtxBestLine
+ */
+typedef struct DmtxBestLine_struct {
+   int angle;
+   int hOffset;
+   int mag;
+   int stepBeg;
+   int stepPos;
+   int stepNeg;
+   int distSq;
+   double devn;
+   DmtxPixelLoc locBeg;
+   DmtxPixelLoc locPos;
+   DmtxPixelLoc locNeg;
+} DmtxBestLine;
+
+/**
  * @struct DmtxRegion
  * @brief DmtxRegion
  */
@@ -301,18 +319,20 @@ typedef struct DmtxRegion_struct {
    DmtxPixelLoc    locT;          /* */
 
    /* Region fitting values */
-   char            leftKnown;     /* */
-   int             leftAngle;     /* */
-   DmtxPixelLoc    leftLoc;       /* */
-   char            bottomKnown;   /* */
-   int             bottomAngle;   /* */
-   DmtxPixelLoc    bottomLoc;     /* */
-   char            topKnown;      /* */
-   int             topAngle;      /* */
-   DmtxPixelLoc    topLoc;        /* */
-   char            rightKnown;    /* */
-   int             rightAngle;    /* */
-   DmtxPixelLoc    rightLoc;      /* */
+   char            leftKnown;     /* known == 1; unknown == 0 */
+   int             leftAngle;     /* hough angle of left edge */
+   DmtxPixelLoc    leftLoc;       /* known (arbitrary) location on left edge */
+   DmtxBestLine    leftLine;      /* */
+   char            bottomKnown;   /* known == 1; unknown == 0 */
+   int             bottomAngle;   /* hough angle of bottom edge */
+   DmtxPixelLoc    bottomLoc;     /* known (arbitrary) location on bottom edge */
+   DmtxBestLine    bottomLine;    /* */
+   char            topKnown;      /* known == 1; unknown == 0 */
+   int             topAngle;      /* hough angle of top edge */
+   DmtxPixelLoc    topLoc;        /* known (arbitrary) location on top edge */
+   char            rightKnown;    /* known == 1; unknown == 0 */
+   int             rightAngle;    /* hough angle of right edge */
+   DmtxPixelLoc    rightLoc;      /* known (arbitrary) location on right edge */
 
    /* Region fitting values */
    DmtxGradient    gradient;      /* Linear blend of colors between background and symbol color */
