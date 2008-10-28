@@ -138,7 +138,7 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
       return reg;
    }
    if(dmtxRegionUpdateXfrms(dec, &reg) != DMTX_SUCCESS) {
-      reg.found = DMTX_REGION_DROPPED_FINDER;
+      reg.found = DMTX_REGION_DROPPED_TOP;
       return reg;
    }
 
@@ -148,7 +148,7 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
       return reg;
    }
    if(dmtxRegionUpdateXfrms(dec, &reg) != DMTX_SUCCESS) {
-      reg.found = DMTX_REGION_DROPPED_FINDER;
+      reg.found = DMTX_REGION_DROPPED_RIGHT;
       return reg;
    }
 
@@ -562,6 +562,35 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
 static DmtxColor3
 ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, int sizeIdx)
 {
+   int i;
+   int symbolRows, symbolCols;
+   double sampleX[] = { 0.5, 0.4, 0.5, 0.6, 0.5 };
+   double sampleY[] = { 0.5, 0.5, 0.4, 0.5, 0.6 };
+   DmtxVector2 p, p0;
+   DmtxColor3 cPoint, cAverage;
+
+   cAverage.R = cAverage.G = cAverage.B = 0.0;
+
+   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
+   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
+
+   for(i = 0; i < 5; i++) {
+
+      p.X = (1.0/symbolCols) * (symbolCol + sampleX[i]);
+      p.Y = (1.0/symbolRows) * (symbolRow + sampleY[i]);
+
+      dmtxMatrix3VMultiply(&p0, &p, reg->fit2raw);
+      dmtxColor3FromImage2(&cPoint, img, p0);
+/*    dmtxColor3FromImage(&cPoint, image, p0.X, p0.Y); */
+
+      dmtxColor3AddTo(&cAverage, &cPoint);
+
+/*    CALLBACK_DECODE_FUNC4(plotPointCallback, dec, p0, 1, 1, DMTX_DISPLAY_POINT); */
+   }
+   dmtxColor3ScaleBy(&cAverage, 0.2);
+
+   return cAverage;
+/*
    int symbolRows, symbolCols;
    DmtxVector2 p, p0;
    DmtxColor3 cPoint;
@@ -576,6 +605,7 @@ ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, i
    dmtxColor3FromImage2(&cPoint, img, p0);
 
    return cPoint;
+*/
 }
 
 /**
@@ -735,7 +765,7 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
          yStart == -1 || yStart == reg->symbolRows)
       state = DMTX_MODULE_OFF;
 
-   jumpThreshold = 0.3 * (reg->gradient.tMax - reg->gradient.tMin);
+   jumpThreshold = 0.4 * (reg->gradient.tMax - reg->gradient.tMin);
 
    color = ReadModuleColor(img, reg, yStart, xStart, reg->sizeIdx);
    tModule = dmtxDistanceAlongRay3(&(reg->gradient.ray), &color);
