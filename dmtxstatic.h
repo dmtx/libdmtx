@@ -149,7 +149,7 @@ static double RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2,
 static DmtxPointFlow MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc0);
 static int MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin);
 static long DistanceSquared(DmtxPixelLoc a, DmtxPixelLoc b);
-static DmtxColor3 ReadModuleColor(DmtxImage *image, DmtxRegion *region,
+static int ReadModuleColor(DmtxImage *image, DmtxRegion *region,
       int symbolRow, int symbolCol, int sizeIdx);
 
 static int MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg);

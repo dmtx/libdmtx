@@ -334,15 +334,18 @@ typedef struct DmtxRegion_struct {
    int             rightAngle;    /* hough angle of right edge */
    DmtxPixelLoc    rightLoc;      /* known (arbitrary) location on right edge */
 
-   /* Region fitting values */
-   DmtxGradient    gradient;      /* Linear blend of colors between background and symbol color */
-   DmtxMatrix3     raw2fit;       /* 3x3 transformation from raw image to fitted barcode grid */
-   DmtxMatrix3     fit2raw;       /* 3x3 transformation from fitted barcode grid to raw image */
+   /* Region calibration values */
+   int             onColor;       /* */
+   int             offColor;      /* */
    int             sizeIdx;       /* Index of arrays that store Data Matrix constants */
    int             symbolRows;    /* Number of total rows in symbol including alignment patterns */
    int             symbolCols;    /* Number of total columns in symbol including alignment patterns */
    int             mappingRows;   /* Number of data rows in symbol */
    int             mappingCols;   /* Number of data columns in symbol */
+
+   /* Transform values */
+   DmtxMatrix3     raw2fit;       /* 3x3 transformation from raw image to fitted barcode grid */
+   DmtxMatrix3     fit2raw;       /* 3x3 transformation from fitted barcode grid to raw image */
 } DmtxRegion;
 
 /**

@@ -559,53 +559,30 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
  * @param  sizeIdx
  * @return Averaged module color
  */
-static DmtxColor3
+static int
 ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, int sizeIdx)
 {
    int i;
    int symbolRows, symbolCols;
+   int color;
    double sampleX[] = { 0.5, 0.4, 0.5, 0.6, 0.5 };
    double sampleY[] = { 0.5, 0.5, 0.4, 0.5, 0.6 };
-   DmtxVector2 p, p0;
-   DmtxColor3 cPoint, cAverage;
-
-   cAverage.R = cAverage.G = cAverage.B = 0.0;
+   DmtxVector2 p;
 
    symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
    symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
 
+   color = 0;
    for(i = 0; i < 5; i++) {
 
       p.X = (1.0/symbolCols) * (symbolCol + sampleX[i]);
       p.Y = (1.0/symbolRows) * (symbolRow + sampleY[i]);
 
-      dmtxMatrix3VMultiply(&p0, &p, reg->fit2raw);
-      dmtxColor3FromImage2(&cPoint, img, p0);
-/*    dmtxColor3FromImage(&cPoint, image, p0.X, p0.Y); */
-
-      dmtxColor3AddTo(&cAverage, &cPoint);
-
-/*    CALLBACK_DECODE_FUNC4(plotPointCallback, dec, p0, 1, 1, DMTX_DISPLAY_POINT); */
+      dmtxMatrix3VMultiplyBy(&p, reg->fit2raw);
+      color += dmtxImageGetColor(img, (int)(p.X + 0.5), (int)(p.Y + 0.5), reg->flowBegin.plane);
    }
-   dmtxColor3ScaleBy(&cAverage, 0.2);
 
-   return cAverage;
-/*
-   int symbolRows, symbolCols;
-   DmtxVector2 p, p0;
-   DmtxColor3 cPoint;
-
-   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
-   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
-
-   p.X = (symbolCol + 0.5)/symbolCols;
-   p.Y = (symbolRow + 0.5)/symbolRows;
-
-   dmtxMatrix3VMultiply(&p0, &p, reg->fit2raw);
-   dmtxColor3FromImage2(&cPoint, img, p0);
-
-   return cPoint;
-*/
+   return color/5;
 }
 
 /**
@@ -621,32 +598,30 @@ MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg)
    int sizeIdx, bestSizeIdx;
    int symbolRows, symbolCols;
    int jumpCount, errors;
+   int color;
+   int colorOnAvg, bestColorOnAvg;
+   int colorOffAvg, bestColorOffAvg;
    double contrast, bestContrast;
-   DmtxColor3 color, colorOnAvg, colorOffAvg, bestColorOffAvg;
-   DmtxColor3 colorDiff, bestColorDiff;
-   DmtxColor3 black = { 0.0, 0.0, 0.0 };
 
    bestSizeIdx = -1;
-   contrast = bestContrast = 0;
-   colorDiff = bestColorDiff = black;
-   colorOffAvg = bestColorOffAvg = black;
+   bestContrast = 0;
+   bestColorOnAvg = bestColorOffAvg = 0;
 
    /* Test each barcode size to find best contrast in calibration modules */
    for(sizeIdx = 0; sizeIdx < DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT; sizeIdx++) {
 
       symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
       symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
-
-      colorOnAvg = colorOffAvg = black;
+      colorOnAvg = colorOffAvg = 0;
 
       /* Sum module colors along horizontal calibration bar */
       row = symbolRows - 1;
       for(col = 0; col < symbolCols; col++) {
          color = ReadModuleColor(img, reg, row, col, sizeIdx);
          if(col & 0x01)
-            dmtxColor3AddTo(&colorOffAvg, &color);
+            colorOffAvg += color;
          else
-            dmtxColor3AddTo(&colorOnAvg, &color);
+            colorOnAvg += color;
       }
 
       /* Sum module colors along vertical calibration bar */
@@ -654,23 +629,23 @@ MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg)
       for(row = 0; row < symbolRows; row++) {
          color = ReadModuleColor(img, reg, row, col, sizeIdx);
          if(row & 0x01)
-            dmtxColor3AddTo(&colorOffAvg, &color);
+            colorOffAvg += color;
          else
-            dmtxColor3AddTo(&colorOnAvg, &color);
+            colorOnAvg += color;
       }
 
-      dmtxColor3ScaleBy(&colorOnAvg, 2.0/(symbolRows + symbolCols));
-      dmtxColor3ScaleBy(&colorOffAvg, 2.0/(symbolRows + symbolCols));
+      colorOnAvg = (colorOnAvg * 2)/(symbolRows + symbolCols);
+      colorOffAvg = (colorOffAvg * 2)/(symbolRows + symbolCols);
 
-      contrast = dmtxColor3Mag(dmtxColor3Sub(&colorDiff, &colorOnAvg, &colorOffAvg));
+      contrast = abs(colorOnAvg - colorOffAvg);
       if(contrast < 20)
          continue;
 
       if(contrast > bestContrast) {
-         bestSizeIdx = sizeIdx;
          bestContrast = contrast;
+         bestSizeIdx = sizeIdx;
+         bestColorOnAvg = colorOnAvg;
          bestColorOffAvg = colorOffAvg;
-         bestColorDiff = colorDiff;
       }
    }
 
@@ -679,12 +654,8 @@ MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg)
       return DMTX_FAILURE;
 
    reg->sizeIdx = bestSizeIdx;
-
-   dmtxColor3Norm(&bestColorDiff);
-   reg->gradient.ray.c = bestColorDiff;
-   reg->gradient.ray.p = bestColorOffAvg;
-   reg->gradient.tMin = 0;
-   reg->gradient.tMax = bestContrast;
+   reg->onColor = bestColorOnAvg;
+   reg->offColor = bestColorOffAvg;
 
    reg->symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, reg->sizeIdx);
    reg->symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, reg->sizeIdx);
@@ -749,9 +720,10 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
    int y, yInc = 0;
    int state = DMTX_MODULE_ON;
    int jumpCount = 0;
-   double jumpThreshold;
-   double tModule, tPrev;
-   DmtxColor3 color;
+   int jumpThreshold;
+   int tModule, tPrev;
+   int darkOnLight;
+   int color;
 
    assert(xStart == 0 || yStart == 0);
    assert(dir == DmtxDirRight || dir == DmtxDirUp);
@@ -765,10 +737,10 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
          yStart == -1 || yStart == reg->symbolRows)
       state = DMTX_MODULE_OFF;
 
-   jumpThreshold = 0.4 * (reg->gradient.tMax - reg->gradient.tMin);
-
+   darkOnLight = (reg->offColor > reg->onColor);
+   jumpThreshold = abs(0.4 * (reg->onColor - reg->offColor) + 0.5);
    color = ReadModuleColor(img, reg, yStart, xStart, reg->sizeIdx);
-   tModule = dmtxDistanceAlongRay3(&(reg->gradient.ray), &color);
+   tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
    for(x = xStart + xInc, y = yStart + yInc;
          (dir == DmtxDirRight && x < reg->symbolCols) ||
@@ -777,7 +749,7 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
 
       tPrev = tModule;
       color = ReadModuleColor(img, reg, y, x, reg->sizeIdx);
-      tModule = dmtxDistanceAlongRay3(&(reg->gradient.ray), &color);
+      tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
       if(state == DMTX_MODULE_OFF) {
          if(tModule > tPrev + jumpThreshold) {

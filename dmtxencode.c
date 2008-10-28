@@ -81,16 +81,16 @@ dmtxEncodeStructInit(void)
    enc.marginSize = 10;
 
    /* Initialize background color to white */
-   enc.region.gradient.ray.p.R = 255.0;
+/* enc.region.gradient.ray.p.R = 255.0;
    enc.region.gradient.ray.p.G = 255.0;
-   enc.region.gradient.ray.p.B = 255.0;
+   enc.region.gradient.ray.p.B = 255.0; */
 
    /* Initialize foreground color to black */
-   enc.region.gradient.tMin = 0.0;
-   enc.region.gradient.tMax = dmtxColor3Mag(&(enc.region.gradient.ray.p));
+/* enc.region.gradient.tMin = 0.0;
+   enc.region.gradient.tMax = dmtxColor3Mag(&(enc.region.gradient.ray.p)); */
 
-   dmtxColor3Scale(&(enc.region.gradient.ray.c),
-         &(enc.region.gradient.ray.p), -1.0/enc.region.gradient.tMax);
+/* dmtxColor3Scale(&(enc.region.gradient.ray.c),
+         &(enc.region.gradient.ray.p), -1.0/enc.region.gradient.tMax); */
 
    dmtxMatrix3Identity(enc.xfrm);
 

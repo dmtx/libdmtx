@@ -775,10 +775,11 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
    int lineStart, lineStop;
    int travelStart, travelStop;
    int *line, *travel;
-   double jumpThreshold;
-   DmtxColor3 color;
+   int jumpThreshold;
+   int darkOnLight;
+   int color;
    int statusPrev, statusModule;
-   double tPrev, tModule;
+   int tPrev, tModule;
 
    assert(dir == DmtxDirUp || dir == DmtxDirLeft || dir == DmtxDirDown || dir == DmtxDirRight);
 
@@ -807,9 +808,11 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
       travelStop = (travelStep == 1) ? yOrigin + mapHeight : yOrigin - 1;
    }
 
-   jumpThreshold = 0.3 * (region->gradient.tMax - region->gradient.tMin);
 
-   assert(jumpThreshold > 0);
+   darkOnLight = (region->offColor > region->onColor);
+   jumpThreshold = abs(0.4 * (region->offColor - region->onColor) + 0.5);
+
+   assert(jumpThreshold > 0.0);
 
    for(*line = lineStart; *line < lineStop; (*line)++) {
 
@@ -818,7 +821,7 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
 
       *travel = travelStart;
       color = ReadModuleColor(image, region, symbolRow, symbolCol, region->sizeIdx);
-      tModule = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
+      tModule = (darkOnLight) ? region->offColor - color : color - region->offColor;
 
       statusModule = (travelStep == 1 || !(*line & 0x01)) ? DMTX_MODULE_ON_RGB : DMTX_MODULE_OFF;
 
@@ -833,7 +836,7 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
             module status based on comparison to previous "known" module */
 
          color = ReadModuleColor(image, region, symbolRow, symbolCol, region->sizeIdx);
-         tModule = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
+         tModule = (darkOnLight) ? region->offColor - color : color - region->offColor;
 
          if(statusPrev == DMTX_MODULE_ON_RGB) {
             if(tModule < tPrev - jumpThreshold)
@@ -875,7 +878,7 @@ PopulateArrayFromMosaic(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
    int col, row, rowTmp;
    int symbolRow, symbolCol;
    int dataRegionRows, dataRegionCols;
-   DmtxColor3 color;
+   int color;
 
    dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
    dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);
@@ -894,14 +897,18 @@ PopulateArrayFromMosaic(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
          /* Transform mapping col to symbol col */
          symbolCol = col + 2 * (col / dataRegionCols) + 1;
 
+/* to fix this function, add rColor, gColor, bColor, and change ReadModuleColor() to accept plane as a parameter */
          color = ReadModuleColor(image, region, symbolRow, symbolCol, region->sizeIdx);
 
          /* Value has been assigned, but not visited */
-         if(color.R < 50)
+/*       if(color.R < 50) this is broken for the moment */
+         if(color < 50)
             message->array[row*region->mappingCols+col] |= DMTX_MODULE_ON_RED;
-         if(color.G < 50)
+/*       if(color.G < 50) this is broken for the moment */
+         if(color < 50)
             message->array[row*region->mappingCols+col] |= DMTX_MODULE_ON_GREEN;
-         if(color.B < 50)
+/*       if(color.B < 50) this is broken for the moment */
+         if(color < 50)
             message->array[row*region->mappingCols+col] |= DMTX_MODULE_ON_BLUE;
 
          message->array[row*region->mappingCols+col] |= DMTX_MODULE_ASSIGNED;
