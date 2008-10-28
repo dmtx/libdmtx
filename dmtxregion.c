@@ -51,10 +51,10 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
    DmtxScanGrid *grid;
    DmtxPixelLoc loc, locNext;
    DmtxRegion   reg;
-
+/*
    int size, i = 0;
    char imagePath[128];
-
+*/
    grid = &(dec->grid);
 
    /* Continue scanning until we run out of time or run out of image */
@@ -71,14 +71,14 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
 
       /* Scan this pixel for presence of a valid barcode edge */
       reg = dmtxRegionScanPixel(dec, loc);
-
+/*
       if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_FINDER) {
          size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
          if(size >= 128)
             exit(1);
          WriteDiagnosticImage(dec, &reg, imagePath);
       }
-
+*/
       /* Found a barcode region? */
       if(reg.found == DMTX_REGION_FOUND)
          break;
@@ -1679,6 +1679,7 @@ BresLineStepHit(DmtxBresLine *line, DmtxPixelLoc targetLoc)
  *
  *
  */
+/*
 static void
 WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
@@ -1731,3 +1732,4 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 
    fclose(fp);
 }
+*/
