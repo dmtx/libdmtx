@@ -90,9 +90,10 @@ extern "C" {
 #define DMTX_FORMAT_MATRIX             0
 #define DMTX_FORMAT_MOSAIC             1
 
-#define DMTX_SYMBOL_SQUARE_AUTO       -1
+#define DMTX_SYMBOL_SHAPE_AUTO        -1
+#define DMTX_SYMBOL_SQUARE_AUTO       -2
+#define DMTX_SYMBOL_RECT_AUTO         -3
 #define DMTX_SYMBOL_SQUARE_COUNT      24
-#define DMTX_SYMBOL_RECT_AUTO         -2
 #define DMTX_SYMBOL_RECT_COUNT         6
 
 typedef enum {
@@ -159,11 +160,11 @@ typedef enum {
 } DmtxCornerLoc;
 
 typedef enum {
-   DmtxPropShrinkMin,
-   DmtxPropShrinkMax,
-   DmtxPropEdgeThresh,
-   DmtxPropSquareDevn,
+   DmtxPropEdgeMin,
    DmtxPropScanGap,
+   DmtxPropSquareDevn,
+   DmtxPropSymbolSize,
+   DmtxPropEdgeThresh,
    DmtxPropWidth,
    DmtxPropHeight,
    DmtxPropArea,
@@ -171,6 +172,8 @@ typedef enum {
    DmtxPropXmax,
    DmtxPropYmin,
    DmtxPropYmax,
+   DmtxPropShrinkMin,
+   DmtxPropShrinkMax,
    DmtxPropScale,
    DmtxPropScaledWidth,
    DmtxPropScaledHeight,
@@ -397,11 +400,13 @@ typedef struct DmtxScanGrid_struct {
 typedef struct DmtxDecode_struct {
    DmtxImage       *image;
    DmtxScanGrid    grid;
+   int             edgeMin;
+   int             scanGap;
+   double          squareDevn;
+   int             sizeIdxExpected;
+   int             edgeThresh;
    int             shrinkMin;
    int             shrinkMax;
-   int             edgeThresh;
-   double          squareDevn;
-   int             scanGap;
 } DmtxDecode;
 
 /**

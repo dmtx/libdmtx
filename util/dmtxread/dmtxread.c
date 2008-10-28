@@ -113,22 +113,24 @@ main(int argc, char *argv[])
       /* Initialize decode struct for newly loaded image */
       decode = dmtxDecodeStructInit(img);
 
-      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMin, opt.shrinkMin);
-      assert(err == DMTX_SUCCESS);
-
-      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMax, opt.shrinkMax);
-      assert(err == DMTX_SUCCESS);
-
-      err = dmtxDecodeSetProp(&decode, DmtxPropEdgeThresh, opt.edgeThresh);
-      assert(err == DMTX_SUCCESS);
-
       err = dmtxDecodeSetProp(&decode, DmtxPropScanGap, opt.scanGap);
       assert(err == DMTX_SUCCESS);
+
+      if(opt.edgeMin != -1) {
+         err = dmtxDecodeSetProp(&decode, DmtxPropEdgeMin, opt.edgeMin);
+         assert(err == DMTX_SUCCESS);
+      }
 
       if(opt.squareDevn != -1) {
          err = dmtxDecodeSetProp(&decode, DmtxPropSquareDevn, opt.squareDevn);
          assert(err == DMTX_SUCCESS);
       }
+
+      err = dmtxDecodeSetProp(&decode, DmtxPropSymbolSize, opt.sizeIdxExpected);
+      assert(err == DMTX_SUCCESS);
+
+      err = dmtxDecodeSetProp(&decode, DmtxPropEdgeThresh, opt.edgeThresh);
+      assert(err == DMTX_SUCCESS);
 
       if(opt.xMin) {
          err = dmtxDecodeSetProp(&decode, DmtxPropXmin, ScaleNumberString(opt.xMin, imgWidth));
@@ -149,6 +151,12 @@ main(int argc, char *argv[])
          err = dmtxDecodeSetProp(&decode, DmtxPropYmax, ScaleNumberString(opt.yMax, imgHeight));
          assert(err == DMTX_SUCCESS);
       }
+
+      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMin, opt.shrinkMin);
+      assert(err == DMTX_SUCCESS);
+
+      err = dmtxDecodeSetProp(&decode, DmtxPropShrinkMax, opt.shrinkMax);
+      assert(err == DMTX_SUCCESS);
 
       /* Loop once for each detected barcode region */
       for(;;) {
@@ -194,28 +202,34 @@ main(int argc, char *argv[])
 static void
 SetOptionDefaults(UserOptions *opt)
 {
-   memset(opt, 0x00, sizeof(UserOptions));
+   UserOptions option;
+
+   memset(&option, 0x00, sizeof(UserOptions));
 
    /* Set default options */
-   opt->codewords = 0;
-   opt->squareDevn = -1;
-   opt->scanGap = 2;
-   opt->timeoutMS = -1;
-   opt->newline = 0;
-   opt->shrinkMin = 1;
-   opt->shrinkMax = 1;
-   opt->edgeThresh = 5;
-   opt->xMin = NULL;
-   opt->xMax = NULL;
-   opt->yMin = NULL;
-   opt->yMax = NULL;
-   opt->correctionsMax = -1;
-   opt->diagnose = 0;
-   opt->mosaic = 0;
-   opt->pageNumber = 0;
-   opt->corners = 0;
-   opt->verbose = 0;
-   opt->resolution = NULL;
+   option.codewords = 0;
+   option.edgeMin = -1;
+   option.squareDevn = -1;
+   option.scanGap = 2;
+   option.timeoutMS = -1;
+   option.newline = 0;
+   option.resolution = NULL;
+   option.sizeIdxExpected = DMTX_SYMBOL_SHAPE_AUTO;
+   option.edgeThresh = 5;
+   option.xMin = NULL;
+   option.xMax = NULL;
+   option.yMin = NULL;
+   option.yMax = NULL;
+   option.correctionsMax = -1;
+   option.diagnose = 0;
+   option.mosaic = 0;
+   option.pageNumber = 0;
+   option.corners = 0;
+   option.shrinkMin = 1;
+   option.shrinkMax = 1;
+   option.verbose = 0;
+
+   *opt = option;
 }
 
 /**
@@ -229,6 +243,7 @@ SetOptionDefaults(UserOptions *opt)
 static int
 HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
 {
+   int i;
    int err;
    int optchr;
    int longIndex;
@@ -236,13 +251,14 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
 
    struct option longOptions[] = {
          {"codewords",        no_argument,       NULL, 'c'},
+         {"minimum-edge",     required_argument, NULL, 'e'},
          {"gap",              required_argument, NULL, 'g'},
          {"list-formats",     no_argument,       NULL, 'l'},
          {"milliseconds",     required_argument, NULL, 'm'},
          {"newline",          no_argument,       NULL, 'n'},
          {"square-deviation", required_argument, NULL, 'q'},
          {"resolution",       required_argument, NULL, 'r'},
-         {"shrink",           required_argument, NULL, 's'},
+         {"symbol-size",      required_argument, NULL, 's'},
          {"threshold",        required_argument, NULL, 't'},
          {"x-range-min",      required_argument, NULL, 'x'},
          {"x-range-max",      required_argument, NULL, 'X'},
@@ -253,6 +269,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          {"mosaic",           no_argument,       NULL, 'M'},
          {"page-number",      no_argument,       NULL, 'P'},
          {"corners",          no_argument,       NULL, 'R'},
+         {"shrink",           required_argument, NULL, 'S'},
          {"verbose",          no_argument,       NULL, 'v'},
          {"version",          no_argument,       NULL, 'V'},
          {"help",             no_argument,       NULL,  0 },
@@ -264,7 +281,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      optchr = getopt_long(*argcp, *argvp, "cg:lm:nq:r:s:t:x:X:y:Y:vC:DMPRV", longOptions, &longIndex);
+      optchr = getopt_long(*argcp, *argvp, "ce:g:lm:nq:r:s:t:x:X:y:Y:vC:DMPRS:V", longOptions, &longIndex);
       if(optchr == -1)
          break;
 
@@ -277,6 +294,11 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'c':
             opt->codewords = 1;
+            break;
+         case 'e':
+            err = StringToInt(&(opt->edgeMin), optarg, &ptr);
+            if(err != DMTX_SUCCESS || opt->edgeMin <= 0 || *ptr != '\0')
+               FatalError(1, _("Invalid edge length specified \"%s\""), optarg);
             break;
          case 'g':
             err = StringToInt(&(opt->scanGap), optarg, &ptr);
@@ -301,10 +323,26 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             opt->resolution = optarg;
             break;
          case 's':
-            err = StringToInt(&(opt->shrinkMax), optarg, &ptr);
-            if(err != DMTX_SUCCESS || opt->shrinkMax < 1 || *ptr != '\0')
-               FatalError(1, _("Invalid shrink factor specified \"%s\""), optarg);
-            /* XXX later also popular shrinkMin based on N-N range */
+            /* Determine correct barcode size and/or shape */
+            if(*optarg == 'a') {
+               opt->sizeIdxExpected = DMTX_SYMBOL_SHAPE_AUTO;
+            }
+            else if(*optarg == 's') {
+               opt->sizeIdxExpected = DMTX_SYMBOL_SQUARE_AUTO;
+            }
+            else if(*optarg == 'r') {
+               opt->sizeIdxExpected = DMTX_SYMBOL_RECT_AUTO;
+            }
+            else {
+               for(i = 0; i < DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT; i++) {
+                  if(strncmp(optarg, symbolSizes[i], 8) == 0) {
+                     opt->sizeIdxExpected = i;
+                     break;
+                  }
+               }
+               if(i == DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT)
+                  return DMTX_FAILURE;
+            }
             break;
          case 't':
             err = StringToInt(&(opt->edgeThresh), optarg, &ptr);
@@ -343,6 +381,12 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'R':
             opt->corners = 1;
+            break;
+         case 'S':
+            err = StringToInt(&(opt->shrinkMax), optarg, &ptr);
+            if(err != DMTX_SUCCESS || opt->shrinkMax < 1 || *ptr != '\0')
+               FatalError(1, _("Invalid shrink factor specified \"%s\""), optarg);
+            /* XXX later also popular shrinkMin based on N-N range */
             break;
          case 'V':
             fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
@@ -385,29 +429,36 @@ Example: Scan top third of images using gap no larger than 10 pixels\n\
 \n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
-  -c, --codewords            print codewords extracted from barcode pattern\n\
-  -g, --gap=NUM              use scan grid with gap of NUM pixels between lines\n\
-  -l, --list-formats         list supported input image formats\n\
-  -m, --milliseconds=N       stop scan after N milliseconds (per image)\n\
-  -n, --newline              print newline character at the end of decoded data\n\
-  -q, --square-deviation=N   allowed non-squareness of corners in degrees (0-90)\n\
-  -r, --resolution=N         decoding resolution for vectorial images (PDF, ..)\n\
-  -s, --shrink=N             internally shrink image by a factor of N\n"));
+  -c, --codewords             print codewords extracted from barcode pattern\n\
+  -e, --minimum-edge=N        pixel length of smallest expected edge in image\n\
+  -g, --gap=NUM               use scan grid with gap of NUM pixels between lines\n\
+  -l, --list-formats          list supported input image formats\n\
+  -m, --milliseconds=N        stop scan after N milliseconds (per image)\n\
+  -n, --newline               print newline character at the end of decoded data\n\
+  -q, --square-deviation=N    allow non-squareness of corners in degrees (0-90)\n"));
       fprintf(stdout, _("\
-  -t, --threshold=N          ignore weak edges below threshold N (1-100)\n\
-  -x, --x-range-min=N[%%]     do not scan pixels to the left of N (or N%%)\n\
-  -X, --x-range-max=N[%%]     do not scan pixels to the right of N (or N%%)\n\
-  -y, --y-range-min=N[%%]     do not scan pixels above N (or N%%)\n\
-  -Y, --y-range-max=N[%%]     do not scan pixels below N (or N%%)\n\
-  -C, --corrections-max=N    correct at most N errors (0 = correction disabled)\n"));
+  -r, --resolution=N          resolution for vector images (PDF, SVG, etc...)\n\
+  -s, --symbol-size=[asr|RxC] only consider barcodes of specific size or shape:\n\
+            a = All sizes     [default]\n\
+            s = Only squares\n\
+            r = Only rectangles\n\
+          RxC = Exactly this many rows and columns (10x10, 8x18, etc...)\n\
+  -t, --threshold=N           ignore weak edges below threshold N (1-100)\n"));
       fprintf(stdout, _("\
-  -D, --diagnose             make copy of image with additional diagnostic data\n\
-  -M, --mosaic               interpret detected regions as Data Mosaic barcodes\n\
-  -P, --page-number          prefix decoded message with fax/tiff page number\n\
-  -R, --corners              prefix decoded message with corner locations\n\
-  -v, --verbose              use verbose messages\n\
-  -V, --version              print program version information\n\
-      --help                 display this help and exit\n"));
+  -x, --x-range-min=N[%%]      do not scan pixels to the left of N (or N%%)\n\
+  -X, --x-range-max=N[%%]      do not scan pixels to the right of N (or N%%)\n\
+  -y, --y-range-min=N[%%]      do not scan pixels above N (or N%%)\n\
+  -Y, --y-range-max=N[%%]      do not scan pixels below N (or N%%)\n\
+  -C, --corrections-max=N     correct at most N errors (0 = correction disabled)\n\
+  -D, --diagnose              make copy of image with additional diagnostic data\n\
+  -M, --mosaic                interpret detected regions as Data Mosaic barcodes\n"));
+      fprintf(stdout, _("\
+  -P, --page-number           prefix decoded message with fax/tiff page number\n\
+  -R, --corners               prefix decoded message with corner locations\n\
+  -S, --shrink=N              internally shrink image by a factor of N\n\
+  -v, --verbose               use verbose messages\n\
+  -V, --version               print program version information\n\
+      --help                  display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
    }
 
@@ -450,23 +501,23 @@ ScaleNumberString(char *s, int extent)
 static void
 ListImageFormats(void)
 {
-   MagickInfo **formats;
    int i;
+   MagickInfo **formats;
    ExceptionInfo exception;
 
    GetExceptionInfo(&exception);
    formats=GetMagickInfoArray(&exception);
    CatchException(&exception);
-   if (formats) {
-      printf("   Format  Description\n");
-      printf("--------------------------------------------------------"
-             "-----------------------\n");
-      for (i=0; formats[i] != 0; i++) {
-         if (formats[i]->stealth || !formats[i]->decoder)
-           continue;
 
-         printf("%9s",formats[i]->name ? formats[i]->name : "");
-         if (formats[i]->description != (char *) NULL)
+   if(formats) {
+      fprintf(stdout, "   Format  Description\n");
+      fprintf(stdout, "---------  ------------------------------------------------------\n");
+      for(i=0; formats[i] != 0; i++) {
+         if(formats[i]->stealth || !formats[i]->decoder)
+            continue;
+
+         fprintf(stdout, "%9s", formats[i]->name ? formats[i]->name : "");
+         if(formats[i]->description != (char *)NULL)
             printf("  %s\n",formats[i]->description);
       }
       free(formats);
@@ -490,20 +541,20 @@ OpenImage(ImageReader *reader, char *imagePath, char *resolution)
    reader->info = CloneImageInfo((ImageInfo *) NULL);
 
    strcpy((reader->info)->filename, imagePath);
-   if (resolution) {
+   if(resolution) {
       reader->info->density = strdup(resolution);
       reader->info->units = PixelsPerInchResolution;
    }
    reader->image = ReadImage(reader->info, &reader->exception);
 
-   switch (reader->exception.severity) {
+   switch(reader->exception.severity) {
       case UndefinedException:
          break;
       case OptionError:
       case MissingDelegateError:
          fprintf(stderr,
-                 "%s: unsupported file format. Use -l to see the available ones.\n",
-                 imagePath);
+               "%s: unsupported file format. Use -l to for a list of available formats.\n",
+               imagePath);
          break;
       default:
          CatchException(&reader->exception);
@@ -524,15 +575,14 @@ OpenImage(ImageReader *reader, char *imagePath, char *resolution)
 static DmtxImage *
 ReadImagePage(ImageReader *reader, int index)
 {
-   DmtxImage    *image;
    unsigned int dispatchResult;
-   int          pageCount;
+   int pageCount;
+   DmtxImage *image;
 
    image = NULL;
-   if (reader->image) {
+   if(reader->image) {
       pageCount = GetImageListLength(reader->image);
-      if (index < pageCount)
-      {
+      if(index < pageCount) {
          reader->image = GetImageFromList(reader->image, index);
 
          image = dmtxImageMalloc(reader->image->columns, reader->image->rows);
@@ -542,7 +592,7 @@ ReadImagePage(ImageReader *reader, int index)
             dispatchResult = DispatchImage(reader->image, 0, 0, reader->image->columns,
                                            reader->image->rows, "RGB", CharPixel,
                                            image->pxl, &reader->exception);
-            if (dispatchResult == MagickFail) {
+            if(dispatchResult == MagickFail) {
                dmtxImageFree(&image);
                CatchException(&reader->exception);
             }
@@ -552,6 +602,7 @@ ReadImagePage(ImageReader *reader, int index)
          }
       }
    }
+
    return image;
 }
 
@@ -563,7 +614,7 @@ ReadImagePage(ImageReader *reader, int index)
 static void
 CloseImage(ImageReader * reader)
 {
-   if (reader->image) {
+   if(reader->image) {
       DestroyImage(reader->image);
       reader->image = NULL;
    }

@@ -106,25 +106,6 @@ typedef struct DmtxFollow_struct {
 } DmtxFollow;
 
 /**
- * @struct DmtxBestLine
- * @brief DmtxBestLine
- */
-/*
-typedef struct DmtxBestLine_struct {
-   int angle;
-   int mag;
-   int stepBeg;
-   int stepPos;
-   int stepNeg;
-   int distSq;
-   double devn;
-   DmtxPixelLoc locBeg;
-   DmtxPixelLoc locPos;
-   DmtxPixelLoc locNeg;
-} DmtxBestLine;
-*/
-
-/**
  * @struct DmtxBresLine
  * @brief DmtxBresLine
  */

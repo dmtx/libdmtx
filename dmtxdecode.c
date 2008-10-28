@@ -89,23 +89,20 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
    int err;
 
    switch(prop) {
-      case DmtxPropShrinkMin:
-         dec->shrinkMin = value;
+      case DmtxPropEdgeMin:
+         dec->edgeMin = value;
          break;
-      case DmtxPropShrinkMax:
-         dec->shrinkMax = value;
-         err = dmtxImageSetProp(dec->image, DmtxPropScale, value);
-         if(err == DMTX_FAILURE)
-            return DMTX_FAILURE;
-         break;
-      case DmtxPropEdgeThresh:
-         dec->edgeThresh = value;
+      case DmtxPropScanGap:
+         dec->scanGap = value;
          break;
       case DmtxPropSquareDevn:
          dec->squareDevn = cos(value * (M_PI/180.0));
          break;
-      case DmtxPropScanGap:
-         dec->scanGap = value;
+      case DmtxPropSymbolSize:
+         dec->sizeIdxExpected = value;
+         break;
+      case DmtxPropEdgeThresh:
+         dec->edgeThresh = value;
          break;
       case DmtxPropXmin:
          err = dmtxImageSetProp(dec->image, DmtxPropXmin, value);
@@ -124,6 +121,15 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
          break;
       case DmtxPropYmax:
          err = dmtxImageSetProp(dec->image, DmtxPropYmax, value);
+         if(err == DMTX_FAILURE)
+            return DMTX_FAILURE;
+         break;
+      case DmtxPropShrinkMin:
+         dec->shrinkMin = value;
+         break;
+      case DmtxPropShrinkMax:
+         dec->shrinkMax = value;
+         err = dmtxImageSetProp(dec->image, DmtxPropScale, value);
          if(err == DMTX_FAILURE)
             return DMTX_FAILURE;
          break;

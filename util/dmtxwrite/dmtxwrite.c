@@ -149,14 +149,6 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
    int longIndex;
    char *ptr;
 
-   static char *symbolSizes[] = {
-         "10x10", "12x12",   "14x14",   "16x16",   "18x18",   "20x20",
-         "22x22", "24x24",   "26x26",   "32x32",   "36x36",   "40x40",
-         "44x44", "48x48",   "52x52",   "64x64",   "72x72",   "80x80",
-         "88x88", "96x96", "104x104", "120x120", "132x132", "144x144",
-          "8x18",  "8x32",   "12x26",   "12x36",   "16x36",   "16x48"
-   };
-
    struct option longOptions[] = {
          {"color",       required_argument, NULL, 'c'},
          {"bg-color",    required_argument, NULL, 'b'},
@@ -254,13 +246,11 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
             break;
          case 'f':
             opt->format = *optarg;
-
             if(opt->format != 'n' && opt->format != 'p' &&
                   opt->format != 'm') {
                fprintf(stdout, "Invalid output format \"%c\"\n", opt->format);
                return DMTX_FAILURE;
             }
-
             break;
          case 'o':
             opt->outputPath = optarg;
@@ -273,7 +263,6 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
                fprintf(stdout, "Invalid preview format \"%c\"\n", opt->preview);
                return DMTX_FAILURE;
             }
-
             break;
          case 'r':
             err = StringToInt(&(opt->rotate), optarg, &ptr);
@@ -298,7 +287,6 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
                if(i == DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT)
                   return DMTX_FAILURE;
             }
-
             break;
          case 'v':
             opt->verbose = 1;
@@ -376,31 +364,34 @@ Example: echo -n 123456 | %s -o message.png\n\
 \n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
-  -c, --color=COLOR          barcode color (not implemented)\n\
-  -b, --bg-color=COLOR       background color (not implemented)\n\
-  -d, --module=NUM           module size (in pixels)\n\
-  -m, --margin=NUM           margin size (in pixels)\n\
-  -e, --encoding=[bfactxe8]  encodation scheme\n\
-        b = Best optimized   best possible optimization (beta)\n\
-        f = Fast optimized   basic optimization (not implemented)\n\
-        a = ASCII  [default] ASCII standard & extended\n\
-        c = C40              digits and uppercase\n\
-        t = Text             digits and lowercase\n\
-        x = X12              ANSI X12 EDI\n\
-        e = EDIFACT          ASCII values 32-94\n\
-        8 = Base 256         all byte values 0-255\n\
-  -f, --format=[npm]         image output format\n\
-        n = None             do not create barcode image\n\
-        p = PNG    [default] PNG image\n\
-        m = PNM              PNM image\n\
-  -o, --output=FILE          output filename (default is STDOUT)\n\
-  -p, --preview=[ac]         print preview of barcode data to STDOUT\n\
-        a = ASCII            ASCII-art representation\n\
-        c = Codewords        list data and error codewords\n\
-  -r, --rotate=DEGREES       rotation angle (degrees)\n\
-  -s, --symbol-size=SIZE     symbol size in Rows x Cols\n\
+  -c, --color=COLOR           barcode color (not implemented)\n\
+  -b, --bg-color=COLOR        background color (not implemented)\n\
+  -d, --module=NUM            module size (in pixels)\n\
+  -m, --margin=NUM            margin size (in pixels)\n\
+  -e, --encoding=[bfactxe8]   encodation scheme\n\
+        b = Best optimized    best possible optimization (beta)\n\
+        f = Fast optimized    basic optimization (not implemented)\n\
+        a = ASCII  [default]  ASCII standard & extended\n\
+        c = C40               digits and uppercase\n\
+        t = Text              digits and lowercase\n\
+        x = X12               ANSI X12 EDI\n\
+        e = EDIFACT           ASCII values 32-94\n\
+        8 = Base 256          all byte values 0-255\n"));
+      fprintf(stdout, _("\
+  -f, --format=[npm]          image output format\n\
+        n = None              do not create barcode image\n\
+        p = PNG    [default]  PNG image\n\
+        m = PNM               PNM image\n\
+  -o, --output=FILE           output filename (default is STDOUT)\n\
+  -p, --preview=[ac]          print preview of barcode data to STDOUT\n\
+        a = ASCII             ASCII-art representation\n\
+        c = Codewords         list data and error codewords\n\
+  -f, --format=[npm]          image output format\n\
+  -r, --rotate=DEGREES        rotation angle (degrees)\n"));
+      fprintf(stdout, _("\
+  -s, --symbol-size=SIZE      symbol size in Rows x Cols\n\
         Automatic SIZE options:\n\
-            s = Auto square  [default]\n\
+            s = Auto square   [default]\n\
             r = Auto rectangle\n\
         Manually specified SIZE options for square symbols:\n\
             10x10,   12x12,   14x14,   16x16,   18x18,   20x20,\n\
@@ -408,12 +399,13 @@ OPTIONS:\n"), programName, programName);
             44x44,   48x48,   52x52,   64x64,   72x72,   80x80,\n\
             88x88,   96x96, 104x104, 120x120, 132x132, 144x144\n\
         Manually specified SIZE options for rectangular symbols:\n\
-             8x18,    8x32,   12x26,   12x36,   16x36,   16x48\n\
-  -M, --mosaic               create non-standard Data Mosaic barcode\n\
-  -R, --resolution=NUM       set image print resolution (dpi)\n\
-  -v, --verbose              use verbose messages\n\
-  -V, --version              print version information\n\
-      --help                 display this help and exit\n"));
+             8x18,    8x32,   12x26,   12x36,   16x36,   16x48\n"));
+      fprintf(stdout, _("\
+  -M, --mosaic                create non-standard Data Mosaic barcode\n\
+  -R, --resolution=NUM        set image print resolution (dpi)\n\
+  -v, --verbose               use verbose messages\n\
+  -V, --version               print version information\n\
+      --help                  display this help and exit\n"));
       fprintf(stdout, _("\nReport bugs to <mike@dragonflylogic.com>.\n"));
    }
 

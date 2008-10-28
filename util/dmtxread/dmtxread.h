@@ -36,13 +36,13 @@ Contact: mike@dragonflylogic.com
 
 typedef struct {
    int codewords;       /* -c, --codewords */
+   int edgeMin;         /* -e, --minimum-edge */
    int squareDevn;      /* -d, --square-deviation */
    int scanGap;         /* -g, --gap */
    int timeoutMS;       /* -m, --milliseconds */
    int newline;         /* -n, --newline */
    char *resolution;    /* -r, --resolution */
-   int shrinkMax;       /* -s, --shrink */
-   int shrinkMin;       /* -s, --shrink (if range specified) */
+   int sizeIdxExpected; /* -s, --symbol-size */
    int edgeThresh;      /* -t, --threshold */
    char *xMin;          /* -x, --x-range-min */
    char *xMax;          /* -X, --x-range-max */
@@ -53,6 +53,8 @@ typedef struct {
    int mosaic;          /* -M, --mosaic */
    int pageNumber;      /* -P, --page-number */
    int corners;         /* -R, --corners */
+   int shrinkMax;       /* -s, --shrink */
+   int shrinkMin;       /* -s, --shrink (if range specified) */
    int verbose;         /* -v, --verbose */
 } UserOptions;
 
