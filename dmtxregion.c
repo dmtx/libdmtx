@@ -154,7 +154,7 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    CALLBACK_MATRIX(&reg);
 
    /* Calculate the best fitting symbol size */
-   if(MatrixRegionFindSize(dec->image, &reg) != DMTX_SUCCESS) {
+   if(MatrixRegionFindSize(dec, &reg) != DMTX_SUCCESS) {
       reg.found = DMTX_REGION_DROPPED_SIZE;
       return reg;
    }
@@ -215,6 +215,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
 {
    int err;
    int cross;
+   int minArea;
    DmtxBestLine line1x, line2x;
    DmtxBestLine line2n, line2p;
    DmtxFollow fTmp;
@@ -226,9 +227,23 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
       return DMTX_FAILURE;
    }
 
-   if((reg->boundMax.X - reg->boundMin.X) * (reg->boundMax.Y - reg->boundMin.Y) < 3000) {
-      ClearTrail(dec, reg, 0x40);
-      return DMTX_FAILURE;
+   /* Filter out region candidates that are smaller than expected */
+   if(dec->edgeMin != -1) {
+      if(dec->sizeIdxExpected == DMTX_SYMBOL_SQUARE_AUTO ||
+            (dec->sizeIdxExpected >= 0 &&
+            dec->sizeIdxExpected < DMTX_SYMBOL_SQUARE_COUNT)) {
+         /* Only interested in square barcodes */
+         minArea = dec->edgeMin * dec->edgeMin;
+      }
+      else {
+         /* Unknown shape or rectangle barcodes */
+         minArea = 2 * dec->edgeMin * dec->edgeMin;
+      }
+
+      if((reg->boundMax.X - reg->boundMin.X) * (reg->boundMax.Y - reg->boundMin.Y) < minArea) {
+         ClearTrail(dec, reg, 0x40);
+         return DMTX_FAILURE;
+      }
    }
 
    line1x = FindBestSolidLine(dec, reg, 0, 0, -1);
@@ -591,9 +606,10 @@ ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, i
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg)
+MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg)
 {
    int row, col;
+   int sizeIdxBeg, sizeIdxEnd;
    int sizeIdx, bestSizeIdx;
    int symbolRows, symbolCols;
    int jumpCount, errors;
@@ -601,13 +617,32 @@ MatrixRegionFindSize(DmtxImage *img, DmtxRegion *reg)
    int colorOnAvg, bestColorOnAvg;
    int colorOffAvg, bestColorOffAvg;
    double contrast, bestContrast;
+   DmtxImage *img;
 
+   img = dec->image;
    bestSizeIdx = -1;
    bestContrast = 0;
    bestColorOnAvg = bestColorOffAvg = 0;
 
+   if(dec->sizeIdxExpected == DMTX_SYMBOL_SHAPE_AUTO) {
+      sizeIdxBeg = 0;
+      sizeIdxEnd = DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT;
+   }
+   else if(dec->sizeIdxExpected == DMTX_SYMBOL_SQUARE_AUTO) {
+      sizeIdxBeg = 0;
+      sizeIdxEnd = DMTX_SYMBOL_SQUARE_COUNT;
+   }
+   else if(dec->sizeIdxExpected == DMTX_SYMBOL_RECT_AUTO) {
+      sizeIdxBeg = DMTX_SYMBOL_SQUARE_COUNT;
+      sizeIdxEnd = DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT;
+   }
+   else {
+      sizeIdxBeg = dec->sizeIdxExpected;
+      sizeIdxEnd = dec->sizeIdxExpected + 1;
+   }
+
    /* Test each barcode size to find best contrast in calibration modules */
-   for(sizeIdx = 0; sizeIdx < DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT; sizeIdx++) {
+   for(sizeIdx = sizeIdxBeg; sizeIdx < sizeIdxEnd; sizeIdx++) {
 
       symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
       symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
