@@ -29,7 +29,7 @@ Contact: mike@dragonflylogic.com
 
 /**
  * @brief  XXX
- * @param  image
+ * @param  img
  * @return Initialized DmtxDecode struct
  */
 extern DmtxDecode
@@ -151,122 +151,122 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
 /**
  * @brief  XXX
  * @param  dec
- * @param  region
+ * @param  reg
  * @param  fix
  * @return Decoded message
  */
 extern DmtxMessage *
-dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *region, int fix)
+dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
 {
-   DmtxMessage *message;
+   DmtxMessage *msg;
 
-   message = dmtxMessageMalloc(region->sizeIdx, DMTX_FORMAT_MATRIX);
-   if(message == NULL)
+   msg = dmtxMessageMalloc(reg->sizeIdx, DMTX_FORMAT_MATRIX);
+   if(msg == NULL)
       return NULL;
 
-   if(PopulateArrayFromMatrix(message, img, region) != DMTX_SUCCESS) {
-      dmtxMessageFree(&message);
-      return NULL;
-   }
-
-   ModulePlacementEcc200(message->array, message->code,
-         region->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
-
-   if(DecodeCheckErrors(message->code, region->sizeIdx, fix) != DMTX_SUCCESS) {
-      dmtxMessageFree(&message);
+   if(PopulateArrayFromMatrix(msg, img, reg) != DMTX_SUCCESS) {
+      dmtxMessageFree(&msg);
       return NULL;
    }
 
-   DecodeDataStream(message, region->sizeIdx, NULL);
+   ModulePlacementEcc200(msg->array, msg->code,
+         reg->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
 
-   return message;
+   if(DecodeCheckErrors(msg->code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
+      dmtxMessageFree(&msg);
+      return NULL;
+   }
+
+   DecodeDataStream(msg, reg->sizeIdx, NULL);
+
+   return msg;
 }
 
 /**
  * @brief  XXX
  * @param  dec
- * @param  region
+ * @param  reg
  * @param  fix
  * @return Decoded message
  */
 extern DmtxMessage *
-dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *region, int fix)
+dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix)
 {
    int row, col;
    int mappingRows, mappingCols;
-   DmtxMessage *message;
+   DmtxMessage *msg;
    DmtxMessage rMesg, gMesg, bMesg;
 
-   mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, region->sizeIdx);
-   mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, region->sizeIdx);
+   mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, reg->sizeIdx);
+   mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, reg->sizeIdx);
 
-   message = dmtxMessageMalloc(region->sizeIdx, DMTX_FORMAT_MOSAIC);
-   if(message == NULL)
+   msg = dmtxMessageMalloc(reg->sizeIdx, DMTX_FORMAT_MOSAIC);
+   if(msg == NULL)
       return NULL;
 
-   rMesg = gMesg = bMesg = *message;
-   rMesg.codeSize = gMesg.codeSize = bMesg.codeSize = message->codeSize/3;
+   rMesg = gMesg = bMesg = *msg;
+   rMesg.codeSize = gMesg.codeSize = bMesg.codeSize = msg->codeSize/3;
 
    gMesg.code += gMesg.codeSize;
    bMesg.code += (bMesg.codeSize * 2);
 
-   if(PopulateArrayFromMosaic(message, img, region) != DMTX_SUCCESS) {
-      dmtxMessageFree(&message);
+   if(PopulateArrayFromMosaic(msg, img, reg) != DMTX_SUCCESS) {
+      dmtxMessageFree(&msg);
       return NULL;
    }
 
-   ModulePlacementEcc200(message->array, rMesg.code, region->sizeIdx, DMTX_MODULE_ON_RED);
-   if(DecodeCheckErrors(rMesg.code, region->sizeIdx, fix) != DMTX_SUCCESS) {
-      dmtxMessageFree(&message);
-      return NULL;
-   }
-
-   for(row = 0; row < mappingRows; row++)
-      for(col = 0; col < mappingCols; col++)
-         message->array[row*mappingCols+col] &= (0xff ^ DMTX_MODULE_VISITED);
-
-   ModulePlacementEcc200(message->array, gMesg.code, region->sizeIdx, DMTX_MODULE_ON_GREEN);
-   if(DecodeCheckErrors(gMesg.code, region->sizeIdx, fix) != DMTX_SUCCESS) {
-      dmtxMessageFree(&message);
+   ModulePlacementEcc200(msg->array, rMesg.code, reg->sizeIdx, DMTX_MODULE_ON_RED);
+   if(DecodeCheckErrors(rMesg.code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
+      dmtxMessageFree(&msg);
       return NULL;
    }
 
    for(row = 0; row < mappingRows; row++)
       for(col = 0; col < mappingCols; col++)
-         message->array[row*mappingCols+col] &= (0xff ^ DMTX_MODULE_VISITED);
+         msg->array[row*mappingCols+col] &= (0xff ^ DMTX_MODULE_VISITED);
 
-   ModulePlacementEcc200(message->array, bMesg.code, region->sizeIdx, DMTX_MODULE_ON_BLUE);
-   if(DecodeCheckErrors(bMesg.code, region->sizeIdx, fix) != DMTX_SUCCESS) {
-      dmtxMessageFree(&message);
+   ModulePlacementEcc200(msg->array, gMesg.code, reg->sizeIdx, DMTX_MODULE_ON_GREEN);
+   if(DecodeCheckErrors(gMesg.code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
+      dmtxMessageFree(&msg);
       return NULL;
    }
 
-   DecodeDataStream(&rMesg, region->sizeIdx, NULL);
-   DecodeDataStream(&gMesg, region->sizeIdx, rMesg.output + rMesg.outputIdx);
-   DecodeDataStream(&bMesg, region->sizeIdx, gMesg.output + gMesg.outputIdx);
+   for(row = 0; row < mappingRows; row++)
+      for(col = 0; col < mappingCols; col++)
+         msg->array[row*mappingCols+col] &= (0xff ^ DMTX_MODULE_VISITED);
 
-   message->outputIdx = rMesg.outputIdx + gMesg.outputIdx + bMesg.outputIdx;
+   ModulePlacementEcc200(msg->array, bMesg.code, reg->sizeIdx, DMTX_MODULE_ON_BLUE);
+   if(DecodeCheckErrors(bMesg.code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
+      dmtxMessageFree(&msg);
+      return NULL;
+   }
 
-   return message;
+   DecodeDataStream(&rMesg, reg->sizeIdx, NULL);
+   DecodeDataStream(&gMesg, reg->sizeIdx, rMesg.output + rMesg.outputIdx);
+   DecodeDataStream(&bMesg, reg->sizeIdx, gMesg.output + gMesg.outputIdx);
+
+   msg->outputIdx = rMesg.outputIdx + gMesg.outputIdx + bMesg.outputIdx;
+
+   return msg;
 }
 
 /**
  * @brief  XXX
- * @param  message
+ * @param  msg
  * @param  sizeIdx
  * @param  outputStart
  * @return void
  */
 static void
-DecodeDataStream(DmtxMessage *message, int sizeIdx, unsigned char *outputStart)
+DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
 {
    DmtxSchemeDecode encScheme;
    unsigned char *ptr, *dataEnd;
 
-   message->output = (outputStart == NULL) ? message->output : outputStart;
-   message->outputIdx = 0;
+   msg->output = (outputStart == NULL) ? msg->output : outputStart;
+   msg->outputIdx = 0;
 
-   ptr = message->code;
+   ptr = msg->code;
    dataEnd = ptr + dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
 
    while(ptr < dataEnd) {
@@ -275,28 +275,28 @@ DecodeDataStream(DmtxMessage *message, int sizeIdx, unsigned char *outputStart)
 
       switch(encScheme) {
          case DmtxSchemeDecodeAsciiStd:
-            ptr = DecodeSchemeAsciiStd(message, ptr, dataEnd);
+            ptr = DecodeSchemeAsciiStd(msg, ptr, dataEnd);
             break;
 
          case DmtxSchemeDecodeAsciiExt:
-            ptr = DecodeSchemeAsciiExt(message, ptr, dataEnd);
+            ptr = DecodeSchemeAsciiExt(msg, ptr, dataEnd);
             break;
 
          case DmtxSchemeDecodeC40:
          case DmtxSchemeDecodeText:
-            ptr = DecodeSchemeC40Text(message, ptr, dataEnd, encScheme);
+            ptr = DecodeSchemeC40Text(msg, ptr, dataEnd, encScheme);
             break;
 
          case DmtxSchemeDecodeX12:
-            ptr = DecodeSchemeX12(message, ptr, dataEnd);
+            ptr = DecodeSchemeX12(msg, ptr, dataEnd);
             break;
 
          case DmtxSchemeDecodeEdifact:
-            ptr = DecodeSchemeEdifact(message, ptr, dataEnd);
+            ptr = DecodeSchemeEdifact(msg, ptr, dataEnd);
             break;
 
          case DmtxSchemeDecodeBase256:
-            ptr = DecodeSchemeBase256(message, ptr, dataEnd);
+            ptr = DecodeSchemeBase256(msg, ptr, dataEnd);
             break;
       }
    }
@@ -340,26 +340,26 @@ NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr)
 
 /**
  * @brief  XXX
- * @param  message
+ * @param  msg
  * @param  ptr
  * @param  dataEnd
  * @return Pointer to next undecoded codeword
  */
 static unsigned char *
-DecodeSchemeAsciiStd(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
    int digits;
 
    if(*ptr <= 128) {
-      message->output[message->outputIdx++] = *ptr - 1;
+      msg->output[msg->outputIdx++] = *ptr - 1;
    }
    else if(*ptr == 129) {
       return dataEnd;
    }
    else if(*ptr <= 229) {
       digits = *ptr - 130;
-      message->output[message->outputIdx++] = digits/10 + '0';
-      message->output[message->outputIdx++] = digits - (digits/10)*10 + '0';
+      msg->output[msg->outputIdx++] = digits/10 + '0';
+      msg->output[msg->outputIdx++] = digits - (digits/10)*10 + '0';
    }
 
    return ptr + 1;
@@ -367,29 +367,29 @@ DecodeSchemeAsciiStd(DmtxMessage *message, unsigned char *ptr, unsigned char *da
 
 /**
  * @brief  XXX
- * @param  message
+ * @param  msg
  * @param  ptr
  * @param  dataEnd
  * @return Pointer to next undecoded codeword
  */
 static unsigned char *
-DecodeSchemeAsciiExt(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
-   message->output[message->outputIdx++] = *ptr + 128;
+   msg->output[msg->outputIdx++] = *ptr + 128;
 
    return ptr + 1;
 }
 
 /**
  * @brief  XXX
- * @param  message
+ * @param  msg
  * @param  ptr
  * @param  dataEnd
  * @param  encScheme
  * @return Pointer to next undecoded codeword
  */
 static unsigned char *
-DecodeSchemeC40Text(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme)
+DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme)
 {
    int i;
    int packed;
@@ -413,32 +413,32 @@ DecodeSchemeC40Text(DmtxMessage *message, unsigned char *ptr, unsigned char *dat
                shift = c40Values[i] + 1;
             }
             else if(c40Values[i] == 3) {
-               message->output[message->outputIdx++] = ' '; /* Space */
+               msg->output[msg->outputIdx++] = ' '; /* Space */
             }
             else if(c40Values[i] <= 13) {
-               message->output[message->outputIdx++] = c40Values[i] - 13 + '9'; /* 0-9 */
+               msg->output[msg->outputIdx++] = c40Values[i] - 13 + '9'; /* 0-9 */
             }
             else if(c40Values[i] <= 39) {
                if(encScheme == DmtxSchemeDecodeC40) {
-                  message->output[message->outputIdx++] = c40Values[i] - 39 + 'Z'; /* A-Z */
+                  msg->output[msg->outputIdx++] = c40Values[i] - 39 + 'Z'; /* A-Z */
                }
                else if(encScheme == DmtxSchemeDecodeText) {
-                  message->output[message->outputIdx++] = c40Values[i] - 39 + 'z'; /* a-z */
+                  msg->output[msg->outputIdx++] = c40Values[i] - 39 + 'z'; /* a-z */
                }
             }
          }
          else if(shift == 1) { /* Shift 1 set */
-            message->output[message->outputIdx++] = c40Values[i]; /* ASCII 0 - 31 */
+            msg->output[msg->outputIdx++] = c40Values[i]; /* ASCII 0 - 31 */
 
             shift = 0;
          }
          else if(shift == 2) { /* Shift 2 set */
             if(c40Values[i] <= 14)
-               message->output[message->outputIdx++] = c40Values[i] + 33; /* ASCII 33 - 47 */
+               msg->output[msg->outputIdx++] = c40Values[i] + 33; /* ASCII 33 - 47 */
             else if(c40Values[i] <= 21)
-               message->output[message->outputIdx++] = c40Values[i] + 43; /* ASCII 58 - 64 */
+               msg->output[msg->outputIdx++] = c40Values[i] + 43; /* ASCII 58 - 64 */
             else if(c40Values[i] <= 26)
-               message->output[message->outputIdx++] = c40Values[i] + 69; /* ASCII 91 - 95 */
+               msg->output[msg->outputIdx++] = c40Values[i] + 69; /* ASCII 91 - 95 */
             else if(c40Values[i] == 27)
                fprintf(stdout, "FNC1 (?)"); /* FNC1 (eh?) */
             else if(c40Values[i] == 30)
@@ -448,15 +448,15 @@ DecodeSchemeC40Text(DmtxMessage *message, unsigned char *ptr, unsigned char *dat
          }
          else if(shift == 3) { /* Shift 3 set */
             if(encScheme == DmtxSchemeDecodeC40) {
-               message->output[message->outputIdx++] = c40Values[i] + 96;
+               msg->output[msg->outputIdx++] = c40Values[i] + 96;
             }
             else if(encScheme == DmtxSchemeDecodeText) {
                if(c40Values[i] == 0)
-                  message->output[message->outputIdx++] = c40Values[i] + 96;
+                  msg->output[msg->outputIdx++] = c40Values[i] + 96;
                else if(c40Values[i] <= 26)
-                  message->output[message->outputIdx++] = c40Values[i] - 26 + 'Z'; /* A-Z */
+                  msg->output[msg->outputIdx++] = c40Values[i] - 26 + 'Z'; /* A-Z */
                else
-                  message->output[message->outputIdx++] = c40Values[i] - 31 + 127; /* { | } ~ DEL */
+                  msg->output[msg->outputIdx++] = c40Values[i] - 31 + 127; /* { | } ~ DEL */
             }
 
             shift = 0;
@@ -477,13 +477,13 @@ DecodeSchemeC40Text(DmtxMessage *message, unsigned char *ptr, unsigned char *dat
 
 /**
  * @brief  XXX
- * @param  message
+ * @param  msg
  * @param  ptr
  * @param  dataEnd
  * @return Pointer to next undecoded codeword
  */
 static unsigned char *
-DecodeSchemeX12(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
    int i;
    int packed;
@@ -500,17 +500,17 @@ DecodeSchemeX12(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd
 
       for(i = 0; i < 3; i++) {
          if(x12Values[i] == 0)
-            message->output[message->outputIdx++] = 13;
+            msg->output[msg->outputIdx++] = 13;
          else if(x12Values[i] == 1)
-            message->output[message->outputIdx++] = 42;
+            msg->output[msg->outputIdx++] = 42;
          else if(x12Values[i] == 2)
-            message->output[message->outputIdx++] = 62;
+            msg->output[msg->outputIdx++] = 62;
          else if(x12Values[i] == 3)
-            message->output[message->outputIdx++] = 32;
+            msg->output[msg->outputIdx++] = 32;
          else if(x12Values[i] <= 13)
-            message->output[message->outputIdx++] = x12Values[i] + 44;
+            msg->output[msg->outputIdx++] = x12Values[i] + 44;
          else if(x12Values[i] <= 90)
-            message->output[message->outputIdx++] = x12Values[i] + 51;
+            msg->output[msg->outputIdx++] = x12Values[i] + 51;
       }
 
       /* Unlatch if codeword 254 follows 2 codewords in C40/Text encodation */
@@ -527,13 +527,13 @@ DecodeSchemeX12(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd
 
 /**
  * @brief  XXX
- * @param  message
+ * @param  msg
  * @param  ptr
  * @param  dataEnd
  * @return Pointer to next undecoded codeword
  */
 static unsigned char *
-DecodeSchemeEdifact(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
    int i;
    unsigned char unpacked[4];
@@ -556,11 +556,11 @@ DecodeSchemeEdifact(DmtxMessage *message, unsigned char *ptr, unsigned char *dat
 
          /* Test for unlatch condition */
          if(unpacked[i] == 0x1f) {
-            assert(message->output[message->outputIdx] == 0); /* XXX dirty why? */
+            assert(msg->output[msg->outputIdx] == 0); /* XXX dirty why? */
             return ptr;
          }
 
-         message->output[message->outputIdx++] = unpacked[i] ^ (((unpacked[i] & 0x20) ^ 0x20) << 1);
+         msg->output[msg->outputIdx++] = unpacked[i] ^ (((unpacked[i] & 0x20) ^ 0x20) << 1);
       }
 
       /* Unlatch is implied if fewer than 3 codewords remain */
@@ -591,7 +591,7 @@ DecodeSchemeEdifact(DmtxMessage *message, unsigned char *ptr, unsigned char *dat
          assert(bits == 0); // should be padded with zero-value bits
          return ptr;
       }
-      message->output[message->outputIdx++] = value ^ (((value & 0x20) ^ 0x20) << 1);
+      msg->output[msg->outputIdx++] = value ^ (((value & 0x20) ^ 0x20) << 1);
 
       // Unlatch implied if just completed triplet and 1 or 2 words are left
       if(bitCount == 0 && dataEnd - ptr - 1 > 0 && dataEnd - ptr - 1 < 3)
@@ -606,20 +606,20 @@ DecodeSchemeEdifact(DmtxMessage *message, unsigned char *ptr, unsigned char *dat
 
 /**
  * @brief  XXX
- * @param  message
+ * @param  msg
  * @param  ptr
  * @param  dataEnd
  * @return Pointer to next undecoded codeword
  */
 static unsigned char *
-DecodeSchemeBase256(DmtxMessage *message, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
    int d0, d1;
    int i;
    unsigned char *ptrEnd;
 
    /* XXX i is the positional index used for unrandomizing */
-   i = ptr - message->code + 1;
+   i = ptr - msg->code + 1;
 
    d0 = UnRandomize255State(*(ptr++), i++);
    if(d0 == 0) {
@@ -638,7 +638,7 @@ DecodeSchemeBase256(DmtxMessage *message, unsigned char *ptr, unsigned char *dat
    }
 
    while(ptr < ptrEnd) {
-      message->output[message->outputIdx++] = UnRandomize255State(*(ptr++), i++);
+      msg->output[msg->outputIdx++] = UnRandomize255State(*(ptr++), i++);
    }
 
    return ptr;
@@ -683,13 +683,13 @@ UnRandomize255State(unsigned char value, int idx)
 
 /**
  * @brief  XXX
- * @param  message
- * @param  image
- * @param  region
+ * @param  msg
+ * @param  img
+ * @param  reg
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *region)
+PopulateArrayFromMatrix(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
 {
    int weightFactor;
    int mapWidth, mapHeight;
@@ -700,15 +700,15 @@ PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
    int colTmp, rowTmp, idx;
    int tally[24][24]; /* Large enough to map largest single region */
 
-/* memset(message->array, 0x00, message->arraySize); */
+/* memset(msg->array, 0x00, msg->arraySize); */
 
    /* Capture number of regions present in barcode */
-   xRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions, region->sizeIdx);
-   yRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, region->sizeIdx);
+   xRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions, reg->sizeIdx);
+   yRegionTotal = dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, reg->sizeIdx);
 
    /* Capture region dimensions (not including border modules) */
-   mapWidth = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);
-   mapHeight = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
+   mapWidth = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, reg->sizeIdx);
+   mapHeight = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, reg->sizeIdx);
 
    weightFactor = 2 * (mapHeight + mapWidth + 2);
    assert(weightFactor > 0);
@@ -725,10 +725,10 @@ PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
          xOrigin = xRegionCount * (mapWidth + 2) + 1;
 
          memset(tally, 0x00, 24 * 24 * sizeof(int));
-         TallyModuleJumps(image, region, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirUp);
-         TallyModuleJumps(image, region, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirLeft);
-         TallyModuleJumps(image, region, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirDown);
-         TallyModuleJumps(image, region, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirRight);
+         TallyModuleJumps(img, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirUp);
+         TallyModuleJumps(img, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirLeft);
+         TallyModuleJumps(img, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirDown);
+         TallyModuleJumps(img, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirRight);
 
          /* Decide module status based on final tallies */
          for(mapRow = 0; mapRow < mapHeight; mapRow++) {
@@ -740,11 +740,11 @@ PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
                idx = (rowTmp * xRegionTotal * mapWidth) + colTmp;
 
                if(tally[mapRow][mapCol]/(double)weightFactor > 0.5)
-                  message->array[idx] = DMTX_MODULE_ON_RGB;
+                  msg->array[idx] = DMTX_MODULE_ON_RGB;
                else
-                  message->array[idx] = DMTX_MODULE_OFF;
+                  msg->array[idx] = DMTX_MODULE_OFF;
 
-               message->array[idx] |= DMTX_MODULE_ASSIGNED;
+               msg->array[idx] |= DMTX_MODULE_ASSIGNED;
             }
          }
       }
@@ -755,8 +755,8 @@ PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
 
 /**
  * @brief  XXX
- * @param  image
- * @param  region
+ * @param  img
+ * @param  reg
  * @param  tally
  * @param  xOrigin
  * @param  yOrigin
@@ -766,7 +766,7 @@ PopulateArrayFromMatrix(DmtxMessage *message, DmtxImage *image, DmtxRegion *regi
  * @return void
  */
 static void
-TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir)
+TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir)
 {
    int extent, weight;
    int travelStep;
@@ -809,8 +809,8 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
    }
 
 
-   darkOnLight = (region->offColor > region->onColor);
-   jumpThreshold = abs(0.4 * (region->offColor - region->onColor) + 0.5);
+   darkOnLight = (reg->offColor > reg->onColor);
+   jumpThreshold = abs(0.4 * (reg->offColor - reg->onColor) + 0.5);
 
    assert(jumpThreshold > 0.0);
 
@@ -820,8 +820,8 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
          decide status based on predictable barcode border pattern */
 
       *travel = travelStart;
-      color = ReadModuleColor(image, region, symbolRow, symbolCol, region->sizeIdx);
-      tModule = (darkOnLight) ? region->offColor - color : color - region->offColor;
+      color = ReadModuleColor(img, reg, symbolRow, symbolCol, reg->sizeIdx);
+      tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
       statusModule = (travelStep == 1 || !(*line & 0x01)) ? DMTX_MODULE_ON_RGB : DMTX_MODULE_OFF;
 
@@ -835,8 +835,8 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
          /* For normal data-bearing modules capture color and decide
             module status based on comparison to previous "known" module */
 
-         color = ReadModuleColor(image, region, symbolRow, symbolCol, region->sizeIdx);
-         tModule = (darkOnLight) ? region->offColor - color : color - region->offColor;
+         color = ReadModuleColor(img, reg, symbolRow, symbolCol, reg->sizeIdx);
+         tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
          if(statusPrev == DMTX_MODULE_ON_RGB) {
             if(tModule < tPrev - jumpThreshold)
@@ -867,56 +867,56 @@ TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][24], int xOri
 
 /**
  * @brief  XXX
- * @param  message
- * @param  image
- * @param  region
+ * @param  msg
+ * @param  img
+ * @param  reg
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
-PopulateArrayFromMosaic(DmtxMessage *message, DmtxImage *image, DmtxRegion *region)
+PopulateArrayFromMosaic(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
 {
    int col, row, rowTmp;
    int symbolRow, symbolCol;
    int dataRegionRows, dataRegionCols;
    int color;
 
-   dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, region->sizeIdx);
-   dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, region->sizeIdx);
+   dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, reg->sizeIdx);
+   dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, reg->sizeIdx);
 
-   memset(message->array, 0x00, message->arraySize);
+   memset(msg->array, 0x00, msg->arraySize);
 
-   for(row = 0; row < region->mappingRows; row++) {
+   for(row = 0; row < reg->mappingRows; row++) {
 
       /* Transform mapping row to symbol row (Swap because the array's
          origin is top-left and everything else is bottom-left) */
-      rowTmp = region->mappingRows - row - 1;
+      rowTmp = reg->mappingRows - row - 1;
       symbolRow = rowTmp + 2 * (rowTmp / dataRegionRows) + 1;
 
-      for(col = 0; col < region->mappingCols; col++) {
+      for(col = 0; col < reg->mappingCols; col++) {
 
          /* Transform mapping col to symbol col */
          symbolCol = col + 2 * (col / dataRegionCols) + 1;
 
 /* to fix this function, add rColor, gColor, bColor, and change ReadModuleColor() to accept plane as a parameter */
-         color = ReadModuleColor(image, region, symbolRow, symbolCol, region->sizeIdx);
+         color = ReadModuleColor(img, reg, symbolRow, symbolCol, reg->sizeIdx);
 
          /* Value has been assigned, but not visited */
 /*       if(color.R < 50) this is broken for the moment */
          if(color < 50)
-            message->array[row*region->mappingCols+col] |= DMTX_MODULE_ON_RED;
+            msg->array[row*reg->mappingCols+col] |= DMTX_MODULE_ON_RED;
 /*       if(color.G < 50) this is broken for the moment */
          if(color < 50)
-            message->array[row*region->mappingCols+col] |= DMTX_MODULE_ON_GREEN;
+            msg->array[row*reg->mappingCols+col] |= DMTX_MODULE_ON_GREEN;
 /*       if(color.B < 50) this is broken for the moment */
          if(color < 50)
-            message->array[row*region->mappingCols+col] |= DMTX_MODULE_ON_BLUE;
+            msg->array[row*reg->mappingCols+col] |= DMTX_MODULE_ON_BLUE;
 
-         message->array[row*region->mappingCols+col] |= DMTX_MODULE_ASSIGNED;
+         msg->array[row*reg->mappingCols+col] |= DMTX_MODULE_ASSIGNED;
       }
    }
 
    /* Ideal barcode drawn in lower-right (final) window pane */
-/* CALLBACK_DECODE_FUNC2(finalCallback, dec, dec, region); */
+/* CALLBACK_DECODE_FUNC2(finalCallback, dec, dec, reg); */
 
    return DMTX_SUCCESS;
 }

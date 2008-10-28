@@ -32,10 +32,9 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * TODO: experiment with MatrixRegionTighten() to find best hit
- * TODO: if it works, consider lowering the HOUGH_RES for the initial alignment
- * TODO: add +1 and -1 offset to FindBestSolidLine()
- * TODO: try -s2 again after tightening fit logic
+ * TODO: implement ability to specify expected barcode sizes
+ * TODO: finish calib edge travel end condition
+ * TODO: use calibration edge alignment to set known locs for all edges
  * TODO: Remove status from DmtxPixelLoc
  */
 
@@ -109,7 +108,7 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
    offset = dmtxImageGetOffset(dec->image, loc.X, loc.Y);
-   if(offset == DMTX_BAD_OFFSET /* || dec->image->cache[offset] & 0x40 */) {
+   if(offset == DMTX_BAD_OFFSET) { /* || dec->image->cache[offset] & 0x40 */
       reg.found = DMTX_REGION_NOT_FOUND;
       return reg;
    }
