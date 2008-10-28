@@ -43,6 +43,11 @@ StringToInt(int *numberInt, char *numberString, char **terminate)
 {
    long numberLong;
 
+   if(!isdigit(*numberString)) {
+      *numberInt = -1;
+      return DMTX_FAILURE;
+   }
+
    errno = 0;
    numberLong = strtol(numberString, terminate, 10);
 
