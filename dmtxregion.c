@@ -216,6 +216,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    int err;
    int cross;
    int minArea;
+   int scale;
    DmtxBestLine line1x, line2x;
    DmtxBestLine line2n, line2p;
    DmtxFollow fTmp;
@@ -229,15 +230,16 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
 
    /* Filter out region candidates that are smaller than expected */
    if(dec->edgeMin != -1) {
+      scale = dmtxImageGetProp(dec->image, DmtxPropScale);
       if(dec->sizeIdxExpected == DMTX_SYMBOL_SQUARE_AUTO ||
             (dec->sizeIdxExpected >= 0 &&
             dec->sizeIdxExpected < DMTX_SYMBOL_SQUARE_COUNT)) {
          /* Only interested in square barcodes */
-         minArea = dec->edgeMin * dec->edgeMin;
+         minArea = (dec->edgeMin * dec->edgeMin)/(scale * scale);
       }
       else {
          /* Unknown shape or rectangle barcodes */
-         minArea = 2 * dec->edgeMin * dec->edgeMin;
+         minArea = (2 * dec->edgeMin * dec->edgeMin)/(scale * scale);
       }
 
       if((reg->boundMax.X - reg->boundMin.X) * (reg->boundMax.Y - reg->boundMin.Y) < minArea) {

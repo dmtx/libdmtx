@@ -184,6 +184,39 @@ typedef enum {
    DmtxPropScaledYmax
 } DmtxDecodeProperty;
 
+typedef enum {
+   DmtxSymbol10x10,
+   DmtxSymbol12x12,
+   DmtxSymbol14x14,
+   DmtxSymbol16x16,
+   DmtxSymbol18x18,
+   DmtxSymbol20x20,
+   DmtxSymbol22x22,
+   DmtxSymbol24x24,
+   DmtxSymbol26x26,
+   DmtxSymbol32x32,
+   DmtxSymbol36x36,
+   DmtxSymbol40x40,
+   DmtxSymbol44x44,
+   DmtxSymbol48x48,
+   DmtxSymbol52x52,
+   DmtxSymbol64x64,
+   DmtxSymbol72x72,
+   DmtxSymbol80x80,
+   DmtxSymbol88x88,
+   DmtxSymbol96x96,
+   DmtxSymbol104x104,
+   DmtxSymbol120x120,
+   DmtxSymbol132x132,
+   DmtxSymbol144x144,
+   DmtxSymbol8x18,
+   DmtxSymbol8x32,
+   DmtxSymbol12x26,
+   DmtxSymbol12x36,
+   DmtxSymbol16x36,
+   DmtxSymbol16x48
+} DmtxSymbolSize;
+
 typedef double DmtxMatrix3[3][3];
 typedef unsigned char DmtxRgb[3];
 

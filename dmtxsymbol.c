@@ -164,7 +164,7 @@ dmtxGetBlockDataSize(int sizeIdx, int blockIdx)
    if(symbolDataWords < 1 || interleavedBlocks < 1)
       return -1;
 
-   return (sizeIdx == DmtxSize144x144 && blockIdx < 8) ? count + 1 : count;
+   return (sizeIdx == DmtxSymbol144x144 && blockIdx < 8) ? count + 1 : count;
 }
 
 /**
