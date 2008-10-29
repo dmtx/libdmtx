@@ -170,9 +170,6 @@ main(int argc, char *argv[])
          if(reg.found != DMTX_REGION_FOUND)
             break;
 
-         if(opt.diagnose)
-            WriteDiagnosticImage(&dec, &reg, "debug.pnm");
-
          /* Decode region based on requested barcode mode */
          if(opt.mosaic)
             message = dmtxDecodeMosaicRegion(img, &reg, opt.correctionsMax);
@@ -189,6 +186,9 @@ main(int argc, char *argv[])
          if(opt.stopAfter != -1 && ++scanCount >= opt.stopAfter)
             break;
       }
+
+      if(opt.diagnose)
+         WriteDiagnosticImage(&dec, &reg, "debug.pnm");
 
       dmtxDecodeStructDeInit(&dec);
       dmtxImageFree(&img);
@@ -727,10 +727,10 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
    int row, col;
    int width, height;
+   int offset;
    double shade;
    FILE *fp;
    DmtxRgb rgb;
-   DmtxVector2 p;
 
    fp = fopen(imagePath, "wb");
    if(fp == NULL) {
@@ -746,23 +746,27 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
 
-         dmtxImageGetRgb(dec->image, col, row, rgb);
+         offset = dmtxImageGetOffset(dec->image, col, row);
+         if(offset == DMTX_BAD_OFFSET) {
+            rgb[0] = 0;
+            rgb[1] = 0;
+            rgb[2] = 128;
+         }
+         else {
+            dmtxImageGetRgb(dec->image, col, row, rgb);
 
-         p.X = col;
-         p.Y = row;
-         dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
-
-         if(p.X < 0.0 || p.X > 1.0 || p.Y < 0.0 || p.Y > 1.0)
-            shade = 0.7;
-         else if(p.X + p.Y < 1.0)
-            shade = 0.0;
-         else
-            shade = 0.4;
-
-         rgb[0] += (shade * (255 - rgb[0]));
-         rgb[1] += (shade * (255 - rgb[1]));
-         rgb[2] += (shade * (255 - rgb[2]));
-
+            if(dec->image->cache[offset] & 0x40) {
+               rgb[0] = 255;
+               rgb[1] = 0;
+               rgb[2] = 0;
+            }
+            else {
+               shade = (dec->image->cache[offset] & 0x80) ? 0.0 : 0.7;
+               rgb[0] += (shade * (255 - rgb[0]));
+               rgb[1] += (shade * (255 - rgb[1]));
+               rgb[2] += (shade * (255 - rgb[2]));
+            }
+         }
          fwrite(rgb, sizeof(char), 3, fp);
       }
    }
