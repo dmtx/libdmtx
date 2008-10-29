@@ -1,1 +1,7 @@
-SUBDIRS = dmtxquery dmtxread dmtxwrite
+if BUILD_DMTXREAD
+  DMTXREAD_DIR = dmtxread
+endif
+if BUILD_DMTXWRITE
+  DMTXWRITE_DIR = dmtxwrite
+endif
+SUBDIRS = dmtxquery $(DMTXREAD_DIR) $(DMTXWRITE_DIR)
