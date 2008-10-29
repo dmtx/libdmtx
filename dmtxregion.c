@@ -32,13 +32,6 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * TODO: implement ability to specify expected barcode sizes
- * TODO: finish calib edge travel end condition
- * TODO: use calibration edge alignment to set known locs for all edges
- * TODO: Remove status from DmtxPixelLoc
- */
-
-/**
  * @brief  Find next barcode region
  * @param  dec Pointer to DmtxDecode information struct
  * @param  timeout Pointer to timeout time (NULL if none)
@@ -108,7 +101,8 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
    offset = dmtxImageGetOffset(dec->image, loc.X, loc.Y);
-   if(offset == DMTX_BAD_OFFSET /* || dec->image->cache[offset] & 0x40 */) {
+/* if(offset == DMTX_BAD_OFFSET || dec->image->cache[offset] & 0x40) { */
+   if(offset == DMTX_BAD_OFFSET) {
       reg.found = DMTX_REGION_NOT_FOUND;
       return reg;
    }

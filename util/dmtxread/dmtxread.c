@@ -713,6 +713,7 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       if(opt->newline)
          fputc('\n', stdout);
    }
+   fflush(stdout);
 
    return DMTX_SUCCESS;
 }

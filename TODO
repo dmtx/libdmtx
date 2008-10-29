@@ -1,16 +1,11 @@
 TODO Items
 -----------------------------------------------------------------
 
-specify minimum size of smallest edge (default 10)
-specify rectangle vs square (default square)
-
 after version 0.6.0:
-  o libdmtx:   New edge neighbor tracking (Hough Transform + 1-way edge cache)
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
   o libdmtx:   Allow choice of edge-drop condition passed to MatrixRegionAlignEdge()
-  o libdmtx:   Implement image mask to track scan progress and avoid rescanned pixels
   o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
   o libdmtx:   Implement --auto-fast option using algorithm from spec (lighter & faster?)
@@ -39,10 +34,23 @@ after version 0.6.0:
   o project:   Conditional use of local getopt.c
 
 version 0.6.0: (??-??-2008)
+  o libdmtx:   Finish calib edge travel end condition
+  o libdmtx:   Use calibration edge alignment to set precise locs for all edges
+  o libdmtx:   Remove status from DmtxPixelLoc
   / libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
+  x libdmtx:   Ability to specify expected barcode sizes
+  x libdmtx:   New edge neighbor tracking (Hough Transform + 2-way edge cache)
+  x libdmtx:   Info cache to track scan progress and avoid rescanning pixels
+  x libdmtx:   Scan multiple barcodes within an image
+  x libdmtx:   Reduction in memory footprint
+  x libdmtx:   Reduction in floating point math
+  o dmtxread:  New informative return codes (found, not found, error)
+  x dmtxread:  Read input from STDIN
   x dmtxread:  GraphicsMagick support for dmtxread (thanks Olivier!)
   x dmtxread:  JPEG reading support (thanks Ryan!)
   x dmtxwrite: Option to write output to STDOUT (thanks Olivier!)
+  x dmtxwrite: Write output to STDOUT
+  x project:   Improvements for cross platform builds
 
 version 0.5.2: (04-Sep-2008)
   x libdmtx:   Move SetRangeLimit and SetScanRegion into library
@@ -433,7 +441,7 @@ dmtxImageGetOffset(DmtxImage *img, int x, int y)
 {
    int offset;
 
-   if(img == NULL); // maybe check boundaries too?
+   if(img == NULL); /* maybe check boundaries too? */
       return -1;
 
    switch(img->originType) {
