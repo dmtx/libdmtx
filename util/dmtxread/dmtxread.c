@@ -449,11 +449,11 @@ OPTIONS:\n"), programName, programName);
   -q, --square-deviation=N    allow non-squareness of corners in degrees (0-90)\n"));
       fprintf(stdout, _("\
   -r, --resolution=N          resolution for vector images (PDF, SVG, etc...)\n\
-  -s, --symbol-size=[asr|RxC] only consider barcodes of specific size or shape:\n\
-            a = All sizes     [default]\n\
-            s = Only squares\n\
-            r = Only rectangles\n\
-          RxC = Exactly this many rows and columns (10x10, 8x18, etc...)\n\
+  -s, --symbol-size=[asr|RxC] only consider barcodes of specific size or shape\n\
+        a = All sizes         [default]\n\
+        s = Only squares\n\
+        r = Only rectangles\n\
+      RxC = Exactly this many rows and columns (10x10, 8x18, etc...)\n\
   -t, --threshold=N           ignore weak edges below threshold N (1-100)\n"));
       fprintf(stdout, _("\
   -x, --x-range-min=N[%%]      do not scan pixels to the left of N (or N%%)\n\
