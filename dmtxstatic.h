@@ -97,6 +97,7 @@ static double RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2,
 static DmtxPointFlow MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc0);
 static int MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin);
 static long DistanceSquared(DmtxPixelLoc a, DmtxPixelLoc b);
+static unsigned char *GetCacheAddress(DmtxDecode *dec, int x, int y);
 static int ReadModuleColor(DmtxImage *image, DmtxRegion *region,
       int symbolRow, int symbolCol, int sizeIdx);
 
@@ -105,16 +106,17 @@ static int CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStar
 static DmtxPointFlow GetPointFlow(DmtxDecode *dec, int colorPlane, DmtxPixelLoc loc, int arrive);
 static DmtxPointFlow FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center, int sign);
 static DmtxFollow FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek);
+static DmtxFollow FollowSeekLoc(DmtxDecode *dec, DmtxRegion *reg, DmtxPixelLoc loc);
 static DmtxFollow FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
+static DmtxFollow FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
 static int BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin);
 static int ClearTrail(DmtxDecode *dec, DmtxRegion *reg, unsigned char clearMask);
-static DmtxBestLine FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int houghAvoid);
+static DmtxBestLine FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int streamDir, int houghAvoid);
+static DmtxBestLine FindBestSolidLine2(DmtxDecode *dec, DmtxRegion *reg, DmtxPixelLoc loc0, int tripSteps, int sign, int houghAvoid);
 static int FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line);
 static int MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int whichEdge);
-static int FindBestGappedLine(DmtxDecode *dec, DmtxRegion *reg, int streamDir,
-      DmtxBresLine line, int *angle, int *strength, DmtxPixelLoc *final);
 static DmtxBresLine BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locInside);
-static int BresLineStepHit(DmtxBresLine *line, DmtxPixelLoc targetLoc);
+static int BresLineGetStep(DmtxBresLine line, DmtxPixelLoc target, int *travel, int *outward);
 static int BresLineStep(DmtxBresLine *line, int travel, int outward);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);*/
 

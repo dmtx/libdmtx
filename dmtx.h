@@ -351,8 +351,10 @@ typedef struct DmtxRegion_struct {
 
    /* Orientation values */
    int             polarity;      /* */
-   DmtxPixelLoc    locR;          /* */
-   DmtxPixelLoc    locT;          /* */
+   int             stepR;
+   int             stepT;
+   DmtxPixelLoc    locR;          /* remove if stepR works above */
+   DmtxPixelLoc    locT;          /* remove if stepT works above */
 
    /* Region fitting values */
    char            leftKnown;     /* known == 1; unknown == 0 */
