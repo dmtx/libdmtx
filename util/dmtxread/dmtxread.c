@@ -33,6 +33,7 @@ Contact: mike@dragonflylogic.com
 #include <math.h>
 #include <stdarg.h>
 #include <assert.h>
+#include <sysexits.h>
 #include <magick/api.h>
 #include <dmtx.h>
 #include "dmtxread.h"
@@ -53,7 +54,8 @@ main(int argc, char *argv[])
    int fileIndex;
    int pageIndex;
    int imgWidth, imgHeight;
-   int scanCount;
+   int fileScanCount, globalScanCount;
+   int nFiles;
    UserOptions opt;
    DmtxTime  msec, *timeout;
    DmtxImage *img;
@@ -61,20 +63,19 @@ main(int argc, char *argv[])
    DmtxRegion reg;
    DmtxMessage *message;
    ImageReader reader;
-   int nFiles;
 
    SetOptionDefaults(&opt);
    InitializeMagick(*argv);
 
    err = HandleArgs(&opt, &fileIndex, &argc, &argv);
    if(err != DMTX_SUCCESS)
-      ShowUsage(err);
+      ShowUsage(EX_USAGE);
 
-   scanCount = 0;
    timeout = (opt.timeoutMS == -1) ? NULL : &msec;
 
    reader.image = NULL;
    nFiles = argc - fileIndex;
+   globalScanCount = 0;
 
    /* Loop once for each page of each image listed in parameters */
    for(pageIndex = 0; fileIndex < argc || (nFiles == 0 && fileIndex == argc);) {
@@ -84,13 +85,13 @@ main(int argc, char *argv[])
          msec = dmtxTimeAdd(dmtxTimeNow(), opt.timeoutMS);
 
       /* Open image file/stream */
-      if (!reader.image) {
-         if (argc == fileIndex)
+      if(!reader.image) {
+         if(argc == fileIndex)
             OpenImage(&reader, "-", opt.resolution);
          else
             OpenImage(&reader, argv[fileIndex], opt.resolution);
 
-         if (!reader.image) {
+         if(!reader.image) {
             fileIndex++;
             continue;
          }
@@ -161,7 +162,7 @@ main(int argc, char *argv[])
       assert(err == DMTX_SUCCESS);
 
       /* Loop once for each detected barcode region */
-      for(;;) {
+      for(fileScanCount = 0;;) {
 
          /* Find next barcode region within image, but do not decode yet */
          reg = dmtxDecodeFindNextRegion(&dec, timeout);
@@ -180,12 +181,14 @@ main(int argc, char *argv[])
             continue;
 
          PrintDecodedOutput(&opt, img, &reg, message, pageIndex);
+         fileScanCount++;
 
          dmtxMessageFree(&message);
 
-         if(opt.stopAfter != -1 && ++scanCount >= opt.stopAfter)
+         if(opt.stopAfter != -1 && fileScanCount >= opt.stopAfter)
             break;
       }
+      globalScanCount += fileScanCount;
 
       if(opt.diagnose)
          WriteDiagnosticImage(&dec, &reg, "debug.pnm");
@@ -196,7 +199,7 @@ main(int argc, char *argv[])
 
    DestroyMagick();
 
-   exit(0);
+   exit((globalScanCount > 0) ? EX_OK : 1);
 }
 
 /**
@@ -293,10 +296,11 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
 
       switch(optchr) {
          case 0: /* --help */
-            ShowUsage(0);
+            ShowUsage(EX_OK);
             break;
          case 'l': /* --help */
             ListImageFormats();
+            exit(EX_OK);
             break;
          case 'c':
             opt->codewords = 1;
@@ -304,17 +308,17 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          case 'e':
             err = StringToInt(&(opt->edgeMin), optarg, &ptr);
             if(err != DMTX_SUCCESS || opt->edgeMin <= 0 || *ptr != '\0')
-               FatalError(1, _("Invalid edge length specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid edge length specified \"%s\""), optarg);
             break;
          case 'g':
             err = StringToInt(&(opt->scanGap), optarg, &ptr);
             if(err != DMTX_SUCCESS || opt->scanGap <= 0 || *ptr != '\0')
-               FatalError(1, _("Invalid gap specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid gap specified \"%s\""), optarg);
             break;
          case 'm':
             err = StringToInt(&(opt->timeoutMS), optarg, &ptr);
             if(err != DMTX_SUCCESS || opt->timeoutMS < 0 || *ptr != '\0')
-               FatalError(1, _("Invalid timeout (in milliseconds) specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid timeout (in milliseconds) specified \"%s\""), optarg);
             break;
          case 'n':
             opt->newline = 1;
@@ -323,7 +327,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             err = StringToInt(&(opt->squareDevn), optarg, &ptr);
             if(err != DMTX_SUCCESS || *ptr != '\0' ||
                   opt->squareDevn < 0 || opt->squareDevn > 90)
-               FatalError(1, _("Invalid squareness deviation specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid squareness deviation specified \"%s\""), optarg);
             break;
          case 'r':
             opt->resolution = optarg;
@@ -354,7 +358,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             err = StringToInt(&(opt->edgeThresh), optarg, &ptr);
             if(err != DMTX_SUCCESS || *ptr != '\0' ||
                   opt->edgeThresh < 1 || opt->edgeThresh > 100)
-               FatalError(1, _("Invalid edge threshold specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid edge threshold specified \"%s\""), optarg);
             break;
          case 'x':
             opt->xMin = optarg;
@@ -374,7 +378,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          case 'C':
             err = StringToInt(&(opt->correctionsMax), optarg, &ptr);
             if(err != DMTX_SUCCESS || opt->correctionsMax < 0 || *ptr != '\0')
-               FatalError(1, _("Invalid max corrections specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid max corrections specified \"%s\""), optarg);
             break;
          case 'D':
             opt->diagnose = 1;
@@ -385,7 +389,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          case 'N':
             err = StringToInt(&(opt->stopAfter), optarg, &ptr);
             if(err != DMTX_SUCCESS || opt->stopAfter < 1 || *ptr != '\0')
-               FatalError(1, _("Invalid count specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid count specified \"%s\""), optarg);
             break;
          case 'P':
             opt->pageNumber = 1;
@@ -396,13 +400,13 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          case 'S':
             err = StringToInt(&(opt->shrinkMax), optarg, &ptr);
             if(err != DMTX_SUCCESS || opt->shrinkMax < 1 || *ptr != '\0')
-               FatalError(1, _("Invalid shrink factor specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid shrink factor specified \"%s\""), optarg);
             /* XXX later also popular shrinkMin based on N-N range */
             break;
          case 'V':
             fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
             fprintf(stdout, "libdmtx version %s\n", dmtxVersion());
-            exit(0);
+            exit(EX_OK);
             break;
          default:
             return DMTX_FAILURE;
@@ -428,11 +432,9 @@ ShowUsage(int status)
    }
    else {
       fprintf(stdout, _("Usage: %s [OPTION]... [FILE]...\n"), programName);
-/*to STDOUT.  Note that %s may find multiple barcodes in one image.\n\*/
       fprintf(stdout, _("\
 Scan image FILE for Data Matrix barcodes and print decoded results to\n\
-STDOUT.  Note: %s currently stops scanning after it decodes the\n\
-first barcode in an image.\n\
+STDOUT.  Note that %s may find multiple barcodes in one image.\n\
 \n\
 Example: Scan top third of images using gap no larger than 10 pixels\n\
 \n\
@@ -493,7 +495,7 @@ ScaleNumberString(char *s, int extent)
 
    err = StringToInt(&numValue, s, &terminate);
    if(err != DMTX_SUCCESS)
-      FatalError(1, _("Integer value required"));
+      FatalError(EX_USAGE, _("Integer value required"));
 
    scaledValue = (*terminate == '%') ? (int)(0.01 * numValue * extent + 0.5) : numValue;
 
@@ -530,19 +532,18 @@ ListImageFormats(void)
 
          fprintf(stdout, "%9s", formats[i]->name ? formats[i]->name : "");
          if(formats[i]->description != (char *)NULL)
-            printf("  %s\n",formats[i]->description);
+            fprintf(stdout, "  %s\n",formats[i]->description);
       }
       free(formats);
    }
 
    DestroyExceptionInfo(&exception);
-   exit(0);
 }
 
 /**
  * @brief  Open an image input file
- * @param  reader     pointer to ImageReader struct
- * @param  imagePath  image path or "-" for stdin
+ * @param  reader Pointer to ImageReader struct
+ * @param  imagePath Image path or "-" for stdin
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
 static int
@@ -570,12 +571,13 @@ OpenImage(ImageReader *reader, char *imagePath, char *resolution)
          break;
       default:
          CatchException(&reader->exception);
+         break;
    }
 
-   if (!reader->image)
+   if(!reader->image)
       CloseImage(reader);
 
-   return reader->image ? DMTX_SUCCESS : DMTX_FAILURE;
+   return (reader->image) ? DMTX_SUCCESS : DMTX_FAILURE;
 }
 
 /**
@@ -735,7 +737,7 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
    fp = fopen(imagePath, "wb");
    if(fp == NULL) {
       perror(programName);
-      exit(3);
+      FatalError(EX_CANTCREAT, _("Unable to write image \"%s\""), imagePath);
    }
 
    width = dmtxImageGetProp(dec->image, DmtxPropScaledWidth);

@@ -10,11 +10,9 @@
 dmtxread \- scan Data Matrix barcodes
 .SH SYNOPSIS
 .B dmtxread
-[\fIOPTION\fP]... [\fIFILE\fP]...
+[\fIoptions\fP] [\fIFILE\fP]...
 .SH DESCRIPTION
-dmtxread finds and decodes ECC200 Data Matrix barcodes within images and writes the decoded messages to standard output. Note: dmtxread currently stops scanning after it decodes the first barcode in an image.
-
-If you don't specify any file, or use "-" as filename, dmtxread will read image data from STDIN.
+\fBdmtxread\fP searches the named input FILEs (or standard input if no files are named or the filename "-" is given) for ECC200 Data Matrix barcodes, reads their contents, and writes the decoded messages to standard output.
 .SH OPTIONS
 .TP
 \fB\-c\fP, \fB\-\-codewords\fP
@@ -96,6 +94,11 @@ Display this help message and quit.
 ISO/IEC 16022:2000
 .PP
 ANSI/AIM BC11 ISS
+.SH DIAGNOSTICS
+Exit status has following possible meanings:
+   0  At least one barcode was found and decoded
+   1  No barcodes were found
+  >1  Error occurred that prevented command from executing normally
 .SH BUGS
 Email bug reports to \fImike@dragonflylogic.com\fP
 .SH AUTHOR

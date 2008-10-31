@@ -12,7 +12,7 @@ dmtxwrite \- create Data Matrix barcodes
 .B dmtxwrite
 [\fIOPTION\fP]... [FILE]
 .SH DESCRIPTION
-dmtxwrite encodes data from a file or STDIN, and writes the resulting ECC200 Data Matrix barcode as an image.
+\fBdmtxwrite\fP encodes data from a file or standard input, and writes the resulting ECC200 Data Matrix barcode as an image.
 .SH OPTIONS
 .TP
 \fB\-c\fP, \fB\-\-color\fP=\fICOLOR\fP
@@ -45,10 +45,10 @@ Barcode output format.
    m = PNM              PNM image
 .TP
 \fB\-o\fP, \fB\-\-output\fP=\fIFILE\fP
-Barcode output filename. Default is STDOUT.
+Barcode output filename. Default is standard output.
 .TP
 \fB\-p\fP, \fB\-\-preview\fP=[ac]
-Barcode preview (STDOUT).
+Barcode preview (standard output).
    a = ASCII            ASCII-art representation
    c = Codewords        list data and error codewords
 .TP
