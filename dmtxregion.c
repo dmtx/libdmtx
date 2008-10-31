@@ -221,9 +221,9 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    DmtxFollow fTmp;
 
    /* Follow to end in both directions */
-   BlazeTrail(dec, reg, begin);
+   TrailBlazeContinuous(dec, reg, begin);
    if(reg->stepsTotal < 40) {
-      ClearTrail(dec, reg, 0x40);
+      TrailClear(dec, reg, 0x40);
       return DMTX_FAILURE;
    }
 
@@ -242,20 +242,20 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
       }
 
       if((reg->boundMax.X - reg->boundMin.X) * (reg->boundMax.Y - reg->boundMin.Y) < minArea) {
-         ClearTrail(dec, reg, 0x40);
+         TrailClear(dec, reg, 0x40);
          return DMTX_FAILURE;
       }
    }
 
    line1x = FindBestSolidLine(dec, reg, 0, 0, +1, -1);
    if(line1x.mag < 5) {
-      ClearTrail(dec, reg, 0x40);
+      TrailClear(dec, reg, 0x40);
       return DMTX_FAILURE;
    }
 
    err = FindTravelLimits(dec, reg, &line1x);
    if(line1x.distSq < 100 || line1x.devn * 10 > sqrt(line1x.distSq)) {
-      ClearTrail(dec, reg, 0x40);
+      TrailClear(dec, reg, 0x40);
       return DMTX_FAILURE;
    }
    assert(line1x.stepPos >= line1x.stepNeg);
@@ -946,7 +946,7 @@ FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center, int sign)
       flow[i] = GetPointFlow(dec, center.plane, loc, i);
 
       if(strongIdx == -1 || flow[i].mag > flow[strongIdx].mag ||
-            (flow[i].mag == flow[strongIdx].mag && ((i & 0x01) == 0))) {
+            (flow[i].mag == flow[strongIdx].mag && ((i & 0x01) != 0))) {
          strongIdx = i;
       }
    }
@@ -1092,7 +1092,7 @@ FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
  * 0x07 d = 3 bits points downstream 0-7
  */
 static int
-BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
+TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
 {
    int posAssigns, negAssigns, clears;
    int sign;
@@ -1140,8 +1140,8 @@ BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
          *cache |= (sign < 0) ? flowNext.arrive : flowNext.arrive << 3;
 
          /* Mark known direction for next location */
-         /*if testing downstream (sign < 0) then next upstream is opposite of next arrival*/
-         /*if testing upstream (sign > 0) then next downstream is opposite of next arrival*/
+         /* If testing downstream (sign < 0) then next upstream is opposite of next arrival */
+         /* If testing upstream (sign > 0) then next downstream is opposite of next arrival */
          *cacheNext = (sign < 0) ? (((flowNext.arrive + 4)%8) << 3) : ((flowNext.arrive + 4)%8);
          *cacheNext |= (0x80 | 0x40); /* Mark location as visited and assigned */
          if(sign > 0)
@@ -1177,10 +1177,102 @@ BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
    reg->boundMax = boundMax;
 
    /* Clear "visited" bit from trail */
-   clears = ClearTrail(dec, reg, 0x80);
+   clears = TrailClear(dec, reg, 0x80);
    assert(posAssigns + negAssigns == clears - 1);
 
    return DMTX_SUCCESS;
+}
+
+/**
+ * recives bresline, and follows strongest neighbor unless it involves
+ * ratcheting bresline inward or backward (although back + outward is allowed).
+ *
+ */
+static int
+TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int streamDir)
+{
+   unsigned char *beforeCache, *afterCache;
+   int err;
+   int onEdge;
+   int distSq, distSqMax;
+   int travel, outward;
+   int xDiff, yDiff;
+   int steps;
+   int stepDir, dirMap[] = { 0, 1, 2, 7, 8, 3, 6, 5, 4 };
+   DmtxPixelLoc beforeStep, afterStep;
+   DmtxPointFlow flow, flowNext;
+   DmtxPixelLoc loc0;
+   int xStep, yStep;
+
+   loc0 = line.loc;
+   flow = GetPointFlow(dec, reg->flowBegin.plane, loc0, dmtxNeighborNone);
+   distSqMax = (line.xDelta * line.xDelta) + (line.yDelta * line.yDelta);
+   steps = 0;
+   onEdge = 1;
+
+   beforeStep = loc0;
+   beforeCache = GetCacheAddress(dec, loc0.X, loc0.Y);
+   if(beforeCache == NULL)
+      return DMTX_FAILURE;
+   else
+      *beforeCache = 0x00; /* probably should just overwrite one direction */
+
+   do {
+      if(onEdge) {
+         flowNext = FindStrongestNeighbor(dec, flow, streamDir);
+         if(flowNext.mag == -1)
+            break;
+
+         err = BresLineGetStep(line, flowNext.loc, &travel, &outward);
+         if(flowNext.mag < 50 || outward < 0 || (outward == 0 && travel < 0)) {
+            onEdge = 0;
+         }
+         else {
+            BresLineStep(&line, travel, outward);
+            flow = flowNext;
+         }
+      }
+
+      if(!onEdge) {
+         BresLineStep(&line, 1, 0);
+         flow = GetPointFlow(dec, reg->flowBegin.plane, line.loc, dmtxNeighborNone);
+         if(flow.mag > 50)
+            onEdge = 1;
+      }
+
+      afterStep = line.loc;
+      afterCache = GetCacheAddress(dec, afterStep.X, afterStep.Y);
+      if(afterCache == NULL)
+         break;
+
+      /* Determine step direction using pure magic */
+      xStep = afterStep.X - beforeStep.X;
+      yStep = afterStep.Y - beforeStep.Y;
+      assert(abs(xStep <= 1) && abs(yStep <= 1));
+      stepDir = dirMap[3 * yStep + xStep + 4];
+      assert(stepDir != 8);
+
+      if(streamDir < 0) {
+         *beforeCache |= (0x40 | stepDir);
+         *afterCache = (((stepDir + 4)%8) << 3);
+      }
+      else {
+         *beforeCache |= (0x40 | (stepDir << 3));
+         *afterCache = ((stepDir + 4)%8);
+      }
+
+      /* Guaranteed to have taken one step since top of loop */
+      xDiff = line.loc.X - loc0.X;
+      yDiff = line.loc.Y - loc0.Y;
+      distSq = (xDiff * xDiff) + (yDiff * yDiff);
+
+      beforeStep = line.loc;
+      beforeCache = afterCache;
+      steps++;
+
+   } while(distSq < distSqMax);
+
+   return steps;
 }
 
 /**
@@ -1188,7 +1280,7 @@ BlazeTrail(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
  *
  */
 static int
-ClearTrail(DmtxDecode *dec, DmtxRegion *reg, unsigned char clearMask)
+TrailClear(DmtxDecode *dec, DmtxRegion *reg, unsigned char clearMask)
 {
    int clears;
    DmtxFollow follow;
@@ -1255,7 +1347,7 @@ FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int st
       sign = +1;
       tripSteps = reg->stepsTotal;
    }
-assert(sign == streamDir);
+   assert(sign == streamDir);
 
    follow = FollowSeek(dec, reg, step0);
    rHp = follow.loc;
@@ -1517,30 +1609,20 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
 }
 
 /**
- * totally have it now.
- * walk the line starting with step ... follow it to end leaving trails like before (stupid mike)
- * THEN try to find the hough line.
+ *
+ *
  */
 static int
 MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edgeLoc)
 {
-   int err;
    int streamDir;
-   int distSq, distSqMax;
-   int travel, outward;
-   int xDiff, yDiff;
-   int onEdge;
    int steps;
-   int stepDir, dirMap[] = { 0, 1, 2, 7, 8, 3, 6, 5, 4 };
-   int xStep, yStep;
    int avoidAngle;
-   unsigned char *beforeCache, *afterCache;
+   int symbolShape;
    DmtxVector2 pTmp;
    DmtxPixelLoc loc0, loc1, locOrigin;
-   DmtxPixelLoc beforeStep, afterStep;
    DmtxBresLine line;
    DmtxFollow follow;
-   DmtxPointFlow flow, flowNext;
    DmtxBestLine bestLine;
 
    /* Determine pixel coordinates of origin */
@@ -1551,30 +1633,31 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edgeLoc)
    locOrigin.Y = (int)(pTmp.Y + 0.5);
    locOrigin.status = DMTX_RANGE_GOOD;
 
+   if(dec->sizeIdxExpected == DMTX_SYMBOL_SQUARE_AUTO ||
+         (dec->sizeIdxExpected >= DmtxSymbol10x10 &&
+         dec->sizeIdxExpected <= DmtxSymbol144x144))
+      symbolShape = DMTX_SYMBOL_SQUARE_AUTO;
+   else if(dec->sizeIdxExpected == DMTX_SYMBOL_RECT_AUTO ||
+         (dec->sizeIdxExpected >= DmtxSymbol8x18 &&
+         dec->sizeIdxExpected <= DmtxSymbol16x48))
+      symbolShape = DMTX_SYMBOL_RECT_AUTO;
+   else
+      symbolShape = DMTX_SYMBOL_SHAPE_AUTO;
+
    /* Determine end locations of test line */
    if(edgeLoc == DmtxEdgeTop) {
       streamDir = reg->polarity * -1;
       avoidAngle = reg->leftLine.angle;
       follow = FollowSeekLoc(dec, reg, reg->locT);
       pTmp.X = 0.8;
-      if(dec->sizeIdxExpected == DMTX_SYMBOL_RECT_AUTO ||
-            (dec->sizeIdxExpected >= DmtxSymbol8x18 &&
-             dec->sizeIdxExpected <= DmtxSymbol16x48))
-         pTmp.Y = 0.2;
-      else
-         pTmp.Y = 0.6;
+      pTmp.Y = (symbolShape == DMTX_SYMBOL_RECT_AUTO) ? 0.2 : 0.6;
    }
    else {
       assert(edgeLoc == DmtxEdgeRight);
       streamDir = reg->polarity;
       avoidAngle = reg->bottomLine.angle;
       follow = FollowSeekLoc(dec, reg, reg->locR);
-      if(dec->sizeIdxExpected == DMTX_SYMBOL_SQUARE_AUTO ||
-            (dec->sizeIdxExpected >= DmtxSymbol10x10 &&
-             dec->sizeIdxExpected <= DmtxSymbol144x144))
-         pTmp.X = 0.7;
-      else
-         pTmp.X = 0.9;
+      pTmp.X = (symbolShape == DMTX_SYMBOL_SQUARE_AUTO) ? 0.7 : 0.9;
       pTmp.Y = 0.8;
    }
 
@@ -1584,75 +1667,8 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edgeLoc)
    loc1.status = DMTX_RANGE_GOOD;
 
    loc0 = follow.loc;
-
-   flow = GetPointFlow(dec, reg->flowBegin.plane, loc0, dmtxNeighborNone);
    line = BresLineInit(loc0, loc1, locOrigin);
-   distSqMax = (line.xDelta * line.xDelta) + (line.yDelta * line.yDelta);
-   steps = 0;
-   onEdge = 1;
-
-   beforeStep = loc0;
-   beforeCache = GetCacheAddress(dec, loc0.X, loc0.Y);
-   if(beforeCache == NULL)
-      return DMTX_FAILURE;
-   else
-      *beforeCache = 0x00; /* probably should just overwrite one direction */
-
-   /* XXX this will become BlazeGappedTrail() later */
-   do {
-      if(onEdge) {
-         flowNext = FindStrongestNeighbor(dec, flow, streamDir);
-         if(flowNext.mag == -1)
-            break;
-
-         err = BresLineGetStep(line, flowNext.loc, &travel, &outward);
-         if(flowNext.mag < 50 || outward < 0 || (outward == 0 && travel < 0)) {
-            onEdge = 0;
-         }
-         else {
-            BresLineStep(&line, travel, outward);
-            flow = flowNext;
-         }
-      }
-
-      if(!onEdge) {
-         BresLineStep(&line, 1, 0);
-         flow = GetPointFlow(dec, reg->flowBegin.plane, line.loc, dmtxNeighborNone);
-         if(flow.mag > 50)
-            onEdge = 1;
-      }
-
-      afterStep = line.loc;
-      afterCache = GetCacheAddress(dec, afterStep.X, afterStep.Y);
-      if(afterCache == NULL)
-         break;
-
-      /* Determine step direction using pure magic */
-      xStep = afterStep.X - beforeStep.X;
-      yStep = afterStep.Y - beforeStep.Y;
-      assert(abs(xStep <= 1) && abs(yStep <= 1));
-      stepDir = dirMap[3 * yStep + xStep + 4];
-      assert(stepDir != 8);
-
-      if(streamDir < 0) {
-         *beforeCache |= (0x40 | stepDir);
-         *afterCache = (((stepDir + 4)%8) << 3);
-      }
-      else {
-         *beforeCache |= (0x40 | (stepDir << 3));
-         *afterCache = ((stepDir + 4)%8);
-      }
-
-      /* Guaranteed to have taken one step since top of loop */
-      xDiff = line.loc.X - loc0.X;
-      yDiff = line.loc.Y - loc0.Y;
-      distSq = (xDiff * xDiff) + (yDiff * yDiff);
-
-      beforeStep = line.loc;
-      beforeCache = afterCache;
-      steps++;
-
-   } while(distSq < distSqMax);
+   steps = TrailBlazeGapped(dec, reg, line, streamDir);
 
    bestLine = FindBestSolidLine2(dec, reg, loc0, steps, streamDir, avoidAngle);
    if(bestLine.mag < 5) {
