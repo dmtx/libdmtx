@@ -109,7 +109,7 @@ static DmtxFollow FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek);
 static DmtxFollow FollowSeekLoc(DmtxDecode *dec, DmtxRegion *reg, DmtxPixelLoc loc);
 static DmtxFollow FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
 static DmtxFollow FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
-static int TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin);
+static int TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin, int maxDiagonal);
 static int TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int streamDir);
 static int TrailClear(DmtxDecode *dec, DmtxRegion *reg, unsigned char clearMask);
 static DmtxBestLine FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int streamDir, int houghAvoid);

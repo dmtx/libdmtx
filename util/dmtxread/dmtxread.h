@@ -37,6 +37,7 @@ Contact: mike@dragonflylogic.com
 typedef struct {
    int codewords;       /* -c, --codewords */
    int edgeMin;         /* -e, --minimum-edge */
+   int edgeMax;         /* -E, --maximum-edge */
    int squareDevn;      /* -d, --square-deviation */
    int scanGap;         /* -g, --gap */
    int timeoutMS;       /* -m, --milliseconds */

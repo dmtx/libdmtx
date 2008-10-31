@@ -54,7 +54,8 @@ dmtxDecodeStructInit(DmtxImage *img)
    img->yMin = img->yMinScaled = 0;
    img->yMax = img->yMaxScaled = img->height - 1;
 
-   dec.edgeMin = 1;
+   dec.edgeMin = -1;
+   dec.edgeMax = -1;
    dec.scanGap = 1;
    dec.squareDevn = cos(50 * (M_PI/180));
    dec.sizeIdxExpected = DMTX_SYMBOL_SHAPE_AUTO;
@@ -93,6 +94,9 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
    switch(prop) {
       case DmtxPropEdgeMin:
          dec->edgeMin = value;
+         break;
+      case DmtxPropEdgeMax:
+         dec->edgeMax = value;
          break;
       case DmtxPropScanGap:
          dec->scanGap = value;

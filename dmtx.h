@@ -161,6 +161,7 @@ typedef enum {
 
 typedef enum {
    DmtxPropEdgeMin,
+   DmtxPropEdgeMax,
    DmtxPropScanGap,
    DmtxPropSquareDevn,
    DmtxPropSymbolSize,
@@ -436,6 +437,7 @@ typedef struct DmtxDecode_struct {
    DmtxImage       *image;
    DmtxScanGrid    grid;
    int             edgeMin;
+   int             edgeMax;
    int             scanGap;
    double          squareDevn;
    int             sizeIdxExpected;

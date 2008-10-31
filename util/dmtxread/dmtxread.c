@@ -124,6 +124,11 @@ main(int argc, char *argv[])
          assert(err == DMTX_SUCCESS);
       }
 
+      if(opt.edgeMax != -1) {
+         err = dmtxDecodeSetProp(&dec, DmtxPropEdgeMax, opt.edgeMax);
+         assert(err == DMTX_SUCCESS);
+      }
+
       if(opt.squareDevn != -1) {
          err = dmtxDecodeSetProp(&dec, DmtxPropSquareDevn, opt.squareDevn);
          assert(err == DMTX_SUCCESS);
@@ -216,6 +221,7 @@ SetOptionDefaults(UserOptions *opt)
    /* Set default options */
    option.codewords = 0;
    option.edgeMin = -1;
+   option.edgeMax = -1;
    option.squareDevn = -1;
    option.scanGap = 2;
    option.timeoutMS = -1;
@@ -260,6 +266,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
    struct option longOptions[] = {
          {"codewords",        no_argument,       NULL, 'c'},
          {"minimum-edge",     required_argument, NULL, 'e'},
+         {"maximum-edge",     required_argument, NULL, 'E'},
          {"gap",              required_argument, NULL, 'g'},
          {"list-formats",     no_argument,       NULL, 'l'},
          {"milliseconds",     required_argument, NULL, 'm'},
@@ -290,7 +297,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      optchr = getopt_long(*argcp, *argvp, "ce:g:lm:nq:r:s:t:x:X:y:Y:vC:DMN:PRS:V", longOptions, &longIndex);
+      optchr = getopt_long(*argcp, *argvp, "ce:E:g:lm:nq:r:s:t:x:X:y:Y:vC:DMN:PRS:V", longOptions, &longIndex);
       if(optchr == -1)
          break;
 
@@ -308,6 +315,11 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          case 'e':
             err = StringToInt(&(opt->edgeMin), optarg, &ptr);
             if(err != DMTX_SUCCESS || opt->edgeMin <= 0 || *ptr != '\0')
+               FatalError(EX_USAGE, _("Invalid edge length specified \"%s\""), optarg);
+            break;
+         case 'E':
+            err = StringToInt(&(opt->edgeMax), optarg, &ptr);
+            if(err != DMTX_SUCCESS || opt->edgeMax <= 0 || *ptr != '\0')
                FatalError(EX_USAGE, _("Invalid edge length specified \"%s\""), optarg);
             break;
          case 'g':
@@ -444,6 +456,7 @@ OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
   -c, --codewords             print codewords extracted from barcode pattern\n\
   -e, --minimum-edge=N        pixel length of smallest expected edge in image\n\
+  -E, --maximum-edge=N        pixel length of largest expected edge in image\n\
   -g, --gap=NUM               use scan grid with gap of NUM pixels between lines\n\
   -l, --list-formats          list supported input image formats\n\
   -m, --milliseconds=N        stop scan after N milliseconds (per image)\n\

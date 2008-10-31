@@ -216,13 +216,36 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    int cross;
    int minArea;
    int scale;
+   int symbolShape;
+   int maxDiagonal;
    DmtxBestLine line1x, line2x;
    DmtxBestLine line2n, line2p;
    DmtxFollow fTmp;
 
+   if(dec->sizeIdxExpected == DMTX_SYMBOL_SQUARE_AUTO ||
+         (dec->sizeIdxExpected >= DmtxSymbol10x10 &&
+         dec->sizeIdxExpected <= DmtxSymbol144x144))
+      symbolShape = DMTX_SYMBOL_SQUARE_AUTO;
+   else if(dec->sizeIdxExpected == DMTX_SYMBOL_RECT_AUTO ||
+         (dec->sizeIdxExpected >= DmtxSymbol8x18 &&
+         dec->sizeIdxExpected <= DmtxSymbol16x48))
+      symbolShape = DMTX_SYMBOL_RECT_AUTO;
+   else
+      symbolShape = DMTX_SYMBOL_SHAPE_AUTO;
+
+   if(dec->edgeMax != -1) {
+      if(symbolShape == DMTX_SYMBOL_RECT_AUTO)
+         maxDiagonal = (int)(1.23 * dec->edgeMax + 0.5); /* sqrt(5/4) + 10% */
+      else
+         maxDiagonal = (int)(1.56 * dec->edgeMax + 0.5); /* sqrt(2) + 10% */
+   }
+   else {
+      maxDiagonal = -1;
+   }
+
    /* Follow to end in both directions */
-   TrailBlazeContinuous(dec, reg, begin);
-   if(reg->stepsTotal < 40) {
+   err = TrailBlazeContinuous(dec, reg, begin, maxDiagonal);
+   if(err == DMTX_FAILURE || reg->stepsTotal < 40) {
       TrailClear(dec, reg, 0x40);
       return DMTX_FAILURE;
    }
@@ -230,16 +253,11 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    /* Filter out region candidates that are smaller than expected */
    if(dec->edgeMin != -1) {
       scale = dmtxImageGetProp(dec->image, DmtxPropScale);
-      if(dec->sizeIdxExpected == DMTX_SYMBOL_SQUARE_AUTO ||
-            (dec->sizeIdxExpected >= 0 &&
-            dec->sizeIdxExpected < DMTX_SYMBOL_SQUARE_COUNT)) {
-         /* Only interested in square barcodes */
+
+      if(symbolShape == DMTX_SYMBOL_SQUARE_AUTO)
          minArea = (dec->edgeMin * dec->edgeMin)/(scale * scale);
-      }
-      else {
-         /* Unknown shape or rectangle barcodes */
+      else
          minArea = (2 * dec->edgeMin * dec->edgeMin)/(scale * scale);
-      }
 
       if((reg->boundMax.X - reg->boundMin.X) * (reg->boundMax.Y - reg->boundMin.Y) < minArea) {
          TrailClear(dec, reg, 0x40);
@@ -1092,7 +1110,7 @@ FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
  * 0x07 d = 3 bits points downstream 0-7
  */
 static int
-TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
+TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin, int maxDiagonal)
 {
    int posAssigns, negAssigns, clears;
    int sign;
@@ -1120,6 +1138,10 @@ TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
       cache = cacheBeg;
 
       for(steps = 0; ; steps++) {
+
+         if(maxDiagonal != -1 && (boundMax.X - boundMin.X > maxDiagonal ||
+               boundMax.Y - boundMin.Y > maxDiagonal))
+            break;
 
          /* Find the strongest eligible neighbor */
          flowNext = FindStrongestNeighbor(dec, flow, sign);
@@ -1179,6 +1201,11 @@ TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin)
    /* Clear "visited" bit from trail */
    clears = TrailClear(dec, reg, 0x80);
    assert(posAssigns + negAssigns == clears - 1);
+
+   /* XXX clean this up ... redundant test above */
+   if(maxDiagonal != -1 && (boundMax.X - boundMin.X > maxDiagonal ||
+         boundMax.Y - boundMin.Y > maxDiagonal))
+      return DMTX_FAILURE;
 
    return DMTX_SUCCESS;
 }
