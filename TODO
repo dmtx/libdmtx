@@ -5,7 +5,6 @@ after version 0.6.0:
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
-  o libdmtx:   Allow choice of edge-drop condition passed to MatrixRegionAlignEdge()
   o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
   o libdmtx:   Implement --auto-fast option using algorithm from spec (lighter & faster?)
@@ -20,7 +19,6 @@ after version 0.6.0:
                - When module is determined to be "off" then add half of color vector
                - When module is determined to be "on" then subtract half of color vector
                - resulting image should clearly show misread modules
-  o dmtxread:  Change dmtxread to print out trail left by scanning logic (future)
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
   o dmtxwrite: Print character values (not just codewords) from --format=c (-fc) option
   o dmtxwrite: Verbose messages describing encoding process
@@ -33,24 +31,26 @@ after version 0.6.0:
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
   o project:   Conditional use of local getopt.c
 
-version 0.6.0: (??-??-2008)
+version 0.6.0: (??-Nov-2008)
   o libdmtx:   Finish calib edge travel end condition
   o libdmtx:   Use calibration edge alignment to set precise locs for all edges
   o libdmtx:   Remove status from DmtxPixelLoc
   / libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
-  x libdmtx:   Ability to specify expected barcode sizes
+  x libdmtx:   New --disable-dmtxread and --disable-dmtxwrite (thanks Romain!)
+  x libdmtx:   Ability to specify max/min expected barcode sizes
   x libdmtx:   New edge neighbor tracking (Hough Transform + 2-way edge cache)
   x libdmtx:   Info cache to track scan progress and avoid rescanning pixels
   x libdmtx:   Scan multiple barcodes within an image
-  x libdmtx:   Reduction in memory footprint
-  x libdmtx:   Reduction in floating point math
-  o dmtxread:  New informative return codes (found, not found, error)
+  x libdmtx:   Significant reduction in memory footprint
+  x libdmtx:   Big reduction of floating point math in early steps
+  x dmtxread:  New informative return codes (found, not found, error)
   x dmtxread:  Read input from STDIN
-  x dmtxread:  GraphicsMagick support for dmtxread (thanks Olivier!)
+  x dmtxread:  GraphicsMagick support for image reading (thanks Olivier!)
   x dmtxread:  JPEG reading support (thanks Ryan!)
+  x dmtxread:  Diagnostic images contain trail left by scanning logic
   x dmtxwrite: Option to write output to STDOUT (thanks Olivier!)
   x dmtxwrite: Write output to STDOUT
-  x project:   Improvements for cross platform builds
+  x project:   Various improvements for cross platform builds
 
 version 0.5.2: (04-Sep-2008)
   x libdmtx:   Move SetRangeLimit and SetScanRegion into library

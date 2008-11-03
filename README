@@ -43,19 +43,18 @@ Most people can simply run the following:
   $ make
   $ sudo make install
 
-If the 'sudo' command is not configured on your system then you
-can alternatively yell "Yeeehaww!" as you log in as root and run
-this instead:
+If the 'sudo' command is not configured on your system then
+alternatively you can yell "Yeeehaww!" as you log in as root and
+run this instead:
 
   $ make install
 
-If you're awesome and it compiled on the first try then you can
-now use the newly built library and utility programs that were
-just installed system-wide.
+If you're awesome and it compiled on the first try, you can now
+use the newly built library and utility programs that were just
+installed system-wide. However, if something when wrong then keep
+reading.
 
-However, if something when wrong then keep reading.
-
-If you obtained libdmtx from its Subversion repository then you
+If you obtained libdmtx from its Subversion repository you
 probably got an error saying something like "configure: error:
 cannot find install-sh". Run this command and try again:
 
@@ -66,8 +65,8 @@ pkgconfig to be installed on your system.
 
 Errors encountered during the "make" step are often a result of
 missing software dependencies. These dependencies are listed in
-Appendix A. of this document. Install any missing software and
-try again.
+Appendix A. of this file. Install any missing software and try
+again.
 
 For more information on the "./configure" step please read the
 INSTALL file located in this directory. If the INSTALL file does
@@ -77,6 +76,13 @@ If you want to ensure that everything built correctly you can
 optionally build the test programs like this:
 
   $ make check
+
+This command will not perform any tests, but will build the
+programs that contain the test logic: simpletest, unittest,
+and gltest. Note that the gltest program has significant
+dependencies due to its graphical nature, and does not provide
+significant utility unless you are testing the library decoding
+internals.
 
 
 3. Components
@@ -91,8 +97,8 @@ components generally fall into one of four categories:
   * Language Wrappers (useful to non-C/C++ developers)
   * Test programs     (useful to libdmtx developers)
 
-Appendix A. at the end of this document provides a full list of
-these components and their properties.
+Appendix A. at the end of this file provides a full list of these
+components and their properties.
 
 
 4. Basic Usage
@@ -103,9 +109,9 @@ and command line utilities. However, here are a few simple cases
 to get you started:
 
 The dmtxwrite utility turns messages into a barcode images.
-Messages are passed to dmtxwrite via file or STDIN, and the
-output images are written to file or STDOUT. The following
-examples all produce equivalent results:
+Messages are passed to dmtxwrite via file or standard input, and
+the output images are written to file or standard output. The
+following examples all produce equivalent results:
 
   $ echo -n 123456 | dmtxwrite > image.png
   $ echo -n 123456 | dmtxwrite -o image.png
@@ -113,17 +119,17 @@ examples all produce equivalent results:
   $ dmtxwrite <(echo -n 123456) -o image.png
 
 Conversely,the dmtxread utility turns barcode images into
-messages. Images are passed to dmtxread via STDIN or file, and
-the output is written to STDOUT. The following examples both
-produce equivalent results:
+messages. Images are passed to dmtxread via standard input or
+file, and the output is written to standard output. The following
+examples both produce equivalent results:
 
   $ dmtxread -n image.png
   $ cat image.png | dmtxread -n
 
 Other typical cases:
 
-  $ dmtxread -n image1.png image2.png image3.png
-  $ dmtxread -m500 -n image.png
+  $ dmtxread -n -N1 image1.png image2.png image3.png
+  $ dmtxread -n -N1 -m500 image.png
 
 You can even combine the utilities like this:
 
@@ -133,8 +139,9 @@ You can even combine the utilities like this:
   $ dmtxread image1.png | dmtxwrite -o image2.png
 
 Note in this last example that the resulting image2.png might
-look nothing like image1.png. They will both contain barcodes
-that hold the same message, but the similarities end there.
+look different than image1.png. Both barcodes will contain an
+identical message, but the shape of the barcode and the internal
+representation of the encoded bits may be completely different.
 
 
 5. Contact
@@ -164,6 +171,7 @@ Description: Read Data Matrix barcodes from the command line
 Location:    libdmtx/util/dmtxread
 Build:       make
 Requires:    GraphicsMagick
+Disable:     ./configure --disable-dmtxread
 
 -----------------------------------
 
@@ -173,6 +181,7 @@ Description: Create Data Matrix barcodes from the command line
 Location:    libdmtx/util/dmtxwrite
 Build:       make
 Requires:    libpng
+Disable:     ./configure --disable-dmtxwrite
 
 -----------------------------------
 
@@ -182,6 +191,7 @@ Description: Query and merge scan results from dmtxread utility
 Location:    libdmtx/util/dmtxquery
 Build:       make
 Requires:    No dependencies
+Disable:     Currently not possible
 
 -----------------------------------
 
@@ -191,6 +201,7 @@ Description: Python libdmtx wrapper
 Location:    libdmtx/wrappers/python
 Build:       See INSTALL file in libdmtx/wrappers/python directory
 Requires:    python, pil
+Disable:     Does not build by default
 
 -----------------------------------
 
@@ -200,6 +211,7 @@ Description: PHP libdmtx wrapper
 Location:    libdmtx/wrappers/php
 Build:       See INSTALL file in libdmtx/wrappers/php directory
 Requires:    php, php-cli, php-common
+Disable:     Does not build by default
 
 -----------------------------------
 
@@ -209,6 +221,7 @@ Description: Cocoa libdmtx wrapper
 Location:    libdmtx/wrappers/cocoa
 Build:       See INSTALL file in libdmtx/wrappers/cocoa directory
 Requires:    x
+Disable:     Does not build by default
 
 -----------------------------------
 
@@ -218,6 +231,7 @@ Description: Scan simulated camera input from OpenGL in realtime
 Location:    libdmtx/
 Build:       make check
 Requires:    mesa-libGL, mesa-libGLU, SDL, libpng
+Disable:     Does not build by default
 
 -----------------------------------
 
@@ -226,6 +240,7 @@ Type:        test program
 Description: Simple round-trip encoding and decoding test
 Build:       make check
 Requires:    No dependencies
+Disable:     Does not build by default
 
 -----------------------------------
 
@@ -234,5 +249,6 @@ Type:        test program
 Description: Unit test program
 Build:       make check
 Requires:    No dependencies
+Disable:     Does not build by default
 
 -----------------------------------
