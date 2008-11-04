@@ -7,13 +7,13 @@ AM_PROG_CC_C_O
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
- Makefile
- util/Makefile
- util/dmtxquery/Makefile
- test/Makefile
- test/test_opengl/Makefile
- test/test_simple/Makefile
- test/test_unit/Makefile
+   Makefile
+   util/Makefile
+   util/dmtxquery/Makefile
+   test/Makefile
+   test/test_opengl/Makefile
+   test/test_simple/Makefile
+   test/test_unit/Makefile
 ])
 
 AC_SEARCH_LIBS([sin], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
@@ -42,12 +42,12 @@ AC_ARG_ENABLE(
    AC_HELP_STRING(
       [--disable-dmtxread],
       [Do not build the dmtxread command line utility (removes GraphicsMagick dependency)]),
-      [case "${enableval}" in
-         yes) dmtxread=true ;;
-          no) dmtxread=false ;;
-           *) AC_MSG_ERROR([bad value ${enableval} for --enable-dmtxread]) ;;
-       esac],
-      [dmtxread=true])
+   [case "$enableval" in
+      yes) dmtxread=true ;;
+       no) dmtxread=false ;;
+        *) AC_MSG_ERROR([bad value ${enableval} for --enable-dmtxread]) ;;
+    esac],
+   [dmtxread=true])
 AM_CONDITIONAL([BUILD_DMTXREAD], [test x$dmtxread = xtrue])
 
 AC_ARG_ENABLE(
@@ -55,12 +55,12 @@ AC_ARG_ENABLE(
    AC_HELP_STRING(
       [--disable-dmtxwrite],
       [Do not build the dmtxwrite command line utility (removes libpng dependency)]),
-      [case "${enableval}" in
-         yes) dmtxwrite=true ;;
-          no) dmtxwrite=false ;;
-           *) AC_MSG_ERROR([bad value ${enableval} for --enable-dmtxwrite]) ;;
-       esac],
-      [dmtxwrite=true])
+   [case "$enableval" in
+      yes) dmtxwrite=true ;;
+       no) dmtxwrite=false ;;
+        *) AC_MSG_ERROR([bad value ${enableval} for --enable-dmtxwrite]) ;;
+    esac],
+   [dmtxwrite=true])
 AM_CONDITIONAL([BUILD_DMTXWRITE], [test x$dmtxwrite = xtrue])
 
 AC_ARG_ENABLE(
@@ -68,12 +68,12 @@ AC_ARG_ENABLE(
    AC_HELP_STRING(
       [--disable-dmtxquery],
       [Do not build the dmtxquery command line utility]),
-      [case "${enableval}" in
-         yes) dmtxquery=true ;;
-          no) dmtxquery=false ;;
-           *) AC_MSG_ERROR([bad value ${enableval} for --enable-dmtxquery]) ;;
-       esac],
-      [dmtxquery=true])
+   [case "$enableval" in
+      yes) dmtxquery=true ;;
+       no) dmtxquery=false ;;
+        *) AC_MSG_ERROR([bad value ${enableval} for --enable-dmtxquery]) ;;
+    esac],
+   [dmtxquery=true])
 AM_CONDITIONAL([BUILD_DMTXQUERY], [test x$dmtxquery = xtrue])
 
 if test x$dmtxread = xtrue; then

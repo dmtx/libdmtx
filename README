@@ -100,6 +100,16 @@ components generally fall into one of four categories:
 Appendix A. at the end of this file provides a full list of these
 components and their properties.
 
+Users who need just the core library may want to disable the
+utility programs to save on compile times and reduce build
+dependencies. The utility programs are disabled by passing any
+combination of the following parameters to the "./configure"
+script:
+
+  --disable-dmtxread
+  --disable-dmtxwrite
+  --disable-dmtxquery
+
 
 4. Basic Usage
 -----------------------------------------------------------------

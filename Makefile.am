@@ -19,6 +19,12 @@ SUBDIRS = . util test
 dist_man_MANS = man/libdmtx.3 man/dmtxread.1 man/dmtxwrite.1 man/dmtxquery.1
 
 EXTRA_DIST = KNOWNBUG \
+	README.freebsd \
+	README.linux \
+	README.mingw \
+	README.msvc \
+	README.osx \
+	README.unix \
 	script/check_all.sh \
 	script/check_comments.sh \
 	script/check_copyright.sh \
