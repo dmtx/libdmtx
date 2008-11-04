@@ -1,0 +1,55 @@
+=================================================================
+            libdmtx - Open Source Data Matrix Software
+=================================================================
+
+                   libdmtx README file (MinGW)
+
+This README.mingw file contains information on installing and
+using libdmtx on MinGW and similar systems. The general README
+file, also found in this directory, contains a high level summary
+of libdmtx and its components.
+
+1. Building from Source Code
+-----------------------------------------------------------------
+Install MSYS with all recomended updates as described here:
+
+   http://www.mingw.org/wiki/msys
+
+Download and unpack libdmtx. Copy the folder libdmtx-0.5.x to
+your MSYS folder (Example: Standard Installation: C:\msys\1.0\).
+
+Open the MSYS shell and run the following:
+
+   ./configure
+
+If you need only libdmtx without utilities and/or you did not
+install libpng and libtiff then edit the Makefile as following
+(tip: use your text editor to search for "util"):
+
+Find the line:
+
+   SUBDIRS = . util test
+
+and change it to:
+
+   #SUBDIRS = . util test
+
+Now go back to MSYS shell and run:
+
+   make
+
+Go to folder .libs:
+
+   cd .libs
+   ls
+
+Now you should see following output:
+libdmtx 0.5.2:
+
+libdmtx.a libdmtx.la libdmtx.lai  libdmtx_la-dmtx.o
+
+Finally run:
+
+   gcc -shared -o dmtx.dll libdmtx_la-dmtx.o -Wl,--out-implib,libdmtx.a
+
+Now you should have working dmtx.dll in the folder .libs.

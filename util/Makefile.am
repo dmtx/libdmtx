@@ -1,7 +1,13 @@
 if BUILD_DMTXREAD
-  DMTXREAD_DIR = dmtxread
+   DMTXREAD_DIR = dmtxread
 endif
+
 if BUILD_DMTXWRITE
-  DMTXWRITE_DIR = dmtxwrite
+   DMTXWRITE_DIR = dmtxwrite
 endif
-SUBDIRS = dmtxquery $(DMTXREAD_DIR) $(DMTXWRITE_DIR)
+
+if BUILD_DMTXQUERY
+   DMTXQUERY_DIR = dmtxquery
+endif
+
+SUBDIRS = $(DMTXQUERY_DIR) $(DMTXREAD_DIR) $(DMTXWRITE_DIR)

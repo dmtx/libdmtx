@@ -32,6 +32,7 @@ after version 0.6.0:
   o project:   Conditional use of local getopt.c
 
 version 0.6.0: (??-Nov-2008)
+  o libdmtx:   Use isgreater() etc... from math.h
   o libdmtx:   Finish calib edge travel end condition
   o libdmtx:   Use calibration edge alignment to set precise locs for all edges
   o libdmtx:   Remove status from DmtxPixelLoc

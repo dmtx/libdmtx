@@ -1,0 +1,54 @@
+=================================================================
+            libdmtx - Open Source Data Matrix Software
+=================================================================
+
+                 libdmtx README file (Mac OS X)
+
+This README.osx file contains information on installing and
+using libdmtx on Mac OS X and similar systems. The general
+README file, also found in this directory, contains a high level
+summary of libdmtx and its components.
+
+1. Building from Source Code
+-----------------------------------------------------------------
+See the general README file
+
+Install Summary for Mac OS X (tested on 10.5.1)
+
+Note: These instructions were taken from a forum post discussing
+a pre-0.5 version of libdmtx. They may not be current anymore.
+
+When downloading the files end up in ~/Downloads/. After
+downloading a file you unpack the files by double clicking on the
+downloaded file in ~/Downloads/ directory. Do this pair of steps
+for each download.
+
+Download http://prdownloads.sourceforge.net/libpng/libpng-1.2.24.tar.gz?download
+and unpack. In Terminal cd to the directory in downloads, then run:
+
+   ./configure
+   make
+   sudo make install
+
+Download from http://dl.maptools.org/dl/libtiff/ and unpack. In
+Terminal cd to the directory in downloads, then run:
+
+   ./configure
+   make
+   sudo make install
+
+Download from http://sourceforge.net/projects/libdmtx/ the
+libdmtx package and unpack. In Terminal cd to the directory in
+downloads, then run:
+
+   ./configure
+   make
+   sudo make install
+
+Check for the man page for dmtxread and try running dmtxread.
+
+Example .png files can be found in:
+
+   ~/Downloads/libdmtx-0.5.0/test/images_opengl
+
+Not all the sample images scan correctly.

@@ -1,0 +1,82 @@
+=================================================================
+            libdmtx - Open Source Data Matrix Software
+=================================================================
+
+               libdmtx README file (MS Visual C++)
+
+This README.msvc file contains information on building libdmtx in
+MS Visual C++ for use on Windows. The general README file, also
+found in this directory, contains a high level summary of libdmtx
+and its components.
+
+1. Building from Source Code
+-----------------------------------------------------------------
+The following instructions will create static builds of dmtxread
+and dmtxwrite for Windows.
+
+1. Create a New Project
+
+  a. Download newest versions of libdmtx, libpng, and zlib
+     packages from their official sites.
+
+  b. Unpack into a directory as siblings (same folder level).
+
+  c. Create project
+     * Open Visual C++ 2008 Express Edition and select "File >
+       New > Project From Existing Code..."
+     * Click Next to indicate you want to create a "Visual C++"
+       project.
+     * Specify Project file location to indicate where the
+       Visual C++ project files should be saved.
+     * Set Project name to "libdmtx_utils" (or whatever).
+     * Important: Uncheck the Add files to the project from
+       these folders checkbox.
+     * Click Next.
+
+  d. Select Use Visual Studio and change Project Type to "Console application project".
+     Click Next.
+
+  e. Keep clicking Next and then click Finish.
+
+2. Add Necessary Project Files
+
+Next we need to tell Visual C++ which files we want to include as
+part of our project. For this example we're going to include
+"dmtxread" but you alternatively could choose "dmtxwrite" if that
+is your goal. Files can be included by right-clicking entire
+folders or individual files in the Solution Explorer window, then
+selecting Include In Project from the resulting pop-up. Doing
+this, go through the list and include the following items:
+
+   * libdmtx-0.5.2/dmtx.c
+   * libdmtx-0.5.2/dmtx.h
+   * libdmtx-0.5.2/util/dmtxread (whole folder)
+   * libdmtx-0.5.2/util/common (whole folder)
+   * All *.c and *.h files in the main libpng folder (not
+     including subdirectories) except for example.c and pngtest.c
+   * All *.c and *.h files in the main zlib folder (not including
+     subdirectories) except for example.c and minigzip.c
+
+3. Add Necessary Include Paths
+
+Almost done. We still need to tell Visual C++ where to look for
+header files. This step can be done only after adding the project
+files above, since the C/C++ options won't appear otherwise. To
+add the include paths, right-click on the project name
+("libdmtx_utils" in this example) in the Solution Explorer and
+select Properties. This brings up a dialog that offers several
+configurations. Expand Configuration Properties > C/C++ > General
+and you should see a field on the right called Additional Include
+Directories. Click on the "..." within this field and add the
+following directories by clicking on the "new folder" icon.
+
+   * Path to the main libdmtx directory
+   * Path to libdmtx/util/common directory
+   * Path to libdmtx/util/dmtxread or libdmtx/util/dmtxwrite (depending on the version you are building)
+   * Path to the main libpng directory
+   * Path to the main zlib directory
+
+That's it. You should now be able to "Build Solution" (F7) and
+after a bunch of warnings it will say "1 succeeded". It is left
+as an exercise for the reader to find where Visual C++ placed the
+resulting executable.

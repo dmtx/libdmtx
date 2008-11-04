@@ -1,0 +1,27 @@
+=================================================================
+            libdmtx - Open Source Data Matrix Software
+=================================================================
+
+                   libdmtx README file (Unix)
+
+This README.unix file contains information on installing and
+using libdmtx on Unix and similar systems. The general README
+file, also found in this directory, contains a high level summary
+of libdmtx and its components.
+
+1. Building from Source Code
+-----------------------------------------------------------------
+See the general README file
+
+Building and Installing libdmtx on Unix
+
+libdmtx is known to have been compiled on the following flavors of Unix:
+
+   * Solaris
+   * HP-UX
+   * AIX
+
+Common Unix Issues
+
+   * Missing getopt.h / getopt_long
+   * Missing library dependencies (libpng, libtiff)
