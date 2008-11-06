@@ -277,15 +277,15 @@ PlaceModule(unsigned char *modules, int mappingRows, int mappingCols, int row, i
    }
 
    /* If module has already been assigned then we are decoding the pattern into codewords */
-   if(modules[row*mappingCols+col] & DMTX_MODULE_ASSIGNED) {
-      if(modules[row*mappingCols+col] & moduleOnColor)
+   if((modules[row*mappingCols+col] & DMTX_MODULE_ASSIGNED) != 0) {
+      if((modules[row*mappingCols+col] & moduleOnColor) != 0)
          *codeword |= mask;
       else
          *codeword &= (0xff ^ mask);
    }
    /* Otherwise we are encoding the codewords into a pattern */
    else {
-      if(*codeword & mask)
+      if((*codeword & mask) != 0x00)
          modules[row*mappingCols+col] |= moduleOnColor;
 
       modules[row*mappingCols+col] |= DMTX_MODULE_ASSIGNED;

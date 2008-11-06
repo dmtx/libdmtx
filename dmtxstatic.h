@@ -106,7 +106,7 @@ static int CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStar
 static DmtxPointFlow GetPointFlow(DmtxDecode *dec, int colorPlane, DmtxPixelLoc loc, int arrive);
 static DmtxPointFlow FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center, int sign);
 static DmtxFollow FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek);
-static DmtxFollow FollowSeekLoc(DmtxDecode *dec, DmtxRegion *reg, DmtxPixelLoc loc);
+static DmtxFollow FollowSeekLoc(DmtxDecode *dec, DmtxPixelLoc loc);
 static DmtxFollow FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
 static DmtxFollow FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
 static int TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin, int maxDiagonal);

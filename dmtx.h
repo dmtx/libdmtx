@@ -358,18 +358,18 @@ typedef struct DmtxRegion_struct {
    DmtxPixelLoc    locT;          /* remove if stepT works above */
 
    /* Region fitting values */
-   char            leftKnown;     /* known == 1; unknown == 0 */
+   int             leftKnown;     /* known == 1; unknown == 0 */
    int             leftAngle;     /* hough angle of left edge */
    DmtxPixelLoc    leftLoc;       /* known (arbitrary) location on left edge */
    DmtxBestLine    leftLine;      /* */
-   char            bottomKnown;   /* known == 1; unknown == 0 */
+   int             bottomKnown;   /* known == 1; unknown == 0 */
    int             bottomAngle;   /* hough angle of bottom edge */
    DmtxPixelLoc    bottomLoc;     /* known (arbitrary) location on bottom edge */
    DmtxBestLine    bottomLine;    /* */
-   char            topKnown;      /* known == 1; unknown == 0 */
+   int             topKnown;      /* known == 1; unknown == 0 */
    int             topAngle;      /* hough angle of top edge */
    DmtxPixelLoc    topLoc;        /* known (arbitrary) location on top edge */
-   char            rightKnown;    /* known == 1; unknown == 0 */
+   int             rightKnown;    /* known == 1; unknown == 0 */
    int             rightAngle;    /* hough angle of right edge */
    DmtxPixelLoc    rightLoc;      /* known (arbitrary) location on right edge */
 

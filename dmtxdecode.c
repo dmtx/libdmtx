@@ -823,7 +823,7 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
    /* Abstract row and column progress using pointers to allow grid
       traversal in all 4 directions using same logic */
 
-   if(dir & DmtxDirHorizontal) {
+   if((dir & DmtxDirHorizontal) != 0x00) {
       line = &symbolRow;
       travel = &symbolCol;
       extent = mapWidth;

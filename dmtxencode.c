@@ -522,7 +522,7 @@ EncodeSingleScheme(unsigned char *buf, unsigned char *codewords, int length, Dmt
 
       /* DumpChannel(&channel); */
 
-      if(channel.invalid) {
+      if(channel.invalid != 0) {
          fprintf(stderr, "Character \"%c\" not supported by requested encodation scheme\n\n", *channel.inputPtr);
          return 0;
       }
@@ -614,7 +614,7 @@ FindBestChannel(DmtxChannelGroup group, DmtxSchemeEncode targetScheme)
 
       /* If from channel doesn't hold valid data because it couldn't
          represent the previous value then skip it */
-      if(channel->invalid)
+      if(channel->invalid != 0)
          continue;
 
       /* If channel has already processed all of its input values then it
@@ -625,13 +625,13 @@ FindBestChannel(DmtxChannelGroup group, DmtxSchemeEncode targetScheme)
       EncodeNextWord(channel, targetScheme);
 
       /* If channel scheme can't represent next word then stop for this channel */
-      if(channel->invalid & DMTX_CHANNEL_UNSUPPORTED_CHAR) {
+      if((channel->invalid & DMTX_CHANNEL_UNSUPPORTED_CHAR) != 0) {
          winner = channel;
          break;
       }
 
       /* If channel scheme was unable to unlatch here then skip */
-      if(channel->invalid & DMTX_CHANNEL_CANNOT_UNLATCH)
+      if((channel->invalid & DMTX_CHANNEL_CANNOT_UNLATCH) != 0)
          continue;
 
       if(winner == NULL || channel->currentLength < winner->currentLength)
@@ -655,7 +655,7 @@ EncodeNextWord(DmtxChannel *channel, DmtxSchemeEncode targetScheme)
    /* Change to new encodation scheme if necessary */
    if(channel->encScheme != targetScheme) {
       ChangeEncScheme(channel, targetScheme, DMTX_UNLATCH_EXPLICIT);
-      if(channel->invalid)
+      if(channel->invalid != 0)
          return;
    }
 
@@ -1008,7 +1008,7 @@ ChangeEncScheme(DmtxChannel *channel, DmtxSchemeEncode targetScheme, int unlatch
       case DmtxSchemeEncodeX12:
 
          /* Can't unlatch unless currently at a byte boundary */
-         if(channel->currentLength % 12) {
+         if((channel->currentLength % 12) != 0) {
             channel->invalid = DMTX_CHANNEL_CANNOT_UNLATCH;
             return;
          }
