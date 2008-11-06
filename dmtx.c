@@ -44,30 +44,30 @@ Contact: mike@dragonflylogic.com
 #endif
 
 #ifndef CALLBACK_POINT_PLOT
-#define CALLBACK_POINT_PLOT(a,b,c,d) ((void) 0)
+#define CALLBACK_POINT_PLOT(a,b,c,d)
 #endif
 
 #ifndef CALLBACK_POINT_XFRM
-#define CALLBACK_POINT_XFRM(a,b,c,d) ((void) 0)
+#define CALLBACK_POINT_XFRM(a,b,c,d)
 #endif
 
 #ifndef CALLBACK_MODULE
-#define CALLBACK_MODULE(a,b,c,d,e) ((void) 0)
+#define CALLBACK_MODULE(a,b,c,d,e)
 #endif
 
 #ifndef CALLBACK_MATRIX
-#define CALLBACK_MATRIX(a) ((void) 0)
+#define CALLBACK_MATRIX(a)
 #endif
 
 #ifndef CALLBACK_FINAL
-#define CALLBACK_FINAL(a,b) ((void) 0)
+#define CALLBACK_FINAL(a,b)
 #endif
 
 /**
- * Although unconventional, the following use of #include to merge .c
- * files together is done intentionally. This approach allows the code
- * to be grouped into files of like-functionality while still allowing
- * static (private) functions to be accessed across files.
+ * The following use of #include to merge .c files together is
+ * deliberate. This approach allows functions to be grouped in
+ * files of like-functionality while still allowing static
+ * functions to be accessed across files.
  */
 
 #include "dmtxtime.c"
