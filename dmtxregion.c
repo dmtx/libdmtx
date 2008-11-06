@@ -815,7 +815,7 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
          yStart == -1 || yStart == reg->symbolRows)
       state = DMTX_MODULE_OFF;
 
-   darkOnLight = (reg->offColor > reg->onColor);
+   darkOnLight = (int)(reg->offColor > reg->onColor);
    jumpThreshold = abs(0.4 * (reg->onColor - reg->offColor) + 0.5);
    color = ReadModuleColor(img, reg, yStart, xStart, reg->sizeIdx);
    tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
@@ -1316,7 +1316,7 @@ TrailClear(DmtxDecode *dec, DmtxRegion *reg, unsigned char clearMask)
    clears = 0;
    follow = FollowSeek(dec, reg, 0);
    while(abs(follow.step) <= reg->stepsTotal) {
-      assert(*follow.ptr & clearMask);
+      assert((int)(*follow.ptr & clearMask) != 0x00);
       *follow.ptr &= (clearMask ^ 0xff);
       follow = FollowStep(dec, reg, follow, +1);
       clears++;
@@ -1565,8 +1565,8 @@ FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line)
 
    for(i = 0; i < reg->stepsTotal/2; i++) {
 
-      posRunning = (i < 10 || abs(posWander) < abs(posTravel));
-      negRunning = (i < 10 || abs(negWander) < abs(negTravel));
+      posRunning = (int)(i < 10 || abs(posWander) < abs(posTravel));
+      negRunning = (int)(i < 10 || abs(negWander) < abs(negTravel));
 
       if(posRunning) {
          xDiff = followPos.loc.X - loc0.X;
@@ -1736,7 +1736,7 @@ BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locInside)
    line.yStep = (loc0.Y < loc1.Y) ? +1 : -1;
    line.xDelta = abs(loc1.X - loc0.X);
    line.yDelta = abs(loc1.Y - loc0.Y);
-   line.steep = (line.yDelta > line.xDelta);
+   line.steep = (int)(line.yDelta > line.xDelta);
 
    /* Take cross product to determine outward step */
    if(line.steep) {

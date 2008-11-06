@@ -844,7 +844,7 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
    }
 
 
-   darkOnLight = (reg->offColor > reg->onColor);
+   darkOnLight = (int)(reg->offColor > reg->onColor);
    jumpThreshold = abs(0.4 * (reg->offColor - reg->onColor) + 0.5);
 
    assert(ISGREATER(jumpThreshold, 0.0));
