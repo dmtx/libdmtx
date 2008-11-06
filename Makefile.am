@@ -12,7 +12,7 @@ EXTRA_libdmtx_la_SOURCES = dmtxcolor3.c dmtxdecode.c dmtxencode.c \
 	dmtxstatic.h dmtxsymbol.c dmtxtime.c dmtxvector2.c
 
 include_HEADERS = dmtx.h
-libdmtx_la_CFLAGS = -Wall -pedantic -std=gnu99
+libdmtx_la_CFLAGS = -Wall -pedantic
 
 SUBDIRS = . util test
 

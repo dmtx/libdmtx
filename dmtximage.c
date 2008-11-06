@@ -324,8 +324,8 @@ dmtxImageContainsFloat(DmtxImage *img, double x, double y)
 {
    assert(img != NULL);
 
-   if(x >= img->xMinScaled && x <= img->xMaxScaled &&
-         y >= img->yMinScaled && y <= img->yMaxScaled)
+   if(x >= (double)img->xMinScaled && x <= (double)img->xMaxScaled &&
+         y >= (double)img->yMinScaled && y <= (double)img->yMaxScaled)
       return DMTX_TRUE;
 
    return DMTX_FALSE;

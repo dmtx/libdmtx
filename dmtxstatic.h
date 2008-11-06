@@ -43,20 +43,6 @@ Contact: mike@dragonflylogic.com
 #undef max
 #define max(X,Y) (((X) > (Y)) ? (X) : (Y))
 
-#undef ISGREATER
-#ifdef isgreater
-#define ISGREATER(X,Y) (isgreater((X),(Y)) != 0)
-#else
-#define ISGREATER(X,Y) ((X) > (Y))
-#endif
-
-#undef ISLESS
-#ifdef isless
-#define ISLESS(X,Y) (isless((X),(Y)) != 0)
-#else
-#define ISLESS(X,Y) ((X) < (Y))
-#endif
-
 typedef enum {
    DmtxEdgeTop    = 0x01 << 0,
    DmtxEdgeBottom = 0x01 << 1,
@@ -125,7 +111,7 @@ static DmtxFollow FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow follow
 static DmtxFollow FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
 static int TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin, int maxDiagonal);
 static int TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int streamDir);
-static int TrailClear(DmtxDecode *dec, DmtxRegion *reg, unsigned char clearMask);
+static int TrailClear(DmtxDecode *dec, DmtxRegion *reg, int clearMask);
 static DmtxBestLine FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int streamDir, int houghAvoid);
 static DmtxBestLine FindBestSolidLine2(DmtxDecode *dec, DmtxRegion *reg, DmtxPixelLoc loc0, int tripSteps, int sign, int houghAvoid);
 static int FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line);

@@ -272,7 +272,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    }
 
    err = FindTravelLimits(dec, reg, &line1x);
-   if(line1x.distSq < 100 || ISGREATER(line1x.devn * 10, sqrt((double)line1x.distSq))) {
+   if(line1x.distSq < 100 || line1x.devn * 10 >= sqrt((double)line1x.distSq)) {
       TrailClear(dec, reg, 0x40);
       return DMTX_FAILURE;
    }
@@ -289,7 +289,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    if(line2p.mag > line2n.mag) {
       line2x = line2p;
       err = FindTravelLimits(dec, reg, &line2x);
-      if(line2x.distSq < 100 || ISGREATER(line2x.devn * 10, sqrt(line2x.distSq)))
+      if(line2x.distSq < 100 || line2x.devn * 10 >= sqrt((double)line2x.distSq))
          return DMTX_FAILURE;
 
       cross = ((line1x.locPos.X - line1x.locNeg.X) * (line2x.locPos.Y - line2x.locNeg.Y)) -
@@ -326,7 +326,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    else {
       line2x = line2n;
       err = FindTravelLimits(dec, reg, &line2x);
-      if(line2x.distSq < 100 || ISGREATER(line2x.devn / sqrt(line2x.distSq), 0.1))
+      if(line2x.distSq < 100 || line2x.devn / sqrt((double)line2x.distSq) >= 0.1)
          return DMTX_FAILURE;
 
       cross = ((line1x.locNeg.X - line1x.locPos.X) * (line2x.locNeg.Y - line2x.locPos.Y)) -
@@ -424,26 +424,26 @@ dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
    dimRX = dmtxVector2Mag(dmtxVector2Sub(&vRX, &p11, &p10)); /* XXX could use MagSquared() */
 
    /* Verify that sides are reasonably long */
-   if(ISLESS(dimOT, 8.0) || ISLESS(dimOR, 8.0) || ISLESS(dimTX, 8.0) || ISLESS(dimRX, 8.0))
+   if(dimOT <= 8.0 || dimOR <= 8.0 || dimTX <= 8.0 || dimRX <= 8.0)
       return DMTX_FAILURE;
 
    /* Verify that the 4 corners define a reasonably fat quadrilateral */
    ratio = dimOT / dimRX;
-   if(ISLESS(ratio, 0.5) || ISGREATER(ratio, 2.0))
+   if(ratio <= 0.5 || ratio >= 2.0)
       return DMTX_FAILURE;
 
    ratio = dimOR / dimTX;
-   if(ISLESS(ratio, 0.5) || ISGREATER(ratio, 2.0))
+   if(ratio <= 0.5 || ratio >= 2.0)
       return DMTX_FAILURE;
 
    /* Verify this is not a bowtie shape */
-   if(ISLESS(dmtxVector2Cross(&vOR, &vRX), 0.0) ||
-         ISGREATER(dmtxVector2Cross(&vOT, &vTX), 0.0))
+   if(dmtxVector2Cross(&vOR, &vRX) <= 0.0 ||
+         dmtxVector2Cross(&vOT, &vTX) >= 0.0)
       return DMTX_FAILURE;
 
-   if(ISLESS(RightAngleTrueness(p00, p10, p11, M_PI_2), dec->squareDevn))
+   if(RightAngleTrueness(p00, p10, p11, M_PI_2) <= dec->squareDevn)
       return DMTX_FAILURE;
-   if(ISLESS(RightAngleTrueness(p10, p11, p01, M_PI_2), dec->squareDevn))
+   if(RightAngleTrueness(p10, p11, p01, M_PI_2) <= dec->squareDevn)
       return DMTX_FAILURE;
 
    /* Calculate values needed for transformations */
@@ -816,7 +816,7 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
       state = DMTX_MODULE_OFF;
 
    darkOnLight = (int)(reg->offColor > reg->onColor);
-   jumpThreshold = abs(0.4 * (reg->onColor - reg->offColor) + 0.5);
+   jumpThreshold = abs((int)(0.4 * (reg->onColor - reg->offColor) + 0.5));
    color = ReadModuleColor(img, reg, yStart, xStart, reg->sizeIdx);
    tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
@@ -1275,7 +1275,7 @@ TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int stream
       /* Determine step direction using pure magic */
       xStep = afterStep.X - beforeStep.X;
       yStep = afterStep.Y - beforeStep.Y;
-      assert(abs(xStep <= 1) && abs(yStep <= 1));
+      assert(abs(xStep) <= 1 && abs(yStep) <= 1);
       stepDir = dirMap[3 * yStep + xStep + 4];
       assert(stepDir != 8);
 
@@ -1307,10 +1307,12 @@ TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int stream
  *
  */
 static int
-TrailClear(DmtxDecode *dec, DmtxRegion *reg, unsigned char clearMask)
+TrailClear(DmtxDecode *dec, DmtxRegion *reg, int clearMask)
 {
    int clears;
    DmtxFollow follow;
+
+   assert((clearMask | 0xff) == 0xff);
 
    /* Clear "visited" bit from trail */
    clears = 0;
