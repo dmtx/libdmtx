@@ -90,9 +90,6 @@ extern "C" {
 #define DMTX_FORMAT_MATRIX             0
 #define DMTX_FORMAT_MOSAIC             1
 
-#define DMTX_SYMBOL_SHAPE_AUTO        -1
-#define DMTX_SYMBOL_SQUARE_AUTO       -2
-#define DMTX_SYMBOL_RECT_AUTO         -3
 #define DMTX_SYMBOL_SQUARE_COUNT      24
 #define DMTX_SYMBOL_RECT_COUNT         6
 
@@ -186,7 +183,10 @@ typedef enum {
 } DmtxDecodeProperty;
 
 typedef enum {
-   DmtxSymbol10x10,
+   DmtxSymbolRectAuto   = -3,
+   DmtxSymbolSquareAuto = -2,
+   DmtxSymbolShapeAuto  = -1,
+   DmtxSymbol10x10      =  0,
    DmtxSymbol12x12,
    DmtxSymbol14x14,
    DmtxSymbol16x16,

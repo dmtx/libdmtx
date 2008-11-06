@@ -165,11 +165,16 @@ FindCorrectBarcodeSize(int dataWords, int sizeIdxRequest)
    if(dataWords <= 0)
       return -1;
 
-   if(sizeIdxRequest == DMTX_SYMBOL_SQUARE_AUTO || sizeIdxRequest == DMTX_SYMBOL_RECT_AUTO) {
+   if(sizeIdxRequest == DmtxSymbolSquareAuto || sizeIdxRequest == DmtxSymbolRectAuto) {
 
-      idxBeg = (sizeIdxRequest == DMTX_SYMBOL_SQUARE_AUTO) ? 0 : DMTX_SYMBOL_SQUARE_COUNT;
-      idxEnd = (sizeIdxRequest == DMTX_SYMBOL_SQUARE_AUTO) ? DMTX_SYMBOL_SQUARE_COUNT :
-            DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT;
+      if(sizeIdxRequest == DmtxSymbolSquareAuto) {
+         idxBeg = 0;
+         idxEnd = DMTX_SYMBOL_SQUARE_COUNT;
+      }
+      else {
+         idxBeg = DMTX_SYMBOL_SQUARE_COUNT;
+         idxEnd = DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT;
+      }
 
       for(sizeIdx = idxBeg; sizeIdx < idxEnd; sizeIdx++) {
          if(dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) >= dataWords)

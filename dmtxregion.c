@@ -222,19 +222,19 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    DmtxBestLine line2n, line2p;
    DmtxFollow fTmp;
 
-   if(dec->sizeIdxExpected == DMTX_SYMBOL_SQUARE_AUTO ||
+   if(dec->sizeIdxExpected == DmtxSymbolSquareAuto ||
          (dec->sizeIdxExpected >= DmtxSymbol10x10 &&
          dec->sizeIdxExpected <= DmtxSymbol144x144))
-      symbolShape = DMTX_SYMBOL_SQUARE_AUTO;
-   else if(dec->sizeIdxExpected == DMTX_SYMBOL_RECT_AUTO ||
+      symbolShape = DmtxSymbolSquareAuto;
+   else if(dec->sizeIdxExpected == DmtxSymbolRectAuto ||
          (dec->sizeIdxExpected >= DmtxSymbol8x18 &&
          dec->sizeIdxExpected <= DmtxSymbol16x48))
-      symbolShape = DMTX_SYMBOL_RECT_AUTO;
+      symbolShape = DmtxSymbolRectAuto;
    else
-      symbolShape = DMTX_SYMBOL_SHAPE_AUTO;
+      symbolShape = DmtxSymbolShapeAuto;
 
    if(dec->edgeMax != -1) {
-      if(symbolShape == DMTX_SYMBOL_RECT_AUTO)
+      if(symbolShape == DmtxSymbolRectAuto)
          maxDiagonal = (int)(1.23 * dec->edgeMax + 0.5); /* sqrt(5/4) + 10% */
       else
          maxDiagonal = (int)(1.56 * dec->edgeMax + 0.5); /* sqrt(2) + 10% */
@@ -254,7 +254,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    if(dec->edgeMin != -1) {
       scale = dmtxImageGetProp(dec->image, DmtxPropScale);
 
-      if(symbolShape == DMTX_SYMBOL_SQUARE_AUTO)
+      if(symbolShape == DmtxSymbolSquareAuto)
          minArea = (dec->edgeMin * dec->edgeMin)/(scale * scale);
       else
          minArea = (2 * dec->edgeMin * dec->edgeMin)/(scale * scale);
@@ -668,15 +668,15 @@ MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg)
    bestContrast = 0;
    bestColorOnAvg = bestColorOffAvg = 0;
 
-   if(dec->sizeIdxExpected == DMTX_SYMBOL_SHAPE_AUTO) {
+   if(dec->sizeIdxExpected == DmtxSymbolShapeAuto) {
       sizeIdxBeg = 0;
       sizeIdxEnd = DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT;
    }
-   else if(dec->sizeIdxExpected == DMTX_SYMBOL_SQUARE_AUTO) {
+   else if(dec->sizeIdxExpected == DmtxSymbolSquareAuto) {
       sizeIdxBeg = 0;
       sizeIdxEnd = DMTX_SYMBOL_SQUARE_COUNT;
    }
-   else if(dec->sizeIdxExpected == DMTX_SYMBOL_RECT_AUTO) {
+   else if(dec->sizeIdxExpected == DmtxSymbolRectAuto) {
       sizeIdxBeg = DMTX_SYMBOL_SQUARE_COUNT;
       sizeIdxEnd = DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT;
    }
@@ -1662,16 +1662,16 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edgeLoc)
    locOrigin.Y = (int)(pTmp.Y + 0.5);
    locOrigin.status = DMTX_RANGE_GOOD;
 
-   if(dec->sizeIdxExpected == DMTX_SYMBOL_SQUARE_AUTO ||
+   if(dec->sizeIdxExpected == DmtxSymbolSquareAuto ||
          (dec->sizeIdxExpected >= DmtxSymbol10x10 &&
          dec->sizeIdxExpected <= DmtxSymbol144x144))
-      symbolShape = DMTX_SYMBOL_SQUARE_AUTO;
-   else if(dec->sizeIdxExpected == DMTX_SYMBOL_RECT_AUTO ||
+      symbolShape = DmtxSymbolSquareAuto;
+   else if(dec->sizeIdxExpected == DmtxSymbolRectAuto ||
          (dec->sizeIdxExpected >= DmtxSymbol8x18 &&
          dec->sizeIdxExpected <= DmtxSymbol16x48))
-      symbolShape = DMTX_SYMBOL_RECT_AUTO;
+      symbolShape = DmtxSymbolRectAuto;
    else
-      symbolShape = DMTX_SYMBOL_SHAPE_AUTO;
+      symbolShape = DmtxSymbolShapeAuto;
 
    /* Determine end locations of test line */
    if(edgeLoc == DmtxEdgeTop) {
@@ -1679,14 +1679,14 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edgeLoc)
       avoidAngle = reg->leftLine.angle;
       follow = FollowSeekLoc(dec, reg->locT);
       pTmp.X = 0.8;
-      pTmp.Y = (symbolShape == DMTX_SYMBOL_RECT_AUTO) ? 0.2 : 0.6;
+      pTmp.Y = (symbolShape == DmtxSymbolRectAuto) ? 0.2 : 0.6;
    }
    else {
       assert(edgeLoc == DmtxEdgeRight);
       streamDir = reg->polarity;
       avoidAngle = reg->bottomLine.angle;
       follow = FollowSeekLoc(dec, reg->locR);
-      pTmp.X = (symbolShape == DMTX_SYMBOL_SQUARE_AUTO) ? 0.7 : 0.9;
+      pTmp.X = (symbolShape == DmtxSymbolSquareAuto) ? 0.7 : 0.9;
       pTmp.Y = 0.8;
    }
 

@@ -58,7 +58,7 @@ dmtxDecodeStructInit(DmtxImage *img)
    dec.edgeMax = -1;
    dec.scanGap = 1;
    dec.squareDevn = cos(50 * (M_PI/180));
-   dec.sizeIdxExpected = DMTX_SYMBOL_SHAPE_AUTO;
+   dec.sizeIdxExpected = DmtxSymbolShapeAuto;
    dec.edgeThresh = 10;
    dec.shrinkMin = 1;
    dec.shrinkMax = 1;

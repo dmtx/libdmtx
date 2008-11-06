@@ -127,7 +127,7 @@ InitUserOptions(UserOptions *opt)
    opt->outputPath = NULL;   /* default stdout */
    opt->preview = 'n';
    opt->rotate = 0;
-   opt->sizeIdx = DMTX_SYMBOL_SQUARE_AUTO;
+   opt->sizeIdx = DmtxSymbolSquareAuto;
    opt->verbose = 0;
    opt->mosaic = 0;
    opt->dpi = 0; /* default to native resolution of requested image format */
@@ -272,10 +272,10 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
          case 's':
             /* Determine correct barcode size and/or shape */
             if(*optarg == 's') {
-               opt->sizeIdx = DMTX_SYMBOL_SQUARE_AUTO;
+               opt->sizeIdx = DmtxSymbolSquareAuto;
             }
             else if(*optarg == 'r') {
-               opt->sizeIdx = DMTX_SYMBOL_RECT_AUTO;
+               opt->sizeIdx = DmtxSymbolRectAuto;
             }
             else {
                for(i = 0; i < DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT; i++) {

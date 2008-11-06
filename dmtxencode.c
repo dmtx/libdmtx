@@ -136,7 +136,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
       return(DMTX_FAILURE);
 
    /* EncodeDataCodewords() should have updated any auto sizeIdx to a real one */
-   assert(sizeIdx != DMTX_SYMBOL_SQUARE_AUTO && sizeIdx != DMTX_SYMBOL_RECT_AUTO);
+   assert(sizeIdx != DmtxSymbolSquareAuto && sizeIdx != DmtxSymbolRectAuto);
 
    /* Add pad characters to match a standard symbol size (whether smallest or requested) */
    AddPadChars(buf, &dataWordCount, dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx));
@@ -231,9 +231,9 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
       return DMTX_FAILURE;
 
    /* Set the last possible symbol size for this symbol shape or specific size request */
-   if(sizeIdxRequest == DMTX_SYMBOL_SQUARE_AUTO)
+   if(sizeIdxRequest == DmtxSymbolSquareAuto)
       splitSizeIdxLast = DMTX_SYMBOL_SQUARE_COUNT - 1;
-   else if(sizeIdxRequest == DMTX_SYMBOL_RECT_AUTO)
+   else if(sizeIdxRequest == DmtxSymbolRectAuto)
       splitSizeIdxLast = DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT - 1;
    else
       splitSizeIdxLast = splitSizeIdxFirst;
@@ -1300,9 +1300,9 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
 
    /* Find minimum symbol size big enough to accomodate remaining codewords */
    currentByte = channel->currentLength/12;
-/* XXX this is broken -- what if someone asks for DMTX_SYMBOL_RECT_AUTO or a specific sizeIdx? */
+/* XXX this is broken -- what if someone asks for DmtxSymbolRectAuto or a specific sizeIdx? */
    sizeIdx = FindCorrectBarcodeSize(currentByte + ((inputCount == 3) ? 2 : inputCount),
-         DMTX_SYMBOL_SQUARE_AUTO);
+         DmtxSymbolSquareAuto);
    /* XXX test for sizeIdx == -1 here */
    remainingCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 
@@ -1414,10 +1414,10 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
       return;
 
    /* Find minimum symbol size big enough to accomodate remaining codewords */
-   /* XXX broken -- what if someone asks for DMTX_SYMBOL_RECT_AUTO or specific sizeIdx? */
+   /* XXX broken -- what if someone asks for DmtxSymbolRectAuto or specific sizeIdx? */
 
    currentByte = channel->currentLength/12;
-   sizeIdx = FindCorrectBarcodeSize(currentByte, DMTX_SYMBOL_SQUARE_AUTO);
+   sizeIdx = FindCorrectBarcodeSize(currentByte, DmtxSymbolSquareAuto);
    /* XXX test for sizeIdx == -1 here */
    symbolCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 

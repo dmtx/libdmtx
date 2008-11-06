@@ -227,7 +227,7 @@ SetOptionDefaults(UserOptions *opt)
    option.timeoutMS = -1;
    option.newline = 0;
    option.resolution = NULL;
-   option.sizeIdxExpected = DMTX_SYMBOL_SHAPE_AUTO;
+   option.sizeIdxExpected = DmtxSymbolShapeAuto;
    option.edgeThresh = 5;
    option.xMin = NULL;
    option.xMax = NULL;
@@ -347,13 +347,13 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          case 's':
             /* Determine correct barcode size and/or shape */
             if(*optarg == 'a') {
-               opt->sizeIdxExpected = DMTX_SYMBOL_SHAPE_AUTO;
+               opt->sizeIdxExpected = DmtxSymbolShapeAuto;
             }
             else if(*optarg == 's') {
-               opt->sizeIdxExpected = DMTX_SYMBOL_SQUARE_AUTO;
+               opt->sizeIdxExpected = DmtxSymbolSquareAuto;
             }
             else if(*optarg == 'r') {
-               opt->sizeIdxExpected = DMTX_SYMBOL_RECT_AUTO;
+               opt->sizeIdxExpected = DmtxSymbolRectAuto;
             }
             else {
                for(i = 0; i < DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT; i++) {
