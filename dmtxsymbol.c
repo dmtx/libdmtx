@@ -96,49 +96,32 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
    switch(attribute) {
       case DmtxSymAttribSymbolRows:
          return symbolRows[sizeIdx];
-         break;
       case DmtxSymAttribSymbolCols:
          return symbolCols[sizeIdx];
-         break;
       case DmtxSymAttribDataRegionRows:
          return dataRegionRows[sizeIdx];
-         break;
       case DmtxSymAttribDataRegionCols:
          return dataRegionCols[sizeIdx];
-         break;
       case DmtxSymAttribHorizDataRegions:
          return horizDataRegions[sizeIdx];
-         break;
       case DmtxSymAttribVertDataRegions:
          return (sizeIdx < DMTX_SYMBOL_SQUARE_COUNT) ? horizDataRegions[sizeIdx] : 1;
-         break;
       case DmtxSymAttribMappingMatrixRows:
          return dataRegionRows[sizeIdx] * dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, sizeIdx);
-         break;
       case DmtxSymAttribMappingMatrixCols:
          return dataRegionCols[sizeIdx] * horizDataRegions[sizeIdx];
-         break;
       case DmtxSymAttribInterleavedBlocks:
          return interleavedBlocks[sizeIdx];
-         break;
       case DmtxSymAttribBlockErrorWords:
          return blockErrorWords[sizeIdx];
-         break;
       case DmtxSymAttribBlockMaxCorrectable:
          return blockMaxCorrectable[sizeIdx];
-         break;
       case DmtxSymAttribSymbolDataWords:
          return symbolDataWords[sizeIdx];
-         break;
       case DmtxSymAttribSymbolErrorWords:
          return blockErrorWords[sizeIdx] * interleavedBlocks[sizeIdx];
-         break;
       case DmtxSymAttribSymbolMaxCorrectable:
          return blockMaxCorrectable[sizeIdx] * interleavedBlocks[sizeIdx];
-         break;
-      default:
-         exit(1); /* error condition */
-         break;
    }
 
    return -1;

@@ -66,7 +66,7 @@ struct rs {
 static void encode_rs_char(struct rs *rs, unsigned char *data, unsigned char *parity);
 static int decode_rs_char(struct rs *rs, unsigned char *data, int *eras_pos, int no_eras, int max_fixes);
 static struct rs *init_rs_char(int nroots, int pad);
-static void free_rs_char(struct rs *rs);
+static void free_rs_char(struct rs **rs);
 
 /**
  * @brief  Calculate x mod NN (255)
@@ -90,11 +90,12 @@ modnn(int x)
  * @return rs
  */
 static void
-free_rs_char(struct rs *p)
+free_rs_char(struct rs **p)
 {
-   struct rs *rs = (struct rs *)p;
+   if(*p != NULL)
+      free(*p);
 
-   free(rs);
+   *p = NULL;
 }
 
 /**

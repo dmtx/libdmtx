@@ -43,6 +43,20 @@ Contact: mike@dragonflylogic.com
 #undef max
 #define max(X,Y) (((X) > (Y)) ? (X) : (Y))
 
+#undef ISGREATER
+#ifdef isgreater
+#define ISGREATER(X,Y) (isgreater((X),(Y)) != 0)
+#else
+#define ISGREATER(X,Y) ((X) > (Y))
+#endif
+
+#undef ISLESS
+#ifdef isless
+#define ISLESS(X,Y) (isless((X),(Y)) != 0)
+#else
+#define ISLESS(X,Y) ((X) < (Y))
+#endif
+
 typedef enum {
    DmtxEdgeTop    = 0x01 << 0,
    DmtxEdgeBottom = 0x01 << 1,
@@ -194,6 +208,8 @@ static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };
 static const int dmtxPatternY[] = { -1, -1, -1,  0,  1,  1,  1,  0 };
 static const DmtxPointFlow dmtxBlankEdge = { 0, 0, 0, -1, { -1, -1 } };
 
+/*@ +charint @*/
+
 /* Galois Field log values */
 static int logVal[] =
    {-255, 255,   1, 240,   2, 225, 241,  53,   3,  38, 226, 133, 242,  43,  54, 210,
@@ -314,5 +330,7 @@ static int rHvY[] =
        181,  178,  175,  171,  168,  165,  161,  158,  154,  150,  147,  143,  139,  136,  132,
        128,  124,  120,  116,  112,  108,  104,  100,   96,   92,   88,   83,   79,   75,   71,
         66,   62,   58,   53,   49,   44,   40,   36,   31,   27,   22,   18,   13,    9,    4 };
+
+/*@ -charint @*/
 
 #endif

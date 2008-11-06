@@ -143,7 +143,6 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
          break;
       default:
          return DMTX_FAILURE;
-         break;
    }
 
    /* Specified range has non-positive area */
@@ -172,49 +171,34 @@ dmtxImageGetProp(DmtxImage *img, int prop)
    switch(prop) {
       case DmtxPropWidth:
          return img->width;
-         break;
       case DmtxPropHeight:
          return img->height;
-         break;
       case DmtxPropArea:
          return img->width * img->height;
-         break;
       case DmtxPropXmin:
          return img->xMin;
-         break;
       case DmtxPropXmax:
          return img->xMax;
-         break;
       case DmtxPropYmin:
          return img->yMin;
-         break;
       case DmtxPropYmax:
          return img->yMax;
-         break;
       case DmtxPropScale:
          return img->scale;
-         break;
       case DmtxPropScaledWidth:
          return img->width/img->scale;
-         break;
       case DmtxPropScaledHeight:
          return img->height/img->scale;
-         break;
       case DmtxPropScaledArea:
          return (img->width/img->scale) * (img->height/img->scale);
-         break;
       case DmtxPropScaledXmin:
          return img->xMinScaled;
-         break;
       case DmtxPropScaledXmax:
          return img->xMaxScaled;
-         break;
       case DmtxPropScaledYmin:
          return img->yMinScaled;
-         break;
       case DmtxPropScaledYmax:
          return img->yMaxScaled;
-         break;
    }
 
    return -1;

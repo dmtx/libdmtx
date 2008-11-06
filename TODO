@@ -32,11 +32,12 @@ after version 0.6.0:
   o project:   Conditional use of local getopt.c
 
 version 0.6.0: (??-Nov-2008)
-  o libdmtx:   Use isgreater() etc... from math.h
   o libdmtx:   Finish calib edge travel end condition
   o libdmtx:   Use calibration edge alignment to set precise locs for all edges
   o libdmtx:   Remove status from DmtxPixelLoc
+  / libdmtx:   Static analysis cleanup with splint
   / libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
+  x libdmtx:   Use isgreater(), isless() macros from math.h
   x libdmtx:   New --disable-dmtxread and --disable-dmtxwrite (thanks Romain!)
   x libdmtx:   Ability to specify max/min expected barcode sizes
   x libdmtx:   New edge neighbor tracking (Hough Transform + 2-way edge cache)

@@ -243,7 +243,7 @@ dmtxColor3Norm(DmtxColor3 *c)
 
    mag = dmtxColor3Mag(c);
 
-   if(mag < DMTX_ALMOST_ZERO)
+   if(ISLESS(mag, DMTX_ALMOST_ZERO))
       return -1.0;
 
    dmtxColor3ScaleBy(c, 1/mag);
@@ -299,7 +299,7 @@ dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q)
    DmtxColor3 cCrossTmp;
 
    /* Assume that ray has a unit length of 1 */
-   assert(fabs(1.0 - dmtxColor3Mag(&(r->c))) < DMTX_ALMOST_ZERO);
+   assert(ISLESS(fabs(1.0 - dmtxColor3Mag(&(r->c))), DMTX_ALMOST_ZERO));
 
    return dmtxColor3Mag(dmtxColor3Cross(&cCrossTmp, &(r->c), dmtxColor3Sub(&cSubTmp, q, &(r->p))));
 }
@@ -316,7 +316,7 @@ dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q)
    DmtxColor3 cSubTmp;
 
    /* Assume that ray has a unit length of 1 */
-   assert(fabs(1.0 - dmtxColor3Mag(&(r->c))) < DMTX_ALMOST_ZERO);
+   assert(ISLESS(fabs(1.0 - dmtxColor3Mag(&(r->c))), DMTX_ALMOST_ZERO));
 
    return dmtxColor3Dot(dmtxColor3Sub(&cSubTmp, q, &(r->p)), &(r->c));
 }
@@ -334,7 +334,7 @@ dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t)
    DmtxColor3 cTmp;
 
    /* Assume that ray has a unit length of 1 */
-   assert(fabs(1.0 - dmtxColor3Mag(&(r->c))) < DMTX_ALMOST_ZERO);
+   assert(ISLESS(fabs(1.0 - dmtxColor3Mag(&(r->c))), DMTX_ALMOST_ZERO));
 
    dmtxColor3Scale(&cTmp, &(r->c), t);
    dmtxColor3Add(point, &(r->p), &cTmp);

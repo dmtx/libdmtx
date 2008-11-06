@@ -129,7 +129,7 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
       fixedErr = decode_rs_char(rs, data, NULL, 0, fix);
 
       if(fixedErr < 0 || fixedErr > blockMaxCorrectable) {
-         free_rs_char(rs);
+         free_rs_char(&rs);
          return DMTX_FAILURE;
       }
 
@@ -138,7 +138,7 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
       for(j = 0; j < blockTotalWords; j++)
          code[j*interleavedBlocks+i] = data[j];
 
-      free_rs_char(rs);
+      free_rs_char(&rs);
    }
 
    if(fix >= 0 && fixedErrSum > fix)

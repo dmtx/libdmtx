@@ -145,7 +145,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
    if(dec->shrinkMin < 1 || dec->shrinkMax < dec->shrinkMin)
       return DMTX_FAILURE;
 
-   if(dec->squareDevn < 0.0 || dec->squareDevn > 1.0)
+   if(ISLESS(dec->squareDevn, 0.0) || ISGREATER(dec->squareDevn, 1.0))
       return DMTX_FAILURE;
 
    if(dec->scanGap < 1)
@@ -774,7 +774,7 @@ PopulateArrayFromMatrix(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
                colTmp = (xRegionCount * mapWidth) + mapCol;
                idx = (rowTmp * xRegionTotal * mapWidth) + colTmp;
 
-               if(tally[mapRow][mapCol]/(double)weightFactor > 0.5)
+               if(ISGREATER(tally[mapRow][mapCol]/(double)weightFactor, 0.5))
                   msg->array[idx] = DMTX_MODULE_ON_RGB;
                else
                   msg->array[idx] = DMTX_MODULE_OFF;
@@ -847,7 +847,7 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
    darkOnLight = (reg->offColor > reg->onColor);
    jumpThreshold = abs(0.4 * (reg->offColor - reg->onColor) + 0.5);
 
-   assert(jumpThreshold > 0.0);
+   assert(ISGREATER(jumpThreshold, 0.0));
 
    for(*line = lineStart; *line < lineStop; (*line)++) {
 

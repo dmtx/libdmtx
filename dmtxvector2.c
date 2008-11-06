@@ -123,7 +123,7 @@ dmtxVector2Norm(DmtxVector2 *v)
 
    mag = dmtxVector2Mag(v);
 
-   if(mag < DMTX_ALMOST_ZERO)
+   if(ISLESS(mag, DMTX_ALMOST_ZERO))
       return -1.0;
 
    dmtxVector2ScaleBy(v, 1/mag);
@@ -161,7 +161,7 @@ dmtxDistanceFromRay2(DmtxRay2 *r, DmtxVector2 *q)
    DmtxVector2 vSubTmp;
 
    /* Assumes that v is a unit vector */
-   assert(fabs(1.0 - dmtxVector2Mag(&(r->v))) < DMTX_ALMOST_ZERO);
+   assert(ISLESS(fabs(1.0 - dmtxVector2Mag(&(r->v))), DMTX_ALMOST_ZERO));
 
    return dmtxVector2Cross(&(r->v), dmtxVector2Sub(&vSubTmp, q, &(r->p)));
 }
@@ -196,7 +196,7 @@ dmtxRay2Intersect(DmtxVector2 *point, DmtxRay2 *p0, DmtxRay2 *p1)
    DmtxVector2 w;
 
    denom = dmtxVector2Cross(&(p1->v), &(p0->v));
-   if(fabs(denom) < DMTX_ALMOST_ZERO)
+   if(ISLESS(fabs(denom), DMTX_ALMOST_ZERO))
       return DMTX_FAILURE;
 
    dmtxVector2Sub(&w, &(p1->p), &(p0->p));
@@ -215,7 +215,7 @@ dmtxPointAlongRay2(DmtxVector2 *point, DmtxRay2 *r, double t)
    DmtxVector2 vTmp;
 
    /* Ray should always have unit length of 1 */
-   assert(fabs(1.0 - dmtxVector2Mag(&(r->v))) < DMTX_ALMOST_ZERO);
+   assert(ISLESS(fabs(1.0 - dmtxVector2Mag(&(r->v))), DMTX_ALMOST_ZERO));
 
    dmtxVector2Scale(&vTmp, &(r->v), t);
    dmtxVector2Add(point, &(r->p), &vTmp);

@@ -272,7 +272,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    }
 
    err = FindTravelLimits(dec, reg, &line1x);
-   if(line1x.distSq < 100 || line1x.devn * 10 > sqrt(line1x.distSq)) {
+   if(line1x.distSq < 100 || ISGREATER(line1x.devn * 10, sqrt((double)line1x.distSq))) {
       TrailClear(dec, reg, 0x40);
       return DMTX_FAILURE;
    }
@@ -289,7 +289,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    if(line2p.mag > line2n.mag) {
       line2x = line2p;
       err = FindTravelLimits(dec, reg, &line2x);
-      if(line2x.distSq < 100 || line2x.devn * 10 > sqrt(line2x.distSq))
+      if(line2x.distSq < 100 || ISGREATER(line2x.devn * 10, sqrt(line2x.distSq)))
          return DMTX_FAILURE;
 
       cross = ((line1x.locPos.X - line1x.locNeg.X) * (line2x.locPos.Y - line2x.locNeg.Y)) -
@@ -326,7 +326,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
    else {
       line2x = line2n;
       err = FindTravelLimits(dec, reg, &line2x);
-      if(line2x.distSq < 100 || line2x.devn / sqrt(line2x.distSq) > 0.1)
+      if(line2x.distSq < 100 || ISGREATER(line2x.devn / sqrt(line2x.distSq), 0.1))
          return DMTX_FAILURE;
 
       cross = ((line1x.locNeg.X - line1x.locPos.X) * (line2x.locNeg.Y - line2x.locPos.Y)) -
@@ -424,26 +424,26 @@ dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
    dimRX = dmtxVector2Mag(dmtxVector2Sub(&vRX, &p11, &p10)); /* XXX could use MagSquared() */
 
    /* Verify that sides are reasonably long */
-   if(dimOT < 8 || dimOR < 8 || dimTX < 8 || dimRX < 8)
+   if(ISLESS(dimOT, 8.0) || ISLESS(dimOR, 8.0) || ISLESS(dimTX, 8.0) || ISLESS(dimRX, 8.0))
       return DMTX_FAILURE;
 
    /* Verify that the 4 corners define a reasonably fat quadrilateral */
    ratio = dimOT / dimRX;
-   if(ratio < 0.5 || ratio > 2.0)
+   if(ISLESS(ratio, 0.5) || ISGREATER(ratio, 2.0))
       return DMTX_FAILURE;
 
    ratio = dimOR / dimTX;
-   if(ratio < 0.5 || ratio > 2.0)
+   if(ISLESS(ratio, 0.5) || ISGREATER(ratio, 2.0))
       return DMTX_FAILURE;
 
    /* Verify this is not a bowtie shape */
-   if(dmtxVector2Cross(&vOR, &vRX) < 0.0 ||
-         dmtxVector2Cross(&vOT, &vTX) > 0.0)
+   if(ISLESS(dmtxVector2Cross(&vOR, &vRX), 0.0) ||
+         ISGREATER(dmtxVector2Cross(&vOT, &vTX), 0.0))
       return DMTX_FAILURE;
 
-   if(RightAngleTrueness(p00, p10, p11, M_PI_2) < dec->squareDevn)
+   if(ISLESS(RightAngleTrueness(p00, p10, p11, M_PI_2), dec->squareDevn))
       return DMTX_FAILURE;
-   if(RightAngleTrueness(p10, p11, p01, M_PI_2) < dec->squareDevn)
+   if(ISLESS(RightAngleTrueness(p10, p11, p01, M_PI_2), dec->squareDevn))
       return DMTX_FAILURE;
 
    /* Calculate values needed for transformations */
@@ -660,7 +660,7 @@ MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg)
    int color;
    int colorOnAvg, bestColorOnAvg;
    int colorOffAvg, bestColorOffAvg;
-   double contrast, bestContrast;
+   int contrast, bestContrast;
    DmtxImage *img;
 
    img = dec->image;
@@ -1342,7 +1342,7 @@ FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int st
    int angleBest;
    int hOffset, hOffsetBest;
    int xDiff, yDiff;
-   double dH;
+   int dH;
    DmtxRay2 rH;
    DmtxFollow follow;
    DmtxBestLine line;
@@ -1458,7 +1458,7 @@ FindBestSolidLine2(DmtxDecode *dec, DmtxRegion *reg, DmtxPixelLoc loc0, int trip
    int angleBest;
    int hOffset, hOffsetBest;
    int xDiff, yDiff;
-   double dH;
+   int dH;
    DmtxRay2 rH;
    DmtxBestLine line;
    DmtxPixelLoc rHp;
