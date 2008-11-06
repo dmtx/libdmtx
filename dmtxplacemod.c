@@ -97,11 +97,11 @@ ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int size
       /* Repeatedly first check for one of the special corner cases */
       if((row == mappingRows) && (col == 0))
          PatternShapeSpecial1(modules, mappingRows, mappingCols, &(codewords[chr++]), moduleOnColor);
-      else if((row == mappingRows-2) && (col == 0) && (mappingCols%4))
+      else if((row == mappingRows-2) && (col == 0) && (mappingCols%4 != 0))
          PatternShapeSpecial2(modules, mappingRows, mappingCols, &(codewords[chr++]), moduleOnColor);
       else if((row == mappingRows-2) && (col == 0) && (mappingCols%8 == 4))
          PatternShapeSpecial3(modules, mappingRows, mappingCols, &(codewords[chr++]), moduleOnColor);
-      else if((row == mappingRows+4) && (col == 2) && (!(mappingCols%8)))
+      else if((row == mappingRows+4) && (col == 2) && (mappingCols%8 == 0))
          PatternShapeSpecial4(modules, mappingRows, mappingCols, &(codewords[chr++]), moduleOnColor);
 
       /* Sweep upward diagonally, inserting successive characters */

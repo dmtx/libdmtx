@@ -74,17 +74,9 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
 extern DmtxColor3 *
 dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb)
 {
- /*double Y;*/
-
-   /* XXX this probably isn't the appropriate place for color-to-grayscale
-      conversion but everyone references this function right now */
-
-   color->R = rgb[0];
-   color->G = rgb[1];
-   color->B = rgb[2];
-
- /*Y = 0.3*color->R + 0.59*color->G + 0.11*color->B;
-   color->R = color->G = color->B = Y;*/
+   color->R = (double)rgb[0];
+   color->G = (double)rgb[1];
+   color->B = (double)rgb[2];
 
    return color;
 }
@@ -98,9 +90,9 @@ dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb)
 extern void
 dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color)
 {
-   rgb[0] = (int)(color->R + 0.5);
-   rgb[1] = (int)(color->G + 0.5);
-   rgb[2] = (int)(color->B + 0.5);
+   rgb[0] = (unsigned char)(color->R + 0.5);
+   rgb[1] = (unsigned char)(color->G + 0.5);
+   rgb[2] = (unsigned char)(color->B + 0.5);
 }
 
 /**

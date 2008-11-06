@@ -847,7 +847,7 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
    darkOnLight = (int)(reg->offColor > reg->onColor);
    jumpThreshold = abs((int)(0.4 * (reg->offColor - reg->onColor) + 0.5));
 
-   assert(jumpThreshold >= 0.0);
+   assert(jumpThreshold >= 0);
 
    for(*line = lineStart; *line < lineStop; (*line)++) {
 
@@ -858,7 +858,7 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
       color = ReadModuleColor(img, reg, symbolRow, symbolCol, reg->sizeIdx);
       tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
-      statusModule = (travelStep == 1 || !(*line & 0x01)) ? DMTX_MODULE_ON_RGB : DMTX_MODULE_OFF;
+      statusModule = (travelStep == 1 || (*line & 0x01) == 0) ? DMTX_MODULE_ON_RGB : DMTX_MODULE_OFF;
 
       weight = extent;
 

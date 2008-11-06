@@ -471,9 +471,9 @@ PrintPattern(DmtxEncode *enc)
 
          for(i = pixelRow; i < pixelRow + enc->moduleSize; i++) {
             for(j = pixelCol; j < pixelCol + enc->moduleSize; j++) {
-               rgb[0] = (moduleStatus & DMTX_MODULE_ON_RED) ? 0 : 255;
-               rgb[1] = (moduleStatus & DMTX_MODULE_ON_GREEN) ? 0 : 255;
-               rgb[2] = (moduleStatus & DMTX_MODULE_ON_BLUE) ? 0 : 255;
+               rgb[0] = ((moduleStatus & DMTX_MODULE_ON_RED) != 0x00) ? 0 : 255;
+               rgb[1] = ((moduleStatus & DMTX_MODULE_ON_GREEN) != 0x00) ? 0 : 255;
+               rgb[2] = ((moduleStatus & DMTX_MODULE_ON_BLUE) != 0x00) ? 0 : 255;
                dmtxImageSetRgb(enc->image, j, i, rgb);
             }
          }

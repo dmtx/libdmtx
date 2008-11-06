@@ -551,20 +551,20 @@ extern int dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);
 extern int dmtxImageContainsFloat(DmtxImage *img, double x, double y);
 
 /* dmtxvector2.c */
-extern DmtxVector2 *dmtxVector2AddTo(DmtxVector2 *v1, DmtxVector2 *v2);
-extern DmtxVector2 *dmtxVector2Add(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2);
-extern DmtxVector2 *dmtxVector2SubFrom(DmtxVector2 *v1, DmtxVector2 *v2);
-extern DmtxVector2 *dmtxVector2Sub(DmtxVector2 *vOut, DmtxVector2 *v1, DmtxVector2 *v2);
+extern DmtxVector2 *dmtxVector2AddTo(DmtxVector2 *v1, const DmtxVector2 *v2);
+extern DmtxVector2 *dmtxVector2Add(DmtxVector2 *vOut, const DmtxVector2 *v1, const DmtxVector2 *v2);
+extern DmtxVector2 *dmtxVector2SubFrom(DmtxVector2 *v1, const DmtxVector2 *v2);
+extern DmtxVector2 *dmtxVector2Sub(DmtxVector2 *vOut, const DmtxVector2 *v1, const DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2ScaleBy(DmtxVector2 *v, double s);
-extern DmtxVector2 *dmtxVector2Scale(DmtxVector2 *vOut, DmtxVector2 *v, double s);
-extern double dmtxVector2Cross(DmtxVector2 *v1, DmtxVector2 *v2);
+extern DmtxVector2 *dmtxVector2Scale(DmtxVector2 *vOut, const DmtxVector2 *v, double s);
+extern double dmtxVector2Cross(const DmtxVector2 *v1, const DmtxVector2 *v2);
 extern double dmtxVector2Norm(DmtxVector2 *v);
-extern double dmtxVector2Dot(DmtxVector2 *v1, DmtxVector2 *v2);
-extern double dmtxVector2Mag(DmtxVector2 *v);
-extern double dmtxDistanceFromRay2(DmtxRay2 *r, DmtxVector2 *q);
-extern double dmtxDistanceAlongRay2(DmtxRay2 *r, DmtxVector2 *q);
-extern int dmtxRay2Intersect(DmtxVector2 *point, DmtxRay2 *p0, DmtxRay2 *p1);
-extern int dmtxPointAlongRay2(DmtxVector2 *point, DmtxRay2 *r, double t);
+extern double dmtxVector2Dot(const DmtxVector2 *v1, const DmtxVector2 *v2);
+extern double dmtxVector2Mag(const DmtxVector2 *v);
+extern double dmtxDistanceFromRay2(const DmtxRay2 *r, const DmtxVector2 *q);
+extern double dmtxDistanceAlongRay2(const DmtxRay2 *r, const DmtxVector2 *q);
+extern int dmtxRay2Intersect(DmtxVector2 *point, const DmtxRay2 *p0, const DmtxRay2 *p1);
+extern int dmtxPointAlongRay2(DmtxVector2 *point, const DmtxRay2 *r, double t);
 
 /* dmtxmatrix3.c */
 extern void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1);
