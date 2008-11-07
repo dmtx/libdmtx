@@ -7,7 +7,7 @@
 	$bg = imagecolorallocate($gd, 255, 255, 255);
 	$fg = imagecolorallocate($gd, 0, 0, 0);
 
-	$line = $size['height'] - 1;
+	$line = 0;
 	while (($row = dmtx_getRow($dmtx)) != null) {
 
 		for ($x = count($row) - 1; $x >= 0; $x--) {
@@ -16,11 +16,11 @@
 			else
 				imagesetpixel($gd, $x, $line, $bg);
 		}
-		$line--;
+		$line++;
 	}
 
 	$output_image = $gd;
 
-	//header("Content-type: image/png");
-	//imagepng($output_image);
+	header("Content-type: image/png");
+	imagepng($output_image);
 ?>

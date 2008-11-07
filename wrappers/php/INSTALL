@@ -1,32 +1,28 @@
 Building and Installing libdmtx-php
 -----------------------------------------------------------------
 
-*****************************************************************
-*****************************************************************
-** IMPORTANT: This package will not work with the accompanying **
-**            version of libdmtx. It was written to work with  **
-**            an older version and requires updating before it **
-**            will compile or run.                             **
-*****************************************************************
-*****************************************************************
-
 1. libdmtx Installation
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-You shoud have installed libdmtx and have the libdmtx.h file
-under ../libdmtx (or change include in dmtx_write.h).
+libdmtx must be installed on your system before trying to
+install and run libdmtx-php.  Refer to the INSTALL file in
+the main libdmtx directory for instructions on how to do
+this.
 
 
 2. libdmtx-php Installation
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-  1 - Run phpize command
+  1) $ phpize
 
-  2 - Run ./configure [--prefix install directory]; make install
+  2) $ ./configure [--prefix install directory];
 
-  3 - Configure php.ini file with -> extension=dmtx.so
+  3) $ make install
 
-  4 - Test with dmtx.php :)
+  3) Edit system php.ini file to include "extension=dmtx.so"
+
+  4) Test with dmtx.php
+     (e.g., Browse http://localhost/dmtx.php?d=123456)
 
 
 3. Dependencies
@@ -43,6 +39,10 @@ following packages:
   php-cli
   php-common
   php-devel
+
+Some systems may also require:
+
+  php-gd
 
 
 4. Anything Else?
