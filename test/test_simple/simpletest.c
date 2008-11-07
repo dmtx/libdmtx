@@ -41,7 +41,7 @@ main(int argc, char *argv[])
    /* 1) ENCODE a new Data Matrix barcode image (in memory only) */
 
    enc = dmtxEncodeStructInit();
-   dmtxEncodeDataMatrix(&enc, strlen(str), str, DMTX_SYMBOL_SQUARE_AUTO);
+   dmtxEncodeDataMatrix(&enc, strlen(str), str, DmtxSymbolSquareAuto);
 
    /* 2) COPY the new image data before freeing encoding memory */
 
