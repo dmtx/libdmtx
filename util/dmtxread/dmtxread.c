@@ -446,11 +446,11 @@ ShowUsage(int status)
       fprintf(stdout, _("Usage: %s [OPTION]... [FILE]...\n"), programName);
       fprintf(stdout, _("\
 Scan image FILE for Data Matrix barcodes and print decoded results to\n\
-STDOUT.  Note that %s may find multiple barcodes in one image.\n\
+standard output.  Note that %s may find multiple barcodes in one image.\n\
 \n\
-Example: Scan top third of images using gap no larger than 10 pixels\n\
+Example: Scan top third of IMAGE001.png and stop after first barcode is found:\n\
 \n\
-   %s -Y33%% -g10 IMAGE001.png IMAGE002.jpg\n\
+   %s -n -Y33%% -N1 IMAGE001.png\n\
 \n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
@@ -458,7 +458,7 @@ OPTIONS:\n"), programName, programName);
   -e, --minimum-edge=N        pixel length of smallest expected edge in image\n\
   -E, --maximum-edge=N        pixel length of largest expected edge in image\n\
   -g, --gap=NUM               use scan grid with gap of NUM pixels between lines\n\
-  -l, --list-formats          list supported input image formats\n\
+  -l, --list-formats          list supported image formats\n\
   -m, --milliseconds=N        stop scan after N milliseconds (per image)\n\
   -n, --newline               print newline character at the end of decoded data\n\
   -q, --square-deviation=N    allow non-squareness of corners in degrees (0-90)\n"));

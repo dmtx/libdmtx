@@ -50,7 +50,7 @@ Only consider barcodes of specific size or shape.
  RxC = Exactly this many rows and columns (10x10, 8x18, etc...)
 .TP
 \fB\-t\fP, \fB\-\-threshold\fP=\fIN\fP
-Set the minimum edge threshold as a percentage of maximum. For example, an edge between a perfectly white and perfectly black pixel would have 100% intensity. Pixels with intensities below the indicated threshold will be ignored by the decoding process. Lowering the threshold will increase the amount of work to be done, but may be necessary for low contrast or blurry images.
+Set the minimum edge threshold as a percentage of maximum. For example, an edge between a pure white and pure black pixel would have an intensity of 100. Edges with intensities below the indicated threshold will be ignored by the decoding process. Lowering the threshold will increase the amount of work to be done, but may be necessary for low contrast or blurry images.
 .TP
 \fB\-x\fP, \fB\-\-x-range-min\fP=\fIN[%]\fP
 Do not scan pixels to the left of pixel column N (or N%).
