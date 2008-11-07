@@ -1,6 +1,8 @@
 Changes for libdmtx
 -----------------------------------------------------------------
 
+version 0.6.0 [November 2008]
+
 version 0.5.2 [September 2008]
   Move SetRangeLimit and SetScanRegion into library
   Replace DMTXUTIL_SUCCESS/ERROR with DMTX_SUCCESS/FAILURE

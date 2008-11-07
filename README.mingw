@@ -44,7 +44,7 @@ Go to folder .libs:
    ls
 
 Now you should see following output:
-libdmtx 0.5.2:
+libdmtx 0.6.0:
 
 libdmtx.a libdmtx.la libdmtx.lai  libdmtx_la-dmtx.o
 
