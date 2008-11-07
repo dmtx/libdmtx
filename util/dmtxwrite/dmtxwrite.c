@@ -83,20 +83,12 @@ main(int argc, char *argv[])
 
    /* Write barcode image to requested format */
    switch(opt.format) {
-      case 'n':
-         break; /* do nothing */
       case 'p':
          WriteImagePng(&opt, &enc);
          break;
       case 'm':
          WriteImagePnm(&opt, &enc);
          break;
-   }
-
-   /* Write barcode preview if requested */
-   switch(opt.preview) {
-      case 'n':
-         break; /* do nothing */
       case 'a':
          WriteAsciiBarcode(&enc);
          break;
@@ -125,7 +117,6 @@ InitUserOptions(UserOptions *opt)
    opt->format = 'p';
    opt->inputPath = NULL;    /* default stdin */
    opt->outputPath = NULL;   /* default stdout */
-   opt->preview = 'n';
    opt->rotate = 0;
    opt->sizeIdx = DmtxSymbolSquareAuto;
    opt->verbose = 0;
@@ -157,7 +148,6 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
          {"encoding",    required_argument, NULL, 'e'},
          {"format",      required_argument, NULL, 'f'},
          {"output",      required_argument, NULL, 'o'},
-         {"preview",     required_argument, NULL, 'p'},
          {"rotate",      required_argument, NULL, 'r'},
          {"symbol-size", required_argument, NULL, 's'},
          {"verbose",     no_argument,       NULL, 'v'},
@@ -176,7 +166,7 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
    enc->scheme = DmtxSchemeEncodeAscii;
 
    for(;;) {
-      optchr = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:p:r:s:vMR:V", longOptions, &longIndex);
+      optchr = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:r:s:vMR:V", longOptions, &longIndex);
       if(optchr == -1)
          break;
 
@@ -188,13 +178,13 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
             opt->color[0] = 0;
             opt->color[1] = 0;
             opt->color[2] = 0;
-            fprintf(stdout, "Option \"%c\" not implemented yet\n", optchr);
+            fprintf(stdout, "Option \"%c\" not implemented\n", optchr);
             break;
          case 'b':
             opt->bgColor[0] = 255;
             opt->bgColor[1] = 255;
             opt->bgColor[2] = 255;
-            fprintf(stdout, "Option \"%c\" not implemented yet\n", optchr);
+            fprintf(stdout, "Option \"%c\" not implemented\n", optchr);
             break;
          case 'd':
             err = StringToInt(&(enc->moduleSize), optarg, &ptr);
@@ -217,7 +207,7 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
                   break;
                case 'f':
                   enc->scheme = DmtxSchemeEncodeAutoFast;
-                  fprintf(stdout, "\"Fast optimized\" not implemented yet\n");
+                  fprintf(stdout, "\"Fast optimized\" not implemented\n");
                   return DMTX_FAILURE;
                   break;
                case 'a':
@@ -246,23 +236,14 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
             break;
          case 'f':
             opt->format = *optarg;
-            if(opt->format != 'n' && opt->format != 'p' &&
-                  opt->format != 'm') {
+            if(opt->format != 'p' && opt->format != 'm' &&
+                  opt->format != 'a' && opt->format != 'c') {
                fprintf(stdout, "Invalid output format \"%c\"\n", opt->format);
                return DMTX_FAILURE;
             }
             break;
          case 'o':
             opt->outputPath = optarg;
-            break;
-         case 'p':
-            opt->preview = *optarg;
-
-            if(opt->preview != 'n' && opt->preview != 'a' &&
-                  opt->preview != 'c') {
-               fprintf(stdout, "Invalid preview format \"%c\"\n", opt->preview);
-               return DMTX_FAILURE;
-            }
             break;
          case 'r':
             err = StringToInt(&(opt->rotate), optarg, &ptr);
@@ -368,7 +349,7 @@ OPTIONS:\n"), programName, programName);
   -b, --bg-color=COLOR        background color (not implemented)\n\
   -d, --module=NUM            module size (in pixels)\n\
   -m, --margin=NUM            margin size (in pixels)\n\
-  -e, --encoding=[bfactxe8]   encodation scheme\n\
+  -e, --encoding=[bfactxe8]   encodation scheme; optimize for:\n\
         b = Best optimized    best possible optimization (beta)\n\
         f = Fast optimized    basic optimization (not implemented)\n\
         a = ASCII  [default]  ASCII standard & extended\n\
@@ -378,15 +359,12 @@ OPTIONS:\n"), programName, programName);
         e = EDIFACT           ASCII values 32-94\n\
         8 = Base 256          all byte values 0-255\n"));
       fprintf(stdout, _("\
-  -f, --format=[npm]          image output format\n\
-        n = None              do not create barcode image\n\
+  -f, --format=[pmac]         image output format\n\
         p = PNG    [default]  PNG image\n\
         m = PNM               PNM image\n\
-  -o, --output=FILE           output filename (default is STDOUT)\n\
-  -p, --preview=[ac]          print preview of barcode data to STDOUT\n\
-        a = ASCII             ASCII-art representation\n\
-        c = Codewords         list data and error codewords\n\
-  -f, --format=[npm]          image output format\n\
+        a = ASCII             ASCII art barcode (preview only)\n\
+        c = Codewords         Codeword listing  (preview only)\n\
+  -o, --output=FILE           output filename (default standard output)\n\
   -r, --rotate=DEGREES        rotation angle (degrees)\n"));
       fprintf(stdout, _("\
   -s, --symbol-size=SIZE      symbol size in Rows x Cols\n\

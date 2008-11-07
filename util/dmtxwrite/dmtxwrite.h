@@ -41,7 +41,6 @@ typedef struct {
    char format;
    char *inputPath;
    char *outputPath;
-   char preview;
    int rotate;
    int sizeIdx;
    int verbose;

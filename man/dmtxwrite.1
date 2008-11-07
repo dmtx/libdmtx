@@ -16,10 +16,10 @@ dmtxwrite \- create Data Matrix barcodes
 .SH OPTIONS
 .TP
 \fB\-c\fP, \fB\-\-color\fP=\fICOLOR\fP
-Barcode color. (not implemented yet)
+Barcode color. (not implemented)
 .TP
 \fB\-b\fP, \fB\-\-bg-color\fP=\fICOLOR\fP
-Background color. (not implemented yet)
+Background color. (not implemented)
 .TP
 \fB\-d\fP, \fB\-\-module\fP=\fINUM\fP
 Module size. (in pixels)
@@ -38,19 +38,15 @@ Encodation scheme.
    e = EDIFACT          ASCII values 32-94
    8 = Base 256         all byte values 0-255
 .TP
-\fB\-f\fP, \fB\-\-format\fP=[npm]
+\fB\-f\fP, \fB\-\-format\fP=[pmac]
 Barcode output format.
-   n = None             do not create barcode image
    p = PNG    [default] PNG image
    m = PNM              PNM image
+   a = ASCII            ASCII art barcode (preview only)
+   c = codewords        Codeword listing  (preview only)
 .TP
 \fB\-o\fP, \fB\-\-output\fP=\fIFILE\fP
 Barcode output filename. Default is standard output.
-.TP
-\fB\-p\fP, \fB\-\-preview\fP=[ac]
-Barcode preview (standard output).
-   a = ASCII            ASCII-art representation
-   c = Codewords        list data and error codewords
 .TP
 \fB\-r\fP, \fB\-\-rotate\fP=\fIDEGREES\fP
 Rotation angle. (degrees) (not implemented)
