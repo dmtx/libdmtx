@@ -38,9 +38,9 @@ class DataMatrix (object):
 	BEST_AUTO = 7
 	FAST_AUTO = 8
 
-	# shape: values must be consistent with DMTX_SYMBOL_[SQUARE|RECT]_AUTO
-	SQUARE_AUTO = -1
-	RECT_AUTO   = -2
+	# shape: values must be consistent with DmtxSymbol[Square|Rect]Auto
+	RECT_AUTO   = -3
+	SQUARE_AUTO = -2
 	# revisit this to enable other (non auto) sizes ...
 
 	def __init__( self, **kwargs ):

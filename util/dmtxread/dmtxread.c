@@ -61,7 +61,7 @@ main(int argc, char *argv[])
    DmtxImage *img;
    DmtxDecode dec;
    DmtxRegion reg;
-   DmtxMessage *message;
+   DmtxMessage *msg;
    ImageReader reader;
 
    SetOptionDefaults(&opt);
@@ -178,17 +178,17 @@ main(int argc, char *argv[])
 
          /* Decode region based on requested barcode mode */
          if(opt.mosaic)
-            message = dmtxDecodeMosaicRegion(img, &reg, opt.correctionsMax);
+            msg = dmtxDecodeMosaicRegion(img, &reg, opt.correctionsMax);
          else
-            message = dmtxDecodeMatrixRegion(img, &reg, opt.correctionsMax);
+            msg = dmtxDecodeMatrixRegion(img, &reg, opt.correctionsMax);
 
-         if(message == NULL)
+         if(msg == NULL)
             continue;
 
-         PrintDecodedOutput(&opt, img, &reg, message, pageIndex);
+         PrintDecodedOutput(&opt, img, &reg, msg, pageIndex);
          fileScanCount++;
 
-         dmtxMessageFree(&message);
+         dmtxMessageFree(&msg);
 
          if(opt.stopAfter != -1 && fileScanCount >= opt.stopAfter)
             break;
@@ -658,7 +658,7 @@ CloseImage(ImageReader * reader)
  */
 static int
 PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
-      DmtxRegion *reg, DmtxMessage *message, int pageIndex)
+      DmtxRegion *reg, DmtxMessage *msg, int pageIndex)
 {
    int i;
    int height;
@@ -691,7 +691,7 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
             dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, reg->sizeIdx),
             dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, reg->sizeIdx));
       fprintf(stdout, "    Data Codewords: %d (capacity %d)\n",
-            message->outputIdx, dataWordLength);
+            msg->outputIdx, dataWordLength);
       fprintf(stdout, "   Error Codewords: %d\n",
             dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, reg->sizeIdx));
       fprintf(stdout, "      Data Regions: %d x %d\n",
@@ -718,13 +718,13 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
    }
 
    if(opt->codewords) {
-      for(i = 0; i < message->codeSize; i++) {
+      for(i = 0; i < msg->codeSize; i++) {
          fprintf(stdout, "%c:%03d\n", (i < dataWordLength) ?
-               'd' : 'e', message->code[i]);
+               'd' : 'e', msg->code[i]);
       }
    }
    else {
-      fwrite(message->output, sizeof(char), message->outputIdx, stdout);
+      fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
       if(opt->newline)
          fputc('\n', stdout);
    }

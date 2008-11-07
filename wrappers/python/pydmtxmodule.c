@@ -64,7 +64,7 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
    PyObject *finish_cb = NULL;
    PyObject *context = Py_None;
    PyObject *args;
-   DmtxEncode encode;
+   DmtxEncode enc;
    int row, col;
    DmtxRgb rgb;
    static char *kwlist[] = { "data", "data_size", "module_size", "margin_size",
@@ -84,22 +84,22 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
       return NULL;
    }
 
-   encode = dmtxEncodeStructInit();
-   encode.moduleSize = module_size;
-   encode.marginSize = margin_size;
-   encode.scheme = scheme;
+   enc = dmtxEncodeStructInit();
+   enc.moduleSize = module_size;
+   enc.marginSize = margin_size;
+   enc.scheme = scheme;
 
-   dmtxEncodeDataMatrix(&encode, data_size, (unsigned char *)data, shape);
+   dmtxEncodeDataMatrix(&enc, data_size, (unsigned char *)data, shape);
 
    if((start_cb != NULL) && PyCallable_Check(start_cb)) {
-      args = Py_BuildValue("(iiO)", encode.image->width, encode.image->height, context);
+      args = Py_BuildValue("(iiO)", enc.image->width, enc.image->height, context);
       (void)PyEval_CallObject(start_cb, args);
       Py_DECREF(args);
    }
 
-   for(row = 0; row < encode.image->height; row++) {
-      for(col = 0; col < encode.image->width; col++) {
-         dmtxImageGetRgb(encode.image, col, row, rgb);
+   for(row = 0; row < enc.image->height; row++) {
+      for(col = 0; col < enc.image->width; col++) {
+         dmtxImageGetRgb(enc.image, col, row, rgb);
          args = Py_BuildValue("(ii(iii)O)", col, row, rgb[0], rgb[1], rgb[2], context);
          (void)PyEval_CallObject(plotter, args);
          Py_DECREF(args);
@@ -112,7 +112,7 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
       Py_DECREF(args);
    }
 
-   dmtxEncodeStructDeInit(&encode);
+   dmtxEncodeStructDeInit(&enc);
    Py_DECREF(context);
 
    return Py_None;
@@ -127,10 +127,10 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    PyObject *context = Py_None;
    PyObject *args;
    PyObject *output = NULL;
-   DmtxImage *image;
-   DmtxDecode decode;
-   DmtxRegion region;
-   DmtxMessage *message;
+   DmtxImage *img;
+   DmtxDecode dec;
+   DmtxRegion reg;
+   DmtxMessage *msg;
    PyObject *pilPixel;
    DmtxRgb dmtxRgb;
    int x, y;
@@ -149,11 +149,11 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
       return NULL;
    }
 
-   image = dmtxImageMalloc(width, height);
+   img = dmtxImageMalloc(width, height);
 
    /* Populate libdmtx image with PIL image data */
-   for(y = 0; y < image->height; y++) {
-      for(x = 0; x < image->width; x++) {
+   for(y = 0; y < img->height; y++) {
+      for(x = 0; x < img->width; x++) {
          args = Py_BuildValue("(iiO)", x, y, context);
          pilPixel = PyEval_CallObject(picker, args);
          Py_DECREF(args);
@@ -164,32 +164,33 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
          if(!PyArg_ParseTuple(pilPixel, "iii", &dmtxRgb[0], &dmtxRgb[1], &dmtxRgb[2]))
             return NULL;
 
-         dmtxImageSetRgb(image, x, y, dmtxRgb);
+         dmtxImageSetRgb(img, x, y, dmtxRgb);
 
          Py_DECREF(pilPixel);
       }
    }
 
-   decode = dmtxDecodeStructInit(image);
-   dmtxDecodeSetProp(&decode, DmtxPropScanGap, gap_size);
+   dec = dmtxDecodeStructInit(img);
+   dmtxDecodeSetProp(&dec, DmtxPropScanGap, gap_size);
 
    for(;;) {
-      region = dmtxDecodeFindNextRegion(&decode, NULL);
-      if(region.found == DMTX_REGION_EOF)
+      reg = dmtxDecodeFindNextRegion(&dec, NULL);
+
+      if(reg.found != DMTX_REGION_FOUND)
          break;
 
-      message = dmtxDecodeMatrixRegion(image, &region, -1);
-      if(message == NULL)
+      msg = dmtxDecodeMatrixRegion(img, &reg, -1);
+      if(msg == NULL)
          continue;
 
-      output = Py_BuildValue("s", message->output);
+      output = Py_BuildValue("s", msg->output);
       Py_INCREF(output);
 
-      dmtxMessageFree(&message);
+      dmtxMessageFree(&msg);
       break; /* XXX for now, break after first barcode is found in image */
    }
 
-   dmtxImageFree(&image);
+   dmtxImageFree(&img);
    Py_DECREF(context);
 
    return output;
@@ -205,11 +206,11 @@ static PyObject *dmtx_decode2(PyObject *self, PyObject *arglist, PyObject *kwarg
    Py_ssize_t dataLen;
    PyObject *context = Py_None;
    PyObject *output = NULL;
-   DmtxImage *image;
+   DmtxImage *img;
    char *imageAsPtrArray;  // The libdmtx array for the image
-   DmtxDecode decode;
-   DmtxRegion region;
-   DmtxMessage *message;
+   DmtxDecode dec;
+   DmtxRegion reg;
+   DmtxMessage *msg;
    const char *pixelData;  // The input image buffer
 
    static char *kwlist[] = { "width", "height", "gap_size", "data", "context", NULL };
@@ -226,34 +227,35 @@ static PyObject *dmtx_decode2(PyObject *self, PyObject *arglist, PyObject *kwarg
       return NULL;
    }
 
-   image = dmtxImageMalloc(width, height);
-   imageAsPtrArray = (char*) &image->pxl[0][0];
+   img = dmtxImageMalloc(width, height);
+   imageAsPtrArray = (char*) &img->pxl[0][0];
 
    PyObject_AsCharBuffer(dataBuffer, &pixelData, &dataLen);
 
    /* Populate libdmtx image with image data */
-   memcpy(image->pxl, pixelData, image->width * image->height * 3);
+   memcpy(img->pxl, pixelData, img->width * img->height * 3);
 
-   decode = dmtxDecodeStructInit(image);
-   dmtxDecodeSetProp(&decode, DmtxPropScanGap, gap_size);
+   dec = dmtxDecodeStructInit(img);
+   dmtxDecodeSetProp(&dec, DmtxPropScanGap, gap_size);
 
    for(;;) {
-      region = dmtxDecodeFindNextRegion(&decode, NULL);
-      if(region.found == DMTX_REGION_EOF)
+      reg = dmtxDecodeFindNextRegion(&dec, NULL);
+
+      if(reg.found != DMTX_REGION_FOUND)
          break;
 
-      message = dmtxDecodeMatrixRegion(image, &region, -1);
-      if(message == NULL)
+      msg = dmtxDecodeMatrixRegion(img, &reg, -1);
+      if(msg == NULL)
          continue;
 
-      output = Py_BuildValue("s", message->output);
+      output = Py_BuildValue("s", msg->output);
       Py_INCREF(output);
 
-      dmtxMessageFree(&message);
+      dmtxMessageFree(&msg);
       break; /* XXX for now, break after first barcode is found in image */
    }
 
-   dmtxImageFree(&image);
+   dmtxImageFree(&img);
    Py_DECREF(context);
 
    return output;
