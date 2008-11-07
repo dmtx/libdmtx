@@ -33,7 +33,8 @@ and dmtxwrite for Windows.
        these folders checkbox.
      * Click Next.
 
-  d. Select Use Visual Studio and change Project Type to "Console application project".
+  d. Select Use Visual Studio and change Project Type to
+     "Console application project".
      Click Next.
 
   e. Keep clicking Next and then click Finish.
@@ -48,10 +49,10 @@ folders or individual files in the Solution Explorer window, then
 selecting Include In Project from the resulting pop-up. Doing
 this, go through the list and include the following items:
 
-   * libdmtx-0.5.2/dmtx.c
-   * libdmtx-0.5.2/dmtx.h
-   * libdmtx-0.5.2/util/dmtxread (whole folder)
-   * libdmtx-0.5.2/util/common (whole folder)
+   * libdmtx-0.6.0/dmtx.c
+   * libdmtx-0.6.0/dmtx.h
+   * libdmtx-0.6.0/util/dmtxread (whole folder)
+   * libdmtx-0.6.0/util/common (whole folder)
    * All *.c and *.h files in the main libpng folder (not
      including subdirectories) except for example.c and pngtest.c
    * All *.c and *.h files in the main zlib folder (not including
@@ -72,7 +73,8 @@ following directories by clicking on the "new folder" icon.
 
    * Path to the main libdmtx directory
    * Path to libdmtx/util/common directory
-   * Path to libdmtx/util/dmtxread or libdmtx/util/dmtxwrite (depending on the version you are building)
+   * Path to libdmtx/util/dmtxread or libdmtx/util/dmtxwrite
+     (depending on which utility want)
    * Path to the main libpng directory
    * Path to the main zlib directory
 

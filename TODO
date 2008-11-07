@@ -35,22 +35,24 @@ version 0.6.0: (??-Nov-2008)
   o libdmtx:   Finish calib edge travel end condition
   o libdmtx:   Use calibration edge alignment to set precise locs for all edges
   o libdmtx:   Remove status from DmtxPixelLoc
-  / libdmtx:   Static analysis cleanup with splint
   / libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
+  x libdmtx:   Begin static analysis cleanup with splint
   x libdmtx:   New --disable-dmtxread and --disable-dmtxwrite (thanks Romain!)
   x libdmtx:   Ability to specify max/min expected barcode sizes
   x libdmtx:   New edge neighbor tracking (Hough Transform + 2-way edge cache)
   x libdmtx:   Info cache to track scan progress and avoid rescanning pixels
   x libdmtx:   Scan multiple barcodes within an image
-  x libdmtx:   Significant reduction in memory footprint
-  x libdmtx:   Big reduction of floating point math in early steps
+  x libdmtx:   Significantly reduced memory footprint
+  x libdmtx:   Significant reduction in floating point operations
   x dmtxread:  New informative return codes (found, not found, error)
   x dmtxread:  Read input from STDIN
   x dmtxread:  GraphicsMagick support for image reading (thanks Olivier!)
   x dmtxread:  JPEG reading support (thanks Ryan!)
-  x dmtxread:  Diagnostic images contain trail left by scanning logic
+  x dmtxread:  Diagnostic images display trail left by scanning logic
   x dmtxwrite: Option to write output to STDOUT (thanks Olivier!)
   x dmtxwrite: Write output to STDOUT
+  x wrapper:   PHP wrapper now compiles with latest libdmtx version
+  x project:   Dedicated README.xxx instructions for specific platforms
   x project:   Various improvements for cross platform builds
 
 version 0.5.2: (04-Sep-2008)
