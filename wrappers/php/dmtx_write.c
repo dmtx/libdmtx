@@ -1,6 +1,5 @@
 /**
  * Copyright (c) 2005 Christian Hentschel
- * Copyright (c) 2008 Mike Laughton
  *
  * This file is part of the libdmtx-php extension.
  *
@@ -36,33 +35,32 @@ int le_dmtx_image;
 ZEND_DECLARE_MODULE_GLOBALS(dmtx)
 
 static function_entry dmtx_functions[] = {
-	PHP_FE(dmtx_write, NULL)
-	PHP_FE(dmtx_getRow, NULL)
-	PHP_FE(dmtx_getSize, NULL)
-	{NULL, NULL, NULL}
+   PHP_FE(dmtx_write, NULL)
+   PHP_FE(dmtx_getRow, NULL)
+   PHP_FE(dmtx_getSize, NULL)
+   {NULL, NULL, NULL}
 };
 
 zend_module_entry dmtx_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
-	STANDARD_MODULE_HEADER,
+   STANDARD_MODULE_HEADER,
 #endif
-	PHP_DMTX_EXTNAME,
-	dmtx_functions,
-	PHP_MINIT(dmtx),
-	PHP_MSHUTDOWN(dmtx),
-	PHP_RINIT(dmtx),
-	NULL,
-	NULL,
+   PHP_DMTX_EXTNAME,
+   dmtx_functions,
+   PHP_MINIT(dmtx),
+   PHP_MSHUTDOWN(dmtx),
+   PHP_RINIT(dmtx),
+   NULL,
+   NULL,
 #if ZEND_MODULE_API_NO >= 20010901
-	PHP_DMTX_VERSION,
+   PHP_DMTX_VERSION,
 #endif
-	STANDARD_MODULE_PROPERTIES
+   STANDARD_MODULE_PROPERTIES
 };
 
 #ifdef COMPILE_DL_DMTX
 ZEND_GET_MODULE(dmtx)
 #endif
-
 
 static void php_dmtx_init_globals(zend_dmtx_globals *dmtx_globals)
 {
@@ -70,108 +68,105 @@ static void php_dmtx_init_globals(zend_dmtx_globals *dmtx_globals)
 
 PHP_RINIT_FUNCTION(dmtx)
 {
-	DMTX_G(row_index) = 0;
+   DMTX_G(row_index) = 0;
 
-	return SUCCESS;
+   return SUCCESS;
 }
 
 static void php_dmtx_image_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
-	DmtxEncode *enc = (DmtxEncode *)rsrc->ptr;
+   DmtxEncode *enc = (DmtxEncode *)rsrc->ptr;
 
-	if(enc) {
-		dmtxEncodeStructDeInit(enc);
-		free(enc);
-		enc = NULL;
-	}
+   if(enc) {
+      dmtxEncodeStructDeInit(enc);
+      free(enc);
+      enc = NULL;
+   }
 }
 
 PHP_MINIT_FUNCTION(dmtx)
 {
-	le_dmtx_image = zend_register_list_destructors_ex(php_dmtx_image_dtor, NULL,
-				PHP_DMTX_IMAGE_RES_NAME, module_number);
+   le_dmtx_image = zend_register_list_destructors_ex(php_dmtx_image_dtor, NULL,
+         PHP_DMTX_IMAGE_RES_NAME, module_number);
 
-	ZEND_INIT_MODULE_GLOBALS(dmtx, php_dmtx_init_globals, NULL);
+   ZEND_INIT_MODULE_GLOBALS(dmtx, php_dmtx_init_globals, NULL);
 
-	return SUCCESS;
+   return SUCCESS;
 }
 
 PHP_MSHUTDOWN_FUNCTION(dmtx)
 {
-	return SUCCESS;
+   return SUCCESS;
 }
 
 PHP_FUNCTION(dmtx_write)
 {
-	unsigned char *data;
-	int data_len;
-	int i;
-	DmtxEncode *enc;
+   unsigned char *data;
+   int data_len;
+   int i;
+   DmtxEncode *enc;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
-		&data, &data_len) == FAILURE)
-	{
-		RETURN_NULL();
-	}
+   if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s",
+         &data, &data_len) == FAILURE)
+      RETURN_NULL();
 
-	enc = (DmtxEncode *)malloc(sizeof(DmtxEncode));
-	*enc = dmtxEncodeStructInit();
-	dmtxEncodeDataMatrix(enc, data_len, data, DmtxSymbolSquareAuto);
+   enc = (DmtxEncode *)malloc(sizeof(DmtxEncode));
+   *enc = dmtxEncodeStructInit();
+   dmtxEncodeDataMatrix(enc, data_len, data, DmtxSymbolSquareAuto);
 
-	printf("ddd");	
-	fflush(stdout);
+   printf("ddd");
+   fflush(stdout);
 
-	ZEND_REGISTER_RESOURCE(return_value, enc, le_dmtx_image);
+   ZEND_REGISTER_RESOURCE(return_value, enc, le_dmtx_image);
 }
 
 PHP_FUNCTION(dmtx_getSize)
 {
-	DmtxEncode *enc;
-	zval *zImage;
+   DmtxEncode *enc;
+   zval *zImage;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zImage) == FAILURE) {
-		RETURN_NULL();
-	}
-	ZEND_FETCH_RESOURCE(enc, DmtxEncode *, &zImage, -1, PHP_DMTX_IMAGE_RES_NAME, le_dmtx_image);
+   if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zImage) == FAILURE)
+      RETURN_NULL();
 
-	array_init(return_value);
-	add_assoc_long(return_value, "width", enc->image->width);
-	add_assoc_long(return_value, "height", enc->image->height);
+   ZEND_FETCH_RESOURCE(enc, DmtxEncode *, &zImage, -1, PHP_DMTX_IMAGE_RES_NAME, le_dmtx_image);
+
+   array_init(return_value);
+   add_assoc_long(return_value, "width", enc->image->width);
+   add_assoc_long(return_value, "height", enc->image->height);
 }
 
 PHP_FUNCTION(dmtx_getRow)
 {
-	DmtxEncode *enc;
-	zval *zImage;
-	int i;
+   DmtxEncode *enc;
+   zval *zImage;
+   int i;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zImage) == FAILURE) {
-		RETURN_NULL();
-	}
+   if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zImage) == FAILURE)
+      RETURN_NULL();
 
-	ZEND_FETCH_RESOURCE(enc, DmtxEncode *, &zImage, -1, PHP_DMTX_IMAGE_RES_NAME, le_dmtx_image);
+   ZEND_FETCH_RESOURCE(enc, DmtxEncode *, &zImage, -1, PHP_DMTX_IMAGE_RES_NAME, le_dmtx_image);
 
-	DmtxImage *img = enc->image;
+   DmtxImage *img = enc->image;
 
-	if (DMTX_G(row_index) >= img->height)
-		RETURN_NULL();
+   if(DMTX_G(row_index) >= img->height)
+      RETURN_NULL();
 
-	array_init(return_value);
+   array_init(return_value);
 
-	for (i = 0; i < img->width; i++) {
-		
-		int pos = (DMTX_G(row_index) * img->width) + i;
-		zval *arr;
+   for(i = 0; i < img->width; i++) {
 
-		ALLOC_INIT_ZVAL(arr);		
-		array_init(arr);
+      int pos = (DMTX_G(row_index) * img->width) + i;
+      zval *arr;
 
-		add_assoc_long(arr, "R", img->pxl[pos][0]);
-		add_assoc_long(arr, "G", img->pxl[pos][1]);
-		add_assoc_long(arr, "B", img->pxl[pos][2]);
+      ALLOC_INIT_ZVAL(arr);
+      array_init(arr);
 
-		add_next_index_zval(return_value, arr);
-	}
+      add_assoc_long(arr, "R", img->pxl[pos][0]);
+      add_assoc_long(arr, "G", img->pxl[pos][1]);
+      add_assoc_long(arr, "B", img->pxl[pos][2]);
 
-	DMTX_G(row_index)++;
+      add_next_index_zval(return_value, arr);
+   }
+
+   DMTX_G(row_index)++;
 }
