@@ -76,7 +76,7 @@ dmtxEncodeStructInit(void)
 
    memset(&enc, 0x00, sizeof(DmtxEncode));
 
-   enc.scheme = DmtxSchemeEncodeAutoBest;
+   enc.scheme = DmtxSchemeEncodeAscii;
    enc.moduleSize = 5;
    enc.marginSize = 10;
 
