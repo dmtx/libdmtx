@@ -15,63 +15,110 @@ README.osx, etc...).
 -----------------------------------------------------------------
 
 libdmtx is open source software for reading and writing Data
-Matrix barcodes on Linux, Unix, OS X, Windows, and certain mobile
+Matrix barcodes on Linux, Unix, OS X, Windows, and some mobile
 devices. At its core libdmtx is a shared library, allowing C/C++
 programs to use its capabilities without restrictions or
 overhead.
 
-The included utility programs, dmtxread and dmtxwrite, serve as
-the official interface to libdmtx from the command line, and also
-provide a good reference for programmers who wish to write their
-own programs that interact with libdmtx. All of the software in
-the libdmtx package is distributed under the LGPL and can be used
-freely under these terms.
+The included utility programs, dmtxread and dmtxwrite, provide
+the official command line interface to libdmtx, and also serve as
+a good reference for programmers who wish to write their own
+programs that interact with libdmtx. All of the software in the
+libdmtx package is distributed under the LGPL and can be used
+freely under its terms.
 
 
-2. Installation
+2. Package Components
+-----------------------------------------------------------------
+
+libdmtx serves a diverse audience and contains several unrelated
+components, many of which may not be useful to you. Components
+fall into one of four categories:
+
+  * Core library      (useful to all libdmtx users)
+  * Utility programs  (useful to command line users)
+  * Test programs     (useful to libdmtx developers)
+  * Language Wrappers (useful to non-C/C++ developers)
+
+The default installation will compile and install the core
+library and all three command line utilities. The test programs
+will compile with an additional "make check", and the language
+wrappers are built using instructions found in their specific
+directories.
+
+Users who only need the core library can disable the command line
+utilities by passing any combination of the following parameters
+to "./configure":
+
+  --disable-dmtxread
+  --disable-dmtxwrite
+  --disable-dmtxquery
+
+This is often useful in reducing compile times and avoiding
+unnecessary dependencies.
+
+Appendix A. at the end of this file provides a full list of the
+package components and their properties.
+
+
+3. Installation
 -----------------------------------------------------------------
 
 libdmtx uses GNU Autotools so installation should be familiar to
 free software veterans. If your platform cannot easily run the
-Autotools scripts (e.g., MS Visual Studio) then please refer to
-the appropriate platform-specific README.xxx located in this
+Autotools scripts (e.g., MS Visual Studio) then refer to the
+appropriate platform-specific README.xxx located in this
 directory for alternate instructions.
 
-Most people can simply run the following:
+Ideally, the following 3 steps will compile and install libdmtx
+on your system:
 
   $ ./configure
   $ make
   $ sudo make install
 
-If the 'sudo' command is not configured on your system then
-alternatively you can yell "Yeeehaww!" as you log in as root and
-run this instead:
+However, nobody is ever that lucky. Some details are provided
+below for when things go wrong or if you want to customize beyond
+the defaults.
 
-  $ make install
-
-If you're awesome and it compiled on the first try, you can now
-use the newly built library and utility programs that were just
-installed system-wide. However, if something when wrong then keep
-reading.
-
-If you obtained libdmtx from its Subversion repository you
-probably got an error saying something like "configure: error:
-cannot find install-sh". Run this command and try again:
+Details on "configure" step
+----------------------------------------
+If you obtained libdmtx from Subversion you may have gotten an
+error like "./configure: No such file or directory". Run this
+command and try again:
 
   $ ./autogen.sh
 
 The autogen.sh command requires autoconf, automake, libtool, and
 pkgconfig to be installed on your system.
 
+The configure script offers many options for customizing the
+build process, many of which are described in the INSTALL file in
+this directory. If the INSTALL file does not exist then you may
+need to run the "./autogen.sh" step first. Some common options
+include:
+
+  $ ./configure CC=/usr/local2/bin/gcc
+  $ ./configure --prefix=/your/custom/path
+  $ ./configure --disable-dmtxread --disable-dmtxwrite
+
+Details on "make" step
+----------------------------------------
 Errors encountered during the "make" step are often a result of
 missing software dependencies. These dependencies are listed in
-Appendix A. of this file. Install any missing software and try
-again.
+Appendix A. in this file. Install any missing software and start
+over.
 
-For more information on the "./configure" step please read the
-INSTALL file located in this directory. If the INSTALL file does
-not exist then you may need to run the "./autogen.sh" step first.
+Details on "sudo make install" step
+----------------------------------------
+If the 'sudo' command is not configured on your system then
+alternatively you can yell "Yeeehaww!" as you log in as root and
+run this instead:
 
+  $ make install
+
+And finally...
+----------------------------------------
 If you want to ensure that everything built correctly you can
 optionally build the test programs like this:
 
@@ -83,32 +130,6 @@ and gltest. Note that the gltest program has significant
 dependencies due to its graphical nature, and does not provide
 significant utility unless you are testing the library decoding
 internals.
-
-
-3. Components
------------------------------------------------------------------
-
-libdmtx serves a diverse audience and contains several unrelated
-components, many of which may not be useful to you. Package
-components generally fall into one of four categories:
-
-  * Core library      (useful to all libdmtx users)
-  * Utility programs  (useful to command line users)
-  * Language Wrappers (useful to non-C/C++ developers)
-  * Test programs     (useful to libdmtx developers)
-
-Appendix A. at the end of this file provides a full list of these
-components and their properties.
-
-Users who need just the core library may want to disable the
-utility programs to save on compile times and reduce build
-dependencies. The utility programs are disabled by passing any
-combination of the following parameters to the "./configure"
-script:
-
-  --disable-dmtxread
-  --disable-dmtxwrite
-  --disable-dmtxquery
 
 
 4. Basic Usage
@@ -131,7 +152,7 @@ following examples all produce equivalent results:
 Conversely,the dmtxread utility turns barcode images into
 messages. Images are passed to dmtxread via standard input or
 file, and the output is written to standard output. The following
-examples both produce equivalent results:
+examples produce equivalent results:
 
   $ dmtxread -n image.png
   $ cat image.png | dmtxread -n
@@ -211,7 +232,7 @@ Description: Python libdmtx wrapper
 Location:    libdmtx/wrappers/python
 Build:       See INSTALL file in libdmtx/wrappers/python directory
 Requires:    python, pil
-Disable:     Does not build by default
+Disable:     Not included in default build
 
 -----------------------------------
 
@@ -221,7 +242,7 @@ Description: PHP libdmtx wrapper
 Location:    libdmtx/wrappers/php
 Build:       See INSTALL file in libdmtx/wrappers/php directory
 Requires:    php, php-cli, php-common
-Disable:     Does not build by default
+Disable:     Not included in default build
 
 -----------------------------------
 
@@ -230,8 +251,8 @@ Type:        Language wrapper
 Description: Cocoa libdmtx wrapper
 Location:    libdmtx/wrappers/cocoa
 Build:       See INSTALL file in libdmtx/wrappers/cocoa directory
-Requires:    x
-Disable:     Does not build by default
+Requires:    OS X
+Disable:     Not included in default build
 
 -----------------------------------
 
@@ -241,7 +262,7 @@ Description: Scan simulated camera input from OpenGL in realtime
 Location:    libdmtx/
 Build:       make check
 Requires:    mesa-libGL, mesa-libGLU, SDL, libpng
-Disable:     Does not build by default
+Disable:     Not included in default build
 
 -----------------------------------
 
@@ -250,7 +271,7 @@ Type:        test program
 Description: Simple round-trip encoding and decoding test
 Build:       make check
 Requires:    No dependencies
-Disable:     Does not build by default
+Disable:     Not included in default build
 
 -----------------------------------
 
@@ -259,6 +280,6 @@ Type:        test program
 Description: Unit test program
 Build:       make check
 Requires:    No dependencies
-Disable:     Does not build by default
+Disable:     Not included in default build
 
 -----------------------------------

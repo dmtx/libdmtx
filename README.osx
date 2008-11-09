@@ -4,41 +4,46 @@
 
                  libdmtx README file (Mac OS X)
 
-This README.osx file contains information on installing and
-using libdmtx on Mac OS X and similar systems. The general
-README file, also found in this directory, contains a high level
-summary of libdmtx and its components.
+This README.osx file contains information on installing and using
+libdmtx on Mac OS X. The general README file, also found in this
+directory, contains a high level summary of libdmtx and its
+components.
 
 
-1. Building from Source Code
------------------------------------------------------------------
-See the general README file
-
-You have two options :
-1/ Build without any dependency
-2/ Build with GraphicsMagick and/or libpng
-
-
-Option 1: No dependency
+1. Introduction
 -----------------------------------------------------------------
 
-If you don't build the sample command-line tools shipping with
-libdmtx, you won't need any extra library installed. The trade-
-off is that you won't be able to toy with libdmtx since that's
-what the command-line tools are here for. You'll just end up
-with a static or dynamic library.
+Installing libdmtx on OS X follows the same basic installation
+steps as described in the general README file. As mentioned
+there, the project provides components falling in the following
+categories:
 
-1/ Download a tarball of libdmtx and unpack it
-2/ ./configure --disable-dmtxread --disable-dmtxwrite
-3/ make
-4/ sudo make install
+  * Core library      (useful to all libdmtx users)
+  * Utility programs  (useful to command line users)
+  * Test programs     (useful to libdmtx developers)
+  * Language Wrappers (useful to non-C/C++ developers)
+
+
+2. Installing the Core Library (No Dependencies)
+-----------------------------------------------------------------
+
+If you don't want to build the sample command line tools shipping
+with libdmtx, you won't need any extra library installed. The
+tradeoff is that you won't be able to toy with libdmtx since
+that's what the command line tools are here for. You'll just end
+up with a static or dynamic library.
+
+  1) Download a tarball of libdmtx and unpack it
+  2) ./configure --disable-dmtxread --disable-dmtxwrite
+  3) make
+  4) sudo make install
 
 You can tweak configure's parameters to build an Universal Bina-
 ry version of the library. You can follow the recommendations at
 http://developer.apple.com/technotes/tn2005/tn2137.html
 
 
-Option 2: libpng and/or GraphicsMagick
+3. Installing the Utility Programs
 -----------------------------------------------------------------
 
 The procedure is similar to the one mentionned herein before, but
@@ -49,4 +54,16 @@ for GraphicsMagick, you'll have to build it from sources.
 
 Once this is done, simply add the relevant "-L" and "-I" options
 to the CFLAGS and LDFLAGS environment variables before running
-the ./configure script
+the ./configure script.
+
+
+4. Installing the Test Programs
+-----------------------------------------------------------------
+
+Same as general README instructions.
+
+
+5. Installing the Language Wrappers
+-----------------------------------------------------------------
+
+Same as general README instructions.
