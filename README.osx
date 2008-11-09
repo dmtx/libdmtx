@@ -9,46 +9,44 @@ using libdmtx on Mac OS X and similar systems. The general
 README file, also found in this directory, contains a high level
 summary of libdmtx and its components.
 
+
 1. Building from Source Code
 -----------------------------------------------------------------
 See the general README file
 
-Install Summary for Mac OS X (tested on 10.5.1)
+You have two options :
+1/ Build without any dependency
+2/ Build with GraphicsMagick and/or libpng
 
-Note: These instructions were taken from a forum post discussing
-a pre-0.5 version of libdmtx. They may not be current anymore.
 
-When downloading the files end up in ~/Downloads/. After
-downloading a file you unpack the files by double clicking on the
-downloaded file in ~/Downloads/ directory. Do this pair of steps
-for each download.
+Option 1: No dependency
+-----------------------------------------------------------------
 
-Download http://prdownloads.sourceforge.net/libpng/libpng-1.2.24.tar.gz?download
-and unpack. In Terminal cd to the directory in downloads, then run:
+If you don't build the sample command-line tools shipping with
+libdmtx, you won't need any extra library installed. The trade-
+off is that you won't be able to toy with libdmtx since that's
+what the command-line tools are here for. You'll just end up
+with a static or dynamic library.
 
-   ./configure
-   make
-   sudo make install
+1/ Download a tarball of libdmtx and unpack it
+2/ ./configure --disable-dmtxread --disable-dmtxwrite
+3/ make
+4/ sudo make install
 
-Download from http://dl.maptools.org/dl/libtiff/ and unpack. In
-Terminal cd to the directory in downloads, then run:
+You can tweak configure's parameters to build an Universal Bina-
+ry version of the library. You can follow the recommendations at
+http://developer.apple.com/technotes/tn2005/tn2137.html
 
-   ./configure
-   make
-   sudo make install
 
-Download from http://sourceforge.net/projects/libdmtx/ the
-libdmtx package and unpack. In Terminal cd to the directory in
-downloads, then run:
+Option 2: libpng and/or GraphicsMagick
+-----------------------------------------------------------------
 
-   ./configure
-   make
-   sudo make install
+The procedure is similar to the one mentionned herein before, but
+you'll have to provide the ./configure script with the required
+dependencies. dmtxwrite requires libpng, and dmtxread requires
+GraphicsMagick. libpng can be installed easily with MacPorts. As
+for GraphicsMagick, you'll have to build it from sources.
 
-Check for the man page for dmtxread and try running dmtxread.
-
-Example .png files can be found in:
-
-   ~/Downloads/libdmtx-0.5.0/test/images_opengl
-
-Not all the sample images scan correctly.
+Once this is done, simply add the relevant "-L" and "-I" options
+to the CFLAGS and LDFLAGS environment variables before running
+the ./configure script
