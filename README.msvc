@@ -9,12 +9,24 @@ MS Visual C++ for use on Windows. The general README file, also
 found in this directory, contains a high level summary of libdmtx
 and its components.
 
-1. Building from Source Code
+
+1. Introduction
 -----------------------------------------------------------------
+
 The following instructions will create static builds of dmtxread
 and dmtxwrite for Windows.
 
-1. Create a New Project
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wiki.sourceforge.net/libdmtx+on+Windows
+
+If you find an error or have additional information that would be
+helpful, please edit the wiki directly or send a patch to mike at
+dragonflylogic dot com.
+
+
+2. Create a New Project
+-----------------------------------------------------------------
 
   a. Download newest versions of libdmtx, libpng, and zlib
      packages from their official sites.
@@ -39,7 +51,9 @@ and dmtxwrite for Windows.
 
   e. Keep clicking Next and then click Finish.
 
-2. Add Necessary Project Files
+
+3. Add Necessary Project Files
+-----------------------------------------------------------------
 
 Next we need to tell Visual C++ which files we want to include as
 part of our project. For this example we're going to include
@@ -58,7 +72,8 @@ this, go through the list and include the following items:
    * All *.c and *.h files in the main zlib folder (not including
      subdirectories) except for example.c and minigzip.c
 
-3. Add Necessary Include Paths
+4. Add Necessary Include Paths
+-----------------------------------------------------------------
 
 Almost done. We still need to tell Visual C++ where to look for
 header files. This step can be done only after adding the project

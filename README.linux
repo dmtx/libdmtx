@@ -9,21 +9,31 @@ using libdmtx on GNU/Linux and similar systems. The general
 README file, also found in this directory, contains a high level
 summary of libdmtx and its components.
 
-1. Building from Source Code
+
+1. Installing libdmtx on GNU/Linux
 -----------------------------------------------------------------
-See the general README file
+
+libdmtx can be installed on GNU/Linux using the same instructions
+found in the general README file. However, please see below for
+additional details that might benefit users on this platform.
+
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wiki.sourceforge.net/libdmtx+on+Linux
+
+If you find an error or have additional information that would be
+helpful, please edit the wiki directly or send a patch to mike at
+dragonflylogic dot com.
 
 
 2. Installing Pre-Compiled Binaries
 -----------------------------------------------------------------
 
-Debian
+Debian users are the big winners because libdmtx is available in
+the main testing and unstable repositories (although not in
+stable yet). The Debian package is named libdmtx-utils:
 
-Debian users are the big winners because libdmtx is already
-included as part of the distribution. To install the latest
-release, just run the following:
-
-  $ sudo aptitude install autotools-dev libc6 libdmtx0 \
-       libgl1-mesa-dev libgl1-mesa-glx libglu1-mesa \
-       libglu1-mesa-dev libpng12-0 libpng12-dev libsdl1.2-dev \
-       libsdl1.2debian-all libtiff4 libtiff4-dev
+  $ apt-show-versions -a libdmtx-utils
+  No stable version
+  libdmtx-utils 0.5.1-1 testing ftp.us.debian.org
+  libdmtx-utils 0.5.2-1 unstable ftp.us.debian.org

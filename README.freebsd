@@ -9,14 +9,30 @@ using libdmtx on FreeBSD and similar systems. The general README
 file, also found in this directory, contains a high level summary
 of libdmtx and its components.
 
-1. Building from Source Code
+1. Installing libdmtx on FreeBSD
 -----------------------------------------------------------------
-See the general README file
 
-Building and installing on FreeBSD is the same as described in
-the general README file, but the configure step may require a
-couple additional exports:
+libdmtx can be installed on FreeBSD using the same instructions
+found in the general README file. However, please see below for
+additional details that might benefit users on this platform.
+
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wiki.sourceforge.net/libdmtx+on+FreeBSD
+
+If you find an error or have additional information that would be
+helpful, please edit the wiki directly or send a patch to mike at
+dragonflylogic dot com.
+
+
+2. Running the configure step
+-----------------------------------------------------------------
+
+FreeBSD users may need to export the CPPFLAGS and LDFLAGS as
+follows in order for the build process to succeed:
 
    $ export CPPFLAGS=-I/usr/local/include
    $ export LDFLAGS=-L/usr/local/lib
    $ ./configure
+   $ make
+   $ sudo make install

@@ -42,11 +42,11 @@ fall into one of four categories:
 
 The default installation will compile and install the core
 library and all three command line utilities. The test programs
-will compile with an additional "make check", and the language
-wrappers are built using instructions found in their specific
-directories.
+will compile by performing an additional "make check", and the
+language wrappers are built using instructions found in their
+specific directories.
 
-Users who only need the core library can disable the command line
+Users who only want the core library can disable the command line
 utilities by passing any combination of the following parameters
 to "./configure":
 
@@ -55,7 +55,9 @@ to "./configure":
   --disable-dmtxquery
 
 This is often useful in reducing compile times and avoiding
-unnecessary dependencies.
+unnecessary dependencies. Do note, however, that these utilities
+provide a convenient way to test the library and learn its
+behavior, so their inclusion is recommended if possible.
 
 Appendix A. at the end of this file provides a full list of the
 package components and their properties.
@@ -83,7 +85,7 @@ the defaults.
 
 Details on "configure" step
 ----------------------------------------
-If you obtained libdmtx from Subversion you may have gotten an
+If you obtained libdmtx from Subversion you may have received an
 error like "./configure: No such file or directory". Run this
 command and try again:
 
@@ -95,8 +97,8 @@ pkgconfig to be installed on your system.
 The configure script offers many options for customizing the
 build process, many of which are described in the INSTALL file in
 this directory. If the INSTALL file does not exist then you may
-need to run the "./autogen.sh" step first. Some common options
-include:
+need to run the "./autogen.sh" step first. Examples of common
+customizations include:
 
   $ ./configure CC=/usr/local2/bin/gcc
   $ ./configure --prefix=/your/custom/path
