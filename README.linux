@@ -17,14 +17,6 @@ libdmtx can be installed on GNU/Linux using the same instructions
 found in the general README file. However, please see below for
 additional details that might benefit users on this platform.
 
-This document is derived from the wiki page located at:
-
-  http://libdmtx.wiki.sourceforge.net/libdmtx+on+Linux
-
-If you find an error or have additional information that would be
-helpful, please edit the wiki directly or send a patch to mike at
-dragonflylogic dot com.
-
 
 2. Installing Pre-Compiled Binaries
 -----------------------------------------------------------------
@@ -37,3 +29,14 @@ stable yet). The Debian package is named libdmtx-utils:
   No stable version
   libdmtx-utils 0.5.1-1 testing ftp.us.debian.org
   libdmtx-utils 0.5.2-1 unstable ftp.us.debian.org
+
+
+3. This Document
+-----------------------------------------------------------------
+
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wiki.sourceforge.net/libdmtx+on+Linux
+
+If you find an error or have additional helpful information,
+please edit the wiki directly with your updates.

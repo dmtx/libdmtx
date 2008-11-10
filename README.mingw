@@ -53,3 +53,14 @@ Finally run:
    gcc -shared -o dmtx.dll libdmtx_la-dmtx.o -Wl,--out-implib,libdmtx.a
 
 Now you should have working dmtx.dll in the folder .libs.
+
+
+2. This Document
+-----------------------------------------------------------------
+
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wiki.sourceforge.net/libdmtx+on+MinGW
+
+If you find an error or have additional helpful information,
+please edit the wiki directly with your updates.

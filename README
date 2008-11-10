@@ -121,7 +121,7 @@ run this instead:
 
 And finally...
 ----------------------------------------
-If you want to ensure that everything built correctly you can
+If you want to verify that everything is working properly you can
 optionally build the test programs like this:
 
   $ make check

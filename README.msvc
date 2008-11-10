@@ -14,15 +14,7 @@ and its components.
 -----------------------------------------------------------------
 
 The following instructions will create static builds of dmtxread
-and dmtxwrite for Windows.
-
-This document is derived from the wiki page located at:
-
-  http://libdmtx.wiki.sourceforge.net/libdmtx+on+Windows
-
-If you find an error or have additional information that would be
-helpful, please edit the wiki directly or send a patch to mike at
-dragonflylogic dot com.
+and dmtxwrite for Windows using MS Visual C++.
 
 
 2. Create a New Project
@@ -72,6 +64,7 @@ this, go through the list and include the following items:
    * All *.c and *.h files in the main zlib folder (not including
      subdirectories) except for example.c and minigzip.c
 
+
 4. Add Necessary Include Paths
 -----------------------------------------------------------------
 
@@ -97,3 +90,14 @@ That's it. You should now be able to "Build Solution" (F7) and
 after a bunch of warnings it will say "1 succeeded". It is left
 as an exercise for the reader to find where Visual C++ placed the
 resulting executable.
+
+
+5. This Document
+-----------------------------------------------------------------
+
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wiki.sourceforge.net/libdmtx+on+Windows
+
+If you find an error or have additional helpful information,
+please edit the wiki directly with your updates.
