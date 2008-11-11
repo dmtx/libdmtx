@@ -12,8 +12,8 @@ of libdmtx and its components.
 1. Installing libdmtx on Unix
 -----------------------------------------------------------------
 
-libdmtx can be installed on Unix using the same instructions
-found in the general README file. However, please see below for
+libdmtx can be installed on Unix using the instructions provided
+in the general README file. However, please see below for
 additional details that might benefit users on this platform.
 
 
