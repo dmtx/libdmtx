@@ -5,9 +5,10 @@
                   libdmtx README file (FreeBSD)
 
 This README.freebsd file contains information on installing and
-using libdmtx on FreeBSD and similar systems. The general README
-file, also found in this directory, contains a high level summary
-of libdmtx and its components.
+using libdmtx on FreeBSD. The general README file, also found in
+this directory, contains a high level summary of libdmtx and its
+components.
+
 
 1. Installing libdmtx on FreeBSD
 -----------------------------------------------------------------

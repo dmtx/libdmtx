@@ -5,9 +5,10 @@
                    libdmtx README file (MinGW)
 
 This README.mingw file contains information on installing and
-using libdmtx on MinGW and similar systems. The general README
-file, also found in this directory, contains a high level summary
-of libdmtx and its components.
+using libdmtx using MinGW. The general README file, also found in
+this directory, contains a high level summary of libdmtx and its
+components.
+
 
 1. Building from Source Code
 -----------------------------------------------------------------
@@ -60,7 +61,7 @@ Now you should have working dmtx.dll in the folder .libs.
 
 This document is derived from the wiki page located at:
 
-  http://libdmtx.wiki.sourceforge.net/libdmtx+on+MinGW
+  http://libdmtx.wiki.sourceforge.net/libdmtx+on+Windows+(MinGW)
 
 If you find an error or have additional helpful information,
 please edit the wiki directly with your updates.

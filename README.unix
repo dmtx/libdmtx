@@ -5,9 +5,10 @@
                    libdmtx README file (Unix)
 
 This README.unix file contains information on installing and
-using libdmtx on Unix and similar systems. The general README
-file, also found in this directory, contains a high level summary
-of libdmtx and its components.
+using libdmtx on Unix. The general README file, also found in
+this directory, contains a high level summary of libdmtx and its
+components.
+
 
 1. Installing libdmtx on Unix
 -----------------------------------------------------------------

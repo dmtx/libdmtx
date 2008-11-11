@@ -5,9 +5,9 @@
                  libdmtx README file (GNU/Linux)
 
 This README.linux file contains information on installing and
-using libdmtx on GNU/Linux and similar systems. The general
-README file, also found in this directory, contains a high level
-summary of libdmtx and its components.
+using libdmtx on GNU/Linux. The general README file, also found
+in this directory, contains a high level summary of libdmtx and
+its components.
 
 
 1. Installing libdmtx on GNU/Linux
@@ -36,7 +36,7 @@ stable yet). The Debian package is named libdmtx-utils:
 
 This document is derived from the wiki page located at:
 
-  http://libdmtx.wiki.sourceforge.net/libdmtx+on+Linux
+  http://libdmtx.wiki.sourceforge.net/libdmtx+on+GNU+Linux
 
 If you find an error or have additional helpful information,
 please edit the wiki directly with your updates.
