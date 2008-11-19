@@ -43,7 +43,7 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
    DmtxScanGrid *grid;
    DmtxPixelLoc loc, locNext;
    DmtxRegion   reg;
-/*
+/**
    int size, i = 0;
    char imagePath[128];
 */
@@ -63,7 +63,7 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
 
       /* Scan this pixel for presence of a valid barcode edge */
       reg = dmtxRegionScanPixel(dec, loc);
-/*
+/**
       if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_FINDER) {
          size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
          if(size >= 128)
@@ -419,9 +419,9 @@ dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
       return DMTX_FAILURE;
 
    dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &p01, &p00)); /* XXX could use MagSquared() */
-   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vOR, &p10, &p00)); /* XXX could use MagSquared() */
-   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTX, &p11, &p01)); /* XXX could use MagSquared() */
-   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vRX, &p11, &p10)); /* XXX could use MagSquared() */
+   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vOR, &p10, &p00));
+   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTX, &p11, &p01));
+   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vRX, &p11, &p10));
 
    /* Verify that sides are reasonably long */
    if(dimOT <= 8.0 || dimOR <= 8.0 || dimTX <= 8.0 || dimRX <= 8.0)
@@ -609,7 +609,7 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
 }
 
 /**
- * @brief  XXX
+ * @brief  Read color of Data Matrix module location
  * @param  image
  * @param  reg
  * @param  symbolRow
@@ -644,7 +644,7 @@ ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, i
 }
 
 /**
- * @brief  XXX
+ * @brief  Determine barcode size, expressed in modules
  * @param  image
  * @param  reg
  * @return DMTX_SUCCESS | DMTX_FAILURE
@@ -783,7 +783,7 @@ MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg)
 }
 
 /**
- * @brief  XXX
+ * @brief  Count the number of number of transitions between light and dark
  * @param  img
  * @param  reg
  * @param  xStart
@@ -1881,7 +1881,7 @@ BresLineStep(DmtxBresLine *line, int travel, int outward)
  *
  *
  */
-/*
+/**
 static void
 WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {

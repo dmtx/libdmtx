@@ -116,7 +116,7 @@ dmtxTimeNow(void)
 #endif
 
 /**
- * @brief  XXX
+ * @brief  Add milliseconds to time t
  * @param  t
  * @param  msec
  * @return Adjusted time
@@ -146,7 +146,7 @@ dmtxTimeAdd(DmtxTime t, long msec)
 }
 
 /**
- * @brief  XXX
+ * @brief  Determine whether the received timeout has been exceeded
  * @param  timeout
  * @return 1 (true) | 0 (false)
  */

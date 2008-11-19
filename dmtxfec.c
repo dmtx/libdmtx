@@ -150,7 +150,7 @@ init_rs_char(int nroots, int pad)
 }
 
 /**
- * @brief  XXX
+ * @brief  Encode array of values with Reed-Solomon
  * @param  rs Reed-Solomon codec control block
  * @param  data Array of data_t to be encoded
  * @param  parity Array of data_t to be written with parity symbols
@@ -181,7 +181,7 @@ encode_rs_char(struct rs *rs, data_t *data, data_t *parity)
 }
 
 /**
- * @brief  XXX
+ * @brief  Decode and correct array of values with Reed-Solomon
  * @param  rs Reed-Solomon codec control block
  * @param  data Array of data and parity symbols to be corrected in place
  * @param  eras_pos

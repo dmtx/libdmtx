@@ -223,7 +223,7 @@ dmtxImageGetOffset(DmtxImage *img, int x, int y)
 }
 
 /**
- * @brief  XXX
+ * @brief  Assign pixel RGB values
  * @param  img
  * @param  x
  * @param  y
@@ -247,7 +247,7 @@ dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 }
 
 /**
- * @brief  XXX
+ * @brief  Retrieve RGB values of a specific pixel location
  * @param  img
  * @param  x Scaled x coordinate
  * @param  y Scaled y coordinate
@@ -271,7 +271,7 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 }
 
 /**
- * @brief  XXX
+ * @brief  Retrieve the value of a specific color channel and pixel location
  * @param  img
  * @param  x Scaled x coordinate
  * @param  y Scaled y coordinate

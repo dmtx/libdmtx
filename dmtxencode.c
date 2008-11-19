@@ -66,7 +66,7 @@ Contact: mike@dragonflylogic.com
 #define DMTX_UNLATCH_IMPLICIT            1
 
 /**
- * @brief  XXX
+ * @brief  Initialize encode struct with default values
  * @return Initialized DmtxEncode struct
  */
 extern DmtxEncode
@@ -98,7 +98,7 @@ dmtxEncodeStructInit(void)
 }
 
 /**
- * @brief  XXX
+ * @brief  Deinitialize encode struct
  * @param  enc
  * @return void
  */
@@ -115,7 +115,7 @@ dmtxEncodeStructDeInit(DmtxEncode *enc)
 }
 
 /**
- * @brief  XXX
+ * @brief  Convert message into Data Matrix image
  * @param  enc
  * @param  inputSize
  * @param  inputString
@@ -161,7 +161,6 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    ModulePlacementEcc200(enc->message->array, enc->message->code, enc->region.sizeIdx, DMTX_MODULE_ON_RGB);
 
    /* Allocate memory for the image to be generated */
-   /* XXX image = DmtxImageMalloc(width, height); */
    enc->image = dmtxImageMalloc(
          2 * enc->marginSize + (enc->region.symbolCols * enc->moduleSize),
          2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize));
@@ -178,7 +177,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
 }
 
 /**
- * @brief  XXX
+ * @brief  Convert message into Data Mosaic image
  * @param  enc
  * @param  inputSize
  * @param  inputString
@@ -226,7 +225,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    /* XXX clean up above lines later for corner cases */
 
    /* Use 1/3 (floor) of dataWordCount establish first symbol size attempt */
-   splitSizeIdxFirst = FindCorrectBarcodeSize(tmpInputSize, sizeIdxRequest);
+   splitSizeIdxFirst = FindCorrectSymbolSize(tmpInputSize, sizeIdxRequest);
    if(splitSizeIdxFirst == -1)
       return DMTX_FAILURE;
 
@@ -320,7 +319,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
 }
 
 /**
- * @brief  XXX
+ * @brief  Convert input into message using specific encodation scheme
  * @param  buf
  * @param  inputString
  * @param  inputSize
@@ -358,7 +357,7 @@ EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
       needed by Encode...() for triplet termination */
 
    /* parameter sizeIdx is requested value, returned sizeIdx is decision */
-   *sizeIdx = FindCorrectBarcodeSize(dataWordCount, *sizeIdx);
+   *sizeIdx = FindCorrectSymbolSize(dataWordCount, *sizeIdx);
    if(*sizeIdx == -1)
       return 0;
 
@@ -366,7 +365,7 @@ EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
 }
 
 /**
- * @brief  XXX
+ * @brief  Add necessary padding codewords to message
  * @param  buf
  * @param  bufSize
  * @param  paddedSize
@@ -387,7 +386,7 @@ AddPadChars(unsigned char *buf,  int *bufSize, int paddedSize)
 }
 
 /**
- * @brief  XXX
+ * @brief  Randomize 253 state
  * @param  codewordValue
  * @param  codewordPosition
  * @return Randomized value
@@ -405,7 +404,7 @@ Randomize253State(unsigned char codewordValue, int codewordPosition)
 }
 
 /**
- * @brief  XXX
+ * @brief  Randomize 255 state
  * @param  codewordValue
  * @param  codewordPosition
  * @return Randomized value
@@ -423,7 +422,7 @@ Randomize255State(unsigned char codewordValue, int codewordPosition)
 }
 
 /**
- * @brief  XXX
+ * @brief  Write encoded message to image
  * @param  enc
  * @return void
  */
@@ -483,7 +482,7 @@ PrintPattern(DmtxEncode *enc)
 }
 
 /**
- * @brief  XXX
+ * @brief  Initialize encoding channel
  * @param  channel
  * @param  codewords
  * @param  length
@@ -500,7 +499,7 @@ InitChannel(DmtxChannel *channel, unsigned char *codewords, int length)
 }
 
 /**
- * @brief  XXX
+ * @brief  Encode message using single encodation scheme
  * @param  buf
  * @param  codewords
  * @param  length
@@ -512,8 +511,6 @@ EncodeSingleScheme(unsigned char *buf, unsigned char *codewords, int length, Dmt
 {
    int size;
    DmtxChannel channel;
-
-   /* XXX function needs to change return size */
 
    InitChannel(&channel, codewords, length);
 
@@ -536,7 +533,7 @@ EncodeSingleScheme(unsigned char *buf, unsigned char *codewords, int length, Dmt
 }
 
 /**
- * @brief  XXX
+ * @brief  Encode message using best possible encodation (combine schemes)
  * @param  buf
  * @param  codewords
  * @param  length
@@ -549,8 +546,6 @@ EncodeAutoBest(unsigned char *buf, unsigned char *codewords, int length)
    int winnerSize;
    DmtxChannelGroup optimal, best;
    DmtxChannel *channel, *winner;
-
-   /* XXX function needs to change return size */
 
    /* Intialize optimizing channels and encode first codeword from default ASCII */
    for(targetScheme = DmtxSchemeEncodeAscii; targetScheme <= DmtxSchemeEncodeBase256; targetScheme++) {
@@ -596,7 +591,7 @@ EncodeAutoBest(unsigned char *buf, unsigned char *codewords, int length)
 }
 
 /**
- * @brief  XXX
+ * @brief  Determine current best channel in encoding process
  * @param  group
  * @param  targetScheme
  * @return Winning channel
@@ -644,7 +639,7 @@ FindBestChannel(DmtxChannelGroup group, DmtxSchemeEncode targetScheme)
 }
 
 /**
- * @brief  XXX
+ * @brief  Encode next codeword using requested encodation scheme
  * @param  channel
  * @param  targetScheme
  * @return void
@@ -693,7 +688,7 @@ EncodeNextWord(DmtxChannel *channel, DmtxSchemeEncode targetScheme)
 }
 
 /**
- * @brief  XXX
+ * @brief  Encode value using ASCII encodation (standard or extended)
  * @param  channel
  * @return void
  */
@@ -773,7 +768,7 @@ EncodeAsciiCodeword(DmtxChannel *channel)
 }
 
 /**
- * @brief  XXX
+ * @brief  Encode value using C40, Text, or X12 encodation
  * @param  channel
  * @return void
  */
@@ -888,7 +883,7 @@ EncodeTripletCodeword(DmtxChannel *channel)
 }
 
 /**
- * @brief  XXX
+ * @brief  Encode value using EDIFACT encodation
  * @param  channel
  * @return void
  */
@@ -915,7 +910,7 @@ EncodeEdifactCodeword(DmtxChannel *channel)
 }
 
 /**
- * @brief  XXX
+ * @brief  Encode value using Base 256 encodation
  * @param  channel
  * @return void
  */
@@ -983,7 +978,7 @@ EncodeBase256Codeword(DmtxChannel *channel)
 }
 
 /**
- * @brief  XXX
+ * @brief  Change from one encodation scheme to another
  * @param  channel
  * @param  targetScheme
  * @param  unlatchType
@@ -1111,7 +1106,7 @@ ChangeEncScheme(DmtxChannel *channel, DmtxSchemeEncode targetScheme, int unlatch
 }
 
 /**
- * @brief  XXX
+ * @brief  Push codeword onto channel and increment length
  * @param  channel
  * @param  codeword
  * @return void
@@ -1126,8 +1121,8 @@ PushInputWord(DmtxChannel *channel, unsigned char codeword)
    /* XXX should this assertion actually be a legit runtime test? */
    assert(channel->encodedLength/12 <= 3*1558); /* increased for Mosaic */
 
-   /* XXX this is currently pretty ugly, but I have other fish to fry at
-      the moment.  What is required is to go through and decide on a
+   /* XXX this is currently pretty ugly, but can wait until the
+      rewrite. What is required is to go through and decide on a
       consistent approach (probably that all encodation schemes use
       currentLength except for triplet-based schemes which use
       currentLength and encodedLength).  All encodation schemes should
@@ -1193,7 +1188,7 @@ PushInputWord(DmtxChannel *channel, unsigned char codeword)
 }
 
 /**
- * @brief  XXX
+ * @brief  Push triplet codeword onto channel
  * @param  channel
  * @param  triplet
  * @return void
@@ -1209,7 +1204,7 @@ PushTriplet(DmtxChannel *channel, DmtxTriplet *triplet)
 }
 
 /**
- * @brief  XXX
+ * @brief  Increment encoding progress tracking variables
  * @param  channel
  * @param  encodedUnits
  * @return void
@@ -1249,7 +1244,7 @@ IncrementProgress(DmtxChannel *channel, int encodedUnits)
 }
 
 /**
- * @brief  XXX
+ * @brief  Special end-of-symbol encoding for triplet-based schemes
  * @param  channel
  * @param  triplet
  * @param  tripletCount
@@ -1301,7 +1296,7 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
    /* Find minimum symbol size big enough to accomodate remaining codewords */
    currentByte = channel->currentLength/12;
 /* XXX this is broken -- what if someone asks for DmtxSymbolRectAuto or a specific sizeIdx? */
-   sizeIdx = FindCorrectBarcodeSize(currentByte + ((inputCount == 3) ? 2 : inputCount),
+   sizeIdx = FindCorrectSymbolSize(currentByte + ((inputCount == 3) ? 2 : inputCount),
          DmtxSymbolSquareAuto);
    /* XXX test for sizeIdx == -1 here */
    remainingCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
@@ -1369,7 +1364,7 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
 }
 
 /**
- * @brief  XXX
+ * @brief  Determine if end-of-symbol condition is met for EDIFACT-based schemes
  * @param  channel
  * @return void
  */
@@ -1417,7 +1412,7 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
    /* XXX broken -- what if someone asks for DmtxSymbolRectAuto or specific sizeIdx? */
 
    currentByte = channel->currentLength/12;
-   sizeIdx = FindCorrectBarcodeSize(currentByte, DmtxSymbolSquareAuto);
+   sizeIdx = FindCorrectSymbolSize(currentByte, DmtxSymbolSquareAuto);
    /* XXX test for sizeIdx == -1 here */
    symbolCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 
@@ -1447,7 +1442,7 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
 }
 
 /**
- * @brief  XXX
+ * @brief  Convert 3 input values into 2 codewords for triplet-based schemes
  * @param  outputWords
  * @param  inputWord
  * @param  encScheme
@@ -1538,7 +1533,7 @@ GetC40TextX12Words(int *outputWords, int inputWord, DmtxSchemeEncode encScheme)
 }
 
 /**
- * @brief  XXX
+ * @brief  Convert 2 codewords into 3 values for triplet-based schemes
  * @param  cw1
  * @param  cw2
  * @return Triplet data
@@ -1560,7 +1555,7 @@ GetTripletValues(unsigned char cw1, unsigned char cw2)
 }
 
 /**
- * @brief  XXX
+ * @brief  Convert 3 codewords into 4 values for quadrulplet-based schemes
  * @param  cw1
  * @param  cw2
  * @param  cw3
@@ -1582,7 +1577,7 @@ GetQuadrupletValues(unsigned char cw1, unsigned char cw2, unsigned char cw3)
 }
 
 /**
- * @brief  XXX
+ * @brief  Write channel contents to standard output
  * @param  channel
  * @return void
  */
@@ -1608,7 +1603,7 @@ DumpChannel(DmtxChannel *channel)
 */
 
 /**
- * @brief  XXX
+ * @brief  Write all channels' contents to standard output
  * @param  group
  * @param  encTarget
  * @return void

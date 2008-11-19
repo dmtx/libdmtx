@@ -187,7 +187,7 @@ static void SetDerivedFields(DmtxScanGrid *cross);
 static DmtxPixelLoc GetGridCoordinates(DmtxScanGrid *grid);
 
 /* dmtxsymbol.c */
-static int FindCorrectBarcodeSize(int dataWords, int symbolShape);
+static int FindCorrectSymbolSize(int dataWords, int symbolShape);
 
 static const int dmtxNeighborNone = 8;
 static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };
@@ -271,7 +271,7 @@ static unsigned char alphaTo[] =
      222, 145,  15,  30,  60, 120, 240, 205, 183,  67, 134,  33,  66, 132,  37,  74,
      148,   5,  10,  20,  40,  80, 160, 109, 218, 153,  31,  62, 124, 248, 221, 151,
        3,   6,  12,  24,  48,  96, 192, 173, 119, 238, 241, 207, 179,  75, 150,   0 };
-/*
+/**
 static int rHvX[] =
     { 256,  256,  255,  255,  254,  252,  250,  248,  246,  243,  241,  237,  234,  230,  226,
       222,  217,  212,  207,  202,  196,  190,  184,  178,  171,  165,  158,  150,  143,  136,

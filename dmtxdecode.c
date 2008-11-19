@@ -28,7 +28,7 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * @brief  XXX
+ * @brief  Initialize decode struct with default values
  * @param  img
  * @return Initialized DmtxDecode struct
  */
@@ -69,7 +69,7 @@ dmtxDecodeStructInit(DmtxImage *img)
 }
 
 /**
- * @brief  XXX
+ * @brief  Deinitialize decode struct
  * @param  dec
  * @return void
  */
@@ -161,7 +161,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
 }
 
 /**
- * @brief  XXX
+ * @brief  Convert fitted Data Matrix region into a decoded message
  * @param  dec
  * @param  reg
  * @param  fix
@@ -200,7 +200,7 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
          p.X = col;
          p.Y = row;
          dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
-         /* XXX these boundaries are currently a big hack */
+         /* XXX tighten these boundaries can by accounting for barcode size */
          if(p.X >= -0.1 && p.X <= 1.1 && p.Y >= -0.1 && p.Y <= 1.1) {
 
             offset = dmtxImageGetOffset(img, col, row);
@@ -218,7 +218,7 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
 }
 
 /**
- * @brief  XXX
+ * @brief  Convert fitted Data Mosaic region into a decoded message
  * @param  dec
  * @param  reg
  * @param  fix
@@ -286,7 +286,7 @@ dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix)
 }
 
 /**
- * @brief  XXX
+ * @brief  Translate encoded data stream into final output
  * @param  msg
  * @param  sizeIdx
  * @param  outputStart
@@ -338,7 +338,7 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
 }
 
 /**
- * @brief  XXX
+ * @brief  Determine next encodation scheme
  * @param  encScheme
  * @param  ptr
  * @return Pointer to next undecoded codeword
@@ -374,7 +374,7 @@ NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr)
 }
 
 /**
- * @brief  XXX
+ * @brief  Decode stream assuming standard ASCII encodation
  * @param  msg
  * @param  ptr
  * @param  dataEnd
@@ -401,7 +401,7 @@ DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
 }
 
 /**
- * @brief  XXX
+ * @brief  Decode stream assuming extended ASCII encodation
  * @param  msg
  * @param  ptr
  * @param  dataEnd
@@ -416,7 +416,7 @@ DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
 }
 
 /**
- * @brief  XXX
+ * @brief  Decode stream assuming C40 or Text encodation
  * @param  msg
  * @param  ptr
  * @param  dataEnd
@@ -511,7 +511,7 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
 }
 
 /**
- * @brief  XXX
+ * @brief  Decode stream assuming X12 encodation
  * @param  msg
  * @param  ptr
  * @param  dataEnd
@@ -561,7 +561,7 @@ DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 }
 
 /**
- * @brief  XXX
+ * @brief  Decode stream assuming EDIFACT encodation
  * @param  msg
  * @param  ptr
  * @param  dataEnd
@@ -640,7 +640,7 @@ DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
 }
 
 /**
- * @brief  XXX
+ * @brief  Decode stream assuming Base 256 encodation
  * @param  msg
  * @param  ptr
  * @param  dataEnd
@@ -680,9 +680,9 @@ DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
 }
 
 /**
- *
- * @param XXX
- * @return XXX
+ * @brief  Unrandomize 253 state
+ * @param  codewordValue
+ * @return codewordPosition
  */
 /**
 static unsigned char
@@ -699,7 +699,7 @@ UnRandomize253State(unsigned char codewordValue, int codewordPosition)
 */
 
 /**
- * @brief  XXX
+ * @brief  Unrandomize 255 state
  * @param  value
  * @param  idx
  * @return Unrandomized value
@@ -717,7 +717,7 @@ UnRandomize255State(unsigned char value, int idx)
 }
 
 /**
- * @brief  XXX
+ * @brief  Populate array with codeword values based on module colors
  * @param  msg
  * @param  img
  * @param  reg
@@ -789,7 +789,7 @@ PopulateArrayFromMatrix(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
 }
 
 /**
- * @brief  XXX
+ * @brief  Increment counters used to determine module values
  * @param  img
  * @param  reg
  * @param  tally
@@ -901,7 +901,7 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
 }
 
 /**
- * @brief  XXX
+ * @brief  Populate array with codeword values based on module colors
  * @param  msg
  * @param  img
  * @param  reg

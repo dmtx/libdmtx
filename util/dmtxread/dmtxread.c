@@ -651,7 +651,7 @@ CloseImage(ImageReader * reader)
 }
 
 /**
- * @brief  XXX
+ * @brief  Print decoded message to standard output
  * @param  opt runtime options from defaults or command line
  * @param  dec pointer to DmtxDecode struct
  * @return DMTX_SUCCESS | DMTX_FAILURE

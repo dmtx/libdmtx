@@ -28,7 +28,7 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * @brief  XXX
+ * @brief  Initialize scan grid pattern
  * @param  xMin
  * @param  xMax
  * @param  yMin
@@ -76,7 +76,7 @@ InitScanGrid(DmtxImage *img, int smallestFeature)
 }
 
 /**
- * @brief  XXX
+ * @brief  Increment scan grid progress to next pixel location
  * @param  cross
  * @return void
  */
@@ -117,7 +117,7 @@ IncrementPixelProgress(DmtxScanGrid *cross)
 }
 
 /**
- * @brief  XXX
+ * @brief  Update derived fields based on current state
  * @param  cross
  * @return void
  */
@@ -132,7 +132,7 @@ SetDerivedFields(DmtxScanGrid *cross)
 }
 
 /**
- * @brief  XXX
+ * @brief  Extract current scan grid position in pixel coordinates
  * @param  grid
  * @return Pixel location
  */

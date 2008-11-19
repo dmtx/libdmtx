@@ -28,7 +28,7 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * @brief  XXX
+ * @brief  Read image color at location interpolated between neighboring pixels
  * @param  color
  * @param  image
  * @param  p
@@ -66,7 +66,7 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
 }
 
 /**
- * @brief  XXX
+ * @brief  Convert integer-based RGB color to float-based equivalent
  * @param  color
  * @param  rgb
  * @return Pixel color
@@ -82,7 +82,7 @@ dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb)
 }
 
 /**
- * @brief  XXX
+ * @brief  Convert float-based RGB color to integer-based equivalent
  * @param  rgb
  * @param  color
  * @return void
@@ -96,7 +96,7 @@ dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color)
 }
 
 /**
- * @brief  XXX
+ * @brief  Calculate color at specified point along a gradient
  * @param  ray
  * @param  dist
  * @return Extracted color
@@ -114,7 +114,7 @@ dmtxColor3AlongRay3(DmtxRay3 *ray, double dist)
 }
 
 /**
- * @brief  XXX
+ * @brief  Add RGB channels of one color to another
  * @param  c1
  * @param  c2
  * @return Color sum
@@ -130,7 +130,7 @@ dmtxColor3AddTo(DmtxColor3 *c1, DmtxColor3 *c2)
 }
 
 /**
- * @brief  XXX
+ * @brief  Add RGB channels of two colors together
  * @param  cOut
  * @param  c1
  * @param  c2
@@ -145,7 +145,7 @@ dmtxColor3Add(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
 }
 
 /**
- * @brief  XXX
+ * @brief  Subtract RGB channels of one color from another
  * @param  c1
  * @param  c2
  * @return Color difference
@@ -161,7 +161,7 @@ dmtxColor3SubFrom(DmtxColor3 *c1, DmtxColor3 *c2)
 }
 
 /**
- * @brief  XXX
+ * @brief  Subtract RGB channels between two colors
  * @param  cOut
  * @param  c1
  * @param  c2
@@ -176,7 +176,7 @@ dmtxColor3Sub(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
 }
 
 /**
- * @brief  XXX
+ * @brief  Scale RGB channels of a color by factor s
  * @param  c
  * @param  s
  * @return Scaled color
@@ -192,7 +192,7 @@ dmtxColor3ScaleBy(DmtxColor3 *c, double s)
 }
 
 /**
- * @brief  XXX
+ * @brief  Scale RGB channels of a color by factor s
  * @param  cOut
  * @param  c
  * @param  s
@@ -207,7 +207,7 @@ dmtxColor3Scale(DmtxColor3 *cOut, DmtxColor3 *c, double s)
 }
 
 /**
- * @brief  XXX
+ * @brief  Calculate cross product between two RGB colors
  * @param  cOut
  * @param  c1
  * @param  c2
@@ -224,7 +224,7 @@ dmtxColor3Cross(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
 }
 
 /**
- * @brief  XXX
+ * @brief  Normalize vector defined by a color's RGB channels
  * @param  c
  * @return DMTX_SUCCESS | DMTX_FAILURE
  */
@@ -244,7 +244,7 @@ dmtxColor3Norm(DmtxColor3 *c)
 }
 
 /**
- * @brief  XXX
+ * @brief  Calculate dot product between two RGB colors
  * @param  c1
  * @param  c2
  * @return Color dot product
@@ -252,23 +252,11 @@ dmtxColor3Norm(DmtxColor3 *c)
 extern double
 dmtxColor3Dot(DmtxColor3 *c1, DmtxColor3 *c2)
 {
-   /* XXX double check that this is right */
    return (c1->R * c2->R) + (c1->G * c2->G) + (c1->B * c2->B);
 }
 
 /**
- * @brief  XXX
- * @param  c
- * @return Color vector magnitude
- */
-extern double
-dmtxColor3Mag(DmtxColor3 *c)
-{
-   return sqrt(c->R * c->R + c->G * c->G + c->B * c->B);
-}
-
-/**
- * @brief  XXX
+ * @brief  Calculate magnitude squared of vector defined by RGB channels
  * @param  c
  * @return Color vector magnitude
  */
@@ -279,7 +267,18 @@ dmtxColor3MagSquared(DmtxColor3 *c)
 }
 
 /**
- * @brief  XXX
+ * @brief  Calculate magnitude of vector defined by a color's RGB channels
+ * @param  c
+ * @return Color vector magnitude
+ */
+extern double
+dmtxColor3Mag(DmtxColor3 *c)
+{
+   return sqrt(dmtxColor3MagSquared(c));
+}
+
+/**
+ * @brief  Calculate the minimum distance between a color and a gradient
  * @param  r
  * @param  q
  * @return Distance from color ray
@@ -297,7 +296,7 @@ dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q)
 }
 
 /**
- * @brief  XXX
+ * @brief  Calculate the distance that a color falls along a gradient
  * @param  r
  * @param  q
  * @return Distance along color ray
@@ -314,7 +313,7 @@ dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q)
 }
 
 /**
- * @brief  XXX
+ * @brief  Extract color from specific distance along a gradient
  * @param  point
  * @param  r
  * @param  t

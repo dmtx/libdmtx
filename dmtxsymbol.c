@@ -28,7 +28,7 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * @brief  XXX
+ * @brief  Retrieve property based on symbol size
  * @param  attribute
  * @param  sizeIdx
  * @return Attribute value
@@ -128,7 +128,7 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
 }
 
 /**
- * @brief  XXX
+ * @brief  Retrieve data size for a specific symbol size and block number
  * @param  sizeIdx
  * @param  blockIdx
  * @return Attribute value
@@ -151,13 +151,13 @@ dmtxGetBlockDataSize(int sizeIdx, int blockIdx)
 }
 
 /**
- * @brief  XXX
+ * @brief  Determine symbol size based on data size and requested properties
  * @param  dataWords
  * @param  sizeIdxRequest
- * @return Barcode size index (or -1 if none)
+ * @return Symbol size index (or -1 if none)
  */
 static int
-FindCorrectBarcodeSize(int dataWords, int sizeIdxRequest)
+FindCorrectSymbolSize(int dataWords, int sizeIdxRequest)
 {
    int sizeIdx;
    int idxBeg, idxEnd;

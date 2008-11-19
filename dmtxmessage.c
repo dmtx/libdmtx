@@ -28,7 +28,7 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * @brief  XXX
+ * @brief  Allocate memory for message
  * @param  sizeIdx
  * @param  symbolFormat DMTX_FORMAT_MATRIX | DMTX_FORMAT_MOSAIC
  * @return Address of allocated memory
@@ -87,7 +87,7 @@ dmtxMessageMalloc(int sizeIdx, int symbolFormat)
 }
 
 /**
- * @brief  XXX
+ * @brief  Free memory previously allocated for message
  * @param  message
  * @return void
  */

@@ -70,7 +70,7 @@ dmtxSymbolModuleStatus(DmtxMessage *message, int sizeIdx, int symbolRow, int sym
 }
 
 /**
- * @brief  XXX
+ * @brief  Logical relationship between bit and module locations
  * @param  modules
  * @param  codewords
  * @param  sizeIdx
