@@ -21,28 +21,28 @@ for additional details that might benefit users on this platform.
 2. Dependencies
 -----------------------------------------------------------------
 
-Most of the dependencies can be installed using the standard
-Cygwin setup program, with one notable exception. Cygwin
-distributes GraphicsMagick version 1.0.6-1, which is older than
-the version required for dmtxread (>= 1.1.7). However, with a
-little effort you can compile GraphicsMagick from source and meet
-the dependency. Here are the steps:
+Software dependencies can be installed using the standard Cygwin
+setup program, with one notable exception. Cygwin currently uses
+GraphicsMagick version 1.0.6-1, which is older than the minimum
+required for dmtxread (>= 1.1.7). However, with a little effort
+you can compile GraphicsMagick from source and meet the
+dependency. Here are the steps:
 
-  * Download the current stable branch of GraphicsMagick from
-    http://www.graphicsmagick.org/. Version 1.3.1 is known to
-    work with libdmtx on Cygwin.
+  1) Download the current stable branch of GraphicsMagick from
+     http://www.graphicsmagick.org/. Version 1.3.1 is known to
+     work with libdmtx on Cygwin.
 
-  * Completely install all traces of GraphicsMagick using the
-    Cygwin setup program (utilities, libraries, and development
-    headers)
+  2) Completely uninstall all traces of GraphicsMagick using the
+     Cygwin setup program (utilities, libraries, and development
+     packages)
 
-  * Unpack the GraphicsMagick source and run configure and make.
-    In at least one case the prefix must be set to /usr in order
-    for pkg-config to work later:
+  3) Unpack the GraphicsMagick sources and run ./configure, make,
+     and make install. You may also need to specify a prefix in
+     order for pkg-config to detect it properly:
 
-    ./configure --prefix=/usr --without-perl --without-magick-plus-plus
-    ./make
-    ./make install
+     ./configure --prefix=/usr --without-perl --without-magick-plus-plus
+     ./make
+     ./make install
 
 
 3. This Document
