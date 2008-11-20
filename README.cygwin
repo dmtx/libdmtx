@@ -1,0 +1,56 @@
+=================================================================
+            libdmtx - Open Source Data Matrix Software
+=================================================================
+
+                  libdmtx README file (Cygwin)
+
+This README.cygwin file contains information on installing and
+using libdmtx on Windows in a Cygwin environment. The general
+README file, also found in this directory, contains a high level
+summary of libdmtx and its components.
+
+
+1. Installing libdmtx on Cygwin
+-----------------------------------------------------------------
+
+libdmtx can be installed on Cygwin using the instructions
+provided in the general README file. However, please see below
+for additional details that might benefit users on this platform.
+
+
+2. Dependencies
+-----------------------------------------------------------------
+
+Most of the dependencies can be installed using the standard
+Cygwin setup program, with one notable exception. Cygwin
+distributes GraphicsMagick version 1.0.6-1, which is older than
+the version required for dmtxread (>= 1.1.7). However, with a
+little effort you can compile GraphicsMagick from source and meet
+the dependency. Here are the steps:
+
+  * Download the current stable branch of GraphicsMagick from
+    http://www.graphicsmagick.org/. Version 1.3.1 is known to
+    work with libdmtx on Cygwin.
+
+  * Completely install all traces of GraphicsMagick using the
+    Cygwin setup program (utilities, libraries, and development
+    headers)
+
+  * Unpack the GraphicsMagick source and run configure and make.
+    In at least one case the prefix must be set to /usr in order
+    for pkg-config to work later:
+
+    ./configure --prefix=/usr --without-perl --without-magick-plus-plus
+    ./make
+    ./make install
+
+
+3. This Document
+-----------------------------------------------------------------
+
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wiki.sourceforge.net/libdmtx+on+Windows+(Cygwin)
+
+If you find an error or have additional helpful information,
+please edit the wiki directly with your updates.
