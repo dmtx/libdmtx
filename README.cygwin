@@ -41,16 +41,16 @@ dependency. Here are the steps:
      order for pkg-config to detect it properly:
 
   $ ./configure --prefix=/usr --without-perl --without-magick-plus-plus
-  $ ./make
-  $ ./make install
+  $ make
+  $ make install
 
 Another option is to avoid GraphicsMagick entirely by disabling
 the dmtxread utility. This is accomplished by passing
 "--disable-dmtxread" to ./configure when installing libdmtx.
 
   $ ./configure --disable-dmtxread
-  $ ./make
-  $ sudo ./make install
+  $ make
+  $ make install
 
 
 3. This Document
