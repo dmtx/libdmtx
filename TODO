@@ -2,6 +2,11 @@ TODO Items
 -----------------------------------------------------------------
 
 after version 0.6.0:
+  o libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
+  o libdmtx:   Finish calib edge travel end condition
+  o libdmtx:   Use calibration edge alignment to set precise locs for all edges
+  o libdmtx:   Remove status from DmtxPixelLoc
+  o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
@@ -32,19 +37,17 @@ after version 0.6.0:
   o project:   Conditional use of local getopt.c
 
 release prep:
-  o get scripts clean
-  o finish README.cygwin
+  x get scripts clean
+  x finish README.cygwin
+  x update version 0.5.3 -> 0.6.0
+  o change November XX refs to official date
   o finish README.mingw
   o write release notes
-  o update version 0.5.3 -> 0.6.0
 
 version 0.6.0: (??-Nov-2008)
-  o libdmtx:   Finish calib edge travel end condition
-  o libdmtx:   Use calibration edge alignment to set precise locs for all edges
-  o libdmtx:   Remove status from DmtxPixelLoc
-  / libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
+  x libdmtx:   Initial work preparing for custom pixel packing in future
   x libdmtx:   Begin static analysis cleanup with splint
-  x libdmtx:   New --disable-dmtxread and --disable-dmtxwrite (thanks Romain!)
+  x libdmtx:   New --disable-dmtxread and --disable-dmtxwrite [Romain]
   x libdmtx:   Ability to specify max/min expected barcode sizes
   x libdmtx:   New edge neighbor tracking (Hough Transform + 2-way edge cache)
   x libdmtx:   Info cache to track scan progress and avoid rescanning pixels
@@ -53,12 +56,13 @@ version 0.6.0: (??-Nov-2008)
   x libdmtx:   Significant reduction in floating point operations
   x dmtxread:  New informative return codes (found, not found, error)
   x dmtxread:  Read input from STDIN
-  x dmtxread:  GraphicsMagick support for image reading (thanks Olivier!)
-  x dmtxread:  JPEG reading support (thanks Ryan!)
+  x dmtxread:  GraphicsMagick support for image reading [Olivier]
+  x dmtxread:  JPEG reading support [Ryan]
   x dmtxread:  Diagnostic images display trail left by scanning logic
-  x dmtxwrite: Option to write output to STDOUT (thanks Olivier!)
+  x dmtxwrite: Option to write output to STDOUT [Olivier]
   x dmtxwrite: Write output to STDOUT
-  x wrapper:   PHP wrapper now compiles with latest libdmtx version
+  x wrapper:   PHP wrapper now compiles with recent libdmtx
+  x wrapper:   New experimental Ruby wrapper [Romain]
   x project:   Dedicated README.xxx instructions for specific platforms
   x project:   Various improvements for cross platform builds
 
