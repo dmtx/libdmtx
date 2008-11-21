@@ -90,7 +90,7 @@ static VALUE rdmtx_encode(VALUE self, VALUE string) {
 
     /* Create barcode image */
     if (dmtxEncodeDataMatrix(&enc, RSTRING(safeString)->len, (unsigned char *)RSTRING(safeString)->ptr, DmtxSymbolSquareAuto) == DMTX_FAILURE) {
-        printf("Fatal error !\n");
+//        printf("Fatal error !\n");
         dmtxEncodeStructDeInit(&enc);
         return Qnil;
     }
@@ -108,7 +108,7 @@ static VALUE rdmtx_encode(VALUE self, VALUE string) {
                INT2NUM(width),
                INT2NUM(height),
                rb_str_new("RGB", 3),
-               rb_str_new((enc.image)->pxl, 3*width*height),
+               rb_str_new((char *)(enc.image)->pxl, 3*width*height),
 //               rb_const_get("Magick" ,rb_intern("CharPixel"))
                rb_eval_string("Magick::CharPixel"));
 
