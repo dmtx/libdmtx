@@ -2,6 +2,75 @@ README for pydmtx version 0.6.0 - November XX, 2008
 -----------------------------------------------------------------
 
 pydmtx is a thin wrapper around libdmtx that reads and writes
-Data Matrix barcodes as PIL Image objects.  Dan Watson wrote
-the original version of pydmtx in 2006, and allowed it to
-become a native part of the libdmtx package.
+Data Matrix barcodes as PIL Image objects. Dan Watson wrote the
+original version of pydmtx in 2006, and allowed it to become a
+native part of the libdmtx package.
+
+
+1. libdmtx Installation
+-----------------------------------------------------------------
+
+libdmtx must be installed on your system before trying to install
+and run the Python wrapper. Refer to the INSTALL file in the main
+libdmtx directory for instructions on how to do this.
+
+
+2. pydmtx Installation
+-----------------------------------------------------------------
+
+After libdmtx is present, next install pydmtx by running the
+following command as root:
+
+  $ python setup.py install
+
+Once installed, you can verify it works by running as yourself:
+
+  $ python test.py
+
+If it throws an error like this:
+
+  ImportError: libdmtx.so.0: cannot open shared object file
+
+this indicates it is not able to find the libdmtx library.
+There are a few ways to fix this. You can make a temporary
+local session fix:
+
+  $ export LD_LIBRARY_PATH=/usr/local/lib
+
+... or make a permanent fix that requires root privileges:
+
+  $ /sbin/ldconfig /usr/local/lib
+
+Alternatively, you could edit /etc/ld.so.conf to include
+/usr/local/lib (which also requires root privileges).
+
+When it is working properly the test.py script should create an
+image named 'hello.png' in the current directory. The image
+should be a Data Matrix barcode that scans to "hello, world".
+
+
+3. Dependencies
+-----------------------------------------------------------------
+
+These packages are required to install and run pydmtx:
+
+  Python:  http://www.python.org
+  PIL:     http://www.pythonware.com/products/pil
+
+If you are using an RPM-based system then you can test for the
+following packages:
+
+  python
+  python-devel
+  python-imaging
+
+
+4. This Document
+-----------------------------------------------------------------
+
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wiki.sourceforge.net/libdmtx+python+wrapper
+
+If you find an error or have additional helpful information,
+please edit the wiki directly with your updates.

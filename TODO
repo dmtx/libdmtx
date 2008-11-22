@@ -40,6 +40,8 @@ release prep:
   x get scripts clean
   x finish README.cygwin
   x update version 0.5.3 -> 0.6.0
+  x merge INSTALL and README.wrapper files together?
+  x create wiki pages for wrappers
   o change November XX refs to official date
   o finish README.mingw
   o write release notes

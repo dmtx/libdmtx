@@ -4,3 +4,57 @@ README for libdmtx-php version 0.6.0 - November XX, 2008
 libdmtx-php a PHP wrapper for libdmtx that was written by
 Christian Hentschel and is distributed as part of the libdmtx
 package.
+
+
+1. libdmtx Installation
+-----------------------------------------------------------------
+
+libdmtx must be installed on your system before trying to install
+and run libdmtx-php. Refer to the INSTALL file in the main
+libdmtx directory for instructions on how to do this.
+
+
+2. libdmtx-php Installation
+-----------------------------------------------------------------
+
+  1) $ phpize
+
+  2) $ ./configure [--prefix install directory];
+
+  3) $ make install
+
+  3) Edit system php.ini file to include "extension=dmtx.so"
+
+  4) Test with dmtx.php
+     (e.g., Browse http://localhost/dmtx.php?d=123456)
+
+
+3. Dependencies
+-----------------------------------------------------------------
+
+These packages are required to install and run libdmtx-php:
+
+  PHP:     http://www.php.net
+
+If you are using an RPM-based system then you can test for the
+following packages:
+
+  php
+  php-cli
+  php-common
+  php-devel
+
+Some systems may also require:
+
+  php-gd
+
+
+4. This Document
+-----------------------------------------------------------------
+
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wiki.sourceforge.net/libdmtx+php+wrapper
+
+If you find an error or have additional helpful information,
+please edit the wiki directly with your updates.

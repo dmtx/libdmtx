@@ -10,7 +10,7 @@ directory, contains a high level summary of libdmtx and its
 components.
 
 
-1. Installing libdmtx on Macintosh OS X
+1. Installing libdmtx on Mac OS X
 -----------------------------------------------------------------
 
 libdmtx can be installed on OS X using the instructions provided
@@ -41,6 +41,17 @@ software. For example:
 
   * dmtxwrite requires libpng, which can be installed easily with
     MacPorts.
+
+Compiling from Subversion requires a working autoconf/pkg-config
+setup:
+
+  * autoconf, automake, libtool, and pkgconfig are required to
+    generate the configure script. These packages are available
+    from MacPorts.
+
+  * You may run into issues if you mix the autotools packages in
+    MacPorts with the ones installed from Xcode Tools. Make sure
+    /opt/local/bin appears before /usr/bin in your $PATH.
 
 
 4. This Document
