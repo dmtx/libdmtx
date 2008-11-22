@@ -55,7 +55,7 @@ version 0.6.0: (??-Nov-2008)
   x libdmtx:   Info cache to track scan progress and avoid rescanning pixels
   x libdmtx:   Scan multiple barcodes within an image
   x libdmtx:   Significantly reduced memory footprint
-  x libdmtx:   Significant reduction in floating point operations
+  x libdmtx:   Major reduction in floating point operations
   x dmtxread:  New informative return codes (found, not found, error)
   x dmtxread:  Read input from STDIN
   x dmtxread:  GraphicsMagick support for image reading [Olivier]
@@ -64,7 +64,7 @@ version 0.6.0: (??-Nov-2008)
   x dmtxwrite: Option to write output to STDOUT [Olivier]
   x dmtxwrite: Write output to STDOUT
   x wrapper:   PHP wrapper now compiles with recent libdmtx
-  x wrapper:   New experimental Ruby wrapper [Romain]
+  x wrapper:   New Ruby wrapper for both reading and writing [Romain]
   x project:   Dedicated README.xxx instructions for specific platforms
   x project:   Various improvements for cross platform builds
 
