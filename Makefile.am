@@ -19,6 +19,7 @@ SUBDIRS = . util test
 dist_man_MANS = man/libdmtx.3 man/dmtxread.1 man/dmtxwrite.1 man/dmtxquery.1
 
 EXTRA_DIST = KNOWNBUG \
+	README.cygwin \
 	README.freebsd \
 	README.linux \
 	README.mingw \
@@ -35,7 +36,7 @@ EXTRA_DIST = KNOWNBUG \
 	script/check_todo.sh \
 	script/check_whitespace.sh \
 	script/dist-image.sh \
-	test/images_opengl/* \
+	test/images_opengl/test_image??.png \
 	wrappers/cocoa/* \
 	wrappers/php/* \
 	wrappers/python/*

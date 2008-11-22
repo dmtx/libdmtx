@@ -16,7 +16,7 @@ Install MSYS with all recomended updates as described here:
 
    http://www.mingw.org/wiki/msys
 
-Download and unpack libdmtx. Copy the folder libdmtx-0.5.x to
+Download and unpack libdmtx. Copy the folder libdmtx-0.6.0 to
 your MSYS folder (Example: Standard Installation: C:\msys\1.0\).
 
 Open the MSYS shell and run the following:

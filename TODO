@@ -42,9 +42,9 @@ release prep:
   x update version 0.5.3 -> 0.6.0
   x merge INSTALL and README.wrapper files together?
   x create wiki pages for wrappers
+  / write release notes
   o change November XX refs to official date
   o finish README.mingw
-  o write release notes
 
 version 0.6.0: (??-Nov-2008)
   x libdmtx:   Initial work preparing for custom pixel packing in future
