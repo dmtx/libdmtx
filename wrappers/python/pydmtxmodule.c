@@ -28,6 +28,13 @@ Contact: mike@dragonflylogic.com
 #include <Python.h>
 #include <dmtx.h>
 
+/* Define Py_ssize_t for earlier Python versions */
+#if PY_VERSION_HEX < 0x02050000 && !defined(PY_SSIZE_T_MIN)
+typedef int Py_ssize_t;
+#define PY_SSIZE_T_MAX INT_MAX
+#define PY_SSIZE_T_MIN INT_MIN
+#endif
+
 static PyObject *dmtx_encode(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *dmtx_decode(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *dmtx_decode2(PyObject *self, PyObject *args, PyObject *kwargs);
