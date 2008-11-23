@@ -196,8 +196,28 @@ future versions:
   o libdmtx:   Capture high-level design in documentation (data flow, module analogies)
   o libdmtx:   Try bi-linear approximation (instead of linear) in follower edge detection
   o libdmtx:   Implement fixed point math functions for use on mobile platforms
-  o libdmtx:   Port to Windows?
   o libdmtx:   Add calibration functionality to remove spherical distortion
+
+  o project:   Create a release checklist document. For example:
+
+1) update release dates
+2) ... yadda yadda yadda ..
+
+N) $ svn propset svn:executable ON somescript
+
+6) Final subversion commit
+
+7) Tag final release in Subversion
+
+$ svn copy https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk \
+           https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/tags/release-0.6.0 \
+      -m "Tagged libdmtx 0.6.0 release"
+
+8) scp libdmtx-0.x.x.tar.* user@frs.sourceforge.net/uploads
+
+9) Create release, upload release notes, publish news item
+
+10) After finalizing, update minor number in trunk (0.6.0 -> 0.6.1)
 
 
 perhaps never:

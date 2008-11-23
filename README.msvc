@@ -55,10 +55,10 @@ folders or individual files in the Solution Explorer window, then
 selecting Include In Project from the resulting pop-up. Doing
 this, go through the list and include the following items:
 
-   * libdmtx-0.6.0/dmtx.c
-   * libdmtx-0.6.0/dmtx.h
-   * libdmtx-0.6.0/util/dmtxread (whole folder)
-   * libdmtx-0.6.0/util/common (whole folder)
+   * libdmtx-0.6.1/dmtx.c
+   * libdmtx-0.6.1/dmtx.h
+   * libdmtx-0.6.1/util/dmtxread (whole folder)
+   * libdmtx-0.6.1/util/common (whole folder)
    * All *.c and *.h files in the main libpng folder (not
      including subdirectories) except for example.c and pngtest.c
    * All *.c and *.h files in the main zlib folder (not including
