@@ -10,7 +10,7 @@ README file, also found in this directory, contains a high level
 summary of libdmtx and its components.
 
 
-1. Installing libdmtx on Cygwin
+1. Installing libdmtx on Windows using Cygwin
 -----------------------------------------------------------------
 
 libdmtx can be installed on Cygwin using the instructions
@@ -25,7 +25,7 @@ Software dependencies can be installed using the standard Cygwin
 setup program, with one notable exception. Cygwin currently uses
 GraphicsMagick version 1.0.6-1, which is older than the minimum
 required for dmtxread (>= 1.1.7). However, with a little effort
-you can compile GraphicsMagick from source and meet the
+you can compile GraphicsMagick from source to satisfy the
 dependency. Here are the steps:
 
   1) Download the current stable branch of GraphicsMagick from

@@ -2,6 +2,24 @@ Changes for libdmtx
 -----------------------------------------------------------------
 
 version 0.6.0 [November 2008]
+  dmtxread now scans all major image formats [Olivier]
+  New encoding/decoding Ruby wrapper [Romain]
+  Reduced memory footprint
+  Will scan multiple barcodes per image
+  Various platform-specific improvements
+  Initial work preparing for custom pixel packing in future
+  Begin static analysis cleanup with splint
+  New --disable-dmtxread and --disable-dmtxwrite [Romain]
+  Ability to specify max/min expected barcode sizes
+  New edge neighbor tracking (Hough + 2 way edge cache)
+  Info cache to track scan progress and avoid rescanning pixels
+  Major reduction in floating point operations
+  New informative return codes (found, not found, error)
+  Read input from STDIN
+  Diagnostic images display trail left by scanning logic
+  Option to write output to STDOUT [Olivier]
+  PHP wrapper now compiles with recent libdmtx
+  Dedicated README.xxx instructions for specific platforms
 
 version 0.5.2 [September 2008]
   Move SetRangeLimit and SetScanRegion into library

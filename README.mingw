@@ -10,53 +10,78 @@ this directory, contains a high level summary of libdmtx and its
 components.
 
 
-1. Building from Source Code
+1. Installing libdmtx on Windows using MinGW and MSYS
 -----------------------------------------------------------------
-Install MSYS with all recomended updates as described here:
 
-   http://www.mingw.org/wiki/msys
+libdmtx can be installed on MinGW using the instructions provided
+in the general README file. However, please see below for
+additional details that might benefit users on this platform.
 
-Download and unpack libdmtx. Copy the folder libdmtx-0.6.0 to
-your MSYS folder (Example: Standard Installation: C:\msys\1.0\).
+
+2. Installing MinGW and MSYS
+-----------------------------------------------------------------
+
+If you haven't done so already, you need to install MinGW, MSYS,
+and all recommended updates to your Windows system. Instructions
+for doing this are provided here:
+
+  http://www.mingw.org/wiki/msys
+
+
+3. External Dependencies
+-----------------------------------------------------------------
+
+The dmtxread command line utility requires GraphicsMagick to be
+installed on your system. To satisfy this requirement you can
+download and install the current stable branch of GraphicsMagick
+from http://www.graphicsmagick.org/. Detailed instructions are
+available at http://www.graphicsmagick.org/INSTALL-unix.html.
+
+After downloading, unpack the GraphicsMagick sources and run:
+
+  $ ./configure
+  $ make
+  $ make install
+
+Alternatively, if you only want the core library and don't care
+about the command line utilities then you can just disable
+dmtxread and avoid messing with GraphicsMagick entirely. This is
+accomplished by passing "--disable-dmtxread" to ./configure when
+installing libdmtx.
+
+  $ ./configure --disable-dmtxread
+
+
+4. Building and installing libdmtx
+-----------------------------------------------------------------
+
+To install libdmtx, download and unpack the libdmtx source to
+your MSYS folder. If you accepted the installation defaults this
+will be C:\msys\1.0.
 
 Open the MSYS shell and run the following:
 
-   ./configure
-
-If you need only libdmtx without utilities and/or you did not
-install libpng and libtiff then edit the Makefile as following
-(tip: use your text editor to search for "util"):
-
-Find the line:
-
-   SUBDIRS = . util test
-
-and change it to:
-
-   #SUBDIRS = . util test
-
-Now go back to MSYS shell and run:
-
-   make
+  $ ./configure
+  $ make
+  $ make install
 
 Go to folder .libs:
 
-   cd .libs
-   ls
+  $ cd .libs
+  $ ls
 
 Now you should see following output:
-libdmtx 0.6.0:
 
-libdmtx.a libdmtx.la libdmtx.lai  libdmtx_la-dmtx.o
+  libdmtx.a libdmtx.la libdmtx.lai  libdmtx_la-dmtx.o
 
 Finally run:
 
-   gcc -shared -o dmtx.dll libdmtx_la-dmtx.o -Wl,--out-implib,libdmtx.a
+  $ gcc -shared -o dmtx.dll libdmtx_la-dmtx.o -Wl,--out-implib,libdmtx.a
 
 Now you should have working dmtx.dll in the folder .libs.
 
 
-2. This Document
+5. This Document
 -----------------------------------------------------------------
 
 This document is derived from the wiki page located at:

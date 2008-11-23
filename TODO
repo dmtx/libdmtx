@@ -36,22 +36,12 @@ after version 0.6.0:
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
   o project:   Conditional use of local getopt.c
 
-release prep:
-  x get scripts clean
-  x finish README.cygwin
-  x update version 0.5.3 -> 0.6.0
-  x merge INSTALL and README.wrapper files together?
-  x create wiki pages for wrappers
-  / write release notes
-  o change November XX refs to official date
-  o finish README.mingw
-
-version 0.6.0: (??-Nov-2008)
+version 0.6.0: (23-Nov-2008)
   x libdmtx:   Initial work preparing for custom pixel packing in future
   x libdmtx:   Begin static analysis cleanup with splint
   x libdmtx:   New --disable-dmtxread and --disable-dmtxwrite [Romain]
   x libdmtx:   Ability to specify max/min expected barcode sizes
-  x libdmtx:   New edge neighbor tracking (Hough Transform + 2-way edge cache)
+  x libdmtx:   New edge neighbor tracking (Hough Transform + 2 way edge cache)
   x libdmtx:   Info cache to track scan progress and avoid rescanning pixels
   x libdmtx:   Scan multiple barcodes within an image
   x libdmtx:   Significantly reduced memory footprint
@@ -62,9 +52,8 @@ version 0.6.0: (??-Nov-2008)
   x dmtxread:  JPEG reading support [Ryan]
   x dmtxread:  Diagnostic images display trail left by scanning logic
   x dmtxwrite: Option to write output to STDOUT [Olivier]
-  x dmtxwrite: Write output to STDOUT
   x wrapper:   PHP wrapper now compiles with recent libdmtx
-  x wrapper:   New Ruby wrapper for both reading and writing [Romain]
+  x wrapper:   New encoding/decoding Ruby wrapper [Romain]
   x project:   Dedicated README.xxx instructions for specific platforms
   x project:   Various improvements for cross platform builds
 
@@ -229,23 +218,6 @@ Big proposed changes:
     instead of copying into separately malloc'd DmtxImage buffer. New
     functions are required to specify native image format, include origin
     location and RGB/K packing order. (see "No copies of pixel data")
-  * Treat RGB images as 3 separate images. When testing a pixel for barcode
-    presence, see which color plane gives best contrast and go from there.
-    Track red, green, blue, grey loop trails separately. Compass/Sobel
-    detection operates on single channel at a time, and should use integer
-    math for fast and exact comparison. In case of tie between neighbors, use
-    non-orthagonal direction as tie breaker. (see "No copies of pixel data")
-  * Use new loop-based approach instead of heavy caching of compass edge
-    values and cludgy line detection. Cache only the trails left by
-    following strongest-neighbor determination. Loop process will find
-    strongest of 8 possible directions at each pixel loc (actually 4, but
-    with numeric sign).
-  * Upon completing a loop, re-trace the loop with a Hough transform to
-    extract 2 or more edges. Possibly use loop results to find bounds of
-    region for initializing Hough.
-  * Cache a small 1-byte "flags" array and a larger uninitilized data array.
-    This will speed things by only zero'ing the small array and writing to
-    the full data cache only when needed.
   * Make finder bar detection pluggable so a separate future version can be
     made for dot peen pattern detection (remaining steps would be unchanged).
 
@@ -517,5 +489,3 @@ dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
 
    return DMTX_SUCCESS;
 }
-
----------------------------------------------------------------------------
