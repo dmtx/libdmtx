@@ -39,4 +39,5 @@ EXTRA_DIST = KNOWNBUG \
 	test/images_opengl/test_image??.png \
 	wrappers/cocoa/* \
 	wrappers/php/* \
-	wrappers/python/*
+	wrappers/python/* \
+	wrappers/ruby/*
