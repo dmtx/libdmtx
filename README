@@ -108,7 +108,7 @@ Details on "make" step
 ----------------------------------------
 Errors encountered during the "make" step are often a result of
 missing software dependencies. These dependencies are listed in
-Appendix A. in this file. Install any missing software and start
+Appendix A. of this file. Install any missing software and start
 over.
 
 Details on "sudo make install" step
@@ -224,7 +224,7 @@ Description: Query and merge scan results from dmtxread utility
 Location:    libdmtx/util/dmtxquery
 Build:       make
 Requires:    No dependencies
-Disable:     Currently not possible
+Disable:     ./configure --disable-dmtxquery
 
 -----------------------------------
 
