@@ -99,6 +99,7 @@ if test x$dmtxwrite = xtrue; then
 fi
 
 if test x$dmtxread = xtrue -o x$dmtxwrite = xtrue -o x$dmtxquery = xtrue; then
+   AC_CHECK_HEADERS([sysexits.h])
    AC_CHECK_HEADERS([getopt.h])
    AC_CHECK_FUNCS([getopt_long])
 fi

@@ -33,11 +33,18 @@ Contact: mike@dragonflylogic.com
 #include <math.h>
 #include <stdarg.h>
 #include <assert.h>
-#include <sysexits.h>
 #include <magick/api.h>
 #include <dmtx.h>
 #include "dmtxread.h"
 #include "../common/dmtxutil.h"
+
+#ifdef HAVE_SYSEXITS_H
+#include <sysexits.h>
+#else
+#define EX_OK           0
+#define EX_USAGE       64
+#define EX_CANTCREAT   73
+#endif
 
 char *programName;
 
