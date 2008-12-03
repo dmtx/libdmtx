@@ -228,12 +228,12 @@ Disable:     ./configure --disable-dmtxquery
 
 -----------------------------------
 
-Name:        pydmtx
+Name:        libdmtx Cocoa wrapper
 Type:        Language wrapper
-Description: Python libdmtx wrapper
-Location:    libdmtx/wrappers/python
-Build:       See INSTALL file in libdmtx/wrappers/python directory
-Requires:    python, pil
+Description: Cocoa libdmtx wrapper
+Location:    libdmtx/wrappers/cocoa
+Build:       See INSTALL file in libdmtx/wrappers/cocoa directory
+Requires:    OS X
 Disable:     Not included in default build
 
 -----------------------------------
@@ -248,12 +248,22 @@ Disable:     Not included in default build
 
 -----------------------------------
 
-Name:        libdmtx Cocoa wrapper
+Name:        pydmtx
 Type:        Language wrapper
-Description: Cocoa libdmtx wrapper
-Location:    libdmtx/wrappers/cocoa
-Build:       See INSTALL file in libdmtx/wrappers/cocoa directory
-Requires:    OS X
+Description: Python libdmtx wrapper
+Location:    libdmtx/wrappers/python
+Build:       See INSTALL file in libdmtx/wrappers/python directory
+Requires:    python, pil
+Disable:     Not included in default build
+
+-----------------------------------
+
+Name:        libdmtx-ruby
+Type:        Language wrapper
+Description: Ruby libdmtx wrapper
+Location:    libdmtx/wrappers/ruby
+Build:       See INSTALL file in libdmtx/wrappers/ruby directory
+Requires:    ruby, RMagick
 Disable:     Not included in default build
 
 -----------------------------------
