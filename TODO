@@ -268,17 +268,14 @@ typedef enum {
 
 typedef enum {
    DmtxPack1bppK,
-   DmtxPack8bppCustom,
    DmtxPack8bppK,
-   DmtxPack16bppCustom,
    DmtxPack16bppRGB,
-   DmtxPack24bppCustom,
    DmtxPack24bppRGB,
    DmtxPack24bppBGR,
    DmtxPack24bppYCbCr,
-   DmtxPack32bppCustom,
    DmtxPack32bppCMYK,
-   DmtxPack32bppRGBX
+   DmtxPack32bppRGBX,
+   DmtxPackCustom
 } DmtxPackingOrder;
 
 /**
@@ -317,24 +314,28 @@ typedef struct DmtxImage_struct {
    int channelStart[4];
 } DmtxImage;
 
-/* Beeswax, none of mine */
+/* This happens before libdmtx is initialized */
 pxlBuf = (unsigned char *)malloc(width * height * sizeof(pixel));
 
-/* Call this for pre-defined packing orders */
-img = dmtxImageSet(pxlBuf, width, height, DmtxOriginTopLeft, DmtxPack24bppRGB);
+/* Call this for predefined packing orders */
+img = dmtxImageSet(pxlBuf, width, height, DmtxImageNoFlip, DmtxPack24bppRGB);
 
-/* -OR- Call this for custom packing order */
-img = dmtxImageSet(pxlBuf, width, height, DmtxOriginTopLeft, DmtxPack24bppCustom);
-err = dmtxImageAddChannel(&img, 8, 0);  /* red    */
-err = dmtxImageAddChannel(&img, 8, 8);  /* green  */
-err = dmtxImageAddChannel(&img, 8, 16); /* blue   */
+/* -OR- call like this to set a custom packing orders */
+img = dmtxImageSet(pxlBuf, width, height, DmtxImageNoFlip, DmtxPackCustom);
+err = dmtxImageSetProp(&img, DmtxPropBitsPerPixel, 24);
+err = dmtxImageAddChannel(&img,  0, 8);
+err = dmtxImageAddChannel(&img,  8, 8);
+err = dmtxImageAddChannel(&img, 16, 8);
+
+/* similar call with flip in both directions */
+img = dmtxImageSet(pxlBuf, width, height, DmtxImageFlipX|DmtxImageFlipY, DmtxPack24bppRGB);
 
 /**
  *
  *
  */
 extern DmtxImage
-dmtxImageSet(unsigned char *pxlBuf, int width, int height, int originType, int packing);
+dmtxImageSet(unsigned char *pxlBuf, int width, int height, int flip, int packing)
 {
    DmtxImage img;
 
@@ -343,81 +344,70 @@ dmtxImageSet(unsigned char *pxlBuf, int width, int height, int originType, int p
    img.pxl = pxlBuf;
    img.width = width;
    img.height = height;
-   img.originType = originType;
+   img.flip = flip; /* 0=NO_FLIP, 1=X_FLIP, 2=Y_FLIP, 3=(X_FLIP|Y_FLIP) */
 
    switch(packing) {
-      case DmtxPack1bppCustom:
       case DmtxPack1bppK:
          img.bitsPerPixel = 1;
          break;
-      case DmtxPack8bppCustom:
+
       case DmtxPack8bppK:
          img.bitsPerPixel = 8;
          break;
-      case DmtxPack16bppCustom:
+
       case DmtxPack16bppRGB:
          img.bitsPerPixel = 16;
          break;
-      case DmtxPack24bppCustom:
+
       case DmtxPack24bppRGB:
-      case DmtxPack24bppBGR:
       case DmtxPack24bppYCbCr:
          img.bitsPerPixel = 24;
          break;
-      case DmtxPack32bppCustom:
+
       case DmtxPack32bppCMYK:
       case DmtxPack32bppRGBA:
-      case DmtxPack32bppRGBX:
          img.bitsPerPixel = 32;
          break;
+
+      case DmtxPackCustom:
+         break;
+
       default:
          return DMTX_FAILURE;
-         break;
    }
 
    switch(packing) {
       case DmtxPack1bppK:
-         err = dmtxImageAddChannel(&img, 1, 0);
+         err = dmtxImageAddChannel(&img,  0, 1);
          break;
 
       case DmtxPack16bppRGB:
-      case DmtxPack16bppBGR:
-         err = dmtxImageAddChannel(&img, 5, 0);
-         err = dmtxImageAddChannel(&img, 5, 5);
-         err = dmtxImageAddChannel(&img, 5, 10);
+         err = dmtxImageAddChannel(&img,  0, 5);
+         err = dmtxImageAddChannel(&img,  5, 5);
+         err = dmtxImageAddChannel(&img, 10, 5);
          break;
 
       case DmtxPack8bppK:
       case DmtxPack24bppYCbCr:
-         err = dmtxImageAddChannel(&img, 8, 0);
+         err = dmtxImageAddChannel(&img,  0, 8);
          break;
 
       case DmtxPack24bppRGB:
-      case DmtxPack24bppBGR:
       case DmtxPack32bppRGBA:
-      case DmtxPack32bppRGBX:
-         err = dmtxImageAddChannel(&img, 8, 0);
-         err = dmtxImageAddChannel(&img, 8, 8);
-         err = dmtxImageAddChannel(&img, 8, 16);
+         err = dmtxImageAddChannel(&img,  0, 8);
+         err = dmtxImageAddChannel(&img,  8, 8);
+         err = dmtxImageAddChannel(&img, 16, 8);
          break;
 
       case DmtxPack32bppCMYK:
-         err = dmtxImageAddChannel(&img, 8, 0);
-         err = dmtxImageAddChannel(&img, 8, 8);
-         err = dmtxImageAddChannel(&img, 8, 16);
-         err = dmtxImageAddChannel(&img, 8, 24);
-         break;
-
-      case DmtxPack1bppCustom:
-      case DmtxPack8bppCustom:
-      case DmtxPack15bppCustom:
-      case DmtxPack24bppCustom:
-      case DmtxPack32bppCustom:
+         err = dmtxImageAddChannel(&img,  0, 8);
+         err = dmtxImageAddChannel(&img,  8, 8);
+         err = dmtxImageAddChannel(&img, 16, 8);
+         err = dmtxImageAddChannel(&img, 24, 8);
          break;
 
       default:
          return DMTX_FAILURE;
-         break;
    }
 
    return DMTX_SUCCESS;
@@ -427,8 +417,11 @@ dmtxImageSet(unsigned char *pxlBuf, int width, int height, int originType, int p
  *
  *
  */
-dmtxImageAddChannel(DmtxImage *img, int bitsPerChannel, int channelStart)
+dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel)
 {
+   if(img->channelCount >= IMAGE_MAX_CHANNEL)
+      return DMTX_FAILURE;
+
    /* New channel extends beyond pixel data */
    if(channelStart + bitsPerChannel > img->bitsPerPixel)
       return DMTX_FAILURE;
