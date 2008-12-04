@@ -73,6 +73,82 @@ dmtxImageMalloc(int width, int height)
 }
 
 /**
+ * @brief  xxx
+ * @param  xxx
+ * @return xxx
+ */
+extern DmtxImage
+dmtxImageSet(unsigned char *pxlBuf, int width, int height, int flip, int packing)
+{
+   int err;
+   DmtxImage img;
+
+   memset(&img, 0x00, sizeof(DmtxImage));
+
+   img.pxlnew = pxlBuf;
+   img.width = width;
+   img.height = height;
+   img.flip = flip; /* 0=NO_FLIP, 1=X_FLIP, 2=Y_FLIP, 3=(X_FLIP|Y_FLIP) */
+
+   switch(packing) {
+      case DmtxPack1bppK:
+         err = dmtxImageAddChannel(&img,  0, 1);
+         break;
+
+      case DmtxPack16bppRGB:
+         err = dmtxImageAddChannel(&img,  0, 5);
+         err = dmtxImageAddChannel(&img,  5, 5);
+         err = dmtxImageAddChannel(&img, 10, 5);
+         break;
+
+      case DmtxPack8bppK:
+      case DmtxPack24bppYCbCr:
+         err = dmtxImageAddChannel(&img,  0, 8);
+         break;
+
+      case DmtxPack24bppRGB:
+      case DmtxPack32bppRGBA:
+         err = dmtxImageAddChannel(&img,  0, 8);
+         err = dmtxImageAddChannel(&img,  8, 8);
+         err = dmtxImageAddChannel(&img, 16, 8);
+         break;
+
+      case DmtxPack32bppCMYK:
+         err = dmtxImageAddChannel(&img,  0, 8);
+         err = dmtxImageAddChannel(&img,  8, 8);
+         err = dmtxImageAddChannel(&img, 16, 8);
+         err = dmtxImageAddChannel(&img, 24, 8);
+         break;
+
+      default:
+         break;
+   }
+
+   return img;
+}
+
+/**
+ *
+ *
+ */
+extern int
+dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel)
+{
+   if(img->channelCount >= 4) /* IMAGE_MAX_CHANNEL */
+      return DMTX_FAILURE;
+
+   /* New channel extends beyond pixel data */
+/* if(channelStart + bitsPerChannel > img->bitsPerPixel)
+      return DMTX_FAILURE; */
+
+   img->bitsPerChannel[img->channelCount] = bitsPerChannel;
+   img->channelStart[img->channelCount] = channelStart;
+   (img->channelCount)++;
+
+   return DMTX_SUCCESS;
+}
+
+/**
  * @brief  Free libdmtx image memory
  * @param  img pointer to img location
  * @return DMTX_FAILURE | DMTX_SUCCESS
@@ -221,6 +297,32 @@ dmtxImageGetOffset(DmtxImage *img, int x, int y)
 
    return ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
 }
+/*
+ * new implementation
+ *
+extern int
+dmtxImageGetOffset(DmtxImage *img, int x, int y)
+{
+   int offset;
+
+   if(img == NULL); // maybe check boundaries too?
+      return -1;
+
+   switch(img->originType) {
+      case DmtxOriginTopLeft:
+         offset = ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
+         break;
+      case DmtxOriginBottomLeft:
+         offset = img->scale * (y * img->width + x);
+         break;
+      default:
+         return -1;
+         break;
+   }
+
+   return offset;
+}
+*/
 
 /**
  * @brief  Assign pixel RGB values
@@ -291,6 +393,47 @@ dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane)
 
    return img->pxl[offset][colorPlane];
 }
+/*
+ * new implementation
+extern int
+dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
+{
+   int offset;
+
+   if(img == NULL || channel >= img->channelCount);
+      return DMTX_FAILURE;
+
+   if(dmtxImageContainsInt(img, 0, x, y) == DMTX_FALSE)
+      return DMTX_FAILURE;
+
+   offset = dmtxImageGetOffset(img, x, y);
+   if(offset < 0)
+      return DMTX_FAILURE;
+
+   switch(img->bitsPerChannel[channel]) {
+      case 1:
+         assert(img->bitsPerPixel == 1);
+         mask = 0x01 << (7 - offset%8);
+         *value = (img->pxl[offset/8] & mask) ? 255 : 0;
+         break;
+      case 5:
+         // XXX might be expensive if we want to scale perfect 0x00-0xff range
+         assert(img->bitsPerPixel == 16);
+         pixel = img->pxl[offset * (img->bitsPerPixel/8)];
+         pixelValue = (*pixel << 8) | (*(pixel+1));
+         bitShift = img->bitsPerPixel - 5 - img->channelStart[channel];
+         mask = 0x1f << bitShift;
+         value = ((pixelValue & mask) >> bitShift) << 3;
+         break;
+      case 8:
+         assert(img->channelStart % 8 == 0);
+         *value = img->pxl[offset * (img->bitsPerPixel/8) + (img->bitsPerChannel[channel]/8)];
+         break;
+   }
+
+   return DMTX_SUCCESS;
+}
+*/
 
 /**
  * @brief  Test whether image contains a coordinate expressed in integers

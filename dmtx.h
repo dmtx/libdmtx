@@ -218,6 +218,17 @@ typedef enum {
    DmtxSymbol16x48
 } DmtxSymbolSize;
 
+typedef enum {
+   DmtxPack1bppK,
+   DmtxPack8bppK,
+   DmtxPack16bppRGB,
+   DmtxPack24bppRGB,
+   DmtxPack24bppYCbCr,
+   DmtxPack32bppCMYK,
+   DmtxPack32bppRGBA,
+   DmtxPackCustom
+} DmtxPackingOrder;
+
 typedef double DmtxMatrix3[3][3];
 typedef unsigned char DmtxRgb[3];
 
@@ -299,8 +310,13 @@ typedef struct DmtxImage_struct {
    int             yMinScaled;
    int             yMaxScaled;
    int             pageCount;
+   int             flip;
+   int             channelCount;
+   int             channelStart[4];
+   int             bitsPerChannel[4];
    unsigned char   *cache;
    DmtxRgb         *pxl;
+   unsigned char   *pxlnew;
 } DmtxImage;
 
 /**
@@ -540,6 +556,8 @@ extern int dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);
 
 /* dmtximage.c */
 extern DmtxImage *dmtxImageMalloc(int width, int height);
+extern DmtxImage dmtxImageSet(unsigned char *pxlBuf, int width, int height, int flip, int packing);
+extern int dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel);
 extern int dmtxImageFree(DmtxImage **img);
 extern int dmtxImageSetProp(DmtxImage *img, int prop, int value);
 extern int dmtxImageGetProp(DmtxImage *img, int prop);
