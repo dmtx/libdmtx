@@ -1,39 +1,56 @@
 TODO Items
 -----------------------------------------------------------------
 
-after version 0.6.0:
+version 1.0.0: (XX-Aug-2009)
+FOCUS: remaining gaps, testing, documentation
+  o testsuite: Generate metrics in reproducible format to enable historical tracking
+  o testsuite: Investigate option of embedding decoded text into PNG test image comments
+  o testsuite: Tests should compare scanned results to embedded PNG comments
+  o testsuite: 'make test' writes metrics file
+  o testsuite: 'make test' confirms performance
+
+version 0.9.0: (XX-Jun-2009)
+FOCUS: multiple barcode scanning, structured append
+  o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
+  o libdmtx:   Implement structured append symbols
+  o dmtxquery: Write XML for dmtxquery consumption
+  o dmtxquery: Initial working version (parses XML)
+  o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
+
+version 0.8.0: (XX-Apr-2009)
+FOCUS: refactor encoding engine, FNC1, macros
+  o libdmtx:   Implement --auto-fast option using algorithm from spec (lighter & faster?)
+  o libdmtx:   Optimizations need to perform multi-barcode scans
+  o libdmtx:   Structured append reading and writing
+  o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
+  o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
+  o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
+  o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
+  o dmtxwrite: Print character values (not just codewords) from --format=c (-fc) option
+  o dmtxwrite: Verbose messages describing encoding process
+  o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
+
+version 0.7.0: (XX-Feb-2009)
+FOCUS: custom pixel packing, region detection refinement
+  o libdmtx:   Fast Hough fit followed by precision handle fit
+  o libdmtx:   Investigate reported compile error in dmtxutil.c (Rom 16-OCT-2008)
   o libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
   o libdmtx:   Finish calib edge travel end condition
   o libdmtx:   Use calibration edge alignment to set precise locs for all edges
   o libdmtx:   Remove status from DmtxPixelLoc
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
-  o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
-  o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
-  o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
-  o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
-  o libdmtx:   Implement --auto-fast option using algorithm from spec (lighter & faster?)
-  o libdmtx:   Implement overlap detection to avoid rescanning in successfully decoded regions
-  o libdmtx:   Implement structured append symbols
-  o dmtxread:  Write fully structured debug barcode dump from dmtxread (currently just mapping grid)
+  o dmtxread:  Fix misrepresented capacity in verbose mode
   o dmtxread:  Print out image representing "unstretched" barcode
   o dmtxread:  Print color weights based on direction
+  o dmtxread:  Diagnostic image shows tighter-fitting outline
   o dmtxread:  Change dmtxread to print out dump of both failed and successful barcodes if requested
   o dmtxread:  Change dmtxread to print out mis-read modules somehow ... additive, subtractive?
                - Build color vector that describes jump from background to foreground color
                - When module is determined to be "off" then add half of color vector
                - When module is determined to be "on" then subtract half of color vector
                - resulting image should clearly show misread modules
-  o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
-  o dmtxwrite: Print character values (not just codewords) from --format=c (-fc) option
-  o dmtxwrite: Verbose messages describing encoding process
-  o testsuite: Generate metrics in reproducible format to enable historical tracking
-  o testsuite: Investigate option of embedding decoded text into PNG test image comments
-  o testsuite: Tests should compare scanned results to embedded PNG comments
-  o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
-  o testsuite: 'make test' writes metrics file
-  o testsuite: 'make test' confirms performance
-  o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
+  x project:   Create a release checklist document
   o project:   Conditional use of local getopt.c
 
 version 0.6.0: (23-Nov-2008)
@@ -197,27 +214,6 @@ future versions:
   o libdmtx:   Try bi-linear approximation (instead of linear) in follower edge detection
   o libdmtx:   Implement fixed point math functions for use on mobile platforms
   o libdmtx:   Add calibration functionality to remove spherical distortion
-
-  o project:   Create a release checklist document. For example:
-
-1) update release dates
-2) ... yadda yadda yadda ..
-
-N) $ svn propset svn:executable ON somescript
-
-6) Final subversion commit
-
-7) Tag final release in Subversion
-
-$ svn copy https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk \
-           https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/tags/release-0.6.0 \
-      -m "Tagged libdmtx 0.6.0 release"
-
-8) scp libdmtx-0.x.x.tar.* user@frs.sourceforge.net/uploads
-
-9) Create release, upload release notes, publish news item
-
-10) After finalizing, update minor number in trunk (0.6.0 -> 0.6.1)
 
 
 perhaps never:

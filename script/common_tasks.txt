@@ -1,0 +1,115 @@
+This file is more of a checklist than a script. Maybe think of it
+as a manual script.
+
+
+Common Tasks
+-----------------------------------------------------------------
+
+Set file to be executable
+$ svn propset svn:executable ON filename.sh
+
+Enable $Id$ keyword expansion for a newly added file
+$ svn propset svn:keywords 'Id' filename.sh
+
+
+Release Checklist
+-----------------------------------------------------------------
+
+1) o Include newly added files in lists below if appropriate
+
+2) o Create copy of this file as living checklist
+
+3) o Write and finalize release documentation
+
+   o ReleaseNotes.txt (not in SVN or source distribution)
+
+   o ChangeLog               o KNOWNBUG
+   o NEWS                    o TODO
+
+   o README                  o README.cygwin
+   o README.freebsd          o README.linux
+   o README.mingw            o README.msvc
+   o README.osx              o README.unix
+   o test/test_opengl/README
+
+   o wrappers/cocoa/README   o wrappers/php/README
+   o wrappers/python/README  o wrappers/ruby/README
+
+   o man/dmtxquery.1         o man/dmtxread.1
+   o man/dmtxwrite.1         o man/libdmtx.3
+
+4) o Update version number in appropriate files
+
+   o configure.ac
+   o dmtx.h
+   o man/libdmtx.3
+   o README.msvc
+   o wrappers/cocoa/README
+   o wrappers/php/README
+   o wrappers/python/README
+   o wrappers/ruby/README
+
+5) o Update release date in appropriate files
+
+   o TODO
+
+   o man/libdmtx.3 (be sure to sync w/ simpletest.c)
+   o man/dmtxquery.1
+   o man/dmtxread.1
+   o man/dmtxwrite.1
+
+   o wrappers/cocoa/README
+   o wrappers/php/README
+   o wrappers/python/README
+   o wrappers/ruby/README
+
+6) o Perform final test build
+
+   o $ make uninstall
+   o $ make clean
+   o $ make distclean
+   o $ ./autogen.sh
+   o $ ./configure
+   o $ make
+   o $ make check
+   o $ sudo make install
+   o $ test/test_simple/simpletest
+   o $ test/test_unit/unittest; echo $?
+   o $ test/test_opengl/gltest
+
+7) o Build and test tarballs
+
+   o $ make dist-gzip
+   o $ make dist-bzip2
+   o Verify no extraneous files made their way into the
+     distribution (especially in the wrapper directories)
+   o $ md5sum libdmtx*.tar.* > MD5SUM.txt
+
+8) o Final subversion commit
+
+9) o Upload release to SourceForge
+
+   o $ scp libdmtx-x.x.x.tar.* user@frs.sourceforge.net/uploads
+
+10) o SourceForge release administration
+
+    o Create SourceForge release
+    o Upload release notes
+    o Publish news item
+
+11) o Tag final release in SVN (do this only after uploading to
+      SourceForge in case something changes at the last minute)
+
+    o $ svn copy https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk \
+                 https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/tags/release-0.6.0 \
+           -m "Tagged libdmtx 0.6.0 release"
+
+12) o Update minor number in trunk (e.g., 0.6.0 -> 0.6.1)
+
+    o Use file list from step 4 above
+    o ./autogen.sh
+    o ./configure
+    o svn commit
+
+13) o Update libdmtx.org with news item, download entry, and new
+      project status
