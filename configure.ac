@@ -77,24 +77,28 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL([BUILD_DMTXQUERY], [test x$dmtxquery = xtrue])
 
 if test x$dmtxread = xtrue; then
-   AC_CONFIG_FILES([util/dmtxread/Makefile])
-   ifdef(
-      [PKG_CHECK_MODULES],
-      [PKG_CHECK_MODULES(
-         MAGICK,
-         GraphicsMagick >= 1.1.7,
-         true,
-         AC_MSG_ERROR([[dmtxread requires GraphicsMagick >= 1.1.7]]))],
-      [AC_MSG_ERROR([Building dmtxread requires a working autoconf/pkg-config setup])])
+   ifdef([PKG_CHECK_MODULES],
+         [PKG_CHECK_MODULES(
+            MAGICK,
+            GraphicsMagick >= 1.1.7,
+            true,
+            AC_MSG_ERROR([[dmtxread requires GraphicsMagick >= 1.1.7]]))],
+         [AC_MSG_ERROR([Building dmtxread requires a working autoconf/pkg-config setup])])
    AC_SUBST(MAGICK_CFLAGS)
    AC_SUBST(MAGICK_LIBS)
+   AC_CONFIG_FILES([util/dmtxread/Makefile])
 fi
 
 if test x$dmtxwrite = xtrue; then
-   AC_CHECK_HEADERS(
-      [png.h],
-      [],
-      [AC_MSG_ERROR([Building dmtxwrite requires libpng (couldn't find png.h header)])])
+   ifdef([PKG_CHECK_MODULES],
+         [PKG_CHECK_MODULES(
+            PNG,
+            libpng >= 1.0.0,
+            true,
+            AC_MSG_ERROR([[dmtxread requires libpng >= 1.0.0]]))],
+         [AC_MSG_ERROR([Building dmtxwrite requires a working autoconf/pkg-config setup])])
+   AC_SUBST(PNG_CFLAGS)
+   AC_SUBST(PNG_LIBS)
    AC_CONFIG_FILES([util/dmtxwrite/Makefile])
 fi
 
