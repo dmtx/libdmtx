@@ -32,6 +32,10 @@ FOCUS: refactor encoding engine, FNC1, macros
 
 version 0.7.0: (XX-Feb-2009)
 FOCUS: custom pixel packing, region detection refinement
+  o libdmtx:   Introduce DmtxPassFail type
+  o libdmtx:   Fix 64b->32b int assignments
+  o libdmtx:   Relocate cache away from image struct
+  o libdmtx:   Make final decision on where image scaling factor should go
   o libdmtx:   Fast Hough fit followed by precision handle fit
   o libdmtx:   Investigate reported compile error in dmtxutil.c (Rom 16-OCT-2008)
   o libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
@@ -50,7 +54,7 @@ FOCUS: custom pixel packing, region detection refinement
                - When module is determined to be "off" then add half of color vector
                - When module is determined to be "on" then subtract half of color vector
                - resulting image should clearly show misread modules
-  x project:   Create a release checklist document
+  x project:   Create a common tasks and release checklist document
   o project:   Conditional use of local getopt.c
 
 version 0.6.0: (23-Nov-2008)
