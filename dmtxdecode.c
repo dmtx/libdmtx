@@ -176,12 +176,12 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
    DmtxMessage *msg;
    DmtxVector2 p;
 
-   msg = dmtxMessageMalloc(reg->sizeIdx, DMTX_FORMAT_MATRIX);
+   msg = dmtxMessageCreate(reg->sizeIdx, DMTX_FORMAT_MATRIX);
    if(msg == NULL)
       return NULL;
 
    if(PopulateArrayFromMatrix(msg, img, reg) != DMTX_SUCCESS) {
-      dmtxMessageFree(&msg);
+      dmtxMessageDestroy(&msg);
       return NULL;
    }
 
@@ -189,7 +189,7 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
          reg->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
 
    if(DecodeCheckErrors(msg->code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
-      dmtxMessageFree(&msg);
+      dmtxMessageDestroy(&msg);
       return NULL;
    }
 
@@ -203,7 +203,7 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
          /* XXX tighten these boundaries can by accounting for barcode size */
          if(p.X >= -0.1 && p.X <= 1.1 && p.Y >= -0.1 && p.Y <= 1.1) {
 
-            offset = dmtxImageGetOffset(img, col, row);
+            offset = dmtxImageGetPixelOffset(img, col, row);
             if(offset == DMTX_BAD_OFFSET)
                continue;
             else
@@ -235,7 +235,7 @@ dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix)
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, reg->sizeIdx);
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, reg->sizeIdx);
 
-   msg = dmtxMessageMalloc(reg->sizeIdx, DMTX_FORMAT_MOSAIC);
+   msg = dmtxMessageCreate(reg->sizeIdx, DMTX_FORMAT_MOSAIC);
    if(msg == NULL)
       return NULL;
 
@@ -246,13 +246,13 @@ dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix)
    bMesg.code += (bMesg.codeSize * 2);
 
    if(PopulateArrayFromMosaic(msg, img, reg) != DMTX_SUCCESS) {
-      dmtxMessageFree(&msg);
+      dmtxMessageDestroy(&msg);
       return NULL;
    }
 
    ModulePlacementEcc200(msg->array, rMesg.code, reg->sizeIdx, DMTX_MODULE_ON_RED);
    if(DecodeCheckErrors(rMesg.code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
-      dmtxMessageFree(&msg);
+      dmtxMessageDestroy(&msg);
       return NULL;
    }
 
@@ -262,7 +262,7 @@ dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix)
 
    ModulePlacementEcc200(msg->array, gMesg.code, reg->sizeIdx, DMTX_MODULE_ON_GREEN);
    if(DecodeCheckErrors(gMesg.code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
-      dmtxMessageFree(&msg);
+      dmtxMessageDestroy(&msg);
       return NULL;
    }
 
@@ -272,7 +272,7 @@ dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix)
 
    ModulePlacementEcc200(msg->array, bMesg.code, reg->sizeIdx, DMTX_MODULE_ON_BLUE);
    if(DecodeCheckErrors(bMesg.code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
-      dmtxMessageFree(&msg);
+      dmtxMessageDestroy(&msg);
       return NULL;
    }
 

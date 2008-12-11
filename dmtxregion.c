@@ -100,7 +100,7 @@ dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
 
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
-   offset = dmtxImageGetOffset(dec->image, loc.X, loc.Y);
+   offset = dmtxImageGetPixelOffset(dec->image, loc.X, loc.Y);
 /* if(offset == DMTX_BAD_OFFSET || dec->image->cache[offset] & 0x40) { */
    if(offset == DMTX_BAD_OFFSET) {
       reg.found = DMTX_REGION_NOT_FOUND;
@@ -393,7 +393,7 @@ GetCacheAddress(DmtxDecode *dec, int x, int y)
 {
    int offset;
 
-   offset = dmtxImageGetOffset(dec->image, x, y);
+   offset = dmtxImageGetPixelOffset(dec->image, x, y);
    if(offset == DMTX_BAD_OFFSET)
       return NULL;
 
@@ -938,7 +938,7 @@ FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center, int sign)
       loc.X = center.loc.X + dmtxPatternX[i];
       loc.Y = center.loc.Y + dmtxPatternY[i];
 
-      offset = dmtxImageGetOffset(dec->image, loc.X, loc.Y);
+      offset = dmtxImageGetPixelOffset(dec->image, loc.X, loc.Y);
       if(offset == DMTX_BAD_OFFSET) {
          loc.status = DMTX_RANGE_BAD;
          continue;
@@ -985,7 +985,7 @@ FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek)
    DmtxFollow follow;
 
    follow.loc = reg->flowBegin.loc;
-   offset = dmtxImageGetOffset(dec->image, follow.loc.X, follow.loc.Y);
+   offset = dmtxImageGetPixelOffset(dec->image, follow.loc.X, follow.loc.Y);
    assert(offset != DMTX_BAD_OFFSET);
 
    follow.step = 0;
@@ -1013,7 +1013,7 @@ FollowSeekLoc(DmtxDecode *dec, DmtxPixelLoc loc)
    DmtxFollow follow;
 
    follow.loc = loc;
-   offset = dmtxImageGetOffset(dec->image, follow.loc.X, follow.loc.Y);
+   offset = dmtxImageGetPixelOffset(dec->image, follow.loc.X, follow.loc.Y);
    assert(offset != DMTX_BAD_OFFSET);
 
    follow.step = 0;
@@ -1062,7 +1062,7 @@ FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
       follow.loc.status = DMTX_RANGE_GOOD;
    }
 
-   offset = dmtxImageGetOffset(dec->image, follow.loc.X, follow.loc.Y);
+   offset = dmtxImageGetPixelOffset(dec->image, follow.loc.X, follow.loc.Y);
    assert(offset != DMTX_BAD_OFFSET);
 
    follow.step = followBeg.step + sign;
@@ -1091,7 +1091,7 @@ FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
    follow.loc.Y = followBeg.loc.Y + dmtxPatternY[patternIdx];
    follow.loc.status = DMTX_RANGE_GOOD;
 
-   offset = dmtxImageGetOffset(dec->image, follow.loc.X, follow.loc.Y);
+   offset = dmtxImageGetPixelOffset(dec->image, follow.loc.X, follow.loc.Y);
    assert(offset != DMTX_BAD_OFFSET);
 
    follow.step = followBeg.step + sign;
@@ -1121,7 +1121,7 @@ TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin, 
    DmtxPixelLoc boundMin, boundMax;
 
    /* check offset before starting */
-   offset = dmtxImageGetOffset(dec->image, flowBegin.loc.X, flowBegin.loc.Y);
+   offset = dmtxImageGetPixelOffset(dec->image, flowBegin.loc.X, flowBegin.loc.Y);
    if(offset == DMTX_BAD_OFFSET)
       return DMTX_FAILURE;
 
@@ -1148,7 +1148,7 @@ TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin, 
          if(flowNext.mag < 50)
             break;
 
-         offset = dmtxImageGetOffset(dec->image, flowNext.loc.X, flowNext.loc.Y);
+         offset = dmtxImageGetPixelOffset(dec->image, flowNext.loc.X, flowNext.loc.Y);
          if(offset == DMTX_BAD_OFFSET)
             break;
 
@@ -1909,7 +1909,7 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
 
-         offset = dmtxImageGetOffset(dec->image, col, row);
+         offset = dmtxImageGetPixelOffset(dec->image, col, row);
          if(offset == DMTX_BAD_OFFSET) {
             rgb[0] = 0;
             rgb[1] = 0;

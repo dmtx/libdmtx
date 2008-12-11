@@ -31,8 +31,10 @@ FOCUS: refactor encoding engine, FNC1, macros
   o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
 
 version 0.7.0: (XX-Feb-2009)
-FOCUS: custom pixel packing, region detection refinement
-  o libdmtx:   Introduce DmtxPassFail type
+FOCUS: custom pixel packing, API cleanup, region detection refinement
+  o libdmtx:   Consider making "*ProdScaled" default, and unscaled as "Unscaled"
+  o libdmtx:   Consider using Create/Destroy for enc & dec (but still not reg)
+  o libdmtx:   Introduce DmtxPassFail type (DmtxPass / DmtxFail)
   o libdmtx:   Fix 64b->32b int assignments
   o libdmtx:   Relocate cache away from image struct
   o libdmtx:   Make final decision on where image scaling factor should go

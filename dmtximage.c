@@ -28,26 +28,25 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * @brief  Allocate libdmtx image memory
- * @param  width image width
- * @param  height image height
- * @return Address of newly allocated memory
+ * @brief  xxx
+ * @param  xxx
+ * @return xxx
  */
 extern DmtxImage *
-dmtxImageMalloc(int width, int height)
+dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack, int flip)
 {
+   int err;
+   int bytesPerPixel;
    DmtxImage *img;
 
    img = (DmtxImage *)calloc(1, sizeof(DmtxImage));
-   if(img == NULL) {
+   if(img == NULL)
       return NULL;
-   }
 
-   /* Consider moving scaling factor to decode as "lens" factors or
-      something ... otherwise image needs to be remalloced whenever
-      decode is reinitialized ...*/
+   img->bpp = bpp;
+   img->pack = pack;
+   img->flip = flip;
 
-   img->pageCount = 1;
    img->width = img->widthScaled = width;
    img->height = img->heightScaled = height;
    img->scale = 1;
@@ -56,16 +55,55 @@ dmtxImageMalloc(int width, int height)
    img->yMin = img->yMinScaled = 0;
    img->yMax = img->yMaxScaled = height - 1;
 
-   img->pxl = (DmtxRgb *)calloc(width * height, sizeof(DmtxRgb));
-   if(img->pxl == NULL) {
+   /* XXX TEMPORARY */
+   img->cache = (unsigned char *)malloc(width * height * sizeof(unsigned char));
+   if(img->cache == NULL) {
       free(img);
       return NULL;
    }
 
-   img->cache = (unsigned char *)malloc(width * height * sizeof(unsigned char));
-   if(img->cache == NULL) {
-      free(img->pxl);
-      free(img);
+   if(pxl != NULL) {
+      img->mallocByDmtx = DMTX_FALSE;
+      img->pxl = pxl;
+   }
+   else {
+      img->mallocByDmtx = DMTX_TRUE;
+
+      /* Pixels must fall along byte boundaries for auto malloc option */
+      if(img->bpp % 8 != 0)
+         return NULL;
+
+      bytesPerPixel = img->bpp/8;
+      img->pxl = malloc(bytesPerPixel * width * height * sizeof(unsigned char));
+      if(img->pxl == NULL) {
+         free(img);
+         return NULL;
+      }
+   }
+
+   if(img->bpp == 1) {
+      err = dmtxImageAddChannel(img,  0, 1);
+   }
+   else if(pack == DmtxPackRGB && img->bpp == 16) {
+      err = dmtxImageAddChannel(img,  0, 5);
+      err = dmtxImageAddChannel(img,  5, 5);
+      err = dmtxImageAddChannel(img, 10, 5);
+   }
+   else if(pack == DmtxPackYCbCr && img->bpp == 24) {
+      err = dmtxImageAddChannel(img,  0, 8);
+   }
+   else if(pack == DmtxPackRGB && (img->bpp == 24 || img->bpp == 32)) {
+      err = dmtxImageAddChannel(img,  0, 8);
+      err = dmtxImageAddChannel(img,  8, 8);
+      err = dmtxImageAddChannel(img, 16, 8);
+   }
+   else if(pack == DmtxPackCMYK && img->bpp == 32) {
+      err = dmtxImageAddChannel(img,  0, 8);
+      err = dmtxImageAddChannel(img,  8, 8);
+      err = dmtxImageAddChannel(img, 16, 8);
+      err = dmtxImageAddChannel(img, 24, 8);
+   }
+   else if(pack != DmtxPackCustom) {
       return NULL;
    }
 
@@ -73,58 +111,27 @@ dmtxImageMalloc(int width, int height)
 }
 
 /**
- * @brief  xxx
- * @param  xxx
- * @return xxx
+ * @brief  Free libdmtx image memory
+ * @param  img pointer to img location
+ * @return DMTX_FAILURE | DMTX_SUCCESS
  */
-extern DmtxImage
-dmtxImageSet(unsigned char *pxlBuf, int width, int height, int flip, int packing)
+extern int
+dmtxImageDestroy(DmtxImage **img)
 {
-   int err;
-   DmtxImage img;
+   if(*img == NULL)
+      return DMTX_FAILURE;
 
-   memset(&img, 0x00, sizeof(DmtxImage));
+   if((*img)->mallocByDmtx == DMTX_TRUE && (*img)->pxl != NULL)
+      free((*img)->pxl);
 
-   img.pxlnew = pxlBuf;
-   img.width = width;
-   img.height = height;
-   img.flip = flip; /* 0=NO_FLIP, 1=X_FLIP, 2=Y_FLIP, 3=(X_FLIP|Y_FLIP) */
+   if((*img)->cache != NULL)
+      free((*img)->cache);
 
-   switch(packing) {
-      case DmtxPack1bppK:
-         err = dmtxImageAddChannel(&img,  0, 1);
-         break;
+   free(*img);
 
-      case DmtxPack16bppRGB:
-         err = dmtxImageAddChannel(&img,  0, 5);
-         err = dmtxImageAddChannel(&img,  5, 5);
-         err = dmtxImageAddChannel(&img, 10, 5);
-         break;
+   *img = NULL;
 
-      case DmtxPack8bppK:
-      case DmtxPack24bppYCbCr:
-         err = dmtxImageAddChannel(&img,  0, 8);
-         break;
-
-      case DmtxPack24bppRGB:
-      case DmtxPack32bppRGBA:
-         err = dmtxImageAddChannel(&img,  0, 8);
-         err = dmtxImageAddChannel(&img,  8, 8);
-         err = dmtxImageAddChannel(&img, 16, 8);
-         break;
-
-      case DmtxPack32bppCMYK:
-         err = dmtxImageAddChannel(&img,  0, 8);
-         err = dmtxImageAddChannel(&img,  8, 8);
-         err = dmtxImageAddChannel(&img, 16, 8);
-         err = dmtxImageAddChannel(&img, 24, 8);
-         break;
-
-      default:
-         break;
-   }
-
-   return img;
+   return DMTX_SUCCESS;
 }
 
 /**
@@ -144,30 +151,6 @@ dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel)
    img->bitsPerChannel[img->channelCount] = bitsPerChannel;
    img->channelStart[img->channelCount] = channelStart;
    (img->channelCount)++;
-
-   return DMTX_SUCCESS;
-}
-
-/**
- * @brief  Free libdmtx image memory
- * @param  img pointer to img location
- * @return DMTX_FAILURE | DMTX_SUCCESS
- */
-extern int
-dmtxImageFree(DmtxImage **img)
-{
-   if(*img == NULL)
-      return DMTX_FAILURE;
-
-   if((*img)->pxl != NULL)
-      free((*img)->pxl);
-
-   if((*img)->cache != NULL)
-      free((*img)->cache);
-
-   free(*img);
-
-   *img = NULL;
 
    return DMTX_SUCCESS;
 }
@@ -249,6 +232,10 @@ dmtxImageGetProp(DmtxImage *img, int prop)
          return img->width;
       case DmtxPropHeight:
          return img->height;
+      case DmtxPropBitsPerPixel:
+         return img->bpp;
+      case DmtxPropBytesPerPixel:
+         return img->bpp/8;
       case DmtxPropArea:
          return img->width * img->height;
       case DmtxPropXmin:
@@ -288,7 +275,7 @@ dmtxImageGetProp(DmtxImage *img, int prop)
  * @return Unscaled pixel offset
  */
 extern int
-dmtxImageGetOffset(DmtxImage *img, int x, int y)
+dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
 {
    assert(img != NULL);
 
@@ -296,12 +283,14 @@ dmtxImageGetOffset(DmtxImage *img, int x, int y)
       return DMTX_BAD_OFFSET;
 
    return ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
+/* return ((img->heightScaled - y - 1) * img->width + x); */
 }
+
 /*
  * new implementation
  *
 extern int
-dmtxImageGetOffset(DmtxImage *img, int x, int y)
+dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
 {
    int offset;
 
@@ -335,15 +324,19 @@ dmtxImageGetOffset(DmtxImage *img, int x, int y)
 extern int
 dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 {
-   int offset;
+   int pixelOffset;
+   int byteOffset;
 
    assert(img != NULL);
 
-   offset = dmtxImageGetOffset(img, x, y);
-   if(offset == DMTX_BAD_OFFSET)
+   pixelOffset = dmtxImageGetPixelOffset(img, x, y);
+   if(pixelOffset == DMTX_BAD_OFFSET)
       return DMTX_FAILURE;
 
-   memcpy(img->pxl[offset], rgb, 3);
+   byteOffset = pixelOffset * (img->bpp/8);
+   img->pxl[byteOffset + 0] = rgb[0];
+   img->pxl[byteOffset + 1] = rgb[1];
+   img->pxl[byteOffset + 2] = rgb[2];
 
    return DMTX_SUCCESS;
 }
@@ -359,15 +352,19 @@ dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 extern int
 dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 {
-   int offset;
+   int pixelOffset;
+   int byteOffset;
 
    assert(img != NULL);
 
-   offset = dmtxImageGetOffset(img, x, y);
-   if(offset == DMTX_BAD_OFFSET)
+   pixelOffset = dmtxImageGetPixelOffset(img, x, y);
+   if(pixelOffset == DMTX_BAD_OFFSET)
       return DMTX_FAILURE;
 
-   memcpy(rgb, img->pxl[offset], 3);
+   byteOffset = pixelOffset * (img->bpp/8);
+   rgb[0] = img->pxl[byteOffset + 0];
+   rgb[1] = img->pxl[byteOffset + 1];
+   rgb[2] = img->pxl[byteOffset + 2];
 
    return DMTX_SUCCESS;
 }
@@ -383,15 +380,18 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 extern int
 dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane)
 {
-   int offset;
+   int pixelOffset;
+   int byteOffset;
 
    assert(img != NULL);
 
-   offset = dmtxImageGetOffset(img, x, y);
-   if(offset == DMTX_BAD_OFFSET)
+   pixelOffset = dmtxImageGetPixelOffset(img, x, y);
+   if(pixelOffset == DMTX_BAD_OFFSET)
       return -1;
 
-   return img->pxl[offset][colorPlane];
+   byteOffset = pixelOffset * (img->bpp/8);
+
+   return img->pxl[byteOffset + colorPlane];
 }
 /*
  * new implementation
@@ -406,7 +406,7 @@ dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
    if(dmtxImageContainsInt(img, 0, x, y) == DMTX_FALSE)
       return DMTX_FAILURE;
 
-   offset = dmtxImageGetOffset(img, x, y);
+   offset = dmtxImageGetPixelOffset(img, x, y);
    if(offset < 0)
       return DMTX_FAILURE;
 

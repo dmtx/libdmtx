@@ -34,7 +34,7 @@ Contact: mike@dragonflylogic.com
  * @return Address of allocated memory
  */
 extern DmtxMessage *
-dmtxMessageMalloc(int sizeIdx, int symbolFormat)
+dmtxMessageCreate(int sizeIdx, int symbolFormat)
 {
    DmtxMessage *message;
    int mappingRows, mappingCols;
@@ -54,7 +54,7 @@ dmtxMessageMalloc(int sizeIdx, int symbolFormat)
    message->array = (unsigned char *)calloc(1, message->arraySize);
    if(message->array == NULL) {
       perror("Calloc failed");
-      dmtxMessageFree(&message);
+      dmtxMessageDestroy(&message);
       return NULL;
    }
 
@@ -68,7 +68,7 @@ dmtxMessageMalloc(int sizeIdx, int symbolFormat)
    message->code = (unsigned char *)calloc(message->codeSize, sizeof(unsigned char));
    if(message->code == NULL) {
       perror("Calloc failed");
-      dmtxMessageFree(&message);
+      dmtxMessageDestroy(&message);
       return NULL;
    }
 
@@ -79,7 +79,7 @@ dmtxMessageMalloc(int sizeIdx, int symbolFormat)
    message->output = (unsigned char *)calloc(message->outputSize, sizeof(unsigned char));
    if(message->output == NULL) {
       perror("Calloc failed");
-      dmtxMessageFree(&message);
+      dmtxMessageDestroy(&message);
       return NULL;
    }
 
@@ -92,7 +92,7 @@ dmtxMessageMalloc(int sizeIdx, int symbolFormat)
  * @return void
  */
 extern void
-dmtxMessageFree(DmtxMessage **message)
+dmtxMessageDestroy(DmtxMessage **message)
 {
    if(*message == NULL)
       return;

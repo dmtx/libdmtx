@@ -400,10 +400,16 @@ WriteImagePng(UserOptions *opt, DmtxEncode *enc)
    FILE *fp;
    int row;
    int width, height;
+   int bytesPerPixel;
    png_structp pngPtr;
    png_infop infoPtr;
    png_bytepp rowPointers;
    png_uint_32 pixelsPerMeter;
+   DmtxImage *img;
+
+   img = enc->image;
+   bytesPerPixel = 3;
+   assert(img->bpp == 24);
 
    /* Open file or stdin for writing */
    fp = (opt->outputPath == NULL) ? stdout : fopen(opt->outputPath, "wb");
@@ -437,8 +443,8 @@ WriteImagePng(UserOptions *opt, DmtxEncode *enc)
       perror(programName);
    }
 
-   width = dmtxImageGetProp(enc->image, DmtxPropWidth);
-   height = dmtxImageGetProp(enc->image, DmtxPropHeight);
+   width = dmtxImageGetProp(img, DmtxPropWidth);
+   height = dmtxImageGetProp(img, DmtxPropHeight);
 
    /* Set up output control using standard streams */
    png_init_io(pngPtr, fp);
@@ -465,7 +471,7 @@ WriteImagePng(UserOptions *opt, DmtxEncode *enc)
       assert(png_get_rowbytes(pngPtr, infoPtr) == width * sizeof(DmtxRgb));
 
       /* Flip rows top-to-bottom to account for PNM "top-left" origin */
-      memcpy(rowPointers[row], enc->image->pxl + (row * width), width * sizeof(DmtxRgb));
+      memcpy(rowPointers[row], img->pxl + (row * width * bytesPerPixel), width * bytesPerPixel);
    }
 
    png_set_rows(pngPtr, infoPtr, rowPointers);

@@ -1,6 +1,6 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
-Copyright (c) 2007 Mike Laughton
+Copyright (c) 2008 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -24,17 +24,20 @@ Contact: mike@dragonflylogic.com
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include <dmtx.h>
 
 int
 main(int argc, char *argv[])
 {
-   unsigned char str[] = "30Q324343430794<OQQ";
-   DmtxEncode    enc;
-   DmtxImage    *img;
-   DmtxDecode    dec;
-   DmtxRegion    reg;
-   DmtxMessage  *msg;
+   size_t          width, height, bytesPerPixel;
+   unsigned char   str[] = "30Q324343430794<OQQ";
+   unsigned char  *pxl;
+   DmtxEncode      enc;
+   DmtxImage      *img;
+   DmtxDecode      dec;
+   DmtxRegion      reg;
+   DmtxMessage    *msg;
 
    fprintf(stdout, "input:  \"%s\"\n", str);
 
@@ -43,14 +46,22 @@ main(int argc, char *argv[])
    enc = dmtxEncodeStructInit();
    dmtxEncodeDataMatrix(&enc, strlen(str), str, DmtxSymbolSquareAuto);
 
-   /* 2) COPY the new image data before freeing encoding memory */
+   /* 2) COPY the new image data before releasing encoding memory */
 
-   img = dmtxImageMalloc(enc.image->width, enc.image->height);
-   memcpy(img->pxl, enc.image->pxl, img->width * img->height * sizeof(DmtxRgb));
+   width = dmtxImageGetProp(enc.image, DmtxPropWidth);
+   height = dmtxImageGetProp(enc.image, DmtxPropHeight);
+   bytesPerPixel = dmtxImageGetProp(enc.image, DmtxPropBytesPerPixel);
+
+   pxl = (unsigned char *)malloc(width * height * bytesPerPixel);
+   assert(pxl != NULL);
+   memcpy(pxl, enc.image->pxl, width * height * bytesPerPixel);
 
    dmtxEncodeStructDeInit(&enc);
 
    /* 3) DECODE the Data Matrix barcode from the copied image */
+
+   img = dmtxImageCreate(pxl, width, height, 24, DmtxPackRGB, DmtxFlipNone);
+   assert(img != NULL);
 
    dec = dmtxDecodeStructInit(img);
 
@@ -63,11 +74,12 @@ main(int argc, char *argv[])
       fputs("output: \"", stdout);
       fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
       fputs("\"\n\n", stdout);
-      dmtxMessageFree(&msg);
+      dmtxMessageDestroy(&msg);
    }
 
    dmtxDecodeStructDeInit(&dec);
-   dmtxImageFree(&img);
+   dmtxImageDestroy(&img);
+   free(pxl);
 
    exit(0);
 }

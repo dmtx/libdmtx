@@ -57,161 +57,121 @@ char *programName;
 int
 main(int argc, char *argv[])
 {
+   char *filePath;
+   int i;
    int err;
-   int fileIndex;
-   int pageIndex;
-   int imgWidth, imgHeight;
-   int fileScanCount, globalScanCount;
-   int nFiles;
+   int fileIndex, gmPageIndex;
+   int fileCount, gmPageCount;
+   int imageScanCount, pageScanCount;
+   unsigned char *pxl;
    UserOptions opt;
-   DmtxTime  msec, *timeout;
+   DmtxTime timeout;
    DmtxImage *img;
    DmtxDecode dec;
    DmtxRegion reg;
    DmtxMessage *msg;
-   ImageReader reader;
+   GmImage *gmImage, *gmPage;
+   GmImageInfo *gmInfo;
 
    SetOptionDefaults(&opt);
-   InitializeMagick(*argv);
 
    err = HandleArgs(&opt, &fileIndex, &argc, &argv);
    if(err != DMTX_SUCCESS)
       ShowUsage(EX_USAGE);
 
-   timeout = (opt.timeoutMS == -1) ? NULL : &msec;
+   fileCount = (argc == fileIndex) ? 1 : argc - fileIndex;
 
-   reader.image = NULL;
-   nFiles = argc - fileIndex;
-   globalScanCount = 0;
+   /* For each image named on command line */
+   imageScanCount = 0;
+   for(i = 0; i < fileCount; i++) {
 
-   /* Loop once for each page of each image listed in parameters */
-   for(pageIndex = 0; fileIndex < argc || (nFiles == 0 && fileIndex == argc);) {
+      gmInitializeMagick(*argv);
 
-      /* Reset timeout for each new image */
-      if(timeout != NULL)
-         msec = dmtxTimeAdd(dmtxTimeNow(), opt.timeoutMS);
-
-      /* Open image file/stream */
-      if(!reader.image) {
-         if(argc == fileIndex)
-            OpenImage(&reader, "-", opt.resolution);
-         else
-            OpenImage(&reader, argv[fileIndex], opt.resolution);
-
-         if(!reader.image) {
-            fileIndex++;
-            continue;
-         }
-      }
-
-      /* Read next image page (many formats are single-page only) */
-      img = ReadImagePage(&reader, pageIndex++);
-
-      /* If requested page did not load then move to the next image */
-      if(img == NULL) {
-         CloseImage(&reader);
-         fileIndex++;
-         pageIndex = 0;
+      /* Open image from file or stream (possibly contains multiple pages) */
+      filePath = (argc == fileIndex) ? "-" : argv[fileIndex++];
+      gmImage = OpenImageList(&gmInfo, filePath, opt.resolution);
+      if(gmImage == NULL)
          continue;
+
+      /* For each page within image */
+      gmPageCount = gmGetImageListLength(gmImage);
+      for(gmPageIndex = 0; gmPageIndex < gmPageCount; gmPageIndex++) {
+
+         /* Reset timeout for each new page */
+         if(opt.timeoutMS != -1)
+            timeout = dmtxTimeAdd(dmtxTimeNow(), opt.timeoutMS);
+
+         gmPage = gmGetImageFromList(gmImage, gmPageIndex);
+         assert(gmPage != NULL);
+
+         /* Allocate memory for pixel data */
+         pxl = (unsigned char *)malloc(3 * gmPage->columns * gmPage->rows *
+               sizeof(unsigned char));
+         if(pxl == NULL) {
+            CleanupMagick(&gmImage, &gmInfo);
+            FatalError(80, "malloc() error");
+         }
+
+         /* Copy pixel data into known format */
+         WritePixelsToBuffer(pxl, gmPage);
+
+         /* Initialize libdmtx image */
+         img = dmtxImageCreate(pxl, gmPage->columns, gmPage->rows, 24, DmtxPackRGB, DmtxFlipNone);
+         if(img == NULL) {
+            CleanupMagick(&gmImage, &gmInfo);
+            FatalError(80, "dmtxImageCreate() error");
+         }
+
+         /* Initialize scan */
+         dec = dmtxDecodeStructInit(img);
+
+         err = SetDecodeOptions(&dec, img, &opt);
+         if(err != DMTX_SUCCESS) {
+            CleanupMagick(&gmImage, &gmInfo);
+            FatalError(80, "decode option error");
+         }
+
+         /* Find and decode every barcode on page */
+         pageScanCount = 0;
+         for(;;) {
+            /* Find next barcode region within image, but do not decode yet */
+            reg = dmtxDecodeFindNextRegion(&dec, (opt.timeoutMS == -1) ?
+                  NULL : &timeout);
+
+            /* Finished file or ran out of time before finding another region */
+            if(reg.found != DMTX_REGION_FOUND)
+               break;
+
+            /* Decode region based on requested barcode mode */
+            if(opt.mosaic)
+               msg = dmtxDecodeMosaicRegion(img, &reg, opt.correctionsMax);
+            else
+               msg = dmtxDecodeMatrixRegion(img, &reg, opt.correctionsMax);
+
+            if(msg == NULL)
+               continue;
+
+            PrintDecodedOutput(&opt, img, &reg, msg, pageScanCount);
+            dmtxMessageDestroy(&msg);
+            pageScanCount++;
+
+            if(opt.stopAfter != -1 && imageScanCount >= opt.stopAfter)
+               break;
+         }
+         imageScanCount += pageScanCount;
+
+         if(opt.diagnose)
+            WriteDiagnosticImage(&dec, &reg, "debug.pnm");
+
+         dmtxDecodeStructDeInit(&dec);
+         dmtxImageDestroy(&img);
+         free(pxl);
       }
 
-      imgWidth = dmtxImageGetProp(img, DmtxPropWidth);
-      imgHeight = dmtxImageGetProp(img, DmtxPropHeight);
-
-      assert(img->pageCount > 0 && pageIndex <= img->pageCount);
-
-      /* Initialize decode struct for newly loaded image */
-      dec = dmtxDecodeStructInit(img);
-
-      err = dmtxDecodeSetProp(&dec, DmtxPropScanGap, opt.scanGap);
-      assert(err == DMTX_SUCCESS);
-
-      if(opt.edgeMin != -1) {
-         err = dmtxDecodeSetProp(&dec, DmtxPropEdgeMin, opt.edgeMin);
-         assert(err == DMTX_SUCCESS);
-      }
-
-      if(opt.edgeMax != -1) {
-         err = dmtxDecodeSetProp(&dec, DmtxPropEdgeMax, opt.edgeMax);
-         assert(err == DMTX_SUCCESS);
-      }
-
-      if(opt.squareDevn != -1) {
-         err = dmtxDecodeSetProp(&dec, DmtxPropSquareDevn, opt.squareDevn);
-         assert(err == DMTX_SUCCESS);
-      }
-
-      err = dmtxDecodeSetProp(&dec, DmtxPropSymbolSize, opt.sizeIdxExpected);
-      assert(err == DMTX_SUCCESS);
-
-      err = dmtxDecodeSetProp(&dec, DmtxPropEdgeThresh, opt.edgeThresh);
-      assert(err == DMTX_SUCCESS);
-
-      if(opt.xMin) {
-         err = dmtxDecodeSetProp(&dec, DmtxPropXmin, ScaleNumberString(opt.xMin, imgWidth));
-         assert(err == DMTX_SUCCESS);
-      }
-
-      if(opt.xMax) {
-         err = dmtxDecodeSetProp(&dec, DmtxPropXmax, ScaleNumberString(opt.xMax, imgWidth));
-         assert(err == DMTX_SUCCESS);
-      }
-
-      if(opt.yMin) {
-         err = dmtxDecodeSetProp(&dec, DmtxPropYmin, ScaleNumberString(opt.yMin, imgHeight));
-         assert(err == DMTX_SUCCESS);
-      }
-
-      if(opt.yMax) {
-         err = dmtxDecodeSetProp(&dec, DmtxPropYmax, ScaleNumberString(opt.yMax, imgHeight));
-         assert(err == DMTX_SUCCESS);
-      }
-
-      err = dmtxDecodeSetProp(&dec, DmtxPropShrinkMin, opt.shrinkMin);
-      assert(err == DMTX_SUCCESS);
-
-      err = dmtxDecodeSetProp(&dec, DmtxPropShrinkMax, opt.shrinkMax);
-      assert(err == DMTX_SUCCESS);
-
-      /* Loop once for each detected barcode region */
-      for(fileScanCount = 0;;) {
-
-         /* Find next barcode region within image, but do not decode yet */
-         reg = dmtxDecodeFindNextRegion(&dec, timeout);
-
-         /* Finished file or ran out of time before finding another region */
-         if(reg.found != DMTX_REGION_FOUND)
-            break;
-
-         /* Decode region based on requested barcode mode */
-         if(opt.mosaic)
-            msg = dmtxDecodeMosaicRegion(img, &reg, opt.correctionsMax);
-         else
-            msg = dmtxDecodeMatrixRegion(img, &reg, opt.correctionsMax);
-
-         if(msg == NULL)
-            continue;
-
-         PrintDecodedOutput(&opt, img, &reg, msg, pageIndex);
-         fileScanCount++;
-
-         dmtxMessageFree(&msg);
-
-         if(opt.stopAfter != -1 && fileScanCount >= opt.stopAfter)
-            break;
-      }
-      globalScanCount += fileScanCount;
-
-      if(opt.diagnose)
-         WriteDiagnosticImage(&dec, &reg, "debug.pnm");
-
-      dmtxDecodeStructDeInit(&dec);
-      dmtxImageFree(&img);
+      CleanupMagick(&gmImage, &gmInfo);
    }
 
-   DestroyMagick();
-
-   exit((globalScanCount > 0) ? EX_OK : 1);
+   exit((imageScanCount > 0) ? EX_OK : 1);
 }
 
 /**
@@ -304,7 +264,8 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      optchr = getopt_long(*argcp, *argvp, "ce:E:g:lm:nq:r:s:t:x:X:y:Y:vC:DMN:PRS:V", longOptions, &longIndex);
+      optchr = getopt_long(*argcp, *argvp, "ce:E:g:lm:nq:r:s:t:x:X:y:Y:vC:DMN:PRS:V",
+            longOptions, &longIndex);
       if(optchr == -1)
          break;
 
@@ -500,104 +461,68 @@ OPTIONS:\n"), programName, programName);
 }
 
 /**
- *
- *
- */
-static int
-ScaleNumberString(char *s, int extent)
-{
-   int err;
-   int numValue;
-   int scaledValue;
-   char *terminate;
-
-   assert(s != NULL);
-
-   err = StringToInt(&numValue, s, &terminate);
-   if(err != DMTX_SUCCESS)
-      FatalError(EX_USAGE, _("Integer value required"));
-
-   scaledValue = (*terminate == '%') ? (int)(0.01 * numValue * extent + 0.5) : numValue;
-
-   if(scaledValue < 0)
-      scaledValue = 0;
-
-   if(scaledValue >= extent)
-      scaledValue = extent - 1;
-
-   return scaledValue;
-}
-
-/**
- * @brief  List supported input image formats on stdout
- * @return void
- */
-static void
-ListImageFormats(void)
-{
-   int i;
-   MagickInfo **formats;
-   ExceptionInfo exception;
-
-   GetExceptionInfo(&exception);
-   formats=GetMagickInfoArray(&exception);
-   CatchException(&exception);
-
-   if(formats) {
-      fprintf(stdout, "   Format  Description\n");
-      fprintf(stdout, "---------  ------------------------------------------------------\n");
-      for(i=0; formats[i] != 0; i++) {
-         if(formats[i]->stealth || !formats[i]->decoder)
-            continue;
-
-         fprintf(stdout, "%9s", formats[i]->name ? formats[i]->name : "");
-         if(formats[i]->description != (char *)NULL)
-            fprintf(stdout, "  %s\n",formats[i]->description);
-      }
-      free(formats);
-   }
-
-   DestroyExceptionInfo(&exception);
-}
-
-/**
  * @brief  Open an image input file
  * @param  reader Pointer to ImageReader struct
  * @param  imagePath Image path or "-" for stdin
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return Image list
  */
-static int
-OpenImage(ImageReader *reader, char *imagePath, char *resolution)
+static GmImage *
+OpenImageList(GmImageInfo **gmInfo, char *imagePath, char *resolution)
 {
-   reader->image = NULL;
-   GetExceptionInfo(&reader->exception);
-   reader->info = CloneImageInfo((ImageInfo *) NULL);
+   GmImageInfo *info;
+   GmImage *gmImage;
+   GmExceptionInfo exception;
 
-   strcpy((reader->info)->filename, imagePath);
+   info = *gmInfo = gmCloneImageInfo((GmImageInfo *) NULL);
+   gmImage = NULL;
+   gmGetExceptionInfo(&exception);
+
+   strncpy(info->filename, imagePath, MaxTextExtent);
+   info->filename[MaxTextExtent-1] = '\0';
+
    if(resolution) {
-      reader->info->density = strdup(resolution);
-      reader->info->units = PixelsPerInchResolution;
+      info->density = resolution;
+      info->units = PixelsPerInchResolution;
    }
-   reader->image = ReadImage(reader->info, &reader->exception);
+   gmImage = gmReadImage(info, &exception);
 
-   switch(reader->exception.severity) {
-      case UndefinedException:
-         break;
+   switch(exception.severity) {
+/*    case UndefinedException:
+         break; */
       case OptionError:
       case MissingDelegateError:
          fprintf(stderr,
-               "%s: unsupported file format. Use -l to for a list of available formats.\n",
+               "%s: unsupported file format. Use -l for a list of available formats.\n",
                imagePath);
          break;
       default:
-         CatchException(&reader->exception);
+         gmCatchException(&exception);
          break;
    }
 
-   if(!reader->image)
-      CloseImage(reader);
+   gmDestroyExceptionInfo(&exception);
 
-   return (reader->image) ? DMTX_SUCCESS : DMTX_FAILURE;
+   return gmImage;
+}
+
+/**
+ *
+ *
+ */
+static void
+CleanupMagick(GmImage **gmImage, GmImageInfo **gmInfo)
+{
+   if(*gmImage) {
+      gmDestroyImage(*gmImage);
+      *gmImage = NULL;
+   }
+
+   if(*gmInfo) {
+      gmDestroyImageInfo(*gmInfo);
+      *gmInfo = NULL;
+   }
+
+   gmDestroyMagick();
 }
 
 /**
@@ -606,55 +531,86 @@ OpenImage(ImageReader *reader, char *imagePath, char *resolution)
  * @param  index page index
  * @return pointer to allocated DmtxImage or NULL
  */
-static DmtxImage *
-ReadImagePage(ImageReader *reader, int index)
+static void
+WritePixelsToBuffer(unsigned char *pxl, Image *gmPage)
 {
-   unsigned int dispatchResult;
-   int pageCount;
-   DmtxImage *image;
+   GmExceptionInfo exception;
 
-   image = NULL;
-   if(reader->image) {
-      pageCount = GetImageListLength(reader->image);
-      if(index < pageCount) {
-         reader->image = GetImageFromList(reader->image, index);
+   assert(pxl != NULL && gmPage != NULL);
 
-         image = dmtxImageMalloc(reader->image->columns, reader->image->rows);
+   gmGetExceptionInfo(&exception);
 
-         if(image) {
-            image->pageCount = pageCount;
-            dispatchResult = DispatchImage(reader->image, 0, 0, reader->image->columns,
-                                           reader->image->rows, "RGB", CharPixel,
-                                           image->pxl, &reader->exception);
-            if(dispatchResult == MagickFail) {
-               dmtxImageFree(&image);
-               CatchException(&reader->exception);
-            }
-         }
-         else {
-            perror(programName);
-         }
-      }
-   }
+   gmDispatchImage(gmPage, 0, 0, gmPage->columns, gmPage->rows, "RGB",
+         CharPixel, pxl, &exception);
 
-   return image;
+   gmCatchException(&exception);
+   gmDestroyExceptionInfo(&exception);
 }
 
 /**
- * @brief  Close an image
- * @param  reader  pointer to ImageReader struct
- * @return void
+ *
+ *
  */
-static void
-CloseImage(ImageReader * reader)
+static int
+SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt)
 {
-   if(reader->image) {
-      DestroyImage(reader->image);
-      reader->image = NULL;
+   int err;
+
+#define RETURN_IF_FAILED(e) if(e != DMTX_SUCCESS) { return DMTX_FAILURE; }
+
+   err = dmtxDecodeSetProp(dec, DmtxPropScanGap, opt->scanGap);
+   RETURN_IF_FAILED(err)
+
+   if(opt->edgeMin != -1) {
+      err = dmtxDecodeSetProp(dec, DmtxPropEdgeMin, opt->edgeMin);
+      RETURN_IF_FAILED(err)
    }
 
-   DestroyImageInfo(reader->info);
-   DestroyExceptionInfo(&reader->exception);
+   if(opt->edgeMax != -1) {
+      err = dmtxDecodeSetProp(dec, DmtxPropEdgeMax, opt->edgeMax);
+      RETURN_IF_FAILED(err)
+   }
+
+   if(opt->squareDevn != -1) {
+      err = dmtxDecodeSetProp(dec, DmtxPropSquareDevn, opt->squareDevn);
+      RETURN_IF_FAILED(err)
+   }
+
+   err = dmtxDecodeSetProp(dec, DmtxPropSymbolSize, opt->sizeIdxExpected);
+   RETURN_IF_FAILED(err)
+
+   err = dmtxDecodeSetProp(dec, DmtxPropEdgeThresh, opt->edgeThresh);
+   RETURN_IF_FAILED(err)
+
+   if(opt->xMin) {
+      err = dmtxDecodeSetProp(dec, DmtxPropXmin, ScaleNumberString(opt->xMin, img->width));
+      RETURN_IF_FAILED(err)
+   }
+
+   if(opt->xMax) {
+      err = dmtxDecodeSetProp(dec, DmtxPropXmax, ScaleNumberString(opt->xMax, img->width));
+      RETURN_IF_FAILED(err)
+   }
+
+   if(opt->yMin) {
+      err = dmtxDecodeSetProp(dec, DmtxPropYmin, ScaleNumberString(opt->yMin, img->height));
+      RETURN_IF_FAILED(err)
+   }
+
+   if(opt->yMax) {
+      err = dmtxDecodeSetProp(dec, DmtxPropYmax, ScaleNumberString(opt->yMax, img->height));
+      RETURN_IF_FAILED(err)
+   }
+
+   err = dmtxDecodeSetProp(dec, DmtxPropShrinkMin, opt->shrinkMin);
+   RETURN_IF_FAILED(err)
+
+   err = dmtxDecodeSetProp(dec, DmtxPropShrinkMax, opt->shrinkMax);
+   RETURN_IF_FAILED(err)
+
+#undef RETURN_IF_FAILED
+
+   return DMTX_SUCCESS;
 }
 
 /**
@@ -768,7 +724,7 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
 
-         offset = dmtxImageGetOffset(dec->image, col, row);
+         offset = dmtxImageGetPixelOffset(dec->image, col, row);
          if(offset == DMTX_BAD_OFFSET) {
             rgb[0] = 0;
             rgb[1] = 0;
@@ -794,4 +750,65 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
    }
 
    fclose(fp);
+}
+
+/**
+ * @brief  List supported input image formats on stdout
+ * @return void
+ */
+static void
+ListImageFormats(void)
+{
+   int i;
+   MagickInfo **formats;
+   ExceptionInfo exception;
+
+   GetExceptionInfo(&exception);
+   formats = GetMagickInfoArray(&exception);
+   CatchException(&exception);
+
+   if(formats) {
+      fprintf(stdout, "   Format  Description\n");
+      fprintf(stdout, "---------  ------------------------------------------------------\n");
+      for(i=0; formats[i] != 0; i++) {
+         if(formats[i]->stealth || !formats[i]->decoder)
+            continue;
+
+         fprintf(stdout, "%9s", formats[i]->name ? formats[i]->name : "");
+         if(formats[i]->description != (char *)NULL)
+            fprintf(stdout, "  %s\n",formats[i]->description);
+      }
+      free(formats);
+   }
+
+   DestroyExceptionInfo(&exception);
+}
+
+/**
+ *
+ *
+ */
+static int
+ScaleNumberString(char *s, int extent)
+{
+   int err;
+   int numValue;
+   int scaledValue;
+   char *terminate;
+
+   assert(s != NULL);
+
+   err = StringToInt(&numValue, s, &terminate);
+   if(err != DMTX_SUCCESS)
+      FatalError(EX_USAGE, _("Integer value required"));
+
+   scaledValue = (*terminate == '%') ? (int)(0.01 * numValue * extent + 0.5) : numValue;
+
+   if(scaledValue < 0)
+      scaledValue = 0;
+
+   if(scaledValue >= extent)
+      scaledValue = extent - 1;
+
+   return scaledValue;
 }

@@ -166,6 +166,8 @@ typedef enum {
    DmtxPropWidth,
    DmtxPropHeight,
    DmtxPropArea,
+   DmtxPropBitsPerPixel,
+   DmtxPropBytesPerPixel,
    DmtxPropXmin,
    DmtxPropXmax,
    DmtxPropYmin,
@@ -219,15 +221,18 @@ typedef enum {
 } DmtxSymbolSize;
 
 typedef enum {
-   DmtxPack1bppK,
-   DmtxPack8bppK,
-   DmtxPack16bppRGB,
-   DmtxPack24bppRGB,
-   DmtxPack24bppYCbCr,
-   DmtxPack32bppCMYK,
-   DmtxPack32bppRGBA,
+   DmtxPackRGB,
+   DmtxPackYCbCr,
+   DmtxPackCMYK,
+   DmtxPackRGBX,
    DmtxPackCustom
 } DmtxPackingOrder;
+
+typedef enum {
+  DmtxFlipNone = 0x00,
+  DmtxFlipX    = 0x01,
+  DmtxFlipY    = 0x02
+} DmtxFlip;
 
 typedef double DmtxMatrix3[3][3];
 typedef unsigned char DmtxRgb[3];
@@ -298,6 +303,10 @@ typedef struct DmtxGradient_struct {
 typedef struct DmtxImage_struct {
    int             width;  /* unscaled */
    int             height; /* unscaled */
+   int             bpp;
+   int             pack;
+   int             flip;
+   char            mallocByDmtx;
    int             xMin;   /* unscaled */
    int             xMax;   /* unscaled */
    int             yMin;   /* unscaled */
@@ -309,14 +318,13 @@ typedef struct DmtxImage_struct {
    int             xMaxScaled;
    int             yMinScaled;
    int             yMaxScaled;
-   int             pageCount;
-   int             flip;
+/* int             pageCount; */
    int             channelCount;
    int             channelStart[4];
    int             bitsPerChannel[4];
    unsigned char   *cache;
-   DmtxRgb         *pxl;
-   unsigned char   *pxlnew;
+/* DmtxRgb         *pxl; */
+   unsigned char   *pxl;
 } DmtxImage;
 
 /**
@@ -544,8 +552,8 @@ extern void dmtxDecodeStructDeInit(DmtxDecode *dec);
 extern int dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix);
-extern DmtxMessage *dmtxMessageMalloc(int sizeIdx, int symbolFormat);
-extern void dmtxMessageFree(DmtxMessage **mesg);
+extern DmtxMessage *dmtxMessageCreate(int sizeIdx, int symbolFormat);
+extern void dmtxMessageDestroy(DmtxMessage **mesg);
 
 /* dmtxregion.c */
 extern DmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *decode, DmtxTime *timeout);
@@ -555,13 +563,12 @@ extern int dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2
 extern int dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);
 
 /* dmtximage.c */
-extern DmtxImage *dmtxImageMalloc(int width, int height);
-extern DmtxImage dmtxImageSet(unsigned char *pxlBuf, int width, int height, int flip, int packing);
+extern DmtxImage *dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int packing, int flip);
+extern int dmtxImageDestroy(DmtxImage **img);
 extern int dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel);
-extern int dmtxImageFree(DmtxImage **img);
 extern int dmtxImageSetProp(DmtxImage *img, int prop, int value);
 extern int dmtxImageGetProp(DmtxImage *img, int prop);
-extern int dmtxImageGetOffset(DmtxImage *img, int x, int y);
+extern int dmtxImageGetPixelOffset(DmtxImage *img, int x, int y);
 extern int dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
 extern int dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
 extern int dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane);

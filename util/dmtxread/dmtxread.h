@@ -26,6 +26,8 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTXREAD_H__
 #define __DMTXREAD_H__
 
+#include <magick/api.h>
+
 #if ENABLE_NLS
 # include <libintl.h>
 # define _(String) gettext(String)
@@ -60,22 +62,54 @@ typedef struct {
    int verbose;         /* -v, --verbose */
 } UserOptions;
 
-typedef struct _ImageReader {
-   Image *        image;
-   ImageInfo *    info;
-   ExceptionInfo  exception;
-} ImageReader;
-
+/* Functions */
 static void SetOptionDefaults(UserOptions *opt);
 static int HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[]);
 static void ShowUsage(int status);
-static int ScaleNumberString(char *s, int extent);
-static void ListImageFormats(void);
-static int OpenImage(ImageReader *reader, char *imagePath, char *resolution);
-static DmtxImage *ReadImagePage(ImageReader *reader, int index);
-static void CloseImage(ImageReader *reader);
+static Image *OpenImageList(ImageInfo **gmInfo, char *imagePath, char *resolution);
+static void CleanupMagick(Image **gmImage, ImageInfo **gmInfo);
+static void WritePixelsToBuffer(unsigned char *pxl, Image *gmPage);
+static int SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt);
 static int PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
-                              DmtxRegion *region, DmtxMessage *message, int pageIndex);
+      DmtxRegion *region, DmtxMessage *message, int pageIndex);
 static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);
+static void ListImageFormats(void);
+static int ScaleNumberString(char *s, int extent);
+
+typedef Image                     GmImage;
+typedef ImageInfo                 GmImageInfo;
+typedef ExceptionInfo             GmExceptionInfo;
+
+#define gmCatchException          CatchException
+#define gmCloneImageInfo          CloneImageInfo
+#define gmDestroyExceptionInfo    DestroyExceptionInfo
+#define gmDestroyImage            DestroyImage
+#define gmDestroyImageInfo        DestroyImageInfo
+#define gmDestroyMagick           DestroyMagick
+#define gmDispatchImage           DispatchImage
+#define gmGetExceptionInfo        GetExceptionInfo
+#define gmGetImageFromList        GetImageFromList
+#define gmGetImageListLength      GetImageListLength
+#define gmGetMagickInfoArray      GetMagickInfoArray
+#define gmInitializeMagick        InitializeMagick
+#define gmReadImage               ReadImage
+/*
+#define Image                     gmPrefixMissing
+#define ImageInfo                 gmPrefixMissing
+#define ExceptionInfo             gmPrefixMissing
+#define CatchException            gmPrefixMissing
+#define CloneImageInfo            gmPrefixMissing
+#define DestroyExceptionInfo      gmPrefixMissing
+#define DestroyImage              gmPrefixMissing
+#define DestroyImageInfo          gmPrefixMissing
+#define DestroyMagick             gmPrefixMissing
+#define DispatchImage             gmPrefixMissing
+#define GetExceptionInfo          gmPrefixMissing
+#define GetImageFromList          gmPrefixMissing
+#define GetImageListLength        gmPrefixMissing
+#define GetMagickInfoArray        gmPrefixMissing
+#define InitializeMagick          gmPrefixMissing
+#define ReadImage                 gmPrefixMissing
+*/
 
 #endif

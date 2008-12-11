@@ -108,8 +108,8 @@ dmtxEncodeStructDeInit(DmtxEncode *enc)
    if(enc == NULL)
       return;
 
-   dmtxImageFree(&(enc->image));
-   dmtxMessageFree(&(enc->message));
+   dmtxImageDestroy(&(enc->image));
+   dmtxMessageDestroy(&(enc->message));
 
    memset(enc, 0x00, sizeof(DmtxEncode));
 }
@@ -127,6 +127,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
 {
    int dataWordCount;
    int sizeIdx;
+   int width, height;
    unsigned char buf[4096];
 
    /* Encode input string into data codewords */
@@ -149,7 +150,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    enc->region.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
 
    /* Allocate memory for message and array */
-   enc->message = dmtxMessageMalloc(sizeIdx, DMTX_FORMAT_MATRIX);
+   enc->message = dmtxMessageCreate(sizeIdx, DMTX_FORMAT_MATRIX);
    memcpy(enc->message->code, buf, dataWordCount);
 
 /* fprintf(stdout, "\n\nsize:    %dx%d w/ %d error codewords\n", rows, cols, errorWordLength(enc->region.sizeIdx)); */
@@ -160,11 +161,11 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    /* Module placement in region */
    ModulePlacementEcc200(enc->message->array, enc->message->code, enc->region.sizeIdx, DMTX_MODULE_ON_RGB);
 
-   /* Allocate memory for the image to be generated */
-   enc->image = dmtxImageMalloc(
-         2 * enc->marginSize + (enc->region.symbolCols * enc->moduleSize),
-         2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize));
+   width = 2 * enc->marginSize + (enc->region.symbolCols * enc->moduleSize);
+   height = 2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize);
 
+   /* Allocate memory for the image to be generated */
+   enc->image = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB, DmtxFlipNone);
    if(enc->image == NULL) {
       perror("image malloc error");
       return DMTX_FAILURE;
@@ -453,7 +454,7 @@ PrintPattern(DmtxEncode *enc)
       IMPORTANT: DmtxImage is stored with its origin at bottom-right
       (unlike common image file formats) to preserve "right-handed" 2D space */
 
-   memset(enc->image->pxl, 0xff, dmtxImageGetProp(enc->image, DmtxPropArea) * sizeof(DmtxRgb));
+   memset(enc->image->pxl, 0xff, dmtxImageGetProp(enc->image, DmtxPropArea) * (enc->image->bpp/8));
 
    for(symbolRow = 0; symbolRow < enc->region.symbolRows; symbolRow++) {
       for(symbolCol = 0; symbolCol < enc->region.symbolCols; symbolCol++) {
@@ -466,7 +467,8 @@ PrintPattern(DmtxEncode *enc)
          pixelCol = (int)(vOut.X);
          pixelRow = (int)(vOut.Y);
 
-         moduleStatus = dmtxSymbolModuleStatus(enc->message, enc->region.sizeIdx, symbolRow, symbolCol);
+         moduleStatus = dmtxSymbolModuleStatus(enc->message,
+               enc->region.sizeIdx, symbolRow, symbolCol);
 
          for(i = pixelRow; i < pixelRow + enc->moduleSize; i++) {
             for(j = pixelCol; j < pixelCol + enc->moduleSize; j++) {
