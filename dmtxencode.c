@@ -69,16 +69,18 @@ Contact: mike@dragonflylogic.com
  * @brief  Initialize encode struct with default values
  * @return Initialized DmtxEncode struct
  */
-extern DmtxEncode
-dmtxEncodeStructInit(void)
+extern DmtxEncode *
+dmtxEncodeStructCreate(void)
 {
-   DmtxEncode enc;
+   DmtxEncode *enc;
 
-   memset(&enc, 0x00, sizeof(DmtxEncode));
+   enc = (DmtxEncode *)calloc(1, sizeof(DmtxEncode));
+   if(enc == NULL)
+      return NULL;
 
-   enc.scheme = DmtxSchemeEncodeAscii;
-   enc.moduleSize = 5;
-   enc.marginSize = 10;
+   enc->scheme = DmtxSchemeEncodeAscii;
+   enc->moduleSize = 5;
+   enc->marginSize = 10;
 
    /* Initialize background color to white */
 /* enc.region.gradient.ray.p.R = 255.0;
@@ -92,7 +94,7 @@ dmtxEncodeStructInit(void)
 /* dmtxColor3Scale(&(enc.region.gradient.ray.c),
          &(enc.region.gradient.ray.p), -1.0/enc.region.gradient.tMax); */
 
-   dmtxMatrix3Identity(enc.xfrm);
+   dmtxMatrix3Identity(enc->xfrm);
 
    return enc;
 }
@@ -103,15 +105,18 @@ dmtxEncodeStructInit(void)
  * @return void
  */
 extern void
-dmtxEncodeStructDeInit(DmtxEncode *enc)
+dmtxEncodeStructDestroy(DmtxEncode **enc)
 {
    if(enc == NULL)
       return;
 
-   dmtxImageDestroy(&(enc->image));
-   dmtxMessageDestroy(&(enc->message));
+   dmtxImageDestroy(&((*enc)->image));
+   dmtxMessageDestroy(&((*enc)->message));
 
-   memset(enc, 0x00, sizeof(DmtxEncode));
+   if(*enc != NULL)
+      free(*enc);
+
+   *enc = NULL;
 }
 
 /**

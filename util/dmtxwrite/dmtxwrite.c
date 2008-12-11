@@ -55,17 +55,17 @@ main(int argc, char *argv[])
 {
    int err;
    UserOptions opt;
-   DmtxEncode enc;
+   DmtxEncode *enc;
    unsigned char codeBuffer[DMTXWRITE_BUFFER_SIZE];
    int codeBufferSize = sizeof codeBuffer;
 
    InitUserOptions(&opt);
 
    /* Create and initialize libdmtx structures */
-   enc = dmtxEncodeStructInit();
+   enc = dmtxEncodeStructCreate();
 
    /* Process user options */
-   err = HandleArgs(&opt, &argc, &argv, &enc);
+   err = HandleArgs(&opt, &argc, &argv, enc);
    if(err != DMTX_SUCCESS)
       ShowUsage(err);
 
@@ -74,9 +74,9 @@ main(int argc, char *argv[])
 
    /* Create barcode image */
    if(opt.mosaic)
-      err = dmtxEncodeDataMosaic(&enc, codeBufferSize, codeBuffer, opt.sizeIdx);
+      err = dmtxEncodeDataMosaic(enc, codeBufferSize, codeBuffer, opt.sizeIdx);
    else
-      err = dmtxEncodeDataMatrix(&enc, codeBufferSize, codeBuffer, opt.sizeIdx);
+      err = dmtxEncodeDataMatrix(enc, codeBufferSize, codeBuffer, opt.sizeIdx);
 
    if(err == DMTX_FAILURE)
       FatalError(1, _("Unable to encode message (possibly too large for requested size)"));
@@ -84,21 +84,21 @@ main(int argc, char *argv[])
    /* Write barcode image to requested format */
    switch(opt.format) {
       case 'p':
-         WriteImagePng(&opt, &enc);
+         WriteImagePng(&opt, enc);
          break;
       case 'm':
-         WriteImagePnm(&opt, &enc);
+         WriteImagePnm(&opt, enc);
          break;
       case 'a':
-         WriteAsciiBarcode(&enc);
+         WriteAsciiBarcode(enc);
          break;
       case 'c':
-         WriteCodewords(&enc);
+         WriteCodewords(enc);
          break;
    }
 
    /* Clean up */
-   dmtxEncodeStructDeInit(&enc);
+   dmtxEncodeStructDestroy(&enc);
 
    exit(0);
 }

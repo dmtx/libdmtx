@@ -541,14 +541,14 @@ extern DmtxTime dmtxTimeAdd(DmtxTime t, long msec);
 extern int dmtxTimeExceeded(DmtxTime timeout);
 
 /* dmtxencode.c */
-extern DmtxEncode dmtxEncodeStructInit(void);
-extern void dmtxEncodeStructDeInit(DmtxEncode *enc);
+extern DmtxEncode *dmtxEncodeStructCreate(void);
+extern void dmtxEncodeStructDestroy(DmtxEncode **enc);
 extern int dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest);
 extern int dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest);
 
 /* dmtxdecode.c */
-extern DmtxDecode dmtxDecodeStructInit(DmtxImage *img);
-extern void dmtxDecodeStructDeInit(DmtxDecode *dec);
+extern DmtxDecode *dmtxDecodeStructCreate(DmtxImage *img);
+extern void dmtxDecodeStructDestroy(DmtxDecode **dec);
 extern int dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix);

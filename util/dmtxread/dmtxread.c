@@ -67,7 +67,7 @@ main(int argc, char *argv[])
    UserOptions opt;
    DmtxTime timeout;
    DmtxImage *img;
-   DmtxDecode dec;
+   DmtxDecode *dec;
    DmtxRegion reg;
    DmtxMessage *msg;
    GmImage *gmImage, *gmPage;
@@ -123,9 +123,9 @@ main(int argc, char *argv[])
          }
 
          /* Initialize scan */
-         dec = dmtxDecodeStructInit(img);
+         dec = dmtxDecodeStructCreate(img);
 
-         err = SetDecodeOptions(&dec, img, &opt);
+         err = SetDecodeOptions(dec, img, &opt);
          if(err != DMTX_SUCCESS) {
             CleanupMagick(&gmImage, &gmInfo);
             FatalError(80, "decode option error");
@@ -135,7 +135,7 @@ main(int argc, char *argv[])
          pageScanCount = 0;
          for(;;) {
             /* Find next barcode region within image, but do not decode yet */
-            reg = dmtxDecodeFindNextRegion(&dec, (opt.timeoutMS == -1) ?
+            reg = dmtxDecodeFindNextRegion(dec, (opt.timeoutMS == -1) ?
                   NULL : &timeout);
 
             /* Finished file or ran out of time before finding another region */
@@ -161,9 +161,9 @@ main(int argc, char *argv[])
          imageScanCount += pageScanCount;
 
          if(opt.diagnose)
-            WriteDiagnosticImage(&dec, &reg, "debug.pnm");
+            WriteDiagnosticImage(dec, &reg, "debug.pnm");
 
-         dmtxDecodeStructDeInit(&dec);
+         dmtxDecodeStructDestroy(&dec);
          dmtxImageDestroy(&img);
          free(pxl);
       }
@@ -532,7 +532,7 @@ CleanupMagick(GmImage **gmImage, GmImageInfo **gmInfo)
  * @return pointer to allocated DmtxImage or NULL
  */
 static void
-WritePixelsToBuffer(unsigned char *pxl, Image *gmPage)
+WritePixelsToBuffer(unsigned char *pxl, GmImage *gmPage)
 {
    GmExceptionInfo exception;
 
@@ -761,11 +761,11 @@ ListImageFormats(void)
 {
    int i;
    MagickInfo **formats;
-   ExceptionInfo exception;
+   GmExceptionInfo exception;
 
-   GetExceptionInfo(&exception);
-   formats = GetMagickInfoArray(&exception);
-   CatchException(&exception);
+   gmGetExceptionInfo(&exception);
+   formats = gmGetMagickInfoArray(&exception);
+   gmCatchException(&exception);
 
    if(formats) {
       fprintf(stdout, "   Format  Description\n");
@@ -781,7 +781,7 @@ ListImageFormats(void)
       free(formats);
    }
 
-   DestroyExceptionInfo(&exception);
+   gmDestroyExceptionInfo(&exception);
 }
 
 /**

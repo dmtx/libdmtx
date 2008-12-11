@@ -32,20 +32,22 @@ Contact: mike@dragonflylogic.com
  * @param  img
  * @return Initialized DmtxDecode struct
  */
-extern DmtxDecode
-dmtxDecodeStructInit(DmtxImage *img)
+extern DmtxDecode *
+dmtxDecodeStructCreate(DmtxImage *img)
 {
-   DmtxDecode dec;
+   DmtxDecode *dec;
    int cacheSize;
 
-   memset(&dec, 0x00, sizeof(DmtxDecode));
+   dec = (DmtxDecode *)calloc(1, sizeof(DmtxDecode));
+   if(dec == NULL)
+      return NULL;
 
-   dec.image = img;
+   dec->image = img;
 
    cacheSize = dmtxImageGetProp(img, DmtxPropWidth) *
          dmtxImageGetProp(img, DmtxPropHeight) * sizeof(unsigned char);
 
-   memset(dec.image->cache, 0x00, cacheSize);
+   memset(dec->image->cache, 0x00, cacheSize);
 
    /* These values should probably be stored in the decode struct */
    img->scale = 1;
@@ -54,16 +56,16 @@ dmtxDecodeStructInit(DmtxImage *img)
    img->yMin = img->yMinScaled = 0;
    img->yMax = img->yMaxScaled = img->height - 1;
 
-   dec.edgeMin = -1;
-   dec.edgeMax = -1;
-   dec.scanGap = 1;
-   dec.squareDevn = cos(50 * (M_PI/180));
-   dec.sizeIdxExpected = DmtxSymbolShapeAuto;
-   dec.edgeThresh = 10;
-   dec.shrinkMin = 1;
-   dec.shrinkMax = 1;
+   dec->edgeMin = -1;
+   dec->edgeMax = -1;
+   dec->scanGap = 1;
+   dec->squareDevn = cos(50 * (M_PI/180));
+   dec->sizeIdxExpected = DmtxSymbolShapeAuto;
+   dec->edgeThresh = 10;
+   dec->shrinkMin = 1;
+   dec->shrinkMax = 1;
 
-   dec.grid = InitScanGrid(img, dec.scanGap);
+   dec->grid = InitScanGrid(img, dec->scanGap);
 
    return dec;
 }
@@ -74,9 +76,15 @@ dmtxDecodeStructInit(DmtxImage *img)
  * @return void
  */
 extern void
-dmtxDecodeStructDeInit(DmtxDecode *dec)
+dmtxDecodeStructDestroy(DmtxDecode **dec)
 {
-   memset(dec, 0x00, sizeof(DmtxDecode));
+   if(dec == NULL)
+      return;
+
+   if(*dec != NULL)
+      free(*dec);
+
+   *dec = NULL;
 }
 
 /**

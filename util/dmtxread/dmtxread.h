@@ -80,23 +80,11 @@ typedef Image                     GmImage;
 typedef ImageInfo                 GmImageInfo;
 typedef ExceptionInfo             GmExceptionInfo;
 
-#define gmCatchException          CatchException
-#define gmCloneImageInfo          CloneImageInfo
-#define gmDestroyExceptionInfo    DestroyExceptionInfo
-#define gmDestroyImage            DestroyImage
-#define gmDestroyImageInfo        DestroyImageInfo
-#define gmDestroyMagick           DestroyMagick
-#define gmDispatchImage           DispatchImage
-#define gmGetExceptionInfo        GetExceptionInfo
-#define gmGetImageFromList        GetImageFromList
-#define gmGetImageListLength      GetImageListLength
-#define gmGetMagickInfoArray      GetMagickInfoArray
-#define gmInitializeMagick        InitializeMagick
-#define gmReadImage               ReadImage
-/*
-#define Image                     gmPrefixMissing
-#define ImageInfo                 gmPrefixMissing
-#define ExceptionInfo             gmPrefixMissing
+#define Image                     CALL_WITH_GM_PREFIX
+#define ImageInfo                 CALL_WITH_GM_PREFIX
+#define ExceptionInfo             CALL_WITH_GM_PREFIX
+
+/* XXX find a way to make these illegal
 #define CatchException            gmPrefixMissing
 #define CloneImageInfo            gmPrefixMissing
 #define DestroyExceptionInfo      gmPrefixMissing
@@ -111,5 +99,19 @@ typedef ExceptionInfo             GmExceptionInfo;
 #define InitializeMagick          gmPrefixMissing
 #define ReadImage                 gmPrefixMissing
 */
+
+#define gmCatchException          CatchException
+#define gmCloneImageInfo          CloneImageInfo
+#define gmDestroyExceptionInfo    DestroyExceptionInfo
+#define gmDestroyImage            DestroyImage
+#define gmDestroyImageInfo        DestroyImageInfo
+#define gmDestroyMagick           DestroyMagick
+#define gmDispatchImage           DispatchImage
+#define gmGetExceptionInfo        GetExceptionInfo
+#define gmGetImageFromList        GetImageFromList
+#define gmGetImageListLength      GetImageListLength
+#define gmGetMagickInfoArray      GetMagickInfoArray
+#define gmInitializeMagick        InitializeMagick
+#define gmReadImage               ReadImage
 
 #endif

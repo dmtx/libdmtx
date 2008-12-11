@@ -33,9 +33,9 @@ main(int argc, char *argv[])
    size_t          width, height, bytesPerPixel;
    unsigned char   str[] = "30Q324343430794<OQQ";
    unsigned char  *pxl;
-   DmtxEncode      enc;
+   DmtxEncode     *enc;
    DmtxImage      *img;
-   DmtxDecode      dec;
+   DmtxDecode     *dec;
    DmtxRegion      reg;
    DmtxMessage    *msg;
 
@@ -43,29 +43,29 @@ main(int argc, char *argv[])
 
    /* 1) ENCODE a new Data Matrix barcode image (in memory only) */
 
-   enc = dmtxEncodeStructInit();
-   dmtxEncodeDataMatrix(&enc, strlen(str), str, DmtxSymbolSquareAuto);
+   enc = dmtxEncodeStructCreate();
+   dmtxEncodeDataMatrix(enc, strlen(str), str, DmtxSymbolSquareAuto);
 
    /* 2) COPY the new image data before releasing encoding memory */
 
-   width = dmtxImageGetProp(enc.image, DmtxPropWidth);
-   height = dmtxImageGetProp(enc.image, DmtxPropHeight);
-   bytesPerPixel = dmtxImageGetProp(enc.image, DmtxPropBytesPerPixel);
+   width = dmtxImageGetProp(enc->image, DmtxPropWidth);
+   height = dmtxImageGetProp(enc->image, DmtxPropHeight);
+   bytesPerPixel = dmtxImageGetProp(enc->image, DmtxPropBytesPerPixel);
 
    pxl = (unsigned char *)malloc(width * height * bytesPerPixel);
    assert(pxl != NULL);
-   memcpy(pxl, enc.image->pxl, width * height * bytesPerPixel);
+   memcpy(pxl, enc->image->pxl, width * height * bytesPerPixel);
 
-   dmtxEncodeStructDeInit(&enc);
+   dmtxEncodeStructDestroy(&enc);
 
    /* 3) DECODE the Data Matrix barcode from the copied image */
 
    img = dmtxImageCreate(pxl, width, height, 24, DmtxPackRGB, DmtxFlipNone);
    assert(img != NULL);
 
-   dec = dmtxDecodeStructInit(img);
+   dec = dmtxDecodeStructCreate(img);
 
-   reg = dmtxDecodeFindNextRegion(&dec, NULL);
+   reg = dmtxDecodeFindNextRegion(dec, NULL);
    if(reg.found != DMTX_REGION_FOUND)
       exit(0);
 
@@ -77,7 +77,7 @@ main(int argc, char *argv[])
       dmtxMessageDestroy(&msg);
    }
 
-   dmtxDecodeStructDeInit(&dec);
+   dmtxDecodeStructDestroy(&dec);
    dmtxImageDestroy(&img);
    free(pxl);
 
