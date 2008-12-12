@@ -63,6 +63,8 @@ main(int argc, char *argv[])
 
    /* Create and initialize libdmtx structures */
    enc = dmtxEncodeStructCreate();
+   if(enc == NULL)
+      FatalError(1, "create error");
 
    /* Process user options */
    err = HandleArgs(&opt, &argc, &argv, enc);

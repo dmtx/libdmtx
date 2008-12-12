@@ -40,10 +40,16 @@ GLfloat angle = 0.0;
 GLuint barcodeTexture;
 GLint barcodeList;
 
+/*
 DmtxImage *textureImage = NULL;
 DmtxImage *captured = NULL;
 DmtxImage *passOneImage = NULL;
 DmtxImage *passTwoImage = NULL;
+*/
+unsigned char *textureImage = NULL;
+unsigned char *captured = NULL;
+unsigned char *passOneImage = NULL;
+unsigned char *passTwoImage = NULL;
 
 char *gFilename[] = { "test_image18.png"
                     , "test_image16.png"
@@ -83,27 +89,30 @@ int main(int argc, char *argv[])
    DmtxRegion      reg;
    DmtxMessage     *message;
    DmtxTime        timeout;
-   DmtxImage       *imgTmp;
+/* DmtxImage       *imgTmp; */
 
-   // Initialize display window
+   /* Initialize display window */
    screen = initDisplay();
 
-   // Load input image to DmtxImage
+   /* Load input image to DmtxImage */
    loadTextureImage(&textureImage);
 
-   captured = dmtxImageMalloc(320, 320);
+/* captured = dmtxImageMalloc(320, 320); */
+   captured = (unsigned char *)malloc(320 * 320 * 3);
    if(captured == NULL)
       exit(4);
 
-   imgTmp = dmtxImageMalloc(320, 320);
+/* imgTmp = dmtxImageMalloc(320, 320);
    if(captured == NULL)
-      exit(4);
+      exit(4); */
 
-   passOneImage = dmtxImageMalloc(320, 320);
+/* passOneImage = dmtxImageMalloc(320, 320); */
+   passOneImage = (unsigned char *)malloc(320 * 320 * 3);
    if(passOneImage == NULL)
       exit(5);
 
-   passTwoImage = dmtxImageMalloc(320, 320);
+/* passTwoImage = dmtxImageMalloc(320, 320); */
+   passTwoImage = (unsigned char *)malloc(320 * 320 * 3);
    if(passTwoImage == NULL)
       exit(6);
 
@@ -164,11 +173,10 @@ int main(int argc, char *argv[])
       SDL_GL_SwapBuffers();
    }
 
-   dmtxImageFree(&passTwoImage);
-   dmtxImageFree(&passOneImage);
-   dmtxImageFree(&imgTmp);
-   dmtxImageFree(&captured);
-   dmtxImageFree(&textureImage);
+   free(passTwoImage);
+   free(passOneImage);
+   free(captured);
+   free(textureImage);
 
    dmtxDecodeStructDestroy(&dec);
 

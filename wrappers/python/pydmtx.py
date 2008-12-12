@@ -88,15 +88,6 @@ class DataMatrix (object):
 		del self._draw
 		self._draw = None
 
-	# decoding methods
-	def decode( self, path ):
-		self._image = Image.open(path)
-		self.width, self.height = self._image.size
-		return _pydmtx.decode( self.width, self.height, self.gap_size,
-			picker=self._pick )
-
-	def _pick( self, x, y, context ):
-		return self._image.getpixel( (x,self.height-y-1) )
-
-	def decode2( self, width, height, data, **kwargs):
-		return _pydmtx.decode2( width, height, self.gap_size, data, **kwargs)
+	# decoding method
+	def decode( self, width, height, data, **kwargs):
+		return _pydmtx.decode( width, height, self.gap_size, data, **kwargs)

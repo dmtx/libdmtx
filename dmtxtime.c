@@ -43,7 +43,7 @@ Contact: mike@dragonflylogic.com
 extern DmtxTime
 dmtxTimeNow(void)
 {
-   int err;
+   DmtxPassFail err;
    struct timeval tv;
    DmtxTime tNow;
 

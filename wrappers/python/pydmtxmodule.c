@@ -37,7 +37,6 @@ typedef int Py_ssize_t;
 
 static PyObject *dmtx_encode(PyObject *self, PyObject *args, PyObject *kwargs);
 static PyObject *dmtx_decode(PyObject *self, PyObject *args, PyObject *kwargs);
-static PyObject *dmtx_decode2(PyObject *self, PyObject *args, PyObject *kwargs);
 
 static PyMethodDef dmtxMethods[] = {
    { "encode",
@@ -46,10 +45,6 @@ static PyMethodDef dmtxMethods[] = {
      "Encodes data into a matrix and calls back to plot." },
    { "decode",
      (PyCFunction)dmtx_decode,
-     METH_VARARGS | METH_KEYWORDS,
-     "Decodes data from a matrix and returns data." },
-   { "decode2",
-     (PyCFunction)dmtx_decode2,
      METH_VARARGS | METH_KEYWORDS,
      "Decodes data from a bitmap stored in a buffer and returns the encoded data." },
    { NULL,
@@ -71,7 +66,7 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
    PyObject *finish_cb = NULL;
    PyObject *context = Py_None;
    PyObject *args;
-   DmtxEncode enc;
+   DmtxEncode *enc;
    int row, col;
    DmtxRgb rgb;
    static char *kwlist[] = { "data", "data_size", "module_size", "margin_size",
@@ -86,27 +81,30 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
    Py_INCREF(context);
 
    /* Plotter is required, and must be callable */
-   if((plotter == NULL) || !PyCallable_Check(plotter)) {
+   if(plotter == NULL || !PyCallable_Check(plotter)) {
       PyErr_SetString(PyExc_TypeError, "plotter must be callable");
       return NULL;
    }
 
-   enc = dmtxEncodeStructInit();
-   enc.moduleSize = module_size;
-   enc.marginSize = margin_size;
-   enc.scheme = scheme;
+   enc = dmtxEncodeStructCreate();
+   if(enc == NULL)
+      return NULL;
 
-   dmtxEncodeDataMatrix(&enc, data_size, (unsigned char *)data, shape);
+   enc->moduleSize = module_size;
+   enc->marginSize = margin_size;
+   enc->scheme = scheme;
+
+   dmtxEncodeDataMatrix(enc, data_size, (unsigned char *)data, shape);
 
    if((start_cb != NULL) && PyCallable_Check(start_cb)) {
-      args = Py_BuildValue("(iiO)", enc.image->width, enc.image->height, context);
+      args = Py_BuildValue("(iiO)", enc->image->width, enc->image->height, context);
       (void)PyEval_CallObject(start_cb, args);
       Py_DECREF(args);
    }
 
-   for(row = 0; row < enc.image->height; row++) {
-      for(col = 0; col < enc.image->width; col++) {
-         dmtxImageGetRgb(enc.image, col, row, rgb);
+   for(row = 0; row < enc->image->height; row++) {
+      for(col = 0; col < enc->image->width; col++) {
+         dmtxImageGetRgb(enc->image, col, row, rgb);
          args = Py_BuildValue("(ii(iii)O)", col, row, rgb[0], rgb[1], rgb[2], context);
          (void)PyEval_CallObject(plotter, args);
          Py_DECREF(args);
@@ -119,7 +117,7 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
       Py_DECREF(args);
    }
 
-   dmtxEncodeStructDeInit(&enc);
+   dmtxEncodeStructDestroy(&enc);
    Py_DECREF(context);
 
    return Py_None;
@@ -130,123 +128,47 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    int width;
    int height;
    int gap_size;
-   PyObject *picker = NULL;
-   PyObject *context = Py_None;
-   PyObject *args;
-   PyObject *output = NULL;
-   DmtxImage *img;
-   DmtxDecode dec;
-   DmtxRegion reg;
-   DmtxMessage *msg;
-   PyObject *pilPixel;
-   DmtxRgb dmtxRgb;
-   int x, y;
-   static char *kwlist[] = { "width", "height", "gap_size", "picker", "context", NULL };
-
-   /* Individual pixel picker is probably a slow way to do this */
-   if(!PyArg_ParseTupleAndKeywords(arglist, kwargs, "iii|OO", kwlist,
-         &width, &height, &gap_size, &picker, &context))
-      return NULL;
-
-   Py_INCREF(context);
-
-   /* Picker is required, and must be callable */
-   if((picker == NULL) || !PyCallable_Check(picker)) {
-      PyErr_SetString(PyExc_TypeError, "picker must be callable");
-      return NULL;
-   }
-
-   img = dmtxImageMalloc(width, height);
-
-   /* Populate libdmtx image with PIL image data */
-   for(y = 0; y < img->height; y++) {
-      for(x = 0; x < img->width; x++) {
-         args = Py_BuildValue("(iiO)", x, y, context);
-         pilPixel = PyEval_CallObject(picker, args);
-         Py_DECREF(args);
-
-         if(pilPixel == NULL)
-            return NULL;
-
-         if(!PyArg_ParseTuple(pilPixel, "iii", &dmtxRgb[0], &dmtxRgb[1], &dmtxRgb[2]))
-            return NULL;
-
-         dmtxImageSetRgb(img, x, y, dmtxRgb);
-
-         Py_DECREF(pilPixel);
-      }
-   }
-
-   dec = dmtxDecodeStructInit(img);
-   dmtxDecodeSetProp(&dec, DmtxPropScanGap, gap_size);
-
-   for(;;) {
-      reg = dmtxDecodeFindNextRegion(&dec, NULL);
-
-      if(reg.found != DMTX_REGION_FOUND)
-         break;
-
-      msg = dmtxDecodeMatrixRegion(img, &reg, -1);
-      if(msg == NULL)
-         continue;
-
-      output = Py_BuildValue("s", msg->output);
-      Py_INCREF(output);
-
-      dmtxMessageFree(&msg);
-      break; /* XXX for now, break after first barcode is found in image */
-   }
-
-   dmtxImageFree(&img);
-   Py_DECREF(context);
-
-   return output;
-}
-
-static PyObject *dmtx_decode2(PyObject *self, PyObject *arglist, PyObject *kwargs)
-{
-   int width;  // Width of image
-   int height;  // Height of image
-   int gap_size;
 
    PyObject *dataBuffer = NULL;
    Py_ssize_t dataLen;
    PyObject *context = Py_None;
    PyObject *output = NULL;
    DmtxImage *img;
-   char *imageAsPtrArray;  // The libdmtx array for the image
-   DmtxDecode dec;
+   DmtxDecode *dec;
    DmtxRegion reg;
    DmtxMessage *msg;
-   const char *pixelData;  // The input image buffer
+   const char *pxl;  /* Input image buffer */
 
    static char *kwlist[] = { "width", "height", "gap_size", "data", "context", NULL };
 
-   // Get parameters from Python for libdmtx.
+   /* Get parameters from Python for libdmtx */
    if(!PyArg_ParseTupleAndKeywords(arglist, kwargs, "iii|OO", kwlist,
          &width, &height, &gap_size, &dataBuffer, &context))
       return NULL;
 
    Py_INCREF(context);
 
-   if((dataBuffer == NULL)) {
+   if(dataBuffer == NULL) {
       PyErr_SetString(PyExc_TypeError, "Interleaved bitmapped data in buffer missing");
       return NULL;
    }
 
-   img = dmtxImageMalloc(width, height);
-   imageAsPtrArray = (char*) &img->pxl[0][0];
+   PyObject_AsCharBuffer(dataBuffer, &pxl, &dataLen);
 
-   PyObject_AsCharBuffer(dataBuffer, &pixelData, &dataLen);
+   img = dmtxImageCreate((unsigned char *)pxl, width, height, 24, DmtxPackRGB, DmtxFlipNone);
+   if(img == NULL)
+      return NULL;
 
-   /* Populate libdmtx image with image data */
-   memcpy(img->pxl, pixelData, img->width * img->height * 3);
+   dec = dmtxDecodeStructCreate(img);
+   if(dec == NULL) {
+      dmtxImageDestroy(&img);
+      return NULL;
+   }
 
-   dec = dmtxDecodeStructInit(img);
-   dmtxDecodeSetProp(&dec, DmtxPropScanGap, gap_size);
+   dmtxDecodeSetProp(dec, DmtxPropScanGap, gap_size);
 
    for(;;) {
-      reg = dmtxDecodeFindNextRegion(&dec, NULL);
+      reg = dmtxDecodeFindNextRegion(dec, NULL);
 
       if(reg.found != DMTX_REGION_FOUND)
          break;
@@ -258,16 +180,16 @@ static PyObject *dmtx_decode2(PyObject *self, PyObject *arglist, PyObject *kwarg
       output = Py_BuildValue("s", msg->output);
       Py_INCREF(output);
 
-      dmtxMessageFree(&msg);
+      dmtxMessageDestroy(&msg);
       break; /* XXX for now, break after first barcode is found in image */
    }
 
-   dmtxImageFree(&img);
+   dmtxDecodeStructDestroy(&dec);
+   dmtxImageDestroy(&img);
    Py_DECREF(context);
 
    return output;
 }
-
 
 PyMODINIT_FUNC init_pydmtx(void)
 {

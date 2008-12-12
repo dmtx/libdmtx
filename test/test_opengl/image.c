@@ -35,18 +35,19 @@ Contact: mblaughton@users.sourceforge.net
  *
  *
  */
-void captureImage(DmtxImage *captured, DmtxImage *imgTmp)
+/*void captureImage(DmtxImage *captured, DmtxImage *imgTmp)*/
+void captureImage(unsigned char *captured)
 {
    int i, fromOffset, toOffset;
 
-   glReadPixels(2, 324, 320, 320, GL_RGB, GL_UNSIGNED_BYTE, imgTmp->pxl);
+   glReadPixels(2, 324, 320, 320, GL_RGB, GL_UNSIGNED_BYTE, captured);
 
-   for(i = 0; i < 320; i++) {
+/* for(i = 0; i < 320; i++) {
       fromOffset = i * captured->width;
       toOffset = (captured->height - i - 1) * captured->width;
       memcpy(captured->pxl + toOffset, imgTmp->pxl + fromOffset,
             320 * sizeof(DmtxRgb));
-   }
+   } */
 }
 
 /**

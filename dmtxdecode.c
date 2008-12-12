@@ -98,7 +98,7 @@ dmtxDecodeStructDestroy(DmtxDecode **dec)
 extern DmtxPassFail
 dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
 {
-   int err;
+   DmtxPassFail err;
 
    switch(prop) {
       case DmtxPropEdgeMin:

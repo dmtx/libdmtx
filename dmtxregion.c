@@ -212,12 +212,12 @@ MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc)
 static DmtxPassFail
 MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
 {
-   int err;
    int cross;
    int minArea;
    int scale;
    int symbolShape;
    int maxDiagonal;
+   DmtxPassFail err;
    DmtxBestLine line1x, line2x;
    DmtxBestLine line2n, line2p;
    DmtxFollow fTmp;
@@ -1219,13 +1219,13 @@ static int
 TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int streamDir)
 {
    unsigned char *beforeCache, *afterCache;
-   int err;
    int onEdge;
    int distSq, distSqMax;
    int travel, outward;
    int xDiff, yDiff;
    int steps;
    int stepDir, dirMap[] = { 0, 1, 2, 7, 8, 3, 6, 5, 4 };
+   DmtxPassFail err;
    DmtxPixelLoc beforeStep, afterStep;
    DmtxPointFlow flow, flowNext;
    DmtxPixelLoc loc0;

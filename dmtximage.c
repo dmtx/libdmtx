@@ -35,8 +35,8 @@ Contact: mike@dragonflylogic.com
 extern DmtxImage *
 dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack, int flip)
 {
-   int err;
    int bytesPerPixel;
+   DmtxPassFail err;
    DmtxImage *img;
 
    img = (DmtxImage *)calloc(1, sizeof(DmtxImage));

@@ -124,6 +124,10 @@ main(int argc, char *argv[])
 
          /* Initialize scan */
          dec = dmtxDecodeStructCreate(img);
+         if(dec == NULL) {
+            CleanupMagick(&gmImage, &gmInfo);
+            FatalError(80, "decode create error");
+         }
 
          err = SetDecodeOptions(dec, img, &opt);
          if(err != DmtxPass) {
