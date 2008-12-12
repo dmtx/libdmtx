@@ -50,12 +50,6 @@ extern "C" {
 
 #define DMTX_VERSION                   "0.6.1"
 
-#define DMTX_FAILURE                   0
-#define DMTX_SUCCESS                   1
-
-#define DMTX_FALSE                     0
-#define DMTX_TRUE                      1
-
 #define DMTX_BAD_OFFSET               -1
 
 #define DMTX_STATUS_NOT_SCANNED        0
@@ -92,6 +86,14 @@ extern "C" {
 
 #define DMTX_SYMBOL_SQUARE_COUNT      24
 #define DMTX_SYMBOL_RECT_COUNT         6
+
+#define DmtxPassFail unsigned int
+#define DmtxPass     1
+#define DmtxFail     0
+
+#define DmtxBoolean  unsigned int
+#define DmtxTrue     1
+#define DmtxFalse    0
 
 typedef enum {
    DmtxDirNone       = 0x00,
@@ -318,7 +320,6 @@ typedef struct DmtxImage_struct {
    int             xMaxScaled;
    int             yMinScaled;
    int             yMaxScaled;
-/* int             pageCount; */
    int             channelCount;
    int             channelStart[4];
    int             bitsPerChannel[4];
@@ -542,38 +543,40 @@ extern int dmtxTimeExceeded(DmtxTime timeout);
 
 /* dmtxencode.c */
 extern DmtxEncode *dmtxEncodeStructCreate(void);
-extern void dmtxEncodeStructDestroy(DmtxEncode **enc);
-extern int dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest);
-extern int dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest);
+extern DmtxPassFail dmtxEncodeStructDestroy(DmtxEncode **enc);
+extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest);
+extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest);
 
 /* dmtxdecode.c */
 extern DmtxDecode *dmtxDecodeStructCreate(DmtxImage *img);
-extern void dmtxDecodeStructDestroy(DmtxDecode **dec);
-extern int dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
+extern DmtxPassFail dmtxDecodeStructDestroy(DmtxDecode **dec);
+extern DmtxPassFail dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix);
+
+/* dmtxmessage.c */
 extern DmtxMessage *dmtxMessageCreate(int sizeIdx, int symbolFormat);
-extern void dmtxMessageDestroy(DmtxMessage **mesg);
+extern DmtxPassFail dmtxMessageDestroy(DmtxMessage **mesg);
 
 /* dmtxregion.c */
 extern DmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *decode, DmtxTime *timeout);
 extern DmtxRegion dmtxRegionScanPixel(DmtxDecode *decode, DmtxPixelLoc loc);
-extern int dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
+extern DmtxPassFail dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
       DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
-extern int dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);
+extern DmtxPassFail dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);
 
 /* dmtximage.c */
 extern DmtxImage *dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int packing, int flip);
-extern int dmtxImageDestroy(DmtxImage **img);
-extern int dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel);
-extern int dmtxImageSetProp(DmtxImage *img, int prop, int value);
+extern DmtxPassFail dmtxImageDestroy(DmtxImage **img);
+extern DmtxPassFail dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel);
+extern DmtxPassFail dmtxImageSetProp(DmtxImage *img, int prop, int value);
 extern int dmtxImageGetProp(DmtxImage *img, int prop);
 extern int dmtxImageGetPixelOffset(DmtxImage *img, int x, int y);
-extern int dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
-extern int dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
+extern DmtxPassFail dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
+extern DmtxPassFail dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
 extern int dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane);
-extern int dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);
-extern int dmtxImageContainsFloat(DmtxImage *img, double x, double y);
+extern DmtxBoolean dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);
+extern DmtxBoolean dmtxImageContainsFloat(DmtxImage *img, double x, double y);
 
 /* dmtxvector2.c */
 extern DmtxVector2 *dmtxVector2AddTo(DmtxVector2 *v1, const DmtxVector2 *v2);
@@ -589,7 +592,7 @@ extern double dmtxVector2Mag(const DmtxVector2 *v);
 extern double dmtxDistanceFromRay2(const DmtxRay2 *r, const DmtxVector2 *q);
 extern double dmtxDistanceAlongRay2(const DmtxRay2 *r, const DmtxVector2 *q);
 extern int dmtxRay2Intersect(DmtxVector2 *point, const DmtxRay2 *p0, const DmtxRay2 *p1);
-extern int dmtxPointAlongRay2(DmtxVector2 *point, const DmtxRay2 *r, double t);
+extern DmtxPassFail dmtxPointAlongRay2(DmtxVector2 *point, const DmtxRay2 *r, double t);
 
 /* dmtxmatrix3.c */
 extern void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1);
@@ -626,7 +629,7 @@ extern double dmtxColor3MagSquared(DmtxColor3 *v);
 extern double dmtxColor3Mag(DmtxColor3 *v);
 extern double dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern double dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
-extern int dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
+extern DmtxPassFail dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
 
 /* dmtxsymbol.c */
 extern int dmtxSymbolModuleStatus(DmtxMessage *mapping, int sizeIdx, int row, int col);

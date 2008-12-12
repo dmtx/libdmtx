@@ -75,16 +75,17 @@ dmtxDecodeStructCreate(DmtxImage *img)
  * @param  dec
  * @return void
  */
-extern void
+extern DmtxPassFail
 dmtxDecodeStructDestroy(DmtxDecode **dec)
 {
-   if(dec == NULL)
-      return;
+   if(dec == NULL || *dec == NULL)
+      return DmtxFail;
 
-   if(*dec != NULL)
-      free(*dec);
+   free(*dec);
 
    *dec = NULL;
+
+   return DmtxPass;
 }
 
 /**
@@ -92,9 +93,9 @@ dmtxDecodeStructDestroy(DmtxDecode **dec)
  * @param  dec
  * @param  prop
  * @param  value
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
-extern int
+extern DmtxPassFail
 dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
 {
    int err;
@@ -120,23 +121,23 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
          break;
       case DmtxPropXmin:
          err = dmtxImageSetProp(dec->image, DmtxPropXmin, value);
-         if(err == DMTX_FAILURE)
-            return DMTX_FAILURE;
+         if(err == DmtxFail)
+            return DmtxFail;
          break;
       case DmtxPropXmax:
          err = dmtxImageSetProp(dec->image, DmtxPropXmax, value);
-         if(err == DMTX_FAILURE)
-            return DMTX_FAILURE;
+         if(err == DmtxFail)
+            return DmtxFail;
          break;
       case DmtxPropYmin:
          err = dmtxImageSetProp(dec->image, DmtxPropYmin, value);
-         if(err == DMTX_FAILURE)
-            return DMTX_FAILURE;
+         if(err == DmtxFail)
+            return DmtxFail;
          break;
       case DmtxPropYmax:
          err = dmtxImageSetProp(dec->image, DmtxPropYmax, value);
-         if(err == DMTX_FAILURE)
-            return DMTX_FAILURE;
+         if(err == DmtxFail)
+            return DmtxFail;
          break;
       case DmtxPropShrinkMin:
          dec->shrinkMin = value;
@@ -144,28 +145,28 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
       case DmtxPropShrinkMax:
          dec->shrinkMax = value;
          err = dmtxImageSetProp(dec->image, DmtxPropScale, value);
-         if(err == DMTX_FAILURE)
-            return DMTX_FAILURE;
+         if(err == DmtxFail)
+            return DmtxFail;
          break;
    }
 
    /* Minimum image scale can't be larger than maximum image scale */
    if(dec->shrinkMin < 1 || dec->shrinkMax < dec->shrinkMin)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    if(dec->squareDevn <= 0.0 || dec->squareDevn >= 1.0)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    if(dec->scanGap < 1)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    if(dec->edgeThresh < 1 || dec->edgeThresh > 100)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    /* Reinitialize scangrid if any inputs changed */
    dec->grid = InitScanGrid(dec->image, dec->scanGap);
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
@@ -188,7 +189,7 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
    if(msg == NULL)
       return NULL;
 
-   if(PopulateArrayFromMatrix(msg, img, reg) != DMTX_SUCCESS) {
+   if(PopulateArrayFromMatrix(msg, img, reg) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
    }
@@ -196,7 +197,7 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
    ModulePlacementEcc200(msg->array, msg->code,
          reg->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
 
-   if(DecodeCheckErrors(msg->code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
+   if(DecodeCheckErrors(msg->code, reg->sizeIdx, fix) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
    }
@@ -253,13 +254,13 @@ dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix)
    gMesg.code += gMesg.codeSize;
    bMesg.code += (bMesg.codeSize * 2);
 
-   if(PopulateArrayFromMosaic(msg, img, reg) != DMTX_SUCCESS) {
+   if(PopulateArrayFromMosaic(msg, img, reg) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
    }
 
    ModulePlacementEcc200(msg->array, rMesg.code, reg->sizeIdx, DMTX_MODULE_ON_RED);
-   if(DecodeCheckErrors(rMesg.code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
+   if(DecodeCheckErrors(rMesg.code, reg->sizeIdx, fix) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
    }
@@ -269,7 +270,7 @@ dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix)
          msg->array[row*mappingCols+col] &= (0xff ^ DMTX_MODULE_VISITED);
 
    ModulePlacementEcc200(msg->array, gMesg.code, reg->sizeIdx, DMTX_MODULE_ON_GREEN);
-   if(DecodeCheckErrors(gMesg.code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
+   if(DecodeCheckErrors(gMesg.code, reg->sizeIdx, fix) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
    }
@@ -279,7 +280,7 @@ dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix)
          msg->array[row*mappingCols+col] &= (0xff ^ DMTX_MODULE_VISITED);
 
    ModulePlacementEcc200(msg->array, bMesg.code, reg->sizeIdx, DMTX_MODULE_ON_BLUE);
-   if(DecodeCheckErrors(bMesg.code, reg->sizeIdx, fix) != DMTX_SUCCESS) {
+   if(DecodeCheckErrors(bMesg.code, reg->sizeIdx, fix) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
    }
@@ -729,9 +730,9 @@ UnRandomize255State(unsigned char value, int idx)
  * @param  msg
  * @param  img
  * @param  reg
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
-static int
+static DmtxPassFail
 PopulateArrayFromMatrix(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
 {
    int weightFactor;
@@ -793,7 +794,7 @@ PopulateArrayFromMatrix(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
       }
    }
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
@@ -913,9 +914,9 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
  * @param  msg
  * @param  img
  * @param  reg
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
-static int
+static DmtxPassFail
 PopulateArrayFromMosaic(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
 {
    int col, row, rowTmp;
@@ -961,5 +962,5 @@ PopulateArrayFromMosaic(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
    /* Ideal barcode drawn in lower-right (final) window pane */
 /* CALLBACK_DECODE_FUNC2(finalCallback, dec, dec, reg); */
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }

@@ -49,7 +49,7 @@ typedef struct {
 } UserOptions;
 
 static void InitUserOptions(UserOptions *opt);
-static int HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *encode);
+static DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *encode);
 static void ReadData(UserOptions *opt, int *codeBuffer, unsigned char *codeBufferSize);
 static void ShowUsage(int status);
 static void WriteImagePng(UserOptions *opt, DmtxEncode *encode);

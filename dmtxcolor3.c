@@ -226,7 +226,7 @@ dmtxColor3Cross(DmtxColor3 *cOut, DmtxColor3 *c1, DmtxColor3 *c2)
 /**
  * @brief  Normalize vector defined by a color's RGB channels
  * @param  c
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
 extern double
 dmtxColor3Norm(DmtxColor3 *c)
@@ -317,9 +317,9 @@ dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q)
  * @param  point
  * @param  r
  * @param  t
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
-extern int
+extern DmtxPassFail
 dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t)
 {
    DmtxColor3 cTmp;
@@ -330,5 +330,5 @@ dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t)
    dmtxColor3Scale(&cTmp, &(r->c), t);
    dmtxColor3Add(point, &(r->p), &cTmp);
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }

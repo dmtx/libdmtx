@@ -89,7 +89,7 @@ static VALUE rdmtx_encode(VALUE self, VALUE string) {
     VALUE safeString = StringValue(string);
 
     /* Create barcode image */
-    if (dmtxEncodeDataMatrix(&enc, RSTRING(safeString)->len, (unsigned char *)RSTRING(safeString)->ptr, DmtxSymbolSquareAuto) == DMTX_FAILURE) {
+    if (dmtxEncodeDataMatrix(&enc, RSTRING(safeString)->len, (unsigned char *)RSTRING(safeString)->ptr, DmtxSymbolSquareAuto) == DmtxFail) {
 //        printf("Fatal error !\n");
         dmtxEncodeStructDeInit(&enc);
         return Qnil;

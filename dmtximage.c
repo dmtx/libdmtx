@@ -63,11 +63,11 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack, in
    }
 
    if(pxl != NULL) {
-      img->mallocByDmtx = DMTX_FALSE;
+      img->mallocByDmtx = DmtxFalse;
       img->pxl = pxl;
    }
    else {
-      img->mallocByDmtx = DMTX_TRUE;
+      img->mallocByDmtx = DmtxTrue;
 
       /* Pixels must fall along byte boundaries for auto malloc option */
       if(img->bpp % 8 != 0)
@@ -113,15 +113,15 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack, in
 /**
  * @brief  Free libdmtx image memory
  * @param  img pointer to img location
- * @return DMTX_FAILURE | DMTX_SUCCESS
+ * @return DmtxFail | DmtxPass
  */
-extern int
+extern DmtxPassFail
 dmtxImageDestroy(DmtxImage **img)
 {
-   if(*img == NULL)
-      return DMTX_FAILURE;
+   if(img == NULL || *img == NULL)
+      return DmtxFail;
 
-   if((*img)->mallocByDmtx == DMTX_TRUE && (*img)->pxl != NULL)
+   if((*img)->mallocByDmtx == DmtxTrue && (*img)->pxl != NULL)
       free((*img)->pxl);
 
    if((*img)->cache != NULL)
@@ -131,28 +131,28 @@ dmtxImageDestroy(DmtxImage **img)
 
    *img = NULL;
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
  *
  *
  */
-extern int
+extern DmtxPassFail
 dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel)
 {
    if(img->channelCount >= 4) /* IMAGE_MAX_CHANNEL */
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    /* New channel extends beyond pixel data */
 /* if(channelStart + bitsPerChannel > img->bitsPerPixel)
-      return DMTX_FAILURE; */
+      return DmtxFail; */
 
    img->bitsPerChannel[img->channelCount] = bitsPerChannel;
    img->channelStart[img->channelCount] = channelStart;
    (img->channelCount)++;
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
@@ -160,11 +160,11 @@ dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel)
  * @param  img pointer to image
  * @return image width
  */
-extern int
+extern DmtxPassFail
 dmtxImageSetProp(DmtxImage *img, int prop, int value)
 {
    if(img == NULL)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    switch(prop) {
       case DmtxPropWidth:
@@ -201,19 +201,19 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
          img->yMinScaled = img->yMin/img->scale;
          break;
       default:
-         return DMTX_FAILURE;
+         return DmtxFail;
    }
 
    /* Specified range has non-positive area */
    if(img->xMin >= img->xMax || img->yMin >= img->yMax)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    /* Specified range extends beyond image boundaries */
    if(img->xMin < 0 || img->xMax >= img->width ||
          img->yMin < 0 || img->yMax >= img->height)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
@@ -279,7 +279,7 @@ dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
 {
    assert(img != NULL);
 
-   if(dmtxImageContainsInt(img, 0, x, y) == DMTX_FALSE)
+   if(dmtxImageContainsInt(img, 0, x, y) == DmtxFalse)
       return DMTX_BAD_OFFSET;
 
    return ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
@@ -321,7 +321,7 @@ dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
  * @param  rgb
  * @return void
  */
-extern int
+extern DmtxPassFail
 dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 {
    int pixelOffset;
@@ -331,14 +331,14 @@ dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 
    pixelOffset = dmtxImageGetPixelOffset(img, x, y);
    if(pixelOffset == DMTX_BAD_OFFSET)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    byteOffset = pixelOffset * (img->bpp/8);
    img->pxl[byteOffset + 0] = rgb[0];
    img->pxl[byteOffset + 1] = rgb[1];
    img->pxl[byteOffset + 2] = rgb[2];
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
@@ -349,7 +349,7 @@ dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
  * @param  rgb
  * @return void
  */
-extern int
+extern DmtxPassFail
 dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 {
    int pixelOffset;
@@ -359,14 +359,14 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 
    pixelOffset = dmtxImageGetPixelOffset(img, x, y);
    if(pixelOffset == DMTX_BAD_OFFSET)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    byteOffset = pixelOffset * (img->bpp/8);
    rgb[0] = img->pxl[byteOffset + 0];
    rgb[1] = img->pxl[byteOffset + 1];
    rgb[2] = img->pxl[byteOffset + 2];
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
@@ -395,20 +395,20 @@ dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane)
 }
 /*
  * new implementation
-extern int
+extern DmtxPassFail
 dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
 {
    int offset;
 
    if(img == NULL || channel >= img->channelCount);
-      return DMTX_FAILURE;
+      return DmtxFail;
 
-   if(dmtxImageContainsInt(img, 0, x, y) == DMTX_FALSE)
-      return DMTX_FAILURE;
+   if(dmtxImageContainsInt(img, 0, x, y) == DmtxFalse)
+      return DmtxFail;
 
    offset = dmtxImageGetPixelOffset(img, x, y);
    if(offset < 0)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    switch(img->bitsPerChannel[channel]) {
       case 1:
@@ -431,7 +431,7 @@ dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
          break;
    }
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 */
 
@@ -441,18 +441,18 @@ dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
  * @param  margin Unscaled margin width
  * @param  x Scaled x coordinate
  * @param  y Scaled y coordinate
- * @return DMTX_TRUE | DMTX_FALSE
+ * @return DmtxTrue | DmtxFalse
  */
-extern int
+extern DmtxBoolean
 dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 {
    assert(img != NULL);
 
    if(x - margin >= img->xMinScaled && x + margin <= img->xMaxScaled &&
          y - margin >= img->yMinScaled && y + margin <= img->yMaxScaled)
-      return DMTX_TRUE;
+      return DmtxTrue;
 
-   return DMTX_FALSE;
+   return DmtxFalse;
 }
 
 /**
@@ -460,16 +460,16 @@ dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
  * @param  img
  * @param  x Scaled x coordinate
  * @param  y Scaled y coordinate
- * @return DMTX_TRUE | DMTX_FALSE
+ * @return DmtxTrue | DmtxFalse
  */
-extern int
+extern DmtxBoolean
 dmtxImageContainsFloat(DmtxImage *img, double x, double y)
 {
    assert(img != NULL);
 
    if(x >= (double)img->xMinScaled && x <= (double)img->xMaxScaled &&
          y >= (double)img->yMinScaled && y <= (double)img->yMaxScaled)
-      return DMTX_TRUE;
+      return DmtxTrue;
 
-   return DMTX_FALSE;
+   return DmtxFalse;
 }

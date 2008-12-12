@@ -104,19 +104,20 @@ dmtxEncodeStructCreate(void)
  * @param  enc
  * @return void
  */
-extern void
+extern DmtxPassFail
 dmtxEncodeStructDestroy(DmtxEncode **enc)
 {
-   if(enc == NULL)
-      return;
+   if(enc == NULL || *enc == NULL)
+      return DmtxFail;
 
    dmtxImageDestroy(&((*enc)->image));
    dmtxMessageDestroy(&((*enc)->message));
 
-   if(*enc != NULL)
-      free(*enc);
+   free(*enc);
 
    *enc = NULL;
+
+   return DmtxPass;
 }
 
 /**
@@ -125,9 +126,9 @@ dmtxEncodeStructDestroy(DmtxEncode **enc)
  * @param  inputSize
  * @param  inputString
  * @param  sizeIdxRequest
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
-extern int
+extern DmtxPassFail
 dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest)
 {
    int dataWordCount;
@@ -139,7 +140,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    sizeIdx = sizeIdxRequest;
    dataWordCount = EncodeDataCodewords(buf, inputString, inputSize, enc->scheme, &sizeIdx);
    if(dataWordCount <= 0)
-      return(DMTX_FAILURE);
+      return(DmtxFail);
 
    /* EncodeDataCodewords() should have updated any auto sizeIdx to a real one */
    assert(sizeIdx != DmtxSymbolSquareAuto && sizeIdx != DmtxSymbolRectAuto);
@@ -173,13 +174,13 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    enc->image = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB, DmtxFlipNone);
    if(enc->image == NULL) {
       perror("image malloc error");
-      return DMTX_FAILURE;
+      return DmtxFail;
    }
 
    /* Insert finder and aligment pattern modules */
    PrintPattern(enc);
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
@@ -188,9 +189,9 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
  * @param  inputSize
  * @param  inputString
  * @param  sizeIdxRequest
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
-extern int
+extern DmtxPassFail
 dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest)
 {
    int dataWordCount;
@@ -221,7 +222,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    /* XXX buf can be changed here to use all 3 buffers' length */
    dataWordCount = EncodeDataCodewords(buf[0], inputString, inputSize, enc->scheme, &sizeIdx);
    if(dataWordCount <= 0)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    /* Use 1/3 (ceiling) of inputSize establish input size target */
    tmpInputSize = (inputSize + 2) / 3;
@@ -233,7 +234,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    /* Use 1/3 (floor) of dataWordCount establish first symbol size attempt */
    splitSizeIdxFirst = FindCorrectSymbolSize(tmpInputSize, sizeIdxRequest);
    if(splitSizeIdxFirst == -1)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    /* Set the last possible symbol size for this symbol shape or specific size request */
    if(sizeIdxRequest == DmtxSymbolSquareAuto)
@@ -321,7 +322,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
 
    PrintPattern(enc);
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**

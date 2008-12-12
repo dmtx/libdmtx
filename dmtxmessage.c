@@ -91,22 +91,24 @@ dmtxMessageCreate(int sizeIdx, int symbolFormat)
  * @param  message
  * @return void
  */
-extern void
-dmtxMessageDestroy(DmtxMessage **message)
+extern DmtxPassFail
+dmtxMessageDestroy(DmtxMessage **msg)
 {
-   if(*message == NULL)
-      return;
+   if(msg == NULL || *msg == NULL)
+      return DmtxFail;
 
-   if((*message)->array != NULL)
-      free((*message)->array);
+   if((*msg)->array != NULL)
+      free((*msg)->array);
 
-   if((*message)->code != NULL)
-      free((*message)->code);
+   if((*msg)->code != NULL)
+      free((*msg)->code);
 
-   if((*message)->output != NULL)
-      free((*message)->output);
+   if((*msg)->output != NULL)
+      free((*msg)->output);
 
-   free(*message);
+   free(*msg);
 
-   *message = NULL;
+   *msg = NULL;
+
+   return DmtxPass;
 }

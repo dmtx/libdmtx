@@ -29,7 +29,7 @@ Contact: mike@dragonflylogic.com
 #include "../../config.h"
 #endif
 
-extern int StringToInt(int *numberInt, char *numberString, char **terminate);
+extern DmtxPassFail StringToInt(int *numberInt, char *numberString, char **terminate);
 extern void FatalError(int errorCode, char *fmt, ...);
 extern char *Basename(char *path);
 

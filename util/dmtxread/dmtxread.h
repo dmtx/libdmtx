@@ -64,13 +64,13 @@ typedef struct {
 
 /* Functions */
 static void SetOptionDefaults(UserOptions *opt);
-static int HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[]);
+static DmtxPassFail HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[]);
 static void ShowUsage(int status);
 static Image *OpenImageList(ImageInfo **gmInfo, char *imagePath, char *resolution);
 static void CleanupMagick(Image **gmImage, ImageInfo **gmInfo);
 static void WritePixelsToBuffer(unsigned char *pxl, Image *gmPage);
-static int SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt);
-static int PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
+static DmtxPassFail SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt);
+static DmtxPassFail PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       DmtxRegion *region, DmtxMessage *message, int pageIndex);
 static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);
 static void ListImageFormats(void);

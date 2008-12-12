@@ -315,7 +315,7 @@ dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1)
  * @param  vOut Vector (output)
  * @param  vIn Vector (input)
  * @param  m Matrix to be multiplied
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
 extern int
 dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m)
@@ -326,20 +326,20 @@ dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m)
    if(fabs(w) <= DMTX_ALMOST_ZERO) {
       vOut->X = FLT_MAX;
       vOut->Y = FLT_MAX;
-      return DMTX_FAILURE;
+      return DmtxFail;
    }
 
    vOut->X = (vIn->X*m[0][0] + vIn->Y*m[1][0] + m[2][0])/w;
    vOut->Y = (vIn->X*m[0][1] + vIn->Y*m[1][1] + m[2][1])/w;
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
  * @brief  Multiply vector and matrix in place
  * @param  v Vector (input and output)
  * @param  m Matrix to be multiplied
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
 extern int
 dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m)

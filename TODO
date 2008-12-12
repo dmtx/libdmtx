@@ -33,8 +33,6 @@ FOCUS: refactor encoding engine, FNC1, macros
 version 0.7.0: (XX-Feb-2009)
 FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Consider making "*ProdScaled" default, and unscaled as "Unscaled"
-  o libdmtx:   Consider using Create/Destroy for enc & dec (but still not reg)
-  o libdmtx:   Introduce DmtxPassFail type (DmtxPass / DmtxFail)
   o libdmtx:   Fix 64b->32b int assignments
   o libdmtx:   Relocate cache away from image struct
   o libdmtx:   Make final decision on where image scaling factor should go
@@ -46,6 +44,9 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Remove status from DmtxPixelLoc
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
+  / libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
+  x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
+  x libdmtx:   Consider using Create/Destroy for enc & dec (but still not reg)
   o dmtxread:  Fix misrepresented capacity in verbose mode
   o dmtxread:  Print out image representing "unstretched" barcode
   o dmtxread:  Print color weights based on direction

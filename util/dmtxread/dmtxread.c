@@ -76,7 +76,7 @@ main(int argc, char *argv[])
    SetOptionDefaults(&opt);
 
    err = HandleArgs(&opt, &fileIndex, &argc, &argv);
-   if(err != DMTX_SUCCESS)
+   if(err != DmtxPass)
       ShowUsage(EX_USAGE);
 
    fileCount = (argc == fileIndex) ? 1 : argc - fileIndex;
@@ -126,7 +126,7 @@ main(int argc, char *argv[])
          dec = dmtxDecodeStructCreate(img);
 
          err = SetDecodeOptions(dec, img, &opt);
-         if(err != DMTX_SUCCESS) {
+         if(err != DmtxPass) {
             CleanupMagick(&gmImage, &gmInfo);
             FatalError(80, "decode option error");
          }
@@ -154,11 +154,11 @@ main(int argc, char *argv[])
             PrintDecodedOutput(&opt, img, &reg, msg, pageScanCount);
             dmtxMessageDestroy(&msg);
             pageScanCount++;
+            imageScanCount++;
 
             if(opt.stopAfter != -1 && imageScanCount >= opt.stopAfter)
                break;
          }
-         imageScanCount += pageScanCount;
 
          if(opt.diagnose)
             WriteDiagnosticImage(dec, &reg, "debug.pnm");
@@ -219,9 +219,9 @@ SetOptionDefaults(UserOptions *opt)
  * @param  argcp pointer to argument count
  * @param  argvp pointer to argument list
  * @param  fileIndex pointer to index of first non-option arg (if successful)
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
-static int
+static DmtxPassFail
 HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
 {
    int i;
@@ -282,22 +282,22 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'e':
             err = StringToInt(&(opt->edgeMin), optarg, &ptr);
-            if(err != DMTX_SUCCESS || opt->edgeMin <= 0 || *ptr != '\0')
+            if(err != DmtxPass || opt->edgeMin <= 0 || *ptr != '\0')
                FatalError(EX_USAGE, _("Invalid edge length specified \"%s\""), optarg);
             break;
          case 'E':
             err = StringToInt(&(opt->edgeMax), optarg, &ptr);
-            if(err != DMTX_SUCCESS || opt->edgeMax <= 0 || *ptr != '\0')
+            if(err != DmtxPass || opt->edgeMax <= 0 || *ptr != '\0')
                FatalError(EX_USAGE, _("Invalid edge length specified \"%s\""), optarg);
             break;
          case 'g':
             err = StringToInt(&(opt->scanGap), optarg, &ptr);
-            if(err != DMTX_SUCCESS || opt->scanGap <= 0 || *ptr != '\0')
+            if(err != DmtxPass || opt->scanGap <= 0 || *ptr != '\0')
                FatalError(EX_USAGE, _("Invalid gap specified \"%s\""), optarg);
             break;
          case 'm':
             err = StringToInt(&(opt->timeoutMS), optarg, &ptr);
-            if(err != DMTX_SUCCESS || opt->timeoutMS < 0 || *ptr != '\0')
+            if(err != DmtxPass || opt->timeoutMS < 0 || *ptr != '\0')
                FatalError(EX_USAGE, _("Invalid timeout (in milliseconds) specified \"%s\""), optarg);
             break;
          case 'n':
@@ -305,7 +305,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'q':
             err = StringToInt(&(opt->squareDevn), optarg, &ptr);
-            if(err != DMTX_SUCCESS || *ptr != '\0' ||
+            if(err != DmtxPass || *ptr != '\0' ||
                   opt->squareDevn < 0 || opt->squareDevn > 90)
                FatalError(EX_USAGE, _("Invalid squareness deviation specified \"%s\""), optarg);
             break;
@@ -331,12 +331,12 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
                   }
                }
                if(i == DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT)
-                  return DMTX_FAILURE;
+                  return DmtxFail;
             }
             break;
          case 't':
             err = StringToInt(&(opt->edgeThresh), optarg, &ptr);
-            if(err != DMTX_SUCCESS || *ptr != '\0' ||
+            if(err != DmtxPass || *ptr != '\0' ||
                   opt->edgeThresh < 1 || opt->edgeThresh > 100)
                FatalError(EX_USAGE, _("Invalid edge threshold specified \"%s\""), optarg);
             break;
@@ -357,7 +357,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'C':
             err = StringToInt(&(opt->correctionsMax), optarg, &ptr);
-            if(err != DMTX_SUCCESS || opt->correctionsMax < 0 || *ptr != '\0')
+            if(err != DmtxPass || opt->correctionsMax < 0 || *ptr != '\0')
                FatalError(EX_USAGE, _("Invalid max corrections specified \"%s\""), optarg);
             break;
          case 'D':
@@ -368,7 +368,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'N':
             err = StringToInt(&(opt->stopAfter), optarg, &ptr);
-            if(err != DMTX_SUCCESS || opt->stopAfter < 1 || *ptr != '\0')
+            if(err != DmtxPass || opt->stopAfter < 1 || *ptr != '\0')
                FatalError(EX_USAGE, _("Invalid count specified \"%s\""), optarg);
             break;
          case 'P':
@@ -379,7 +379,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             break;
          case 'S':
             err = StringToInt(&(opt->shrinkMax), optarg, &ptr);
-            if(err != DMTX_SUCCESS || opt->shrinkMax < 1 || *ptr != '\0')
+            if(err != DmtxPass || opt->shrinkMax < 1 || *ptr != '\0')
                FatalError(EX_USAGE, _("Invalid shrink factor specified \"%s\""), optarg);
             /* XXX later also popular shrinkMin based on N-N range */
             break;
@@ -389,13 +389,13 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             exit(EX_OK);
             break;
          default:
-            return DMTX_FAILURE;
+            return DmtxFail;
             break;
       }
    }
    *fileIndex = optind;
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
@@ -551,12 +551,12 @@ WritePixelsToBuffer(unsigned char *pxl, GmImage *gmPage)
  *
  *
  */
-static int
+static DmtxPassFail
 SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt)
 {
    int err;
 
-#define RETURN_IF_FAILED(e) if(e != DMTX_SUCCESS) { return DMTX_FAILURE; }
+#define RETURN_IF_FAILED(e) if(e != DmtxPass) { return DmtxFail; }
 
    err = dmtxDecodeSetProp(dec, DmtxPropScanGap, opt->scanGap);
    RETURN_IF_FAILED(err)
@@ -610,16 +610,16 @@ SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt)
 
 #undef RETURN_IF_FAILED
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
  * @brief  Print decoded message to standard output
  * @param  opt runtime options from defaults or command line
  * @param  dec pointer to DmtxDecode struct
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
-static int
+static DmtxPassFail
 PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       DmtxRegion *reg, DmtxMessage *msg, int pageIndex)
 {
@@ -693,7 +693,7 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
    }
    fflush(stdout);
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
@@ -799,7 +799,7 @@ ScaleNumberString(char *s, int extent)
    assert(s != NULL);
 
    err = StringToInt(&numValue, s, &terminate);
-   if(err != DMTX_SUCCESS)
+   if(err != DmtxPass)
       FatalError(EX_USAGE, _("Integer value required"));
 
    scaledValue = (*terminate == '%') ? (int)(0.01 * numValue * extent + 0.5) : numValue;

@@ -197,7 +197,7 @@ dmtxRay2Intersect(DmtxVector2 *point, const DmtxRay2 *p0, const DmtxRay2 *p1)
 
    denom = dmtxVector2Cross(&(p1->v), &(p0->v));
    if(fabs(denom) <= DMTX_ALMOST_ZERO)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
    dmtxVector2Sub(&w, &(p1->p), &(p0->p));
    numer = dmtxVector2Cross(&(p1->v), &w);
@@ -209,7 +209,7 @@ dmtxRay2Intersect(DmtxVector2 *point, const DmtxRay2 *p0, const DmtxRay2 *p1)
  *
  *
  */
-extern int
+extern DmtxPassFail
 dmtxPointAlongRay2(DmtxVector2 *point, const DmtxRay2 *r, double t)
 {
    DmtxVector2 vTmp;
@@ -220,7 +220,7 @@ dmtxPointAlongRay2(DmtxVector2 *point, const DmtxRay2 *r, double t)
    dmtxVector2Scale(&vTmp, &(r->v), t);
    dmtxVector2Add(point, &(r->p), &vTmp);
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**

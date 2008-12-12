@@ -96,7 +96,7 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
  * @param  code
  * @param  sizeIdx
  * @param  fix
- * @return DMTX_SUCCESS | DMTX_FAILURE
+ * @return DmtxPass | DmtxFail
  */
 static int
 DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
@@ -121,7 +121,7 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
 
       rs = init_rs_char(blockErrorWords, 255 - blockTotalWords);
       if(rs == NULL)
-         return DMTX_FAILURE;
+         return DmtxFail;
 
       for(j = 0; j < blockTotalWords; j++)
          data[j] = code[j*interleavedBlocks+i];
@@ -130,7 +130,7 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
 
       if(fixedErr < 0 || fixedErr > blockMaxCorrectable) {
          free_rs_char(&rs);
-         return DMTX_FAILURE;
+         return DmtxFail;
       }
 
       fixedErrSum += fixedErr;
@@ -142,9 +142,9 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
    }
 
    if(fix >= 0 && fixedErrSum > fix)
-      return DMTX_FAILURE;
+      return DmtxFail;
 
-   return DMTX_SUCCESS;
+   return DmtxPass;
 }
 
 /**
