@@ -44,7 +44,8 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Remove status from DmtxPixelLoc
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
-  / libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
+  o libdmtx:   Eliminate DmtxRGB type
+  x libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
   x libdmtx:   Use Create/Destroy for enc & dec (but still not reg)

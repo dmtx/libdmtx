@@ -131,57 +131,57 @@ void DrawGeneratedImage(SDL_Surface *screen)
  *
  *
  */
-void DrawPane2(SDL_Surface *screen, DmtxImage *image)
+void DrawPane2(SDL_Surface *screen, unsigned char *pxl)
 {
    DrawPaneBorder(323, 323, 322, 322); // XXX drawn twice
    glRasterPos2i(1, 1);
-   glDrawPixels(320, 320, GL_RGB, GL_UNSIGNED_BYTE, image->pxl);
+   glDrawPixels(320, 320, GL_RGB, GL_UNSIGNED_BYTE, pxl);
 }
 
 /**
  *
  *
  */
-void DrawPane3(SDL_Surface *screen, DmtxImage *image)
+void DrawPane3(SDL_Surface *screen, unsigned char *pxl)
 {
    DrawPaneBorder(645, 323, 322, 322); // XXX drawn twice
    glRasterPos2i(1, 1);
-   glDrawPixels(320, 320, GL_RGB, GL_UNSIGNED_BYTE, image->pxl);
+   glDrawPixels(320, 320, GL_RGB, GL_UNSIGNED_BYTE, pxl);
 }
 
 /**
  *
  *
  */
-void DrawPane4(SDL_Surface *screen, DmtxImage *image)
+void DrawPane4(SDL_Surface *screen, unsigned char *pxl)
 {
    DrawPaneBorder(1, 1, 322, 322); // XXX drawn twice
    glRasterPos2i(1, 1);
-   glDrawPixels(320, 320, GL_RGB, GL_UNSIGNED_BYTE, image->pxl);
+   glDrawPixels(320, 320, GL_RGB, GL_UNSIGNED_BYTE, pxl);
 }
 
 /**
  *
  *
  */
-void DrawPane5(SDL_Surface *screen, DmtxImage *image)
+void DrawPane5(SDL_Surface *screen, unsigned char *pxl)
 {
    DrawPaneBorder(323, 1, 322, 322); // XXX drawn twice
    glRasterPos2i(1, 1);
-   glDrawPixels(320, 320, GL_RGB, GL_UNSIGNED_BYTE, image->pxl);
+   glDrawPixels(320, 320, GL_RGB, GL_UNSIGNED_BYTE, pxl);
 }
 
 /**
  *
  *
  */
-void DrawPane6(SDL_Surface *screen, DmtxImage *image)
+void DrawPane6(SDL_Surface *screen, unsigned char *pxl)
 {
    DrawPaneBorder(645, 1, 322, 322); // XXX drawn twice
    glRasterPos2i(1, 1);
 
-   if(image != NULL)
-      glDrawPixels(320, 320, GL_RGB, GL_UNSIGNED_BYTE, image->pxl);
+   if(pxl != NULL)
+      glDrawPixels(320, 320, GL_RGB, GL_UNSIGNED_BYTE, pxl);
 }
 
 /**

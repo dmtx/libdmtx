@@ -35,10 +35,12 @@ Contact: mblaughton@users.sourceforge.net
 void BuildMatrixCallback2(DmtxRegion *region)
 {
    int i, j;
+   int offset;
    float scale = 1.0/200.0;
    DmtxColor3 clr;
    DmtxVector2 point;
    DmtxMatrix3 m0, m1, mInv;
+   DmtxRgb rgb;
 
    dmtxMatrix3Translate(m0, -(320 - 200)/2.0, -(320 - 200)/2.0);
    dmtxMatrix3Scale(m1, scale, scale);
@@ -53,8 +55,14 @@ void BuildMatrixCallback2(DmtxRegion *region)
          point.X = j;
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
-         dmtxColor3FromImage2(&clr, captured, point);
-         dmtxPixelFromColor3(passTwoImage->pxl[i*320+j], &clr);
+         dmtxColor3FromImage2(&clr, gImage, point);
+         dmtxPixelFromColor3(rgb, &clr);
+
+         offset = (320 * i + j) * 3;
+         passTwoImage[offset + 0] = rgb[0];
+         passTwoImage[offset + 1] = rgb[1];
+         passTwoImage[offset + 2] = rgb[2];
+/*       dmtxPixelFromColor3(passTwoImage[i*320+j], &clr); */
       }
    }
 
@@ -83,10 +91,12 @@ void BuildMatrixCallback2(DmtxRegion *region)
 void BuildMatrixCallback3(DmtxMatrix3 mChainInv)
 {
    int i, j;
+   int offset;
    float scale = 1.0/100.0;
    DmtxColor3 clr;
    DmtxVector2 point;
    DmtxMatrix3 m0, m1, mInv;
+   DmtxRgb rgb;
 
    dmtxMatrix3Scale(m0, scale, scale);
    dmtxMatrix3Translate(m1, -(320 - 200)/2.0, -(320 - 200)/2.0);
@@ -102,8 +112,13 @@ void BuildMatrixCallback3(DmtxMatrix3 mChainInv)
          point.X = j;
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
-         dmtxColor3FromImage2(&clr, captured, point);
-         dmtxPixelFromColor3(passTwoImage->pxl[i*320+j], &clr);
+         dmtxColor3FromImage2(&clr, gImage, point);
+         dmtxPixelFromColor3(rgb, &clr);
+
+         offset = (320 * i + j) * 3;
+         passTwoImage[offset + 0] = rgb[0];
+         passTwoImage[offset + 1] = rgb[1];
+         passTwoImage[offset + 2] = rgb[2];
       }
    }
 
@@ -138,10 +153,12 @@ void BuildMatrixCallback3(DmtxMatrix3 mChainInv)
 void BuildMatrixCallback4(DmtxMatrix3 mChainInv)
 {
    int i, j;
+   int offset;
    float scale = 1.0/200.0;
    DmtxColor3 clr;
    DmtxVector2 point;
    DmtxMatrix3 m0, m1, mInv;
+   DmtxRgb rgb;
 
    dmtxMatrix3Scale(m0, scale, scale);
    dmtxMatrix3Translate(m1, -(320 - 200)/2.0, -(320 - 200)/2.0);
@@ -157,8 +174,13 @@ void BuildMatrixCallback4(DmtxMatrix3 mChainInv)
          point.X = j;
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
-         dmtxColor3FromImage2(&clr, captured, point);
-         dmtxPixelFromColor3(passTwoImage->pxl[i*320+j], &clr);
+         dmtxColor3FromImage2(&clr, gImage, point);
+         dmtxPixelFromColor3(rgb, &clr);
+
+         offset = (320 * i + j) * 3;
+         passTwoImage[offset + 0] = rgb[0];
+         passTwoImage[offset + 1] = rgb[1];
+         passTwoImage[offset + 2] = rgb[2];
       }
    }
 

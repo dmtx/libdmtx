@@ -39,10 +39,11 @@ extern GLfloat       angle;
 extern GLuint        barcodeTexture;
 extern GLint         barcodeList;
 
-extern DmtxImage     *captured;
-extern DmtxImage     *textureImage;
-extern DmtxImage     *passOneImage;
-extern DmtxImage     *passTwoImage;
+extern DmtxImage     *gImage;
+extern unsigned char *captured;
+extern unsigned char *textureImage;
+extern unsigned char *passOneImage;
+extern unsigned char *passTwoImage;
 
 extern char *gFilename[];
 extern int gFileIdx;

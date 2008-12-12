@@ -24,6 +24,7 @@ Contact: mblaughton@users.sourceforge.net
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_opengl.h>
 #include <png.h>
@@ -35,27 +36,30 @@ Contact: mblaughton@users.sourceforge.net
  *
  *
  */
-/*void captureImage(DmtxImage *captured, DmtxImage *imgTmp)*/
-void captureImage(unsigned char *captured)
+/*
+void captureImage(DmtxImage *captured, DmtxImage *imgTmp)
 {
    int i, fromOffset, toOffset;
 
-   glReadPixels(2, 324, 320, 320, GL_RGB, GL_UNSIGNED_BYTE, captured);
+// glReadPixels(2, 324, 320, 320, GL_RGB, GL_UNSIGNED_BYTE, captured);
 
-/* for(i = 0; i < 320; i++) {
+   for(i = 0; i < 320; i++) {
       fromOffset = i * captured->width;
       toOffset = (captured->height - i - 1) * captured->width;
       memcpy(captured->pxl + toOffset, imgTmp->pxl + fromOffset,
             320 * sizeof(DmtxRgb));
-   } */
+   }
 }
+*/
 
 /**
  *
  *
  */
-int loadTextureImage(DmtxImage **img)
+unsigned char *
+loadTextureImage(int *width, int *height)
 {
+   unsigned char *pxl;
    int error;
    char filepath[128];
 
@@ -63,11 +67,8 @@ int loadTextureImage(DmtxImage **img)
    strcat(filepath, gFilename[gFileIdx]);
    fprintf(stdout, "Opening %s\n", filepath);
 
-   dmtxImageFree(img);
-
-   *img = loadPng(filepath);
-   if(*img == NULL)
-      exit(1);
+   pxl = loadPng(filepath, width, height);
+   assert(pxl != NULL);
 
    gFileIdx++;
    if(gFileIdx == gFileCount)
@@ -84,7 +85,7 @@ int loadTextureImage(DmtxImage **img)
    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
    /* Read barcode image */
-   gluBuild2DMipmaps(GL_TEXTURE_2D, 3, (*img)->width, (*img)->height, GL_RGB, GL_UNSIGNED_BYTE, (*img)->pxl);
+   gluBuild2DMipmaps(GL_TEXTURE_2D, 3, *width, *height, GL_RGB, GL_UNSIGNED_BYTE, pxl);
 
    /* Create the barcode list */
    barcodeList = glGenLists(1);
@@ -92,14 +93,15 @@ int loadTextureImage(DmtxImage **img)
    DrawBarCode();
    glEndList();
 
-   return 0;
+   return pxl;
 }
 
 /**
  *
  *
  */
-DmtxImage *loadPng(char *filename)
+unsigned char *
+loadPng(char *filename, int *width, int *height)
 {
    png_byte        pngHeader[8];
    FILE            *fp;
@@ -107,12 +109,12 @@ DmtxImage *loadPng(char *filename)
    int             isPng;
    int             bitDepth, color_type, interlace_type, compression_type, filter_method;
    int             row;
-   png_uint_32     width, height;
+   png_uint_32     png_width, png_height;
    png_structp     png_ptr;
    png_infop       info_ptr;
    png_infop       end_info;
    png_bytepp      row_pointers;
-   DmtxImage       *img;
+   unsigned char   *pxl = NULL;
 
    fp = fopen(filename, "rb");
    if(!fp)
@@ -150,8 +152,8 @@ DmtxImage *loadPng(char *filename)
    png_set_sig_bytes(png_ptr, headerTestSize);
 
    png_read_info(png_ptr, info_ptr);
-   png_get_IHDR(png_ptr, info_ptr, &width, &height, &bitDepth, &color_type,
-         &interlace_type, &compression_type, &filter_method);
+   png_get_IHDR(png_ptr, info_ptr, &png_width, &png_height, &bitDepth,
+         &color_type, &interlace_type, &compression_type, &filter_method);
 
    png_set_strip_16(png_ptr);
    png_set_strip_alpha(png_ptr);
@@ -164,17 +166,19 @@ DmtxImage *loadPng(char *filename)
       png_set_gray_to_rgb(png_ptr);
 
    png_read_update_info(png_ptr, info_ptr);
+   png_get_IHDR(png_ptr, info_ptr, &png_width, &png_height, &bitDepth,
+         &color_type, &interlace_type, &compression_type, &filter_method);
 
-   png_get_IHDR(png_ptr, info_ptr, &width, &height, &bitDepth, &color_type,
-         &interlace_type, &compression_type, &filter_method);
+   *width = (int)png_width;
+   *height = (int)png_height;
 
-   row_pointers = (png_bytepp)png_malloc(png_ptr, sizeof(png_bytep) * height);
+   row_pointers = (png_bytepp)png_malloc(png_ptr, sizeof(png_bytep) * png_height);
    if(row_pointers == NULL) {
-      fprintf(stdout, "Fatal error!\n"); fflush(stdout); // XXX finish later
-      ; // FatalError(1, "Error while during malloc for row_pointers");
+      fprintf(stdout, "Fatal error!\n"); fflush(stdout); /* XXX finish later */
+      ; /* FatalError(1, "Error while during malloc for row_pointers"); */
    }
 
-   for(row = 0; row < height; row++) {
+   for(row = 0; row < *height; row++) {
       row_pointers[row] = (png_bytep)png_malloc(png_ptr,
             png_get_rowbytes(png_ptr, info_ptr));
    }
@@ -184,24 +188,25 @@ DmtxImage *loadPng(char *filename)
 
    png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
 
-   // Use PNG information to populate DmtxImage information
-   img = dmtxImageMalloc(width, height);
+   /* Use PNG information to populate DmtxImage information */
+/* img = dmtxImageMalloc(width, height);
    if(img == NULL)
-      return NULL;
+      return NULL; */
+   pxl = (unsigned char *)malloc((*width) * (*height) * 3);
+   assert(pxl != NULL);
 
-   for(row = 0; row < img->height; row++) {
-      memcpy(img->pxl + (row * img->width), row_pointers[img->height - row - 1],
-            img->width * sizeof(DmtxRgb));
+   for(row = 0; row < *height; row++) {
+      memcpy(pxl + (row * (*width)), row_pointers[(*height) - row - 1], (*width) * 3);
    }
 
-   for(row = 0; row < height; row++) {
+   for(row = 0; row < (*height); row++) {
       png_free(png_ptr, row_pointers[row]);
    }
    png_free(png_ptr, row_pointers);
 
    fclose(fp);
 
-   return img;
+   return pxl;
 }
 
 /**
@@ -238,13 +243,13 @@ void plotPoint(DmtxImage *img, float rowFloat, float colFloat, int targetColor)
          continue;
 
       if(targetColor & (ColorWhite | ColorRed | ColorYellow))
-         img->pxl[offset[i]][0] = max(img->pxl[offset[i]][0], color[i]);
+         img->pxl[offset[i]*3+0] = max(img->pxl[offset[i]*3+0], color[i]);
 
       if(targetColor & (ColorWhite | ColorGreen | ColorYellow))
-         img->pxl[offset[i]][1] = max(img->pxl[offset[i]][1], color[i]);
+         img->pxl[offset[i]*3+1] = max(img->pxl[offset[i]*3+1], color[i]);
 
       if(targetColor & (ColorWhite | ColorBlue))
-         img->pxl[offset[i]][2] = max(img->pxl[offset[i]][2], color[i]);
+         img->pxl[offset[i]*3+2] = max(img->pxl[offset[i]*3+2], color[i]);
    }
 }
 

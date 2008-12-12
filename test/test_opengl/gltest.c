@@ -26,6 +26,7 @@ Contact: mblaughton@users.sourceforge.net
 #include <string.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_opengl.h>
+#include <assert.h>
 #include "dmtx.h"
 #include "image.h"
 #include "display.h"
@@ -40,14 +41,9 @@ GLfloat angle = 0.0;
 GLuint barcodeTexture;
 GLint barcodeList;
 
-/*
-DmtxImage *textureImage = NULL;
-DmtxImage *captured = NULL;
-DmtxImage *passOneImage = NULL;
-DmtxImage *passTwoImage = NULL;
-*/
-unsigned char *textureImage = NULL;
+DmtxImage *gImage = NULL;
 unsigned char *captured = NULL;
+unsigned char *textureImage = NULL;
 unsigned char *passOneImage = NULL;
 unsigned char *passTwoImage = NULL;
 
@@ -81,40 +77,36 @@ int main(int argc, char *argv[])
    int             i;
    int             count;
    int             done;
+   int             width, height;
    SDL_Event       event;
    SDL_Surface     *screen;
    unsigned char   outputString[1024];
    DmtxPixelLoc    p;
    DmtxDecode      *dec;
    DmtxRegion      reg;
-   DmtxMessage     *message;
+   DmtxMessage     *msg;
    DmtxTime        timeout;
-/* DmtxImage       *imgTmp; */
 
    /* Initialize display window */
    screen = initDisplay();
 
    /* Load input image to DmtxImage */
-   loadTextureImage(&textureImage);
+   textureImage = loadTextureImage(&width, &height);
 
 /* captured = dmtxImageMalloc(320, 320); */
-   captured = (unsigned char *)malloc(320 * 320 * 3);
-   if(captured == NULL)
-      exit(4);
+   captured = (unsigned char *)malloc(width * height * 3);
+   assert(captured != NULL);
 
 /* imgTmp = dmtxImageMalloc(320, 320);
-   if(captured == NULL)
-      exit(4); */
+   assert(imgTmp != NULL); */
 
 /* passOneImage = dmtxImageMalloc(320, 320); */
-   passOneImage = (unsigned char *)malloc(320 * 320 * 3);
-   if(passOneImage == NULL)
-      exit(5);
+   passOneImage = (unsigned char *)malloc(width * height * 3);
+   assert(passOneImage != NULL);
 
 /* passTwoImage = dmtxImageMalloc(320, 320); */
-   passTwoImage = (unsigned char *)malloc(320 * 320 * 3);
-   if(passTwoImage == NULL)
-      exit(6);
+   passTwoImage = (unsigned char *)malloc(width * height * 3);
+   assert(passTwoImage != NULL);
 
    done = 0;
    while(!done) {
@@ -127,14 +119,17 @@ int main(int argc, char *argv[])
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       DrawGeneratedImage(screen);
 
-      /* Capture screenshot of generated image */
-      captureImage(captured, imgTmp);
+      memset(passOneImage, 0x00, width * height * 3);
+      memset(passTwoImage, 0x00, width * height * 3);
 
-      memset(passOneImage->pxl, 0x00, passOneImage->width * passOneImage->height * sizeof(DmtxRgb));
-      memset(passTwoImage->pxl, 0x00, passTwoImage->width * passTwoImage->height * sizeof(DmtxRgb));
+      /* Capture screenshot of generated image */
+      glReadPixels(2, 324, width, height, GL_RGB, GL_UNSIGNED_BYTE, captured);
+      gImage = dmtxImageCreate(captured, width, height, 24, DmtxPackRGB, DmtxFlipNone);
+      assert(gImage != NULL);
 
       /* Start fresh scan */
-      dec = dmtxDecodeStructCreate(captured);
+      dec = dmtxDecodeStructCreate(gImage);
+      assert(dec != NULL);
 
       for(;;) {
 
@@ -151,20 +146,21 @@ int main(int argc, char *argv[])
          if(reg.found != DMTX_REGION_FOUND)
             break;
 
-         message = dmtxDecodeMatrixRegion(captured, &reg, 1);
-         if(message == NULL)
+         msg = dmtxDecodeMatrixRegion(gImage, &reg, 1);
+         if(msg == NULL)
             break;
 /*          continue; */
 
-         fwrite(message->output, sizeof(unsigned char), message->outputIdx, stdout);
+         fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
          fputc('\n', stdout);
 
-         dmtxMessageFree(&message);
+         dmtxMessageDestroy(&msg);
 
          break;
       }
 
       dmtxDecodeStructDestroy(&dec);
+      dmtxImageDestroy(&gImage);
 
       DrawBorders(screen);
 //    DrawPane2(screen, passOneImage);
@@ -177,8 +173,6 @@ int main(int argc, char *argv[])
    free(passOneImage);
    free(captured);
    free(textureImage);
-
-   dmtxDecodeStructDestroy(&dec);
 
    exit(0);
 }
