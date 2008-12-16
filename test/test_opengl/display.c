@@ -214,6 +214,8 @@ void DrawPaneBorder(GLint x, GLint y, GLint h, GLint w)
  */
 int HandleEvent(SDL_Event *event, SDL_Surface *screen)
 {
+   int width, height;
+
    switch(event->type) {
       case SDL_VIDEORESIZE:
          screen = SDL_SetVideoMode(event->resize.w, event->resize.h, 16,
@@ -249,7 +251,8 @@ int HandleEvent(SDL_Event *event, SDL_Surface *screen)
       case SDL_MOUSEBUTTONDOWN:
          switch(event->button.button) {
             case SDL_BUTTON_RIGHT:
-               loadTextureImage(&texturePxl);
+               free(texturePxl);
+               texturePxl = (unsigned char *)loadTextureImage(&width, &height);
                break;
             case SDL_BUTTON_LEFT:
                fprintf(stdout, "left click\n");
