@@ -40,10 +40,10 @@ extern GLuint        barcodeTexture;
 extern GLint         barcodeList;
 
 extern DmtxImage     *gImage;
-extern unsigned char *captured;
-extern unsigned char *textureImage;
-extern unsigned char *passOneImage;
-extern unsigned char *passTwoImage;
+extern unsigned char *capturePxl;
+extern unsigned char *texturePxl;
+extern unsigned char *passOnePxl;
+extern unsigned char *passTwoPxl;
 
 extern char *gFilename[];
 extern int gFileIdx;

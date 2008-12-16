@@ -59,14 +59,14 @@ void BuildMatrixCallback2(DmtxRegion *region)
          dmtxPixelFromColor3(rgb, &clr);
 
          offset = (320 * i + j) * 3;
-         passTwoImage[offset + 0] = rgb[0];
-         passTwoImage[offset + 1] = rgb[1];
-         passTwoImage[offset + 2] = rgb[2];
-/*       dmtxPixelFromColor3(passTwoImage[i*320+j], &clr); */
+         passTwoPxl[offset + 0] = rgb[0];
+         passTwoPxl[offset + 1] = rgb[1];
+         passTwoPxl[offset + 2] = rgb[2];
+/*       dmtxPixelFromColor3(passTwoPxl[i*320+j], &clr); */
       }
    }
 
-   DrawPane3(NULL, passTwoImage);
+   DrawPane3(NULL, passTwoPxl);
 
    glViewport(646, 324, 320, 320);
    glMatrixMode(GL_PROJECTION);
@@ -116,13 +116,13 @@ void BuildMatrixCallback3(DmtxMatrix3 mChainInv)
          dmtxPixelFromColor3(rgb, &clr);
 
          offset = (320 * i + j) * 3;
-         passTwoImage[offset + 0] = rgb[0];
-         passTwoImage[offset + 1] = rgb[1];
-         passTwoImage[offset + 2] = rgb[2];
+         passTwoPxl[offset + 0] = rgb[0];
+         passTwoPxl[offset + 1] = rgb[1];
+         passTwoPxl[offset + 2] = rgb[2];
       }
    }
 
-   DrawPane4(NULL, passTwoImage);
+   DrawPane4(NULL, passTwoPxl);
 
    glViewport(2, 2, 320, 320);
    glMatrixMode(GL_PROJECTION);
@@ -178,13 +178,13 @@ void BuildMatrixCallback4(DmtxMatrix3 mChainInv)
          dmtxPixelFromColor3(rgb, &clr);
 
          offset = (320 * i + j) * 3;
-         passTwoImage[offset + 0] = rgb[0];
-         passTwoImage[offset + 1] = rgb[1];
-         passTwoImage[offset + 2] = rgb[2];
+         passTwoPxl[offset + 0] = rgb[0];
+         passTwoPxl[offset + 1] = rgb[1];
+         passTwoPxl[offset + 2] = rgb[2];
       }
    }
 
-   DrawPane5(NULL, passTwoImage);
+   DrawPane5(NULL, passTwoPxl);
 
    glViewport(324, 2, 320, 320);
    glMatrixMode(GL_PROJECTION);
@@ -221,7 +221,7 @@ void PlotPointCallback(DmtxPixelLoc loc, int colorInt, int paneNbr, int dispType
          break;
       case 2:
          glViewport(324, 324, 320, 320);
-/*       image = passOneImage; */
+/*       image = passOnePxl; */
          break;
       case 3:
          glViewport(646, 324, 320, 320);

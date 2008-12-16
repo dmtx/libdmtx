@@ -42,10 +42,10 @@ GLuint barcodeTexture;
 GLint barcodeList;
 
 DmtxImage *gImage = NULL;
-unsigned char *captured = NULL;
-unsigned char *textureImage = NULL;
-unsigned char *passOneImage = NULL;
-unsigned char *passTwoImage = NULL;
+unsigned char *capturePxl = NULL;
+unsigned char *texturePxl = NULL;
+unsigned char *passOnePxl = NULL;
+unsigned char *passTwoPxl = NULL;
 
 char *gFilename[] = { "test_image18.png"
                     , "test_image16.png"
@@ -91,22 +91,17 @@ int main(int argc, char *argv[])
    screen = initDisplay();
 
    /* Load input image to DmtxImage */
-   textureImage = loadTextureImage(&width, &height);
+   texturePxl = loadTextureImage(&width, &height);
+   assert(texturePxl != NULL);
 
-/* captured = dmtxImageMalloc(320, 320); */
-   captured = (unsigned char *)malloc(width * height * 3);
-   assert(captured != NULL);
+   capturePxl = (unsigned char *)malloc(width * height * 3);
+   assert(capturePxl != NULL);
 
-/* imgTmp = dmtxImageMalloc(320, 320);
-   assert(imgTmp != NULL); */
+   passOnePxl = (unsigned char *)malloc(width * height * 3);
+   assert(passOnePxl != NULL);
 
-/* passOneImage = dmtxImageMalloc(320, 320); */
-   passOneImage = (unsigned char *)malloc(width * height * 3);
-   assert(passOneImage != NULL);
-
-/* passTwoImage = dmtxImageMalloc(320, 320); */
-   passTwoImage = (unsigned char *)malloc(width * height * 3);
-   assert(passTwoImage != NULL);
+   passTwoPxl = (unsigned char *)malloc(width * height * 3);
+   assert(passTwoPxl != NULL);
 
    done = 0;
    while(!done) {
@@ -119,12 +114,12 @@ int main(int argc, char *argv[])
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       DrawGeneratedImage(screen);
 
-      memset(passOneImage, 0x00, width * height * 3);
-      memset(passTwoImage, 0x00, width * height * 3);
+      memset(passOnePxl, 0x00, width * height * 3);
+      memset(passTwoPxl, 0x00, width * height * 3);
 
       /* Capture screenshot of generated image */
-      glReadPixels(2, 324, width, height, GL_RGB, GL_UNSIGNED_BYTE, captured);
-      gImage = dmtxImageCreate(captured, width, height, 24, DmtxPackRGB, DmtxFlipNone);
+      glReadPixels(2, 324, width, height, GL_RGB, GL_UNSIGNED_BYTE, capturePxl);
+      gImage = dmtxImageCreate(capturePxl, width, height, 24, DmtxPackRGB, DmtxFlipNone);
       assert(gImage != NULL);
 
       /* Start fresh scan */
@@ -163,16 +158,16 @@ int main(int argc, char *argv[])
       dmtxImageDestroy(&gImage);
 
       DrawBorders(screen);
-//    DrawPane2(screen, passOneImage);
-//    DrawPane4(screen, passTwoImage);
+//    DrawPane2(screen, passOnePxl);
+//    DrawPane4(screen, passTwoPxl);
 
       SDL_GL_SwapBuffers();
    }
 
-   free(passTwoImage);
-   free(passOneImage);
-   free(captured);
-   free(textureImage);
+   free(passTwoPxl);
+   free(passOnePxl);
+   free(capturePxl);
+   free(texturePxl);
 
    exit(0);
 }

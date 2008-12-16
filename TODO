@@ -35,7 +35,7 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Add named constant for "-1" passed to dmtxDecodeMatrixRegion(), and bad offset
   o libdmtx:   Consider making "*ProdScaled" default, and unscaled as "Unscaled"
   o libdmtx:   Fix 64b->32b int assignments
-  o libdmtx:   Relocate cache away from image struct
+  o libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   o libdmtx:   Make final decision on where image scaling factor should go (leaning toward decode)
   o libdmtx:   Fast Hough fit followed by precision handle fit
   o libdmtx:   Investigate reported compile error in dmtxutil.c (Rom 16-OCT-2008)
@@ -48,7 +48,7 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   x libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
-  x libdmtx:   Use Create/Destroy for enc & dec (but still not reg)
+  x libdmtx:   Use Create/Destroy for DmtxEncode & DmtxDecode (but not DmtxRegion)
   o dmtxread:  Add script to make sure no GM functions are being called without gm prefix
   o dmtxread:  Fix misrepresented capacity in verbose mode
   o dmtxread:  Print out image representing "unstretched" barcode

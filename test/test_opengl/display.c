@@ -249,7 +249,7 @@ int HandleEvent(SDL_Event *event, SDL_Surface *screen)
       case SDL_MOUSEBUTTONDOWN:
          switch(event->button.button) {
             case SDL_BUTTON_RIGHT:
-               loadTextureImage(&textureImage);
+               loadTextureImage(&texturePxl);
                break;
             case SDL_BUTTON_LEFT:
                fprintf(stdout, "left click\n");

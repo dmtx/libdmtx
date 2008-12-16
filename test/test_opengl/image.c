@@ -36,26 +36,6 @@ Contact: mblaughton@users.sourceforge.net
  *
  *
  */
-/*
-void captureImage(DmtxImage *captured, DmtxImage *imgTmp)
-{
-   int i, fromOffset, toOffset;
-
-// glReadPixels(2, 324, 320, 320, GL_RGB, GL_UNSIGNED_BYTE, captured);
-
-   for(i = 0; i < 320; i++) {
-      fromOffset = i * captured->width;
-      toOffset = (captured->height - i - 1) * captured->width;
-      memcpy(captured->pxl + toOffset, imgTmp->pxl + fromOffset,
-            320 * sizeof(DmtxRgb));
-   }
-}
-*/
-
-/**
- *
- *
- */
 unsigned char *
 loadTextureImage(int *width, int *height)
 {
@@ -188,15 +168,11 @@ loadPng(char *filename, int *width, int *height)
 
    png_destroy_read_struct(&png_ptr, &info_ptr, &end_info);
 
-   /* Use PNG information to populate DmtxImage information */
-/* img = dmtxImageMalloc(width, height);
-   if(img == NULL)
-      return NULL; */
    pxl = (unsigned char *)malloc((*width) * (*height) * 3);
    assert(pxl != NULL);
 
    for(row = 0; row < *height; row++) {
-      memcpy(pxl + (row * (*width)), row_pointers[(*height) - row - 1], (*width) * 3);
+      memcpy(pxl + (row * (*width) * 3), row_pointers[(*height) - row - 1], (*width) * 3);
    }
 
    for(row = 0; row < (*height); row++) {
