@@ -277,41 +277,20 @@ dmtxImageGetProp(DmtxImage *img, int prop)
 extern int
 dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
 {
+   int offset;
+
    assert(img != NULL);
 
    if(dmtxImageContainsInt(img, 0, x, y) == DmtxFalse)
       return DMTX_BAD_OFFSET;
 
-   return ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
-/* return ((img->heightScaled - y - 1) * img->width + x); */
-}
-
-/*
- * new implementation
- *
-extern int
-dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
-{
-   int offset;
-
-   if(img == NULL); // maybe check boundaries too?
-      return -1;
-
-   switch(img->originType) {
-      case DmtxOriginTopLeft:
-         offset = ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
-         break;
-      case DmtxOriginBottomLeft:
-         offset = img->scale * (y * img->width + x);
-         break;
-      default:
-         return -1;
-         break;
-   }
+   if(img->flip & DmtxFlipY)
+      offset = ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
+   else
+      offset = img->scale * (y * img->width + x);
 
    return offset;
 }
-*/
 
 /**
  * @brief  Assign pixel RGB values

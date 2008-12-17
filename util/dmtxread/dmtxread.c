@@ -116,7 +116,7 @@ main(int argc, char *argv[])
          WritePixelsToBuffer(pxl, gmPage);
 
          /* Initialize libdmtx image */
-         img = dmtxImageCreate(pxl, gmPage->columns, gmPage->rows, 24, DmtxPackRGB, DmtxFlipNone);
+         img = dmtxImageCreate(pxl, gmPage->columns, gmPage->rows, 24, DmtxPackRGB, DmtxFlipY);
          if(img == NULL) {
             CleanupMagick(&gmImage, &gmInfo);
             FatalError(80, "dmtxImageCreate() error");
