@@ -544,8 +544,8 @@ extern int dmtxTimeExceeded(DmtxTime timeout);
 /* dmtxencode.c */
 extern DmtxEncode *dmtxEncodeStructCreate(void);
 extern DmtxPassFail dmtxEncodeStructDestroy(DmtxEncode **enc);
-extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest);
-extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest);
+extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest, int flip);
+extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest, int flip);
 
 /* dmtxdecode.c */
 extern DmtxDecode *dmtxDecodeStructCreate(DmtxImage *img);

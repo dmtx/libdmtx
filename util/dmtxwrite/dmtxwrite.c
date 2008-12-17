@@ -76,9 +76,9 @@ main(int argc, char *argv[])
 
    /* Create barcode image */
    if(opt.mosaic)
-      err = dmtxEncodeDataMosaic(enc, codeBufferSize, codeBuffer, opt.sizeIdx);
+      err = dmtxEncodeDataMosaic(enc, codeBufferSize, codeBuffer, opt.sizeIdx, DmtxFlipY);
    else
-      err = dmtxEncodeDataMatrix(enc, codeBufferSize, codeBuffer, opt.sizeIdx);
+      err = dmtxEncodeDataMatrix(enc, codeBufferSize, codeBuffer, opt.sizeIdx, DmtxFlipY);
 
    if(err == DmtxFail)
       FatalError(1, _("Unable to encode message (possibly too large for requested size)"));
@@ -465,14 +465,9 @@ WriteImagePng(UserOptions *opt, DmtxEncode *enc)
       perror(programName);
    }
 
-   /* This copy reverses row order top-to-bottom so image coordinate system
-      corresponds with normal "right-handed" 2D space */
    for(row = 0; row < height; row++) {
       rowPointers[row] = (png_bytep)png_malloc(pngPtr, png_get_rowbytes(pngPtr, infoPtr));
-
-      assert(png_get_rowbytes(pngPtr, infoPtr) == width * sizeof(DmtxRgb));
-
-      /* Flip rows top-to-bottom to account for PNM "top-left" origin */
+      assert(png_get_rowbytes(pngPtr, infoPtr) == width * 3);
       memcpy(rowPointers[row], img->pxl + (row * width * bytesPerPixel), width * bytesPerPixel);
    }
 

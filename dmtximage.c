@@ -28,6 +28,37 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
+ * libdmtx accomodates multiple pixel orders and formats. The following
+ * rules determine whether images should use the DmtxFlipNone or DmtxFlipY
+ * flag.
+ *
+ * Pixels are stored in a large array of bytes, possibly with multiple
+ * bytes per pixel. If the pixels are drawn in horizontal rows with the
+ * first pixel being placed in the bottom-left corner and the final pixel
+ * at the top-right, then:
+ *
+ *   Use DmtxFlipY if your image is flipped top-to-bottom
+ *   Use DmtxFlipNone if your image looks correct
+ *
+ * libdmtx image functions will always treat (x,y,) = (0,0) as the bottom-
+ * left corner of the image. It will do the necessary flip automatically
+ * based on the flip value specified when creating the image.
+ *
+ *                      (width-1,height-1)
+ *    +-------------------------+
+ *    |                         |
+ *    |                         |
+ *    |                         |
+ *    |          Image          |
+ *    |                         |
+ *    |                         |
+ *    |                         |
+ *    +-------------------------+
+ *  (0,0)
+ *
+ */
+
+/**
  * @brief  xxx
  * @param  xxx
  * @return xxx

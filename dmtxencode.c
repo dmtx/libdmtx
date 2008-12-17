@@ -129,7 +129,7 @@ dmtxEncodeStructDestroy(DmtxEncode **enc)
  * @return DmtxPass | DmtxFail
  */
 extern DmtxPassFail
-dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest)
+dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest, int flip)
 {
    int dataWordCount;
    int sizeIdx;
@@ -171,7 +171,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    height = 2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize);
 
    /* Allocate memory for the image to be generated */
-   enc->image = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB, DmtxFlipNone);
+   enc->image = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB, flip);
    if(enc->image == NULL) {
       perror("image malloc error");
       return DmtxFail;
@@ -192,7 +192,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
  * @return DmtxPass | DmtxFail
  */
 extern DmtxPassFail
-dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest)
+dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest, int flip)
 {
    int dataWordCount;
    int tmpInputSize;
@@ -283,13 +283,13 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
 
    /* First encode red to the main encode struct (image portion will be overwritten) */
    inputStart = inputString;
-   dmtxEncodeDataMatrix(enc, splitInputSize[0], inputStart, splitSizeIdxAttempt);
+   dmtxEncodeDataMatrix(enc, splitInputSize[0], inputStart, splitSizeIdxAttempt, flip);
 
    inputStart += splitInputSize[0];
-   dmtxEncodeDataMatrix(&encGreen, splitInputSize[1], inputStart, splitSizeIdxAttempt);
+   dmtxEncodeDataMatrix(&encGreen, splitInputSize[1], inputStart, splitSizeIdxAttempt, flip);
 
    inputStart += splitInputSize[1];
-   dmtxEncodeDataMatrix(&encBlue, splitInputSize[2], inputStart, splitSizeIdxAttempt);
+   dmtxEncodeDataMatrix(&encBlue, splitInputSize[2], inputStart, splitSizeIdxAttempt, flip);
 
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, splitSizeIdxAttempt);
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, splitSizeIdxAttempt);
