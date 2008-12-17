@@ -28,34 +28,45 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * libdmtx accomodates multiple pixel orders and formats. The following
- * rules determine whether images should use the DmtxFlipNone or DmtxFlipY
- * flag.
+ * Because libdmtx performs image operations in memory only, it requires
+ * an efficient method for communicating the image data between itself and
+ * the calling programs. libdmtx provides two options for this:
  *
- * Pixels are stored in a large array of bytes, possibly with multiple
- * bytes per pixel. If the pixels are drawn in horizontal rows with the
- * first pixel being placed in the bottom-left corner and the final pixel
- * at the top-right, then:
+ * 1) libdmtx can use an existing array of pixels that was previously
+ *    allocated and populated by the calling program
+ *
+ * 2) libdmtx can allocate the pixel array, to which the calling program
+ *    must then write a copy of its pixel data
+ *
+ * In both cases the image data are treated as a large flat array of pixels
+ * consisting of one ore more bytes. To accomodate the multitude of
+ * potential row and packing orders, libdmtx accepts and stores format
+ * parameters that allow the image functions to provide a consistent pixel
+ * addressing scheme regardless of the underlying row and/or pixel order.
+ *
+ * When calling libdmtx image functions that use x and y location
+ * parameters, the location (x,y) = (0,0) will always represent the bottom
+ * left corner of the image.
+ *
+ *     (0,HEIGHT-1)    (WIDTH-1,HEIGHT-1)
+ *       +---------------------+
+ *       |                     |
+ *       |                     |
+ *       |                     |
+ *       |        Image        |
+ *       |                     |
+ *       |                     |
+ *       |                     |
+ *       +---------------------+
+ *     (0,0)           (WIDTH-1,0)
+ *
+ *
+ * If the pixels are drawn in horizontal rows with the first pixel being
+ * placed in the bottom-left corner and the final pixel at the top-right,
+ * then:
  *
  *   Use DmtxFlipY if your image is flipped top-to-bottom
  *   Use DmtxFlipNone if your image looks correct
- *
- * libdmtx image functions will always treat (x,y,) = (0,0) as the bottom-
- * left corner of the image. It will do the necessary flip automatically
- * based on the flip value specified when creating the image.
- *
- *                      (width-1,height-1)
- *    +-------------------------+
- *    |                         |
- *    |                         |
- *    |                         |
- *    |          Image          |
- *    |                         |
- *    |                         |
- *    |                         |
- *    +-------------------------+
- *  (0,0)
- *
  */
 
 /**
