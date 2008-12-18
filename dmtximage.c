@@ -28,45 +28,64 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * Because libdmtx performs image operations in memory only, it requires
- * an efficient method for communicating the image data between itself and
- * the calling programs. libdmtx provides two options for this:
+ * libdmtx handles each image as a single 1D array of packed pixel data.
+ * All image operations will read or write to this array, but will never
+ * access a filesystem or other external target directly. Instead, libdmtx
+ * relies on the calling program to transfer data between this array and
+ * the outside world (e.g., saving to disk, acquiring camera input,
+ * etc...), and therefore requires an approach for efficiently sharing
+ * pixel data. Calling programs have two options:
  *
- * 1) libdmtx can use an existing array of pixels that was previously
- *    allocated and populated by the calling program
+ *  1) libdmtx can use an existing array of pixels that was previously
+ *     allocated by the calling program. Data in this array will not be
+ *     altered by the barcode scanning process, so libdmtx can safely use
+ *     display memory and pixel buffers to achieve fast performance. Pixel
+ *     memory used with this option will not be freed when the DmtxImage
+ *     struct is released by dmtxImageDestroy().
  *
- * 2) libdmtx can allocate the pixel array, to which the calling program
- *    must then write a copy of its pixel data
+ *  2) libdmtx can also allocate the pixel array itself. When scanning a
+ *     barcode, this option requires the calling program to write a copy
+ *     of its pixel data to the newly allocated array (more work than #1
+ *     above). This memory will be freed automatically when the DmtxImage
+ *     struct is released by dmtxImageDestroy().
  *
- * In both cases the image data are treated as a large flat array of pixels
- * consisting of one ore more bytes. To accomodate the multitude of
- * potential row and packing orders, libdmtx accepts and stores format
- * parameters that allow the image functions to provide a consistent pixel
- * addressing scheme regardless of the underlying row and/or pixel order.
+ * When calling dmtxImageCreate() the program must also specify certain
+ * parameters to instruct libdmtx about the underlying image structure.
+ * This allows the library to use a large number of image structures (i.e.,
+ * row orders, packing format, color depths) while still presenting a
+ * consistent pixel coordinate scheme to the caller.
  *
- * When calling libdmtx image functions that use x and y location
- * parameters, the location (x,y) = (0,0) will always represent the bottom
- * left corner of the image.
+ * Regardless of how an image is stored internally, libdmtx always
+ * considers (x=0,y=0) to represent the bottom-left pixel location of an
+ * image. Care must be taken to ensure that images are properly flipped
+ * (or not flipped) for this behavior to work correctly.
  *
- *     (0,HEIGHT-1)    (WIDTH-1,HEIGHT-1)
- *       +---------------------+
- *       |                     |
- *       |                     |
- *       |                     |
- *       |        Image        |
- *       |                     |
- *       |                     |
- *       |                     |
- *       +---------------------+
- *     (0,0)           (WIDTH-1,0)
+ * By default libdmtx treats the first pixel in arrays as the bottom-left
+ * location of an image, with horizontal rows working upward to the final
+ * pixel at the top-right corner. If mapping a pixel buffer this way
+ * produces an inverted image, then specify DmtxFlipY at image creation
+ * time to remove the inversion. Note that DmtxFlipY has no significant
+ * affect on performance since it only modifies the pixel mapping logic,
+ * and does not alter any pixel data. If the image appears correctly
+ * without any flips then specify DmtxFlipNone.
  *
+ *                (0,HEIGHT-1)        (WIDTH-1,HEIGHT-1)
+ *                      +---------------------+
+ *                      |                     |
+ *                      |                     |
+ *                      |       libdmtx       |
+ *                      |        image        |
+ *                      |     coordinates     |
+ *                      |                     |
+ *                      |                     |
+ *                      +---------------------+
+ *                    (0,0)              (WIDTH-1,0)
  *
- * If the pixels are drawn in horizontal rows with the first pixel being
- * placed in the bottom-left corner and the final pixel at the top-right,
- * then:
- *
- *   Use DmtxFlipY if your image is flipped top-to-bottom
- *   Use DmtxFlipNone if your image looks correct
+ * Note:
+ *   - OpenGL pixel arrays obtained with glReadPixels() are stored
+ *     bottom-to-top; use DmtxFlipNone
+ *   - Many popular image formats (e.g., PNG, GIF) store rows
+ *     top-to-bottom; use DmtxFlipY
  */
 
 /**
