@@ -60,8 +60,8 @@ main(int argc, char *argv[])
    char *filePath;
    int i;
    int err;
-   int fileIndex, gmPageIndex;
-   int fileCount, gmPageCount;
+   int fileIndex, imgPageIndex;
+   int fileCount, imgPageCount;
    int imageScanCount, pageScanCount;
    unsigned char *pxl;
    UserOptions opt;
@@ -70,8 +70,8 @@ main(int argc, char *argv[])
    DmtxDecode *dec;
    DmtxRegion reg;
    DmtxMessage *msg;
-   GmImage *gmImage, *gmPage;
-   GmImageInfo *gmInfo;
+   GmImage *imgList, *imgPage;
+   GmImageInfo *imgInfo;
 
    opt = GetDefaultOptions();
 
@@ -81,57 +81,57 @@ main(int argc, char *argv[])
 
    fileCount = (argc == fileIndex) ? 1 : argc - fileIndex;
 
-   /* For each image named on command line */
+   /* Loop once for each image named on command line */
    imageScanCount = 0;
    for(i = 0; i < fileCount; i++) {
 
       gmInitializeMagick(*argv);
 
-      /* Open image from file or stream (possibly contains multiple pages) */
+      /* Open image from file or stream (might contain multiple pages) */
       filePath = (argc == fileIndex) ? "-" : argv[fileIndex++];
-      gmImage = OpenImageList(&gmInfo, filePath, opt.resolution);
-      if(gmImage == NULL)
+      imgList = OpenImageList(&imgInfo, filePath, opt.resolution);
+      if(imgList == NULL)
          continue;
 
-      /* For each page within image */
-      gmPageCount = gmGetImageListLength(gmImage);
-      for(gmPageIndex = 0; gmPageIndex < gmPageCount; gmPageIndex++) {
+      /* Loop once for each page within image */
+      imgPageCount = gmGetImageListLength(imgList);
+      for(imgPageIndex = 0; imgPageIndex < imgPageCount; imgPageIndex++) {
 
          /* Reset timeout for each new page */
          if(opt.timeoutMS != -1)
             timeout = dmtxTimeAdd(dmtxTimeNow(), opt.timeoutMS);
 
-         gmPage = gmGetImageFromList(gmImage, gmPageIndex);
-         assert(gmPage != NULL);
+         imgPage = gmGetImageFromList(imgList, imgPageIndex);
+         assert(imgPage != NULL);
 
          /* Allocate memory for pixel data */
-         pxl = (unsigned char *)malloc(3 * gmPage->columns * gmPage->rows *
+         pxl = (unsigned char *)malloc(3 * imgPage->columns * imgPage->rows *
                sizeof(unsigned char));
          if(pxl == NULL) {
-            CleanupMagick(&gmImage, &gmInfo);
+            CleanupMagick(&imgList, &imgInfo);
             FatalError(80, "malloc() error");
          }
 
-         /* Copy pixel data into known format */
-         WritePixelsToBuffer(pxl, gmPage);
+         /* Copy pixels to known format */
+         WritePixelsToBuffer(pxl, imgPage);
 
          /* Initialize libdmtx image */
-         img = dmtxImageCreate(pxl, gmPage->columns, gmPage->rows, 24, DmtxPackRGB, DmtxFlipY);
+         img = dmtxImageCreate(pxl, imgPage->columns, imgPage->rows, 24, DmtxPackRGB, DmtxFlipY);
          if(img == NULL) {
-            CleanupMagick(&gmImage, &gmInfo);
+            CleanupMagick(&imgList, &imgInfo);
             FatalError(80, "dmtxImageCreate() error");
          }
 
          /* Initialize scan */
          dec = dmtxDecodeStructCreate(img);
          if(dec == NULL) {
-            CleanupMagick(&gmImage, &gmInfo);
+            CleanupMagick(&imgList, &imgInfo);
             FatalError(80, "decode create error");
          }
 
          err = SetDecodeOptions(dec, img, &opt);
          if(err != DmtxPass) {
-            CleanupMagick(&gmImage, &gmInfo);
+            CleanupMagick(&imgList, &imgInfo);
             FatalError(80, "decode option error");
          }
 
@@ -172,7 +172,7 @@ main(int argc, char *argv[])
          free(pxl);
       }
 
-      CleanupMagick(&gmImage, &gmInfo);
+      CleanupMagick(&imgList, &imgInfo);
    }
 
    exit((imageScanCount > 0) ? EX_OK : 1);
@@ -471,14 +471,14 @@ OPTIONS:\n"), programName, programName);
  * @return Image list
  */
 static GmImage *
-OpenImageList(GmImageInfo **gmInfo, char *imagePath, char *resolution)
+OpenImageList(GmImageInfo **imgInfo, char *imagePath, char *resolution)
 {
    GmImageInfo *info;
-   GmImage *gmImage;
+   GmImage *imgList;
    GmExceptionInfo exception;
 
-   info = *gmInfo = gmCloneImageInfo((GmImageInfo *) NULL);
-   gmImage = NULL;
+   info = *imgInfo = gmCloneImageInfo((GmImageInfo *) NULL);
+   imgList = NULL;
    gmGetExceptionInfo(&exception);
 
    strncpy(info->filename, imagePath, MaxTextExtent);
@@ -488,7 +488,7 @@ OpenImageList(GmImageInfo **gmInfo, char *imagePath, char *resolution)
       info->density = resolution;
       info->units = PixelsPerInchResolution;
    }
-   gmImage = gmReadImage(info, &exception);
+   imgList = gmReadImage(info, &exception);
 
    switch(exception.severity) {
 /*    case UndefinedException:
@@ -506,7 +506,7 @@ OpenImageList(GmImageInfo **gmInfo, char *imagePath, char *resolution)
 
    gmDestroyExceptionInfo(&exception);
 
-   return gmImage;
+   return imgList;
 }
 
 /**
@@ -514,16 +514,16 @@ OpenImageList(GmImageInfo **gmInfo, char *imagePath, char *resolution)
  *
  */
 static void
-CleanupMagick(GmImage **gmImage, GmImageInfo **gmInfo)
+CleanupMagick(GmImage **imgList, GmImageInfo **imgInfo)
 {
-   if(*gmImage) {
-      gmDestroyImage(*gmImage);
-      *gmImage = NULL;
+   if(*imgList) {
+      gmDestroyImage(*imgList);
+      *imgList = NULL;
    }
 
-   if(*gmInfo) {
-      gmDestroyImageInfo(*gmInfo);
-      *gmInfo = NULL;
+   if(*imgInfo) {
+      gmDestroyImageInfo(*imgInfo);
+      *imgInfo = NULL;
    }
 
    gmDestroyMagick();
@@ -536,15 +536,15 @@ CleanupMagick(GmImage **gmImage, GmImageInfo **gmInfo)
  * @return pointer to allocated DmtxImage or NULL
  */
 static void
-WritePixelsToBuffer(unsigned char *pxl, GmImage *gmPage)
+WritePixelsToBuffer(unsigned char *pxl, GmImage *imgPage)
 {
    GmExceptionInfo exception;
 
-   assert(pxl != NULL && gmPage != NULL);
+   assert(pxl != NULL && imgPage != NULL);
 
    gmGetExceptionInfo(&exception);
 
-   gmDispatchImage(gmPage, 0, 0, gmPage->columns, gmPage->rows, "RGB",
+   gmDispatchImage(imgPage, 0, 0, imgPage->columns, imgPage->rows, "RGB",
          CharPixel, pxl, &exception);
 
    gmCatchException(&exception);
