@@ -63,7 +63,7 @@ typedef struct {
 } UserOptions;
 
 /* Functions */
-static void SetOptionDefaults(UserOptions *opt);
+static UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[]);
 static void ShowUsage(int status);
 static Image *OpenImageList(ImageInfo **gmInfo, char *imagePath, char *resolution);

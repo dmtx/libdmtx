@@ -59,7 +59,7 @@ main(int argc, char *argv[])
    unsigned char codeBuffer[DMTXWRITE_BUFFER_SIZE];
    int codeBufferSize = sizeof codeBuffer;
 
-   InitUserOptions(&opt);
+   opt = GetDefaultOptions();
 
    /* Create and initialize libdmtx structures */
    enc = dmtxEncodeStructCreate();
@@ -109,21 +109,25 @@ main(int argc, char *argv[])
  *
  *
  */
-static void
-InitUserOptions(UserOptions *opt)
+static UserOptions
+GetDefaultOptions(void)
 {
-   memset(opt, 0x00, sizeof(UserOptions));
+   UserOptions opt;
 
-/* opt->color = ""; */
-/* opt->bgColor = ""; */
-   opt->format = 'p';
-   opt->inputPath = NULL;    /* default stdin */
-   opt->outputPath = NULL;   /* default stdout */
-   opt->rotate = 0;
-   opt->sizeIdx = DmtxSymbolSquareAuto;
-   opt->verbose = 0;
-   opt->mosaic = 0;
-   opt->dpi = 0; /* default to native resolution of requested image format */
+   memset(&opt, 0x00, sizeof(UserOptions));
+
+/* opt.color = ""; */
+/* opt.bgColor = ""; */
+   opt.format = 'p';
+   opt.inputPath = NULL;    /* default stdin */
+   opt.outputPath = NULL;   /* default stdout */
+   opt.rotate = 0;
+   opt.sizeIdx = DmtxSymbolSquareAuto;
+   opt.verbose = 0;
+   opt.mosaic = 0;
+   opt.dpi = 0; /* default to native resolution of requested image format */
+
+   return opt;
 }
 
 /**

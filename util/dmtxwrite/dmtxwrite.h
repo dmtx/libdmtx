@@ -48,7 +48,7 @@ typedef struct {
    int dpi;
 } UserOptions;
 
-static void InitUserOptions(UserOptions *opt);
+static UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *encode);
 static void ReadData(UserOptions *opt, int *codeBuffer, unsigned char *codeBufferSize);
 static void ShowUsage(int status);

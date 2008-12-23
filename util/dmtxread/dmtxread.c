@@ -73,7 +73,7 @@ main(int argc, char *argv[])
    GmImage *gmImage, *gmPage;
    GmImageInfo *gmInfo;
 
-   SetOptionDefaults(&opt);
+   opt = GetDefaultOptions();
 
    err = HandleArgs(&opt, &fileIndex, &argc, &argv);
    if(err != DmtxPass)
@@ -182,39 +182,39 @@ main(int argc, char *argv[])
  *
  *
  */
-static void
-SetOptionDefaults(UserOptions *opt)
+static UserOptions
+GetDefaultOptions(void)
 {
-   UserOptions option;
+   UserOptions opt;
 
-   memset(&option, 0x00, sizeof(UserOptions));
+   memset(&opt, 0x00, sizeof(UserOptions));
 
-   /* Set default options */
-   option.codewords = 0;
-   option.edgeMin = -1;
-   option.edgeMax = -1;
-   option.squareDevn = -1;
-   option.scanGap = 2;
-   option.timeoutMS = -1;
-   option.newline = 0;
-   option.resolution = NULL;
-   option.sizeIdxExpected = DmtxSymbolShapeAuto;
-   option.edgeThresh = 5;
-   option.xMin = NULL;
-   option.xMax = NULL;
-   option.yMin = NULL;
-   option.yMax = NULL;
-   option.correctionsMax = -1;
-   option.diagnose = 0;
-   option.mosaic = 0;
-   option.stopAfter = -1;
-   option.pageNumber = 0;
-   option.corners = 0;
-   option.shrinkMin = 1;
-   option.shrinkMax = 1;
-   option.verbose = 0;
+   /* Default options */
+   opt.codewords = 0;
+   opt.edgeMin = -1;
+   opt.edgeMax = -1;
+   opt.squareDevn = -1;
+   opt.scanGap = 2;
+   opt.timeoutMS = -1;
+   opt.newline = 0;
+   opt.resolution = NULL;
+   opt.sizeIdxExpected = DmtxSymbolShapeAuto;
+   opt.edgeThresh = 5;
+   opt.xMin = NULL;
+   opt.xMax = NULL;
+   opt.yMin = NULL;
+   opt.yMax = NULL;
+   opt.correctionsMax = -1;
+   opt.diagnose = 0;
+   opt.mosaic = 0;
+   opt.stopAfter = -1;
+   opt.pageNumber = 0;
+   opt.corners = 0;
+   opt.shrinkMin = 1;
+   opt.shrinkMax = 1;
+   opt.verbose = 0;
 
-   *opt = option;
+   return opt;
 }
 
 /**
