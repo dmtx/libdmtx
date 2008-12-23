@@ -460,7 +460,7 @@ PrintPattern(DmtxEncode *enc)
       IMPORTANT: DmtxImage is stored with its origin at bottom-right
       (unlike common image file formats) to preserve "right-handed" 2D space */
 
-   memset(enc->image->pxl, 0xff, dmtxImageGetProp(enc->image, DmtxPropArea) * (enc->image->bpp/8));
+   memset(enc->image->pxl, 0xff, dmtxImageGetProp(enc->image, DmtxPropArea) * (enc->image->bitsPerPixel/8));
 
    for(symbolRow = 0; symbolRow < enc->region.symbolRows; symbolRow++) {
       for(symbolCol = 0; symbolCol < enc->region.symbolCols; symbolCol++) {

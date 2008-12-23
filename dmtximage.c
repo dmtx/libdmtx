@@ -104,7 +104,7 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack, in
    if(img == NULL)
       return NULL;
 
-   img->bpp = bpp;
+   img->bitsPerPixel = bpp;
    img->pack = pack;
    img->flip = flip;
 
@@ -131,10 +131,10 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack, in
       img->mallocByDmtx = DmtxTrue;
 
       /* Pixels must fall along byte boundaries for auto malloc option */
-      if(img->bpp % 8 != 0)
+      if(img->bitsPerPixel % 8 != 0)
          return NULL;
 
-      bytesPerPixel = img->bpp/8;
+      bytesPerPixel = img->bitsPerPixel/8;
       img->pxl = malloc(bytesPerPixel * width * height * sizeof(unsigned char));
       if(img->pxl == NULL) {
          free(img);
@@ -142,23 +142,23 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack, in
       }
    }
 
-   if(img->bpp == 1) {
+   if(img->bitsPerPixel == 1) {
       err = dmtxImageAddChannel(img,  0, 1);
    }
-   else if(pack == DmtxPackRGB && img->bpp == 16) {
+   else if(pack == DmtxPackRGB && img->bitsPerPixel == 16) {
       err = dmtxImageAddChannel(img,  0, 5);
       err = dmtxImageAddChannel(img,  5, 5);
       err = dmtxImageAddChannel(img, 10, 5);
    }
-   else if(pack == DmtxPackYCbCr && img->bpp == 24) {
+   else if(pack == DmtxPackYCbCr && img->bitsPerPixel == 24) {
       err = dmtxImageAddChannel(img,  0, 8);
    }
-   else if(pack == DmtxPackRGB && (img->bpp == 24 || img->bpp == 32)) {
+   else if(pack == DmtxPackRGB && (img->bitsPerPixel == 24 || img->bitsPerPixel == 32)) {
       err = dmtxImageAddChannel(img,  0, 8);
       err = dmtxImageAddChannel(img,  8, 8);
       err = dmtxImageAddChannel(img, 16, 8);
    }
-   else if(pack == DmtxPackCMYK && img->bpp == 32) {
+   else if(pack == DmtxPackCMYK && img->bitsPerPixel == 32) {
       err = dmtxImageAddChannel(img,  0, 8);
       err = dmtxImageAddChannel(img,  8, 8);
       err = dmtxImageAddChannel(img, 16, 8);
@@ -294,9 +294,9 @@ dmtxImageGetProp(DmtxImage *img, int prop)
       case DmtxPropHeight:
          return img->height;
       case DmtxPropBitsPerPixel:
-         return img->bpp;
+         return img->bitsPerPixel;
       case DmtxPropBytesPerPixel:
-         return img->bpp/8;
+         return img->bitsPerPixel/8;
       case DmtxPropArea:
          return img->width * img->height;
       case DmtxPropXmin:
@@ -373,7 +373,7 @@ dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
    if(pixelOffset == DMTX_BAD_OFFSET)
       return DmtxFail;
 
-   byteOffset = pixelOffset * (img->bpp/8);
+   byteOffset = pixelOffset * (img->bitsPerPixel/8);
    img->pxl[byteOffset + 0] = rgb[0];
    img->pxl[byteOffset + 1] = rgb[1];
    img->pxl[byteOffset + 2] = rgb[2];
@@ -401,7 +401,7 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
    if(pixelOffset == DMTX_BAD_OFFSET)
       return DmtxFail;
 
-   byteOffset = pixelOffset * (img->bpp/8);
+   byteOffset = pixelOffset * (img->bitsPerPixel/8);
    rgb[0] = img->pxl[byteOffset + 0];
    rgb[1] = img->pxl[byteOffset + 1];
    rgb[2] = img->pxl[byteOffset + 2];
@@ -429,16 +429,23 @@ dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane)
    if(pixelOffset == DMTX_BAD_OFFSET)
       return -1;
 
-   byteOffset = pixelOffset * (img->bpp/8);
+   byteOffset = pixelOffset * (img->bitsPerPixel/8);
 
    return img->pxl[byteOffset + colorPlane];
 }
+
 /*
- * new implementation
+ *
+ *
+ */
 extern DmtxPassFail
 dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
 {
+   unsigned char *pixelPtr;
+   int pixelValue;
    int offset;
+   int mask;
+   int bitShift;
 
    if(img == NULL || channel >= img->channelCount);
       return DmtxFail;
@@ -457,23 +464,22 @@ dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
          *value = (img->pxl[offset/8] & mask) ? 255 : 0;
          break;
       case 5:
-         // XXX might be expensive if we want to scale perfect 0x00-0xff range
+         /* XXX might be expensive if we want to scale perfect 0x00-0xff range */
          assert(img->bitsPerPixel == 16);
-         pixel = img->pxl[offset * (img->bitsPerPixel/8)];
-         pixelValue = (*pixel << 8) | (*(pixel+1));
+         pixelPtr = img->pxl + (offset * (img->bitsPerPixel/8));
+         pixelValue = (*pixelPtr << 8) | (*(pixelPtr+1));
          bitShift = img->bitsPerPixel - 5 - img->channelStart[channel];
          mask = 0x1f << bitShift;
-         value = ((pixelValue & mask) >> bitShift) << 3;
+         *value = (((pixelValue & mask) >> bitShift) << 3);
          break;
       case 8:
-         assert(img->channelStart % 8 == 0);
+         assert(img->channelStart[channel] % 8 == 0);
          *value = img->pxl[offset * (img->bitsPerPixel/8) + (img->bitsPerChannel[channel]/8)];
          break;
    }
 
    return DmtxPass;
 }
-*/
 
 /**
  * @brief  Test whether image contains a coordinate expressed in integers

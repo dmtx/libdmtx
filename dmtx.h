@@ -305,7 +305,10 @@ typedef struct DmtxGradient_struct {
 typedef struct DmtxImage_struct {
    int             width;  /* unscaled */
    int             height; /* unscaled */
-   int             bpp;
+   int             bitsPerPixel;
+   int             channelCount;
+   int             channelStart[4];
+   int             bitsPerChannel[4];
    int             pack;
    int             flip;
    char            mallocByDmtx;
@@ -320,9 +323,6 @@ typedef struct DmtxImage_struct {
    int             xMaxScaled;
    int             yMinScaled;
    int             yMaxScaled;
-   int             channelCount;
-   int             channelStart[4];
-   int             bitsPerChannel[4];
    unsigned char   *cache;
 /* DmtxRgb         *pxl; */
    unsigned char   *pxl;
@@ -575,6 +575,7 @@ extern int dmtxImageGetPixelOffset(DmtxImage *img, int x, int y);
 extern DmtxPassFail dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
 extern DmtxPassFail dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
 extern int dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane);
+extern DmtxPassFail dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value);
 extern DmtxBoolean dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);
 extern DmtxBoolean dmtxImageContainsFloat(DmtxImage *img, double x, double y);
 

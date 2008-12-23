@@ -411,7 +411,7 @@ WriteImagePng(UserOptions *opt, DmtxEncode *enc)
 
    img = enc->image;
    bytesPerPixel = 3;
-   assert(img->bpp == 24);
+   assert(img->bitsPerPixel == 24);
 
    /* Open file or stdin for writing */
    fp = (opt->outputPath == NULL) ? stdout : fopen(opt->outputPath, "wb");
