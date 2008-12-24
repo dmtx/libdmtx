@@ -81,11 +81,11 @@ main(int argc, char *argv[])
 
    fileCount = (argc == fileIndex) ? 1 : argc - fileIndex;
 
+   gmInitializeMagick(*argv);
+
    /* Loop once for each image named on command line */
    imageScanCount = 0;
    for(i = 0; i < fileCount; i++) {
-
-      gmInitializeMagick(*argv);
 
       /* Open image from file or stream (might contain multiple pages) */
       filePath = (argc == fileIndex) ? "-" : argv[fileIndex++];
@@ -174,6 +174,8 @@ main(int argc, char *argv[])
 
       CleanupMagick(&imgList, &imgInfo);
    }
+
+   gmDestroyMagick();
 
    exit((imageScanCount > 0) ? EX_OK : 1);
 }
@@ -525,8 +527,6 @@ CleanupMagick(GmImage **imgList, GmImageInfo **imgInfo)
       gmDestroyImageInfo(*imgInfo);
       *imgInfo = NULL;
    }
-
-   gmDestroyMagick();
 }
 
 /**
