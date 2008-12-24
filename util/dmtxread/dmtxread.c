@@ -95,6 +95,7 @@ main(int argc, char *argv[])
 
       /* Loop once for each page within image */
       imgPageCount = gmGetImageListLength(imgList);
+
       for(imgPageIndex = 0; imgPageIndex < imgPageCount; imgPageIndex++) {
 
          /* Reset timeout for each new page */
@@ -155,7 +156,7 @@ main(int argc, char *argv[])
             if(msg == NULL)
                continue;
 
-            PrintDecodedOutput(&opt, img, &reg, msg, pageScanCount);
+            PrintDecodedOutput(&opt, img, &reg, msg, imgPageIndex);
             dmtxMessageDestroy(&msg);
             pageScanCount++;
             imageScanCount++;
@@ -625,7 +626,7 @@ SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt)
  */
 static DmtxPassFail
 PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
-      DmtxRegion *reg, DmtxMessage *msg, int pageIndex)
+      DmtxRegion *reg, DmtxMessage *msg, int imgPageIndex)
 {
    int i;
    int height;
@@ -675,7 +676,7 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
    }
 
    if(opt->pageNumber)
-      fprintf(stdout, "%d:", pageIndex + 1);
+      fprintf(stdout, "%d:", imgPageIndex + 1);
 
    if(opt->corners) {
       fprintf(stdout, "%d,%d:", (int)(p00.X + 0.5), height - 1 - (int)(p00.Y + 0.5));

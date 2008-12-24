@@ -71,7 +71,7 @@ static void CleanupMagick(Image **gmImage, ImageInfo **gmInfo);
 static void WritePixelsToBuffer(unsigned char *pxl, Image *gmPage);
 static DmtxPassFail SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt);
 static DmtxPassFail PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
-      DmtxRegion *region, DmtxMessage *message, int pageIndex);
+      DmtxRegion *region, DmtxMessage *message, int imgPageIndex);
 static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);
 static void ListImageFormats(void);
 static int ScaleNumberString(char *s, int extent);
