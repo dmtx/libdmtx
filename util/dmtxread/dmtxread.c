@@ -63,6 +63,7 @@ main(int argc, char *argv[])
    int fileIndex, imgPageIndex;
    int fileCount, imgPageCount;
    int imageScanCount, pageScanCount;
+   int firstPage, finalPage;
    unsigned char *pxl;
    UserOptions opt;
    DmtxTime timeout;
@@ -96,7 +97,17 @@ main(int argc, char *argv[])
       /* Loop once for each page within image */
       imgPageCount = gmGetImageListLength(imgList);
 
-      for(imgPageIndex = 0; imgPageIndex < imgPageCount; imgPageIndex++) {
+      /* Determine page range */
+      if(opt.page == -1) {
+         firstPage = 0;
+         finalPage = imgPageCount - 1;
+      }
+      else {
+         firstPage = opt.page - 1;
+         finalPage = opt.page - 1;
+      }
+
+      for(imgPageIndex = firstPage; imgPageIndex <= finalPage; imgPageIndex++) {
 
          /* Reset timeout for each new page */
          if(opt.timeoutMS != -1)
@@ -200,6 +211,7 @@ GetDefaultOptions(void)
    opt.scanGap = 2;
    opt.timeoutMS = -1;
    opt.newline = 0;
+   opt.page = -1;
    opt.resolution = NULL;
    opt.sizeIdxExpected = DmtxSymbolShapeAuto;
    opt.edgeThresh = 5;
@@ -211,7 +223,7 @@ GetDefaultOptions(void)
    opt.diagnose = 0;
    opt.mosaic = 0;
    opt.stopAfter = -1;
-   opt.pageNumber = 0;
+   opt.pageNumbers = 0;
    opt.corners = 0;
    opt.shrinkMin = 1;
    opt.shrinkMax = 1;
@@ -245,6 +257,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          {"list-formats",     no_argument,       NULL, 'l'},
          {"milliseconds",     required_argument, NULL, 'm'},
          {"newline",          no_argument,       NULL, 'n'},
+         {"page",             required_argument, NULL, 'p'},
          {"square-deviation", required_argument, NULL, 'q'},
          {"resolution",       required_argument, NULL, 'r'},
          {"symbol-size",      required_argument, NULL, 's'},
@@ -257,7 +270,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          {"diagnose",         no_argument,       NULL, 'D'},
          {"mosaic",           no_argument,       NULL, 'M'},
          {"stop-after",       required_argument, NULL, 'N'},
-         {"page-number",      no_argument,       NULL, 'P'},
+         {"page-numbers",     no_argument,       NULL, 'P'},
          {"corners",          no_argument,       NULL, 'R'},
          {"shrink",           required_argument, NULL, 'S'},
          {"verbose",          no_argument,       NULL, 'v'},
@@ -271,7 +284,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
    *fileIndex = 0;
 
    for(;;) {
-      optchr = getopt_long(*argcp, *argvp, "ce:E:g:lm:nq:r:s:t:x:X:y:Y:vC:DMN:PRS:V",
+      optchr = getopt_long(*argcp, *argvp, "ce:E:g:lm:np:q:r:s:t:x:X:y:Y:vC:DMN:PRS:V",
             longOptions, &longIndex);
       if(optchr == -1)
          break;
@@ -310,6 +323,10 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          case 'n':
             opt->newline = 1;
             break;
+         case 'p':
+            err = StringToInt(&(opt->page), optarg, &ptr);
+            if(err != DmtxPass || opt->page < 1 || *ptr != '\0')
+               FatalError(EX_USAGE, _("Invalid page specified \"%s\""), optarg);
          case 'q':
             err = StringToInt(&(opt->squareDevn), optarg, &ptr);
             if(err != DmtxPass || *ptr != '\0' ||
@@ -379,7 +396,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
                FatalError(EX_USAGE, _("Invalid count specified \"%s\""), optarg);
             break;
          case 'P':
-            opt->pageNumber = 1;
+            opt->pageNumbers = 1;
             break;
          case 'R':
             opt->corners = 1;
@@ -436,6 +453,7 @@ OPTIONS:\n"), programName, programName);
   -l, --list-formats          list supported image formats\n\
   -m, --milliseconds=N        stop scan after N milliseconds (per image)\n\
   -n, --newline               print newline character at the end of decoded data\n\
+  -p, --page=N                only scan Nth page of images\n\
   -q, --square-deviation=N    allow non-squareness of corners in degrees (0-90)\n"));
       fprintf(stdout, _("\
   -r, --resolution=N          resolution for vector images (PDF, SVG, etc...)\n\
@@ -455,7 +473,7 @@ OPTIONS:\n"), programName, programName);
   -M, --mosaic                interpret detected regions as Data Mosaic barcodes\n"));
       fprintf(stdout, _("\
   -N, --stop-after=N          stop scanning after Nth barcode is returned\n\
-  -P, --page-number           prefix decoded message with fax/tiff page number\n\
+  -P, --page-numbers          prefix decoded message with fax/tiff page number\n\
   -R, --corners               prefix decoded message with corner locations\n\
   -S, --shrink=N              internally shrink image by a factor of N\n\
   -v, --verbose               use verbose messages\n\
@@ -675,7 +693,7 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       fprintf(stdout, "--------------------------------------------------\n");
    }
 
-   if(opt->pageNumber)
+   if(opt->pageNumbers)
       fprintf(stdout, "%d:", imgPageIndex + 1);
 
    if(opt->corners) {

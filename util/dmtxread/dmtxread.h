@@ -44,6 +44,7 @@ typedef struct {
    int scanGap;         /* -g, --gap */
    int timeoutMS;       /* -m, --milliseconds */
    int newline;         /* -n, --newline */
+   int page;            /* -p, --page */
    char *resolution;    /* -r, --resolution */
    int sizeIdxExpected; /* -s, --symbol-size */
    int edgeThresh;      /* -t, --threshold */
@@ -55,7 +56,7 @@ typedef struct {
    int diagnose;        /* -D, --diagnose */
    int mosaic;          /* -M, --mosaic */
    int stopAfter;       /* -N, --stop-after */
-   int pageNumber;      /* -P, --page-number */
+   int pageNumbers;     /* -P, --page-numbers */
    int corners;         /* -R, --corners */
    int shrinkMax;       /* -s, --shrink */
    int shrinkMin;       /* -s, --shrink (if range specified) */
