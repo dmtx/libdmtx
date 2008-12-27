@@ -94,7 +94,7 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
    enc->marginSize = margin_size;
    enc->scheme = scheme;
 
-   dmtxEncodeDataMatrix(enc, data_size, (unsigned char *)data, shape);
+   dmtxEncodeDataMatrix(enc, data_size, (unsigned char *)data, shape, DmtxFlipY);
 
    if((start_cb != NULL) && PyCallable_Check(start_cb)) {
       args = Py_BuildValue("(iiO)", enc->image->width, enc->image->height, context);
@@ -155,7 +155,7 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
 
    PyObject_AsCharBuffer(dataBuffer, &pxl, &dataLen);
 
-   img = dmtxImageCreate((unsigned char *)pxl, width, height, 24, DmtxPackRGB, DmtxFlipNone);
+   img = dmtxImageCreate((unsigned char *)pxl, width, height, 24, DmtxPackRGB, DmtxFlipY);
    if(img == NULL)
       return NULL;
 
