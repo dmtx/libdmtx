@@ -506,7 +506,7 @@ OpenImageList(GmImageInfo **imgInfo, char *imagePath, char *resolution)
    info->filename[MaxTextExtent-1] = '\0';
 
    if(resolution) {
-      info->density = resolution;
+      info->density = strdup(resolution);
       info->units = PixelsPerInchResolution;
    }
    imgList = gmReadImage(info, &exception);
@@ -537,12 +537,12 @@ OpenImageList(GmImageInfo **imgInfo, char *imagePath, char *resolution)
 static void
 CleanupMagick(GmImage **imgList, GmImageInfo **imgInfo)
 {
-   if(*imgList) {
+   if(*imgList != NULL) {
       gmDestroyImage(*imgList);
       *imgList = NULL;
    }
 
-   if(*imgInfo) {
+   if(*imgInfo != NULL) {
       gmDestroyImageInfo(*imgInfo);
       *imgInfo = NULL;
    }
