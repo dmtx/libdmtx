@@ -434,7 +434,7 @@ dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane)
    return img->pxl[byteOffset + colorPlane];
 }
 
-/*
+/**
  *
  *
  */
