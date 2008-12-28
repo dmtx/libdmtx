@@ -129,18 +129,18 @@ int main(int argc, char *argv[])
       for(;;) {
 
          timeout = dmtxTimeAdd(dmtxTimeNow(), 500);
-/*
+
          reg = dmtxDecodeFindNextRegion(dec, &timeout);
          if(reg.found != DMTX_REGION_FOUND)
             break;
-*/
-//       p.X = 55;
+/*
+         p.X = 55;
          p.X = 130;
          p.Y = 190;
          reg = dmtxRegionScanPixel(dec, p);
          if(reg.found != DMTX_REGION_FOUND)
             break;
-
+*/
          msg = dmtxDecodeMatrixRegion(gImage, &reg, 1);
          if(msg == NULL)
             break;
