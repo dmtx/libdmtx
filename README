@@ -78,9 +78,9 @@ on your system:
   $ make
   $ sudo make install
 
-However, nobody is ever that lucky. Some details are provided
-below for when things go wrong or if you want to customize beyond
-the defaults.
+However, nobody is that lucky. Some details are provided below
+for when things go wrong or if you want to customize beyond the
+defaults.
 
 Details on "configure" step
 ----------------------------------------

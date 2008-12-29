@@ -36,6 +36,9 @@ Stop scan after N milliseconds (per image).
 \fB\-n\fP, \fB\-\-newline\fP
 Print a newline character at the end of decoded data.
 .TP
+\fB\-p\fP, \fB\-\-page\fP=\fIN\fP
+Only scan Nth page of images.
+.TP
 \fB\-q\fP, \fB\-\-square-deviation\fP=\fIN\fP
 Maximum deviation (degrees) from squareness between adjacent barcode sides. Default value is N=40, but N=10 is recommended for flat applications like faxes and other scanned documents. Barcode regions found with corners <(90-N) or >(90+N) will be ignored by the decoder.
 .TP
@@ -76,7 +79,7 @@ Interpret detected regions as Data Mosaic barcodes.
 \fB\-N\fP, \fB\-\-stop-after\fP=\fIN\fP
 Stop scanning after Nth barcode is returned.
 .TP
-\fB\-P\fP, \fB\-\-page\-number\fP
+\fB\-P\fP, \fB\-\-page\-numbers\fP
 Print each decoded message with its fax/tiff page number.
 .TP
 \fB\-R\fP, \fB\-\-corners\fP
