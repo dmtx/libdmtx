@@ -7,33 +7,32 @@
 This summary of the libdmtx package applies generally to all
 platforms. For instructions regarding your specific platform
 please also read the README.xxx file in this directory that
-matches your system (e.g., README.linux, README.windows,
-README.osx, etc...).
+matches your system (e.g., README.linux, README.cygwin,
+README.osx, README.msvc, etc...).
 
 
 1. Introduction
 -----------------------------------------------------------------
 
 libdmtx is open source software for reading and writing Data
-Matrix barcodes on Linux, Unix, OS X, Windows, and some mobile
-devices. At its core libdmtx is a shared library, allowing C/C++
-programs to use its capabilities without restrictions or
-overhead.
+Matrix barcodes of the modern ECC200 variety. It runs on several
+platforms and provides bindings for a variety of languages. At
+its core libdmtx is a shared library, allowing C/C++ programs to
+use its capabilities without restrictions or overhead.
 
-The included utility programs, dmtxread and dmtxwrite, provide
-the official command line interface to libdmtx, and also serve as
-a good reference for programmers who wish to write their own
-programs that interact with libdmtx. All of the software in the
-libdmtx package is distributed under the LGPL and can be used
-freely under its terms.
+The included utility programs provide the official command line
+interface for libdmtx, and serve as a good reference for
+programmers who wish to write their own programs that interact
+with libdmtx. This software is distributed with the LGPL license
+and can be used freely under those terms.
 
 
 2. Package Components
 -----------------------------------------------------------------
 
-libdmtx serves a diverse audience and contains several unrelated
-components, many of which may not be useful to you. Components
-fall into one of four categories:
+libdmtx serves a diverse audience and contains many components,
+some of which may not be useful to you. Components fall into one
+of four categories:
 
   * Core library      (useful to all libdmtx users)
   * Utility programs  (useful to command line users)
@@ -42,22 +41,22 @@ fall into one of four categories:
 
 The default installation will compile and install the core
 library and all three command line utilities. The test programs
-will compile by performing an additional "make check", and the
+are compiled by running an additional "make check", and the
 language wrappers are built using instructions found in their
 specific directories.
 
 Users who only want the core library can disable the command line
-utilities by passing any combination of the following parameters
-to "./configure":
+utilities by passing the following parameters to "configure"
+during installation:
 
   --disable-dmtxread
   --disable-dmtxwrite
   --disable-dmtxquery
 
-This is often useful in reducing compile times and avoiding
-unnecessary dependencies. Do note, however, that these utilities
-provide a convenient way to test the library and learn its
-behavior, so their inclusion is recommended if possible.
+This eliminates most software dependencies and helps to reduce
+compile times. However, these utilities provide a convenient way
+to test the library and to learn its behavior, so their inclusion
+is recommended if possible.
 
 Appendix A. at the end of this file provides a full list of the
 package components and their properties.
@@ -67,7 +66,7 @@ package components and their properties.
 -----------------------------------------------------------------
 
 libdmtx uses GNU Autotools so installation should be familiar to
-free software veterans. If your platform cannot easily run the
+veterans of free software. If your platform cannot easily run the
 Autotools scripts (e.g., MS Visual Studio) then refer to the
 appropriate platform-specific README.xxx located in this
 directory for alternate instructions.
@@ -130,7 +129,7 @@ This command will not perform any tests, but will build the
 programs that contain the test logic: simpletest, unittest,
 and gltest. Note that the gltest program has significant
 dependencies due to its graphical nature, and does not provide
-significant utility unless you are testing the library decoding
+significant benefit unless you are testing the library decoding
 internals.
 
 
@@ -141,20 +140,20 @@ New users are encouraged to read the man pages for the library
 and command line utilities. However, here are a few simple cases
 to get you started:
 
-The dmtxwrite utility turns messages into a barcode images.
-Messages are passed to dmtxwrite via file or standard input, and
-the output images are written to file or standard output. The
-following examples all produce equivalent results:
+The dmtxwrite utility turns a message into a barcode image. The
+message is passed to dmtxwrite via file or standard input, and
+the output image is written to file or standard output. The
+following examples all produce an equivalent result:
 
   $ echo -n 123456 | dmtxwrite > image.png
   $ echo -n 123456 | dmtxwrite -o image.png
-  $ echo -n 123456 > message.txt; dmtxwrite message.txt > image.png
+  $ echo -n 123456 > mesg.txt; dmtxwrite mesg.txt > image.png
   $ dmtxwrite <(echo -n 123456) -o image.png
 
-Conversely,the dmtxread utility turns barcode images into
+Conversely, the dmtxread utility turns barcode images back into
 messages. Images are passed to dmtxread via standard input or
 file, and the output is written to standard output. The following
-examples produce equivalent results:
+examples will produce an equivalent result:
 
   $ dmtxread -n image.png
   $ cat image.png | dmtxread -n
@@ -171,10 +170,10 @@ You can even combine the utilities like this:
 
   $ dmtxread image1.png | dmtxwrite -o image2.png
 
-Note in this last example that the resulting image2.png might
-look different than image1.png. Both barcodes will contain an
-identical message, but the shape of the barcode and the internal
-representation of the encoded bits may be completely different.
+Note: In this example the barcode in image2.png might appear
+different than the one in image1.png. Both barcodes will encode
+the same message, but the overall barcode shape and its internal
+bit pattern might be different.
 
 
 5. Contact
