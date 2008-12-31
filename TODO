@@ -35,15 +35,14 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Add named constant for "-1" passed to dmtxDecodeMatrixRegion(), and bad offset
   o libdmtx:   Consider making "*ProdScaled" default, and unscaled as "Unscaled"
   o libdmtx:   Fix 64b->32b int assignments
-  o libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   o libdmtx:   Make final decision on where image scaling factor should go (leaning toward decode)
   o libdmtx:   Fast Hough fit followed by precision handle fit
-  o libdmtx:   Investigate reported compile error in dmtxutil.c (Rom 16-OCT-2008)
-  o libdmtx:   Finish calib edge travel end condition
+  o libdmtx:   Investigate reported compile error in dmtxutil.c (Rom 16-Oct-2008)
   o libdmtx:   Use calibration edge alignment to set precise locs for all edges
   o libdmtx:   Remove status from DmtxPixelLoc
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
+  o libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   o libdmtx:   Eliminate DmtxRGB type
   x libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
@@ -218,31 +217,34 @@ version 0.1: (22-Apr-2006)
   x Shrink-fit transformation around region
 
 
-future versions:
-------------------------------------------------------------------------------
+Future Versions:
+-----------------------------------------------------------------
   o libdmtx:   Capture high-level design in documentation (data flow, module analogies)
   o libdmtx:   Try bi-linear approximation (instead of linear) in follower edge detection
   o libdmtx:   Implement fixed point math functions for use on mobile platforms
   o libdmtx:   Add calibration functionality to remove spherical distortion
 
 
-perhaps never:
----------------------------------------------------------------------------
+Perhaps Never:
+-----------------------------------------------------------------
   o libdmtx:   Implement pre-ECC200 Data Matrix standards (big effort/low demand)
 
 
 Website:
----------------------------------------------------------------------------
+-----------------------------------------------------------------
   o Explore using single background image instead of split
   o Add what we currently do, don't do, would like to do in the future
   o Add http://hosted-projects.com/trac/hudora/public/wiki/huBarcode to resources page
 
 
-Big proposed changes:
----------------------------------------------------------------------------
-  * Make finder bar detection pluggable so a separate future version can be
-    made for dot peen pattern detection (remaining steps would be unchanged).
+Propsed Change: Modularity
+-----------------------------------------------------------------
+Make finder bar detection pluggable so a separate future version can be
+made for dot peen pattern detection (remaining steps would be unchanged).
 
+
+Propsed Change: Image Scaling
+-----------------------------------------------------------------
 /**
  * still on the fence whether image scaling factors should be maintained in
  * DmtxDecode ... but right now leaning that way. Thinking goes that any
@@ -269,6 +271,9 @@ typedef struct DmtxDecode_struct {
    int yMaxScaled;
 } DmtxDecode;
 
+
+Propsed Change: Pixel Packing Order
+-----------------------------------------------------------------
 /* This happens before libdmtx is initialized */
 pxlBuf = (unsigned char *)malloc(width * height * sizeof(pixel));
 
@@ -283,3 +288,64 @@ err = dmtxImageAddChannel(&img, 16, 8);
 
 /* similar call with flip in both directions */
 img = dmtxImageSet(pxlBuf, width, height, DmtxImageFlipX|DmtxImageFlipY, DmtxPack24bppRGB);
+
+
+Propsed Change: Region Detection
+-----------------------------------------------------------------
+First edge is currently detected using fixed-offset Hough
+transform. This is very efficient for the first edge, but forces
+remaining traces to perform additional Hough transforms for all
+unsuccessful region candidates because we can't say with
+certainty: "This previously-tested pixel location does not belong
+to a barcode region." This is because it may have been part of a
+barcode region but the trail was blazed starting from a non-
+finder-bar location so it was ditched when the fixed-offset Hough
+transform did not produce a good line.
+
+A better approach might be to:
+
+  1) Blaze trail in both directions
+  2) Walk entire trail to size bounding box
+  3) Walk entire trail to accumulate Hough lines
+  4) Extract 2 best Hough lines (use right angle + convex hull)
+  5) Determine region polarity and orientation
+  6) etc... (see "Region Calibration" below)
+
+Although more costly for the first detected region, this approach
+allows future scans to skip all pixels that have been traversed
+previously. This should translate to significant time savings,
+especially for noisy and complex images.
+
+
+Propsed Change: Region Calibration
+-----------------------------------------------------------------
+The current calibration technique relies solely on points and
+angles found during the Hough process, and uses the calibration
+bar only to detect symbol size. A more robust approach might take
+advantage of the calibration bars' repeating pattern to extract
+precise edge locations for the adjacent edges. Doing so will
+provide extremely accurate symbol regions, since 3 out of the 4
+region corners locations will be extrapolated from a repeating
+pattern instead of potentially fuzzy edge measurement, and the
+4th corner is derived from the intersection of 2 well-defined
+lines. This will also help with barcodes created using oversized
+printing process.
+
+Continuing from above:
+
+  6) Blaze gapped trail for both calibration bars
+     (at this point the basic region shape is known)
+     (future version might try one at a time for improved
+      handling of damaged regions)
+  7) Find symbol size jump tally approach
+  8) Find exact edge locations using Bresenham/Hough approach to
+     measure offset and scaling? (super accurate because cosine
+     of small angles approaches zero)
+  9) Adjust region shape based on known points and angles
+
+Step 8 details: While stepping along pixels on Bresenham line we
+always know whether we are sitting on the primary or secondary
+color. The Hough transform will store a 2D array of bracketed
+scalings and offsets, which we will increment if our actual color
+matches the array element color. After traversing the line once,
+we will know the exact scaling and offset.
