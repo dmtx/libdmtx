@@ -43,8 +43,9 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
   o libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
+  o libdmtx:   Change DmtxMessage type to use Create/Destroy approach like others (?)
   o libdmtx:   Eliminate DmtxRGB type
-  x libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
+  / libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
   x libdmtx:   Use Create/Destroy for DmtxEncode & DmtxDecode (but not DmtxRegion)
@@ -272,7 +273,7 @@ typedef struct DmtxDecode_struct {
 } DmtxDecode;
 
 
-Propsed Change: Pixel Packing Order
+Propsed Change: Pixel Packing Order (partially implemented)
 -----------------------------------------------------------------
 /* This happens before libdmtx is initialized */
 pxlBuf = (unsigned char *)malloc(width * height * sizeof(pixel));
@@ -292,9 +293,9 @@ img = dmtxImageSet(pxlBuf, width, height, DmtxImageFlipX|DmtxImageFlipY, DmtxPac
 
 Propsed Change: Region Detection
 -----------------------------------------------------------------
-First edge is currently detected using fixed-offset Hough
+The first edge is currently detected using fixed-offset Hough
 transform. This is very efficient for the first edge, but forces
-remaining traces to perform additional Hough transforms for all
+all remaining traces to perform additional Hough transforms for
 unsuccessful region candidates because we can't say with
 certainty: "This previously-tested pixel location does not belong
 to a barcode region." This is because it may have been part of a
@@ -302,11 +303,15 @@ barcode region but the trail was blazed starting from a non-
 finder-bar location so it was ditched when the fixed-offset Hough
 transform did not produce a good line.
 
-A better approach might be to:
+A better approach might be:
 
   1) Blaze trail in both directions
-  2) Walk entire trail to size bounding box
+  2) Walk entire trail to size the Hough bounding box
   3) Walk entire trail to accumulate Hough lines
+     - Can be fast/low-res search since we will tighten later if
+       it continues to be a promising candidate
+     - Consider overlapping Hough regions to avoid near-border
+       confusion and complexity later
   4) Extract 2 best Hough lines (use right angle + convex hull)
   5) Determine region polarity and orientation
   6) etc... (see "Region Calibration" below)
@@ -324,28 +329,50 @@ angles found during the Hough process, and uses the calibration
 bar only to detect symbol size. A more robust approach might take
 advantage of the calibration bars' repeating pattern to extract
 precise edge locations for the adjacent edges. Doing so will
-provide extremely accurate symbol regions, since 3 out of the 4
-region corners locations will be extrapolated from a repeating
-pattern instead of potentially fuzzy edge measurement, and the
-4th corner is derived from the intersection of 2 well-defined
-lines. This will also help with barcodes created using oversized
-printing process.
+provide extremely accurate symbol regions since each of the 4
+edges will contain a precise anchor point instead of relying on a
+potentially fuzzy edge measurement. This will also help with
+barcodes created using undersized/oversized printing process.
 
 Continuing from above:
 
   6) Blaze gapped trail for both calibration bars
-     (at this point the basic region shape is known)
-     (future version might try one at a time for improved
-      handling of damaged regions)
-  7) Find symbol size jump tally approach
+     - After this, the basic region shape is known
+     - Final trail should be a contiguous trail that is easy to
+       follow in either direction, although gapped lines may be
+       stored differently as to leave original trail intact
+     - Future version might try one at a time for improved
+       handling of damaged regions)
+  7) Detect symbol size using jump tally approach
   8) Find exact edge locations using Bresenham/Hough approach to
      measure offset and scaling? (super accurate because cosine
      of small angles approaches zero)
-  9) Adjust region shape based on known points and angles
+  9) Execute final high-res Hough transform on each edge, using
+     known points as anchors
+     - After this, the precise region shape is known
+     - Must use multiple offsets. Best Hough line may not run
+       through anchor because we can't assume that our edge-
+       finding algorithm necessarily runs along the perfect edge,
+       just that it follows the edge consistently. This process
+       will simply provide the ideal angle to use.
 
 Step 8 details: While stepping along pixels on Bresenham line we
 always know whether we are sitting on the primary or secondary
 color. The Hough transform will store a 2D array of bracketed
 scalings and offsets, which we will increment if our actual color
-matches the array element color. After traversing the line once,
-we will know the exact scaling and offset.
+matches the predicted array element color. After traversing the
+line once, we will know the exact scaling and offset.
+
+This approach uses a fast-and-rough fit followed by a high
+precision fit. While it would be convenient if we could capture
+everything in one pass, this approach offers some significant
+advantages:
+
+  * Regions that turn out to be bad are filtered out early in the
+    process before spending much time on them
+  * Fast-and-rough fit requires less memory
+  * Allows for simpler logic; Not trying to do too much at once
+  * Programs that do their own rough region detection can still
+    use libdmtx high precision fit
+  * High precision fit should apply equally well to contiguous-
+    edge and dot peen symbols
