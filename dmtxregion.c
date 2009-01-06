@@ -1881,7 +1881,7 @@ BresLineStep(DmtxBresLine *line, int travel, int outward)
  *
  *
  */
-/**
+#ifdef NOTDEFINED
 static void
 WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
@@ -1903,9 +1903,9 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
    width = dmtxImageGetProp(dec->image, DmtxPropScaledWidth);
    height = dmtxImageGetProp(dec->image, DmtxPropScaledHeight);
 
-   img = dmtxImageMalloc(width, height);
+   img = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB, DmtxFlipY);
 
-   // Populate image
+   /* Populate image */
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
 
@@ -1938,14 +1938,14 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
       }
    }
 
-   // Write additional markers
+   /* Write additional markers */
    rgb[0] = 255;
    rgb[1] = 0;
    rgb[2] = 0;
    dmtxImageSetRgb(img, reg->topLoc.X, reg->topLoc.Y, rgb);
    dmtxImageSetRgb(img, reg->rightLoc.X, reg->rightLoc.Y, rgb);
 
-   // Write image to PNM file
+   /* Write image to PNM file */
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
@@ -1954,6 +1954,8 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
       }
    }
 
+   dmtxImageDestroy(&img);
+
    fclose(fp);
 }
-*/
+#endif
