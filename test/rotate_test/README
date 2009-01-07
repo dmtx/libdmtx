@@ -3,7 +3,7 @@ and writes decoded Data Matrix streams to STDOUT.
 
 Right-click on the window to cycle through the test images.  To
 add your own images for testing, just overwrite any image in the
-libdmtx/test/test_images directory with another 256x256 PNG file.
-If you want to add brand new images then you will have to update
-the gFilename[] and gFileCount variables at the top of gltest.c
+"rotate_test/images" directory with another 256x256 PNG file.  If
+you want to add brand new images then you will have to update the
+gFilename[] and gFileCount variables at the top of rotate_test.c
 to include them.

@@ -11,9 +11,9 @@ AC_CONFIG_FILES([
    util/Makefile
    util/dmtxquery/Makefile
    test/Makefile
-   test/test_opengl/Makefile
-   test/test_simple/Makefile
-   test/test_unit/Makefile
+   test/rotate_test/Makefile
+   test/simple_test/Makefile
+   test/unit_test/Makefile
 ])
 
 AC_SEARCH_LIBS([sin], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))

@@ -13,8 +13,9 @@ function RunTest()
       if [[ "$dir" != "$LIBDMTX" &&
             "$dir" != "$LIBDMTX/util/dmtxread" &&
             "$dir" != "$LIBDMTX/util/dmtxwrite" &&
-            "$dir" != "$LIBDMTX/test/gltest" &&
-            "$dir" != "$LIBDMTX/test/simpletest" &&
+            "$dir" != "$LIBDMTX/test/rotate_test" &&
+            "$dir" != "$LIBDMTX/test/simple_test" &&
+            "$dir" != "$LIBDMTX/test/unit_test" &&
             "$dir" != "$LIBDMTX/test/script" ]]; then
          continue
       fi

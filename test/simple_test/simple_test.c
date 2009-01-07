@@ -67,13 +67,13 @@ main(int argc, char *argv[])
 
    reg = dmtxDecodeFindNextRegion(dec, NULL);
    if(reg.found != DMTX_REGION_FOUND)
-      exit(0);
+      exit(1);
 
    msg = dmtxDecodeMatrixRegion(img, &reg, -1);
    if(msg != NULL) {
       fputs("output: \"", stdout);
       fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
-      fputs("\"\n\n", stdout);
+      fputs("\"\n", stdout);
       dmtxMessageDestroy(&msg);
    }
 

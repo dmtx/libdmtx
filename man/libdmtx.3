@@ -114,7 +114,7 @@ Resets and frees memory held by \fBDmtxImage\fP struct.  This is the complement 
 
 .SH EXAMPLE PROGRAM
 
-This example program (available as simpletest.c in the source package) demonstrates both directions of \fIlibdmtx\fP functionality, encoding and decoding.  It first creates a Data Matrix barcode and then reads it back and prints the decoded message.  If everything works correctly then the final output message should match the original input string.
+This example program (available as simple_test.c in the source package) demonstrates both directions of \fIlibdmtx\fP functionality, encoding and decoding.  It first creates a Data Matrix barcode and then reads it back and prints the decoded message.  If everything works correctly then the final output message should match the original input string.
 
   #include <stdlib.h>
   #include <stdio.h>
@@ -151,13 +151,13 @@ This example program (available as simpletest.c in the source package) demonstra
 
      reg = dmtxDecodeFindNextRegion(&dec, NULL);
      if(reg.found != DMTX_REGION_FOUND)
-        exit(0);
+        exit(1);
 
      msg = dmtxDecodeMatrixRegion(img, &reg, -1);
      if(msg != NULL) {
         fputs("output: \\"", stdout);
         fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
-        fputs("\\"\\n\\n", stdout);
+        fputs("\\"\\n", stdout);
         dmtxMessageFree(&msg);
      }
 

@@ -126,8 +126,8 @@ optionally build the test programs like this:
   $ make check
 
 This command will not perform any tests, but will build the
-programs that contain the test logic: simpletest, unittest,
-and gltest. Note that the gltest program has significant
+programs that contain the test logic: simple_test, unit_test,
+and rotate_test. Note that the rotate_test program has nontrivial
 dependencies due to its graphical nature, and does not provide
 significant benefit unless you are testing the library decoding
 internals.
@@ -267,7 +267,7 @@ Disable:     Not included in default build
 
 -----------------------------------
 
-Name:        gltest
+Name:        rotate_test
 Type:        test program
 Description: Scan simulated camera input from OpenGL in realtime
 Location:    libdmtx/
@@ -277,7 +277,7 @@ Disable:     Not included in default build
 
 -----------------------------------
 
-Name:        simpletest
+Name:        simple_test
 Type:        test program
 Description: Simple round-trip encoding and decoding test
 Build:       make check
@@ -286,7 +286,7 @@ Disable:     Not included in default build
 
 -----------------------------------
 
-Name:        unittest
+Name:        unit_test
 Type:        test program
 Description: Unit test program
 Build:       make check

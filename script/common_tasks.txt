@@ -30,7 +30,7 @@ Release Checklist
    o README.freebsd          o README.linux
    o README.mingw            o README.msvc
    o README.osx              o README.unix
-   o test/test_opengl/README
+   o test/rotate_test/README
 
    o wrappers/cocoa/README   o wrappers/php/README
    o wrappers/python/README  o wrappers/ruby/README
@@ -53,7 +53,7 @@ Release Checklist
 
    o TODO
 
-   o man/libdmtx.3 (be sure to sync w/ simpletest.c)
+   o man/libdmtx.3 (be sure to sync w/ simple_test.c)
    o man/dmtxquery.1
    o man/dmtxread.1
    o man/dmtxwrite.1
@@ -73,9 +73,9 @@ Release Checklist
    o $ make
    o $ make check
    o $ sudo make install
-   o $ test/test_simple/simpletest
-   o $ test/test_unit/unittest; echo $?
-   o $ test/test_opengl/gltest
+   o $ test/simple_test/simple_test; echo $?
+   o $ test/unit_test/unit_test; echo $?
+   o $ test/rotate_test/rotate_test
 
 7) o Build and test tarballs
 

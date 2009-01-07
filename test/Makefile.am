@@ -1,1 +1,1 @@
-SUBDIRS = test_simple test_opengl test_unit
+SUBDIRS = rotate_test simple_test unit_test

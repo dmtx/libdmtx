@@ -27,7 +27,7 @@ Contact: mblaughton@users.sourceforge.net
 #include <SDL/SDL.h>
 #include <SDL/SDL_opengl.h>
 #include "dmtx.h"
-#include "gltest.h"
+#include "rotate_test.h"
 #include "display.h"
 
 /**

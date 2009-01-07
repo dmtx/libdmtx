@@ -22,7 +22,7 @@ Contact: mblaughton@users.sourceforge.net
 /* $Id$ */
 
 #include <stdlib.h>
-#include "gltest.h"
+#include "rotate_test.h"
 #include "callback.h"
 #include "display.h"
 #include "image.h"

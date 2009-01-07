@@ -36,7 +36,7 @@ EXTRA_DIST = KNOWNBUG \
 	script/check_todo.sh \
 	script/check_whitespace.sh \
 	script/dist-image.sh \
-	test/images_opengl/test_image??.png \
+	test/rotate_test/images/test_image??.png \
 	wrappers/cocoa/* \
 	wrappers/php/* \
 	wrappers/python/* \

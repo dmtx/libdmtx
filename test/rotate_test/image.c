@@ -29,7 +29,7 @@ Contact: mblaughton@users.sourceforge.net
 #include <SDL/SDL_opengl.h>
 #include <png.h>
 #include "dmtx.h"
-#include "gltest.h"
+#include "rotate_test.h"
 #include "image.h"
 
 /**
@@ -43,7 +43,7 @@ loadTextureImage(int *width, int *height)
    int error;
    char filepath[128];
 
-   strcpy(filepath, "../images_opengl/");
+   strcpy(filepath, "images/");
    strcat(filepath, gFilename[gFileIdx]);
    fprintf(stdout, "Opening %s\n", filepath);
 
