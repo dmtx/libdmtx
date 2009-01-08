@@ -38,6 +38,19 @@ esac
 AM_CONDITIONAL([TARGET_MACOSX], [test x$ARCH = xmacosx])
 
 AC_ARG_ENABLE(
+   dmtxquery,
+   AC_HELP_STRING(
+      [--disable-dmtxquery],
+      [Do not build the dmtxquery command line utility]),
+   [case "$enableval" in
+      yes) dmtxquery=true ;;
+       no) dmtxquery=false ;;
+        *) AC_MSG_ERROR([bad value ${enableval} for --enable-dmtxquery]) ;;
+    esac],
+   [dmtxquery=true])
+AM_CONDITIONAL([BUILD_DMTXQUERY], [test x$dmtxquery = xtrue])
+
+AC_ARG_ENABLE(
    dmtxread,
    AC_HELP_STRING(
       [--disable-dmtxread],
@@ -63,18 +76,9 @@ AC_ARG_ENABLE(
    [dmtxwrite=true])
 AM_CONDITIONAL([BUILD_DMTXWRITE], [test x$dmtxwrite = xtrue])
 
-AC_ARG_ENABLE(
-   dmtxquery,
-   AC_HELP_STRING(
-      [--disable-dmtxquery],
-      [Do not build the dmtxquery command line utility]),
-   [case "$enableval" in
-      yes) dmtxquery=true ;;
-       no) dmtxquery=false ;;
-        *) AC_MSG_ERROR([bad value ${enableval} for --enable-dmtxquery]) ;;
-    esac],
-   [dmtxquery=true])
-AM_CONDITIONAL([BUILD_DMTXQUERY], [test x$dmtxquery = xtrue])
+if test x$dmtxquery = xtrue; then
+   AC_CONFIG_FILES([util/dmtxquery/Makefile])
+fi
 
 if test x$dmtxread = xtrue; then
    ifdef([PKG_CHECK_MODULES],
