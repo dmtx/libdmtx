@@ -23,9 +23,15 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <assert.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 #include "dmtx.h"
+
+struct UserOptions {
+   const char *imagePath;
+};
 
 struct AppState {
    int windowWidth;
@@ -37,57 +43,57 @@ struct AppState {
    int pointerY;
 };
 
+static struct UserOptions GetDefaultOptions(void);
+static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
 static struct AppState InitAppState(void);
-static SDL_Surface *ResizeWindow(int windowWidth, int windowHeight);
+static SDL_Surface *SetWindowSize(int windowWidth, int windowHeight);
 static int HandleEvent(SDL_Event *event, struct AppState *appState, SDL_Surface **screen);
 static int NudgeImage(int windowExtent, int pictureExtent, int imageLoc);
 
 int main(int argc, char *argv[])
 {
    int done;
-   const char *imagePath;
+   struct UserOptions opt;
+   struct AppState appState;
    SDL_Surface *screen;
    SDL_Surface *picture;
    SDL_Event event;
    SDL_Rect imageLoc;
-   struct AppState appState;
-/*
+   DmtxImage *img;
+   DmtxDecode *dec;
+   DmtxRegion reg;
+   DmtxMessage *msg;
+
    opt = GetDefaultOptions();
 
-   err = HandleArgs(&opt, &argc, &argv);
-   if(err)
-      ShowUsage(1);
-*/
-   if(argc < 2) {
-      fprintf(stdout, "argument required\n");
+   if(HandleArgs(&opt, &argc, &argv) == DmtxFail) {
       exit(1);
-   }
-   else {
-      imagePath = argv[1];
+/*    ShowUsage(1); */
    }
 
    appState = InitAppState();
 
-   atexit(SDL_Quit);
-
-   /* Initialize the SDL library */
-   if(SDL_Init(SDL_INIT_VIDEO) < 0) {
-      fprintf(stderr,
-         "Couldn't initialize SDL: %s\n", SDL_GetError());
-      exit(1);
-   }
-
-   screen = ResizeWindow(appState.windowWidth, appState.windowHeight);
-
-   /* Load Picture */
-   picture = IMG_Load(imagePath);
+   /* Load image */
+   picture = IMG_Load(opt.imagePath);
    if(picture == NULL) {
-      fprintf(stderr, "Couldn't load %s: %s\n", imagePath, SDL_GetError());
+      fprintf(stderr, "Couldn't load %s: %s\n", opt.imagePath, SDL_GetError());
       return 0;
    }
 
-   for(done = 0; !done;) {
+   img = dmtxImageCreate(picture->pixels, picture->w, picture->h, 24,
+         DmtxPackRGB, DmtxFlipY);
 
+   atexit(SDL_Quit);
+
+   /* Initialize SDL library */
+   if(SDL_Init(SDL_INIT_VIDEO) < 0) {
+      fprintf(stderr, "Couldn't initialize SDL: %s\n", SDL_GetError());
+      exit(1);
+   }
+
+   screen = SetWindowSize(appState.windowWidth, appState.windowHeight);
+
+   for(done = 0; !done;) {
       SDL_Delay(10);
 
       while(SDL_PollEvent(&event))
@@ -101,10 +107,69 @@ int main(int argc, char *argv[])
 
       SDL_FillRect(screen, NULL, 0xff000050);
       SDL_BlitSurface(picture, NULL, screen, &imageLoc);
+
+      dec = dmtxDecodeStructCreate(img);
+/*
+      for(;;) {
+         SDL_LockSurface(picture);
+         reg = dmtxDecodeFindNextRegion(dec, NULL);
+         SDL_UnlockSurface(picture);
+
+         if(reg.found != DMTX_REGION_FOUND)
+            break;
+
+         msg = dmtxDecodeMatrixRegion(img, &reg, -1);
+         if(msg == NULL)
+            continue;
+
+         fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
+         fputc('\n', stdout);
+
+         dmtxMessageDestroy(&msg);
+      }
+*/
+      dmtxDecodeStructDestroy(&dec);
+
       SDL_Flip(screen);
    }
 
+   dmtxImageDestroy(&img);
+
    return 0;
+}
+
+/**
+ *
+ *
+ */
+static struct UserOptions
+GetDefaultOptions(void)
+{
+   struct UserOptions opt;
+
+   memset(&opt, 0x00, sizeof(struct UserOptions));
+
+   opt.imagePath = NULL;
+
+   return opt;
+}
+
+/**
+ *
+ *
+ */
+static DmtxPassFail
+HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[])
+{
+   if(*argcp < 2) {
+      fprintf(stdout, "argument required\n");
+      return DmtxFail;
+   }
+   else {
+      opt->imagePath = (*argvp)[1];
+   }
+
+   return DmtxPass;
 }
 
 /**
@@ -132,15 +197,15 @@ InitAppState(void)
  *
  */
 static SDL_Surface *
-ResizeWindow(int windowWidth, int windowHeight)
+SetWindowSize(int windowWidth, int windowHeight)
 {
    SDL_Surface *screen;
 
-   screen = SDL_SetVideoMode(windowWidth, windowHeight, 32,
-         SDL_DOUBLEBUF | SDL_HWSURFACE | SDL_RESIZABLE);
+   screen = SDL_SetVideoMode(windowWidth, windowHeight, 24,
+         SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_RESIZABLE);
 
    if(screen == NULL) {
-      fprintf(stderr, "Couldn't set %dx%dx32 video mode: %s\n", windowWidth,
+      fprintf(stderr, "Couldn't set %dx%dx24 video mode: %s\n", windowWidth,
             windowHeight, SDL_GetError());
       exit(1);
    }
@@ -184,7 +249,7 @@ HandleEvent(SDL_Event *event, struct AppState *appState, SDL_Surface **screen)
       case SDL_VIDEORESIZE:
          appState->windowWidth = event->resize.w;
          appState->windowHeight = event->resize.h;
-         *screen = ResizeWindow(appState->windowWidth, appState->windowHeight);
+         *screen = SetWindowSize(appState->windowWidth, appState->windowHeight);
          break;
 
       default:
