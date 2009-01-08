@@ -9,8 +9,8 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
    Makefile
    util/Makefile
-   util/dmtxquery/Makefile
    test/Makefile
+   test/multi_test/Makefile
    test/rotate_test/Makefile
    test/simple_test/Makefile
    test/unit_test/Makefile
