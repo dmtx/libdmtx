@@ -36,8 +36,8 @@ Contact: mike@dragonflylogic.com
 #define DMTXWRITE_BUFFER_SIZE 4096
 
 typedef struct {
-   DmtxRgb color;
-   DmtxRgb bgColor;
+   int color[3];
+   int bgColor[3];
    char format;
    char *inputPath;
    char *outputPath;

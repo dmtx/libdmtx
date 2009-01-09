@@ -34,6 +34,7 @@ Contact: mike@dragonflylogic.com
  * @param  p
  * @return void
  */
+/*
 extern void
 dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
 {
@@ -42,7 +43,7 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
    DmtxColor3 clrLL, clrLR, clrUL, clrUR;
    DmtxRgb pxlLL, pxlLR, pxlUL, pxlUR;
 
-/* p = dmtxRemoveLensDistortion(p, image, -0.000003, 0.0); */
+// p = dmtxRemoveLensDistortion(p, image, -0.000003, 0.0);
 
    xInt = (int)p.X;
    yInt = (int)p.Y;
@@ -64,6 +65,7 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
    dmtxColor3AddTo(color, &clrUL);
    dmtxColor3AddTo(color, &clrUR);
 }
+*/
 
 /**
  * @brief  Convert integer-based RGB color to float-based equivalent
@@ -71,6 +73,7 @@ dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *image, DmtxVector2 p)
  * @param  rgb
  * @return Pixel color
  */
+/*
 extern DmtxColor3 *
 dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb)
 {
@@ -80,6 +83,7 @@ dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb)
 
    return color;
 }
+*/
 
 /**
  * @brief  Convert float-based RGB color to integer-based equivalent
@@ -87,6 +91,7 @@ dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb)
  * @param  color
  * @return void
  */
+/*
 extern void
 dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color)
 {
@@ -94,6 +99,7 @@ dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color)
    rgb[1] = (unsigned char)(color->G + 0.5);
    rgb[2] = (unsigned char)(color->B + 0.5);
 }
+*/
 
 /**
  * @brief  Calculate color at specified point along a gradient

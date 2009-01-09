@@ -361,6 +361,7 @@ dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
  * @param  rgb
  * @return void
  */
+/*
 extern DmtxPassFail
 dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 {
@@ -380,6 +381,7 @@ dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 
    return DmtxPass;
 }
+*/
 
 /**
  * @brief  Retrieve RGB values of a specific pixel location
@@ -389,6 +391,7 @@ dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
  * @param  rgb
  * @return void
  */
+/*
 extern DmtxPassFail
 dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 {
@@ -408,6 +411,7 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
 
    return DmtxPass;
 }
+*/
 
 /**
  * @brief  Retrieve the value of a specific color channel and pixel location
@@ -417,6 +421,7 @@ dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb)
  * @param  rgb
  * @return void
  */
+/*
 extern int
 dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane)
 {
@@ -433,6 +438,7 @@ dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane)
 
    return img->pxl[byteOffset + colorPlane];
 }
+*/
 
 /**
  *
@@ -446,15 +452,13 @@ dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
    int offset;
    int mask;
    int bitShift;
+   int bytesPerPixel;
 
-   if(img == NULL || channel >= img->channelCount);
-      return DmtxFail;
-
-   if(dmtxImageContainsInt(img, 0, x, y) == DmtxFalse)
-      return DmtxFail;
+   assert(img != NULL);
+   assert(channel < img->channelCount);
 
    offset = dmtxImageGetPixelOffset(img, x, y);
-   if(offset < 0)
+   if(offset == DMTX_BAD_OFFSET)
       return DmtxFail;
 
    switch(img->bitsPerChannel[channel]) {
@@ -464,7 +468,7 @@ dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
          *value = (img->pxl[offset/8] & mask) ? 255 : 0;
          break;
       case 5:
-         /* XXX might be expensive if we want to scale perfect 0x00-0xff range */
+         /* XXX might be expensive if we want to scale perfect 0-255 range */
          assert(img->bitsPerPixel == 16);
          pixelPtr = img->pxl + (offset * (img->bitsPerPixel/8));
          pixelValue = (*pixelPtr << 8) | (*(pixelPtr+1));
@@ -474,7 +478,56 @@ dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
          break;
       case 8:
          assert(img->channelStart[channel] % 8 == 0);
-         *value = img->pxl[offset * (img->bitsPerPixel/8) + (img->bitsPerChannel[channel]/8)];
+         assert(img->bitsPerPixel % 8 == 0);
+         bytesPerPixel = img->bitsPerPixel / 8;
+         *value = img->pxl[offset * bytesPerPixel + channel];
+         break;
+   }
+
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+extern DmtxPassFail
+dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value)
+{
+/* unsigned char *pixelPtr; */
+/* int pixelValue; */
+   int offset;
+/* int mask; */
+/* int bitShift; */
+   int bytesPerPixel;
+
+   assert(img != NULL);
+   assert(channel < img->channelCount);
+
+   offset = dmtxImageGetPixelOffset(img, x, y);
+   if(offset == DMTX_BAD_OFFSET)
+      return DmtxFail;
+
+   switch(img->bitsPerChannel[channel]) {
+      case 1:
+/*       assert(img->bitsPerPixel == 1);
+         mask = 0x01 << (7 - offset%8);
+         *value = (img->pxl[offset/8] & mask) ? 255 : 0; */
+         break;
+      case 5:
+         /* XXX might be expensive if we want to scale perfect 0-255 range */
+/*       assert(img->bitsPerPixel == 16);
+         pixelPtr = img->pxl + (offset * (img->bitsPerPixel/8));
+         pixelValue = (*pixelPtr << 8) | (*(pixelPtr+1));
+         bitShift = img->bitsPerPixel - 5 - img->channelStart[channel];
+         mask = 0x1f << bitShift;
+         *value = (((pixelValue & mask) >> bitShift) << 3); */
+         break;
+      case 8:
+         assert(img->channelStart[channel] % 8 == 0);
+         assert(img->bitsPerPixel % 8 == 0);
+         bytesPerPixel = img->bitsPerPixel / 8;
+         img->pxl[offset * bytesPerPixel + channel] = value;
          break;
    }
 

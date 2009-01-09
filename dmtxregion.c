@@ -625,9 +625,10 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
 static int
 ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, int sizeIdx)
 {
+   int err;
    int i;
    int symbolRows, symbolCols;
-   int color;
+   int color, colorTmp;
    double sampleX[] = { 0.5, 0.4, 0.5, 0.6, 0.5 };
    double sampleY[] = { 0.5, 0.5, 0.4, 0.5, 0.6 };
    DmtxVector2 p;
@@ -642,7 +643,10 @@ ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, i
       p.Y = (1.0/symbolRows) * (symbolRow + sampleY[i]);
 
       dmtxMatrix3VMultiplyBy(&p, reg->fit2raw);
-      color += dmtxImageGetColor(img, (int)(p.X + 0.5), (int)(p.Y + 0.5), reg->flowBegin.plane);
+
+      err = dmtxImageGetPixelValue(img, (int)(p.X + 0.5), (int)(p.Y + 0.5),
+            reg->flowBegin.plane, &colorTmp);
+      color += colorTmp;
    }
 
    return color/5;
@@ -859,6 +863,7 @@ static DmtxPointFlow
 GetPointFlow(DmtxDecode *dec, int colorPlane, DmtxPixelLoc loc, int arrive)
 {
    static const int coefficient[] = {  0,  1,  2,  1,  0, -1, -2, -1 };
+   int err;
    int patternIdx, coefficientIdx;
    int compass, compassMax;
    int mag[4] = { 0 };
@@ -869,8 +874,9 @@ GetPointFlow(DmtxDecode *dec, int colorPlane, DmtxPixelLoc loc, int arrive)
    for(patternIdx = 0; patternIdx < 8; patternIdx++) {
       xAdjust = loc.X + dmtxPatternX[patternIdx];
       yAdjust = loc.Y + dmtxPatternY[patternIdx];
-      colorPattern[patternIdx] = dmtxImageGetColor(dec->image, xAdjust, yAdjust, colorPlane);
-      if(colorPattern[patternIdx] == -1)
+      err = dmtxImageGetPixelValue(dec->image, xAdjust, yAdjust, colorPlane,
+            &colorPattern[patternIdx]);
+      if(err == DmtxFail)
          return dmtxBlankEdge;
    }
 

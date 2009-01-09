@@ -502,7 +502,7 @@ WriteImagePnm(UserOptions *opt, DmtxEncode *enc)
    int row, col;
    int width, height;
    FILE *fp;
-   DmtxRgb rgb;
+   int rgb[3];
 
    fp = (opt->outputPath == NULL) ? stdout : fopen(opt->outputPath, "wb");
    if(fp == NULL) {
@@ -517,8 +517,12 @@ WriteImagePnm(UserOptions *opt, DmtxEncode *enc)
    fprintf(fp, "P6 %d %d 255 ", width, height);
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
-         dmtxImageGetRgb(enc->image, col, row, rgb);
-         fwrite(rgb, sizeof(char), 3, fp);
+         dmtxImageGetPixelValue(enc->image, col, row, 0, &rgb[0]);
+         dmtxImageGetPixelValue(enc->image, col, row, 1, &rgb[1]);
+         dmtxImageGetPixelValue(enc->image, col, row, 2, &rgb[2]);
+         fputc(rgb[0], stdout);
+         fputc(rgb[1], stdout);
+         fputc(rgb[2], stdout);
       }
    }
 

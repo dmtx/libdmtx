@@ -237,7 +237,7 @@ typedef enum {
 } DmtxFlip;
 
 typedef double DmtxMatrix3[3][3];
-typedef unsigned char DmtxRgb[3];
+/*typedef unsigned char DmtxRgb[3];*/
 
 /**
  * @struct DmtxColor3
@@ -572,10 +572,10 @@ extern DmtxPassFail dmtxImageAddChannel(DmtxImage *img, int channelStart, int bi
 extern DmtxPassFail dmtxImageSetProp(DmtxImage *img, int prop, int value);
 extern int dmtxImageGetProp(DmtxImage *img, int prop);
 extern int dmtxImageGetPixelOffset(DmtxImage *img, int x, int y);
-extern DmtxPassFail dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
-extern DmtxPassFail dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
-extern int dmtxImageGetColor(DmtxImage *img, int x, int y, int colorPlane);
+/*extern DmtxPassFail dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
+extern DmtxPassFail dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb); */
 extern DmtxPassFail dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value);
+extern DmtxPassFail dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value);
 extern DmtxBoolean dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);
 extern DmtxBoolean dmtxImageContainsFloat(DmtxImage *img, double x, double y);
 
@@ -614,8 +614,8 @@ extern void dmtxMatrix3Print(DmtxMatrix3 m);
 
 /* dmtxcolor3.c */
 extern void dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *img, DmtxVector2 p);
-extern DmtxColor3 *dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb);
-extern void dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color);
+/*extern DmtxColor3 *dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb);
+extern void dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color); */
 extern DmtxColor3 dmtxColor3AlongRay3(DmtxRay3 *ray, double dist);
 extern DmtxColor3 *dmtxColor3AddTo(DmtxColor3 *v1, DmtxColor3 *v2);
 extern DmtxColor3 *dmtxColor3Add(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);

@@ -441,7 +441,8 @@ PrintPattern(DmtxEncode *enc)
    int pixelRow, pixelCol;
    int moduleStatus;
    double sxy, txy;
-   DmtxRgb rgb;
+/* DmtxRgb rgb; */
+   int rgb[3];
    DmtxMatrix3 m1, m2;
    DmtxVector2 vIn, vOut;
 
@@ -481,7 +482,10 @@ PrintPattern(DmtxEncode *enc)
                rgb[0] = ((moduleStatus & DMTX_MODULE_ON_RED) != 0x00) ? 0 : 255;
                rgb[1] = ((moduleStatus & DMTX_MODULE_ON_GREEN) != 0x00) ? 0 : 255;
                rgb[2] = ((moduleStatus & DMTX_MODULE_ON_BLUE) != 0x00) ? 0 : 255;
-               dmtxImageSetRgb(enc->image, j, i, rgb);
+/*             dmtxImageSetRgb(enc->image, j, i, rgb); */
+               dmtxImageSetPixelValue(enc->image, j, i, 0, rgb[0]);
+               dmtxImageSetPixelValue(enc->image, j, i, 1, rgb[1]);
+               dmtxImageSetPixelValue(enc->image, j, i, 2, rgb[2]);
             }
          }
 
