@@ -62,7 +62,7 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
       locNext = IncrementPixelProgress(grid);
 
       /* Scan this pixel for presence of a valid barcode edge */
-      reg = dmtxRegionScanPixel(dec, loc);
+      reg = dmtxRegionScanPixel(dec, loc.X, loc.Y);
 /**
       if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_FINDER) {
          size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
@@ -92,13 +92,18 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
  * @return Detected region (if any)
  */
 extern DmtxRegion
-dmtxRegionScanPixel(DmtxDecode *dec, DmtxPixelLoc loc)
+dmtxRegionScanPixel(DmtxDecode *dec, int x, int y)
 {
    int offset;
    DmtxRegion reg;
    DmtxPointFlow flowBegin;
+   DmtxPixelLoc loc;
 
    memset(&reg, 0x00, sizeof(DmtxRegion));
+
+   loc.X = x;
+   loc.Y = y;
+   loc.status = DMTX_RANGE_GOOD;
 
    offset = dmtxImageGetPixelOffset(dec->image, loc.X, loc.Y);
 /* if(offset == DMTX_BAD_OFFSET || dec->image->cache[offset] & 0x40) { */

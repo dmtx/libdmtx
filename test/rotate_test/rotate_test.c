@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
          p.X = 55;
          p.X = 130;
          p.Y = 190;
-         reg = dmtxRegionScanPixel(dec, p);
+         reg = dmtxRegionScanPixel(dec, p.X, p.Y);
          if(reg.found != DMTX_REGION_FOUND)
             break;
 */

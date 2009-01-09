@@ -560,7 +560,7 @@ extern DmtxPassFail dmtxMessageDestroy(DmtxMessage **mesg);
 
 /* dmtxregion.c */
 extern DmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *decode, DmtxTime *timeout);
-extern DmtxRegion dmtxRegionScanPixel(DmtxDecode *decode, DmtxPixelLoc loc);
+extern DmtxRegion dmtxRegionScanPixel(DmtxDecode *decode, int x, int y);
 extern DmtxPassFail dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
       DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 extern DmtxPassFail dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);

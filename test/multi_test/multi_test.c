@@ -38,7 +38,8 @@ struct AppState {
    int windowHeight;
    int imageLocX;
    int imageLocY;
-   int mouseButton;
+   int leftButton;
+   int rightButton;
    int pointerX;
    int pointerY;
 };
@@ -47,14 +48,15 @@ static struct UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
 static struct AppState InitAppState(void);
 static SDL_Surface *SetWindowSize(int windowWidth, int windowHeight);
-static int HandleEvent(SDL_Event *event, struct AppState *appState, SDL_Surface **screen);
+static int HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface **screen);
 static int NudgeImage(int windowExtent, int pictureExtent, int imageLoc);
+static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);
 
 int main(int argc, char *argv[])
 {
    int done;
    struct UserOptions opt;
-   struct AppState appState;
+   struct AppState state;
    SDL_Surface *screen;
    SDL_Surface *picture;
    SDL_Event event;
@@ -62,7 +64,7 @@ int main(int argc, char *argv[])
    DmtxImage *img;
    DmtxDecode *dec;
    DmtxRegion reg;
-   DmtxMessage *msg;
+/* DmtxMessage *msg; */
 
    opt = GetDefaultOptions();
 
@@ -71,7 +73,7 @@ int main(int argc, char *argv[])
 /*    ShowUsage(1); */
    }
 
-   appState = InitAppState();
+   state = InitAppState();
 
    /* Load image */
    picture = IMG_Load(opt.imagePath);
@@ -80,6 +82,7 @@ int main(int argc, char *argv[])
       return 0;
    }
 
+fprintf(stdout, "pitch:%d\n", picture->pitch);
    img = dmtxImageCreate(picture->pixels, picture->w, picture->h, 24,
          DmtxPackRGB, DmtxFlipY);
 
@@ -91,30 +94,33 @@ int main(int argc, char *argv[])
       exit(1);
    }
 
-   screen = SetWindowSize(appState.windowWidth, appState.windowHeight);
+   screen = SetWindowSize(state.windowWidth, state.windowHeight);
 
    for(done = 0; !done;) {
       SDL_Delay(10);
 
       while(SDL_PollEvent(&event))
-         done = HandleEvent(&event, &appState, &screen);
+         done = HandleEvent(&event, &state, &screen);
 
-      appState.imageLocX = NudgeImage(appState.windowWidth, picture->w, appState.imageLocX);
-      appState.imageLocY = NudgeImage(appState.windowHeight, picture->h, appState.imageLocY);
+      state.imageLocX = NudgeImage(state.windowWidth, picture->w, state.imageLocX);
+      state.imageLocY = NudgeImage(state.windowHeight, picture->h, state.imageLocY);
 
-      imageLoc.x = appState.imageLocX;
-      imageLoc.y = appState.imageLocY;
+      imageLoc.x = state.imageLocX;
+      imageLoc.y = state.imageLocY;
 
       SDL_FillRect(screen, NULL, 0xff000050);
       SDL_BlitSurface(picture, NULL, screen, &imageLoc);
 
       dec = dmtxDecodeStructCreate(img);
-/*
-      for(;;) {
+
+      if(state.rightButton == SDL_PRESSED) {
+
          SDL_LockSurface(picture);
-         reg = dmtxDecodeFindNextRegion(dec, NULL);
+         reg = dmtxRegionScanPixel(dec, state.pointerX, state.pointerY);
          SDL_UnlockSurface(picture);
 
+         WriteDiagnosticImage(dec, &reg, "debug.pnm");
+/*
          if(reg.found != DMTX_REGION_FOUND)
             break;
 
@@ -126,8 +132,9 @@ int main(int argc, char *argv[])
          fputc('\n', stdout);
 
          dmtxMessageDestroy(&msg);
-      }
 */
+      }
+
       dmtxDecodeStructDestroy(&dec);
 
       SDL_Flip(screen);
@@ -179,17 +186,18 @@ HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[])
 static struct AppState
 InitAppState(void)
 {
-   struct AppState appState;
+   struct AppState state;
 
-   appState.windowWidth = 640;
-   appState.windowHeight = 480;
-   appState.imageLocX = 0;
-   appState.imageLocY = 0;
-   appState.mouseButton = SDL_RELEASED;
-   appState.pointerX = 0;
-   appState.pointerY = 0;
+   state.windowWidth = 640;
+   state.windowHeight = 480;
+   state.imageLocX = 0;
+   state.imageLocY = 0;
+   state.leftButton = SDL_RELEASED;
+   state.rightButton = SDL_RELEASED;
+   state.pointerX = 0;
+   state.pointerY = 0;
 
-   return appState;
+   return state;
 }
 
 /**
@@ -218,7 +226,7 @@ SetWindowSize(int windowWidth, int windowHeight)
  *
  */
 static int
-HandleEvent(SDL_Event *event, struct AppState *appState, SDL_Surface **screen)
+HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface **screen)
 {
    switch(event->type) {
       case SDL_KEYDOWN:
@@ -233,23 +241,25 @@ HandleEvent(SDL_Event *event, struct AppState *appState, SDL_Surface **screen)
       case SDL_MOUSEBUTTONDOWN:
       case SDL_MOUSEBUTTONUP:
          if(event->button.button == SDL_BUTTON_LEFT)
-            appState->mouseButton = event->button.state;
+            state->leftButton = event->button.state;
+         else if(event->button.button == SDL_BUTTON_RIGHT)
+            state->rightButton = event->button.state;
          break;
 
       case SDL_MOUSEMOTION:
-         appState->pointerX = event->motion.x;
-         appState->pointerY = event->motion.y;
+         state->pointerX = event->motion.x;
+         state->pointerY = event->motion.y;
 
-         if(appState->mouseButton == SDL_PRESSED) {
-            appState->imageLocX += event->motion.xrel;
-            appState->imageLocY += event->motion.yrel;
+         if(state->leftButton == SDL_PRESSED) {
+            state->imageLocX += event->motion.xrel;
+            state->imageLocY += event->motion.yrel;
          }
          break;
 
       case SDL_VIDEORESIZE:
-         appState->windowWidth = event->resize.w;
-         appState->windowHeight = event->resize.h;
-         *screen = SetWindowSize(appState->windowWidth, appState->windowHeight);
+         state->windowWidth = event->resize.w;
+         state->windowHeight = event->resize.h;
+         *screen = SetWindowSize(state->windowWidth, state->windowHeight);
          break;
 
       default:
@@ -284,4 +294,59 @@ NudgeImage(int windowExtent, int pictureExtent, int imageLoc)
    }
 
    return imageLoc;
+}
+
+/**
+ *
+ *
+ **/
+static void
+WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
+{
+   int row, col;
+   int width, height;
+   int offset;
+   double shade;
+   FILE *fp;
+   DmtxRgb rgb;
+
+   fp = fopen(imagePath, "wb");
+   if(fp == NULL) {
+      exit(1);
+   }
+
+   width = dmtxImageGetProp(dec->image, DmtxPropScaledWidth);
+   height = dmtxImageGetProp(dec->image, DmtxPropScaledHeight);
+
+   /* Test each pixel of input image to see if it lies in region */
+   fprintf(fp, "P6\n%d %d\n255\n", width, height);
+   for(row = height - 1; row >= 0; row--) {
+      for(col = 0; col < width; col++) {
+
+         offset = dmtxImageGetPixelOffset(dec->image, col, row);
+         if(offset == DMTX_BAD_OFFSET) {
+            rgb[0] = 0;
+            rgb[1] = 0;
+            rgb[2] = 128;
+         }
+         else {
+            dmtxImageGetRgb(dec->image, col, row, rgb);
+
+            if(dec->image->cache[offset] & 0x40) {
+               rgb[0] = 255;
+               rgb[1] = 0;
+               rgb[2] = 0;
+            }
+            else {
+               shade = (dec->image->cache[offset] & 0x80) ? 0.0 : 0.7;
+               rgb[0] += (shade * (255 - rgb[0]));
+               rgb[1] += (shade * (255 - rgb[1]));
+               rgb[2] += (shade * (255 - rgb[2]));
+            }
+         }
+         fwrite(rgb, sizeof(char), 3, fp);
+      }
+   }
+
+   fclose(fp);
 }
