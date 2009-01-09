@@ -82,7 +82,6 @@ Contact: mike@dragonflylogic.com
 #include "dmtxsymbol.c"
 #include "dmtxvector2.c"
 #include "dmtxmatrix3.c"
-/*#include "dmtxcolor3.c"*/
 #include "dmtximage.c"
 
 extern char *

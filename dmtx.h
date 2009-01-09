@@ -239,18 +239,6 @@ typedef enum {
 typedef double DmtxMatrix3[3][3];
 
 /**
- * @struct DmtxColor3
- * @brief DmtxColor3
- */
-/*
-typedef struct DmtxColor3_struct {
-   double R;
-   double G;
-   double B;
-} DmtxColor3;
-*/
-
-/**
  * @struct DmtxPixelLoc
  * @brief DmtxPixelLoc
  */
@@ -270,17 +258,6 @@ typedef struct DmtxVector2_struct {
 } DmtxVector2;
 
 /**
- * @struct DmtxRay3
- * @brief DmtxRay3
- */
-/*
-typedef struct DmtxRay3_struct {
-   DmtxColor3 p;
-   DmtxColor3 c;
-} DmtxRay3;
-*/
-
-/**
  * @struct DmtxRay2
  * @brief DmtxRay2
  */
@@ -290,18 +267,6 @@ typedef struct DmtxRay2_struct {
    DmtxVector2 p;
    DmtxVector2 v;
 } DmtxRay2;
-
-/**
- * @struct DmtxGradient
- * @brief DmtxGradient
- */
-/*
-typedef struct DmtxGradient_struct {
-   char       isDefined;
-   double     tMin, tMax;
-   DmtxRay3   ray;
-} DmtxGradient;
-*/
 
 /**
  * @struct DmtxImage
@@ -613,26 +578,6 @@ extern void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1);
 extern int dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m);
 extern int dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m);
 extern void dmtxMatrix3Print(DmtxMatrix3 m);
-
-/* dmtxcolor3.c */
-/*
-extern void dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *img, DmtxVector2 p);
-extern DmtxColor3 dmtxColor3AlongRay3(DmtxRay3 *ray, double dist);
-extern DmtxColor3 *dmtxColor3AddTo(DmtxColor3 *v1, DmtxColor3 *v2);
-extern DmtxColor3 *dmtxColor3Add(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
-extern DmtxColor3 *dmtxColor3SubFrom(DmtxColor3 *v1, DmtxColor3 *v2);
-extern DmtxColor3 *dmtxColor3Sub(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
-extern DmtxColor3 *dmtxColor3ScaleBy(DmtxColor3 *v, double s);
-extern DmtxColor3 *dmtxColor3Scale(DmtxColor3 *vOut, DmtxColor3 *v, double s);
-extern DmtxColor3 *dmtxColor3Cross(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
-extern double dmtxColor3Norm(DmtxColor3 *v);
-extern double dmtxColor3Dot(DmtxColor3 *v1, DmtxColor3 *v2);
-extern double dmtxColor3MagSquared(DmtxColor3 *v);
-extern double dmtxColor3Mag(DmtxColor3 *v);
-extern double dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
-extern double dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
-extern DmtxPassFail dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
-*/
 
 /* dmtxsymbol.c */
 extern int dmtxSymbolModuleStatus(DmtxMessage *mapping, int sizeIdx, int row, int col);
