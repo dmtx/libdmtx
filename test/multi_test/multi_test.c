@@ -306,9 +306,9 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
    int row, col;
    int width, height;
    int offset;
+   int rgb[3];
    double shade;
    FILE *fp;
-   DmtxRgb rgb;
 
    fp = fopen(imagePath, "wb");
    if(fp == NULL) {
@@ -330,7 +330,9 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
             rgb[2] = 128;
          }
          else {
-            dmtxImageGetRgb(dec->image, col, row, rgb);
+            dmtxImageGetPixelValue(dec->image, col, row, 0, &rgb[0]);
+            dmtxImageGetPixelValue(dec->image, col, row, 1, &rgb[1]);
+            dmtxImageGetPixelValue(dec->image, col, row, 2, &rgb[2]);
 
             if(dec->image->cache[offset] & 0x40) {
                rgb[0] = 255;

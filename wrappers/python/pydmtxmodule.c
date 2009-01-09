@@ -68,7 +68,7 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
    PyObject *args;
    DmtxEncode *enc;
    int row, col;
-   DmtxRgb rgb;
+   int rgb[3];
    static char *kwlist[] = { "data", "data_size", "module_size", "margin_size",
                              "scheme", "shape", "plotter", "start", "finish",
                              "context", NULL };
@@ -104,7 +104,9 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
 
    for(row = 0; row < enc->image->height; row++) {
       for(col = 0; col < enc->image->width; col++) {
-         dmtxImageGetRgb(enc->image, col, row, rgb);
+         dmtxImageGetPixelValue(enc->image, col, row, 0, &rgb[0]);
+         dmtxImageGetPixelValue(enc->image, col, row, 1, &rgb[1]);
+         dmtxImageGetPixelValue(enc->image, col, row, 2, &rgb[2]);
          args = Py_BuildValue("(ii(iii)O)", col, row, rgb[0], rgb[1], rgb[2], context);
          (void)PyEval_CallObject(plotter, args);
          Py_DECREF(args);

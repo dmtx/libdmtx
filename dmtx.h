@@ -237,17 +237,18 @@ typedef enum {
 } DmtxFlip;
 
 typedef double DmtxMatrix3[3][3];
-/*typedef unsigned char DmtxRgb[3];*/
 
 /**
  * @struct DmtxColor3
  * @brief DmtxColor3
  */
+/*
 typedef struct DmtxColor3_struct {
    double R;
    double G;
    double B;
 } DmtxColor3;
+*/
 
 /**
  * @struct DmtxPixelLoc
@@ -272,10 +273,12 @@ typedef struct DmtxVector2_struct {
  * @struct DmtxRay3
  * @brief DmtxRay3
  */
+/*
 typedef struct DmtxRay3_struct {
    DmtxColor3 p;
    DmtxColor3 c;
 } DmtxRay3;
+*/
 
 /**
  * @struct DmtxRay2
@@ -292,11 +295,13 @@ typedef struct DmtxRay2_struct {
  * @struct DmtxGradient
  * @brief DmtxGradient
  */
+/*
 typedef struct DmtxGradient_struct {
    char       isDefined;
    double     tMin, tMax;
    DmtxRay3   ray;
 } DmtxGradient;
+*/
 
 /**
  * @struct DmtxImage
@@ -324,7 +329,6 @@ typedef struct DmtxImage_struct {
    int             yMinScaled;
    int             yMaxScaled;
    unsigned char   *cache;
-/* DmtxRgb         *pxl; */
    unsigned char   *pxl;
 } DmtxImage;
 
@@ -572,8 +576,6 @@ extern DmtxPassFail dmtxImageAddChannel(DmtxImage *img, int channelStart, int bi
 extern DmtxPassFail dmtxImageSetProp(DmtxImage *img, int prop, int value);
 extern int dmtxImageGetProp(DmtxImage *img, int prop);
 extern int dmtxImageGetPixelOffset(DmtxImage *img, int x, int y);
-/*extern DmtxPassFail dmtxImageSetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb);
-extern DmtxPassFail dmtxImageGetRgb(DmtxImage *img, int x, int y, DmtxRgb rgb); */
 extern DmtxPassFail dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value);
 extern DmtxPassFail dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value);
 extern DmtxBoolean dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);
@@ -613,9 +615,8 @@ extern int dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m);
 extern void dmtxMatrix3Print(DmtxMatrix3 m);
 
 /* dmtxcolor3.c */
+/*
 extern void dmtxColor3FromImage2(DmtxColor3 *color, DmtxImage *img, DmtxVector2 p);
-/*extern DmtxColor3 *dmtxColor3FromPixel(DmtxColor3 *color, DmtxRgb rgb);
-extern void dmtxPixelFromColor3(DmtxRgb rgb, DmtxColor3 *color); */
 extern DmtxColor3 dmtxColor3AlongRay3(DmtxRay3 *ray, double dist);
 extern DmtxColor3 *dmtxColor3AddTo(DmtxColor3 *v1, DmtxColor3 *v2);
 extern DmtxColor3 *dmtxColor3Add(DmtxColor3 *vOut, DmtxColor3 *v1, DmtxColor3 *v2);
@@ -631,6 +632,7 @@ extern double dmtxColor3Mag(DmtxColor3 *v);
 extern double dmtxDistanceFromRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern double dmtxDistanceAlongRay3(DmtxRay3 *r, DmtxColor3 *q);
 extern DmtxPassFail dmtxPointAlongRay3(DmtxColor3 *point, DmtxRay3 *r, double t);
+*/
 
 /* dmtxsymbol.c */
 extern int dmtxSymbolModuleStatus(DmtxMessage *mapping, int sizeIdx, int row, int col);

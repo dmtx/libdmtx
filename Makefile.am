@@ -6,10 +6,9 @@
 
 lib_LTLIBRARIES = libdmtx.la
 libdmtx_la_SOURCES = dmtx.c
-EXTRA_libdmtx_la_SOURCES = dmtxcolor3.c dmtxdecode.c dmtxencode.c \
-	dmtxfec.c dmtximage.c dmtxmatrix3.c dmtxmessage.c \
-	dmtxplacemod.c dmtxreedsol.c dmtxregion.c dmtxscangrid.c \
-	dmtxstatic.h dmtxsymbol.c dmtxtime.c dmtxvector2.c
+EXTRA_libdmtx_la_SOURCES = dmtxdecode.c dmtxencode.c dmtxfec.c dmtximage.c \
+	dmtxmatrix3.c dmtxmessage.c dmtxplacemod.c dmtxreedsol.c dmtxregion.c \
+	dmtxscangrid.c dmtxstatic.h dmtxsymbol.c dmtxtime.c dmtxvector2.c
 
 include_HEADERS = dmtx.h
 libdmtx_la_CFLAGS = -Wall -pedantic

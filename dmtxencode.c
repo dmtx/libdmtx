@@ -89,10 +89,7 @@ dmtxEncodeStructCreate(void)
 
    /* Initialize foreground color to black */
 /* enc.region.gradient.tMin = 0.0;
-   enc.region.gradient.tMax = dmtxColor3Mag(&(enc.region.gradient.ray.p)); */
-
-/* dmtxColor3Scale(&(enc.region.gradient.ray.c),
-         &(enc.region.gradient.ray.p), -1.0/enc.region.gradient.tMax); */
+   enc.region.gradient.tMax = xyz; */
 
    dmtxMatrix3Identity(enc->xfrm);
 
@@ -441,7 +438,6 @@ PrintPattern(DmtxEncode *enc)
    int pixelRow, pixelCol;
    int moduleStatus;
    double sxy, txy;
-/* DmtxRgb rgb; */
    int rgb[3];
    DmtxMatrix3 m1, m2;
    DmtxVector2 vIn, vOut;

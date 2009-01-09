@@ -44,8 +44,9 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
   o libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   o libdmtx:   Change DmtxMessage type to use Create/Destroy approach like others (?)
-  o libdmtx:   Eliminate DmtxRGB type
   / libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
+  / libdmtx:   Removed dmtxcolor.c, DmtxColor3, and DmtxGradient
+  x libdmtx:   Eliminate DmtxRgb type
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
   x libdmtx:   Use Create/Destroy for DmtxEncode & DmtxDecode (but not DmtxRegion)
