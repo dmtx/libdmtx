@@ -78,19 +78,23 @@ int main(int argc, char *argv[])
    /* Load image */
    picture = IMG_Load(opt.imagePath);
    if(picture == NULL) {
-      fprintf(stderr, "Couldn't load %s: %s\n", opt.imagePath, SDL_GetError());
-      return 0;
+      fprintf(stderr, "Unable to load image \"%s\": %s\n", opt.imagePath, SDL_GetError());
+      exit(1);
    }
 
-fprintf(stdout, "pitch:%d\n", picture->pitch);
-   img = dmtxImageCreate(picture->pixels, picture->w, picture->h, 24,
+   /* fprintf(stdout, "pitch:%d\n", picture->pitch); assert? */
+   img = dmtxImageCreate(picture->pixels, picture->w, picture->h, 32,
          DmtxPackRGB, DmtxFlipY);
+   if(img == NULL) {
+      fprintf(stderr, "Unable to create image\n");
+      exit(1);
+   }
 
    atexit(SDL_Quit);
 
    /* Initialize SDL library */
    if(SDL_Init(SDL_INIT_VIDEO) < 0) {
-      fprintf(stderr, "Couldn't initialize SDL: %s\n", SDL_GetError());
+      fprintf(stderr, "Unable to initialize SDL: %s\n", SDL_GetError());
       exit(1);
    }
 
@@ -142,7 +146,7 @@ fprintf(stdout, "pitch:%d\n", picture->pitch);
 
    dmtxImageDestroy(&img);
 
-   return 0;
+   exit(0);
 }
 
 /**
@@ -209,11 +213,11 @@ SetWindowSize(int windowWidth, int windowHeight)
 {
    SDL_Surface *screen;
 
-   screen = SDL_SetVideoMode(windowWidth, windowHeight, 24,
+   screen = SDL_SetVideoMode(windowWidth, windowHeight, 32,
          SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_RESIZABLE);
 
    if(screen == NULL) {
-      fprintf(stderr, "Couldn't set %dx%dx24 video mode: %s\n", windowWidth,
+      fprintf(stderr, "Couldn't set %dx%dx32 video mode: %s\n", windowWidth,
             windowHeight, SDL_GetError());
       exit(1);
    }
