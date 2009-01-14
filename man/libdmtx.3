@@ -13,37 +13,41 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.6.1
 
 \fIENCODING FUNCTIONS\fP
 
-\fBDmtxEncode dmtxEncodeStructInit(\fIvoid\fP);\fP
+\fBDmtxEncode *dmtxEncodeCreate(\fIvoid\fP);\fP
+
+\fBDmtxPassFail dmtxEncodeDestroy(DmtxEncode *\fIenc\fP);\fP
 
 \fBint dmtxEncodeDataMatrix(DmtxEncode *\fIenc\fP, int \fIn\fP, unsigned char *\fIs\fP, int \fIsizeIdxRequest\fP);\fP
 
 \fBint dmtxEncodeDataMosaic(DmtxEncode *\fIenc\fP, int \fIn\fP, unsigned char *\fIs\fP, int \fIsizeIdxRequest\fP);\fP
 
-\fBvoid dmtxEncodeStructDeInit(DmtxEncode *\fIenc\fP);\fP
-
 \fIDECODING FUNCTIONS\fP
 
-\fBDmtxDecode dmtxDecodeStructInit(DmtxImage *\fIimg\fP);\fP
+\fBDmtxDecode *dmtxDecodeCreate(DmtxImage *\fIimg\fP);\fP
+
+\fBDmtxPassFail dmtxDecodeDestroy(DmtxDecode *\fIdec\fP);\fP
 
 \fBint dmtxDecodeSetProp(DmtxDecode *\fIdec\fP, int \fIprop\fP, int \fIvalue\fP);\fP
 
-\fBDmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *\fIdec\fP, DmtxTime *\fItimeout\fP);\fP
+\fBDmtxRegion *dmtxRegionFindNext(DmtxDecode *\fIdec\fP, DmtxTime *\fItimeout\fP);\fP
+
+\fBDmtxRegion *dmtxRegionCreate(DmtxRegion *\fIreg\fP);\fP
+
+\fBDmtxPassFail dmtxRegionDestroy(DmtxRegion **\fIreg\fP);\fP
 
 \fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxImage *\fIimg\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
 \fBDmtxMessage *dmtxDecodeMosaicRegion(DmtxImage *\fIimg\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
-\fBvoid dmtxDecodeStructDeInit(DmtxDecode *\fIdec\fP);\fP
-
 \fICOMMON FUNCTIONS\fP
 
-\fBDmtxMessage *dmtxMessageMalloc(int \fIsizeIdx\fP);\fP
+\fBDmtxMessage *dmtxMessageCreate(int \fIsizeIdx\fP);\fP
 
-\fBvoid dmtxMessageFree(DmtxMessage **\fImesg\fP);\fP
+\fBDmtxPassFail dmtxMessageDestroy(DmtxMessage **\fImesg\fP);\fP
 
-\fBDmtxImage *dmtxImageMalloc(int \fIwidth\fP, int \fIheight\fP);\fP
+\fBDmtxImage *dmtxImageCreate(unsigned char *pxl, int \fIwidth\fP, int \fIheight\fP);\fP
 
-\fBint dmtxImageFree(DmtxImage **\fIimg\fP);\fP
+\fBDmtxPassFail dmtxImageDestroy(DmtxImage **\fIimg\fP);\fP
 
 \fBint dmtxImageSetProp(DmtxImage *\fIimg\fP, int \fIprop\fP, int \fIvalue\fP);\fP
 
@@ -71,7 +75,7 @@ Initializes the internal values of the encoding process.  Must be called before 
 
 Depending on the desired barcode format, the calling program will use one of these functions to generate a barcode image within the \fBDmtxEncode\fP struct.  The calling program is responsible for using this information to create a permanent image file.
 
-3. Call \fBdmtxEncodeStructDeInit()\fP
+3. Call \fBdmtxEncodeDestroy()\fP
 
 Resets the internal encoding values and frees memory allocated during the encoding process.
 
@@ -104,7 +108,7 @@ Extract bit values from the barcode region and decode the underlying message.  \
 
 Free the memory held by a \fBDmtxMessage\fP struct.  The complementary function, \fBdmtxMessageMalloc()\fP, is automatically called by \fBdmtxDecodeMatrixRegion()\fP and therefore is not normally used by the calling program.
 
-7. Call \fBdmtxDecodeStructDeInit()\fP
+7. Call \fBdmtxDecodeDestroy()\fP
 
 Resets the internal decoding values used during the decoding process.
 
@@ -143,7 +147,7 @@ This example program (available as simple_test.c in the source package) demonstr
      img = dmtxImageMalloc(enc.image->width, enc.image->height);
      memcpy(img->pxl, enc.image->pxl, img->width * img->height * sizeof(DmtxRgb));
 
-     dmtxEncodeStructDeInit(&enc);
+     dmtxEncodeDestroy(&enc);
 
      /* 3) DECODE the Data Matrix barcode from the copied image */
 
@@ -161,7 +165,7 @@ This example program (available as simple_test.c in the source package) demonstr
         dmtxMessageFree(&msg);
      }
 
-     dmtxDecodeStructDeInit(&dec);
+     dmtxDecodeDestroy(&dec);
      dmtxImageFree(&img);
 
      exit(0);

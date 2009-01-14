@@ -32,49 +32,72 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
+ * @brief  Create copy of existing region struct
+ * @param  None
+ * @return Initialized DmtxRegion struct
+ */
+extern DmtxRegion *
+dmtxRegionCreate(DmtxRegion *reg)
+{
+   DmtxRegion *regCopy;
+
+   regCopy = (DmtxRegion *)malloc(sizeof(DmtxRegion));
+   if(regCopy == NULL)
+      return NULL;
+
+   memcpy(regCopy, reg, sizeof(DmtxRegion));
+
+   return regCopy;
+}
+
+/**
+ * @brief  Destroy region struct
+ * @param  reg
+ * @return void
+ */
+extern DmtxPassFail
+dmtxRegionDestroy(DmtxRegion **reg)
+{
+   if(reg == NULL || *reg == NULL)
+      return DmtxFail;
+
+   free(*reg);
+
+   *reg = NULL;
+
+   return DmtxPass;
+}
+
+/**
  * @brief  Find next barcode region
  * @param  dec Pointer to DmtxDecode information struct
  * @param  timeout Pointer to timeout time (NULL if none)
  * @return Detected region (if found)
  */
-extern DmtxRegion
-dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
+extern DmtxRegion *
+dmtxRegionFindNext(DmtxDecode *dec, DmtxTime *timeout)
 {
-   DmtxScanGrid *grid;
+   int locStatus;
    DmtxPixelLoc loc;
-   DmtxRegion   reg;
-/**
-   int size, i = 0;
-   char imagePath[128];
-*/
-   grid = &(dec->grid);
+   DmtxRegion   *reg;
 
-   /* Continue scanning until we run out of time or run out of image */
-   while(PopGridLocation(grid, &loc) != DmtxRangeEnd) {
+   /* Continue until we find a region or run out of chances */
+   for(;;) {
+      locStatus = PopGridLocation(&(dec->grid), &loc);
+      if(locStatus == DmtxRangeEnd)
+         break;
 
-      /* Scan this pixel for presence of a valid barcode edge */
+      /* Scan location for presence of valid barcode region */
       reg = dmtxRegionScanPixel(dec, loc.X, loc.Y);
-/**
-      if(reg.found == DMTX_REGION_FOUND || reg.found > DMTX_REGION_DROPPED_FINDER) {
-         size = snprintf(imagePath, 128, "debug_%06d.pnm", i++);
-         if(size >= 128)
-            exit(1);
-         WriteDiagnosticImage(dec, &reg, imagePath);
-      }
-*/
-      /* Found a barcode region? */
-      if(reg.found == DMTX_REGION_FOUND)
+      if(reg != NULL)
          return reg;
 
       /* Ran out of time? */
-      if(timeout != NULL && dmtxTimeExceeded(*timeout)) {
-         reg.found = DMTX_REGION_TIMEOUT;
-         return reg;
-      }
+      if(timeout != NULL && dmtxTimeExceeded(*timeout))
+         break;
    }
 
-   reg.found = DMTX_REGION_EOF;
-   return reg;
+   return NULL;
 }
 
 /**
@@ -83,7 +106,7 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
  * @param  loc Pixel location
  * @return Detected region (if any)
  */
-extern DmtxRegion
+extern DmtxRegion *
 dmtxRegionScanPixel(DmtxDecode *dec, int x, int y)
 {
    int offset;
@@ -91,72 +114,49 @@ dmtxRegionScanPixel(DmtxDecode *dec, int x, int y)
    DmtxPointFlow flowBegin;
    DmtxPixelLoc loc;
 
-   memset(&reg, 0x00, sizeof(DmtxRegion));
-
    loc.X = x;
    loc.Y = y;
 
    offset = dmtxImageGetPixelOffset(dec->image, loc.X, loc.Y);
-/* if(offset == DMTX_BAD_OFFSET || dec->image->cache[offset] & 0x40) { */
-   if(offset == DMTX_BAD_OFFSET) {
-      reg.found = DMTX_REGION_NOT_FOUND;
-      return reg;
-   }
+   if(offset == DMTX_BAD_OFFSET)
+      return NULL;
 
-   if((int)(dec->image->cache[offset] & 0x80) != 0x00) {
-      reg.found = DMTX_REGION_NOT_FOUND;
-      return reg;
-   }
+   if((int)(dec->image->cache[offset] & 0x80) != 0x00)
+      return NULL;
 
    /* Test for presence of any reasonable edge at this location */
    flowBegin = MatrixRegionSeekEdge(dec, loc);
-   if(flowBegin.mag < 10) {
-      reg.found = DMTX_REGION_DROPPED_EDGE;
-      return reg;
-   }
+   if(flowBegin.mag < 10)
+      return NULL;
+
+   memset(&reg, 0x00, sizeof(DmtxRegion));
 
    /* Determine barcode orientation */
-   if(MatrixRegionOrientation(dec, &reg, flowBegin) != DmtxPass) {
-      reg.found = DMTX_REGION_DROPPED_FINDER;
-      return reg;
-   }
-
-   if(dmtxRegionUpdateXfrms(dec, &reg) != DmtxPass) {
-      reg.found = DMTX_REGION_DROPPED_FINDER;
-      return reg;
-   }
+   if(MatrixRegionOrientation(dec, &reg, flowBegin) != DmtxPass)
+      return NULL;
+   if(dmtxRegionUpdateXfrms(dec, &reg) != DmtxPass)
+      return NULL;
 
    /* Define top edge */
-   if(MatrixRegionAlignCalibEdge(dec, &reg, DmtxEdgeTop) != DmtxPass) {
-      reg.found = DMTX_REGION_DROPPED_TOP;
-      return reg;
-   }
-   if(dmtxRegionUpdateXfrms(dec, &reg) != DmtxPass) {
-      reg.found = DMTX_REGION_DROPPED_TOP;
-      return reg;
-   }
+   if(MatrixRegionAlignCalibEdge(dec, &reg, DmtxEdgeTop) != DmtxPass)
+      return NULL;
+   if(dmtxRegionUpdateXfrms(dec, &reg) != DmtxPass)
+      return NULL;
 
    /* Define right edge */
-   if(MatrixRegionAlignCalibEdge(dec, &reg, DmtxEdgeRight) != DmtxPass) {
-      reg.found = DMTX_REGION_DROPPED_RIGHT;
-      return reg;
-   }
-   if(dmtxRegionUpdateXfrms(dec, &reg) != DmtxPass) {
-      reg.found = DMTX_REGION_DROPPED_RIGHT;
-      return reg;
-   }
+   if(MatrixRegionAlignCalibEdge(dec, &reg, DmtxEdgeRight) != DmtxPass)
+      return NULL;
+   if(dmtxRegionUpdateXfrms(dec, &reg) != DmtxPass)
+      return NULL;
 
    CALLBACK_MATRIX(&reg);
 
    /* Calculate the best fitting symbol size */
-   if(MatrixRegionFindSize(dec, &reg) != DmtxPass) {
-      reg.found = DMTX_REGION_DROPPED_SIZE;
-      return reg;
-   }
+   if(MatrixRegionFindSize(dec, &reg) != DmtxPass)
+      return NULL;
 
    /* Found a valid matrix region */
-   reg.found = DMTX_REGION_FOUND;
-   return reg;
+   return dmtxRegionCreate(&reg);
 }
 
 /**

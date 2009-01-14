@@ -60,16 +60,6 @@ extern "C" {
 #define DMTX_DISPLAY_POINT             2
 #define DMTX_DISPLAY_CIRCLE            3
 
-#define DMTX_REGION_FOUND              0
-#define DMTX_REGION_NOT_FOUND          1
-#define DMTX_REGION_TIMEOUT            2
-#define DMTX_REGION_EOF                3
-#define DMTX_REGION_DROPPED_EDGE       4
-#define DMTX_REGION_DROPPED_FINDER     5
-#define DMTX_REGION_DROPPED_TOP        6
-#define DMTX_REGION_DROPPED_RIGHT      7
-#define DMTX_REGION_DROPPED_SIZE       8
-
 #define DMTX_MODULE_OFF             0x00
 #define DMTX_MODULE_ON_RED          0x01
 #define DMTX_MODULE_ON_GREEN        0x02
@@ -331,7 +321,6 @@ typedef struct DmtxBestLine_struct {
  * @brief DmtxRegion
  */
 typedef struct DmtxRegion_struct {
-   int             found;         /* DMTX_REGION_FOUND | DMTX_REGION_NOT_FOUND | DMTX_REGION_EOF */
 
    /* Trail blazing values */
    int             jumpToPos;     /* */
@@ -510,14 +499,14 @@ extern DmtxTime dmtxTimeAdd(DmtxTime t, long msec);
 extern int dmtxTimeExceeded(DmtxTime timeout);
 
 /* dmtxencode.c */
-extern DmtxEncode *dmtxEncodeStructCreate(void);
-extern DmtxPassFail dmtxEncodeStructDestroy(DmtxEncode **enc);
+extern DmtxEncode *dmtxEncodeCreate(void);
+extern DmtxPassFail dmtxEncodeDestroy(DmtxEncode **enc);
 extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest, int flip);
 extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest, int flip);
 
 /* dmtxdecode.c */
-extern DmtxDecode *dmtxDecodeStructCreate(DmtxImage *img);
-extern DmtxPassFail dmtxDecodeStructDestroy(DmtxDecode **dec);
+extern DmtxDecode *dmtxDecodeCreate(DmtxImage *img);
+extern DmtxPassFail dmtxDecodeDestroy(DmtxDecode **dec);
 extern DmtxPassFail dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix);
@@ -527,8 +516,10 @@ extern DmtxMessage *dmtxMessageCreate(int sizeIdx, int symbolFormat);
 extern DmtxPassFail dmtxMessageDestroy(DmtxMessage **mesg);
 
 /* dmtxregion.c */
-extern DmtxRegion dmtxDecodeFindNextRegion(DmtxDecode *decode, DmtxTime *timeout);
-extern DmtxRegion dmtxRegionScanPixel(DmtxDecode *decode, int x, int y);
+extern DmtxRegion *dmtxRegionCreate(DmtxRegion *reg);
+extern DmtxPassFail dmtxRegionDestroy(DmtxRegion **reg);
+extern DmtxRegion *dmtxRegionFindNext(DmtxDecode *decode, DmtxTime *timeout);
+extern DmtxRegion *dmtxRegionScanPixel(DmtxDecode *decode, int x, int y);
 extern DmtxPassFail dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
       DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 extern DmtxPassFail dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);

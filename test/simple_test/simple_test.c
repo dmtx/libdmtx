@@ -36,14 +36,14 @@ main(int argc, char *argv[])
    DmtxEncode     *enc;
    DmtxImage      *img;
    DmtxDecode     *dec;
-   DmtxRegion      reg;
+   DmtxRegion     *reg;
    DmtxMessage    *msg;
 
    fprintf(stdout, "input:  \"%s\"\n", str);
 
    /* 1) ENCODE a new Data Matrix barcode image (in memory only) */
 
-   enc = dmtxEncodeStructCreate();
+   enc = dmtxEncodeCreate();
    dmtxEncodeDataMatrix(enc, strlen(str), str, DmtxSymbolSquareAuto, DmtxFlipNone);
 
    /* 2) COPY the new image data before releasing encoding memory */
@@ -56,28 +56,29 @@ main(int argc, char *argv[])
    assert(pxl != NULL);
    memcpy(pxl, enc->image->pxl, width * height * bytesPerPixel);
 
-   dmtxEncodeStructDestroy(&enc);
+   dmtxEncodeDestroy(&enc);
 
    /* 3) DECODE the Data Matrix barcode from the copied image */
 
    img = dmtxImageCreate(pxl, width, height, 24, DmtxPackRGB, DmtxFlipNone);
    assert(img != NULL);
 
-   dec = dmtxDecodeStructCreate(img);
+   dec = dmtxDecodeCreate(img);
+   assert(dec != NULL);
 
-   reg = dmtxDecodeFindNextRegion(dec, NULL);
-   if(reg.found != DMTX_REGION_FOUND)
-      exit(1);
-
-   msg = dmtxDecodeMatrixRegion(img, &reg, -1);
-   if(msg != NULL) {
-      fputs("output: \"", stdout);
-      fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
-      fputs("\"\n", stdout);
-      dmtxMessageDestroy(&msg);
+   reg = dmtxRegionFindNext(dec, NULL);
+   if(reg != NULL) {
+      msg = dmtxDecodeMatrixRegion(img, reg, -1);
+      if(msg != NULL) {
+         fputs("output: \"", stdout);
+         fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
+         fputs("\"\n", stdout);
+         dmtxMessageDestroy(&msg);
+      }
+      dmtxRegionDestroy(&reg);
    }
 
-   dmtxDecodeStructDestroy(&dec);
+   dmtxDecodeDestroy(&dec);
    dmtxImageDestroy(&img);
    free(pxl);
 

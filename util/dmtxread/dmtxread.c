@@ -69,7 +69,7 @@ main(int argc, char *argv[])
    DmtxTime timeout;
    DmtxImage *img;
    DmtxDecode *dec;
-   DmtxRegion reg;
+   DmtxRegion *reg;
    DmtxMessage *msg;
    GmImage *imgList, *imgPage;
    GmImageInfo *imgInfo;
@@ -135,7 +135,7 @@ main(int argc, char *argv[])
          }
 
          /* Initialize scan */
-         dec = dmtxDecodeStructCreate(img);
+         dec = dmtxDecodeCreate(img);
          if(dec == NULL) {
             CleanupMagick(&imgList, &imgInfo);
             FatalError(80, "decode create error");
@@ -151,24 +151,32 @@ main(int argc, char *argv[])
          pageScanCount = 0;
          for(;;) {
             /* Find next barcode region within image, but do not decode yet */
-            reg = dmtxDecodeFindNextRegion(dec, (opt.timeoutMS == -1) ?
+            reg = dmtxRegionFindNext(dec, (opt.timeoutMS == -1) ?
                   NULL : &timeout);
 
             /* Finished file or ran out of time before finding another region */
-            if(reg.found != DMTX_REGION_FOUND)
+            if(reg == NULL)
                break;
 
             /* Decode region based on requested barcode mode */
             if(opt.mosaic)
-               msg = dmtxDecodeMosaicRegion(img, &reg, opt.correctionsMax);
+               msg = dmtxDecodeMosaicRegion(img, reg, opt.correctionsMax);
             else
-               msg = dmtxDecodeMatrixRegion(img, &reg, opt.correctionsMax);
+               msg = dmtxDecodeMatrixRegion(img, reg, opt.correctionsMax);
 
-            if(msg == NULL)
+            if(msg == NULL) {
+               dmtxRegionDestroy(&reg);
                continue;
+            }
 
-            PrintDecodedOutput(&opt, img, &reg, msg, imgPageIndex);
+            PrintDecodedOutput(&opt, img, reg, msg, imgPageIndex);
+
+            if(opt.diagnose)
+               WriteDiagnosticImage(dec, reg, "debug.pnm");
+
             dmtxMessageDestroy(&msg);
+            dmtxRegionDestroy(&reg);
+
             pageScanCount++;
             imageScanCount++;
 
@@ -176,10 +184,7 @@ main(int argc, char *argv[])
                break;
          }
 
-         if(opt.diagnose)
-            WriteDiagnosticImage(dec, &reg, "debug.pnm");
-
-         dmtxDecodeStructDestroy(&dec);
+         dmtxDecodeDestroy(&dec);
          dmtxImageDestroy(&img);
          free(pxl);
       }

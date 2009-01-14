@@ -70,7 +70,7 @@ Contact: mike@dragonflylogic.com
  * @return Initialized DmtxEncode struct
  */
 extern DmtxEncode *
-dmtxEncodeStructCreate(void)
+dmtxEncodeCreate(void)
 {
    DmtxEncode *enc;
 
@@ -102,7 +102,7 @@ dmtxEncodeStructCreate(void)
  * @return void
  */
 extern DmtxPassFail
-dmtxEncodeStructDestroy(DmtxEncode **enc)
+dmtxEncodeDestroy(DmtxEncode **enc)
 {
    if(enc == NULL || *enc == NULL)
       return DmtxFail;

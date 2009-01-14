@@ -62,7 +62,7 @@ main(int argc, char *argv[])
    opt = GetDefaultOptions();
 
    /* Create and initialize libdmtx structures */
-   enc = dmtxEncodeStructCreate();
+   enc = dmtxEncodeCreate();
    if(enc == NULL)
       FatalError(1, "create error");
 
@@ -100,7 +100,7 @@ main(int argc, char *argv[])
    }
 
    /* Clean up */
-   dmtxEncodeStructDestroy(&enc);
+   dmtxEncodeDestroy(&enc);
 
    exit(0);
 }

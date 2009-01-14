@@ -33,7 +33,7 @@ Contact: mike@dragonflylogic.com
  * @return Initialized DmtxDecode struct
  */
 extern DmtxDecode *
-dmtxDecodeStructCreate(DmtxImage *img)
+dmtxDecodeCreate(DmtxImage *img)
 {
    DmtxDecode *dec;
    int cacheSize;
@@ -76,7 +76,7 @@ dmtxDecodeStructCreate(DmtxImage *img)
  * @return void
  */
 extern DmtxPassFail
-dmtxDecodeStructDestroy(DmtxDecode **dec)
+dmtxDecodeDestroy(DmtxDecode **dec)
 {
    if(dec == NULL || *dec == NULL)
       return DmtxFail;
