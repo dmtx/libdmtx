@@ -63,8 +63,8 @@ int main(int argc, char *argv[])
    SDL_Rect imageLoc;
    DmtxImage *img;
    DmtxDecode *dec;
-   DmtxRegion reg;
-/* DmtxMessage *msg; */
+   DmtxRegion *reg;
+   DmtxMessage *msg;
 
    opt = GetDefaultOptions();
 
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
       SDL_FillRect(screen, NULL, 0xff000050);
       SDL_BlitSurface(picture, NULL, screen, &imageLoc);
 
-      dec = dmtxDecodeStructCreate(img);
+      dec = dmtxDecodeCreate(img);
 
       if(state.rightButton == SDL_PRESSED) {
 
@@ -123,23 +123,21 @@ int main(int argc, char *argv[])
          reg = dmtxRegionScanPixel(dec, state.pointerX, state.pointerY);
          SDL_UnlockSurface(picture);
 
-         WriteDiagnosticImage(dec, &reg, "debug.pnm");
-/*
-         if(reg.found != DMTX_REGION_FOUND)
-            break;
+         if(reg != NULL) {
+            WriteDiagnosticImage(dec, reg, "debug.pnm");
 
-         msg = dmtxDecodeMatrixRegion(img, &reg, -1);
-         if(msg == NULL)
-            continue;
+            msg = dmtxDecodeMatrixRegion(img, reg, -1);
+            if(msg != NULL) {
+               fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
+               fputc('\n', stdout);
+               dmtxMessageDestroy(&msg);
+            }
 
-         fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
-         fputc('\n', stdout);
-
-         dmtxMessageDestroy(&msg);
-*/
+            dmtxRegionDestroy(&reg);
+         }
       }
 
-      dmtxDecodeStructDestroy(&dec);
+      dmtxDecodeDestroy(&dec);
 
       SDL_Flip(screen);
    }
