@@ -77,7 +77,7 @@ static void php_dmtx_image_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
    DmtxEncode *enc = (DmtxEncode *)rsrc->ptr;
 
-   if(enc != NULL) {
+   if(enc != NULL)
       dmtxEncodeDestroy(&enc);
 }
 
@@ -108,7 +108,7 @@ PHP_FUNCTION(dmtx_write)
       RETURN_NULL();
 
    enc = dmtxEncodeCreate();
-   dmtxEncodeDataMatrix(enc, data_len, data, DmtxSymbolSquareAuto);
+   dmtxEncodeDataMatrix(enc, data_len, data, DmtxSymbolSquareAuto, DmtxFlipY);
 
    printf("ddd");
    fflush(stdout);
@@ -135,14 +135,13 @@ PHP_FUNCTION(dmtx_getRow)
 {
    int i;
    zval *zImage;
-   DmtxImage *img;
    DmtxEncode *enc;
+   DmtxImage *img;
 
    if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zImage) == FAILURE)
       RETURN_NULL();
 
    ZEND_FETCH_RESOURCE(enc, DmtxEncode *, &zImage, -1, PHP_DMTX_IMAGE_RES_NAME, le_dmtx_image);
-
    img = enc->image;
 
    if(DMTX_G(row_index) >= img->height)
@@ -158,9 +157,9 @@ PHP_FUNCTION(dmtx_getRow)
       ALLOC_INIT_ZVAL(arr);
       array_init(arr);
 
-      add_assoc_long(arr, "R", img->pxl[pos][0]);
-      add_assoc_long(arr, "G", img->pxl[pos][1]);
-      add_assoc_long(arr, "B", img->pxl[pos][2]);
+      add_assoc_long(arr, "R", img->pxl[pos * 3 + 0]);
+      add_assoc_long(arr, "G", img->pxl[pos * 3 + 1]);
+      add_assoc_long(arr, "B", img->pxl[pos * 3 + 2]);
 
       add_next_index_zval(return_value, arr);
    }
