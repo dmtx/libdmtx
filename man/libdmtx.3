@@ -15,7 +15,7 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.6.1
 
 \fBDmtxEncode *dmtxEncodeCreate(\fIvoid\fP);\fP
 
-\fBDmtxPassFail dmtxEncodeDestroy(DmtxEncode *\fIenc\fP);\fP
+\fBDmtxPassFail dmtxEncodeDestroy(DmtxEncode **\fIenc\fP);\fP
 
 \fBint dmtxEncodeDataMatrix(DmtxEncode *\fIenc\fP, int \fIn\fP, unsigned char *\fIs\fP, int \fIsizeIdxRequest\fP);\fP
 
@@ -25,25 +25,27 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.6.1
 
 \fBDmtxDecode *dmtxDecodeCreate(DmtxImage *\fIimg\fP);\fP
 
-\fBDmtxPassFail dmtxDecodeDestroy(DmtxDecode *\fIdec\fP);\fP
+\fBDmtxPassFail dmtxDecodeDestroy(DmtxDecode **\fIdec\fP);\fP
 
 \fBint dmtxDecodeSetProp(DmtxDecode *\fIdec\fP, int \fIprop\fP, int \fIvalue\fP);\fP
-
-\fBDmtxRegion *dmtxRegionFindNext(DmtxDecode *\fIdec\fP, DmtxTime *\fItimeout\fP);\fP
-
-\fBDmtxRegion *dmtxRegionCreate(DmtxRegion *\fIreg\fP);\fP
-
-\fBDmtxPassFail dmtxRegionDestroy(DmtxRegion **\fIreg\fP);\fP
 
 \fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxImage *\fIimg\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
 \fBDmtxMessage *dmtxDecodeMosaicRegion(DmtxImage *\fIimg\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
+\fBDmtxRegion *dmtxRegionCreate(DmtxRegion *\fIreg\fP);\fP
+
+\fBDmtxPassFail dmtxRegionDestroy(DmtxRegion **\fIreg\fP);\fP
+
+\fBDmtxRegion *dmtxRegionFindNext(DmtxDecode *\fIdec\fP, DmtxTime *\fItimeout\fP);\fP
+
+\fBDmtxRegion *dmtxRegionScanPixel(DmtxDecode *\fIdec\fP, int \fIx\fP, int \fIy\fP);\fP
+
 \fICOMMON FUNCTIONS\fP
 
-\fBDmtxMessage *dmtxMessageCreate(int \fIsizeIdx\fP);\fP
+\fBDmtxMessage *dmtxMessageCreate(int \fIsizeIdx\fP, int \fIsymbolFormat\fP);\fP
 
-\fBDmtxPassFail dmtxMessageDestroy(DmtxMessage **\fImesg\fP);\fP
+\fBDmtxPassFail dmtxMessageDestroy(DmtxMessage **\fImsg\fP);\fP
 
 \fBDmtxImage *dmtxImageCreate(unsigned char *pxl, int \fIwidth\fP, int \fIheight\fP);\fP
 

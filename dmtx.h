@@ -513,13 +513,13 @@ extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int 
 
 /* dmtxmessage.c */
 extern DmtxMessage *dmtxMessageCreate(int sizeIdx, int symbolFormat);
-extern DmtxPassFail dmtxMessageDestroy(DmtxMessage **mesg);
+extern DmtxPassFail dmtxMessageDestroy(DmtxMessage **msg);
 
 /* dmtxregion.c */
 extern DmtxRegion *dmtxRegionCreate(DmtxRegion *reg);
 extern DmtxPassFail dmtxRegionDestroy(DmtxRegion **reg);
-extern DmtxRegion *dmtxRegionFindNext(DmtxDecode *decode, DmtxTime *timeout);
-extern DmtxRegion *dmtxRegionScanPixel(DmtxDecode *decode, int x, int y);
+extern DmtxRegion *dmtxRegionFindNext(DmtxDecode *dec, DmtxTime *timeout);
+extern DmtxRegion *dmtxRegionScanPixel(DmtxDecode *dec, int x, int y);
 extern DmtxPassFail dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
       DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 extern DmtxPassFail dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);
