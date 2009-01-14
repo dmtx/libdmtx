@@ -77,11 +77,8 @@ static void php_dmtx_image_dtor(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 {
    DmtxEncode *enc = (DmtxEncode *)rsrc->ptr;
 
-   if(enc) {
-      dmtxEncodeStructDeInit(enc);
-      free(enc);
-      enc = NULL;
-   }
+   if(enc != NULL) {
+      dmtxEncodeDestroy(&enc);
 }
 
 PHP_MINIT_FUNCTION(dmtx)
@@ -110,8 +107,7 @@ PHP_FUNCTION(dmtx_write)
          &data, &data_len) == FAILURE)
       RETURN_NULL();
 
-   enc = (DmtxEncode *)malloc(sizeof(DmtxEncode));
-   *enc = dmtxEncodeStructInit();
+   enc = dmtxEncodeCreate();
    dmtxEncodeDataMatrix(enc, data_len, data, DmtxSymbolSquareAuto);
 
    printf("ddd");
@@ -137,16 +133,17 @@ PHP_FUNCTION(dmtx_getSize)
 
 PHP_FUNCTION(dmtx_getRow)
 {
-   DmtxEncode *enc;
-   zval *zImage;
    int i;
+   zval *zImage;
+   DmtxImage *img;
+   DmtxEncode *enc;
 
    if(zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zImage) == FAILURE)
       RETURN_NULL();
 
    ZEND_FETCH_RESOURCE(enc, DmtxEncode *, &zImage, -1, PHP_DMTX_IMAGE_RES_NAME, le_dmtx_image);
 
-   DmtxImage *img = enc->image;
+   img = enc->image;
 
    if(DMTX_G(row_index) >= img->height)
       RETURN_NULL();
