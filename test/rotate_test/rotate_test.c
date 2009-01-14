@@ -137,8 +137,8 @@ int main(int argc, char *argv[])
                dmtxMessageDestroy(&msg);
             }
             dmtxRegionDestroy(&reg);
-            break;
          }
+         break;
       }
 
       dmtxDecodeDestroy(&dec);
