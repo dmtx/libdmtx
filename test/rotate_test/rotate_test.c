@@ -81,9 +81,8 @@ int main(int argc, char *argv[])
    SDL_Event       event;
    SDL_Surface     *screen;
    unsigned char   outputString[1024];
-   DmtxPixelLoc    p;
    DmtxDecode      *dec;
-   DmtxRegion      reg;
+   DmtxRegion      *reg;
    DmtxMessage     *msg;
    DmtxTime        timeout;
 
@@ -123,38 +122,26 @@ int main(int argc, char *argv[])
       assert(gImage != NULL);
 
       /* Start fresh scan */
-      dec = dmtxDecodeStructCreate(gImage);
+      dec = dmtxDecodeCreate(gImage);
       assert(dec != NULL);
 
       for(;;) {
-
          timeout = dmtxTimeAdd(dmtxTimeNow(), 500);
 
-         reg = dmtxDecodeFindNextRegion(dec, &timeout);
-         if(reg.found != DMTX_REGION_FOUND)
+         reg = dmtxRegionFindNext(dec, &timeout);
+         if(reg != NULL) {
+            msg = dmtxDecodeMatrixRegion(gImage, reg, 1);
+            if(msg != NULL) {
+               fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
+               fputc('\n', stdout);
+               dmtxMessageDestroy(&msg);
+            }
+            dmtxRegionDestroy(&reg);
             break;
-/*
-         p.X = 55;
-         p.X = 130;
-         p.Y = 190;
-         reg = dmtxRegionScanPixel(dec, p.X, p.Y);
-         if(reg.found != DMTX_REGION_FOUND)
-            break;
-*/
-         msg = dmtxDecodeMatrixRegion(gImage, &reg, 1);
-         if(msg == NULL)
-            break;
-/*          continue; */
-
-         fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
-         fputc('\n', stdout);
-
-         dmtxMessageDestroy(&msg);
-
-         break;
+         }
       }
 
-      dmtxDecodeStructDestroy(&dec);
+      dmtxDecodeDestroy(&dec);
       dmtxImageDestroy(&gImage);
 
       DrawBorders(screen);

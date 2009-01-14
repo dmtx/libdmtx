@@ -37,10 +37,9 @@ void BuildMatrixCallback2(DmtxRegion *region)
    int i, j;
    int offset;
    float scale = 1.0/200.0;
-   DmtxColor3 clr;
    DmtxVector2 point;
    DmtxMatrix3 m0, m1, mInv;
-   DmtxRgb rgb;
+   int rgb[3];
 
    dmtxMatrix3Translate(m0, -(320 - 200)/2.0, -(320 - 200)/2.0);
    dmtxMatrix3Scale(m1, scale, scale);
@@ -55,8 +54,9 @@ void BuildMatrixCallback2(DmtxRegion *region)
          point.X = j;
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
-         dmtxColor3FromImage2(&clr, gImage, point);
-         dmtxPixelFromColor3(rgb, &clr);
+         dmtxImageGetPixelValue(gImage, (int)(point.X+0.5), (int)(point.Y+0.5), 0, &rgb[0]);
+         dmtxImageGetPixelValue(gImage, (int)(point.X+0.5), (int)(point.Y+0.5), 1, &rgb[1]);
+         dmtxImageGetPixelValue(gImage, (int)(point.X+0.5), (int)(point.Y+0.5), 2, &rgb[2]);
 
          offset = (320 * i + j) * 3;
          passTwoPxl[offset + 0] = rgb[0];
@@ -93,10 +93,9 @@ void BuildMatrixCallback3(DmtxMatrix3 mChainInv)
    int i, j;
    int offset;
    float scale = 1.0/100.0;
-   DmtxColor3 clr;
    DmtxVector2 point;
    DmtxMatrix3 m0, m1, mInv;
-   DmtxRgb rgb;
+   int rgb[3];
 
    dmtxMatrix3Scale(m0, scale, scale);
    dmtxMatrix3Translate(m1, -(320 - 200)/2.0, -(320 - 200)/2.0);
@@ -112,8 +111,9 @@ void BuildMatrixCallback3(DmtxMatrix3 mChainInv)
          point.X = j;
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
-         dmtxColor3FromImage2(&clr, gImage, point);
-         dmtxPixelFromColor3(rgb, &clr);
+         dmtxImageGetPixelValue(gImage, (int)(point.X+0.5), (int)(point.Y+0.5), 0, &rgb[0]);
+         dmtxImageGetPixelValue(gImage, (int)(point.X+0.5), (int)(point.Y+0.5), 1, &rgb[1]);
+         dmtxImageGetPixelValue(gImage, (int)(point.X+0.5), (int)(point.Y+0.5), 2, &rgb[2]);
 
          offset = (320 * i + j) * 3;
          passTwoPxl[offset + 0] = rgb[0];
@@ -155,10 +155,9 @@ void BuildMatrixCallback4(DmtxMatrix3 mChainInv)
    int i, j;
    int offset;
    float scale = 1.0/200.0;
-   DmtxColor3 clr;
    DmtxVector2 point;
    DmtxMatrix3 m0, m1, mInv;
-   DmtxRgb rgb;
+   int rgb[3];
 
    dmtxMatrix3Scale(m0, scale, scale);
    dmtxMatrix3Translate(m1, -(320 - 200)/2.0, -(320 - 200)/2.0);
@@ -174,8 +173,9 @@ void BuildMatrixCallback4(DmtxMatrix3 mChainInv)
          point.X = j;
          point.Y = i;
          dmtxMatrix3VMultiplyBy(&point, mInv);
-         dmtxColor3FromImage2(&clr, gImage, point);
-         dmtxPixelFromColor3(rgb, &clr);
+         dmtxImageGetPixelValue(gImage, (int)(point.X+0.5), (int)(point.Y+0.5), 0, &rgb[0]);
+         dmtxImageGetPixelValue(gImage, (int)(point.X+0.5), (int)(point.Y+0.5), 1, &rgb[1]);
+         dmtxImageGetPixelValue(gImage, (int)(point.X+0.5), (int)(point.Y+0.5), 2, &rgb[2]);
 
          offset = (320 * i + j) * 3;
          passTwoPxl[offset + 0] = rgb[0];
@@ -338,7 +338,7 @@ void XfrmPlotPointCallback(DmtxVector2 point, DmtxMatrix3 xfrm, int paneNbr, int
  *
  *
  */
-void PlotModuleCallback(DmtxDecode *info, DmtxRegion *region, int row, int col, DmtxColor3 color)
+void PlotModuleCallback(DmtxDecode *info, DmtxRegion *region, int row, int col, int color)
 {
    int modSize, halfModsize, padSize;
 // float t;
@@ -362,7 +362,13 @@ void PlotModuleCallback(DmtxDecode *info, DmtxRegion *region, int row, int col, 
 // t = (t < region->gradient.tMid) ? region->gradient.tMin : region->gradient.tMax;
 // dmtxPointAlongRay3(&color, &(region->gradient.ray), t);
 
-   glColor3f(color.R/255, color.G/255, color.B/255);
+   if(color == 1) {
+      glColor3f(0.0, 0.0, 0.0);
+   }
+   else {
+      glColor3f(1.0, 1.0, 1.0);
+   }
+
    glBegin(GL_QUADS);
    glVertex2f(modSize*(col+0.5) + padSize - halfModsize, modSize*(row+0.5) + padSize - halfModsize);
    glVertex2f(modSize*(col+0.5) + padSize + halfModsize, modSize*(row+0.5) + padSize - halfModsize);
@@ -380,8 +386,8 @@ void FinalCallback(DmtxDecode *decode, DmtxRegion *region)
    int row, col;
    int symbolRows, symbolCols;
    int moduleStatus;
-   DmtxColor3 black = { 0.0, 0.0, 0.0 };
-   DmtxColor3 white = { 255.0, 255.0, 255.0 };
+/* DmtxColor3 black = { 0.0, 0.0, 0.0 };
+   DmtxColor3 white = { 255.0, 255.0, 255.0 }; */
 
    symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
    symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
@@ -389,7 +395,7 @@ void FinalCallback(DmtxDecode *decode, DmtxRegion *region)
    for(row = 0; row < symbolRows; row++) {
       for(col = 0; col < symbolCols; col++) {
 /*       moduleStatus = dmtxSymbolModuleStatus(message, region->sizeIdx, row, col); */
-         PlotModuleCallback(decode, region, row, col, (moduleStatus & DMTX_MODULE_ON_RGB) ? black : white);
+         PlotModuleCallback(decode, region, row, col, (moduleStatus & DMTX_MODULE_ON_RGB) ? 1 : 0);
       }
    }
 }

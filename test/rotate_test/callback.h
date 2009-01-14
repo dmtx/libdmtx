@@ -30,6 +30,6 @@ void BuildMatrixCallback4(DmtxMatrix3 region);
 void PlotPointCallback(DmtxPixelLoc loc, int colorInt, int paneNbr, int dispType);
 void XfrmPlotPointCallback(DmtxVector2 point, DmtxMatrix3 xfrm, int paneNbr, int dispType);
 void FinalCallback(DmtxDecode *decode, DmtxRegion *region);
-void PlotModuleCallback(DmtxDecode *info, DmtxRegion *region, int row, int col, DmtxColor3 color);
+/*void PlotModuleCallback(DmtxDecode *info, DmtxRegion *region, int row, int col, DmtxColor3 color);*/
 
 #endif
