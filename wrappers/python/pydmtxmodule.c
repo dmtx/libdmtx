@@ -86,7 +86,7 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
       return NULL;
    }
 
-   enc = dmtxEncodeStructCreate();
+   enc = dmtxEncodeCreate();
    if(enc == NULL)
       return NULL;
 
@@ -119,7 +119,7 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
       Py_DECREF(args);
    }
 
-   dmtxEncodeStructDestroy(&enc);
+   dmtxEncodeDestroy(&enc);
    Py_DECREF(context);
 
    return Py_None;
@@ -137,7 +137,7 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    PyObject *output = NULL;
    DmtxImage *img;
    DmtxDecode *dec;
-   DmtxRegion reg;
+   DmtxRegion *reg;
    DmtxMessage *msg;
    const char *pxl;  /* Input image buffer */
 
@@ -161,7 +161,7 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    if(img == NULL)
       return NULL;
 
-   dec = dmtxDecodeStructCreate(img);
+   dec = dmtxDecodeCreate(img);
    if(dec == NULL) {
       dmtxImageDestroy(&img);
       return NULL;
@@ -170,23 +170,26 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    dmtxDecodeSetProp(dec, DmtxPropScanGap, gap_size);
 
    for(;;) {
-      reg = dmtxDecodeFindNextRegion(dec, NULL);
+      reg = dmtxRegionFindNext(dec, NULL);
 
-      if(reg.found != DMTX_REGION_FOUND)
+      if(reg == NULL)
          break;
 
-      msg = dmtxDecodeMatrixRegion(img, &reg, -1);
-      if(msg == NULL)
+      msg = dmtxDecodeMatrixRegion(img, reg, -1);
+      if(msg == NULL) {
+         dmtxRegionDestroy(&reg);
          continue;
+      }
 
       output = Py_BuildValue("s", msg->output);
       Py_INCREF(output);
 
       dmtxMessageDestroy(&msg);
+      dmtxRegionDestroy(&reg);
       break; /* XXX for now, break after first barcode is found in image */
    }
 
-   dmtxDecodeStructDestroy(&dec);
+   dmtxDecodeDestroy(&dec);
    dmtxImageDestroy(&img);
    Py_DECREF(context);
 
