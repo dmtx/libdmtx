@@ -39,13 +39,13 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Fast Hough fit followed by precision handle fit
   o libdmtx:   Investigate reported compile error in dmtxutil.c (Rom 16-Oct-2008)
   o libdmtx:   Use calibration edge alignment to set precise locs for all edges
-  o libdmtx:   Remove status from DmtxPixelLoc
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
   o libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   o libdmtx:   Change DmtxMessage type to use Create/Destroy approach like others (?)
-  / libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
-  / libdmtx:   Removed dmtxcolor.c, DmtxColor3, and DmtxGradient
+  x libdmtx:   Remove status from DmtxPixelLoc
+  x libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
+  x libdmtx:   Removed dmtxcolor.c, DmtxColor3, and DmtxGradient
   x libdmtx:   Eliminate DmtxRgb type
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere

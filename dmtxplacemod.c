@@ -265,7 +265,7 @@ PatternShapeSpecial4(unsigned char *modules, int mappingRows, int mappingCols, u
  * @return void
  */
 static void
-PlaceModule(unsigned char *modules, int mappingRows, int mappingCols, int row, int col, unsigned char *codeword, DmtxBitMask mask, int moduleOnColor)
+PlaceModule(unsigned char *modules, int mappingRows, int mappingCols, int row, int col, unsigned char *codeword, int mask, int moduleOnColor)
 {
    if(row < 0) {
       row += mappingRows;

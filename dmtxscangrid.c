@@ -76,76 +76,65 @@ InitScanGrid(DmtxImage *img, int smallestFeature)
 }
 
 /**
- * @brief  Increment scan grid progress to next pixel location
- * @param  cross
+ * @brief  Return the next good location (which may be the current location),
+ *         and advance grid progress one position beyond that. If no good
+ *         locations remain then return DmtxRangeEnd.
+ * @param  grid
  * @return void
  */
-static DmtxPixelLoc
-IncrementPixelProgress(DmtxScanGrid *cross)
+static int
+PopGridLocation(DmtxScanGrid *grid, DmtxPixelLoc *locPtr)
 {
-   DmtxPixelLoc loc;
+   int locStatus;
 
-   /* Loop until a good location is found or the grid is completely traversed */
    do {
+      locStatus = GetGridCoordinates(grid, locPtr);
 
-      cross->pixelCount++;
+      /* Always leave grid pointing at next available location */
+      grid->pixelCount++;
 
-      /* Increment cross horizontally when go exhaust pixels */
-      if(cross->pixelCount >= cross->pixelTotal) {
-         cross->pixelCount = 0;
-         cross->xCenter += cross->jumpSize;
-      }
+   } while(locStatus == DmtxRangeBad);
 
-      /* Increment cross vertically when horizontal step takes us too far */
-      if(cross->xCenter > cross->maxExtent) {
-         cross->xCenter = cross->startPos;
-         cross->yCenter += cross->jumpSize;
-      }
-
-      /* Increment level when vertical step takes us too far */
-      if(cross->yCenter > cross->maxExtent) {
-         cross->total *= 4;
-         cross->extent /= 2;
-         SetDerivedFields(cross);
-      }
-
-      loc = GetGridCoordinates(cross);
-
-   } while(loc.status != DMTX_RANGE_GOOD && loc.status != DMTX_RANGE_EOF);
-
-   return loc;
+   return locStatus;
 }
 
 /**
- * @brief  Update derived fields based on current state
- * @param  cross
- * @return void
- */
-static void
-SetDerivedFields(DmtxScanGrid *cross)
-{
-   cross->jumpSize = cross->extent + 1;
-   cross->pixelTotal = 2 * cross->extent - 1;
-   cross->startPos = cross->extent / 2;
-   cross->pixelCount = 0;
-   cross->xCenter = cross->yCenter = cross->startPos;
-}
-
-/**
- * @brief  Extract current scan grid position in pixel coordinates
+ * @brief  Extract current grid position in pixel coordinates and return
+ *         whether location is good, bad, or end
  * @param  grid
  * @return Pixel location
  */
-static DmtxPixelLoc
-GetGridCoordinates(DmtxScanGrid *grid)
+static int
+GetGridCoordinates(DmtxScanGrid *grid, DmtxPixelLoc *locPtr)
 {
    int count, half, quarter;
    DmtxPixelLoc loc;
 
+   /* Initially pixelCount may fall beyond acceptable limits. Update grid
+    * state before testing coordinates */
+
+   /* Jump to next cross pattern horizontally if current column is done */
+   if(grid->pixelCount >= grid->pixelTotal) {
+      grid->pixelCount = 0;
+      grid->xCenter += grid->jumpSize;
+   }
+
+   /* Jump to next cross pattern vertically if current row is done */
+   if(grid->xCenter > grid->maxExtent) {
+      grid->xCenter = grid->startPos;
+      grid->yCenter += grid->jumpSize;
+   }
+
+   /* Increment level when vertical step goes too far */
+   if(grid->yCenter > grid->maxExtent) {
+      grid->total *= 4;
+      grid->extent /= 2;
+      SetDerivedFields(grid);
+   }
+
    if(grid->extent == 0 || grid->extent < grid->minExtent) {
-      loc.X = loc.Y = -1;
-      loc.status = DMTX_RANGE_EOF;
-      return loc;
+      locPtr->X = locPtr->Y = -1;
+      return DmtxRangeEnd;
    }
 
    count = grid->pixelCount;
@@ -177,11 +166,26 @@ GetGridCoordinates(DmtxScanGrid *grid)
    loc.X += grid->xOffset;
    loc.Y += grid->yOffset;
 
+   *locPtr = loc;
+
    if(loc.X < grid->xMin || loc.X > grid->xMax ||
          loc.Y < grid->yMin || loc.Y > grid->yMax)
-      loc.status = DMTX_RANGE_BAD;
-   else
-      loc.status = DMTX_RANGE_GOOD;
+      return DmtxRangeBad;
 
-   return loc;
+   return DmtxRangeGood;
+}
+
+/**
+ * @brief  Update derived fields based on current state
+ * @param  grid
+ * @return void
+ */
+static void
+SetDerivedFields(DmtxScanGrid *grid)
+{
+   grid->jumpSize = grid->extent + 1;
+   grid->pixelTotal = 2 * grid->extent - 1;
+   grid->startPos = grid->extent / 2;
+   grid->pixelCount = 0;
+   grid->xCenter = grid->yCenter = grid->startPos;
 }

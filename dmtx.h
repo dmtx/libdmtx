@@ -245,7 +245,6 @@ typedef double DmtxMatrix3[3][3];
 typedef struct DmtxPixelLoc_struct {
    int X;
    int Y;
-   int status;
 } DmtxPixelLoc;
 
 /**

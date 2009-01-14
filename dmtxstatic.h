@@ -33,10 +33,6 @@ Contact: mike@dragonflylogic.com
 #define DMTX_ALMOST_ZERO               0.000001
 #define DMTX_ALMOST_INFINITY          -1
 
-#define DMTX_RANGE_GOOD                0
-#define DMTX_RANGE_BAD                 1
-#define DMTX_RANGE_EOF                 2
-
 #undef min
 #define min(X,Y) (((X) < (Y)) ? (X) : (Y))
 
@@ -44,11 +40,17 @@ Contact: mike@dragonflylogic.com
 #define max(X,Y) (((X) > (Y)) ? (X) : (Y))
 
 typedef enum {
+   DmtxRangeGood,
+   DmtxRangeBad,
+   DmtxRangeEnd
+} DmtxRange;
+
+typedef enum {
    DmtxEdgeTop    = 0x01 << 0,
    DmtxEdgeBottom = 0x01 << 1,
    DmtxEdgeLeft   = 0x01 << 2,
    DmtxEdgeRight  = 0x01 << 3
-} DmtxEdgeLoc;
+} DmtxEdge;
 
 typedef enum {
    DmtxMaskBit1 = 0x01 << 7,
@@ -59,7 +61,7 @@ typedef enum {
    DmtxMaskBit6 = 0x01 << 2,
    DmtxMaskBit7 = 0x01 << 1,
    DmtxMaskBit8 = 0x01 << 0
-} DmtxBitMask;
+} DmtxMaskBit;
 
 /**
  * @struct DmtxFollow
@@ -172,7 +174,7 @@ static void PatternShapeSpecial2(unsigned char *modules, int mappingRows, int ma
 static void PatternShapeSpecial3(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor);
 static void PatternShapeSpecial4(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor);
 static void PlaceModule(unsigned char *modules, int mappingRows, int mappingCols, int row, int col,
-      unsigned char *codeword, DmtxBitMask mask, int moduleOnColor);
+      unsigned char *codeword, int mask, int moduleOnColor);
 
 /* dmtxreedsol.c */
 static void GenReedSolEcc(DmtxMessage *message, int sizeidx);
@@ -182,9 +184,9 @@ static int GfDoublify(int a, int b);
 
 /* dmtxscangrid.c */
 static DmtxScanGrid InitScanGrid(DmtxImage *img, int smallestFeature);
-static DmtxPixelLoc IncrementPixelProgress(DmtxScanGrid *cross);
-static void SetDerivedFields(DmtxScanGrid *cross);
-static DmtxPixelLoc GetGridCoordinates(DmtxScanGrid *grid);
+static int PopGridLocation(DmtxScanGrid *grid, DmtxPixelLoc *locPtr);
+static int GetGridCoordinates(DmtxScanGrid *grid, DmtxPixelLoc *locPtr);
+static void SetDerivedFields(DmtxScanGrid *grid);
 
 /* dmtxsymbol.c */
 static int FindCorrectSymbolSize(int dataWords, int symbolShape);

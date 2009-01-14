@@ -41,7 +41,7 @@ extern DmtxRegion
 dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
 {
    DmtxScanGrid *grid;
-   DmtxPixelLoc loc, locNext;
+   DmtxPixelLoc loc;
    DmtxRegion   reg;
 /**
    int size, i = 0;
@@ -50,16 +50,7 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
    grid = &(dec->grid);
 
    /* Continue scanning until we run out of time or run out of image */
-   for(loc = GetGridCoordinates(grid);; loc = locNext) {
-
-      /* Quit if grid has been completely traversed */
-      if(loc.status == DMTX_RANGE_EOF) {
-         reg.found = DMTX_REGION_EOF;
-         break;
-      }
-
-      /* First move away from this location to prevent repeat visits */
-      locNext = IncrementPixelProgress(grid);
+   while(PopGridLocation(grid, &loc) != DmtxRangeEnd) {
 
       /* Scan this pixel for presence of a valid barcode edge */
       reg = dmtxRegionScanPixel(dec, loc.X, loc.Y);
@@ -73,15 +64,16 @@ dmtxDecodeFindNextRegion(DmtxDecode *dec, DmtxTime *timeout)
 */
       /* Found a barcode region? */
       if(reg.found == DMTX_REGION_FOUND)
-         break;
+         return reg;
 
       /* Ran out of time? */
       if(timeout != NULL && dmtxTimeExceeded(*timeout)) {
          reg.found = DMTX_REGION_TIMEOUT;
-         break;
+         return reg;
       }
    }
 
+   reg.found = DMTX_REGION_EOF;
    return reg;
 }
 
@@ -103,7 +95,6 @@ dmtxRegionScanPixel(DmtxDecode *dec, int x, int y)
 
    loc.X = x;
    loc.Y = y;
-   loc.status = DMTX_RANGE_GOOD;
 
    offset = dmtxImageGetPixelOffset(dec->image, loc.X, loc.Y);
 /* if(offset == DMTX_BAD_OFFSET || dec->image->cache[offset] & 0x40) { */
@@ -950,13 +941,8 @@ FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center, int sign)
       loc.Y = center.loc.Y + dmtxPatternY[i];
 
       offset = dmtxImageGetPixelOffset(dec->image, loc.X, loc.Y);
-      if(offset == DMTX_BAD_OFFSET) {
-         loc.status = DMTX_RANGE_BAD;
+      if(offset == DMTX_BAD_OFFSET)
          continue;
-      }
-      else {
-         loc.status = DMTX_RANGE_GOOD;
-      }
 
       cache = &(dec->image->cache[offset]);
       if((int)(*cache & 0x80) != 0x00) {
@@ -1070,7 +1056,6 @@ FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
       patternIdx = (sign < 0) ? followBeg.neighbor & 0x07 : ((followBeg.neighbor & 0x38) >> 3);
       follow.loc.X = followBeg.loc.X + dmtxPatternX[patternIdx];
       follow.loc.Y = followBeg.loc.Y + dmtxPatternY[patternIdx];
-      follow.loc.status = DMTX_RANGE_GOOD;
    }
 
    offset = dmtxImageGetPixelOffset(dec->image, follow.loc.X, follow.loc.Y);
@@ -1100,7 +1085,6 @@ FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
    patternIdx = (sign < 0) ? followBeg.neighbor & 0x07 : ((followBeg.neighbor & 0x38) >> 3);
    follow.loc.X = followBeg.loc.X + dmtxPatternX[patternIdx];
    follow.loc.Y = followBeg.loc.Y + dmtxPatternY[patternIdx];
-   follow.loc.status = DMTX_RANGE_GOOD;
 
    offset = dmtxImageGetPixelOffset(dec->image, follow.loc.X, follow.loc.Y);
    assert(offset != DMTX_BAD_OFFSET);
@@ -1671,7 +1655,6 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edgeLoc)
    dmtxMatrix3VMultiplyBy(&pTmp, reg->fit2raw);
    locOrigin.X = (int)(pTmp.X + 0.5);
    locOrigin.Y = (int)(pTmp.Y + 0.5);
-   locOrigin.status = DMTX_RANGE_GOOD;
 
    if(dec->sizeIdxExpected == DmtxSymbolSquareAuto ||
          (dec->sizeIdxExpected >= DmtxSymbol10x10 &&
@@ -1704,7 +1687,6 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edgeLoc)
    dmtxMatrix3VMultiplyBy(&pTmp, reg->fit2raw);
    loc1.X = (int)(pTmp.X + 0.5);
    loc1.Y = (int)(pTmp.Y + 0.5);
-   loc1.status = DMTX_RANGE_GOOD;
 
    loc0 = follow.loc;
    line = BresLineInit(loc0, loc1, locOrigin);
