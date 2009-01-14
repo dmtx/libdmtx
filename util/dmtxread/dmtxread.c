@@ -164,21 +164,19 @@ main(int argc, char *argv[])
             else
                msg = dmtxDecodeMatrixRegion(img, reg, opt.correctionsMax);
 
-            if(msg == NULL) {
-               dmtxRegionDestroy(&reg);
-               continue;
+            if(msg != NULL) {
+               PrintDecodedOutput(&opt, img, reg, msg, imgPageIndex);
+
+               if(opt.diagnose)
+                  WriteDiagnosticImage(dec, reg, "debug.pnm");
+
+               pageScanCount++;
+               imageScanCount++;
+
+               dmtxMessageDestroy(&msg);
             }
 
-            PrintDecodedOutput(&opt, img, reg, msg, imgPageIndex);
-
-            if(opt.diagnose)
-               WriteDiagnosticImage(dec, reg, "debug.pnm");
-
-            dmtxMessageDestroy(&msg);
             dmtxRegionDestroy(&reg);
-
-            pageScanCount++;
-            imageScanCount++;
 
             if(opt.stopAfter != -1 && imageScanCount >= opt.stopAfter)
                break;

@@ -39,44 +39,45 @@ static VALUE rdmtx_decode(VALUE self, VALUE image /* Image from RMagick (Magick:
 
     int width = NUM2INT(rb_funcall(image, rb_intern("columns"), 0));
     int height = NUM2INT(rb_funcall(image, rb_intern("rows"), 0));
-    DmtxImage * dmtxImage = dmtxImageMalloc(width, height);
+
+    DmtxImage * dmtxImage = dmtxImageCreate((unsigned char *)imageBuffer, width, height, 24, DmtxPackRGB, DmtxFlipY);
     dmtxImageSetProp(dmtxImage, DmtxPropScaledXmin, 0);
     dmtxImageSetProp(dmtxImage, DmtxPropScaledXmax, width);
     dmtxImageSetProp(dmtxImage, DmtxPropScaledYmin, 0);
     dmtxImageSetProp(dmtxImage, DmtxPropScaledYmax, height);
 
-    memcpy(dmtxImage->pxl, imageBuffer, width*height*3);
-
     VALUE results = rb_ary_new();
 
     /* Initialize decode struct for newly loaded image */
-    DmtxDecode decode = dmtxDecodeStructInit(dmtxImage);
+    DmtxDecode * decode = dmtxDecodeCreate(dmtxImage);
 
-    DmtxRegion region;
+    DmtxRegion * region;
 
     int intTimeout = NUM2INT(timeout);
     DmtxTime dmtxTimeout = dmtxTimeAdd(dmtxTimeNow(), intTimeout);
 
-    do {
+    for(;;) {
         if (intTimeout == 0) {
-            region = dmtxDecodeFindNextRegion(&decode, NULL);
+            region = dmtxRegionFindNext(decode, NULL);
         } else {
-            region = dmtxDecodeFindNextRegion(&decode, &dmtxTimeout);
+            region = dmtxRegionFindNext(decode, &dmtxTimeout);
         }
 
-        if (region.found == DMTX_REGION_FOUND) {
-            DmtxMessage * message = dmtxDecodeMatrixRegion(dmtxImage, &region, -1);
-            if (message != NULL) {
-                VALUE outputString = rb_str_new2((char *)message->output);
-                rb_ary_push(results, outputString);
-                dmtxMessageFree(&message);
-            }
+        if (region == NULL )
+            break;
+
+        DmtxMessage * message = dmtxDecodeMatrixRegion(dmtxImage, region, -1);
+        if (message != NULL) {
+            VALUE outputString = rb_str_new2((char *)message->output);
+            rb_ary_push(results, outputString);
+            dmtxMessageDestroy(&message);
         }
-    } while (region.found != DMTX_REGION_EOF && region.found != DMTX_REGION_TIMEOUT);
 
-    dmtxDecodeStructDeInit(&decode);
+        dmtxRegionDestroy(&region);
+    }
 
-    dmtxImageFree(&dmtxImage);
+    dmtxDecodeDestroy(&decode);
+    dmtxImageDestroy(&dmtxImage);
 
     return results;
 }
@@ -84,20 +85,19 @@ static VALUE rdmtx_decode(VALUE self, VALUE image /* Image from RMagick (Magick:
 static VALUE rdmtx_encode(VALUE self, VALUE string) {
 
     /* Create and initialize libdmtx structures */
-    DmtxEncode enc = dmtxEncodeStructInit();
+    DmtxEncode * enc = dmtxEncodeCreate();
 
     VALUE safeString = StringValue(string);
 
     /* Create barcode image */
-    if (dmtxEncodeDataMatrix(&enc, RSTRING(safeString)->len, (unsigned char *)RSTRING(safeString)->ptr, DmtxSymbolSquareAuto) == DmtxFail) {
+    if (dmtxEncodeDataMatrix(enc, RSTRING(safeString)->len, (unsigned char *)RSTRING(safeString)->ptr, DmtxSymbolSquareAuto, DmtxFlipY) == DmtxFail) {
 //        printf("Fatal error !\n");
-        dmtxEncodeStructDeInit(&enc);
+        dmtxEncodeDestroy(&enc);
         return Qnil;
     }
 
-
-    int width = dmtxImageGetProp(enc.image, DmtxPropWidth);
-    int height = dmtxImageGetProp(enc.image, DmtxPropHeight);
+    int width = dmtxImageGetProp(enc->image, DmtxPropWidth);
+    int height = dmtxImageGetProp(enc->image, DmtxPropHeight);
 
     VALUE magickImageClass = rb_path2class("Magick::Image");
     VALUE outputImage = rb_funcall(magickImageClass, rb_intern("new"), 2, INT2NUM(width), INT2NUM(height));
@@ -108,12 +108,12 @@ static VALUE rdmtx_encode(VALUE self, VALUE string) {
                INT2NUM(width),
                INT2NUM(height),
                rb_str_new("RGB", 3),
-               rb_str_new((char *)(enc.image)->pxl, 3*width*height),
+               rb_str_new((char *)enc->image->pxl, 3*width*height),
 //               rb_const_get("Magick" ,rb_intern("CharPixel"))
                rb_eval_string("Magick::CharPixel"));
 
     /* Clean up */
-    dmtxEncodeStructDeInit(&enc);
+    dmtxEncodeDestroy(&enc);
 
     return outputImage;
 }
