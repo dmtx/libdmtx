@@ -142,30 +142,72 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack, in
       }
    }
 
-   if(img->bitsPerPixel == 1) {
-      err = dmtxImageAddChannel(img,  0, 1);
-   }
-   else if(pack == DmtxPackRGB && img->bitsPerPixel == 16) {
-      err = dmtxImageAddChannel(img,  0, 5);
-      err = dmtxImageAddChannel(img,  5, 5);
-      err = dmtxImageAddChannel(img, 10, 5);
-   }
-   else if(pack == DmtxPackYCbCr && img->bitsPerPixel == 24) {
-      err = dmtxImageAddChannel(img,  0, 8);
-   }
-   else if(pack == DmtxPackRGB && (img->bitsPerPixel == 24 || img->bitsPerPixel == 32)) {
-      err = dmtxImageAddChannel(img,  0, 8);
-      err = dmtxImageAddChannel(img,  8, 8);
-      err = dmtxImageAddChannel(img, 16, 8);
-   }
-   else if(pack == DmtxPackCMYK && img->bitsPerPixel == 32) {
-      err = dmtxImageAddChannel(img,  0, 8);
-      err = dmtxImageAddChannel(img,  8, 8);
-      err = dmtxImageAddChannel(img, 16, 8);
-      err = dmtxImageAddChannel(img, 24, 8);
-   }
-   else if(pack != DmtxPackCustom) {
-      return NULL;
+   switch(pack) {
+      case DmtxPackK:
+         if(bpp == 1 || bpp == 8)
+            err = dmtxImageAddChannel(img, 0, bpp);
+         else
+            return NULL;
+         break;
+      case DmtxPackRGB:
+      case DmtxPackBGR:
+      case DmtxPackYCbCr:
+         if(bpp == 16) {
+            err = dmtxImageAddChannel(img,  0, 5);
+            err = dmtxImageAddChannel(img,  5, 5);
+            err = dmtxImageAddChannel(img, 10, 5);
+         }
+         else if(bpp == 24) {
+            err = dmtxImageAddChannel(img,  0, 8);
+            err = dmtxImageAddChannel(img,  8, 8);
+            err = dmtxImageAddChannel(img, 16, 8);
+         }
+         else {
+            return NULL;
+         }
+         break;
+      case DmtxPackRGBX:
+      case DmtxPackBGRX:
+         if(bpp == 16) {
+            err = dmtxImageAddChannel(img,  0, 5);
+            err = dmtxImageAddChannel(img,  5, 5);
+            err = dmtxImageAddChannel(img, 10, 5);
+         }
+         else if(bpp == 32) {
+            err = dmtxImageAddChannel(img,  0, 8);
+            err = dmtxImageAddChannel(img,  8, 8);
+            err = dmtxImageAddChannel(img, 16, 8);
+         }
+         else {
+            return NULL;
+         }
+         break;
+      case DmtxPackXRGB:
+      case DmtxPackXBGR:
+         if(bpp == 16) {
+            err = dmtxImageAddChannel(img,  1, 5);
+            err = dmtxImageAddChannel(img,  6, 5);
+            err = dmtxImageAddChannel(img, 11, 5);
+         }
+         else if(bpp == 32) {
+            err = dmtxImageAddChannel(img,  8, 8);
+            err = dmtxImageAddChannel(img, 16, 8);
+            err = dmtxImageAddChannel(img, 24, 8);
+         }
+         else {
+            return NULL;
+         }
+         break;
+      case DmtxPackCMYK:
+         err = dmtxImageAddChannel(img,  0, 8);
+         err = dmtxImageAddChannel(img,  8, 8);
+         err = dmtxImageAddChannel(img, 16, 8);
+         err = dmtxImageAddChannel(img, 24, 8);
+         break;
+      case DmtxPackCustom:
+         break;
+      default:
+         return NULL;
    }
 
    return img;

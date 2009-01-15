@@ -274,24 +274,6 @@ typedef struct DmtxDecode_struct {
 } DmtxDecode;
 
 
-Propsed Change: Pixel Packing Order (partially implemented)
------------------------------------------------------------------
-/* This happens before libdmtx is initialized */
-pxlBuf = (unsigned char *)malloc(width * height * sizeof(pixel));
-
-/* Call this for predefined packing orders */
-img = dmtxImageSet(pxlBuf, width, height, DmtxImageNoFlip, DmtxPack24bppRGB);
-
-/* -OR- call like this to set a custom packing orders */
-img = dmtxImageSet(pxlBuf, width, height, DmtxImageNoFlip, DmtxPackCustom);
-err = dmtxImageAddChannel(&img,  0, 8);
-err = dmtxImageAddChannel(&img,  8, 8);
-err = dmtxImageAddChannel(&img, 16, 8);
-
-/* similar call with flip in both directions */
-img = dmtxImageSet(pxlBuf, width, height, DmtxImageFlipX|DmtxImageFlipY, DmtxPack24bppRGB);
-
-
 Propsed Change: Region Detection
 -----------------------------------------------------------------
 The first edge is currently detected using fixed-offset Hough
@@ -377,3 +359,144 @@ advantages:
     use libdmtx high precision fit
   * High precision fit should apply equally well to contiguous-
     edge and dot peen symbols
+
+Propsed Change: Latest thoughts on region detection
+-----------------------------------------------------------------
+
+* Allocate memory cache, one byte per pixel
+
+  bits: cuuutddd
+        --------
+        12345678
+
+  c = connected edge flag
+  u = upstream direction
+  t = meets min threshhold flag
+  d = downstream direction
+
+* Step through entire image and assign best downstream neighbor if above certain
+  threshhold. (sets t and d bits)
+
+* Step through grid locations looking for edge candidates:
+
+* If below threshhold (t == 0) OR
+  if edge was connected in a previous step (c == 1)
+  then skip to next
+
+* Follow the edge upstream and downstream, leaving connected trails both upstream
+  and downstream. This should follow the existing downstream directions, but may
+  involve assigning new downstream directions to unpopulated locations in order
+  to bridge any small gaps. At each location, mark c = 1 and u = upstream direction.
+  If necessary, u == d can indicate special case (trail end?) since this can't
+  occur naturally otherwise.
+
+* If connected trail is short then skip to next
+
+* Step along connected trail and form bounding box limits
+
+* If bounding box is small then skip to next
+
+* Step along connected trail to measure finder bars using Hough Transform
+
+* If Hough lines look stupid then skip to next
+
+* Align/Transform region based on finder bars
+
+* Run Boundary Hough on entire interior "L" region. Use Hough orientation based
+  on direction being scanned. For example, when looking for horizontal vanishing
+  point, optimize for horizontal lines, and take into account the region polarity.
+  This might make it clean enough for dot peen detection using the same approach.
+
+* Extract horizontal and vertical vanishing points
+
+* Align/Transform region based on vanishing points
+
+* Find limits in orthagonal region
+
+-----------------------------------------------------------------
+
+Implementation strategy:
+
+1) Confirm that "L" extraction works using Ordinary Hough
+   - Use Ordinary Hough because edge is not jagged and interior is unknown
+
+2) Change trunk to use above cache storage layout, but not changing
+   approach yet. Also move cache to DmtxDecode. Prepopulate downstream
+   neighbors?
+
+3) Change trunk to use "L" extraction above
+   - emphasis on angle instead of offset
+   - overlap offsets to avoid split condition
+   - use convex hull
+   - use right angles
+   - determine polarity
+
+4) Implement fast multi-scanning (skip previously-visited locs)
+
+Release 0.7
+
+5) Confirm that Boundary Hough concept works
+   - test on all conditions
+   - Boundary Hough needs to use color polarity
+   - Boundary Hough needs to use interior direction
+
+6) Confirm that vanishping point detection works
+   - use Boundary Hough
+   - test for vanishing points
+   - test for dot peen
+
+7) Change trunk to detect vanishing point with Boundary Hough
+   - can pattern also be detected with this approach?
+
+8) Align/transform based on vanishing point
+
+9) Detect solid black and solid white bars
+
+10) Tight fit based on repeating calibration pattern
+
+Release 0.8
+
+-----------------------------------------------------------------
+
+  byte 1:  pntflow
+          --------
+             0-255
+
+  byte 2: xcuuuddd
+          --------
+          12345678
+
+  c = connected edge flag
+  u = upstream direction
+  d = downstream direction
+
+Ordinary Hough test:
+
+for each color channel:
+   allocate image and image cache (2 bytes per pixel)
+   assign point flow for each pixel (byte 1), and 3 bits for direction
+   write out pnm dump 1
+   connect edges downstream, leaving trail
+   - pick starting loc where downstream points back (how to measure this?)
+*** in a river, you know you are in the center of the stream when your
+    neighbor on each side is moving slower than you ***
+   - follow outward, leave upstream trail
+   - pick next loc by choosing strongest of 5 neighbors that do not reverse
+     course
+   - follow outward, leave upstream trail
+   - repeat
+   connect edges upstream, leaving trail
+   - do reverse of above
+   - store the final upstream jump, to be used as starting point for walks
+   write out pnm dump 2
+   step along trail to build bounding box
+   step along trail to accumulate Hough sums
+   write out pnm dump 3 representing Hough sums
+   write out pnm dump 4 with Bresenham lines drawn along all winning edges
+
+-----------------------------------------------------------------
+
+Boundary Hough test:
+
+increment line
+decrement interior line

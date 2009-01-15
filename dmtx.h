@@ -213,17 +213,22 @@ typedef enum {
 } DmtxSymbolSize;
 
 typedef enum {
+   DmtxPackK,
    DmtxPackRGB,
+   DmtxPackBGR,
+   DmtxPackRGBX,
+   DmtxPackBGRX,
+   DmtxPackXRGB,
+   DmtxPackXBGR,
    DmtxPackYCbCr,
    DmtxPackCMYK,
-   DmtxPackRGBX,
    DmtxPackCustom
-} DmtxPackingOrder;
+} DmtxPackOrder;
 
 typedef enum {
   DmtxFlipNone = 0x00,
-  DmtxFlipX    = 0x01,
-  DmtxFlipY    = 0x02
+  DmtxFlipX    = 0x01 << 0,
+  DmtxFlipY    = 0x01 << 1
 } DmtxFlip;
 
 typedef double DmtxMatrix3[3][3];
