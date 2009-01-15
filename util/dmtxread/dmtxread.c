@@ -94,7 +94,6 @@ main(int argc, char *argv[])
       if(imgList == NULL)
          continue;
 
-      /* Loop once for each page within image */
       imgPageCount = gmGetImageListLength(imgList);
 
       /* Determine page range */
@@ -107,6 +106,7 @@ main(int argc, char *argv[])
          finalPage = opt.page - 1;
       }
 
+      /* Loop once for each page within image */
       for(imgPageIndex = firstPage; imgPageIndex <= finalPage; imgPageIndex++) {
 
          /* Reset timeout for each new page */
