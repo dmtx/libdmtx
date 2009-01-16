@@ -34,15 +34,15 @@ version 0.7.0: (XX-Feb-2009)
 FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Add named constant for "-1" passed to dmtxDecodeMatrixRegion(), and bad offset
   o libdmtx:   Consider making "*ProdScaled" default, and unscaled as "Unscaled"
-  o libdmtx:   Fix 64b->32b int assignments
   o libdmtx:   Make final decision on where image scaling factor should go (leaning toward decode)
   o libdmtx:   Fast Hough fit followed by precision handle fit
   o libdmtx:   Investigate reported compile error in dmtxutil.c (Rom 16-Oct-2008)
   o libdmtx:   Use calibration edge alignment to set precise locs for all edges
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
-  o libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   o libdmtx:   Add dmtxEncodeSetProp() and  dmtxEncodeGetProp()
+  o libdmtx:   Fix 64b->32b int assignments
+  x libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   x libdmtx:   Changed all major types to use Create() and Destroy() convention
   x libdmtx:   Remove status from DmtxPixelLoc
   x libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc

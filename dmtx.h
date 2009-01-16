@@ -287,7 +287,6 @@ typedef struct DmtxImage_struct {
    int             xMaxScaled;
    int             yMinScaled;
    int             yMaxScaled;
-/* unsigned char   *cache; */
    unsigned char   *pxl;
 } DmtxImage;
 
