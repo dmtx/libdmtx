@@ -66,7 +66,7 @@ static VALUE rdmtx_decode(VALUE self, VALUE image /* Image from RMagick (Magick:
         if (region == NULL )
             break;
 
-        DmtxMessage * message = dmtxDecodeMatrixRegion(dmtxImage, region, -1);
+        DmtxMessage * message = dmtxDecodeMatrixRegion(decode, region, -1);
         if (message != NULL) {
             VALUE outputString = rb_str_new2((char *)message->output);
             rb_ary_push(results, outputString);

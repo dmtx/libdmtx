@@ -117,11 +117,11 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack, in
    img->yMax = img->yMaxScaled = height - 1;
 
    /* XXX TEMPORARY */
-   img->cache = (unsigned char *)malloc(width * height * sizeof(unsigned char));
+/* img->cache = (unsigned char *)malloc(width * height * sizeof(unsigned char));
    if(img->cache == NULL) {
       free(img);
       return NULL;
-   }
+   } */
 
    if(pxl != NULL) {
       img->mallocByDmtx = DmtxFalse;
@@ -227,8 +227,8 @@ dmtxImageDestroy(DmtxImage **img)
    if((*img)->mallocByDmtx == DmtxTrue && (*img)->pxl != NULL)
       free((*img)->pxl);
 
-   if((*img)->cache != NULL)
-      free((*img)->cache);
+/* if((*img)->cache != NULL)
+      free((*img)->cache); */
 
    free(*img);
 

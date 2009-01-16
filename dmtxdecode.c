@@ -36,7 +36,7 @@ extern DmtxDecode *
 dmtxDecodeCreate(DmtxImage *img)
 {
    DmtxDecode *dec;
-   int cacheSize;
+   int width, height;
 
    dec = (DmtxDecode *)calloc(1, sizeof(DmtxDecode));
    if(dec == NULL)
@@ -44,12 +44,16 @@ dmtxDecodeCreate(DmtxImage *img)
 
    dec->image = img;
 
-   cacheSize = dmtxImageGetProp(img, DmtxPropWidth) *
-         dmtxImageGetProp(img, DmtxPropHeight) * sizeof(unsigned char);
+   width = dmtxImageGetProp(img, DmtxPropWidth);
+   height = dmtxImageGetProp(img, DmtxPropHeight);
 
-   memset(dec->image->cache, 0x00, cacheSize);
+   dec->cache = (unsigned char *)calloc(width * height, sizeof(unsigned char));
+   if(dec->cache == NULL) {
+      free(dec);
+      return NULL;
+   }
 
-   /* These values should probably be stored in the decode struct */
+   /* XXX These values should probably be stored in the decode struct */
    img->scale = 1;
    img->xMin = img->xMinScaled = 0;
    img->xMax = img->xMaxScaled = img->width - 1;
@@ -177,7 +181,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
  * @return Decoded message
  */
 extern DmtxMessage *
-dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
+dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 {
    int row, col;
    int width, height;
@@ -189,7 +193,7 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
    if(msg == NULL)
       return NULL;
 
-   if(PopulateArrayFromMatrix(msg, img, reg) != DmtxPass) {
+   if(PopulateArrayFromMatrix(msg, dec->image, reg) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
    }
@@ -202,8 +206,8 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
       return NULL;
    }
 
-   width = dmtxImageGetProp(img, DmtxPropScaledWidth);
-   height = dmtxImageGetProp(img, DmtxPropScaledHeight);
+   width = dmtxImageGetProp(dec->image, DmtxPropScaledWidth);
+   height = dmtxImageGetProp(dec->image, DmtxPropScaledHeight);
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
          p.X = col;
@@ -212,11 +216,11 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
          /* XXX tighten these boundaries can by accounting for barcode size */
          if(p.X >= -0.1 && p.X <= 1.1 && p.Y >= -0.1 && p.Y <= 1.1) {
 
-            offset = dmtxImageGetPixelOffset(img, col, row);
+            offset = dmtxImageGetPixelOffset(dec->image, col, row);
             if(offset == DMTX_BAD_OFFSET)
                continue;
             else
-               img->cache[offset] |= 0x80; /* Mark as visited */
+               dec->cache[offset] |= 0x80; /* Mark as visited */
          }
       }
    }
@@ -234,7 +238,7 @@ dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix)
  * @return Decoded message
  */
 extern DmtxMessage *
-dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix)
+dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 {
    int row, col;
    int mappingRows, mappingCols;
@@ -254,7 +258,7 @@ dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix)
    gMesg.code += gMesg.codeSize;
    bMesg.code += (bMesg.codeSize * 2);
 
-   if(PopulateArrayFromMosaic(msg, img, reg) != DmtxPass) {
+   if(PopulateArrayFromMosaic(msg, dec->image, reg) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
    }

@@ -287,7 +287,7 @@ typedef struct DmtxImage_struct {
    int             xMaxScaled;
    int             yMinScaled;
    int             yMaxScaled;
-   unsigned char   *cache;
+/* unsigned char   *cache; */
    unsigned char   *pxl;
 } DmtxImage;
 
@@ -421,8 +421,6 @@ typedef struct DmtxScanGrid_struct {
  * @brief DmtxDecode
  */
 typedef struct DmtxDecode_struct {
-   DmtxImage       *image;
-   DmtxScanGrid    grid;
    int             edgeMin;
    int             edgeMax;
    int             scanGap;
@@ -431,6 +429,9 @@ typedef struct DmtxDecode_struct {
    int             edgeThresh;
    int             shrinkMin;
    int             shrinkMax;
+   unsigned char   *cache;
+   DmtxImage       *image;
+   DmtxScanGrid    grid;
 } DmtxDecode;
 
 /**
@@ -513,8 +514,8 @@ extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *
 extern DmtxDecode *dmtxDecodeCreate(DmtxImage *img);
 extern DmtxPassFail dmtxDecodeDestroy(DmtxDecode **dec);
 extern DmtxPassFail dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
-extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxImage *img, DmtxRegion *reg, int fix);
-extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxImage *img, DmtxRegion *reg, int fix);
+extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
+extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 
 /* dmtxmessage.c */
 extern DmtxMessage *dmtxMessageCreate(int sizeIdx, int symbolFormat);

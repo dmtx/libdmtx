@@ -160,9 +160,9 @@ main(int argc, char *argv[])
 
             /* Decode region based on requested barcode mode */
             if(opt.mosaic)
-               msg = dmtxDecodeMosaicRegion(img, reg, opt.correctionsMax);
+               msg = dmtxDecodeMosaicRegion(dec, reg, opt.correctionsMax);
             else
-               msg = dmtxDecodeMatrixRegion(img, reg, opt.correctionsMax);
+               msg = dmtxDecodeMatrixRegion(dec, reg, opt.correctionsMax);
 
             if(msg != NULL) {
                PrintDecodedOutput(&opt, img, reg, msg, imgPageIndex);
@@ -761,13 +761,13 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
             dmtxImageGetPixelValue(dec->image, col, row, 1, &rgb[1]);
             dmtxImageGetPixelValue(dec->image, col, row, 2, &rgb[2]);
 
-            if(dec->image->cache[offset] & 0x40) {
+            if(dec->cache[offset] & 0x40) {
                rgb[0] = 255;
                rgb[1] = 0;
                rgb[2] = 0;
             }
             else {
-               shade = (dec->image->cache[offset] & 0x80) ? 0.0 : 0.7;
+               shade = (dec->cache[offset] & 0x80) ? 0.0 : 0.7;
                rgb[0] += (shade * (255 - rgb[0]));
                rgb[1] += (shade * (255 - rgb[1]));
                rgb[2] += (shade * (255 - rgb[2]));

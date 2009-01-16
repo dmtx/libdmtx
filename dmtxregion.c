@@ -121,7 +121,7 @@ dmtxRegionScanPixel(DmtxDecode *dec, int x, int y)
    if(offset == DMTX_BAD_OFFSET)
       return NULL;
 
-   if((int)(dec->image->cache[offset] & 0x80) != 0x00)
+   if((int)(dec->cache[offset] & 0x80) != 0x00)
       return NULL;
 
    /* Test for presence of any reasonable edge at this location */
@@ -393,7 +393,7 @@ GetCacheAddress(DmtxDecode *dec, int x, int y)
    if(offset == DMTX_BAD_OFFSET)
       return NULL;
 
-   return &(dec->image->cache[offset]);
+   return &(dec->cache[offset]);
 }
 
 /**
@@ -944,7 +944,7 @@ FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center, int sign)
       if(offset == DMTX_BAD_OFFSET)
          continue;
 
-      cache = &(dec->image->cache[offset]);
+      cache = &(dec->cache[offset]);
       if((int)(*cache & 0x80) != 0x00) {
          if(++occupied > 2)
             return dmtxBlankEdge;
@@ -986,7 +986,7 @@ FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek)
    assert(offset != DMTX_BAD_OFFSET);
 
    follow.step = 0;
-   follow.ptr = &(dec->image->cache[offset]);
+   follow.ptr = &(dec->cache[offset]);
    follow.neighbor = *follow.ptr;
 
    sign = (seek > 0) ? +1 : -1;
@@ -1014,7 +1014,7 @@ FollowSeekLoc(DmtxDecode *dec, DmtxPixelLoc loc)
    assert(offset != DMTX_BAD_OFFSET);
 
    follow.step = 0;
-   follow.ptr = &(dec->image->cache[offset]);
+   follow.ptr = &(dec->cache[offset]);
    follow.neighbor = *follow.ptr;
 
    return follow;
@@ -1062,7 +1062,7 @@ FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
    assert(offset != DMTX_BAD_OFFSET);
 
    follow.step = followBeg.step + sign;
-   follow.ptr = &(dec->image->cache[offset]);
+   follow.ptr = &(dec->cache[offset]);
    follow.neighbor = *follow.ptr;
 
    return follow;
@@ -1090,7 +1090,7 @@ FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
    assert(offset != DMTX_BAD_OFFSET);
 
    follow.step = followBeg.step + sign;
-   follow.ptr = &(dec->image->cache[offset]);
+   follow.ptr = &(dec->cache[offset]);
    follow.neighbor = *follow.ptr;
 
    return follow;
@@ -1121,7 +1121,7 @@ TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin, 
       return DmtxFail;
 
    boundMin = boundMax = flowBegin.loc;
-   cacheBeg = &(dec->image->cache[offset]);
+   cacheBeg = &(dec->cache[offset]);
    *cacheBeg = (0x80 | 0x40); /* Mark location as visited and assigned */
 
    reg->flowBegin = flowBegin;
@@ -1148,7 +1148,7 @@ TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin, 
             break;
 
          /* Get the neighbor's cache location */
-         cacheNext = &(dec->image->cache[offset]);
+         cacheNext = &(dec->cache[offset]);
          assert(!(*cacheNext & 0x80));
 
          /* Mark departure from current location. If flowing downstream

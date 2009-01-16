@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
          if(reg != NULL) {
             WriteDiagnosticImage(dec, reg, "debug.pnm");
 
-            msg = dmtxDecodeMatrixRegion(img, reg, -1);
+            msg = dmtxDecodeMatrixRegion(dec, reg, -1);
             if(msg != NULL) {
                fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
                fputc('\n', stdout);
@@ -336,13 +336,13 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
             dmtxImageGetPixelValue(dec->image, col, row, 1, &rgb[1]);
             dmtxImageGetPixelValue(dec->image, col, row, 2, &rgb[2]);
 
-            if(dec->image->cache[offset] & 0x40) {
+            if(dec->cache[offset] & 0x40) {
                rgb[0] = 255;
                rgb[1] = 0;
                rgb[2] = 0;
             }
             else {
-               shade = (dec->image->cache[offset] & 0x80) ? 0.0 : 0.7;
+               shade = (dec->cache[offset] & 0x80) ? 0.0 : 0.7;
                rgb[0] += (shade * (255 - rgb[0]));
                rgb[1] += (shade * (255 - rgb[1]));
                rgb[2] += (shade * (255 - rgb[2]));

@@ -29,9 +29,9 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.6.1
 
 \fBint dmtxDecodeSetProp(DmtxDecode *\fIdec\fP, int \fIprop\fP, int \fIvalue\fP);\fP
 
-\fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxImage *\fIimg\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
+\fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
-\fBDmtxMessage *dmtxDecodeMosaicRegion(DmtxImage *\fIimg\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
+\fBDmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
 \fBDmtxRegion *dmtxRegionCreate(DmtxRegion *\fIreg\fP);\fP
 
@@ -172,7 +172,7 @@ This example program (available as simple_test.c in the source package) demonstr
 
      reg = dmtxRegionFindNext(dec, NULL);
      if(reg != NULL) {
-        msg = dmtxDecodeMatrixRegion(img, reg, -1);
+        msg = dmtxDecodeMatrixRegion(dec, reg, -1);
         if(msg != NULL) {
            fputs("output: \"", stdout);
            fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
