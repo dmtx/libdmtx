@@ -36,7 +36,7 @@ EXTRA_DIST = KNOWNBUG \
 	script/check_whitespace.sh \
 	script/dist-image.sh \
 	test/rotate_test/images/test_image??.png \
-	wrappers/cocoa/* \
-	wrappers/php/* \
-	wrappers/python/* \
-	wrappers/ruby/*
+	wrapper/cocoa/* \
+	wrapper/php/* \
+	wrapper/python/* \
+	wrapper/ruby/*

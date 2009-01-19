@@ -32,8 +32,8 @@ Release Checklist
    o README.osx              o README.unix
    o test/rotate_test/README
 
-   o wrappers/cocoa/README   o wrappers/php/README
-   o wrappers/python/README  o wrappers/ruby/README
+   o wrapper/cocoa/README    o wrapper/php/README
+   o wrapper/python/README   o wrapper/ruby/README
 
    o man/dmtxquery.1         o man/dmtxread.1
    o man/dmtxwrite.1         o man/libdmtx.3
@@ -44,10 +44,10 @@ Release Checklist
    o dmtx.h
    o man/libdmtx.3
    o README.msvc
-   o wrappers/cocoa/README
-   o wrappers/php/README
-   o wrappers/python/README
-   o wrappers/ruby/README
+   o wrapper/cocoa/README
+   o wrapper/php/README
+   o wrapper/python/README
+   o wrapper/ruby/README
 
 5) o Update release date in appropriate files
 
@@ -58,10 +58,10 @@ Release Checklist
    o man/dmtxread.1
    o man/dmtxwrite.1
 
-   o wrappers/cocoa/README
-   o wrappers/php/README
-   o wrappers/python/README
-   o wrappers/ruby/README
+   o wrapper/cocoa/README
+   o wrapper/php/README
+   o wrapper/python/README
+   o wrapper/ruby/README
 
 6) o Perform final test build
 

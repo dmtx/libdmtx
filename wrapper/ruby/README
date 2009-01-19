@@ -7,7 +7,7 @@ package.
 
 I - Setup
 
-This Ruby wrappers relies on RMagick, and of course on libdmtx.
+This Ruby wrapper relies on RMagick, and of course on libdmtx.
 
 1/ Install RMagick : http://rmagick.rubyforge.org/
 2/ Build libdmtx (./configure --prefix=/a/given/path )

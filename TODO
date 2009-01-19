@@ -64,8 +64,10 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
                - When module is determined to be "on" then subtract half of color vector
                - resulting image should clearly show misread modules
   o dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
-  x project:   Create a common tasks and release checklist document
   o project:   Conditional use of local getopt.c
+  o project:   Introduce "project" directory for non-autotools platforms
+  x project:   Rename "wrappers" directory to "wrapper" for consistency
+  x project:   Create a common tasks and release checklist document
 
 version 0.6.0: (23-Nov-2008)
   x libdmtx:   Initial work preparing for custom pixel packing in future
@@ -117,7 +119,7 @@ version 0.5.1: (01-Jul-2008)
   x dmtxread:  Conditional build logic for libtiff
   x dmtxquery: Start new utility to extra information from dmtxread output
   x testsuite: Started unit test executable for low level testing
-  x wrappers:  New Cocoa wrapper for iPhone, iPod Touch, OS X (thanks Stefan!)
+  x wrapper:   New Cocoa wrapper for iPhone, iPod Touch, OS X (thanks Stefan!)
   x project:   Include local copies of getopt1.c getopt.c getopt.h
   x project:   Various things to help compiling in MS VC++
   x project:   Added missing header comments
