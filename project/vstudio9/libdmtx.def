@@ -1,0 +1,95 @@
+LIBRARY libdmtx
+
+EXPORTS
+
+  dmtxTimeNow
+  dmtxTimeAdd
+  dmtxTimeExceeded
+  
+  dmtxEncodeStructCreate
+  dmtxEncodeStructDestroy
+  dmtxEncodeDataMatrix
+  dmtxEncodeDataMosaic
+  
+  dmtxDecodeStructCreate
+  dmtxDecodeStructDestroy
+  dmtxDecodeSetProp
+  dmtxDecodeMatrixRegion
+  dmtxDecodeMosaicRegion
+  
+  dmtxMessageCreate
+  dmtxMessageDestroy
+  dmtxMessageGetOutput
+  
+  dmtxDecodeFindNextRegion
+  dmtxRegionScanPixel
+  dmtxRegionUpdateCorners
+  dmtxRegionUpdateXfrms
+  
+  dmtxImageCreate
+  dmtxImageDestroy
+  dmtxImageAddChannel
+  dmtxImageSetProp
+  dmtxImageGetProp
+  dmtxImageGetPixelOffset
+  dmtxImageSetRgb
+  dmtxImageGetRgb
+  dmtxImageGetColor
+  dmtxImageContainsInt
+  dmtxImageContainsFloat
+  
+  dmtxVector2AddTo
+  dmtxVector2Add
+  dmtxVector2SubFrom
+  dmtxVector2Sub
+  dmtxVector2ScaleBy
+  dmtxVector2Scale
+  dmtxVector2Cross
+  dmtxVector2Norm
+  dmtxVector2Dot
+  dmtxVector2Mag
+  dmtxDistanceFromRay2
+  dmtxDistanceAlongRay2
+  dmtxRay2Intersect
+  dmtxPointAlongRay2
+  
+  dmtxMatrix3Copy
+  dmtxMatrix3Identity
+  dmtxMatrix3Translate
+  dmtxMatrix3Rotate
+  dmtxMatrix3Scale
+  dmtxMatrix3Shear
+  dmtxMatrix3LineSkewTop
+  dmtxMatrix3LineSkewTopInv
+  dmtxMatrix3LineSkewSide
+  dmtxMatrix3LineSkewSideInv
+  dmtxMatrix3Multiply
+  dmtxMatrix3MultiplyBy
+  dmtxMatrix3VMultiply
+  dmtxMatrix3VMultiplyBy
+  dmtxMatrix3Print
+  
+  dmtxColor3FromImage2
+  dmtxColor3FromPixel
+  dmtxPixelFromColor3
+  dmtxColor3AlongRay3
+  dmtxColor3AddTo
+  dmtxColor3Add
+  dmtxColor3SubFrom
+  dmtxColor3Sub
+  dmtxColor3ScaleBy
+  dmtxColor3Scale
+  dmtxColor3Cross
+  dmtxColor3Norm
+  dmtxColor3Dot
+  dmtxColor3MagSquared
+  dmtxColor3Mag
+  dmtxDistanceFromRay3
+  dmtxDistanceAlongRay3
+  dmtxPointAlongRay3
+  
+  dmtxSymbolModuleStatus
+  dmtxGetSymbolAttribute
+  dmtxGetBlockDataSize
+  
+  dmtxVersion
