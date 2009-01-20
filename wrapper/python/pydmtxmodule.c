@@ -90,11 +90,13 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
    if(enc == NULL)
       return NULL;
 
+   dmtxEncodeSetProp(enc, DmtxPropScheme, scheme);
+   dmtxEncodeSetProp(enc, DmtxPropSizeRequest, shape);
+   dmtxEncodeSetProp(enc, DmtxPropImageFlip, DmtxFlipY);
    dmtxEncodeSetProp(enc, DmtxPropMarginSize, margin_size);
    dmtxEncodeSetProp(enc, DmtxPropModuleSize, module_size);
-   dmtxEncodeSetProp(enc, DmtxPropScheme, scheme);
 
-   dmtxEncodeDataMatrix(enc, data_size, (unsigned char *)data, shape, DmtxFlipY);
+   dmtxEncodeDataMatrix(enc, data_size, (unsigned char *)data);
 
    if((start_cb != NULL) && PyCallable_Check(start_cb)) {
       args = Py_BuildValue("(iiO)", enc->image->width, enc->image->height, context);

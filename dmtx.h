@@ -149,23 +149,32 @@ typedef enum {
 } DmtxCornerLoc;
 
 typedef enum {
+   /* encoding properties */
+   DmtxPropScheme,
+   DmtxPropSizeRequest,
+   /* decoding properties */
    DmtxPropEdgeMin,
    DmtxPropEdgeMax,
    DmtxPropScanGap,
    DmtxPropSquareDevn,
    DmtxPropSymbolSize,
    DmtxPropEdgeThresh,
+   DmtxPropShrinkMin,
+   DmtxPropShrinkMax,
+   /* image properties */
+   DmtxPropMarginSize,
+   DmtxPropModuleSize,
+   DmtxPropImageFlip,
+   DmtxPropBitsPerPixel,
+   DmtxPropBytesPerPixel,
    DmtxPropWidth,
    DmtxPropHeight,
    DmtxPropArea,
-   DmtxPropBitsPerPixel,
-   DmtxPropBytesPerPixel,
    DmtxPropXmin,
    DmtxPropXmax,
    DmtxPropYmin,
    DmtxPropYmax,
-   DmtxPropShrinkMin,
-   DmtxPropShrinkMax,
+   /* scaled image properties */
    DmtxPropScale,
    DmtxPropScaledWidth,
    DmtxPropScaledHeight,
@@ -174,13 +183,7 @@ typedef enum {
    DmtxPropScaledXmax,
    DmtxPropScaledYmin,
    DmtxPropScaledYmax
-} DmtxDecodeProperty;
-
-typedef enum {
-   DmtxPropMarginSize,
-   DmtxPropModuleSize,
-   DmtxPropScheme
-} DmtxEncodeProperty;
+} DmtxProperty;
 
 typedef enum {
    DmtxSymbolRectAuto   = -3,
@@ -453,10 +456,12 @@ typedef struct DmtxTime_struct {
  * @brief DmtxEncode
  */
 typedef struct DmtxEncode_struct {
+   int method;
+   int scheme;
+   int sizeIdxRequest;
+   int imageFlip;
    int marginSize;
    int moduleSize;
-   DmtxEncodeMethod method;
-   DmtxSchemeEncode scheme;
    DmtxMessage *message;
    DmtxImage *image;
    DmtxRegion region;
@@ -514,8 +519,8 @@ extern DmtxEncode *dmtxEncodeCreate(void);
 extern DmtxPassFail dmtxEncodeDestroy(DmtxEncode **enc);
 extern DmtxPassFail dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value);
 extern int dmtxEncodeGetProp(DmtxEncode *enc, int prop);
-extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest, int flip);
-extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest, int flip);
+extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s);
+extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s);
 
 /* dmtxdecode.c */
 extern DmtxDecode *dmtxDecodeCreate(DmtxImage *img);

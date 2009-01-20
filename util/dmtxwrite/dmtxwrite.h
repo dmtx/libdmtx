@@ -36,21 +36,24 @@ Contact: mike@dragonflylogic.com
 #define DMTXWRITE_BUFFER_SIZE 4096
 
 typedef struct {
-   int color[3];
-   int bgColor[3];
-   char format;
    char *inputPath;
    char *outputPath;
+   char format;
+   int color[3];
+   int bgColor[3];
+   int marginSize;
+   int moduleSize;
+   int scheme;
    int rotate;
    int sizeIdx;
-   int verbose;
    int mosaic;
    int dpi;
+   int verbose;
 } UserOptions;
 
 static UserOptions GetDefaultOptions(void);
-static DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *encode);
-static void ReadData(UserOptions *opt, int *codeBuffer, unsigned char *codeBufferSize);
+static DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[]);
+static void ReadData(int *codeBuffer, unsigned char *codeBufferSize, UserOptions *opt);
 static void ShowUsage(int status);
 static void WriteImagePng(UserOptions *opt, DmtxEncode *encode);
 static void WriteImagePnm(UserOptions *opt, DmtxEncode *encode);

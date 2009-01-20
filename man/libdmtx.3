@@ -17,9 +17,13 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.6.1
 
 \fBDmtxPassFail dmtxEncodeDestroy(DmtxEncode **\fIenc\fP);\fP
 
-\fBint dmtxEncodeDataMatrix(DmtxEncode *\fIenc\fP, int \fIn\fP, unsigned char *\fIs\fP, int \fIsizeIdxRequest\fP);\fP
+\fBDmtxPassFail dmtxEncodeSetProp(DmtxEncode *\fIenc\fP, int \fIprop\fP, int \fIvalue\fP);\fP
 
-\fBint dmtxEncodeDataMosaic(DmtxEncode *\fIenc\fP, int \fIn\fP, unsigned char *\fIs\fP, int \fIsizeIdxRequest\fP);\fP
+\fBint dmtxEncodeGetProp(DmtxEncode *\fIenc\fP, int \fIprop\fP);\fP
+
+\fBint dmtxEncodeDataMatrix(DmtxEncode *\fIenc\fP, int \fIn\fP, unsigned char *\fIs\fP);\fP
+
+\fBint dmtxEncodeDataMosaic(DmtxEncode *\fIenc\fP, int \fIn\fP, unsigned char *\fIs\fP);\fP
 
 \fIDECODING FUNCTIONS\fP
 
@@ -27,7 +31,9 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.6.1
 
 \fBDmtxPassFail dmtxDecodeDestroy(DmtxDecode **\fIdec\fP);\fP
 
-\fBint dmtxDecodeSetProp(DmtxDecode *\fIdec\fP, int \fIprop\fP, int \fIvalue\fP);\fP
+\fBDmtxPassFail dmtxDecodeSetProp(DmtxDecode *\fIdec\fP, int \fIprop\fP, int \fIvalue\fP);\fP
+
+\fBint dmtxDecodeGetProp(DmtxDecode *\fIdec\fP, int \fIprop\fP);\fP
 
 \fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
 
@@ -148,7 +154,7 @@ This example program (available as simple_test.c in the source package) demonstr
 
      enc = dmtxEncodeCreate();
      assert(enc != NULL);
-     dmtxEncodeDataMatrix(enc, strlen(str), str, DmtxSymbolSquareAuto, DmtxFlipNone);
+     dmtxEncodeDataMatrix(enc, strlen(str), str);
 
      /* 2) COPY the new image data before releasing encoding memory */
 

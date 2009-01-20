@@ -61,41 +61,48 @@ main(int argc, char *argv[])
 
    opt = GetDefaultOptions();
 
-   /* Create and initialize libdmtx structures */
+   /* Override defaults with requested options */
+   err = HandleArgs(&opt, &argc, &argv);
+   if(err != DmtxPass)
+      ShowUsage(err);
+
+   /* Create and initialize libdmtx encoding struct */
    enc = dmtxEncodeCreate();
    if(enc == NULL)
       FatalError(1, "create error");
 
-   /* Process user options */
-   err = HandleArgs(&opt, &argc, &argv, enc);
-   if(err != DmtxPass)
-      ShowUsage(err);
+   /* Set encoding options */
+   dmtxEncodeSetProp(enc, DmtxPropMarginSize, opt.marginSize);
+   dmtxEncodeSetProp(enc, DmtxPropModuleSize, opt.moduleSize);
+   dmtxEncodeSetProp(enc, DmtxPropScheme, opt.scheme);
+   dmtxEncodeSetProp(enc, DmtxPropSizeRequest, opt.sizeIdx);
+   dmtxEncodeSetProp(enc, DmtxPropImageFlip, DmtxFlipY);
 
    /* Read input data into buffer */
-   ReadData(&opt, &codeBufferSize, codeBuffer);
+   ReadData(&codeBufferSize, codeBuffer, &opt);
 
    /* Create barcode image */
    if(opt.mosaic)
-      err = dmtxEncodeDataMosaic(enc, codeBufferSize, codeBuffer, opt.sizeIdx, DmtxFlipY);
+      err = dmtxEncodeDataMosaic(enc, codeBufferSize, codeBuffer);
    else
-      err = dmtxEncodeDataMatrix(enc, codeBufferSize, codeBuffer, opt.sizeIdx, DmtxFlipY);
+      err = dmtxEncodeDataMatrix(enc, codeBufferSize, codeBuffer);
 
    if(err == DmtxFail)
       FatalError(1, _("Unable to encode message (possibly too large for requested size)"));
 
    /* Write barcode image to requested format */
    switch(opt.format) {
-      case 'p':
-         WriteImagePng(&opt, enc);
-         break;
-      case 'm':
-         WriteImagePnm(&opt, enc);
-         break;
       case 'a':
          WriteAsciiBarcode(enc);
          break;
       case 'c':
          WriteCodewords(enc);
+         break;
+      case 'm':
+         WriteImagePnm(&opt, enc);
+         break;
+      case 'p':
+         WriteImagePng(&opt, enc);
          break;
    }
 
@@ -116,16 +123,19 @@ GetDefaultOptions(void)
 
    memset(&opt, 0x00, sizeof(UserOptions));
 
-/* opt.color = ""; */
-/* opt.bgColor = ""; */
-   opt.format = 'p';
    opt.inputPath = NULL;    /* default stdin */
    opt.outputPath = NULL;   /* default stdout */
+   opt.format = 'p';
+/* opt.color = ""; */
+/* opt.bgColor = ""; */
+   opt.marginSize = 10;
+   opt.moduleSize = 5;
+   opt.scheme = DmtxSchemeEncodeAscii;
    opt.rotate = 0;
    opt.sizeIdx = DmtxSymbolSquareAuto;
-   opt.verbose = 0;
    opt.mosaic = 0;
    opt.dpi = 0; /* default to native resolution of requested image format */
+   opt.verbose = 0;
 
    return opt;
 }
@@ -138,15 +148,12 @@ GetDefaultOptions(void)
  * @return DmtxPass | DmtxFail
  */
 static DmtxPassFail
-HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
+HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
 {
    int err;
    int i;
    int optchr;
    int longIndex;
-   int moduleSize;
-   int marginSize;
-   int scheme;
    char *ptr;
 
    struct option longOptions[] = {
@@ -168,11 +175,6 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
    };
 
    programName = Basename((*argvp)[0]);
-
-   /* Set default values before considering arguments */
-   moduleSize = 5;
-   marginSize = 10;
-   scheme = DmtxSchemeEncodeAscii;
 
    for(;;) {
       optchr = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:r:s:vMR:V", longOptions, &longIndex);
@@ -196,13 +198,13 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
             fprintf(stdout, "Option \"%c\" not implemented\n", optchr);
             break;
          case 'd':
-            err = StringToInt(&moduleSize, optarg, &ptr);
-            if(err != DmtxPass || moduleSize <= 0 || *ptr != '\0')
+            err = StringToInt(&opt->moduleSize, optarg, &ptr);
+            if(err != DmtxPass || opt->moduleSize <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid module size specified \"%s\""), optarg);
             break;
          case 'm':
-            err = StringToInt(&marginSize, optarg, &ptr);
-            if(err != DmtxPass || marginSize <= 0 || *ptr != '\0')
+            err = StringToInt(&opt->marginSize, optarg, &ptr);
+            if(err != DmtxPass || opt->marginSize <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid margin size specified \"%s\""), optarg);
             break;
          case 'e':
@@ -212,29 +214,29 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
             }
             switch(*optarg) {
                case 'b':
-                  scheme = DmtxSchemeEncodeAutoBest;
+                  opt->scheme = DmtxSchemeEncodeAutoBest;
                   break;
                case 'f':
-                  scheme = DmtxSchemeEncodeAutoFast;
+                  opt->scheme = DmtxSchemeEncodeAutoFast;
                   fprintf(stdout, "\"Fast optimized\" not implemented\n");
                   return DmtxFail;
                case 'a':
-                  scheme = DmtxSchemeEncodeAscii;
+                  opt->scheme = DmtxSchemeEncodeAscii;
                   break;
                case 'c':
-                  scheme = DmtxSchemeEncodeC40;
+                  opt->scheme = DmtxSchemeEncodeC40;
                   break;
                case 't':
-                  scheme = DmtxSchemeEncodeText;
+                  opt->scheme = DmtxSchemeEncodeText;
                   break;
                case 'x':
-                  scheme = DmtxSchemeEncodeX12;
+                  opt->scheme = DmtxSchemeEncodeX12;
                   break;
                case 'e':
-                  scheme = DmtxSchemeEncodeEdifact;
+                  opt->scheme = DmtxSchemeEncodeEdifact;
                   break;
                case '8':
-                  scheme = DmtxSchemeEncodeBase256;
+                  opt->scheme = DmtxSchemeEncodeBase256;
                   break;
                default:
                   fprintf(stdout, "Invalid encodation scheme \"%s\"\n", optarg);
@@ -300,10 +302,6 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
 
    opt->inputPath = (*argvp)[optind];
 
-   dmtxEncodeSetProp(enc, DmtxPropModuleSize, moduleSize);
-   dmtxEncodeSetProp(enc, DmtxPropMarginSize, marginSize);
-   dmtxEncodeSetProp(enc, DmtxPropScheme, scheme);
-
    /* XXX here test for incompatibility between options. For example you
       cannot specify dpi if PNM output is requested */
 
@@ -315,7 +313,7 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
  *
  */
 static void
-ReadData(UserOptions *opt, int *codeBufferSize, unsigned char *codeBuffer)
+ReadData(int *codeBufferSize, unsigned char *codeBuffer, UserOptions *opt)
 {
    int fd;
 

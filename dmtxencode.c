@@ -79,8 +79,10 @@ dmtxEncodeCreate(void)
       return NULL;
 
    enc->scheme = DmtxSchemeEncodeAscii;
-   enc->moduleSize = 5;
+   enc->sizeIdxRequest = DmtxSymbolSquareAuto;
+   enc->imageFlip = DmtxFlipNone;
    enc->marginSize = 10;
+   enc->moduleSize = 5;
 
    /* Initialize background color to white */
 /* enc.region.gradient.ray.p.R = 255.0;
@@ -128,14 +130,20 @@ extern DmtxPassFail
 dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value)
 {
    switch(prop) {
+      case DmtxPropScheme:
+         enc->scheme = value;
+         break;
+      case DmtxPropSizeRequest:
+         enc->sizeIdxRequest = value;
+         break;
+      case DmtxPropImageFlip:
+         enc->imageFlip = value;
+         break;
       case DmtxPropMarginSize:
          enc->marginSize = value;
          break;
       case DmtxPropModuleSize:
          enc->moduleSize = value;
-         break;
-      case DmtxPropScheme:
-         enc->scheme = value;
          break;
    }
 
@@ -172,7 +180,7 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
  * @return DmtxPass | DmtxFail
  */
 extern DmtxPassFail
-dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest, int flip)
+dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 {
    int dataWordCount;
    int sizeIdx;
@@ -180,7 +188,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    unsigned char buf[4096];
 
    /* Encode input string into data codewords */
-   sizeIdx = sizeIdxRequest;
+   sizeIdx = enc->sizeIdxRequest;
    dataWordCount = EncodeDataCodewords(buf, inputString, inputSize, enc->scheme, &sizeIdx);
    if(dataWordCount <= 0)
       return(DmtxFail);
@@ -214,7 +222,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
    height = 2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize);
 
    /* Allocate memory for the image to be generated */
-   enc->image = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB, flip);
+   enc->image = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB, enc->imageFlip);
    if(enc->image == NULL) {
       perror("image malloc error");
       return DmtxFail;
@@ -235,13 +243,13 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString,
  * @return DmtxPass | DmtxFail
  */
 extern DmtxPassFail
-dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString, int sizeIdxRequest, int flip)
+dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 {
    int dataWordCount;
    int tmpInputSize;
    unsigned char *inputStart;
    int splitInputSize[3];
-   int sizeIdx;
+   int sizeIdx, sizeIdxRequest;
    int splitSizeIdxAttempt, splitSizeIdxFirst, splitSizeIdxLast;
    unsigned char buf[3][4096];
    DmtxEncode encGreen, encBlue;
@@ -257,11 +265,8 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
     * 6) take the 3 different images you created and write out a new barcode
     */
 
-   /* XXX we're going to force ascii until we fix the problem with C40/Text termination */
-   enc->scheme = DmtxSchemeEncodeAscii;
-
    /* Encode full input string to establish baseline data codeword count */
-   sizeIdx = sizeIdxRequest;
+   sizeIdx = sizeIdxRequest = enc->sizeIdxRequest;
    /* XXX buf can be changed here to use all 3 buffers' length */
    dataWordCount = EncodeDataCodewords(buf[0], inputString, inputSize, enc->scheme, &sizeIdx);
    if(dataWordCount <= 0)
@@ -320,19 +325,21 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString,
       break;
    }
 
+   dmtxEncodeSetProp(enc, DmtxPropSizeRequest, splitSizeIdxAttempt);
+
    /* Now we have the correct lengths for splitInputSize, and they all fit into the desired size */
    encGreen = *enc;
    encBlue = *enc;
 
    /* First encode red to the main encode struct (image portion will be overwritten) */
    inputStart = inputString;
-   dmtxEncodeDataMatrix(enc, splitInputSize[0], inputStart, splitSizeIdxAttempt, flip);
+   dmtxEncodeDataMatrix(enc, splitInputSize[0], inputStart);
 
    inputStart += splitInputSize[0];
-   dmtxEncodeDataMatrix(&encGreen, splitInputSize[1], inputStart, splitSizeIdxAttempt, flip);
+   dmtxEncodeDataMatrix(&encGreen, splitInputSize[1], inputStart);
 
    inputStart += splitInputSize[1];
-   dmtxEncodeDataMatrix(&encBlue, splitInputSize[2], inputStart, splitSizeIdxAttempt, flip);
+   dmtxEncodeDataMatrix(&encBlue, splitInputSize[2], inputStart);
 
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, splitSizeIdxAttempt);
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, splitSizeIdxAttempt);

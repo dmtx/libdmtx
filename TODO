@@ -41,6 +41,7 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
   o libdmtx:   Fix 64b->32b int assignments
+  o libdmtx:   Make DmtxFlipNone represent top-down order (?)
   x libdmtx:   Add dmtxEncodeSetProp() and  dmtxEncodeGetProp()
   x libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   x libdmtx:   Remove status from DmtxPixelLoc
@@ -62,6 +63,7 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
                - When module is determined to be "off" then add half of color vector
                - When module is determined to be "on" then subtract half of color vector
                - resulting image should clearly show misread modules
+  x dmtxwrite: Use HandleArgs() to capture requests, and process afterward
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
   o project:   Conditional use of local getopt.c
   x project:   Introduce "project" directory for non-autotools platforms

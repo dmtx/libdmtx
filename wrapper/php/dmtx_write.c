@@ -108,7 +108,11 @@ PHP_FUNCTION(dmtx_write)
       RETURN_NULL();
 
    enc = dmtxEncodeCreate();
-   dmtxEncodeDataMatrix(enc, data_len, data, DmtxSymbolSquareAuto, DmtxFlipY);
+
+   dmtxEncodeSetProp(enc, DmtxPropSizeRequest, DmtxSymbolSquareAuto);
+   dmtxEncodeSetProp(enc, DmtxPropImageFlip, DmtxFlipY);
+
+   dmtxEncodeDataMatrix(enc, data_len, data);
 
    printf("ddd");
    fflush(stdout);
