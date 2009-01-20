@@ -43,14 +43,13 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Fix 64b->32b int assignments
   x libdmtx:   Add dmtxEncodeSetProp() and  dmtxEncodeGetProp()
   x libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
-  x libdmtx:   Changed all major types to use Create() and Destroy() convention
   x libdmtx:   Remove status from DmtxPixelLoc
   x libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
   x libdmtx:   Removed dmtxcolor.c, DmtxColor3, and DmtxGradient
   x libdmtx:   Eliminate DmtxRgb type
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
-  x libdmtx:   Use Create/Destroy for DmtxEncode & DmtxDecode (but not DmtxRegion)
+  x libdmtx:   Changed all major types to use Create() and Destroy() convention
   o dmtxread:  Flatten out nested loops in main()
   o dmtxread:  Add script to make sure no GM functions are being called without gm prefix
   o dmtxread:  Fix misrepresented capacity in verbose mode
