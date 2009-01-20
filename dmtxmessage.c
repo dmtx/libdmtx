@@ -44,10 +44,9 @@ dmtxMessageCreate(int sizeIdx, int symbolFormat)
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdx);
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
 
-   message = (DmtxMessage *)malloc(sizeof(DmtxMessage));
+   message = (DmtxMessage *)calloc(1, sizeof(DmtxMessage));
    if(message == NULL)
       return NULL;
-   memset(message, 0x00, sizeof(DmtxMessage));
 
    message->arraySize = sizeof(unsigned char) * mappingRows * mappingCols;
 

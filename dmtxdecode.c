@@ -47,6 +47,7 @@ dmtxDecodeCreate(DmtxImage *img)
    width = dmtxImageGetProp(img, DmtxPropWidth);
    height = dmtxImageGetProp(img, DmtxPropHeight);
 
+   /* XXX size cache according to scaled size instead */
    dec->cache = (unsigned char *)calloc(width * height, sizeof(unsigned char));
    if(dec->cache == NULL) {
       free(dec);
@@ -441,6 +442,7 @@ DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
       msg->output[msg->outputIdx++] = *ptr - 1;
    }
    else if(*ptr == 129) {
+      msg->padCount = (int)(dataEnd - ptr);
       return dataEnd;
    }
    else if(*ptr <= 229) {

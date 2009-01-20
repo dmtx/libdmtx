@@ -653,6 +653,7 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
    int height;
    int dataWordLength;
    int rotateInt;
+   int remainingDataWords;
    double rotate;
    DmtxVector2 p00, p10, p11, p01;
 
@@ -680,7 +681,7 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
             dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, reg->sizeIdx),
             dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, reg->sizeIdx));
       fprintf(stdout, "    Data Codewords: %d (capacity %d)\n",
-            msg->outputIdx, dataWordLength);
+            dataWordLength - msg->padCount, dataWordLength);
       fprintf(stdout, "   Error Codewords: %d\n",
             dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, reg->sizeIdx));
       fprintf(stdout, "      Data Regions: %d x %d\n",
@@ -708,8 +709,13 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
 
    if(opt->codewords) {
       for(i = 0; i < msg->codeSize; i++) {
-         fprintf(stdout, "%c:%03d\n", (i < dataWordLength) ?
-               'd' : 'e', msg->code[i]);
+         remainingDataWords = dataWordLength - i;
+         if(remainingDataWords > msg->padCount)
+            fprintf(stdout, "%c:%03d\n", 'd', msg->code[i]);
+         else if(remainingDataWords > 0)
+            fprintf(stdout, "%c:%03d\n", 'p', msg->code[i]);
+         else
+            fprintf(stdout, "%c:%03d\n", 'e', msg->code[i]);
       }
    }
    else {

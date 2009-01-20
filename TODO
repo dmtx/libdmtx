@@ -53,7 +53,6 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   x libdmtx:   Changed all major types to use Create() and Destroy() convention
   o dmtxread:  Flatten out nested loops in main()
   o dmtxread:  Add script to make sure no GM functions are being called without gm prefix
-  o dmtxread:  Fix misrepresented capacity in verbose mode
   o dmtxread:  Print out image representing "unstretched" barcode
   o dmtxread:  Print color weights based on direction
   o dmtxread:  Diagnostic image shows tighter-fitting outline
@@ -63,6 +62,7 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
                - When module is determined to be "off" then add half of color vector
                - When module is determined to be "on" then subtract half of color vector
                - resulting image should clearly show misread modules
+  x dmtxread:  Fix misrepresented capacity in verbose mode
   x dmtxwrite: Use HandleArgs() to capture requests, and process afterward
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
   o project:   Conditional use of local getopt.c

@@ -391,6 +391,7 @@ typedef struct DmtxMessage_struct {
    int             codeSize;      /* Size of encoded data (data words + error words) */
    int             outputSize;    /* Size of buffer used to hold decoded data */
    int             outputIdx;     /* Internal index used to store output progress */
+   int             padCount;
    unsigned char   *array;        /* Pointer to internal representation of scanned Data Matrix modules */
    unsigned char   *code;         /* Pointer to internal storage of code words (data and error) */
    unsigned char   *output;       /* Pointer to internal storage of decoded output */
