@@ -1,7 +1,7 @@
 /*
 Rdmtx - Ruby wrapper for libdmtx
 
-Copyright (c) 2008 Romain Goyet
+Copyright (C) 2008 Romain Goyet
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
