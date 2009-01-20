@@ -2,11 +2,6 @@
 
 FILE="$1"
 
-if [[ $(cat $FILE | wc -l) -le 10 ]]; then
-   echo "File \"$FILE\" considered trivial for copyright purposes (<=10 lines)"
-   exit 0
-fi
-
 # Every nontrivial source file must include a copyright line
 COPYRIGHT=$(grep "Copyright (C) " $FILE)
 if [[ $? -ne 0 ]]; then

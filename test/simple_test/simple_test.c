@@ -1,5 +1,6 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
+
 Copyright (C) 2008, 2009 Mike Laughton
 
 This library is free software; you can redistribute it and/or

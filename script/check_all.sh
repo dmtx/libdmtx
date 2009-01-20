@@ -20,9 +20,21 @@ function RunTest()
          continue
       fi
 
-      for file in $(find $dir -maxdepth 1 -name "*.[ch]" -o -name "*.py"); do
+      for file in $(find $dir -maxdepth 1); do
 
-         if [[ "$(basename $file)" = "config.h" ]]; then
+         EXT=$(echo $file | awk -F'.' '{print $NF}')
+         if [[ "$EXT" != "c" && "$EXT" != "h" && "$EXT" != "sh" && \
+               "$EXT" != "py" && "$EXT" != "pl" ]]; then
+            continue
+         fi
+
+         if [[ "$(basename $file)" = "config.h" ||
+               "$(basename $file)" = "ltmain.sh" ]]; then
+            continue
+         fi
+
+         if [[ $(cat $file | wc -l) -le 10 ]]; then
+            echo "      skipping \"$file\" (trivial file)"
             continue
          fi
 

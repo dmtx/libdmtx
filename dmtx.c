@@ -64,10 +64,9 @@ Contact: mike@dragonflylogic.com
 #endif
 
 /**
- * The following use of #include to merge .c files together is
- * deliberate. This approach allows functions to be grouped in
- * files of like-functionality while still allowing static
- * functions to be accessed across files.
+ * This use of #include to merge .c files together is deliberate, if unusual.
+ * This allows library functions to be grouped in files of like-functionality
+ * while still enabling static functions to be accessed across files.
  */
 
 #include "dmtxtime.c"

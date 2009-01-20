@@ -2,7 +2,7 @@
 Cocoa wrapper for libdmtx
 
 Created by Stefan Hafeneger on 28.05.08.
-Copyright (c) 2008 CocoaHeads Aachen. All rights reserved.
+Copyright (C) 2008 CocoaHeads Aachen. All rights reserved.
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
