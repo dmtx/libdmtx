@@ -437,9 +437,10 @@ AddPadChars(unsigned char *buf,  int *bufSize, int paddedSize)
    int padCount = 0;
 
    /* First pad character is not randomized */
-   padCount++;
-   if(*bufSize < paddedSize)
+   if(*bufSize < paddedSize) {
+      padCount++;
       buf[(*bufSize)++] = DMTX_CHAR_ASCII_PAD;
+   }
 
    /* All remaining pad characters are randomized based on character position */
    while(*bufSize < paddedSize) {
