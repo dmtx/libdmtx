@@ -137,7 +137,7 @@ void BuildMatrixCallback3(DmtxMatrix3 mChainInv)
    glVertex2f(160.0,  60.0);
    glVertex2f(160.0, 160.0);
    glVertex2f( 60.0, 160.0);
-/*
+/**
    glVertex2f( 60.0,  60.0);
    glVertex2f(260.0,  60.0);
    glVertex2f(260.0, 260.0);

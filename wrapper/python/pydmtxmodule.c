@@ -90,9 +90,9 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
    if(enc == NULL)
       return NULL;
 
-   enc->moduleSize = module_size;
-   enc->marginSize = margin_size;
-   enc->scheme = scheme;
+   dmtxEncodeSetProp(enc, DmtxPropMarginSize, margin_size);
+   dmtxEncodeSetProp(enc, DmtxPropModuleSize, module_size);
+   dmtxEncodeSetProp(enc, DmtxPropScheme, scheme);
 
    dmtxEncodeDataMatrix(enc, data_size, (unsigned char *)data, shape, DmtxFlipY);
 
