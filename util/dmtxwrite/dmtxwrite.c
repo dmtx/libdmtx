@@ -144,6 +144,9 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
    int i;
    int optchr;
    int longIndex;
+   int moduleSize;
+   int marginSize;
+   int scheme;
    char *ptr;
 
    struct option longOptions[] = {
@@ -167,9 +170,9 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
    programName = Basename((*argvp)[0]);
 
    /* Set default values before considering arguments */
-   enc->moduleSize = 5;
-   enc->marginSize = 10;
-   enc->scheme = DmtxSchemeEncodeAscii;
+   moduleSize = 5;
+   marginSize = 10;
+   scheme = DmtxSchemeEncodeAscii;
 
    for(;;) {
       optchr = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:r:s:vMR:V", longOptions, &longIndex);
@@ -193,13 +196,13 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
             fprintf(stdout, "Option \"%c\" not implemented\n", optchr);
             break;
          case 'd':
-            err = StringToInt(&(enc->moduleSize), optarg, &ptr);
-            if(err != DmtxPass || enc->moduleSize <= 0 || *ptr != '\0')
+            err = StringToInt(&moduleSize, optarg, &ptr);
+            if(err != DmtxPass || moduleSize <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid module size specified \"%s\""), optarg);
             break;
          case 'm':
-            err = StringToInt(&(enc->marginSize), optarg, &ptr);
-            if(err != DmtxPass || enc->marginSize <= 0 || *ptr != '\0')
+            err = StringToInt(&marginSize, optarg, &ptr);
+            if(err != DmtxPass || marginSize <= 0 || *ptr != '\0')
                FatalError(1, _("Invalid margin size specified \"%s\""), optarg);
             break;
          case 'e':
@@ -209,35 +212,33 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
             }
             switch(*optarg) {
                case 'b':
-                  enc->scheme = DmtxSchemeEncodeAutoBest;
+                  scheme = DmtxSchemeEncodeAutoBest;
                   break;
                case 'f':
-                  enc->scheme = DmtxSchemeEncodeAutoFast;
+                  scheme = DmtxSchemeEncodeAutoFast;
                   fprintf(stdout, "\"Fast optimized\" not implemented\n");
                   return DmtxFail;
-                  break;
                case 'a':
-                  enc->scheme = DmtxSchemeEncodeAscii;
+                  scheme = DmtxSchemeEncodeAscii;
                   break;
                case 'c':
-                  enc->scheme = DmtxSchemeEncodeC40;
+                  scheme = DmtxSchemeEncodeC40;
                   break;
                case 't':
-                  enc->scheme = DmtxSchemeEncodeText;
+                  scheme = DmtxSchemeEncodeText;
                   break;
                case 'x':
-                  enc->scheme = DmtxSchemeEncodeX12;
+                  scheme = DmtxSchemeEncodeX12;
                   break;
                case 'e':
-                  enc->scheme = DmtxSchemeEncodeEdifact;
+                  scheme = DmtxSchemeEncodeEdifact;
                   break;
                case '8':
-                  enc->scheme = DmtxSchemeEncodeBase256;
+                  scheme = DmtxSchemeEncodeBase256;
                   break;
                default:
                   fprintf(stdout, "Invalid encodation scheme \"%s\"\n", optarg);
                   return DmtxFail;
-                  break;
             }
             break;
          case 'f':
@@ -298,6 +299,10 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[], DmtxEncode *enc)
    }
 
    opt->inputPath = (*argvp)[optind];
+
+   dmtxEncodeSetProp(enc, DmtxPropModuleSize, moduleSize);
+   dmtxEncodeSetProp(enc, DmtxPropMarginSize, marginSize);
+   dmtxEncodeSetProp(enc, DmtxPropScheme, scheme);
 
    /* XXX here test for incompatibility between options. For example you
       cannot specify dpi if PNM output is requested */

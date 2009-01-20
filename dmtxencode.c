@@ -118,6 +118,52 @@ dmtxEncodeDestroy(DmtxEncode **enc)
 }
 
 /**
+ * @brief  Set encoding behavior property
+ * @param  enc
+ * @param  prop
+ * @param  value
+ * @return DmtxPass | DmtxFail
+ */
+extern DmtxPassFail
+dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value)
+{
+   switch(prop) {
+      case DmtxPropMarginSize:
+         enc->marginSize = value;
+         break;
+      case DmtxPropModuleSize:
+         enc->moduleSize = value;
+         break;
+      case DmtxPropScheme:
+         enc->scheme = value;
+         break;
+   }
+
+   return DmtxPass;
+}
+
+/**
+ * @brief  Get encoding behavior property
+ * @param  enc
+ * @param  prop
+ * @return value
+ */
+extern int
+dmtxEncodeGetProp(DmtxEncode *enc, int prop)
+{
+   switch(prop) {
+      case DmtxPropMarginSize:
+         return enc->marginSize;
+      case DmtxPropModuleSize:
+         return enc->moduleSize;
+      case DmtxPropScheme:
+         return enc->scheme;
+   }
+
+   return -1;
+}
+
+/**
  * @brief  Convert message into Data Matrix image
  * @param  enc
  * @param  inputSize

@@ -177,6 +177,12 @@ typedef enum {
 } DmtxDecodeProperty;
 
 typedef enum {
+   DmtxPropMarginSize,
+   DmtxPropModuleSize,
+   DmtxPropScheme
+} DmtxEncodeProperty;
+
+typedef enum {
    DmtxSymbolRectAuto   = -3,
    DmtxSymbolSquareAuto = -2,
    DmtxSymbolShapeAuto  = -1,
@@ -447,8 +453,8 @@ typedef struct DmtxTime_struct {
  * @brief DmtxEncode
  */
 typedef struct DmtxEncode_struct {
-   int moduleSize;
    int marginSize;
+   int moduleSize;
    DmtxEncodeMethod method;
    DmtxSchemeEncode scheme;
    DmtxMessage *message;
@@ -506,6 +512,8 @@ extern int dmtxTimeExceeded(DmtxTime timeout);
 /* dmtxencode.c */
 extern DmtxEncode *dmtxEncodeCreate(void);
 extern DmtxPassFail dmtxEncodeDestroy(DmtxEncode **enc);
+extern DmtxPassFail dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value);
+extern int dmtxEncodeGetProp(DmtxEncode *enc, int prop);
 extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest, int flip);
 extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s, int sizeIdxRequest, int flip);
 
@@ -513,6 +521,7 @@ extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *
 extern DmtxDecode *dmtxDecodeCreate(DmtxImage *img);
 extern DmtxPassFail dmtxDecodeDestroy(DmtxDecode **dec);
 extern DmtxPassFail dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
+extern int dmtxDecodeGetProp(DmtxDecode *dec, int prop);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 

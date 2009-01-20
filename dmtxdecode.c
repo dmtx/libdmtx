@@ -174,6 +174,45 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
 }
 
 /**
+ * @brief  Get decoding behavior property
+ * @param  dec
+ * @param  prop
+ * @return value
+ */
+extern int
+dmtxDecodeGetProp(DmtxDecode *dec, int prop)
+{
+   switch(prop) {
+      case DmtxPropEdgeMin:
+         return dec->edgeMin;
+      case DmtxPropEdgeMax:
+         return dec->edgeMax;
+      case DmtxPropScanGap:
+         return dec->scanGap;
+      case DmtxPropSquareDevn:
+         return acos(dec->squareDevn * 180.0/M_PI);
+      case DmtxPropSymbolSize:
+         return dec->sizeIdxExpected;
+      case DmtxPropEdgeThresh:
+         return dec->edgeThresh;
+      case DmtxPropXmin:
+         return dmtxImageGetProp(dec->image, DmtxPropXmin);
+      case DmtxPropXmax:
+         return dmtxImageGetProp(dec->image, DmtxPropXmax);
+      case DmtxPropYmin:
+         return dmtxImageGetProp(dec->image, DmtxPropYmin);
+      case DmtxPropYmax:
+         return dmtxImageGetProp(dec->image, DmtxPropYmax);
+      case DmtxPropShrinkMin:
+         return dec->shrinkMin;
+      case DmtxPropShrinkMax:
+         return dec->shrinkMax;
+   }
+
+   return -1;
+}
+
+/**
  * @brief  Convert fitted Data Matrix region into a decoded message
  * @param  dec
  * @param  reg
