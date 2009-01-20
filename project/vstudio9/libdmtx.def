@@ -5,39 +5,42 @@ EXPORTS
   dmtxTimeNow
   dmtxTimeAdd
   dmtxTimeExceeded
-  
-  dmtxEncodeStructCreate
-  dmtxEncodeStructDestroy
+
+  dmtxEncodeCreate
+  dmtxEncodeDestroy
+  dmtxEncodeSetProp
+  dmtxEncodeGetProp
   dmtxEncodeDataMatrix
   dmtxEncodeDataMosaic
-  
-  dmtxDecodeStructCreate
-  dmtxDecodeStructDestroy
+
+  dmtxDecodeCreate
+  dmtxDecodeDestroy
   dmtxDecodeSetProp
+  dmtxDecodeGetProp
   dmtxDecodeMatrixRegion
   dmtxDecodeMosaicRegion
-  
+
   dmtxMessageCreate
   dmtxMessageDestroy
-  dmtxMessageGetOutput
-  
-  dmtxDecodeFindNextRegion
+
+  dmtxRegionCreate
+  dmtxRegionDestroy
+  dmtxRegionFindNext
   dmtxRegionScanPixel
   dmtxRegionUpdateCorners
   dmtxRegionUpdateXfrms
-  
+
   dmtxImageCreate
   dmtxImageDestroy
   dmtxImageAddChannel
   dmtxImageSetProp
   dmtxImageGetProp
   dmtxImageGetPixelOffset
-  dmtxImageSetRgb
-  dmtxImageGetRgb
-  dmtxImageGetColor
+  dmtxImageGetPixelValue
+  dmtxImageSetPixelValue
   dmtxImageContainsInt
   dmtxImageContainsFloat
-  
+
   dmtxVector2AddTo
   dmtxVector2Add
   dmtxVector2SubFrom
@@ -52,7 +55,7 @@ EXPORTS
   dmtxDistanceAlongRay2
   dmtxRay2Intersect
   dmtxPointAlongRay2
-  
+
   dmtxMatrix3Copy
   dmtxMatrix3Identity
   dmtxMatrix3Translate
@@ -68,28 +71,9 @@ EXPORTS
   dmtxMatrix3VMultiply
   dmtxMatrix3VMultiplyBy
   dmtxMatrix3Print
-  
-  dmtxColor3FromImage2
-  dmtxColor3FromPixel
-  dmtxPixelFromColor3
-  dmtxColor3AlongRay3
-  dmtxColor3AddTo
-  dmtxColor3Add
-  dmtxColor3SubFrom
-  dmtxColor3Sub
-  dmtxColor3ScaleBy
-  dmtxColor3Scale
-  dmtxColor3Cross
-  dmtxColor3Norm
-  dmtxColor3Dot
-  dmtxColor3MagSquared
-  dmtxColor3Mag
-  dmtxDistanceFromRay3
-  dmtxDistanceAlongRay3
-  dmtxPointAlongRay3
-  
+
   dmtxSymbolModuleStatus
   dmtxGetSymbolAttribute
   dmtxGetBlockDataSize
-  
+
   dmtxVersion

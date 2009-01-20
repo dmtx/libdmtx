@@ -42,6 +42,7 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
   o libdmtx:   Fix 64b->32b int assignments
   o libdmtx:   Make DmtxFlipNone represent top-down order (?)
+  o libdmtx:   Add dmtxMessageGetOutput() helper function if still necessary (dmtxmessage.c & libdmtx.def)
   x libdmtx:   Add dmtxEncodeSetProp() and  dmtxEncodeGetProp()
   x libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   x libdmtx:   Remove status from DmtxPixelLoc
