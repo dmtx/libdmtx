@@ -245,13 +245,13 @@ Website:
   o Add http://hosted-projects.com/trac/hudora/public/wiki/huBarcode to resources page
 
 
-Propsed Change: Modularity
+Proposed Change: Modularity
 -----------------------------------------------------------------
 Make finder bar detection pluggable so a separate future version can be
 made for dot peen pattern detection (remaining steps would be unchanged).
 
 
-Propsed Change: Image Scaling
+Proposed Change: Image Scaling
 -----------------------------------------------------------------
 /**
  * still on the fence whether image scaling factors should be maintained in
@@ -280,7 +280,7 @@ typedef struct DmtxDecode_struct {
 } DmtxDecode;
 
 
-Propsed Change: Region Detection
+Proposed Change: Region Detection
 -----------------------------------------------------------------
 The first edge is currently detected using fixed-offset Hough
 transform. This is very efficient for the first edge, but forces
@@ -311,7 +311,7 @@ previously. This should translate to significant time savings,
 especially for noisy and complex images.
 
 
-Propsed Change: Region Calibration
+Proposed Change: Region Calibration
 -----------------------------------------------------------------
 The current calibration technique relies solely on points and
 angles found during the Hough process, and uses the calibration
@@ -366,7 +366,7 @@ advantages:
   * High precision fit should apply equally well to contiguous-
     edge and dot peen symbols
 
-Propsed Change: Latest thoughts on region detection
+Proposed Change: Latest thoughts on region detection
 -----------------------------------------------------------------
 
 * Allocate memory cache, one byte per pixel
@@ -484,8 +484,10 @@ for each color channel:
    write out pnm dump 1
    connect edges downstream, leaving trail
    - pick starting loc where downstream points back (how to measure this?)
-*** in a river, you know you are in the center of the stream when your
-    neighbor on each side is moving slower than you ***
+
+*** in a river, you know you are in the center of the stream when your ***
+*** neighbor on each side is moving slower than you                    ***
+
    - follow outward, leave upstream trail
    - pick next loc by choosing strongest of 5 neighbors that do not reverse
      course

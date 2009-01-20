@@ -25,9 +25,6 @@ Data Mosaic encoding doesn't produce output for certain sizes:
 The follow options are considered experimental:
   -M,  --mosaic              interpret as Data Mosaic barcodes
 
-When using --verbose output, the Data Codeword capacity is often
-reported incorrectly.
-
 
 3. dmtxwrite
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -46,6 +43,9 @@ The follow options are not implemented yet:
 4. Test Programs
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+multi_test:
+  * No known issues
+
 rotate_test:
   * No known issues
 
@@ -59,8 +59,17 @@ unit_test:
 5. Wrappers
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-libdmtx-php:
+cocoa wrapper:
   * Does not compile with recent libdmtx versions (needs update)
+
+php wrapper:
+  * No known issues
+
+python wrapper:
+  * No known issues
+
+ruby wrapper:
+  * No known issues
 
 
 6. Scripts in the script directory
