@@ -184,6 +184,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 {
    int dataWordCount;
    int sizeIdx;
+   int padCount;
    int width, height;
    unsigned char buf[4096];
 
@@ -197,7 +198,8 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    assert(sizeIdx != DmtxSymbolSquareAuto && sizeIdx != DmtxSymbolRectAuto);
 
    /* Add pad characters to match a standard symbol size (whether smallest or requested) */
-   AddPadChars(buf, &dataWordCount, dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx));
+   padCount = AddPadChars(buf, &dataWordCount,
+         dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx));
 
    /* XXX we can remove a lot of this redundant data */
    enc->region.sizeIdx = sizeIdx;
@@ -208,6 +210,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
    /* Allocate memory for message and array */
    enc->message = dmtxMessageCreate(sizeIdx, DMTX_FORMAT_MATRIX);
+   enc->message->padCount = padCount;
    memcpy(enc->message->code, buf, dataWordCount);
 
 /* fprintf(stdout, "\n\nsize:    %dx%d w/ %d error codewords\n", rows, cols, errorWordLength(enc->region.sizeIdx)); */
@@ -428,18 +431,24 @@ EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
  * @param  paddedSize
  * @return void
  */
-static void
+static int
 AddPadChars(unsigned char *buf,  int *bufSize, int paddedSize)
 {
+   int padCount = 0;
+
    /* First pad character is not randomized */
+   padCount++;
    if(*bufSize < paddedSize)
       buf[(*bufSize)++] = DMTX_CHAR_ASCII_PAD;
 
    /* All remaining pad characters are randomized based on character position */
    while(*bufSize < paddedSize) {
+      padCount++;
       buf[*bufSize] = Randomize253State(DMTX_CHAR_ASCII_PAD, *bufSize + 1);
       (*bufSize)++;
    }
+
+   return padCount;
 }
 
 /**

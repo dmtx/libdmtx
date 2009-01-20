@@ -139,7 +139,7 @@ static void TallyModuleJumps(DmtxImage *image, DmtxRegion *region, int tally[][2
 static DmtxPassFail PopulateArrayFromMosaic(DmtxMessage *message, DmtxImage *image, DmtxRegion *region);
 
 /* dmtxencode.c */
-static void AddPadChars(unsigned char *buf, int *bufSize, int paddedSize);
+static int AddPadChars(unsigned char *buf, int *bufSize, int paddedSize);
 static unsigned char Randomize253State(unsigned char codewordValue, int codewordPosition);
 static unsigned char Randomize255State(unsigned char codewordValue, int codewordPosition);
 static void PrintPattern(DmtxEncode *encode);

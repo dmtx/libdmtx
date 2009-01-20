@@ -569,12 +569,19 @@ WriteAsciiBarcode(DmtxEncode *enc)
 static void
 WriteCodewords(DmtxEncode *enc)
 {
-   int i, dataWordLength;
+   int i;
+   int dataWordLength;
+   int remainingDataWords;
 
    dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, enc->region.sizeIdx);
 
    for(i = 0; i < enc->message->codeSize; i++) {
-      fprintf(stdout, "%c:%03d\n", (i < dataWordLength) ?
-            'd' : 'e', enc->message->code[i]);
+      remainingDataWords = dataWordLength - i;
+      if(remainingDataWords > enc->message->padCount)
+         fprintf(stdout, "%c:%03d\n", 'd', enc->message->code[i]);
+      else if(remainingDataWords > 0)
+         fprintf(stdout, "%c:%03d\n", 'p', enc->message->code[i]);
+      else
+         fprintf(stdout, "%c:%03d\n", 'e', enc->message->code[i]);
    }
 }
