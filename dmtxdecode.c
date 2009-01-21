@@ -442,7 +442,7 @@ DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
       msg->output[msg->outputIdx++] = *ptr - 1;
    }
    else if(*ptr == 129) {
-      msg->padCount = (int)(dataEnd - ptr);
+      msg->padCount = dataEnd - ptr; /* fix 64b->32b assignment w/ tmp and assert */
       return dataEnd;
    }
    else if(*ptr <= 229) {
