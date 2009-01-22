@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
          SDL_UnlockSurface(picture);
 
          if(reg != NULL) {
-            WriteDiagnosticImage(dec, reg, "debug.pnm");
+/*          WriteDiagnosticImage(dec, reg, "debug.pnm"); */
 
             msg = dmtxDecodeMatrixRegion(dec, reg, -1);
             if(msg != NULL) {

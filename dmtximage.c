@@ -373,6 +373,7 @@ dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
    int offset;
 
    assert(img != NULL);
+   assert(!(img->flip & DmtxFlipX)); /* not implemented */
 
    if(dmtxImageContainsInt(img, 0, x, y) == DmtxFalse)
       return DMTX_BAD_OFFSET;

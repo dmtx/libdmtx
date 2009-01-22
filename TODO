@@ -26,6 +26,9 @@ FOCUS: refactor encoding engine, FNC1, macros
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
+  o dmtxread:  Print out image representing "unstretched" barcode
+  o dmtxread:  Print color weights based on direction
+  o dmtxread:  Diagnostic image shows tighter-fitting outline
   o dmtxread:  Change dmtxread to print out dump of both failed and successful barcodes if requested
   o dmtxread:  Change dmtxread to print out mis-read modules somehow ... additive, subtractive?
                - Build color vector that describes jump from background to foreground color
@@ -57,14 +60,11 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   x libdmtx:   Eliminate DmtxRgb type
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
-  x libdmtx:   Changed all major types to use Create() and Destroy() convention
+  x libdmtx:   Change all major types to use Create() and Destroy() convention
   o dmtxread:  Exit upon bad option before looping through file/stream
   o dmtxread:  Bad option should give short "invalid option -- N; --help for more"
   o dmtxread:  Flatten out nested loops in main()
   o dmtxread:  Add script to make sure no GM functions are being called without gm prefix
-  o dmtxread:  Print out image representing "unstretched" barcode
-  o dmtxread:  Print color weights based on direction
-  o dmtxread:  Diagnostic image shows tighter-fitting outline
   x dmtxread:  Fix misrepresented capacity in verbose mode
   o dmtxwrite: Exit upon bad option before looping through file/stream
   o dmtxwrite: Bad option should give short "invalid option -- N; --help for more"
