@@ -38,14 +38,6 @@ Contact: mike@dragonflylogic.com
 #include "dmtxread.h"
 #include "../common/dmtxutil.h"
 
-#ifdef HAVE_SYSEXITS_H
-#include <sysexits.h>
-#else
-#define EX_OK           0
-#define EX_USAGE       64
-#define EX_CANTCREAT   73
-#endif
-
 char *programName;
 
 /**
@@ -121,7 +113,7 @@ main(int argc, char *argv[])
                sizeof(unsigned char));
          if(pxl == NULL) {
             CleanupMagick(&imgList, &imgInfo);
-            FatalError(80, "malloc() error");
+            FatalError(EX_OSERR, "malloc() error");
          }
 
          /* Copy pixels to known format */
@@ -131,20 +123,20 @@ main(int argc, char *argv[])
          img = dmtxImageCreate(pxl, imgPage->columns, imgPage->rows, 24, DmtxPackRGB, DmtxFlipY);
          if(img == NULL) {
             CleanupMagick(&imgList, &imgInfo);
-            FatalError(80, "dmtxImageCreate() error");
+            FatalError(EX_SOFTWARE, "dmtxImageCreate() error");
          }
 
          /* Initialize scan */
          dec = dmtxDecodeCreate(img);
          if(dec == NULL) {
             CleanupMagick(&imgList, &imgInfo);
-            FatalError(80, "decode create error");
+            FatalError(EX_SOFTWARE, "decode create error");
          }
 
          err = SetDecodeOptions(dec, img, &opt);
          if(err != DmtxPass) {
             CleanupMagick(&imgList, &imgInfo);
-            FatalError(80, "decode option error");
+            FatalError(EX_SOFTWARE, "decode option error");
          }
 
          /* Find and decode every barcode on page */

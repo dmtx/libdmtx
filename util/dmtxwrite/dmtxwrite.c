@@ -64,12 +64,12 @@ main(int argc, char *argv[])
    /* Override defaults with requested options */
    err = HandleArgs(&opt, &argc, &argv);
    if(err != DmtxPass)
-      ShowUsage(err);
+      ShowUsage(EX_USAGE);
 
    /* Create and initialize libdmtx encoding struct */
    enc = dmtxEncodeCreate();
    if(enc == NULL)
-      FatalError(1, "create error");
+      FatalError(EX_SOFTWARE, "create error");
 
    /* Set encoding options */
    dmtxEncodeSetProp(enc, DmtxPropMarginSize, opt.marginSize);
@@ -88,7 +88,7 @@ main(int argc, char *argv[])
       err = dmtxEncodeDataMatrix(enc, codeBufferSize, codeBuffer);
 
    if(err == DmtxFail)
-      FatalError(1, _("Unable to encode message (possibly too large for requested size)"));
+      FatalError(EX_SOFTWARE, _("Unable to encode message (possibly too large for requested size)"));
 
    /* Write barcode image to requested format */
    switch(opt.format) {
@@ -183,7 +183,7 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
 
       switch(optchr) {
          case 0: /* --help */
-            ShowUsage(0);
+            ShowUsage(EX_OK);
             break;
          case 'c':
             opt->color[0] = 0;
@@ -200,12 +200,12 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
          case 'd':
             err = StringToInt(&opt->moduleSize, optarg, &ptr);
             if(err != DmtxPass || opt->moduleSize <= 0 || *ptr != '\0')
-               FatalError(1, _("Invalid module size specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid module size specified \"%s\""), optarg);
             break;
          case 'm':
             err = StringToInt(&opt->marginSize, optarg, &ptr);
             if(err != DmtxPass || opt->marginSize <= 0 || *ptr != '\0')
-               FatalError(1, _("Invalid margin size specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid margin size specified \"%s\""), optarg);
             break;
          case 'e':
             if(strlen(optarg) != 1) {
@@ -257,7 +257,7 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
          case 'r':
             err = StringToInt(&(opt->rotate), optarg, &ptr);
             if(err != DmtxPass || *ptr != '\0')
-               FatalError(1, _("Invalid rotation angle specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid rotation angle specified \"%s\""), optarg);
             break;
          case 's':
             /* Determine correct barcode size and/or shape */
@@ -287,7 +287,7 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
          case 'R':
             err = StringToInt(&(opt->dpi), optarg, &ptr);
             if(err != DmtxPass || opt->dpi <= 0 || *ptr != '\0')
-               FatalError(1, _("Invalid dpi specified \"%s\""), optarg);
+               FatalError(EX_USAGE, _("Invalid dpi specified \"%s\""), optarg);
             break;
          case 'V':
             fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
@@ -320,16 +320,16 @@ ReadData(int *codeBufferSize, unsigned char *codeBuffer, UserOptions *opt)
    /* Open file or stdin for reading */
    fd = (opt->inputPath == NULL) ? 0 : open(opt->inputPath, O_RDONLY);
    if(fd == -1)
-      FatalError(1, _("Error while opening file \"%s\""), opt->inputPath);
+      FatalError(EX_IOERR, _("Error while opening file \"%s\""), opt->inputPath);
 
    /* Read input contents into buffer */
    *codeBufferSize = read(fd, codeBuffer, DMTXWRITE_BUFFER_SIZE);
    if(*codeBufferSize == DMTXWRITE_BUFFER_SIZE)
-      FatalError(1, _("Message to be encoded is too large"));
+      FatalError(EX_DATAERR, _("Message to be encoded is too large"));
 
    /* Close file only if not stdin */
    if(fd != 0 && close(fd) != 0)
-      FatalError(1, _("Error while closing file"));
+      FatalError(EX_IOERR, _("Error while closing file"));
 }
 
 /**

@@ -61,15 +61,13 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
   x libdmtx:   Change all major types to use Create() and Destroy() convention
-  o dmtxread:  Exit upon bad option before looping through file/stream
-  o dmtxread:  Bad option should give short "invalid option -- N; --help for more"
   o dmtxread:  Flatten out nested loops in main()
   o dmtxread:  Add script to make sure no GM functions are being called without gm prefix
   x dmtxread:  Fix misrepresented capacity in verbose mode
-  o dmtxwrite: Exit upon bad option before looping through file/stream
-  o dmtxwrite: Bad option should give short "invalid option -- N; --help for more"
+  x dmtxwrite: Bad option should give short "invalid option -- N; --help for more"
   x dmtxwrite: Use HandleArgs() to capture requests, and process afterward
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
+  o wrapper:   New java encoding wrapper (hopefully)
   o project:   Conditional use of local getopt.c
   x project:   Introduce "project" directory for non-autotools platforms
   x project:   Rename "wrappers" directory to "wrapper" for consistency

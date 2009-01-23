@@ -29,6 +29,18 @@ Contact: mike@dragonflylogic.com
 #include "../../config.h"
 #endif
 
+#ifdef HAVE_SYSEXITS_H
+#include <sysexits.h>
+#else
+#define EX_OK           0
+#define EX_USAGE       64
+#define EX_DATAERR     65
+#define EX_SOFTWARE    70
+#define EX_OSERR       71
+#define EX_CANTCREAT   73
+#define EX_IOERR       74
+#endif
+
 extern DmtxPassFail StringToInt(int *numberInt, char *numberString, char **terminate);
 extern void FatalError(int errorCode, char *fmt, ...);
 extern char *Basename(char *path);

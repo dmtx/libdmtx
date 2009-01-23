@@ -32,8 +32,9 @@ Release Checklist
    o README.osx              o README.unix
    o test/rotate_test/README
 
-   o wrapper/cocoa/README    o wrapper/php/README
-   o wrapper/python/README   o wrapper/ruby/README
+   o wrapper/cocoa/README    o wrapper/java/README
+   o wrapper/php/README      o wrapper/python/README
+   o wrapper/ruby/README
 
    o man/dmtxquery.1         o man/dmtxread.1
    o man/dmtxwrite.1         o man/libdmtx.3
@@ -45,6 +46,7 @@ Release Checklist
    o man/libdmtx.3
    o README.msvc
    o wrapper/cocoa/README
+   o wrapper/java/README
    o wrapper/php/README
    o wrapper/python/README
    o wrapper/ruby/README
@@ -59,6 +61,7 @@ Release Checklist
    o man/dmtxwrite.1
 
    o wrapper/cocoa/README
+   o wrapper/java/README
    o wrapper/php/README
    o wrapper/python/README
    o wrapper/ruby/README
@@ -73,9 +76,10 @@ Release Checklist
    o $ make
    o $ make check
    o $ sudo make install
+   o $ test/multi_test/multi_test; echo $?
+   o $ test/rotate_test/rotate_test
    o $ test/simple_test/simple_test; echo $?
    o $ test/unit_test/unit_test; echo $?
-   o $ test/rotate_test/rotate_test
 
 7) o Build and test tarballs
 
