@@ -523,9 +523,9 @@ WriteImagePnm(UserOptions *opt, DmtxEncode *enc)
          dmtxImageGetPixelValue(enc->image, col, row, 0, &rgb[0]);
          dmtxImageGetPixelValue(enc->image, col, row, 1, &rgb[1]);
          dmtxImageGetPixelValue(enc->image, col, row, 2, &rgb[2]);
-         fputc(rgb[0], stdout);
-         fputc(rgb[1], stdout);
-         fputc(rgb[2], stdout);
+         fputc(rgb[0], fp);
+         fputc(rgb[1], fp);
+         fputc(rgb[2], fp);
       }
    }
 
