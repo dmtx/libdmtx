@@ -141,20 +141,20 @@ New users are encouraged to read the man pages for the library
 and command line utilities. However, here are a few simple cases
 to get you started:
 
-The dmtxwrite utility turns a message into a barcode image. The
-message is passed to dmtxwrite via file or standard input, and
-the output image is written to file or standard output. The
-following examples all produce an equivalent result:
+The dmtxwrite utility converts a message into a barcode image.
+The message is passed to dmtxwrite via file or standard input,
+and the output image is written to file or standard output. The
+following examples produce equivalent results:
 
   $ echo -n 123456 | dmtxwrite > image.png
   $ echo -n 123456 | dmtxwrite -o image.png
   $ echo -n 123456 > mesg.txt; dmtxwrite mesg.txt > image.png
   $ dmtxwrite <(echo -n 123456) -o image.png
 
-Conversely, the dmtxread utility turns barcode images back into
+Conversely, the dmtxread utility converts barcode images back into
 messages. Images are passed to dmtxread via standard input or
 file, and the output is written to standard output. The following
-examples will produce an equivalent result:
+examples produce equivalent results:
 
   $ dmtxread -n image.png
   $ cat image.png | dmtxread -n
@@ -230,10 +230,20 @@ Disable:     ./configure --disable-dmtxquery
 
 Name:        libdmtx Cocoa wrapper
 Type:        Language wrapper
-Description: Cocoa libdmtx wrapper
+Description: libdmtx Cocoa wrapper
 Location:    libdmtx/wrapper/cocoa
 Build:       See INSTALL file in libdmtx/wrapper/cocoa directory
 Requires:    OS X
+Disable:     Not included in default build
+
+-----------------------------------
+
+Name:        libdmtx Java wrapper
+Type:        Language wrapper
+Description: libdmtx Java wrapper
+Location:    libdmtx/wrapper/java
+Build:       See INSTALL file in libdmtx/wrapper/java directory
+Requires:    java
 Disable:     Not included in default build
 
 -----------------------------------
@@ -268,10 +278,20 @@ Disable:     Not included in default build
 
 -----------------------------------
 
+Name:        multi_test
+Type:        test program
+Description: Graphical program for visualizing scan behavior
+Location:    libdmtx/test/multi_test
+Build:       make check
+Requires:    SDL, SDL_image
+Disable:     Not included in default build
+
+-----------------------------------
+
 Name:        rotate_test
 Type:        test program
 Description: Scan simulated camera input from OpenGL in realtime
-Location:    libdmtx/
+Location:    libdmtx/test/rotate_test
 Build:       make check
 Requires:    mesa-libGL, mesa-libGLU, SDL, libpng
 Disable:     Not included in default build
@@ -281,6 +301,7 @@ Disable:     Not included in default build
 Name:        simple_test
 Type:        test program
 Description: Simple round-trip encoding and decoding test
+Location:    libdmtx/test/simple_test
 Build:       make check
 Requires:    No dependencies
 Disable:     Not included in default build
@@ -290,6 +311,7 @@ Disable:     Not included in default build
 Name:        unit_test
 Type:        test program
 Description: Unit test program
+Location:    libdmtx/test/unit_test
 Build:       make check
 Requires:    No dependencies
 Disable:     Not included in default build
