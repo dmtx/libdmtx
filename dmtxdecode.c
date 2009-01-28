@@ -191,7 +191,7 @@ dmtxDecodeGetProp(DmtxDecode *dec, int prop)
       case DmtxPropScanGap:
          return dec->scanGap;
       case DmtxPropSquareDevn:
-         return acos(dec->squareDevn * 180.0/M_PI);
+         return (int)(acos(dec->squareDevn) * 180.0/M_PI);
       case DmtxPropSymbolSize:
          return dec->sizeIdxExpected;
       case DmtxPropEdgeThresh:

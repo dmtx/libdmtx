@@ -78,10 +78,8 @@ SetOptionDefaults(UserOptions *options)
 static DmtxPassFail
 HandleArgs(UserOptions *options, int *argcp, char **argvp[])
 {
-   int err;
    int opt;
    int longIndex;
-   char *ptr;
 
    struct option longOptions[] = {
          {"version",          no_argument,       NULL, 'V'},
