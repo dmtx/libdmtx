@@ -8,9 +8,17 @@ distributed as part of the libdmtx package.
 1. Installing libdmtx Java wrapper on GNU/Linux
 -----------------------------------------------------------------
 
-libdmtx need not be installed system-wide to build the Java wrapper, but it does need to be compiled in the grandparent directory. If using the make command, this and other prerequisites will be met simply by running:
+libdmtx need not be installed system-wide to build the Java
+wrapper, but it does need to be compiled in the grandparent
+directory. If using the make command, this and other
+prerequisites will be met simply by running:
 
   $ make
+
+XXX: The openjdk #include path is currently hardcoded in the
+     Makefile. Find a portable way to address this
+     (openjdk-config equivalent?). In the meantime, users may
+     need to modify this line by hand in the Makefile.
 
 To build and run the test programs:
 
@@ -20,7 +28,13 @@ To build and run the test programs:
   $ javac GUIExample.java
   $ java GUIExample
 
-If you system uses SELinux then you may need to either switch to Permissive mode, disable it entirely, or assign a security context that allows Java to load the native/libdmtx.so library. If any SELinux gurus are reading this, please edit the documentation wiki (link provided at the bottom of this document) with the proper method for handling this situation in various distributions (e.g., Install program? chcon command?)
+If you system uses SELinux then you may need to either switch to
+Permissive mode, disable it entirely, or assign a security
+context that allows Java to load the native/libdmtx.so library.
+If any SELinux gurus are reading this, please edit the
+documentation wiki (link provided at the bottom of this document)
+with the proper method for handling this situation in various
+distributions (e.g., Install program? chcon command?)
 
 
 2. This Document

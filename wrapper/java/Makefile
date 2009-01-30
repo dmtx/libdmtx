@@ -6,9 +6,9 @@ TAG_JAVA=org/libdmtx/DMTXTag.java
 
 NATIVE_C=native/org_libdmtx_DMTXImage.c
 NATIVE_H=native/org_libdmtx_DMTXImage.h
+NATIVE_SO=native/libdmtx.so
 
 LIBDMTX_LA=../../libdmtx_la-dmtx.o
-NATIVE_SO=native/libdmtx.so
 CFLAGS=-shared -fpic
 INCLUDE=-I ../.. \
 	-I /usr/lib/jvm/java-1.6.0-openjdk/include \
@@ -18,7 +18,7 @@ GENERATED=$(IMAGE_CLASS) $(TAG_CLASS) $(NATIVE_H) $(NATIVE_SO)
 
 all: $(GENERATED)
 
-check: all
+check: $(GENERATED)
 	javac GUIExample.java
 	javac CLIExample.java
 
