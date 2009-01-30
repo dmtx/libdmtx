@@ -1,0 +1,34 @@
+README for libdmtx Java wrapper version 0.6.1 - November 23, 2008
+-----------------------------------------------------------------
+
+The libdmtx Java wrapper was written by Pete Calvert and is
+distributed as part of the libdmtx package.
+
+
+1. Installing libdmtx Java wrapper on GNU/Linux
+-----------------------------------------------------------------
+
+libdmtx need not be installed system-wide to build the Java wrapper, but it does need to be compiled in the grandparent directory. If using the make command, this and other prerequisites will be met simply by running:
+
+  $ make
+
+To build and run the test programs:
+
+  $ make check
+  $ export CLASSPATH=.:$CLASSPATH
+  $ export LD_LIBRARY_PATH=native:$LD_LIBRARY_PATH
+  $ javac GUIExample.java
+  $ java GUIExample
+
+If you system uses SELinux then you may need to either switch to Permissive mode, disable it entirely, or assign a security context that allows Java to load the native/libdmtx.so library. If any SELinux gurus are reading this, please edit the documentation wiki (link provided at the bottom of this document) with the proper method for handling this situation in various distributions (e.g., Install program? chcon command?)
+
+
+2. This Document
+-----------------------------------------------------------------
+
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wiki.sourceforge.net/libdmtx+java+wrapper
+
+If you find an error or have additional helpful information,
+please edit the wiki directly with your updates.
