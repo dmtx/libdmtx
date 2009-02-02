@@ -141,20 +141,20 @@ New users are encouraged to read the man pages for the library
 and command line utilities. However, here are a few simple cases
 to get you started:
 
-The dmtxwrite utility converts a message into a barcode image.
-The message is passed to dmtxwrite via file or standard input,
-and the output image is written to file or standard output. The
-following examples produce equivalent results:
+The dmtxwrite utility turns a message into a barcode image. The
+message is passed to dmtxwrite via file or standard input, and
+the output image is written to file or standard output. The
+following examples all produce an equivalent result:
 
   $ echo -n 123456 | dmtxwrite > image.png
   $ echo -n 123456 | dmtxwrite -o image.png
   $ echo -n 123456 > mesg.txt; dmtxwrite mesg.txt > image.png
   $ dmtxwrite <(echo -n 123456) -o image.png
 
-Conversely, the dmtxread utility converts barcode images back into
+Conversely, the dmtxread utility turns barcode images back into
 messages. Images are passed to dmtxread via standard input or
 file, and the output is written to standard output. The following
-examples produce equivalent results:
+examples will produce an equivalent result:
 
   $ dmtxread -n image.png
   $ cat image.png | dmtxread -n

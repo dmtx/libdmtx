@@ -35,6 +35,7 @@ FOCUS: refactor encoding engine, FNC1, macros
                - When module is determined to be "off" then add half of color vector
                - When module is determined to be "on" then subtract half of color vector
                - resulting image should clearly show misread modules
+  o dmtxwrite: Use MagickCommentImage() to tag images with messages
   o dmtxwrite: Print character values (not just codewords) from --format=c (-fc) option
   o dmtxwrite: Verbose messages describing encoding process
   o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
@@ -50,9 +51,11 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
   o libdmtx:   Fix 64b->32b int assignment warnings
-  o libdmtx:   Make DmtxFlipNone represent top-down order (?)
   o libdmtx:   Add dmtxMessageGetOutput() function if necessary (dmtxmessage.c and libdmtx.def)
-  x libdmtx:   Add dmtxEncodeSetProp() and  dmtxEncodeGetProp()
+  o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
+  x libdmtx:   Take DmtxFlip parameter out of dmtxImageCreate()
+  x libdmtx:   Switch DmtxFlipNone represent top-down order
+  x libdmtx:   Add dmtxEncodeSetProp() and dmtxEncodeGetProp()
   x libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   x libdmtx:   Remove status from DmtxPixelLoc
   x libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
@@ -64,11 +67,14 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   o dmtxread:  Flatten out nested loops in main()
   o dmtxread:  Add script to make sure no GM functions are being called without gm prefix
   x dmtxread:  Fix misrepresented capacity in verbose mode
+  o dmtxwrite: Use Magick to write images of any vector format
+  x dmtxwrite: Use Magick to write images of any raster format
   x dmtxwrite: Bad option should give short "invalid option -- N; --help for more"
   x dmtxwrite: Use HandleArgs() to capture requests, and process afterward
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
   x wrapper:   New Java wrapper (thanks Pete!)
   x wrapper:   New .NET wrapper (thanks Vali!)
+  o project:   Figure out earliest usable Magick version for configure.ac
   o project:   Conditional use of local getopt.c
   x project:   Introduce "project" directory for non-autotools platforms
   x project:   Rename "wrappers" directory to "wrapper" for consistency
