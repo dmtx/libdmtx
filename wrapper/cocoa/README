@@ -1,7 +1,7 @@
 README for libdmtx Cocoa wrapper version 0.6.1 - November 23, 2008
 -----------------------------------------------------------------
 
-1. Installing libdmtx on GNU/Linux
+1. Installing libdmtx
 -----------------------------------------------------------------
 
 This is a general Cocoa wrapper that includes CocoaTouch, so it
