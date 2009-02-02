@@ -74,31 +74,34 @@ main(int argc, char *argv[])
 
       wand = NewMagickWand();
       if(wand == NULL) {
-         FatalError(EX_OSERR, "undefined error");
+         FatalError(EX_OSERR, "Magick error");
       }
+
+      if(opt.dpi != -1) {
+         success = MagickSetResolution(wand, (double)opt.dpi, (double)opt.dpi);
+         if(success == MagickFalse) {
+            CleanupMagick(&wand, DmtxFalse);
+            FatalError(EX_OSERR, "Magick error");
+         }
+      }
+
+      /* Unfortunately MagickSetImageUnits() alters image, not info struct.
+         Can't find a Wand function that will update units in info struct
+         like we did before. */
 
       success = MagickReadImage(wand, filePath);
       if(success == MagickFalse) {
          CleanupMagick(&wand, DmtxFalse);
-         FatalError(EX_OSERR, "malloc() error");
+         FatalError(EX_OSERR, "Magick error");
       }
-
-//    info->density = strdup(resolution);
-//    info->units = PixelsPerInchResolution;
-
-      /* Determine page range */
-/*    if(opt.page == -1) {
-         firstPage = 0;
-         finalPage = imgPageCount - 1;
-      }
-      else {
-         firstPage = opt.page - 1;
-         finalPage = opt.page - 1;
-      } */
 
       /* Loop once for each page within image */
       MagickResetIterator(wand);
       for(imgPageIndex = 0; MagickNextImage(wand) != MagickFalse; imgPageIndex++) {
+
+         /* If requested, only scan specific page */
+         if(opt.page != -1 && opt.page - 1 != imgPageIndex)
+            continue;
 
          /* Reset timeout for each new page */
          if(opt.timeoutMS != -1)
@@ -209,7 +212,7 @@ GetDefaultOptions(void)
    opt.timeoutMS = -1;
    opt.newline = DmtxFalse;
    opt.page = -1;
-   opt.resolution = NULL;
+   opt.dpi = -1;
    opt.sizeIdxExpected = DmtxSymbolShapeAuto;
    opt.edgeThresh = 5;
    opt.xMin = NULL;
@@ -331,7 +334,9 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
                FatalError(EX_USAGE, _("Invalid squareness deviation specified \"%s\""), optarg);
             break;
          case 'r':
-            opt->resolution = optarg;
+            err = StringToInt(&(opt->dpi), optarg, &ptr);
+            if(err != DmtxPass || *ptr != '\0' || opt->dpi < 1)
+               FatalError(EX_USAGE, _("Invalid resolution specified \"%s\""), optarg);
             break;
          case 's':
             /* Determine correct barcode size and/or shape */

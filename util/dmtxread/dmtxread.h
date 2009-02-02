@@ -56,7 +56,7 @@ typedef struct {
    int timeoutMS;       /* -m, --milliseconds */
    int newline;         /* -n, --newline */
    int page;            /* -p, --page */
-   char *resolution;    /* -r, --resolution */
+   int dpi;             /* -r, --resolution */
    int sizeIdxExpected; /* -s, --symbol-size */
    int edgeThresh;      /* -t, --threshold */
    char *xMin;          /* -x, --x-range-min */
