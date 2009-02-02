@@ -93,7 +93,6 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
 
    dmtxEncodeSetProp(enc, DmtxPropScheme, scheme);
    dmtxEncodeSetProp(enc, DmtxPropSizeRequest, shape);
-   dmtxEncodeSetProp(enc, DmtxPropImageFlip, DmtxFlipY);
    dmtxEncodeSetProp(enc, DmtxPropMarginSize, margin_size);
    dmtxEncodeSetProp(enc, DmtxPropModuleSize, module_size);
 
@@ -162,7 +161,7 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
 
    PyObject_AsCharBuffer(dataBuffer, &pxl, &dataLen);
 
-   img = dmtxImageCreate((unsigned char *)pxl, width, height, 24, DmtxPackRGB, DmtxFlipY);
+   img = dmtxImageCreate((unsigned char *)pxl, width, height, 24, DmtxPackRGB);
    if(img == NULL)
       return NULL;
 

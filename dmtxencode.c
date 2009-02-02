@@ -225,11 +225,12 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    height = 2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize);
 
    /* Allocate memory for the image to be generated */
-   enc->image = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB, enc->imageFlip);
+   enc->image = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB);
    if(enc->image == NULL) {
       perror("image malloc error");
       return DmtxFail;
    }
+   dmtxImageSetProp(enc->image, DmtxPropImageFlip, enc->imageFlip);
 
    /* Insert finder and aligment pattern modules */
    PrintPattern(enc);

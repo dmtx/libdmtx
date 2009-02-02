@@ -25,6 +25,25 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTXWRITE_H__
 #define __DMTXWRITE_H__
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <getopt.h>
+#include <errno.h>
+#include <ctype.h>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <assert.h>
+#include <wand/magick-wand.h>
+#include "../../dmtx.h"
+#include "../common/dmtxutil.h"
+
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #if ENABLE_NLS
 # include <libintl.h>
 # define _(String) gettext(String)
@@ -38,14 +57,16 @@ Contact: mike@dragonflylogic.com
 typedef struct {
    char *inputPath;
    char *outputPath;
-   char format;
-   int color[3];
-   int bgColor[3];
+   char *format;
+   int codewords;
    int marginSize;
    int moduleSize;
    int scheme;
+   int preview;
    int rotate;
    int sizeIdx;
+   int color[3];
+   int bgColor[3];
    int mosaic;
    int dpi;
    int verbose;
@@ -55,9 +76,11 @@ static UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[]);
 static void ReadData(int *codeBuffer, unsigned char *codeBufferSize, UserOptions *opt);
 static void ShowUsage(int status);
-static void WriteImagePng(UserOptions *opt, DmtxEncode *encode);
-static void WriteImagePnm(UserOptions *opt, DmtxEncode *encode);
-static void WriteAsciiBarcode(DmtxEncode *encode);
+static char *FilenameExtension(char *path);
+static void CleanupMagick(MagickWand **wand, int magickError);
+static void ListImageFormats(void);
+static void WriteImageFile(UserOptions *opt, DmtxEncode *encode);
+static void WriteAsciiPreview(DmtxEncode *encode);
 static void WriteCodewords(DmtxEncode *encode);
 
 #endif

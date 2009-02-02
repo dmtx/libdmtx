@@ -54,7 +54,7 @@ AC_ARG_ENABLE(
    dmtxread,
    AC_HELP_STRING(
       [--disable-dmtxread],
-      [Do not build the dmtxread command line utility (removes GraphicsMagick dependency)]),
+      [Do not build the dmtxread command line utility]),
    [case "$enableval" in
       yes) dmtxread=true ;;
        no) dmtxread=false ;;
@@ -67,7 +67,7 @@ AC_ARG_ENABLE(
    dmtxwrite,
    AC_HELP_STRING(
       [--disable-dmtxwrite],
-      [Do not build the dmtxwrite command line utility (removes libpng dependency)]),
+      [Do not build the dmtxwrite command line utility]),
    [case "$enableval" in
       yes) dmtxwrite=true ;;
        no) dmtxwrite=false ;;
@@ -76,40 +76,37 @@ AC_ARG_ENABLE(
    [dmtxwrite=true])
 AM_CONDITIONAL([BUILD_DMTXWRITE], [test x$dmtxwrite = xtrue])
 
+if test x$dmtxread = xtrue \
+      -o x$dmtxwrite = xtrue \
+      -o x$dmtxquery = xtrue; then
+   AC_CHECK_HEADERS([sysexits.h])
+   AC_CHECK_HEADERS([getopt.h])
+   AC_CHECK_FUNCS([getopt_long])
+fi
+
+if test x$dmtxread = xtrue \
+      -o x$dmtxwrite = xtrue; then
+   ifdef([PKG_CHECK_MODULES],
+         [PKG_CHECK_MODULES(
+            MAGICK,
+            Wand >= 6.2.5,
+            true,
+            AC_MSG_ERROR([[dmtxread/dmtxwrite requires Wand >= 6.2.5]]))],
+         [AC_MSG_ERROR([Building dmtxread/dmtxwrite requires a working autoconf/pkg-config])])
+   AC_SUBST(MAGICK_CFLAGS)
+   AC_SUBST(MAGICK_LIBS)
+fi
+
 if test x$dmtxquery = xtrue; then
    AC_CONFIG_FILES([util/dmtxquery/Makefile])
 fi
 
 if test x$dmtxread = xtrue; then
-   ifdef([PKG_CHECK_MODULES],
-         [PKG_CHECK_MODULES(
-            MAGICK,
-            GraphicsMagick >= 1.1.7,
-            true,
-            AC_MSG_ERROR([[dmtxread requires GraphicsMagick >= 1.1.7]]))],
-         [AC_MSG_ERROR([Building dmtxread requires a working autoconf/pkg-config setup])])
-   AC_SUBST(MAGICK_CFLAGS)
-   AC_SUBST(MAGICK_LIBS)
    AC_CONFIG_FILES([util/dmtxread/Makefile])
 fi
 
 if test x$dmtxwrite = xtrue; then
-   ifdef([PKG_CHECK_MODULES],
-         [PKG_CHECK_MODULES(
-            PNG,
-            libpng >= 1.0.0,
-            true,
-            AC_MSG_ERROR([[dmtxread requires libpng >= 1.0.0]]))],
-         [AC_MSG_ERROR([Building dmtxwrite requires a working autoconf/pkg-config setup])])
-   AC_SUBST(PNG_CFLAGS)
-   AC_SUBST(PNG_LIBS)
    AC_CONFIG_FILES([util/dmtxwrite/Makefile])
-fi
-
-if test x$dmtxread = xtrue -o x$dmtxwrite = xtrue -o x$dmtxquery = xtrue; then
-   AC_CHECK_HEADERS([sysexits.h])
-   AC_CHECK_HEADERS([getopt.h])
-   AC_CHECK_FUNCS([getopt_long])
 fi
 
 AC_OUTPUT

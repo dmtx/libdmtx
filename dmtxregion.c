@@ -1896,7 +1896,7 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
    width = dmtxImageGetProp(dec->image, DmtxPropScaledWidth);
    height = dmtxImageGetProp(dec->image, DmtxPropScaledHeight);
 
-   img = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB, DmtxFlipY);
+   img = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB);
 
    /* Populate image */
    for(row = 0; row < height; row++) {

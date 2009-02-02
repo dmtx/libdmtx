@@ -60,17 +60,18 @@ Contact: mike@dragonflylogic.com
  * image. Care must be taken to ensure that images are properly flipped
  * (or not flipped) for this behavior to work correctly.
  *
- * By default libdmtx treats the first pixel in arrays as the bottom-left
- * location of an image, with horizontal rows working upward to the final
- * pixel at the top-right corner. If mapping a pixel buffer this way
- * produces an inverted image, then specify DmtxFlipY at image creation
- * time to remove the inversion. Note that DmtxFlipY has no significant
- * affect on performance since it only modifies the pixel mapping logic,
- * and does not alter any pixel data. If the image appears correctly
- * without any flips then specify DmtxFlipNone.
+ * By default libdmtx treats the first pixel in arrays as the top-right
+ * location of an image, with horizontal rows working downward to the
+ * final pixel at the bottom-left corner. If mapping a pixel buffer this
+ * way produces an inverted image, then specify DmtxFlipY at image
+ * creation time to remove the inversion. Note that DmtxFlipY has no
+ * significant affect on performance since it only modifies the pixel
+ * mapping math and does not alter any pixel data. If the image appears
+ * correctly without any flips then specify DmtxFlipNone.
  *
  *                (0,HEIGHT-1)        (WIDTH-1,HEIGHT-1)
- *                      +---------------------+
+ *
+ *          array pos = 0,1,2,3,...-----------+
  *                      |                     |
  *                      |                     |
  *                      |       libdmtx       |
@@ -78,14 +79,15 @@ Contact: mike@dragonflylogic.com
  *                      |     coordinates     |
  *                      |                     |
  *                      |                     |
- *                      +---------------------+
+ *                      +---------...,N-2,N-1,N = array pos
+ *
  *                    (0,0)              (WIDTH-1,0)
  *
  * Note:
  *   - OpenGL pixel arrays obtained with glReadPixels() are stored
- *     bottom-to-top; use DmtxFlipNone
+ *     bottom-to-top; use DmtxFlipY
  *   - Many popular image formats (e.g., PNG, GIF) store rows
- *     top-to-bottom; use DmtxFlipY
+ *     top-to-bottom; use DmtxFlipNone
  */
 
 /**
@@ -94,7 +96,7 @@ Contact: mike@dragonflylogic.com
  * @return xxx
  */
 extern DmtxImage *
-dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack, int flip)
+dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack)
 {
    int bytesPerPixel;
    DmtxPassFail err;
@@ -106,7 +108,7 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack, in
 
    img->bitsPerPixel = bpp;
    img->pack = pack;
-   img->flip = flip;
+   img->flip = DmtxFlipNone;
 
    img->width = img->widthScaled = width;
    img->height = img->heightScaled = height;
@@ -268,15 +270,6 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
          img->height = value;
          img->heightScaled = img->height/img->scale;
          break;
-      case DmtxPropScale:
-         img->scale = value;
-         img->widthScaled = img->width/value;
-         img->heightScaled = img->height/value;
-         img->xMinScaled = img->xMin/value;
-         img->xMaxScaled = img->xMax/value;
-         img->yMinScaled = img->yMin/value;
-         img->yMaxScaled = img->yMax/value;
-         break;
       case DmtxPropXmin:
          img->xMin = value;
          img->xMinScaled = img->xMin/img->scale;
@@ -293,6 +286,22 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
          img->yMin = img->height - value - 1;
          img->yMinScaled = img->yMin/img->scale;
          break;
+      case DmtxPropImageFlip:
+         img->flip = value;
+         break;
+      case DmtxPropRowPadMultiple:
+         /* TODO: .NET row padding condition */
+         break;
+      case DmtxPropScale:
+         img->scale = value;
+         img->widthScaled = img->width/value;
+         img->heightScaled = img->height/value;
+         img->xMinScaled = img->xMin/value;
+         img->xMaxScaled = img->xMax/value;
+         img->yMinScaled = img->yMin/value;
+         img->yMaxScaled = img->yMax/value;
+         break;
+
       default:
          return DmtxFail;
    }
@@ -379,9 +388,9 @@ dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
       return DMTX_BAD_OFFSET;
 
    if(img->flip & DmtxFlipY)
-      offset = ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
-   else
       offset = img->scale * (y * img->width + x);
+   else
+      offset = ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
 
    return offset;
 }

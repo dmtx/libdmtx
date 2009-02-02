@@ -22,25 +22,7 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <getopt.h>
-#include <errno.h>
-#include <ctype.h>
-#include <stdarg.h>
-#include <assert.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <png.h>
-#include <dmtx.h>
 #include "dmtxwrite.h"
-#include "../common/dmtxutil.h"
 
 char *programName;
 
@@ -76,34 +58,29 @@ main(int argc, char *argv[])
    dmtxEncodeSetProp(enc, DmtxPropModuleSize, opt.moduleSize);
    dmtxEncodeSetProp(enc, DmtxPropScheme, opt.scheme);
    dmtxEncodeSetProp(enc, DmtxPropSizeRequest, opt.sizeIdx);
-   dmtxEncodeSetProp(enc, DmtxPropImageFlip, DmtxFlipY);
 
    /* Read input data into buffer */
    ReadData(&codeBufferSize, codeBuffer, &opt);
 
    /* Create barcode image */
-   if(opt.mosaic)
+   if(opt.mosaic == DmtxTrue)
       err = dmtxEncodeDataMosaic(enc, codeBufferSize, codeBuffer);
    else
       err = dmtxEncodeDataMatrix(enc, codeBufferSize, codeBuffer);
 
    if(err == DmtxFail)
-      FatalError(EX_SOFTWARE, _("Unable to encode message (possibly too large for requested size)"));
+      FatalError(EX_SOFTWARE,
+            _("Unable to encode message (possibly too large for requested size)"));
 
-   /* Write barcode image to requested format */
-   switch(opt.format) {
-      case 'a':
-         WriteAsciiBarcode(enc);
-         break;
-      case 'c':
+   /* Write image file, but only if preview and codewords are not used */
+   if(opt.preview == DmtxTrue || opt.codewords == DmtxTrue) {
+      if(opt.preview == DmtxTrue)
+         WriteAsciiPreview(enc);
+      if(opt.codewords == DmtxTrue)
          WriteCodewords(enc);
-         break;
-      case 'm':
-         WriteImagePnm(&opt, enc);
-         break;
-      case 'p':
-         WriteImagePng(&opt, enc);
-         break;
+   }
+   else {
+      WriteImageFile(&opt, enc);
    }
 
    /* Clean up */
@@ -120,22 +97,26 @@ static UserOptions
 GetDefaultOptions(void)
 {
    UserOptions opt;
+   int white[3] = { 255, 255, 255 };
+   int black[3] = {   0,   0,   0 };
 
    memset(&opt, 0x00, sizeof(UserOptions));
 
    opt.inputPath = NULL;    /* default stdin */
    opt.outputPath = NULL;   /* default stdout */
-   opt.format = 'p';
-/* opt.color = ""; */
-/* opt.bgColor = ""; */
+   opt.format = NULL;
+   opt.codewords = DmtxFalse;
    opt.marginSize = 10;
    opt.moduleSize = 5;
    opt.scheme = DmtxSchemeEncodeAscii;
+   opt.preview = DmtxFalse;
    opt.rotate = 0;
    opt.sizeIdx = DmtxSymbolSquareAuto;
-   opt.mosaic = 0;
+   memcpy(opt.color, black, sizeof(int) * 3);
+   memcpy(opt.bgColor, white, sizeof(int) * 3);
+   opt.mosaic = DmtxFalse;
    opt.dpi = 0; /* default to native resolution of requested image format */
-   opt.verbose = 0;
+   opt.verbose = DmtxFalse;
 
    return opt;
 }
@@ -157,27 +138,30 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
    char *ptr;
 
    struct option longOptions[] = {
-         {"color",       required_argument, NULL, 'c'},
-         {"bg-color",    required_argument, NULL, 'b'},
-         {"module",      required_argument, NULL, 'd'},
-         {"margin",      required_argument, NULL, 'm'},
-         {"encoding",    required_argument, NULL, 'e'},
-         {"format",      required_argument, NULL, 'f'},
-         {"output",      required_argument, NULL, 'o'},
-         {"rotate",      required_argument, NULL, 'r'},
-         {"symbol-size", required_argument, NULL, 's'},
-         {"verbose",     no_argument,       NULL, 'v'},
-         {"mosaic",      no_argument,       NULL, 'M'},
-         {"resolution",  required_argument, NULL, 'R'},
-         {"version",     no_argument,       NULL, 'V'},
-         {"help",        no_argument,       NULL,  0 },
+         {"codewords",        no_argument,       NULL, 'c'},
+         {"module",           required_argument, NULL, 'd'},
+         {"margin",           required_argument, NULL, 'm'},
+         {"encoding",         required_argument, NULL, 'e'},
+         {"format",           required_argument, NULL, 'f'},
+         {"list-formats",     no_argument,       NULL, 'l'},
+         {"output",           required_argument, NULL, 'o'},
+         {"preview",          no_argument,       NULL, 'p'},
+         {"rotate",           required_argument, NULL, 'r'},
+         {"symbol-size",      required_argument, NULL, 's'},
+         {"color",            required_argument, NULL, 'C'},
+         {"bg-color",         required_argument, NULL, 'B'},
+         {"mosaic",           no_argument,       NULL, 'M'},
+         {"resolution",       required_argument, NULL, 'R'},
+         {"verbose",          no_argument,       NULL, 'v'},
+         {"version",          no_argument,       NULL, 'V'},
+         {"help",             no_argument,       NULL,  0 },
          {0, 0, 0, 0}
    };
 
    programName = Basename((*argvp)[0]);
 
    for(;;) {
-      optchr = getopt_long(*argcp, *argvp, "c:b:d:m:e:f:o:r:s:vMR:V", longOptions, &longIndex);
+      optchr = getopt_long(*argcp, *argvp, "cd:m:e:f:lo:pr:s:C:B:MR:vV", longOptions, &longIndex);
       if(optchr == -1)
          break;
 
@@ -186,16 +170,7 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
             ShowUsage(EX_OK);
             break;
          case 'c':
-            opt->color[0] = 0;
-            opt->color[1] = 0;
-            opt->color[2] = 0;
-            fprintf(stdout, "Option \"%c\" not implemented\n", optchr);
-            break;
-         case 'b':
-            opt->bgColor[0] = 255;
-            opt->bgColor[1] = 255;
-            opt->bgColor[2] = 255;
-            fprintf(stdout, "Option \"%c\" not implemented\n", optchr);
+            opt->codewords = DmtxTrue;
             break;
          case 'd':
             err = StringToInt(&opt->moduleSize, optarg, &ptr);
@@ -244,15 +219,20 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
             }
             break;
          case 'f':
-            opt->format = *optarg;
-            if(opt->format != 'p' && opt->format != 'm' &&
-                  opt->format != 'a' && opt->format != 'c') {
-               fprintf(stdout, "Invalid output format \"%c\"\n", opt->format);
-               return DmtxFail;
-            }
+            opt->format = optarg;
+            break;
+         case 'l':
+            ListImageFormats();
+            exit(EX_OK);
             break;
          case 'o':
-            opt->outputPath = optarg;
+            if(strncmp(optarg, "-", 2) == 0)
+               opt->outputPath = NULL;
+            else
+               opt->outputPath = optarg;
+            break;
+         case 'p':
+            opt->preview = DmtxTrue;
             break;
          case 'r':
             err = StringToInt(&(opt->rotate), optarg, &ptr);
@@ -278,16 +258,28 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
                   return DmtxFail;
             }
             break;
-         case 'v':
-            opt->verbose = 1;
+         case 'C':
+            opt->color[0] = 0;
+            opt->color[1] = 0;
+            opt->color[2] = 0;
+            fprintf(stdout, "Option \"%c\" not implemented\n", optchr);
+            break;
+         case 'B':
+            opt->bgColor[0] = 255;
+            opt->bgColor[1] = 255;
+            opt->bgColor[2] = 255;
+            fprintf(stdout, "Option \"%c\" not implemented\n", optchr);
             break;
          case 'M':
-            opt->mosaic = 1;
+            opt->mosaic = DmtxTrue;
             break;
          case 'R':
             err = StringToInt(&(opt->dpi), optarg, &ptr);
             if(err != DmtxPass || opt->dpi <= 0 || *ptr != '\0')
                FatalError(EX_USAGE, _("Invalid dpi specified \"%s\""), optarg);
+            break;
+         case 'v':
+            opt->verbose = DmtxTrue;
             break;
          case 'V':
             fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
@@ -354,41 +346,35 @@ Example: echo -n 123456 | %s -o message.png\n\
 \n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
-  -c, --color=COLOR           barcode color (not implemented)\n\
-  -b, --bg-color=COLOR        background color (not implemented)\n\
+  -c, --codewords             print codeword listing\n\
   -d, --module=NUM            module size (in pixels)\n\
   -m, --margin=NUM            margin size (in pixels)\n\
-  -e, --encoding=[bfactxe8]   encodation scheme; optimize for:\n\
-        b = Best optimized    best possible optimization (beta)\n\
-        f = Fast optimized    basic optimization (not implemented)\n\
-        a = ASCII  [default]  ASCII standard & extended\n\
-        c = C40               digits and uppercase\n\
-        t = Text              digits and lowercase\n\
-        x = X12               ANSI X12 EDI\n\
-        e = EDIFACT           ASCII values 32-94\n\
-        8 = Base 256          all byte values 0-255\n"));
+  -e, --encoding=[bfactxe8]   primary encodation scheme\n\
+            b = Best optimized    a = ASCII [default]\n\
+            f = Fast optimized    c = C40\n\
+            e = EDIFACT           t = Text\n\
+            8 = Base 256          x = X12\n"));
       fprintf(stdout, _("\
-  -f, --format=[pmac]         image output format\n\
-        p = PNG    [default]  PNG image\n\
-        m = PNM               PNM image\n\
-        a = ASCII             ASCII art barcode (preview only)\n\
-        c = Codewords         Codeword listing  (preview only)\n\
-  -o, --output=FILE           output filename (default standard output)\n\
+  -f, --format=FORMAT         PNG [default], TIF, GIF, PDF, etc...\n\
+  -l, --list-formats          list supported image formats\n\
+  -o, --output=FILE           output filename\n\
+  -p, --preview               print ASCII art preview\n\
   -r, --rotate=DEGREES        rotation angle (degrees)\n"));
       fprintf(stdout, _("\
-  -s, --symbol-size=SIZE      symbol size in Rows x Cols\n\
-        Automatic SIZE options:\n\
-            s = Auto square   [default]\n\
-            r = Auto rectangle\n\
-        Manually specified SIZE options for square symbols:\n\
-            10x10,   12x12,   14x14,   16x16,   18x18,   20x20,\n\
-            22x22,   24x24,   26x26,   32x32,   36x36,   40x40,\n\
-            44x44,   48x48,   52x52,   64x64,   72x72,   80x80,\n\
-            88x88,   96x96, 104x104, 120x120, 132x132, 144x144\n\
-        Manually specified SIZE options for rectangular symbols:\n\
-             8x18,    8x32,   12x26,   12x36,   16x36,   16x48\n"));
+  -s, --symbol-size=[sr|RxC]  symbol size (default \"s\"))\n\
+        Automatic size options:\n\
+            s = Square symbol     r = Rectangle symbol\n\
+        Manual size options for square symbols:\n\
+            10x10   12x12   14x14   16x16   18x18   20x20\n\
+            22x22   24x24   26x26   32x32   36x36   40x40\n\
+            44x44   48x48   52x52   64x64   72x72   80x80\n\
+            88x88   96x96 104x104 120x120 132x132 144x144\n\
+        Manual size options for rectangle symbols:\n\
+             8x18    8x32   12x26   12x36   16x36   16x48\n"));
       fprintf(stdout, _("\
-  -M, --mosaic                create non-standard Data Mosaic barcode\n\
+  -C, --color=COLOR           barcode color (not implemented)\n\
+  -B, --bg-color=COLOR        background color (not implemented)\n\
+  -M, --mosaic                create Data Mosaic (non-standard)\n\
   -R, --resolution=NUM        set image print resolution (dpi)\n\
   -v, --verbose               use verbose messages\n\
   -V, --version               print version information\n\
@@ -403,96 +389,19 @@ OPTIONS:\n"), programName, programName);
  *
  *
  */
-static void
-WriteImagePng(UserOptions *opt, DmtxEncode *enc)
+static char *
+FilenameExtension(char *path)
 {
-   FILE *fp;
-   int row;
-   int width, height;
-   int bytesPerPixel;
-   png_structp pngPtr;
-   png_infop infoPtr;
-   png_bytepp rowPointers;
-   png_uint_32 pixelsPerMeter;
-   DmtxImage *img;
+   char *ptr;
 
-   img = enc->image;
-   bytesPerPixel = 3;
-   assert(img->bitsPerPixel == 24);
+   if(path == NULL)
+      return NULL;
 
-   /* Open file or stdin for writing */
-   fp = (opt->outputPath == NULL) ? stdout : fopen(opt->outputPath, "wb");
-   if(fp == NULL) {
-      perror(programName);
-      exit(3);
-   }
+   ptr = strrchr(path, '.');
+   if(ptr != NULL)
+      return ptr + 1;
 
-   /* Create and initialize the png_struct with the desired error handler functions */
-   pngPtr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-   if(pngPtr == NULL) {
-      if(fp != stdout)
-         fclose(fp);
-      perror(programName);
-   }
-
-   /* Create and initialize image information struct */
-   infoPtr = png_create_info_struct(pngPtr);
-   if(infoPtr == NULL) {
-      if(fp != stdout)
-         fclose(fp);
-      png_destroy_write_struct(&pngPtr,  png_infopp_NULL);
-      perror(programName);
-   }
-
-   /* Set error handling */
-   if(setjmp(png_jmpbuf(pngPtr))) {
-      if(fp != stdout)
-         fclose(fp);
-      png_destroy_write_struct(&pngPtr, &infoPtr);
-      perror(programName);
-   }
-
-   width = dmtxImageGetProp(img, DmtxPropWidth);
-   height = dmtxImageGetProp(img, DmtxPropHeight);
-
-   /* Set up output control using standard streams */
-   png_init_io(pngPtr, fp);
-
-   png_set_IHDR(pngPtr, infoPtr, width, height,
-         8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-         PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
-
-   if(opt->dpi > 0) {
-      pixelsPerMeter = (png_uint_32)(39.3700787 * opt->dpi + 0.5);
-      png_set_pHYs(pngPtr, infoPtr, pixelsPerMeter, pixelsPerMeter, PNG_RESOLUTION_METER);
-   }
-
-   rowPointers = (png_bytepp)png_malloc(pngPtr, sizeof(png_bytep) * height);
-   if(rowPointers == NULL) {
-      perror(programName);
-   }
-
-   for(row = 0; row < height; row++) {
-      rowPointers[row] = (png_bytep)png_malloc(pngPtr, png_get_rowbytes(pngPtr, infoPtr));
-      assert(png_get_rowbytes(pngPtr, infoPtr) == width * 3);
-      memcpy(rowPointers[row], img->pxl + (row * width * bytesPerPixel), width * bytesPerPixel);
-   }
-
-   png_set_rows(pngPtr, infoPtr, rowPointers);
-
-   png_write_png(pngPtr, infoPtr, PNG_TRANSFORM_PACKING, NULL);
-
-   /* Clean up after the write, and free any memory allocated */
-   png_destroy_write_struct(&pngPtr, &infoPtr);
-
-   for(row = 0; row < height; row++) {
-      png_free(pngPtr, rowPointers[row]);
-   }
-   png_free(pngPtr, rowPointers);
-   rowPointers = NULL;
-
-   if(fp != stdout)
-      fclose(fp);
+   return NULL;
 }
 
 /**
@@ -500,38 +409,104 @@ WriteImagePng(UserOptions *opt, DmtxEncode *enc)
  *
  */
 static void
-WriteImagePnm(UserOptions *opt, DmtxEncode *enc)
+CleanupMagick(MagickWand **wand, int magickError)
 {
-   int row, col;
-   int width, height;
-   FILE *fp;
-   int rgb[3];
+   char *excMessage;
+   ExceptionType excSeverity;
 
-   fp = (opt->outputPath == NULL) ? stdout : fopen(opt->outputPath, "wb");
-   if(fp == NULL) {
-      perror(programName);
-      exit(3);
+   if(magickError == DmtxTrue) {
+      excMessage = MagickGetException(*wand, &excSeverity);
+      fprintf(stderr, "%s %s %lu %s\n", GetMagickModule(), excMessage);
+      MagickRelinquishMemory(excMessage);
    }
 
-   width = dmtxImageGetProp(enc->image, DmtxPropWidth);
-   height = dmtxImageGetProp(enc->image, DmtxPropHeight);
+   if(*wand != NULL) {
+      DestroyMagickWand(*wand);
+      *wand = NULL;
+   }
+}
 
-   /* Flip rows top-to-bottom to account for PNM "top-left" origin */
-   fprintf(fp, "P6 %d %d 255 ", width, height);
-   for(row = height - 1; row >= 0; row--) {
-      for(col = 0; col < width; col++) {
-         dmtxImageGetPixelValue(enc->image, col, row, 0, &rgb[0]);
-         dmtxImageGetPixelValue(enc->image, col, row, 1, &rgb[1]);
-         dmtxImageGetPixelValue(enc->image, col, row, 2, &rgb[2]);
-         fputc(rgb[0], fp);
-         fputc(rgb[1], fp);
-         fputc(rgb[2], fp);
+/**
+ * @brief  List supported input image formats on stdout
+ * @return void
+ */
+static void
+ListImageFormats(void)
+{
+   int i, index;
+   int row, rowCount;
+   int col, colCount;
+   unsigned long totalCount;
+   char **list;
+
+   list = MagickQueryFormats("*", &totalCount);
+
+   if(list == NULL)
+      return;
+
+   fprintf(stdout, "\n");
+
+   colCount = 7;
+   rowCount = totalCount/colCount;
+   if(totalCount % colCount)
+      rowCount++;
+
+   for(i = 0; i < colCount * rowCount; i++) {
+      col = i%colCount;
+      row = i/colCount;
+      index = col*rowCount + row;
+      fprintf(stdout, "%10s", (index < totalCount) ? list[col*rowCount+row] : " ");
+      fprintf(stdout, "%s", (col+1 < colCount) ? " " : "\n");
+   }
+   fprintf(stdout, "\n");
+
+   MagickRelinquishMemory(list);
+}
+
+/**
+ *
+ *
+ */
+static void
+WriteImageFile(UserOptions *opt, DmtxEncode *enc)
+{
+   MagickBooleanType success;
+   MagickWand *wand;
+
+   MagickWandGenesis();
+
+   wand = NewMagickWand();
+   if(wand == NULL) {
+      FatalError(EX_OSERR, "undefined error");
+   }
+
+   success = MagickConstituteImage(wand, enc->image->width, enc->image->height,
+         "RGB", CharPixel, enc->image->pxl);
+   if(success == MagickFalse) {
+      FatalError(EX_OSERR, "undefined error");
+      CleanupMagick(&wand, DmtxTrue);
+   }
+
+   /* handle unknown filename extension better (currently goes to MIFF) */
+   if(opt->outputPath == NULL) {
+      success = MagickSetImageFormat(wand, (opt->format) ? opt->format : "PNG");
+      if(success == MagickFalse) {
+         FatalError(EX_OSERR, "undefined error");
+         CleanupMagick(&wand, DmtxTrue);
       }
+      success = MagickWriteImageFile(wand, stdout);
+   }
+   else {
+      success = MagickWriteImage(wand, opt->outputPath);
+   }
+   if(success == MagickFalse) {
+      FatalError(EX_OSERR, "undefined error");
+      CleanupMagick(&wand, DmtxTrue);
    }
 
-   if(fp != stdout) {
-      fclose(fp);
-   }
+   CleanupMagick(&wand, DmtxFalse);
+
+   MagickWandTerminus();
 }
 
 /**
@@ -539,7 +514,7 @@ WriteImagePnm(UserOptions *opt, DmtxEncode *enc)
  *
  */
 static void
-WriteAsciiBarcode(DmtxEncode *enc)
+WriteAsciiPreview(DmtxEncode *enc)
 {
    int symbolRow, symbolCol;
    int moduleOnAll;

@@ -150,10 +150,10 @@ typedef enum {
 
 typedef enum {
    /* encoding properties */
-   DmtxPropScheme,
+   DmtxPropScheme            = 100,
    DmtxPropSizeRequest,
    /* decoding properties */
-   DmtxPropEdgeMin,
+   DmtxPropEdgeMin           = 200,
    DmtxPropEdgeMax,
    DmtxPropScanGap,
    DmtxPropSquareDevn,
@@ -162,20 +162,21 @@ typedef enum {
    DmtxPropShrinkMin,
    DmtxPropShrinkMax,
    /* image properties */
-   DmtxPropMarginSize,
-   DmtxPropModuleSize,
-   DmtxPropImageFlip,
-   DmtxPropBitsPerPixel,
-   DmtxPropBytesPerPixel,
-   DmtxPropWidth,
+   DmtxPropWidth             = 300,
    DmtxPropHeight,
    DmtxPropArea,
    DmtxPropXmin,
    DmtxPropXmax,
    DmtxPropYmin,
    DmtxPropYmax,
+   DmtxPropMarginSize,
+   DmtxPropModuleSize,
+   DmtxPropBitsPerPixel,
+   DmtxPropBytesPerPixel,
+   DmtxPropImageFlip,
+   DmtxPropRowPadMultiple,
    /* scaled image properties */
-   DmtxPropScale,
+   DmtxPropScale             = 400,
    DmtxPropScaledWidth,
    DmtxPropScaledHeight,
    DmtxPropScaledArea,
@@ -545,7 +546,7 @@ extern DmtxPassFail dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, Dm
 extern DmtxPassFail dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);
 
 /* dmtximage.c */
-extern DmtxImage *dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int packing, int flip);
+extern DmtxImage *dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int packing);
 extern DmtxPassFail dmtxImageDestroy(DmtxImage **img);
 extern DmtxPassFail dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel);
 extern DmtxPassFail dmtxImageSetProp(DmtxImage *img, int prop, int value);

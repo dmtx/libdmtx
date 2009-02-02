@@ -110,7 +110,6 @@ PHP_FUNCTION(dmtx_write)
    enc = dmtxEncodeCreate();
 
    dmtxEncodeSetProp(enc, DmtxPropSizeRequest, DmtxSymbolSquareAuto);
-   dmtxEncodeSetProp(enc, DmtxPropImageFlip, DmtxFlipY);
 
    dmtxEncodeDataMatrix(enc, data_len, data);
 
