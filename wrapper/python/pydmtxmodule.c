@@ -4,6 +4,7 @@ pydmtx - Python wrapper for libdmtx
 Copyright (C) 2006 Dan Watson
 Copyright (C) 2008, 2009 Mike Laughton
 Copyright (C) 2008 Jonathan Lung
+Copyright (C) 2009 David Turner
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -147,8 +148,10 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
 
    /* Get parameters from Python for libdmtx */
    if(!PyArg_ParseTupleAndKeywords(arglist, kwargs, "iii|OO", kwlist,
-         &width, &height, &gap_size, &dataBuffer, &context))
+         &width, &height, &gap_size, &dataBuffer, &context)) {
+      PyErr_SetString(PyExc_TypeError, "decode takes at least 3 arguments");
       return NULL;
+   }
 
    Py_INCREF(context);
 
@@ -188,6 +191,10 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    dmtxDecodeDestroy(&dec);
    dmtxImageDestroy(&img);
    Py_DECREF(context);
+   if(output == NULL) {
+      Py_INCREF(Py_None);
+      return Py_None;
+   }
 
    return output;
 }
