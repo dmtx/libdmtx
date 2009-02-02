@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: xxxxx@xxx.xx.xx
 */
 
-/* $Id: org_libdmtx_DMTXImage.c 600 2009-01-20 17:51:16Z mblaughton $ */
+/* $Id$ */
 
 package org.libdmtx;
 
