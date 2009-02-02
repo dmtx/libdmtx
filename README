@@ -8,7 +8,7 @@ This summary of the libdmtx package applies generally to all
 platforms. For instructions regarding your specific platform
 please also read the README.xxx file in this directory that
 matches your system (e.g., README.linux, README.cygwin,
-README.osx, README.msvc, etc...).
+README.osx, README.visualc, etc...).
 
 
 1. Introduction

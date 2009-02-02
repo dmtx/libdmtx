@@ -2,10 +2,10 @@
             libdmtx - Open Source Data Matrix Software
 =================================================================
 
-               libdmtx README file (MS Visual C++)
+              libdmtx README file (MS Visual Studio)
 
-This README.msvc file contains information on building libdmtx in
-MS Visual C++ for use on Windows. The general README file, also
+This README.visualc file contains information on building libdmtx
+with MS Visual Studio for Windows. The general README file, also
 found in this directory, contains a high level summary of libdmtx
 and its components.
 
@@ -14,7 +14,7 @@ and its components.
 -----------------------------------------------------------------
 
 The following instructions will create static builds of dmtxread
-and dmtxwrite for Windows using MS Visual C++.
+and dmtxwrite for Windows using MS Visual Studio.
 
 
 2. Create a New Project

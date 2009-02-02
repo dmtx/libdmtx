@@ -22,9 +22,9 @@ EXTRA_DIST = KNOWNBUG \
 	README.freebsd \
 	README.linux \
 	README.mingw \
-	README.msvc \
 	README.osx \
 	README.unix \
+	README.visualc \
 	script/check_all.sh \
 	script/check_comments.sh \
 	script/check_copyright.sh \
