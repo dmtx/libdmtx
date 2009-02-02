@@ -67,7 +67,8 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   x dmtxwrite: Bad option should give short "invalid option -- N; --help for more"
   x dmtxwrite: Use HandleArgs() to capture requests, and process afterward
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
-  o wrapper:   New java encoding wrapper (hopefully)
+  x wrapper:   New Java wrapper (thanks Pete!)
+  x wrapper:   New .NET wrapper (thanks Vali!)
   o project:   Conditional use of local getopt.c
   x project:   Introduce "project" directory for non-autotools platforms
   x project:   Rename "wrappers" directory to "wrapper" for consistency
