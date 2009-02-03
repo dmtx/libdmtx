@@ -27,7 +27,7 @@
 #include <assert.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
-#include "dmtx.h"
+#include "../../dmtx.h"
 
 struct UserOptions {
    const char *imagePath;

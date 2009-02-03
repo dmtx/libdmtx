@@ -26,7 +26,7 @@ Contact: mike@dragonflylogic.com
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <dmtx.h>
+#include "../../dmtx.h"
 
 int
 main(int argc, char *argv[])

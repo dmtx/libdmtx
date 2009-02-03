@@ -29,7 +29,7 @@ Contact: mike@dragonflylogic.com
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <dmtx.h>
+#include "../../dmtx.h"
 #include "../../util/common/dmtxutil.h"
 
 char *programName;

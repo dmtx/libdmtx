@@ -22,16 +22,7 @@ Contact: mblaughton@users.sourceforge.net
 
 /* $Id$ */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <SDL/SDL.h>
-#include <SDL/SDL_opengl.h>
-#include <assert.h>
-#include "dmtx.h"
-#include "image.h"
-#include "display.h"
-#include "callback.h"
+#include "rotate_test.h"
 
 #define MIN(x,y) ((x < y) ? x : y)
 #define MAX(x,y) ((x > y) ? x : y)
