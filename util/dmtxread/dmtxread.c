@@ -166,9 +166,6 @@ main(int argc, char *argv[])
             if(msg != NULL) {
                PrintDecodedOutput(&opt, img, reg, msg, imgPageIndex);
 
-               if(opt.diagnose == DmtxTrue)
-                  WriteDiagnosticImage(dec, reg, "debug.pnm");
-
                pageScanCount++;
                imageScanCount++;
 
@@ -180,6 +177,9 @@ main(int argc, char *argv[])
             if(opt.stopAfter != -1 && imageScanCount >= opt.stopAfter)
                break;
          }
+
+         if(opt.diagnose == DmtxTrue)
+            WriteDiagnosticImage(dec, "debug.pnm");
 
          dmtxDecodeDestroy(&dec);
          dmtxImageDestroy(&img);
@@ -708,7 +708,7 @@ ListImageFormats(void)
  *
  */
 static void
-WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
+WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 {
    int row, col;
    int width, height;

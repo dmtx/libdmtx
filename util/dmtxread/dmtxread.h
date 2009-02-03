@@ -83,7 +83,7 @@ static DmtxPassFail PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       DmtxRegion *region, DmtxMessage *message, int imgPageIndex);
 static void CleanupMagick(MagickWand **wand, int magicError);
 static void ListImageFormats(void);
-static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);
+static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);
 static int ScaleNumberString(char *s, int extent);
 
 #endif
