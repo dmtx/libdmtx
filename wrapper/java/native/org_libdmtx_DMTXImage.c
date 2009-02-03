@@ -176,7 +176,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, 
   lPixels = (*aEnv)->GetIntArrayElements(aEnv, lJavaData, NULL);
 
   // Create DMTX Image
-  lImage = dmtxImageCreate((unsigned char *) lPixels, lW, lH, 32, DmtxPackRGBX, DmtxFlipY);
+  lImage = dmtxImageCreate((unsigned char *) lPixels, lW, lH, 32, DmtxPackRGBX);
 
   if(lImage == NULL) {
     return NULL;
