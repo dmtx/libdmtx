@@ -494,8 +494,20 @@ Ordinary Hough test:
 for each color channel:
    allocate image and image cache (2 bytes per pixel)
    assign point flow for each pixel (byte 1), and 3 bits for direction
+
+   offset = y * img->width + x;
+   colorPattern[0] = img->pxl[(offset - img->width - 1) * 3];
+   colorPattern[1] = img->pxl[(offset - img->width    ) * 3];
+   colorPattern[2] = img->pxl[(offset - img->width + 1) * 3];
+   colorPattern[3] = img->pxl[(offset              + 1) * 3];
+   colorPattern[4] = img->pxl[(offset + img->width + 1) * 3];
+   colorPattern[5] = img->pxl[(offset + img->width    ) * 3];
+   colorPattern[6] = img->pxl[(offset + img->width - 1) * 3];
+   colorPattern[7] = img->pxl[(offset              - 1) * 3];
+
    write out pnm dump 1
    connect edges downstream, leaving trail
+
    - pick starting loc where downstream points back (how to measure this?)
 
 *** in a river, you know you are in the center of the stream when your ***
