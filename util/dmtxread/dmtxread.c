@@ -41,9 +41,8 @@ main(int argc, char *argv[])
    int i;
    int err;
    int fileIndex, imgPageIndex;
-   int fileCount, imgPageCount;
+   int fileCount;
    int imageScanCount, pageScanCount;
-   int firstPage, finalPage;
    int width, height;
    unsigned char *pxl;
    UserOptions opt;

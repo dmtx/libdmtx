@@ -25,6 +25,7 @@ FOCUS: refactor encoding engine, FNC1, macros
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
+  o libdmtx:   Use 100x faster pixel access in PointFlow calculation pass
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
   o dmtxread:  Print out image representing "unstretched" barcode
   o dmtxread:  Print color weights based on direction
@@ -64,6 +65,7 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
   x libdmtx:   Change all major types to use Create() and Destroy() convention
+  o dmtxread:  Add true scan timings that factor in linking, startup, image load
   o dmtxread:  Flatten out nested loops in main()
   x dmtxread:  Fix misrepresented capacity in verbose mode
   o dmtxwrite: Use Magick to write images of major vector formats
@@ -73,6 +75,7 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
   x wrapper:   New Java wrapper (thanks Pete!)
   x wrapper:   New .NET wrapper (thanks Vali!)
+  o project:   Add simple_test project to libdmtx.sln?
   o project:   Any way to ask Magick to filter out GS warnings?
   o project:   Figure out earliest usable Magick version for configure.ac
   o project:   Conditional use of local getopt.c
