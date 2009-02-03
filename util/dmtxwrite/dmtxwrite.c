@@ -472,6 +472,7 @@ WriteImageFile(UserOptions *opt, DmtxEncode *enc)
 {
    MagickBooleanType success;
    MagickWand *wand;
+   char *outputPath;
 
    MagickWandGenesis();
 
@@ -487,18 +488,19 @@ WriteImageFile(UserOptions *opt, DmtxEncode *enc)
       CleanupMagick(&wand, DmtxTrue);
    }
 
-   /* handle unknown filename extension better (currently goes to MIFF) */
    if(opt->outputPath == NULL) {
-      success = MagickSetImageFormat(wand, (opt->format) ? opt->format : "PNG");
+      outputPath = "-";
+      success = MagickSetImageFormat(wand, (opt->format != NULL) ? opt->format : "PNG");
       if(success == MagickFalse) {
          FatalError(EX_OSERR, "undefined error");
          CleanupMagick(&wand, DmtxTrue);
       }
-      success = MagickWriteImageFile(wand, stdout);
    }
    else {
-      success = MagickWriteImage(wand, opt->outputPath);
+      outputPath = opt->outputPath;
    }
+
+   success = MagickWriteImage(wand, outputPath);
    if(success == MagickFalse) {
       FatalError(EX_OSERR, "undefined error");
       CleanupMagick(&wand, DmtxTrue);

@@ -44,6 +44,10 @@ Contact: mike@dragonflylogic.com
 #include <unistd.h>
 #endif
 
+#ifdef _VISUALC_
+#include <io.h>
+#endif
+
 #if ENABLE_NLS
 # include <libintl.h>
 # define _(String) gettext(String)
