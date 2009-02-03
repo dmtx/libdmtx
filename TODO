@@ -64,7 +64,6 @@ FOCUS: custom pixel packing, API cleanup, region detection refinement
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
   x libdmtx:   Change all major types to use Create() and Destroy() convention
-  o dmtxread:  Change CleanupMagick to macro? (scope issue currently strips message)
   o dmtxread:  Flatten out nested loops in main()
   x dmtxread:  Fix misrepresented capacity in verbose mode
   o dmtxwrite: Use Magick to write images of major vector formats

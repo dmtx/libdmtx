@@ -80,7 +80,7 @@ main(int argc, char *argv[])
       if(opt.dpi != -1) {
          success = MagickSetResolution(wand, (double)opt.dpi, (double)opt.dpi);
          if(success == MagickFalse) {
-            CleanupMagick(&wand, DmtxFalse);
+            CleanupMagick(&wand, DmtxTrue);
             FatalError(EX_OSERR, "Magick error");
          }
       }
@@ -91,9 +91,12 @@ main(int argc, char *argv[])
 
       success = MagickReadImage(wand, filePath);
       if(success == MagickFalse) {
-         CleanupMagick(&wand, DmtxFalse);
+         CleanupMagick(&wand, DmtxTrue);
          FatalError(EX_OSERR, "Magick error");
       }
+
+      width = MagickGetImageWidth(wand);
+      height = MagickGetImageHeight(wand);
 
       /* Loop once for each page within image */
       MagickResetIterator(wand);
@@ -106,9 +109,6 @@ main(int argc, char *argv[])
          /* Reset timeout for each new page */
          if(opt.timeoutMS != -1)
             timeout = dmtxTimeAdd(dmtxTimeNow(), opt.timeoutMS);
-
-         width = MagickGetImageWidth(wand);
-         height = MagickGetImageHeight(wand);
 
          /* Allocate memory for pixel data */
          pxl = (unsigned char *)malloc(3 * width * height * sizeof(unsigned char));
@@ -148,8 +148,10 @@ main(int argc, char *argv[])
          pageScanCount = 0;
          for(;;) {
             /* Find next barcode region within image, but do not decode yet */
-            reg = dmtxRegionFindNext(dec, (opt.timeoutMS == -1) ?
-                  NULL : &timeout);
+            if(opt.timeoutMS == -1)
+               reg = dmtxRegionFindNext(dec, NULL);
+            else
+               reg = dmtxRegionFindNext(dec, &timeout);
 
             /* Finished file or ran out of time before finding another region */
             if(reg == NULL)
