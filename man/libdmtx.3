@@ -11,73 +11,19 @@ libdmtx \- Data Matrix Encoder/Decoder Library 0.6.1
 .SH SYNOPSIS
 \fB#include <dmtx.h>\fP
 
-\fIENCODING FUNCTIONS\fP
-
-\fBDmtxEncode *dmtxEncodeCreate(\fIvoid\fP);\fP
-
-\fBDmtxPassFail dmtxEncodeDestroy(DmtxEncode **\fIenc\fP);\fP
-
-\fBDmtxPassFail dmtxEncodeSetProp(DmtxEncode *\fIenc\fP, int \fIprop\fP, int \fIvalue\fP);\fP
-
-\fBint dmtxEncodeGetProp(DmtxEncode *\fIenc\fP, int \fIprop\fP);\fP
-
-\fBint dmtxEncodeDataMatrix(DmtxEncode *\fIenc\fP, int \fIn\fP, unsigned char *\fIs\fP);\fP
-
-\fBint dmtxEncodeDataMosaic(DmtxEncode *\fIenc\fP, int \fIn\fP, unsigned char *\fIs\fP);\fP
-
-\fIDECODING FUNCTIONS\fP
-
-\fBDmtxDecode *dmtxDecodeCreate(DmtxImage *\fIimg\fP);\fP
-
-\fBDmtxPassFail dmtxDecodeDestroy(DmtxDecode **\fIdec\fP);\fP
-
-\fBDmtxPassFail dmtxDecodeSetProp(DmtxDecode *\fIdec\fP, int \fIprop\fP, int \fIvalue\fP);\fP
-
-\fBint dmtxDecodeGetProp(DmtxDecode *\fIdec\fP, int \fIprop\fP);\fP
-
-\fBDmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
-
-\fBDmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *\fIdec\fP, DmtxRegion *\fIreg\fP, int \fIfix\fP);\fP
-
-\fBDmtxRegion *dmtxRegionCreate(DmtxRegion *\fIreg\fP);\fP
-
-\fBDmtxPassFail dmtxRegionDestroy(DmtxRegion **\fIreg\fP);\fP
-
-\fBDmtxRegion *dmtxRegionFindNext(DmtxDecode *\fIdec\fP, DmtxTime *\fItimeout\fP);\fP
-
-\fBDmtxRegion *dmtxRegionScanPixel(DmtxDecode *\fIdec\fP, int \fIx\fP, int \fIy\fP);\fP
-
-\fICOMMON FUNCTIONS\fP
-
-\fBDmtxMessage *dmtxMessageCreate(int \fIsizeIdx\fP, int \fIsymbolFormat\fP);\fP
-
-\fBDmtxPassFail dmtxMessageDestroy(DmtxMessage **\fImsg\fP);\fP
-
-\fBDmtxImage *dmtxImageCreate(unsigned char *pxl, int \fIwidth\fP, int \fIheight\fP);\fP
-
-\fBDmtxPassFail dmtxImageDestroy(DmtxImage **\fIimg\fP);\fP
-
-\fBint dmtxImageSetProp(DmtxImage *\fIimg\fP, int \fIprop\fP, int \fIvalue\fP);\fP
-
-\fBint dmtxImageGetProp(DmtxImage *\fIimg\fP, int \fIprop\fP);\fP
-
-\fBDmtxTime dmtxTimeNow(void);\fP
-
-\fBDmtxTime dmtxTimeAdd(DmtxTime \fIt\fP, long \fImsec\fP);\fP
-
-\fBint dmtxTimeExceeded(DmtxTime \fItimeout\fP);\fP
+cc file.c -ldmtx
 
 .SH DESCRIPTION
-\fIlibdmtx\fP is a shared library that enables programs to read and write ECC200 Data Matrix barcodes.  The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP serve as the official interface to libdmtx from the command line, and also provide a good reference for programmers who wish to write their own programs that interact with libdmtx.
+\fIlibdmtx\fP is a shared library that enables programs to read and write ECC200 Data Matrix barcodes. The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP serve as the official interface to libdmtx from the command line, and also provide a good reference for programmers who wish to write their own programs that interact with libdmtx.
 
-Data Matrix barcodes are two dimensional patterns that resemble a checkerboard in appearance, and hold a high density of data with built-in error correction.  They can exist in either square or rectangular configurations, and support several different encodation schemes for optimized storage of binary and text data.  The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
+Data Matrix barcodes are two dimensional patterns that resemble a checkerboard in appearance, and hold a high density of data with built-in error correction. They can exist in either square or rectangular configurations, and support several different encodation schemes for optimized storage of binary and text data. The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
 
 .SH ENCODING - Generating Data Matrix Barcodes
-libdmtx provides a simple set of functions for encoding.  The following steps will produce an image that holds a Data Matrix barcode with the specified message.
+libdmtx provides a simple set of functions for encoding. The following steps will produce an image that holds a Data Matrix barcode with the specified message.
 
 1. Call \fBdmtxEncodeStructInit()\fP
 
-Initializes the internal values of the encoding process.  Must be called before any other encoding functions.
+Initializes the internal values of the encoding process. Must be called before any other encoding functions.
 
 2. Call \fBdmtxEncodeSetProp()\fP
 
@@ -85,22 +31,22 @@ xxx
 
 3. Call either \fBdmtxEncodeDataMatrix()\fP or \fBdmtxEncodeDataMosaic()\fP
 
-Depending on the desired barcode format, the calling program will use one of these functions to generate a barcode image within the \fBDmtxEncode\fP struct.  The calling program is responsible for using this information to create a permanent image file.
+Depending on the desired barcode format, the calling program will use one of these functions to generate a barcode image within the \fBDmtxEncode\fP struct. The calling program is responsible for using this information to create a permanent image file.
 
 4. Call \fBdmtxEncodeDestroy()\fP
 
 Resets the internal encoding values and frees memory allocated during the encoding process.
 
 .SH DECODING - Reading Data Matrix Barcodes
-libdmtx provides a number of functions designed to provide maximum control and flexibility in the decoding process.  The following steps first allocate memory for the image data held by the calling application.  After the image data is captured, the remaining steps will find and decode the barcodes present in the image.
+libdmtx provides a number of functions designed to provide maximum control and flexibility in the decoding process. The following steps first allocate memory for the image data held by the calling application. After the image data is captured, the remaining steps will find and decode the barcodes present in the image.
 
 1. Call \fBdmtxImageCreate()\fP
 
-Allocates memory for received image data.  libdmtx provides its own image structure that the calling program must populate before starting a scan.
+Allocates memory for received image data. libdmtx provides its own image structure that the calling program must populate before starting a scan.
 
 2. Call \fBdmtxDecodeCreate()\fP
 
-Initializes the \fBDmtxDecode\fP struct, which designates the image to be scanned and resets the grid pattern for a new scan.  This function must be called before any other scanning functions.
+Initializes the \fBDmtxDecode\fP struct, which designates the image to be scanned and resets the grid pattern for a new scan. This function must be called before any other scanning functions.
 
 3. Call \fBdmtxDecodeSetProp()\fP
 
@@ -108,15 +54,15 @@ Set internal properties to control decoding behavior. This feature allows applic
 
 4. Call \fBdmtxRegionFindNext()\fP
 
-Searches every pixel location in a recursive grid pattern looking for potential barcode edges.  A \fBDmtxRegion\fP is returned whenever A) a potential barcode region is found, or B) the final pixel has been scanned.  Subsequent calls to this function will resume the search where the previous call left off.
+Searches every pixel location in a recursive grid pattern looking for potential barcode edges. A \fBDmtxRegion\fP is returned whenever A) a potential barcode region is found, or B) the final pixel has been scanned. Subsequent calls to this function will resume the search where the previous call left off.
 
 5. Call either \fBdmtxDecodeMatrixRegion()\fP or \fBdmtxDecodeMosaicRegion()\fP
 
-Extract bit values from the barcode region and decode the underlying message.  \fBDmtxMessage\fP values returned from this function must be freed after use.
+Extract bit values from the barcode region and decode the underlying message. \fBDmtxMessage\fP values returned from this function must be freed after use.
 
 6. Call \fBdmtxMessageDestroy()\fP
 
-Free the memory held by a \fBDmtxMessage\fP struct.  The complementary function, \fBdmtxMessageMalloc()\fP, is automatically called by \fBdmtxDecodeMatrixRegion()\fP and therefore is not normally used by the calling program.
+Free the memory held by a \fBDmtxMessage\fP struct. The complementary function, \fBdmtxMessageMalloc()\fP, is automatically called by \fBdmtxDecodeMatrixRegion()\fP and therefore is not normally used by the calling program.
 
 7. Call \fBdmtxRegionDestroy()\fP
 
@@ -128,11 +74,11 @@ Resets the internal decoding values used during the decoding process.
 
 9. Call \fBdmtxImageDestroy()\fP
 
-Resets and frees memory held by \fBDmtxImage\fP struct.  This is the complement to \fBdmtxImageMalloc()\fP.
+Resets and frees memory held by \fBDmtxImage\fP struct. This is the complement to \fBdmtxImageMalloc()\fP.
 
 .SH EXAMPLE PROGRAM
 
-This example program (available as simple_test.c in the source package) demonstrates both directions of \fIlibdmtx\fP functionality, encoding and decoding.  It creates a Data Matrix barcode in memory and then reads it back and prints the decoded message.  If everything works correctly then the final output message will match the original input string.
+This example program (available as simple_test.c in the source package) demonstrates both directions of \fIlibdmtx\fP functionality, encoding and decoding. It creates a Data Matrix barcode in memory and then reads it back and prints the decoded message. If everything works correctly then the final output message will match the original input string.
 
   #include <stdlib.h>
   #include <stdio.h>
@@ -152,7 +98,7 @@ This example program (available as simple_test.c in the source package) demonstr
      DmtxRegion     *reg;
      DmtxMessage    *msg;
 
-     fprintf(stdout, "input:  \"%s\"\n", str);
+     fprintf(stdout, "input:  \\"%s\\"\\n", str);
 
      /* 1) ENCODE a new Data Matrix barcode image (in memory only) */
 
@@ -184,9 +130,9 @@ This example program (available as simple_test.c in the source package) demonstr
      if(reg != NULL) {
         msg = dmtxDecodeMatrixRegion(dec, reg, -1);
         if(msg != NULL) {
-           fputs("output: \"", stdout);
+           fputs("output: \\"", stdout);
            fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
-           fputs("\"\n", stdout);
+           fputs("\\"\\n", stdout);
            dmtxMessageDestroy(&msg);
         }
         dmtxRegionDestroy(&reg);
@@ -200,7 +146,7 @@ This example program (available as simple_test.c in the source package) demonstr
   }
 
 .SH "SEE ALSO"
-\fIdmtxread\fP(1), \fIdmtxwrite\fP(1)
+\fIdmtxread\fP(1), \fIdmtxwrite\fP(1), \fIdmtxquery\fP(1)
 .SH STANDARDS
 ISO/IEC 16022:2000
 .PP

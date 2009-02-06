@@ -33,6 +33,8 @@ FOCUS: refactor encoding engine, FNC1, macros
 
 version 0.8.0: (planned XX-Apr-2009)
 FOCUS: region detection refinement, multiple barcode scanning, structured append
+  o libdmtx:   Consider making "*ProdScaled" default, and unscaled as "Unscaled"
+  o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Fast Hough fit followed by precision handle fit
   o libdmtx:   Optimizations need to perform multi-barcode scans
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
@@ -52,14 +54,11 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
 version 0.7.0: (planned XX-Feb-2009)
 FOCUS: API cleanup, custom pixel packing
   o libdmtx:   Add named constant for "-1" passed to dmtxDecodeMatrixRegion(), and bad offset
-$ o libdmtx:   Consider making "*ProdScaled" default, and unscaled as "Unscaled"
-$ o libdmtx:   Investigate reported compile error in dmtxutil.c (Rom 16-Oct-2008)
-$ o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Fix 64b->32b int assignment warnings
   o libdmtx:   Add dmtxMessageGetOutput() function if necessary (dmtxmessage.c and libdmtx.def)
 $ o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
   x libdmtx:   Take DmtxFlip parameter out of dmtxImageCreate()
-  x libdmtx:   Switch DmtxFlipNone represent top-down order
+  x libdmtx:   Switch DmtxFlipNone represent top-down row order
   x libdmtx:   Add dmtxEncodeSetProp() and dmtxEncodeGetProp()
   x libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   x libdmtx:   Remove status from DmtxPixelLoc
@@ -77,11 +76,11 @@ $ o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
   x wrapper:   New Java wrapper (thanks Pete!)
   x wrapper:   New .NET wrapper (thanks Vali!)
-  o project:   Clean up test utils use of "dmtx.h" vs <dmtx.h> and dmtx.c
   o project:   Updated all documentation to reflect API changes
-  o project:   Add simple_test project to libdmtx.sln?
-$ o project:   Figure out earliest usable Magick version for configure.ac
   o project:   Add comment to wiki pages that points to source README
+$ o project:   Figure out earliest usable Magick version for configure.ac
+  x project:   Clean up test utils use of "dmtx.h" vs <dmtx.h> and dmtx.c
+  x project:   Add simple_test project to libdmtx.sln
   x project:   Rename wiki page to "Windows (VisualC)"
   x project:   Introduce "project" directory for non-autotools platforms
   x project:   Rename "wrappers" directory to "wrapper" for consistency

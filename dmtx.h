@@ -532,10 +532,6 @@ extern int dmtxDecodeGetProp(DmtxDecode *dec, int prop);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 
-/* dmtxmessage.c */
-extern DmtxMessage *dmtxMessageCreate(int sizeIdx, int symbolFormat);
-extern DmtxPassFail dmtxMessageDestroy(DmtxMessage **msg);
-
 /* dmtxregion.c */
 extern DmtxRegion *dmtxRegionCreate(DmtxRegion *reg);
 extern DmtxPassFail dmtxRegionDestroy(DmtxRegion **reg);
@@ -544,6 +540,10 @@ extern DmtxRegion *dmtxRegionScanPixel(DmtxDecode *dec, int x, int y);
 extern DmtxPassFail dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
       DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 extern DmtxPassFail dmtxRegionUpdateXfrms(DmtxDecode *dec, DmtxRegion *reg);
+
+/* dmtxmessage.c */
+extern DmtxMessage *dmtxMessageCreate(int sizeIdx, int symbolFormat);
+extern DmtxPassFail dmtxMessageDestroy(DmtxMessage **msg);
 
 /* dmtximage.c */
 extern DmtxImage *dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int packing);

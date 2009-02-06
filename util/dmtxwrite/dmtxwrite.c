@@ -361,9 +361,9 @@ OPTIONS:\n"), programName, programName);
   -p, --preview               print ASCII art preview\n\
   -r, --rotate=DEGREES        rotation angle (degrees)\n"));
       fprintf(stdout, _("\
-  -s, --symbol-size=[sr|RxC]  symbol size (default \"s\"))\n\
+  -s, --symbol-size=[sr|RxC]  symbol size (default \"s\")\n\
         Automatic size options:\n\
-            s = Square symbol     r = Rectangle symbol\n\
+            s = Auto square         r = Auto rectangle\n\
         Manual size options for square symbols:\n\
             10x10   12x12   14x14   16x16   18x18   20x20\n\
             22x22   24x24   26x26   32x32   36x36   40x40\n\

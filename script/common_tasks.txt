@@ -19,7 +19,13 @@ Release Checklist
 
 2) o Create copy of this file as living checklist
 
-3) o Write and finalize release documentation
+3) o Test for common style and formatting issues
+
+   o $ script/check_all.sh .
+
+4) o Review and close applicable bugs and feature requests
+
+5) o Write and finalize release documentation
 
    o ReleaseNotes.txt (not in SVN or source distribution)
 
@@ -28,37 +34,39 @@ Release Checklist
 
    o README                  o README.cygwin
    o README.freebsd          o README.linux
-   o README.mingw            o README.msvc
-   o README.osx              o README.unix
+   o README.mingw            o README.osx
+   o README.unix             o README.visualc
+
    o test/rotate_test/README
+   o project/visualc9/README.txt
 
    o wrapper/cocoa/README    o wrapper/java/README
    o wrapper/php/README      o wrapper/python/README
    o wrapper/ruby/README
 
-   o man/dmtxquery.1         o man/dmtxread.1
-   o man/dmtxwrite.1         o man/libdmtx.3
+   o man/dmtxread.1          o man/dmtxwrite.1
+   o man/dmtxquery.1         o man/libdmtx.3
 
-4) o Update version number in appropriate files
+6) o Update version number in appropriate files
 
    o configure.ac
    o dmtx.h
    o man/libdmtx.3
-   o README.msvc
+   o README.visualc
    o wrapper/cocoa/README
    o wrapper/java/README
    o wrapper/php/README
    o wrapper/python/README
    o wrapper/ruby/README
 
-5) o Update release date in appropriate files
+7) o Update release date in appropriate files
 
    o TODO
 
    o man/libdmtx.3 (be sure to sync w/ simple_test.c)
-   o man/dmtxquery.1
    o man/dmtxread.1
    o man/dmtxwrite.1
+   o man/dmtxquery.1
 
    o wrapper/cocoa/README
    o wrapper/java/README
@@ -66,7 +74,7 @@ Release Checklist
    o wrapper/python/README
    o wrapper/ruby/README
 
-6) o Perform final test build
+8) o Perform final test build
 
    o $ make uninstall
    o $ make clean
@@ -81,7 +89,7 @@ Release Checklist
    o $ test/simple_test/simple_test; echo $?
    o $ test/unit_test/unit_test; echo $?
 
-7) o Build and test tarballs
+9) o Build and test tarballs
 
    o $ make dist-gzip
    o $ make dist-bzip2
@@ -89,31 +97,31 @@ Release Checklist
      distribution (especially in the wrapper directories)
    o $ md5sum libdmtx*.tar.* > MD5SUM.txt
 
-8) o Final subversion commit
+10) o Final subversion commit
 
-9) o Upload release to SourceForge
+11) o Upload release to SourceForge
 
-   o $ scp libdmtx-x.x.x.tar.* user@frs.sourceforge.net/uploads
+    o $ scp libdmtx-x.x.x.tar.* user@frs.sourceforge.net/uploads
 
-10) o SourceForge release administration
+12) o SourceForge release administration
 
     o Create SourceForge release
     o Upload release notes
     o Publish news item
 
-11) o Tag final release in SVN (do this only after uploading to
+13) o Tag final release in SVN (do this only after uploading to
       SourceForge in case something changes at the last minute)
 
     o $ svn copy https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk \
                  https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/tags/release-0.6.0 \
            -m "Tagged libdmtx 0.6.0 release"
 
-12) o Update minor number in trunk (e.g., 0.6.0 -> 0.6.1)
+14) o Update minor number in trunk (e.g., 0.6.0 -> 0.6.1)
 
     o Use file list from step 4 above
     o ./autogen.sh
     o ./configure
     o svn commit
 
-13) o Update libdmtx.org with news item, download entry, and new
+15) o Update libdmtx.org with news item, download entry, and new
       project status
