@@ -28,17 +28,41 @@ using System.Drawing;
 using System.Drawing.Imaging;
 
 namespace LibDmtx {
+    /// <summary>
+    /// Wrapper for decoding and encoding DataMatrix barcodes.
+    /// </summary>
     public static class Dmtx {
         const byte RETURN_NO_MEMORY = 1;
         const byte RETURN_INVALID_ARGUMENT = 2;
         const byte RETURN_ENCODE_ERROR = 3;
 
+        /// <summary>
+        /// Gets the version of the underlying libdmtx used.
+        /// </summary>
         public static string Version {
             get {
                 return DmtxVersion();
             }
         }
 
+        /// <summary>
+        /// Decodes a bitmap returning all symbols found in the image.
+        /// </summary>
+        /// <param name="b">The bitmap to decode.</param>
+        /// <param name="options">The options used for decoding.</param>
+        /// <returns>An array of decoded symbols, one for each symbol found.</returns>
+        /// <example>
+        /// This example shows a basic decoding.
+        /// <code>
+        ///   Bitmap bm = (Bitmap)Bitmap.FromFile("barcode.bmp");
+        ///   DecodeOptions decodeOptions = new DecodeOptions();
+        ///   DmtxDecoded[] decodeResults = Dmtx.Decode(bm, decodeOptions);
+        ///   for (int i = 0; i &lt; decodeResults.Length; i++) {
+        ///     string str = Encoding.ASCII.GetString(decodeResults[i].Data).TrimEnd('\0');
+        ///     Console.WriteLine("Decode " + i + ": \"" + str + "\"");
+        ///   }
+        /// </code>
+        /// </example>
         public static DmtxDecoded[] Decode(Bitmap b, DecodeOptions options) {
             IntPtr results;
             UInt32 resultcount;
@@ -97,6 +121,21 @@ namespace LibDmtx {
             return result;
         }
 
+        /// <summary>
+        /// Encodes data into a DataMatrix barcode.
+        /// </summary>
+        /// <param name="data">The data to encode.</param>
+        /// <param name="options">The options used for encoding.</param>
+        /// <returns>The results from encoding.</returns>
+        /// <example>
+        /// This example shows a basic encoding.
+        /// <code>
+        ///   byte[] data = Encoding.ASCII.GetBytes("test");
+        ///   EncodeOptions o = new EncodeOptions();
+        ///   DmtxEncoded encodeResults = Dmtx.Encode(data, o);
+        ///   encodeResults.Bitmap.Save("barcode.bmp", ImageFormat.Bmp);
+        /// </code>
+        /// </example>
         public static DmtxEncoded Encode(byte[] data, EncodeOptions options) {
             IntPtr result;
             byte status;
@@ -194,6 +233,9 @@ namespace LibDmtx {
         DmtxVersion();
     }
 
+    /// <summary>
+    /// Enumeration of symbol sizes.
+    /// </summary>
     public enum CodeSize : short {
         SymbolRectAuto = -3,
         SymbolSquareAuto = -2,
@@ -230,22 +272,58 @@ namespace LibDmtx {
         Symbol16x48
     }
 
+    /// <summary>
+    /// Symbol type.
+    /// </summary>
     public enum CodeType : ushort {
         DataMatrix = 0,
+
+        /// <summary>
+        /// Composite of multiple data matrixes.
+        /// </summary>
         Mosaic = 1
     }
 
+    /// <summary>
+    /// Encodings applied to the data.
+    /// </summary>
     public enum Scheme : ushort {
+        /// <summary>
+        /// ASCII character 0 to 127. 1 byte per CW.
+        /// </summary>
         Ascii = 0,
+
+        /// <summary>
+        /// Upper-case alphanumeric. 1.5 byte per CW.
+        /// </summary>
         C40 = 1,
+
+        /// <summary>
+        /// Lower-case alphanumeric. 1.5 byte per CW.
+        /// </summary>
         Text,
+
+        /// <summary>
+        /// ANSI X12. 1.5 byte per CW.
+        /// </summary>
         X12,
+
+        /// <summary>
+        /// ASCII character 32 to 94. 1.33 bytes per CW.
+        /// </summary>
         Edifact,
+
+        /// <summary>
+        /// ASCII character 0 to 255. 1 byte per CW.
+        /// </summary>
         Base256,
         AutoBest,
         AutoFast
     }
 
+    /// <summary>
+    /// Options used for decoding using <see cref="Dmtx.Decode"/>
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public class DecodeOptions {
         public Int16 EdgeMin = -1;
@@ -266,13 +344,35 @@ namespace LibDmtx {
         public Int16 ShrinkMax = -1;
     }
 
+    /// <summary>
+    /// Options used for encoding using <see cref="Dmtx.Encode"/>.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public class EncodeOptions {
+        /// <summary>
+        /// Whitespace padding in pixels around symbol.
+        /// </summary>
         public UInt16 MarginSize;
+
+        /// <summary>
+        /// The size in pixels of each element in the symbol.
+        /// </summary>
         public UInt16 ModuleSize;
+
+        /// <summary>
+        /// The encoding to apply to the symbol.
+        /// </summary>
         public Scheme Scheme;
         public UInt16 Rotate;
+
+        /// <summary>
+        /// Size of the symbol to generate.
+        /// </summary>
         public CodeSize SizeIdx;
+
+        /// <summary>
+        /// Type of symbol to generate.
+        /// </summary>
         public CodeType CodeType;
 
         public EncodeOptions() {
@@ -285,12 +385,18 @@ namespace LibDmtx {
         }
     }
 
+    /// <summary>
+    /// 2D coordinate.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public class DmtxPoint {
         public UInt16 X;
         public UInt16 Y;
     }
 
+    /// <summary>
+    /// The four corners in 2D space of the symbol.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public class Corners {
         public DmtxPoint Corner0;
@@ -299,6 +405,9 @@ namespace LibDmtx {
         public DmtxPoint Corner3;
     }
 
+    /// <summary>
+    /// Information about the DMTX symbol.
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public class SymbolInfo {
         public UInt16 Rows;
@@ -313,9 +422,23 @@ namespace LibDmtx {
         public UInt16 Angle;
     }
 
+    /// <summary>
+    /// Returned from <see cref="Dmtx.Decode"/>.
+    /// </summary>
     public class DmtxDecoded {
+        /// <summary>
+        /// Information about the symbol that was decoded.
+        /// </summary>
         public SymbolInfo SymbolInfo;
         public Corners Corners;
+
+        /// <summary>
+        /// The data contained in the symbol. If the contains a string
+        /// use the following code to convert it.
+        /// <code>
+        /// string str = Encoding.ASCII.GetString(decodeResults[0].Data).TrimEnd('\0');
+        /// </code>
+        /// </summary>
         public byte[] Data;
     }
 
@@ -327,8 +450,18 @@ namespace LibDmtx {
         public UInt32 DataSize;
     }
 
+    /// <summary>
+    /// Returned from <see cref="Dmtx.Encode"/>.
+    /// </summary>
     public class DmtxEncoded {
+        /// <summary>
+        /// Information about the symbol that was created.
+        /// </summary>
         public SymbolInfo SymbolInfo;
+
+        /// <summary>
+        /// The bitmap containing the symbol.
+        /// </summary>
         public Bitmap Bitmap;
     }
 
@@ -340,18 +473,27 @@ namespace LibDmtx {
         public IntPtr Data;
     }
 
+    /// <summary>
+    /// Base Dmtx exception.
+    /// </summary>
     public class DmtxException : ApplicationException {
         public DmtxException() { }
         public DmtxException(string message) : base(message) { }
         public DmtxException(string message, Exception innerException)
             : base(message, innerException) { }
     }
+    
+    /// <summary>
+    /// Out of memory exception.
+    /// </summary>
     public class DmtxOutOfMemoryException : DmtxException {
         public DmtxOutOfMemoryException() { }
         public DmtxOutOfMemoryException(string message) : base(message) { }
         public DmtxOutOfMemoryException(string message, Exception innerException)
             : base(message, innerException) { }
     }
+
+    // Invalid argument exception.
     public class DmtxInvalidArgumentException : DmtxException {
         public DmtxInvalidArgumentException() { }
         public DmtxInvalidArgumentException(string message) : base(message) { }
