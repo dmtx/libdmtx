@@ -79,8 +79,10 @@ namespace LibDmtx {
                     result[i] = new DmtxDecoded();
                     result[i].Corners = intResult.Corners;
                     result[i].SymbolInfo = intResult.SymbolInfo;
-                    result[i].Data = Marshal.PtrToStringAnsi(
-                        intResult.Data, (int)intResult.DataSize);
+                    result[i].Data = new byte[intResult.DataSize];
+                    for (int dataIdx = 0; dataIdx < intResult.DataSize; dataIdx++) {
+                        result[i].Data[dataIdx] = Marshal.ReadByte(intResult.Data, dataIdx);
+                    }
                     accResult = (IntPtr)((long)accResult + Marshal.SizeOf(intResult));
                 }
             } catch (Exception ex) {
@@ -95,15 +97,13 @@ namespace LibDmtx {
             return result;
         }
 
-        public static DmtxEncoded Encode(String s, EncodeOptions options) {
+        public static DmtxEncoded Encode(byte[] data, EncodeOptions options) {
             IntPtr result;
             byte status;
             try {
-                System.Text.ASCIIEncoding ascii = new System.Text.ASCIIEncoding();
-                byte[] bytes = ascii.GetBytes(s);
                 status = DmtxEncode(
-                    bytes,
-                    (UInt16)bytes.Length,
+                    data,
+                    (UInt16)data.Length,
                     out result,
                     options);
             } catch (Exception ex) {
@@ -316,7 +316,7 @@ namespace LibDmtx {
     public class DmtxDecoded {
         public SymbolInfo SymbolInfo;
         public Corners Corners;
-        public string Data;
+        public byte[] Data;
     }
 
     [StructLayout(LayoutKind.Sequential)]
