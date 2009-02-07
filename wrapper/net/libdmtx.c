@@ -283,13 +283,10 @@ dmtx_copy_encode_result(const DmtxEncode *enc,
 	dmtx_uint32_t width = dmtxImageGetProp(enc->image, DmtxPropWidth);
 	dmtx_uint32_t height = dmtxImageGetProp(enc->image, DmtxPropHeight);
 
-	if (width == stride)
-		memcpy((void *) bitmap, enc->image->pxl, stride * height);
-	else
-		for (i = 0; i < height; i++)
-			memcpy((void *) (bitmap + i * stride),
-			enc->image->pxl + i * 3 * width,
-			3 * width);
+	for (i = 0; i < height; i++)
+		memcpy((void *) (bitmap + (height-i-1) * stride),
+		enc->image->pxl + i * 3 * width,
+		3 * width);
 }
 
 DMTX_EXTERN void
