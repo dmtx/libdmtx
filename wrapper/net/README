@@ -1,9 +1,9 @@
 README for libdmtx-net version 0.6.1 - January 30, 2009
 -----------------------------------------------------------------
 
-libdmtx-net a .NET wrapper for libdmtx that was written by
-Tomas Valenta and is distributed as part of the libdmtx
-package.
+libdmtx-net a .NET wrapper for libdmtx that was originally
+written by Tomas Valenta, currently maintained by Joseph Ferner 
+and is distributed as part of the libdmtx package.
 
 
 1. libdmtx Installation
@@ -44,14 +44,16 @@ some overhead.
 LibDmtx.DecodeOptions o = new LibDmtx.DecodeOptions();
 Bitmap b = new Bitmap(@"bitmap.png");
 LibDmtx.DmtxDecoded[] res = LibDmtx.Decode(b, o);
-for (uint i = 0; i < res.Length; i++)
-	Console.WriteLine("Code " + i + ": " +
-		res[i].data);
+for (uint i = 0; i < res.Length; i++) {
+	string str = Encoding.ASCII.GetString(res[i].Data).TrimEnd('\0');
+	Console.WriteLine("Code " + i + ": " + str);
+}
 
 4.2. Encoding
 -----------------------------------------------------------------
 LibDmtx.EncodeOptions o = new LibDmtx.EncodeOptions();
-LibDmtx.DmtxEncoded en = LibDmtx.Encode("Hello World!", o);
+byte[] dataToEncode = Encoding.ASCII.GetBytes("Hello World!");
+LibDmtx.DmtxEncoded en = LibDmtx.Encode(dataToEncode, o);
 pictureBox1.Image = en.bitmap;
 
 4.3. More Information
