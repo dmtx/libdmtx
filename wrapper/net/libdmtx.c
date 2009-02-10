@@ -25,6 +25,7 @@ Contact: libdmtx@fernsroth.com
 #include "libdmtx.h"
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 DMTX_EXTERN unsigned char
 dmtx_decode(const void *rgb_image,
@@ -52,7 +53,7 @@ dmtx_decode(const void *rgb_image,
 	img = dmtxImageCreate(
 		(unsigned char *) rgb_image,
 		(int) width, (int) height,
-		24, DmtxPackRGB, DmtxFlipY);
+		24, DmtxPackRGB);
 	if (img == NULL) return DMTX_RETURN_NO_MEMORY;
 
 	// Apply options
