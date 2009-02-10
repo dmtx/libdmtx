@@ -76,11 +76,22 @@
     <EmbeddedResource Include="TestImages\Test001.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
+
+  <ItemGroup>
+    <BeforeBuildCopyItem Include="$(SolutionDir)..\..\project\visualc9\$(ConfigurationName)\*.dll">
+      <InProject>false</InProject>
+    </BeforeBuildCopyItem>
+    <BeforeBuildCopyItem Include="$(SolutionDir)..\..\project\visualc9\$(ConfigurationName)\*.pdb">
+      <InProject>false</InProject>
+    </BeforeBuildCopyItem>
+    <BeforeBuildCopyItem Include="$(SolutionDir)..\..\project\visualc9\$(ConfigurationName)\*.exe">
+      <InProject>false</InProject>
+    </BeforeBuildCopyItem>
+  </ItemGroup>
   <Target Name="BeforeBuild">
+    <Error Text="You must build libdmtx C project first. Trying to copy files from '$(SolutionDir)..\..\project\visualc9\$(ConfigurationName)\'" Condition="!Exists('$(SolutionDir)..\..\project\visualc9\$(ConfigurationName)\libdmtx.dll')" />
+    <Copy SourceFiles="@(BeforeBuildCopyItem)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
   </Target>
   <Target Name="AfterBuild">
   </Target>
-  -->
 </Project>
