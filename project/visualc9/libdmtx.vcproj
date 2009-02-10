@@ -40,6 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				AdditionalIncludeDirectories="..\.."
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -112,6 +113,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="..\.."
 				RuntimeLibrary="2"
 				StructMemberAlignment="4"
 				EnableFunctionLevelLinking="true"
@@ -172,6 +174,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\wrapper\net\libdmtx.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\libdmtx.def"
 				>
 			</File>
@@ -183,6 +189,10 @@
 			>
 			<File
 				RelativePath="..\..\dmtx.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\wrapper\net\libdmtx.h"
 				>
 			</File>
 		</Filter>
