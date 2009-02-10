@@ -61,8 +61,8 @@ dmtxDecodeCreate(DmtxImage *img)
    img->yMin = img->yMinScaled = 0;
    img->yMax = img->yMaxScaled = img->height - 1;
 
-   dec->edgeMin = -1;
-   dec->edgeMax = -1;
+   dec->edgeMin = DmtxUndefined;
+   dec->edgeMax = DmtxUndefined;
    dec->scanGap = 1;
    dec->squareDevn = cos(50 * (M_PI/180));
    dec->sizeIdxExpected = DmtxSymbolShapeAuto;
@@ -210,7 +210,7 @@ dmtxDecodeGetProp(DmtxDecode *dec, int prop)
          return dec->shrinkMax;
    }
 
-   return -1;
+   return DmtxUndefined;
 }
 
 /**
@@ -229,7 +229,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
    DmtxMessage *msg;
    DmtxVector2 p;
 
-   msg = dmtxMessageCreate(reg->sizeIdx, DMTX_FORMAT_MATRIX);
+   msg = dmtxMessageCreate(reg->sizeIdx, DmtxFormatMatrix);
    if(msg == NULL)
       return NULL;
 
@@ -239,7 +239,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
    }
 
    ModulePlacementEcc200(msg->array, msg->code,
-         reg->sizeIdx, DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE);
+         reg->sizeIdx, DmtxModuleOnRed | DmtxModuleOnGreen | DmtxModuleOnBlue);
 
    if(DecodeCheckErrors(msg->code, reg->sizeIdx, fix) != DmtxPass) {
       dmtxMessageDestroy(&msg);
@@ -257,7 +257,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
          if(p.X >= -0.1 && p.X <= 1.1 && p.Y >= -0.1 && p.Y <= 1.1) {
 
             offset = dmtxImageGetPixelOffset(dec->image, col, row);
-            if(offset == DMTX_BAD_OFFSET)
+            if(offset == DmtxUndefined)
                continue;
             else
                dec->cache[offset] |= 0x80; /* Mark as visited */
@@ -288,7 +288,7 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, reg->sizeIdx);
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, reg->sizeIdx);
 
-   msg = dmtxMessageCreate(reg->sizeIdx, DMTX_FORMAT_MOSAIC);
+   msg = dmtxMessageCreate(reg->sizeIdx, DmtxFormatMosaic);
    if(msg == NULL)
       return NULL;
 
@@ -303,7 +303,7 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
       return NULL;
    }
 
-   ModulePlacementEcc200(msg->array, rMesg.code, reg->sizeIdx, DMTX_MODULE_ON_RED);
+   ModulePlacementEcc200(msg->array, rMesg.code, reg->sizeIdx, DmtxModuleOnRed);
    if(DecodeCheckErrors(rMesg.code, reg->sizeIdx, fix) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
@@ -311,9 +311,9 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 
    for(row = 0; row < mappingRows; row++)
       for(col = 0; col < mappingCols; col++)
-         msg->array[row*mappingCols+col] &= (0xff ^ DMTX_MODULE_VISITED);
+         msg->array[row*mappingCols+col] &= (0xff ^ DmtxModuleVisited);
 
-   ModulePlacementEcc200(msg->array, gMesg.code, reg->sizeIdx, DMTX_MODULE_ON_GREEN);
+   ModulePlacementEcc200(msg->array, gMesg.code, reg->sizeIdx, DmtxModuleOnGreen);
    if(DecodeCheckErrors(gMesg.code, reg->sizeIdx, fix) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
@@ -321,9 +321,9 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 
    for(row = 0; row < mappingRows; row++)
       for(col = 0; col < mappingCols; col++)
-         msg->array[row*mappingCols+col] &= (0xff ^ DMTX_MODULE_VISITED);
+         msg->array[row*mappingCols+col] &= (0xff ^ DmtxModuleVisited);
 
-   ModulePlacementEcc200(msg->array, bMesg.code, reg->sizeIdx, DMTX_MODULE_ON_BLUE);
+   ModulePlacementEcc200(msg->array, bMesg.code, reg->sizeIdx, DmtxModuleOnBlue);
    if(DecodeCheckErrors(bMesg.code, reg->sizeIdx, fix) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
@@ -829,11 +829,11 @@ PopulateArrayFromMatrix(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
                idx = (rowTmp * xRegionTotal * mapWidth) + colTmp;
 
                if(tally[mapRow][mapCol]/(double)weightFactor >= 0.5)
-                  msg->array[idx] = DMTX_MODULE_ON_RGB;
+                  msg->array[idx] = DmtxModuleOnRGB;
                else
-                  msg->array[idx] = DMTX_MODULE_OFF;
+                  msg->array[idx] = DmtxModuleOff;
 
-               msg->array[idx] |= DMTX_MODULE_ASSIGNED;
+               msg->array[idx] |= DmtxModuleAssigned;
             }
          }
       }
@@ -912,7 +912,7 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
       color = ReadModuleColor(img, reg, symbolRow, symbolCol, reg->sizeIdx);
       tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
-      statusModule = (travelStep == 1 || (*line & 0x01) == 0) ? DMTX_MODULE_ON_RGB : DMTX_MODULE_OFF;
+      statusModule = (travelStep == 1 || (*line & 0x01) == 0) ? DmtxModuleOnRGB : DmtxModuleOff;
 
       weight = extent;
 
@@ -927,24 +927,24 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
          color = ReadModuleColor(img, reg, symbolRow, symbolCol, reg->sizeIdx);
          tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
-         if(statusPrev == DMTX_MODULE_ON_RGB) {
+         if(statusPrev == DmtxModuleOnRGB) {
             if(tModule < tPrev - jumpThreshold)
-               statusModule = DMTX_MODULE_OFF;
+               statusModule = DmtxModuleOff;
             else
-               statusModule = DMTX_MODULE_ON_RGB;
+               statusModule = DmtxModuleOnRGB;
          }
-         else if(statusPrev == DMTX_MODULE_OFF) {
+         else if(statusPrev == DmtxModuleOff) {
             if(tModule > tPrev + jumpThreshold)
-               statusModule = DMTX_MODULE_ON_RGB;
+               statusModule = DmtxModuleOnRGB;
             else
-               statusModule = DMTX_MODULE_OFF;
+               statusModule = DmtxModuleOff;
          }
 
          mapRow = symbolRow - yOrigin;
          mapCol = symbolCol - xOrigin;
          assert(mapRow < 24 && mapCol < 24);
 
-         if(statusModule == DMTX_MODULE_ON_RGB)
+         if(statusModule == DmtxModuleOnRGB)
             tally[mapRow][mapCol] += (2 * weight);
 
          weight--;
@@ -992,15 +992,15 @@ PopulateArrayFromMosaic(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
          /* Value has been assigned, but not visited */
 /*       if(color.R < 50) this is broken for the moment */
          if(color < 50)
-            msg->array[row*reg->mappingCols+col] |= DMTX_MODULE_ON_RED;
+            msg->array[row*reg->mappingCols+col] |= DmtxModuleOnRed;
 /*       if(color.G < 50) this is broken for the moment */
          if(color < 50)
-            msg->array[row*reg->mappingCols+col] |= DMTX_MODULE_ON_GREEN;
+            msg->array[row*reg->mappingCols+col] |= DmtxModuleOnGreen;
 /*       if(color.B < 50) this is broken for the moment */
          if(color < 50)
-            msg->array[row*reg->mappingCols+col] |= DMTX_MODULE_ON_BLUE;
+            msg->array[row*reg->mappingCols+col] |= DmtxModuleOnBlue;
 
-         msg->array[row*reg->mappingCols+col] |= DMTX_MODULE_ASSIGNED;
+         msg->array[row*reg->mappingCols+col] |= DmtxModuleAssigned;
       }
    }
 

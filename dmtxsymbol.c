@@ -90,8 +90,8 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
                                                                34,  31,  31,
                                                    3,  5,  7,   9,  12,  14 };
 
-   if(sizeIdx < 0 || sizeIdx >= DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT)
-      return -1;
+   if(sizeIdx < 0 || sizeIdx >= DmtxSymbolSquareCount + DmtxSymbolRectCount)
+      return DmtxUndefined;
 
    switch(attribute) {
       case DmtxSymAttribSymbolRows:
@@ -105,9 +105,10 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
       case DmtxSymAttribHorizDataRegions:
          return horizDataRegions[sizeIdx];
       case DmtxSymAttribVertDataRegions:
-         return (sizeIdx < DMTX_SYMBOL_SQUARE_COUNT) ? horizDataRegions[sizeIdx] : 1;
+         return (sizeIdx < DmtxSymbolSquareCount) ? horizDataRegions[sizeIdx] : 1;
       case DmtxSymAttribMappingMatrixRows:
-         return dataRegionRows[sizeIdx] * dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, sizeIdx);
+         return dataRegionRows[sizeIdx] *
+               dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, sizeIdx);
       case DmtxSymAttribMappingMatrixCols:
          return dataRegionCols[sizeIdx] * horizDataRegions[sizeIdx];
       case DmtxSymAttribInterleavedBlocks:
@@ -124,7 +125,7 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
          return blockMaxCorrectable[sizeIdx] * interleavedBlocks[sizeIdx];
    }
 
-   return -1;
+   return DmtxUndefined;
 }
 
 /**
@@ -145,7 +146,7 @@ dmtxGetBlockDataSize(int sizeIdx, int blockIdx)
    count = (int)(symbolDataWords/interleavedBlocks);
 
    if(symbolDataWords < 1 || interleavedBlocks < 1)
-      return -1;
+      return DmtxUndefined;
 
    return (sizeIdx == DmtxSymbol144x144 && blockIdx < 8) ? count + 1 : count;
 }
@@ -154,7 +155,7 @@ dmtxGetBlockDataSize(int sizeIdx, int blockIdx)
  * @brief  Determine symbol size based on data size and requested properties
  * @param  dataWords
  * @param  sizeIdxRequest
- * @return Symbol size index (or -1 if none)
+ * @return Symbol size index (or DmtxUndefined if none)
  */
 static int
 FindCorrectSymbolSize(int dataWords, int sizeIdxRequest)
@@ -163,17 +164,17 @@ FindCorrectSymbolSize(int dataWords, int sizeIdxRequest)
    int idxBeg, idxEnd;
 
    if(dataWords <= 0)
-      return -1;
+      return DmtxUndefined;
 
    if(sizeIdxRequest == DmtxSymbolSquareAuto || sizeIdxRequest == DmtxSymbolRectAuto) {
 
       if(sizeIdxRequest == DmtxSymbolSquareAuto) {
          idxBeg = 0;
-         idxEnd = DMTX_SYMBOL_SQUARE_COUNT;
+         idxEnd = DmtxSymbolSquareCount;
       }
       else {
-         idxBeg = DMTX_SYMBOL_SQUARE_COUNT;
-         idxEnd = DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT;
+         idxBeg = DmtxSymbolSquareCount;
+         idxEnd = DmtxSymbolSquareCount + DmtxSymbolRectCount;
       }
 
       for(sizeIdx = idxBeg; sizeIdx < idxEnd; sizeIdx++) {
@@ -182,14 +183,14 @@ FindCorrectSymbolSize(int dataWords, int sizeIdxRequest)
       }
 
       if(sizeIdx == idxEnd)
-         return -1;
+         return DmtxUndefined;
    }
    else {
       sizeIdx = sizeIdxRequest;
    }
 
    if(dataWords > dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx))
-      return -1;
+      return DmtxUndefined;
 
    return sizeIdx;
 }

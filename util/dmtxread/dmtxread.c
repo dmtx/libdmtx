@@ -76,7 +76,7 @@ main(int argc, char *argv[])
          FatalError(EX_OSERR, "Magick error");
       }
 
-      if(opt.dpi != -1) {
+      if(opt.dpi != DmtxUndefined) {
          success = MagickSetResolution(wand, (double)opt.dpi, (double)opt.dpi);
          if(success == MagickFalse) {
             CleanupMagick(&wand, DmtxTrue);
@@ -102,11 +102,11 @@ main(int argc, char *argv[])
       for(imgPageIndex = 0; MagickNextImage(wand) != MagickFalse; imgPageIndex++) {
 
          /* If requested, only scan specific page */
-         if(opt.page != -1 && opt.page - 1 != imgPageIndex)
+         if(opt.page != DmtxUndefined && opt.page - 1 != imgPageIndex)
             continue;
 
          /* Reset timeout for each new page */
-         if(opt.timeoutMS != -1)
+         if(opt.timeoutMS != DmtxUndefined)
             timeout = dmtxTimeAdd(dmtxTimeNow(), opt.timeoutMS);
 
          /* Allocate memory for pixel data */
@@ -147,7 +147,7 @@ main(int argc, char *argv[])
          pageScanCount = 0;
          for(;;) {
             /* Find next barcode region within image, but do not decode yet */
-            if(opt.timeoutMS == -1)
+            if(opt.timeoutMS == DmtxUndefined)
                reg = dmtxRegionFindNext(dec, NULL);
             else
                reg = dmtxRegionFindNext(dec, &timeout);
@@ -173,7 +173,7 @@ main(int argc, char *argv[])
 
             dmtxRegionDestroy(&reg);
 
-            if(opt.stopAfter != -1 && imageScanCount >= opt.stopAfter)
+            if(opt.stopAfter != DmtxUndefined && imageScanCount >= opt.stopAfter)
                break;
          }
 
@@ -206,24 +206,24 @@ GetDefaultOptions(void)
 
    /* Default options */
    opt.codewords = DmtxFalse;
-   opt.edgeMin = -1;
-   opt.edgeMax = -1;
-   opt.squareDevn = -1;
+   opt.edgeMin = DmtxUndefined;
+   opt.edgeMax = DmtxUndefined;
+   opt.squareDevn = DmtxUndefined;
    opt.scanGap = 2;
-   opt.timeoutMS = -1;
+   opt.timeoutMS = DmtxUndefined;
    opt.newline = DmtxFalse;
-   opt.page = -1;
-   opt.dpi = -1;
+   opt.page = DmtxUndefined;
+   opt.dpi = DmtxUndefined;
    opt.sizeIdxExpected = DmtxSymbolShapeAuto;
    opt.edgeThresh = 5;
    opt.xMin = NULL;
    opt.xMax = NULL;
    opt.yMin = NULL;
    opt.yMax = NULL;
-   opt.correctionsMax = -1;
+   opt.correctionsMax = DmtxUndefined;
    opt.diagnose = DmtxFalse;
    opt.mosaic = DmtxFalse;
-   opt.stopAfter = -1;
+   opt.stopAfter = DmtxUndefined;
    opt.pageNumbers = DmtxFalse;
    opt.corners = DmtxFalse;
    opt.shrinkMin = 1;
@@ -351,13 +351,13 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
                opt->sizeIdxExpected = DmtxSymbolRectAuto;
             }
             else {
-               for(i = 0; i < DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT; i++) {
+               for(i = 0; i < DmtxSymbolSquareCount + DmtxSymbolRectCount; i++) {
                   if(strncmp(optarg, symbolSizes[i], 8) == 0) {
                      opt->sizeIdxExpected = i;
                      break;
                   }
                }
-               if(i == DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT)
+               if(i == DmtxSymbolSquareCount + DmtxSymbolRectCount)
                   return DmtxFail;
             }
             break;
@@ -411,7 +411,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             /* XXX later also popular shrinkMin based on N-N range */
             break;
          case 'V':
-            fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
+            fprintf(stdout, "%s version %s\n", programName, DmtxVersion);
             fprintf(stdout, "libdmtx version %s\n", dmtxVersion());
             exit(EX_OK);
             break;
@@ -502,17 +502,17 @@ SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt)
    err = dmtxDecodeSetProp(dec, DmtxPropScanGap, opt->scanGap);
    RETURN_IF_FAILED(err)
 
-   if(opt->edgeMin != -1) {
+   if(opt->edgeMin != DmtxUndefined) {
       err = dmtxDecodeSetProp(dec, DmtxPropEdgeMin, opt->edgeMin);
       RETURN_IF_FAILED(err)
    }
 
-   if(opt->edgeMax != -1) {
+   if(opt->edgeMax != DmtxUndefined) {
       err = dmtxDecodeSetProp(dec, DmtxPropEdgeMax, opt->edgeMax);
       RETURN_IF_FAILED(err)
    }
 
-   if(opt->squareDevn != -1) {
+   if(opt->squareDevn != DmtxUndefined) {
       err = dmtxDecodeSetProp(dec, DmtxPropSquareDevn, opt->squareDevn);
       RETURN_IF_FAILED(err)
    }
@@ -731,7 +731,7 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
       for(col = 0; col < width; col++) {
 
          offset = dmtxImageGetPixelOffset(dec->image, col, row);
-         if(offset == DMTX_BAD_OFFSET) {
+         if(offset == DmtxUndefined) {
             rgb[0] = 0;
             rgb[1] = 0;
             rgb[2] = 128;

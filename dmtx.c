@@ -86,5 +86,5 @@ Contact: mike@dragonflylogic.com
 extern char *
 dmtxVersion(void)
 {
-   return DMTX_VERSION;
+   return DmtxVersion;
 }

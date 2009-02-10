@@ -43,6 +43,7 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
   o libdmtx:   Implement structured append symbols
   o libdmtx:   Finalize storage location for image scaling factor (probably decode)
+  o dmtxread:  Flatten deeply nested loops in main()
   o dmtxread:  Add true scan timings that factor in linking, startup, image load
   o dmtxwrite: Use Magick to write images of major vector formats
   o dmtxquery: Write XML for dmtxquery consumption
@@ -53,10 +54,10 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
 
 version 0.7.0: (planned XX-Feb-2009)
 FOCUS: API cleanup, custom pixel packing
-  o libdmtx:   Add named constant for "-1" passed to dmtxDecodeMatrixRegion(), and bad offset
   o libdmtx:   Fix 64b->32b int assignment warnings
   o libdmtx:   Add dmtxMessageGetOutput() function if necessary (dmtxmessage.c and libdmtx.def)
 $ o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
+  / libdmtx:   Add named constant for "-1" undefined fixes, offset, etc...
   x libdmtx:   Take DmtxFlip parameter out of dmtxImageCreate()
   x libdmtx:   Switch DmtxFlipNone represent top-down row order
   x libdmtx:   Add dmtxEncodeSetProp() and dmtxEncodeGetProp()
@@ -68,7 +69,6 @@ $ o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
   x libdmtx:   Change all major types to use Create() and Destroy() convention
-  o dmtxread:  Flatten deeply nested loops in main()
   x dmtxread:  Fix misrepresented capacity in verbose mode
   x dmtxwrite: Use Magick to write images of major raster formats
   x dmtxwrite: Bad option should give short "invalid option -- N; --help for more"
@@ -76,7 +76,7 @@ $ o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
   x wrapper:   New Java wrapper (thanks Pete!)
   x wrapper:   New .NET wrapper (thanks Vali!)
-  o project:   Updated all documentation to reflect API changes
+  o project:   Update all documentation to reflect API changes
   o project:   Add comment to wiki pages that points to source README
 $ o project:   Figure out earliest usable Magick version for configure.ac
   x project:   Clean up test utils use of "dmtx.h" vs <dmtx.h> and dmtx.c

@@ -29,6 +29,10 @@ Contact: mblaughton@users.sourceforge.net
 #include "image.h"
 #include "dmtx.h"
 
+#define DMTX_DISPLAY_SQUARE            1
+#define DMTX_DISPLAY_POINT             2
+#define DMTX_DISPLAY_CIRCLE            3
+
 /**
  *
  *
@@ -396,7 +400,7 @@ void FinalCallback(DmtxDecode *decode, DmtxRegion *region)
    for(row = 0; row < symbolRows; row++) {
       for(col = 0; col < symbolCols; col++) {
 /*       moduleStatus = dmtxSymbolModuleStatus(message, region->sizeIdx, row, col); */
-         PlotModuleCallback(decode, region, row, col, (moduleStatus & DMTX_MODULE_ON_RGB) ? 1 : 0);
+         PlotModuleCallback(decode, region, row, col, (moduleStatus & DmtxModuleOnRGB) ? 1 : 0);
       }
    }
 }

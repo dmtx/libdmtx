@@ -248,13 +248,13 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
                opt->sizeIdx = DmtxSymbolRectAuto;
             }
             else {
-               for(i = 0; i < DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT; i++) {
+               for(i = 0; i < DmtxSymbolSquareCount + DmtxSymbolRectCount; i++) {
                   if(strncmp(optarg, symbolSizes[i], 8) == 0) {
                      opt->sizeIdx = i;
                      break;
                   }
                }
-               if(i == DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT)
+               if(i == DmtxSymbolSquareCount + DmtxSymbolRectCount)
                   return DmtxFail;
             }
             break;
@@ -282,7 +282,7 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
             opt->verbose = DmtxTrue;
             break;
          case 'V':
-            fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
+            fprintf(stdout, "%s version %s\n", programName, DmtxVersion);
             fprintf(stdout, "libdmtx version %s\n", dmtxVersion());
             exit(0);
             break;
@@ -519,9 +519,6 @@ static void
 WriteAsciiPreview(DmtxEncode *enc)
 {
    int symbolRow, symbolCol;
-   int moduleOnAll;
-
-   moduleOnAll = DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE;
 
    fputc('\n', stdout);
 
@@ -530,8 +527,8 @@ WriteAsciiPreview(DmtxEncode *enc)
 
       fputs("    ", stdout);
       for(symbolCol = 0; symbolCol < enc->region.symbolCols; symbolCol++) {
-         fputs((dmtxSymbolModuleStatus(enc->message, enc->region.sizeIdx, symbolRow, symbolCol) &
-               moduleOnAll) ? "XX" : "  ", stdout);
+         fputs((dmtxSymbolModuleStatus(enc->message, enc->region.sizeIdx,
+               symbolRow, symbolCol) & DmtxModuleOnRGB) ? "XX" : "  ", stdout);
       }
       fputs("\n", stdout);
    }

@@ -30,7 +30,7 @@ Contact: mike@dragonflylogic.com
 /**
  * @brief  Allocate memory for message
  * @param  sizeIdx
- * @param  symbolFormat DMTX_FORMAT_MATRIX | DMTX_FORMAT_MOSAIC
+ * @param  symbolFormat DmtxFormatMatrix | DmtxFormatMosaic
  * @return Address of allocated memory
  */
 extern DmtxMessage *
@@ -39,7 +39,7 @@ dmtxMessageCreate(int sizeIdx, int symbolFormat)
    DmtxMessage *message;
    int mappingRows, mappingCols;
 
-   assert(symbolFormat == DMTX_FORMAT_MATRIX || symbolFormat == DMTX_FORMAT_MOSAIC);
+   assert(symbolFormat == DmtxFormatMatrix || symbolFormat == DmtxFormatMosaic);
 
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdx);
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
@@ -61,7 +61,7 @@ dmtxMessageCreate(int sizeIdx, int symbolFormat)
          dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) +
          dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, sizeIdx);
 
-   if(symbolFormat == DMTX_FORMAT_MOSAIC)
+   if(symbolFormat == DmtxFormatMosaic)
       message->codeSize *= 3;
 
    message->code = (unsigned char *)calloc(message->codeSize, sizeof(unsigned char));

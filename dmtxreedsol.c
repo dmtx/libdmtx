@@ -141,7 +141,7 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
       free_rs_char(&rs);
    }
 
-   if(fix >= 0 && fixedErrSum > fix)
+   if(fix != DmtxUndefined && fix >= 0 && fix < fixedErrSum)
       return DmtxFail;
 
    return DmtxPass;

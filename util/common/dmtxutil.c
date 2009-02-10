@@ -44,7 +44,7 @@ StringToInt(int *numberInt, char *numberString, char **terminate)
    long numberLong;
 
    if(!isdigit(*numberString)) {
-      *numberInt = -1;
+      *numberInt = DmtxUndefined;
       return DmtxFail;
    }
 
@@ -55,7 +55,7 @@ StringToInt(int *numberInt, char *numberString, char **terminate)
       (*terminate)++;
 
    if(errno != 0 || (**terminate != '\0' && **terminate != '%')) {
-      *numberInt = -1;
+      *numberInt = DmtxUndefined;
       return DmtxFail;
    }
 

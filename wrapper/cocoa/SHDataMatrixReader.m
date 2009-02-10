@@ -86,7 +86,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 			break;
 
 		// Decode region based on requested scan mode.
-		dmtxMessage = dmtxDecodeMatrixRegion(dmtxDecode, dmtxRegion, -1);
+		dmtxMessage = dmtxDecodeMatrixRegion(dmtxDecode, dmtxRegion, DmtxUndefined);
 
 		if(dmtxMessage != NULL) {
 			// Convert C string to NSString.

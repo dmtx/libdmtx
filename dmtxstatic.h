@@ -30,8 +30,8 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTXSTATIC_H__
 #define __DMTXSTATIC_H__
 
-#define DMTX_ALMOST_ZERO               0.000001
-#define DMTX_ALMOST_INFINITY          -1
+#define DmtxAlmostZero                 0.000001
+#define DmtxAlmostInfinity            -1
 
 #undef min
 #define min(X,Y) (((X) < (Y)) ? (X) : (Y))
@@ -194,7 +194,7 @@ static int FindCorrectSymbolSize(int dataWords, int symbolShape);
 static const int dmtxNeighborNone = 8;
 static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };
 static const int dmtxPatternY[] = { -1, -1, -1,  0,  1,  1,  1,  0 };
-static const DmtxPointFlow dmtxBlankEdge = { 0, 0, 0, -1, { -1, -1 } };
+static const DmtxPointFlow dmtxBlankEdge = { 0, 0, 0, DmtxUndefined, { -1, -1 } };
 
 /*@ +charint @*/
 

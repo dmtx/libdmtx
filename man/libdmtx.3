@@ -7,35 +7,35 @@
 .\"
 .TH LIBDMTX 3 "November 23, 2008"
 .SH NAME
-libdmtx \- Data Matrix Encoder/Decoder Library 0.6.1
+libdmtx \- Data Matrix Encoding & Decoding Library 0.6.1
 .SH SYNOPSIS
 \fB#include <dmtx.h>\fP
 
 cc file.c -ldmtx
 
 .SH DESCRIPTION
-\fIlibdmtx\fP is a shared library that enables programs to read and write ECC200 Data Matrix barcodes. The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP serve as the official interface to libdmtx from the command line, and also provide a good reference for programmers who wish to write their own programs that interact with libdmtx.
+\fIlibdmtx\fP is a software library that enables programs to read and write ECC200 Data Matrix barcodes. The library runs natively on a number of computer platforms, and can be accessed by multiple languages through the use of provided language wrappers. The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP provide a command line interface for libdmtx, and serve as a good reference for programmers writing their own programs that use libdmtx.
 
-Data Matrix barcodes are two dimensional patterns that resemble a checkerboard in appearance, and hold a high density of data with built-in error correction. They can exist in either square or rectangular configurations, and support several different encodation schemes for optimized storage of binary and text data. The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
+Data Matrix barcodes are two dimensional patterns that resemble a checkerboard in appearance, and hold a high density of data with built-in error correction. They can exist in either square or rectangle configurations, and support several different encodation schemes for optimized storage of text and binary data. The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
 
 .SH ENCODING - Generating Data Matrix Barcodes
-libdmtx provides a simple set of functions for encoding. The following steps will produce an image that holds a Data Matrix barcode with the specified message.
+A program can generate barcodes with just a few basic calls to libdmtx. The following steps will produce a barcode image stored in memory:
 
-1. Call \fBdmtxEncodeStructInit()\fP
+1. Call \fBdmtxEncodeCreate()\fP
 
-Initializes the internal values of the encoding process. Must be called before any other encoding functions.
+This function creates a new DmtxEncode structure and initializes the encoding process. This function must be called before any other encoding functions, as the returned DmtxEncode structure will be used throughout.
 
-2. Call \fBdmtxEncodeSetProp()\fP
+2. Call \fBdmtxEncodeSetProp()\fP [optional]
 
-xxx
+The dmtxEncodeSetProp() function allows you to control several aspects of the encoding behavior. If this function is not called, libdmtx will use the default values set by dmtxEncodeCreate() above.
 
 3. Call either \fBdmtxEncodeDataMatrix()\fP or \fBdmtxEncodeDataMosaic()\fP
 
-Depending on the desired barcode format, the calling program will use one of these functions to generate a barcode image within the \fBDmtxEncode\fP struct. The calling program is responsible for using this information to create a permanent image file.
+Call one of these two functions to generate an image of the desired barcode type. The calling program is responsible for using this output to dispatch the information downstream, whether that means displaying it, writing a file, copying it elsewhere, etc...
 
 4. Call \fBdmtxEncodeDestroy()\fP
 
-Resets the internal encoding values and frees memory allocated during the encoding process.
+Releases the memory allocated during the encoding process.
 
 .SH DECODING - Reading Data Matrix Barcodes
 libdmtx provides a number of functions designed to provide maximum control and flexibility in the decoding process. The following steps first allocate memory for the image data held by the calling application. After the image data is captured, the remaining steps will find and decode the barcodes present in the image.
@@ -128,7 +128,7 @@ This example program (available as simple_test.c in the source package) demonstr
 
      reg = dmtxRegionFindNext(dec, NULL);
      if(reg != NULL) {
-        msg = dmtxDecodeMatrixRegion(dec, reg, -1);
+        msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
         if(msg != NULL) {
            fputs("output: \\"", stdout);
            fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);

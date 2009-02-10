@@ -70,7 +70,7 @@ main(int argc, char *argv[])
 
    reg = dmtxRegionFindNext(dec, NULL);
    if(reg != NULL) {
-      msg = dmtxDecodeMatrixRegion(dec, reg, -1);
+      msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
       if(msg != NULL) {
          fputs("output: \"", stdout);
          fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);

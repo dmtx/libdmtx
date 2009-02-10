@@ -197,7 +197,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, 
 
   while((lTagCount < aTagCount) && (lRegion = dmtxRegionFindNext(lDecode, &lTimeout))) {
     int lIntID;
-    DmtxMessage *lMessage = dmtxDecodeMatrixRegion(lDecode, lRegion, -1);
+    DmtxMessage *lMessage = dmtxDecodeMatrixRegion(lDecode, lRegion, DmtxUndefined);
 
     if(lMessage != NULL) {
       DmtxVector2  lCorner1, lCorner2, lCorner3, lCorner4;

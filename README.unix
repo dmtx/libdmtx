@@ -21,7 +21,8 @@ additional details that might benefit users on this platform.
 2. Known Issues
 -----------------------------------------------------------------
 
-libdmtx is known to have been compiled on the following flavors of Unix:
+libdmtx is known to have been compiled on the following flavors
+of Unix:
 
    * Solaris
    * HP-UX

@@ -102,7 +102,7 @@ HandleArgs(UserOptions *options, int *argcp, char **argvp[])
             ShowUsage(0);
             break;
          case 'V':
-            fprintf(stdout, "%s version %s\n", programName, DMTX_VERSION);
+            fprintf(stdout, "%s version %s\n", programName, DmtxVersion);
             fprintf(stdout, "libdmtx version %s\n", dmtxVersion());
             exit(0);
             break;

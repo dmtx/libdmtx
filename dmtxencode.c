@@ -168,7 +168,7 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
          return enc->scheme;
    }
 
-   return -1;
+   return DmtxUndefined;
 }
 
 /**
@@ -209,7 +209,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    enc->region.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
 
    /* Allocate memory for message and array */
-   enc->message = dmtxMessageCreate(sizeIdx, DMTX_FORMAT_MATRIX);
+   enc->message = dmtxMessageCreate(sizeIdx, DmtxFormatMatrix);
    enc->message->padCount = padCount;
    memcpy(enc->message->code, buf, dataWordCount);
 
@@ -219,7 +219,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    GenReedSolEcc(enc->message, enc->region.sizeIdx);
 
    /* Module placement in region */
-   ModulePlacementEcc200(enc->message->array, enc->message->code, enc->region.sizeIdx, DMTX_MODULE_ON_RGB);
+   ModulePlacementEcc200(enc->message->array, enc->message->code, enc->region.sizeIdx, DmtxModuleOnRGB);
 
    width = 2 * enc->marginSize + (enc->region.symbolCols * enc->moduleSize);
    height = 2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize);
@@ -285,14 +285,14 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
    /* Use 1/3 (floor) of dataWordCount establish first symbol size attempt */
    splitSizeIdxFirst = FindCorrectSymbolSize(tmpInputSize, sizeIdxRequest);
-   if(splitSizeIdxFirst == -1)
+   if(splitSizeIdxFirst == DmtxUndefined)
       return DmtxFail;
 
    /* Set the last possible symbol size for this symbol shape or specific size request */
    if(sizeIdxRequest == DmtxSymbolSquareAuto)
-      splitSizeIdxLast = DMTX_SYMBOL_SQUARE_COUNT - 1;
+      splitSizeIdxLast = DmtxSymbolSquareCount - 1;
    else if(sizeIdxRequest == DmtxSymbolRectAuto)
-      splitSizeIdxLast = DMTX_SYMBOL_SQUARE_COUNT + DMTX_SYMBOL_RECT_COUNT - 1;
+      splitSizeIdxLast = DmtxSymbolSquareCount + DmtxSymbolRectCount - 1;
    else
       splitSizeIdxLast = splitSizeIdxFirst;
 
@@ -349,27 +349,27 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, splitSizeIdxAttempt);
 
    memset(enc->message->array, 0x00, sizeof(unsigned char) * enc->region.mappingRows * enc->region.mappingCols);
-   ModulePlacementEcc200(enc->message->array, enc->message->code, enc->region.sizeIdx, DMTX_MODULE_ON_RED);
+   ModulePlacementEcc200(enc->message->array, enc->message->code, enc->region.sizeIdx, DmtxModuleOnRed);
 
    /* Data Mosaic will traverse this array multiple times -- reset
-      DMTX_MODULE_ASSIGNED and DMX_MODULE_VISITED bits before starting */
+      DmtxModuleAssigned and DMX_MODULE_VISITED bits before starting */
    for(row = 0; row < mappingRows; row++) {
       for(col = 0; col < mappingCols; col++) {
-         enc->message->array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
+         enc->message->array[row*mappingCols+col] &= (0xff ^ (DmtxModuleAssigned | DmtxModuleVisited));
       }
    }
 
-   ModulePlacementEcc200(enc->message->array, encGreen.message->code, enc->region.sizeIdx, DMTX_MODULE_ON_GREEN);
+   ModulePlacementEcc200(enc->message->array, encGreen.message->code, enc->region.sizeIdx, DmtxModuleOnGreen);
 
    /* Data Mosaic will traverse this array multiple times -- reset
-      DMTX_MODULE_ASSIGNED and DMX_MODULE_VISITED bits before starting */
+      DmtxModuleAssigned and DMX_MODULE_VISITED bits before starting */
    for(row = 0; row < mappingRows; row++) {
       for(col = 0; col < mappingCols; col++) {
-         enc->message->array[row*mappingCols+col] &= (0xff ^ (DMTX_MODULE_ASSIGNED | DMTX_MODULE_VISITED));
+         enc->message->array[row*mappingCols+col] &= (0xff ^ (DmtxModuleAssigned | DmtxModuleVisited));
       }
    }
 
-   ModulePlacementEcc200(enc->message->array, encBlue.message->code, enc->region.sizeIdx, DMTX_MODULE_ON_BLUE);
+   ModulePlacementEcc200(enc->message->array, encBlue.message->code, enc->region.sizeIdx, DmtxModuleOnBlue);
 
 /* dmtxEncodeStructDeInit(&encGreen);
    dmtxEncodeStructDeInit(&encBlue); */
@@ -419,7 +419,7 @@ EncodeDataCodewords(unsigned char *buf, unsigned char *inputString,
 
    /* parameter sizeIdx is requested value, returned sizeIdx is decision */
    *sizeIdx = FindCorrectSymbolSize(dataWordCount, *sizeIdx);
-   if(*sizeIdx == -1)
+   if(*sizeIdx == DmtxUndefined)
       return 0;
 
    return dataWordCount;
@@ -539,9 +539,9 @@ PrintPattern(DmtxEncode *enc)
 
          for(i = pixelRow; i < pixelRow + enc->moduleSize; i++) {
             for(j = pixelCol; j < pixelCol + enc->moduleSize; j++) {
-               rgb[0] = ((moduleStatus & DMTX_MODULE_ON_RED) != 0x00) ? 0 : 255;
-               rgb[1] = ((moduleStatus & DMTX_MODULE_ON_GREEN) != 0x00) ? 0 : 255;
-               rgb[2] = ((moduleStatus & DMTX_MODULE_ON_BLUE) != 0x00) ? 0 : 255;
+               rgb[0] = ((moduleStatus & DmtxModuleOnRed) != 0x00) ? 0 : 255;
+               rgb[1] = ((moduleStatus & DmtxModuleOnGreen) != 0x00) ? 0 : 255;
+               rgb[2] = ((moduleStatus & DmtxModuleOnBlue) != 0x00) ? 0 : 255;
 /*             dmtxImageSetRgb(enc->image, j, i, rgb); */
                dmtxImageSetPixelValue(enc->image, j, i, 0, rgb[0]);
                dmtxImageSetPixelValue(enc->image, j, i, 1, rgb[1]);
@@ -1370,7 +1370,7 @@ ProcessEndOfSymbolTriplet(DmtxChannel *channel, DmtxTriplet *triplet, int triple
 /* XXX this is broken -- what if someone asks for DmtxSymbolRectAuto or a specific sizeIdx? */
    sizeIdx = FindCorrectSymbolSize(currentByte + ((inputCount == 3) ? 2 : inputCount),
          DmtxSymbolSquareAuto);
-   /* XXX test for sizeIdx == -1 here */
+   /* XXX test for sizeIdx == DmtxUndefined here */
    remainingCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 
    /* XXX the big problem with all of these special cases is what if one of
@@ -1485,7 +1485,7 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
 
    currentByte = channel->currentLength/12;
    sizeIdx = FindCorrectSymbolSize(currentByte, DmtxSymbolSquareAuto);
-   /* XXX test for sizeIdx == -1 here */
+   /* XXX test for sizeIdx == DmtxUndefined here */
    symbolCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 
    /* Test for special case condition */

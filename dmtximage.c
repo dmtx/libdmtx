@@ -327,7 +327,7 @@ extern int
 dmtxImageGetProp(DmtxImage *img, int prop)
 {
    if(img == NULL)
-      return -1;
+      return DmtxUndefined;
 
    switch(prop) {
       case DmtxPropWidth:
@@ -366,7 +366,7 @@ dmtxImageGetProp(DmtxImage *img, int prop)
          return img->yMaxScaled;
    }
 
-   return -1;
+   return DmtxUndefined;
 }
 
 /**
@@ -385,7 +385,7 @@ dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
    assert(!(img->flip & DmtxFlipX)); /* not implemented */
 
    if(dmtxImageContainsInt(img, 0, x, y) == DmtxFalse)
-      return DMTX_BAD_OFFSET;
+      return DmtxUndefined;
 
    if(img->flip & DmtxFlipY)
       offset = img->scale * (y * img->width + x);
@@ -413,7 +413,7 @@ dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
    assert(channel < img->channelCount);
 
    offset = dmtxImageGetPixelOffset(img, x, y);
-   if(offset == DMTX_BAD_OFFSET)
+   if(offset == DmtxUndefined)
       return DmtxFail;
 
    switch(img->bitsPerChannel[channel]) {
@@ -460,7 +460,7 @@ dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value)
    assert(channel < img->channelCount);
 
    offset = dmtxImageGetPixelOffset(img, x, y);
-   if(offset == DMTX_BAD_OFFSET)
+   if(offset == DmtxUndefined)
       return DmtxFail;
 
    switch(img->bitsPerChannel[channel]) {

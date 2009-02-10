@@ -32,7 +32,7 @@ Contact: mike@dragonflylogic.com
  * DMTX_MODULE_ON / !DMTX_MODULE_ON (DMTX_MODULE_OFF)
  * DMTX_MODULE_ASSIGNED
  * DMTX_MODULE_VISITED
- * DMTX_MODULE_DATA / !DMTX_MODULE_DATA (DMTX_MODULE_ALIGNMENT)
+ * DmtxModuleData / !DmtxModuleData (DMTX_MODULE_ALIGNMENT)
  * row and col are expressed in symbol coordinates, so (0,0) is the intersection of the "L"
  */
 int
@@ -55,18 +55,18 @@ dmtxSymbolModuleStatus(DmtxMessage *message, int sizeIdx, int symbolRow, int sym
    /* Solid portion of alignment patterns */
    if(symbolRow % (dataRegionRows+2) == 0 ||
          symbolCol % (dataRegionCols+2) == 0)
-      return (DMTX_MODULE_ON_RGB | (!DMTX_MODULE_DATA));
+      return (DmtxModuleOnRGB | (!DmtxModuleData));
 
    /* Horinzontal calibration bars */
    if((symbolRow+1) % (dataRegionRows+2) == 0)
-      return (((symbolCol & 0x01) ? 0 : DMTX_MODULE_ON_RGB) | (!DMTX_MODULE_DATA));
+      return (((symbolCol & 0x01) ? 0 : DmtxModuleOnRGB) | (!DmtxModuleData));
 
    /* Vertical calibration bars */
    if((symbolCol+1) % (dataRegionCols+2) == 0)
-      return (((symbolRow & 0x01) ? 0 : DMTX_MODULE_ON_RGB) | (!DMTX_MODULE_DATA));
+      return (((symbolRow & 0x01) ? 0 : DmtxModuleOnRGB) | (!DmtxModuleData));
 
    /* Data modules */
-   return (message->array[mappingRow * mappingCols + mappingCol] | DMTX_MODULE_DATA);
+   return (message->array[mappingRow * mappingCols + mappingCol] | DmtxModuleData);
 }
 
 /**
@@ -83,7 +83,7 @@ ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int size
    int row, col, chr;
    int mappingRows, mappingCols;
 
-   assert(moduleOnColor & (DMTX_MODULE_ON_RED | DMTX_MODULE_ON_GREEN | DMTX_MODULE_ON_BLUE));
+   assert(moduleOnColor & (DmtxModuleOnRed | DmtxModuleOnGreen | DmtxModuleOnBlue));
 
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdx);
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
@@ -107,7 +107,7 @@ ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int size
       /* Sweep upward diagonally, inserting successive characters */
       do {
          if((row < mappingRows) && (col >= 0) &&
-               !(modules[row*mappingCols+col] & DMTX_MODULE_VISITED))
+               !(modules[row*mappingCols+col] & DmtxModuleVisited))
             PatternShapeStandard(modules, mappingRows, mappingCols, row, col, &(codewords[chr++]), moduleOnColor);
          row -= 2;
          col += 2;
@@ -118,7 +118,7 @@ ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int size
       /* Sweep downward diagonally, inserting successive characters */
       do {
          if((row >= 0) && (col < mappingCols) &&
-               !(modules[row*mappingCols+col] & DMTX_MODULE_VISITED))
+               !(modules[row*mappingCols+col] & DmtxModuleVisited))
             PatternShapeStandard(modules, mappingRows, mappingCols, row, col, &(codewords[chr++]), moduleOnColor);
          row += 2;
          col -= 2;
@@ -130,7 +130,7 @@ ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int size
 
    /* If lower righthand corner is untouched then fill in the fixed pattern */
    if(!(modules[mappingRows * mappingCols - 1] &
-         DMTX_MODULE_VISITED)) {
+         DmtxModuleVisited)) {
 
       modules[mappingRows * mappingCols - 1] |= moduleOnColor;
       modules[(mappingRows * mappingCols) - mappingCols - 2] |= moduleOnColor;
@@ -277,7 +277,7 @@ PlaceModule(unsigned char *modules, int mappingRows, int mappingCols, int row, i
    }
 
    /* If module has already been assigned then we are decoding the pattern into codewords */
-   if((modules[row*mappingCols+col] & DMTX_MODULE_ASSIGNED) != 0) {
+   if((modules[row*mappingCols+col] & DmtxModuleAssigned) != 0) {
       if((modules[row*mappingCols+col] & moduleOnColor) != 0)
          *codeword |= mask;
       else
@@ -288,8 +288,8 @@ PlaceModule(unsigned char *modules, int mappingRows, int mappingCols, int row, i
       if((*codeword & mask) != 0x00)
          modules[row*mappingCols+col] |= moduleOnColor;
 
-      modules[row*mappingCols+col] |= DMTX_MODULE_ASSIGNED;
+      modules[row*mappingCols+col] |= DmtxModuleAssigned;
    }
 
-   modules[row*mappingCols+col] |= DMTX_MODULE_VISITED;
+   modules[row*mappingCols+col] |= DmtxModuleVisited;
 }

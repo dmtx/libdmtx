@@ -48,34 +48,26 @@ extern "C" {
 #define M_PI_2     1.57079632679489661923
 #endif
 
-#define DMTX_VERSION                   "0.6.1"
+#define DmtxVersion              "0.6.1"
 
-#define DMTX_BAD_OFFSET               -1
+#define DmtxUndefined                 -1
 
-#define DMTX_STATUS_NOT_SCANNED        0
-#define DMTX_STATUS_VALID              1
-#define DMTX_STATUS_INVALID            2
+#define DmtxModuleOff               0x00
+#define DmtxModuleOnRed             0x01
+#define DmtxModuleOnGreen           0x02
+#define DmtxModuleOnBlue            0x04
+#define DmtxModuleOnRGB             0x07  /* OnRed | OnGreen | OnBlue */
+#define DmtxModuleOn                0x07
+#define DmtxModuleUnsure            0x08
+#define DmtxModuleAssigned          0x10
+#define DmtxModuleVisited           0x20
+#define DmtxModuleData              0x40
 
-#define DMTX_DISPLAY_SQUARE            1
-#define DMTX_DISPLAY_POINT             2
-#define DMTX_DISPLAY_CIRCLE            3
+#define DmtxFormatMatrix               0
+#define DmtxFormatMosaic               1
 
-#define DMTX_MODULE_OFF             0x00
-#define DMTX_MODULE_ON_RED          0x01
-#define DMTX_MODULE_ON_GREEN        0x02
-#define DMTX_MODULE_ON_BLUE         0x04
-#define DMTX_MODULE_ON_RGB          0x07  /* ON_RED | ON_GREEN | ON_BLUE */
-#define DMTX_MODULE_ON              0x07
-#define DMTX_MODULE_UNSURE          0x08
-#define DMTX_MODULE_ASSIGNED        0x10
-#define DMTX_MODULE_VISITED         0x20
-#define DMTX_MODULE_DATA            0x40
-
-#define DMTX_FORMAT_MATRIX             0
-#define DMTX_FORMAT_MOSAIC             1
-
-#define DMTX_SYMBOL_SQUARE_COUNT      24
-#define DMTX_SYMBOL_RECT_COUNT         6
+#define DmtxSymbolSquareCount         24
+#define DmtxSymbolRectCount            6
 
 #define DmtxPassFail unsigned int
 #define DmtxPass     1

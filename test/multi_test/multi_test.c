@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
          if(reg != NULL) {
 /*          WriteDiagnosticImage(dec, reg, "debug.pnm"); */
 
-            msg = dmtxDecodeMatrixRegion(dec, reg, -1);
+            msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
             if(msg != NULL) {
                fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
                fputc('\n', stdout);
@@ -325,7 +325,7 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
       for(col = 0; col < width; col++) {
 
          offset = dmtxImageGetPixelOffset(dec->image, col, row);
-         if(offset == DMTX_BAD_OFFSET) {
+         if(offset == DmtxUndefined) {
             rgb[0] = 0;
             rgb[1] = 0;
             rgb[2] = 128;
