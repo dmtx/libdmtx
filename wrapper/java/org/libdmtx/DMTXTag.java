@@ -2,6 +2,7 @@
 Java wrapper for libdmtx
 
 Copyright (C) 2009 Pete Calvert
+Copyright (C) 2009 Dikran Seropian
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -44,7 +45,7 @@ public class DMTXTag {
   /**
    * Simple constructor (saves a lot of JNI code)
    */
-  public DMTXTag(int aID, Point aCorner1, Point aCorner2, Point aCorner3, Point aCorner4) {
+  public DMTXTag(String aID, Point aCorner1, Point aCorner2, Point aCorner3, Point aCorner4) {
     id = aID;
     corner1 = aCorner1;
     corner2 = aCorner2;

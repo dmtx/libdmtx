@@ -2,6 +2,7 @@
 Java wrapper for libdmtx
 
 Copyright (C) 2009 Pete Calvert
+Copyright (C) 2009 Dikran Seropian
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -150,7 +151,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, 
   // Find constructors
   lTagConstructor = (*aEnv)->GetMethodID(
     aEnv, lTagClass, "<init>",
-    "(ILjava/awt/Point;Ljava/awt/Point;Ljava/awt/Point;Ljava/awt/Point;)V"
+    "(Ljava/lang/String;Ljava/awt/Point;Ljava/awt/Point;Ljava/awt/Point;Ljava/awt/Point;)V"
   );
 
   lPointConstructor = (*aEnv)->GetMethodID(aEnv, lPointClass, "<init>", "(II)V");
@@ -196,7 +197,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, 
   lTimeout = dmtxTimeAdd(dmtxTimeNow(), SEARCH_TIMEOUT);
 
   while((lTagCount < aTagCount) && (lRegion = dmtxRegionFindNext(lDecode, &lTimeout))) {
-    int lIntID;
+    jstring sStringID;
     DmtxMessage *lMessage = dmtxDecodeMatrixRegion(lDecode, lRegion, DmtxUndefined);
 
     if(lMessage != NULL) {
@@ -226,7 +227,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, 
           (int) lCorner4.X, (int) (lH - lCorner4.Y - 1));
 
       // Decode Message
-      sscanf(lMessage->output, "%d", &lIntID);
+      sStringID = (*aEnv)->NewStringUTF(aEnv, lMessage->output);
 
       // Create Tag instance
       lTags[lTagCount] = (*aEnv)->NewObject(aEnv, lTagClass, lTagConstructor,
