@@ -27,7 +27,7 @@ using System.Runtime.InteropServices;
 using System.Drawing;
 using System.Drawing.Imaging;
 
-namespace LibDmtx {
+namespace Libdmtx {
     /// <summary>
     /// Wrapper for decoding and encoding DataMatrix barcodes.
     /// </summary>
