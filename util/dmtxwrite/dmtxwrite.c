@@ -477,23 +477,22 @@ WriteImageFile(UserOptions *opt, DmtxEncode *enc)
    MagickWandGenesis();
 
    wand = NewMagickWand();
-   if(wand == NULL) {
+   if(wand == NULL)
       FatalError(EX_OSERR, "undefined error");
-   }
 
    success = MagickConstituteImage(wand, enc->image->width, enc->image->height,
          "RGB", CharPixel, enc->image->pxl);
    if(success == MagickFalse) {
-      FatalError(EX_OSERR, "undefined error");
       CleanupMagick(&wand, DmtxTrue);
+      FatalError(EX_OSERR, "undefined error");
    }
 
    if(opt->outputPath == NULL) {
       outputPath = "-";
       success = MagickSetImageFormat(wand, (opt->format != NULL) ? opt->format : "PNG");
       if(success == MagickFalse) {
-         FatalError(EX_OSERR, "undefined error");
          CleanupMagick(&wand, DmtxTrue);
+         FatalError(EX_OSERR, "undefined error");
       }
    }
    else {
@@ -502,8 +501,8 @@ WriteImageFile(UserOptions *opt, DmtxEncode *enc)
 
    success = MagickWriteImage(wand, outputPath);
    if(success == MagickFalse) {
-      FatalError(EX_OSERR, "undefined error");
       CleanupMagick(&wand, DmtxTrue);
+      FatalError(EX_OSERR, "undefined error");
    }
 
    CleanupMagick(&wand, DmtxFalse);
