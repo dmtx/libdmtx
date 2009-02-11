@@ -14,7 +14,7 @@ libdmtx \- Data Matrix Encoding & Decoding Library 0.6.1
 cc file.c -ldmtx
 
 .SH DESCRIPTION
-\fIlibdmtx\fP is a software library that enables programs to read and write Data Matrix barcodes of the modern ECC200 variety. The library runs natively on several platforms, and can be accessed by multiple languages using the provided language wrappers. The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP also provide a command line interface for libdmtx, and serve as a good reference for developers who are writing their own programs with libdmtx.
+\fIlibdmtx\fP is a software library that enables programs to read and write Data Matrix barcodes of the modern ECC200 variety. The library runs natively on several platforms, and can be accessed by multiple languages using the libdmtx language wrappers. The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP also provide a command line interface for libdmtx, and serve as a good reference for developers who are writing their own programs that use libdmtx.
 
 Data Matrix barcodes are two dimensional patterns that resemble a checkerboard in appearance, and hold a high density of data with built-in error correction. They can exist in either square or rectangle configurations, and support several different encodation schemes for optimized storage of text and binary data. The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
 
@@ -23,7 +23,7 @@ Programs can generate a barcode with just a few basic calls to libdmtx:
 
 1. Call \fBdmtxEncodeCreate()\fP
 
-Creates a new DmtxEncode structure and initializes the encoding process. This function must be called before the other encoding functions, as the returned DmtxEncode structure is a required parameter for the remaining encoding functions.
+Creates a new DmtxEncode structure and initializes the encoding process. This function must be called before using the other encoding functions, as the returned DmtxEncode structure is normally a required parameter.
 
 2. Call \fBdmtxEncodeSetProp()\fP [optional]
 
@@ -39,13 +39,13 @@ Releases the memory allocated during the encoding process.
 
 .SH DECODING - Reading Data Matrix Barcodes
 
-Barcode reading requires more steps than barcode generation, mostly from the additional complexity of not knowing where the barcodes located when starting a new scan. Even so, it's a straightforward process that uses 4 main structures:
+Barcode reading takes more steps than barcode generation, mainly because libdmtx must find a barcode before it can be decoded. Even so, it's a straightforward process that uses 4 main structures:
 
 \fBDmtxImage\fP holds image properties and a pointer to the pixel data. The calling program uses this structure to communicate image data with libdmtx.
 
 \fBDmtxDecode\fP holds values for controlling decode behavior and tracking scan progress.
 
-\fBDmtxRegion\fP defines a 4-sided region in pixel coordinates. The region corners are not necessarily right angles, and any orientation is possible. When libdmtx finds a region it believes to be a Data Matrix, it uses this entity to communicate the exact location. Multiple regions may be found within an image, one at a time.
+\fBDmtxRegion\fP defines a 4-sided region in pixel coordinates. The region corners are not necessarily right angles, and any orientation is possible. libdmtx uses this structure to store the exact location of potential barcodes, which are are returned one at a time to the calling program.
 
 \fBDmtxMessage\fP holds the decoded message after being extracted from the barcode region. A successfully decoded region will produce exactly one message.
 
@@ -53,15 +53,15 @@ Use the following functions to detect and decode Data Matrix barcodes:
 
 1. Call \fBdmtxImageCreate()\fP
 
-Creates and initializes a new DmtxImage structure. If the first parameter is passed as NULL, libdmtx allocates its own memory to store the pixel data. Otherwise it uses the pixel memory at the provided address in a "read only" manner. Other parameters include image width, height, bits per pixel, and packing order.
+Creates and initializes a new \fBDmtxImage\fP structure. If the first parameter is passed as NULL, libdmtx allocates its own memory to store the pixel data. Otherwise it uses the pixel memory at the provided address in a "read only" manner. Other parameters include image width, height, bits per pixel, and packing order.
 
 2. Call \fBdmtxDecodeCreate()\fP
 
-Creates and initializes a new \fBDmtxDecode\fP struct, which designates the image to be scanned and sets the grid pattern for a new scan. This function must be called before any other scanning functions.
+Creates and initializes a new \fBDmtxDecode\fP struct, which designates the image to be scanned and initializes the grid pattern. This function must be called before any other scanning functions.
 
 3. Call \fBdmtxDecodeSetProp()\fP [optional]
 
-Sets internal properties to control decoding behavior. This feature allows applications to tune performance and accuracy for specific image conditions. A dmtxDecodeGetProp() function is also available.
+Sets internal properties to control decoding behavior. This feature allows applications to tune performance and accuracy for specific image conditions. A \fBdmtxDecodeGetProp()\fP function is also available.
 
 4. Call \fBdmtxRegionFindNext()\fP
 
