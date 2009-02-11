@@ -14,31 +14,34 @@ libdmtx \- Data Matrix Encoding & Decoding Library 0.6.1
 cc file.c -ldmtx
 
 .SH DESCRIPTION
-\fIlibdmtx\fP is a software library that enables programs to read and write Data Matrix barcodes of the modern ECC200 variety. The library runs natively on several platforms, and can be accessed by multiple languages using the libdmtx language wrappers. The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP also provide a command line interface for libdmtx, and serve as a good reference for developers who are writing their own programs that use libdmtx.
+\fIlibdmtx\fP is a software library that enables programs to read and write Data Matrix barcodes of the modern ECC200 variety. The library runs natively on several platforms, and can be accessed by multiple languages using the libdmtx language wrappers. The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP also provide a command line interface for libdmtx, and serve as a good reference for developers writing their own libdmtx-enabled programs.
 
-Data Matrix barcodes are two dimensional patterns that resemble a checkerboard in appearance, and hold a high density of data with built-in error correction. They can exist in either square or rectangle configurations, and support several different encodation schemes for optimized storage of text and binary data. The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
+Data Matrix barcodes represent data as a pattern of ON and OFF modules (bits) in a grid pattern resembling a checkerboard. Like other 2D symbologies, Data Matrix symbols have a large data capacity compared to their traditional 1D cousins, and employ sophisticated error correction techniques. Data Matrix barcodes can exist in either square or rectangle configurations, and offer several encodation schemes for optimized storage of text and/or binary data. The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
 
 .SH ENCODING - Generating Data Matrix Barcodes
 Programs can generate a barcode with just a few basic calls to libdmtx:
 
-1. Call \fBdmtxEncodeCreate()\fP
+1. Call \fBdmtxImageCreate()\fP
 
-Creates a new DmtxEncode structure and initializes the encoding process. This function must be called before using the other encoding functions, as the returned DmtxEncode structure is normally a required parameter.
+2. Call \fBdmtxEncodeCreate()\fP
 
-2. Call \fBdmtxEncodeSetProp()\fP [optional]
+Creates a new \fBDmtxEncode\fP structure and initializes the encoding process. This function must be called before using the other encoding functions.
 
-Allows you to control the encoding behavior. If this function is not called, libdmtx will use the default values set by dmtxEncodeCreate() above. There is also a dmtxEncodeGetProp() function that returns the current settings.
+3. Call \fBdmtxEncodeSetProp()\fP [optional]
 
-3. Call either \fBdmtxEncodeDataMatrix()\fP or \fBdmtxEncodeDataMosaic()\fP
+Control specific properties of the encoding behavior. If this function is not called, libdmtx will use the default values set by \fBdmtxEncodeCreate()\fP above. The complementary function, \fBdmtxEncodeGetProp()\fP, allows you to read the current settings.
 
-Call one of these two functions to generate an image of the desired barcode type. Your program is responsible for dispatching the resulting image data to its destination, whether that means displaying it on a screen, writing an image file, copying it elsewhere, etc...
+4. Call either \fBdmtxEncodeDataMatrix()\fP or \fBdmtxEncodeDataMosaic()\fP
 
-4. Call \fBdmtxEncodeDestroy()\fP
+Call one of these functions to generate an image of the desired barcode type. Your program is responsible for dispatching the resulting image data to its destination, whether that means displaying it on a screen, writing an image file, copying it elsewhere, etc...
+
+5. Call \fBdmtxEncodeDestroy()\fP
+
+6. Call \fBdmtxImageDestroy()\fP
 
 Releases the memory allocated during the encoding process.
 
 .SH DECODING - Reading Data Matrix Barcodes
-
 Barcode reading takes more steps than barcode generation, mainly because libdmtx must find a barcode before it can be decoded. Even so, it's a straightforward process that uses 4 main structures:
 
 \fBDmtxImage\fP holds image properties and a pointer to the pixel data. The calling program uses this structure to communicate image data with libdmtx.

@@ -57,6 +57,7 @@ FOCUS: API cleanup, custom pixel packing
   o libdmtx:   Fix 64b->32b int assignment warnings
   o libdmtx:   Add dmtxMessageGetOutput() function if necessary (dmtxmessage.c and libdmtx.def)
 $ o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
+  o libdmtx:   Experiment with dmtxImageCreate() that takes fewer parameters
   x libdmtx:   Add DmtxUndefined to replace "-1" for undefined fixes, offset, etc...
   x libdmtx:   Take DmtxFlip parameter out of dmtxImageCreate()
   x libdmtx:   Switch DmtxFlipNone represent top-down row order
