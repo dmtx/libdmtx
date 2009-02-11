@@ -18,7 +18,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-Contact: xxxxx@xxx.xx.xx
+Contact: mike@dragonflylogic.com
 */
 
 /* $Id$ */
@@ -231,11 +231,10 @@ JNIEXPORT jobjectArray JNICALL Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, 
 
       // Create Tag instance
       lTags[lTagCount] = (*aEnv)->NewObject(aEnv, lTagClass, lTagConstructor,
-            lIntID, lJCorner1, lJCorner2, lJCorner3, lJCorner4);
+            sStringID, lJCorner1, lJCorner2, lJCorner3, lJCorner4);
 
-      if(lTags[lTagCount] == NULL) {
+      if(lTags[lTagCount] == NULL)
         return NULL;
-      }
 
       // Increment Count
       lTagCount++;

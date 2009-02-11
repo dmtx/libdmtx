@@ -2,6 +2,7 @@
 Java wrapper for libdmtx
 
 Copyright (C) 2009 Pete Calvert
+Copyright (C) 2009 Dikran Seropian
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -17,7 +18,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-Contact: xxxxx@xxx.xx.xx
+Contact: mike@dragonflylogic.com
 */
 
 /* $Id$ */
@@ -67,7 +68,7 @@ public class DMTXImage {
    * Construct from ID (static factory method since JNI doesn't allow native
    * constructors).
    */
-  public static native DMTXImage createTag(int aID);
+  public static native DMTXImage createTag(String aID);
 
   /**
    * Decode the image, returning tags found (as DMTXTag objects)

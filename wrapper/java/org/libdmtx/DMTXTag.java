@@ -18,7 +18,7 @@ You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-Contact: xxxxx@xxx.xx.xx
+Contact: mike@dragonflylogic.com
 */
 
 /* $Id$ */
@@ -29,10 +29,9 @@ import java.awt.Point;
 
 public class DMTXTag {
   /**
-   * Integer ID for Tag (although tag represents string, using number simplifies
-   * interface with C code)
+   * String value for the tag contents
    */
-  public int id;
+  public String id;
 
   /**
    * Corners are numbered from bottom left in an anti-clockwise fashion
