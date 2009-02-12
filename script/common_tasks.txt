@@ -11,6 +11,14 @@ $ svn propset svn:executable ON filename.sh
 Enable $Id$ keyword expansion for a newly added file
 $ svn propset svn:keywords 'Id' filename.sh
 
+Update experimental branch with latest trunk files
+$ svn co https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/branches/experimental-mbl dmtx_exp
+$ cd dmtx_exp
+$ svn merge --ignore-ancestry \
+      https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/branches/experimental-mbl \
+      https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk .
+(verify updates)
+$ svn commit
 
 Release Checklist
 -----------------------------------------------------------------
