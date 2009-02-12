@@ -14,9 +14,9 @@ libdmtx \- Data Matrix Encoding & Decoding Library 0.6.1
 cc file.c -ldmtx
 
 .SH DESCRIPTION
-\fIlibdmtx\fP is a software library that enables programs to read and write Data Matrix barcodes of the modern ECC200 variety. The library runs natively on several platforms, and can be accessed by multiple languages using the libdmtx language wrappers. The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP also provide a command line interface for libdmtx, and serve as a good reference for developers writing their own libdmtx-enabled programs.
+\fIlibdmtx\fP is a software library that enables programs to read and write Data Matrix barcodes of the modern ECC200 variety. The library runs natively on several platforms, and can be accessed by multiple languages using the libdmtx language wrappers. The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP provide a command line interface for libdmtx, and serve as a good reference for developers writing their own libdmtx-enabled programs.
 
-Data Matrix barcodes represent data as a pattern of ON and OFF modules (bits) in a grid pattern resembling a checkerboard. Like other 2D symbologies, Data Matrix symbols have a large data capacity compared to their traditional 1D cousins, and employ sophisticated error correction techniques. Data Matrix barcodes can exist in either square or rectangle configurations, and offer several encodation schemes for optimized storage of text and/or binary data. The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
+Data Matrix barcodes store data as a pattern of ON and OFF modules (often black on white) in a grid pattern that resembles a checkerboard. Like other 2D symbologies, Data Matrix symbols have a large data capacity compared to their traditional 1D cousins, and employ sophisticated error correction techniques. Data Matrix barcodes can be square or rectangle in shape, and offer several encodation schemes for optimized storage of text and/or binary data. The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
 
 .SH ENCODING - Generating Data Matrix Barcodes
 Programs can generate a barcode with just a few basic calls to libdmtx:
@@ -42,9 +42,9 @@ Barcode reading takes more steps than barcode generation, mainly because libdmtx
 
 \fBDmtxImage\fP holds image properties and a pointer to the pixel data. The calling program uses this structure to communicate image data with libdmtx.
 
-\fBDmtxDecode\fP holds values for controlling decode behavior and tracking scan progress.
+\fBDmtxDecode\fP holds values for controlling decode behavior and tracking scan progress. When scanning a new image, calling programs should create a new \fBDmtxDecode\fP structure instead of reusing an old one.
 
-\fBDmtxRegion\fP defines a 4-sided region in pixel coordinates. The region corners are not necessarily right angles, and any orientation is possible. libdmtx uses this structure to store the exact location of potential barcodes, which are are returned one at a time to the calling program.
+\fBDmtxRegion\fP defines a 4-sided region in pixel coordinates. A region may occur in almost any orientation, and its corners will not necessarily form right angles. libdmtx uses this structure to store the location of potential barcodes, which are then returned one at a time to the calling program.
 
 \fBDmtxMessage\fP holds the decoded message after being extracted from the barcode region. A successfully decoded region will produce exactly one message.
 
@@ -52,7 +52,7 @@ Use the following functions to detect and decode Data Matrix barcodes:
 
 1. Call \fBdmtxImageCreate()\fP
 
-Creates and initializes a new \fBDmtxImage\fP structure using existing pixel data from the calling application. Parameters include a pointer to the existing pixel array, image width, height, and the pixel packing format.
+Creates and initializes a new \fBDmtxImage\fP structure using pixel data provided by the calling application. Parameters include a pointer to the existing pixel array, image width, height, and the pixel packing format.
 
 2. Call \fBdmtxDecodeCreate()\fP
 
@@ -64,7 +64,7 @@ Sets internal properties to control decoding behavior. This feature allows appli
 
 4. Call \fBdmtxRegionFindNext()\fP
 
-Searches every pixel location in a grid pattern looking for potential barcode edges. A \fBDmtxRegion\fP is returned whenever A) a potential barcode region is found, or B) the final pixel has been scanned. Subsequent calls to this function will resume the search where the previous call left off.
+Searches every pixel location in a grid pattern looking for potential barcode regions. A \fBDmtxRegion\fP is returned whenever A) a potential barcode region is found, or B) the final pixel has been scanned. Subsequent calls to this function will resume the search where the previous call left off.
 
 5. Call either \fBdmtxDecodeMatrixRegion()\fP or \fBdmtxDecodeMosaicRegion()\fP
 
