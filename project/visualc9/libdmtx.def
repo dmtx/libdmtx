@@ -32,7 +32,7 @@ EXPORTS
 
   dmtxImageCreate
   dmtxImageDestroy
-  dmtxImageAddChannel
+  dmtxImageSetChannel
   dmtxImageSetProp
   dmtxImageGetProp
   dmtxImageGetPixelOffset
