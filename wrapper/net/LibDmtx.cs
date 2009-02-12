@@ -36,6 +36,7 @@ namespace Libdmtx {
         const byte RETURN_NO_MEMORY = 1;
         const byte RETURN_INVALID_ARGUMENT = 2;
         const byte RETURN_ENCODE_ERROR = 3;
+        public const int DmtxUndefined = -1; // defined in "dmtx.h"
 
         /// <summary>
         /// Gets the version of the underlying libdmtx used.
@@ -320,22 +321,22 @@ namespace Libdmtx {
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public class DecodeOptions {
-        public Int16 EdgeMin = -1;
-        public Int16 EdgeMax = -1;
-        public Int16 ScanGap = -1;
-        public Int16 SquareDevn = -1;
-        public Int32 TimeoutMS = -1;
+        public Int16 EdgeMin = Dmtx.DmtxUndefined;
+        public Int16 EdgeMax = Dmtx.DmtxUndefined;
+        public Int16 ScanGap = Dmtx.DmtxUndefined;
+        public Int16 SquareDevn = Dmtx.DmtxUndefined;
+        public Int32 TimeoutMS = Dmtx.DmtxUndefined;
         public CodeSize SizeIdxExpected = CodeSize.SymbolShapeAuto;
-        public Int16 EdgeTresh = -1;
-        public Int16 MaxCodes = -1;
-        public Int16 XMin = -1;
-        public Int16 XMax = -1;
-        public Int16 YMin = -1;
-        public Int16 YMax = -1;
-        public Int16 CorrectionsMax = -1;
+        public Int16 EdgeTresh = Dmtx.DmtxUndefined;
+        public Int16 MaxCodes = Dmtx.DmtxUndefined;
+        public Int16 XMin = Dmtx.DmtxUndefined;
+        public Int16 XMax = Dmtx.DmtxUndefined;
+        public Int16 YMin = Dmtx.DmtxUndefined;
+        public Int16 YMax = Dmtx.DmtxUndefined;
+        public Int16 CorrectionsMax = Dmtx.DmtxUndefined;
         public CodeType CodeType = CodeType.DataMatrix;
-        public Int16 ShrinkMin = -1;
-        public Int16 ShrinkMax = -1;
+        public Int16 ShrinkMin = Dmtx.DmtxUndefined;
+        public Int16 ShrinkMax = Dmtx.DmtxUndefined;
     }
 
     /// <summary>

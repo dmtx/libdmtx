@@ -23,6 +23,7 @@ Contact: libdmtx@fernsroth.com
 /* $Id$ */
 
 #include "libdmtx.h"
+#include "dmtx.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -55,43 +56,43 @@ dmtx_decode(const void *rgb_image,
 
 	// Apply options
 	decode = dmtxDecodeCreate(img);
-	timeout = (options->timeoutMS > 0) ? &msec : NULL;
+	timeout = (options->timeoutMS != DmtxUndefined) ? &msec : NULL;
 	if (timeout != NULL)
 		msec = dmtxTimeAdd(dmtxTimeNow(), options->timeoutMS);
 	while (1) {
-		if ((options->edgeMax >= 0) &&
+		if ((options->edgeMax != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropEdgeMax, options->edgeMax)
 			) != DmtxPass)) break;
-		if ((options->edgeMin >= 0) &&
+		if ((options->edgeMin != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropEdgeMin, options->edgeMin)
 			) != DmtxPass)) break;
-		if ((options->scanGap >= 0) &&
+		if ((options->scanGap != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropScanGap, options->scanGap)
 			) != DmtxPass)) break;
-		if ((options->squareDevn >= 0) &&
+		if ((options->squareDevn != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropSquareDevn, options->squareDevn)
 			) != DmtxPass)) break;
 		if ((err = dmtxDecodeSetProp(decode, DmtxPropSymbolSize, options->sizeIdxExpected)
 			) != DmtxPass) break;
-		if ((options->edgeTresh >= 0) &&
+		if ((options->edgeTresh != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropEdgeThresh, options->edgeTresh)
 			) != DmtxPass)) break;
-		if ((options->xMax >= 0) &&
+		if ((options->xMax != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropXmax, options->xMax)
 			) != DmtxPass)) break;
-		if ((options->xMin >= 0) &&
+		if ((options->xMin != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropXmin, options->xMin)
 			) != DmtxPass)) break;
-		if ((options->yMax >= 0) &&
+		if ((options->yMax != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropYmax, options->yMax)
 			) != DmtxPass)) break;
-		if ((options->yMin >= 0) &&
+		if ((options->yMin != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropYmin, options->yMin)
 			) != DmtxPass)) break;
-		if ((options->shrinkMax >= 0) &&
+		if ((options->shrinkMax != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropShrinkMax, options->shrinkMax)
 			) != DmtxPass)) break;
-		if ((options->shrinkMin >= 0) &&
+		if ((options->shrinkMin != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropShrinkMin, options->shrinkMin)
 			) != DmtxPass)) break;
 		break;
@@ -136,7 +137,7 @@ dmtx_decode(const void *rgb_image,
 		result.symbolInfo.capacity = (dmtx_uint16_t) dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, region->sizeIdx);
 		result.symbolInfo.errorWords = (dmtx_uint16_t) dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, region->sizeIdx);
 
-		if (options->mocaic)
+		if (options->mosaic)
 			msg = dmtxDecodeMosaicRegion(decode, region, options->correctionsMax);
 		else
 			msg = dmtxDecodeMatrixRegion(decode, region, options->correctionsMax);
