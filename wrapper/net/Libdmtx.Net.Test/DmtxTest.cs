@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using System.Drawing;
 using System.IO;
@@ -16,13 +17,20 @@ namespace Libdmtx {
         }
 
         [Test]
-        public void TestEndode() {
+        public void TestEncode() {
             Bitmap expectedBitmap = GetBitmapFromResource("Libdmtx.TestImages.Test001.png");
             byte[] data = Encoding.ASCII.GetBytes("Test");
             EncodeOptions opt = new EncodeOptions();
             DmtxEncoded encodeResults = Dmtx.Encode(data, opt);
             Assert.IsNotNull(encodeResults);
             AssertAreEqual(expectedBitmap, encodeResults.Bitmap);
+        }
+
+        [Test]
+        public void TestVersion() {
+            string version = Dmtx.Version;
+            Assert.IsNotNull(version);
+            Assert.IsTrue(Regex.IsMatch(version, @"[0-9]+\.[0-9]+\.[0-9]+"));
         }
 
         private static void AssertAreEqual(Bitmap expectedBitmap, Bitmap foundBitmap) {
