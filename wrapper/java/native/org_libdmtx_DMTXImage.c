@@ -36,7 +36,9 @@ Contact: mike@dragonflylogic.com
  * Construct from ID (static factory method since JNI doesn't allow native
  * constructors).
  */
-JNIEXPORT jobject JNICALL Java_org_libdmtx_DMTXImage_createTag(JNIEnv *aEnv, jclass aClass, jint aID) {
+JNIEXPORT jobject JNICALL
+Java_org_libdmtx_DMTXImage_createTag(JNIEnv *aEnv, jclass aClass, jstring aID)
+{
   unsigned char   lStrID[64];
   DmtxEncode     *lEncoded;
   jclass          lImageClass;
@@ -112,7 +114,9 @@ JNIEXPORT jobject JNICALL Java_org_libdmtx_DMTXImage_createTag(JNIEnv *aEnv, jcl
 /**
  * Decode the image, returning tags found (as DMTXTag objects)
  */
-JNIEXPORT jobjectArray JNICALL Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, jobject aImage, jint aTagCount) {
+JNIEXPORT jobjectArray JNICALL
+Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, jobject aImage, jint aTagCount)
+{
   jclass          lImageClass, lTagClass, lPointClass;
   jmethodID       lTagConstructor, lPointConstructor;
   jfieldID        lWidth, lHeight, lData;
