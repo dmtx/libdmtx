@@ -53,6 +53,11 @@ main(int argc, char *argv[])
    if(enc == NULL)
       FatalError(EX_SOFTWARE, "create error");
 
+   /* Set output image properties */
+   dmtxEncodeSetProp(enc, DmtxPropPixelPacking, DmtxPack24bppRGB);
+   dmtxEncodeSetProp(enc, DmtxPropImageFlip, DmtxFlipNone);
+   dmtxEncodeSetProp(enc, DmtxPropRowPadBytes, 0);
+
    /* Set encoding options */
    dmtxEncodeSetProp(enc, DmtxPropMarginSize, opt.marginSize);
    dmtxEncodeSetProp(enc, DmtxPropModuleSize, opt.moduleSize);

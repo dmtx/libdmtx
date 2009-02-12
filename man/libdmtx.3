@@ -21,23 +21,19 @@ Data Matrix barcodes represent data as a pattern of ON and OFF modules (bits) in
 .SH ENCODING - Generating Data Matrix Barcodes
 Programs can generate a barcode with just a few basic calls to libdmtx:
 
-1. Call \fBdmtxImageCreate()\fP
-
-2. Call \fBdmtxEncodeCreate()\fP
+1. Call \fBdmtxEncodeCreate()\fP
 
 Creates a new \fBDmtxEncode\fP structure and initializes the encoding process. This function must be called before using the other encoding functions.
 
-3. Call \fBdmtxEncodeSetProp()\fP [optional]
+2. Call \fBdmtxEncodeSetProp()\fP [optional]
 
 Control specific properties of the encoding behavior. If this function is not called, libdmtx will use the default values set by \fBdmtxEncodeCreate()\fP above. The complementary function, \fBdmtxEncodeGetProp()\fP, allows you to read the current settings.
 
-4. Call either \fBdmtxEncodeDataMatrix()\fP or \fBdmtxEncodeDataMosaic()\fP
+3. Call either \fBdmtxEncodeDataMatrix()\fP or \fBdmtxEncodeDataMosaic()\fP
 
 Call one of these functions to generate an image of the desired barcode type. Your program is responsible for dispatching the resulting image data to its destination, whether that means displaying it on a screen, writing an image file, copying it elsewhere, etc...
 
-5. Call \fBdmtxEncodeDestroy()\fP
-
-6. Call \fBdmtxImageDestroy()\fP
+4. Call \fBdmtxEncodeDestroy()\fP
 
 Releases the memory allocated during the encoding process.
 
@@ -56,7 +52,7 @@ Use the following functions to detect and decode Data Matrix barcodes:
 
 1. Call \fBdmtxImageCreate()\fP
 
-Creates and initializes a new \fBDmtxImage\fP structure. If the first parameter is passed as NULL, libdmtx allocates its own memory to store the pixel data. Otherwise it uses the pixel memory at the provided address in a "read only" manner. Other parameters include image width, height, bits per pixel, and packing order.
+Creates and initializes a new \fBDmtxImage\fP structure using existing pixel data from the calling application. Parameters include a pointer to the existing pixel array, image width, height, and the pixel packing format.
 
 2. Call \fBdmtxDecodeCreate()\fP
 
@@ -134,7 +130,7 @@ This example program (available as simple_test.c in the source package) demonstr
 
      /* 3) DECODE the Data Matrix barcode from the copied image */
 
-     img = dmtxImageCreate(pxl, width, height, 24, DmtxPackRGB);
+     img = dmtxImageCreate(pxl, width, height, DmtxPack24bppRGB);
      assert(img != NULL);
 
      dec = dmtxDecodeCreate(img);

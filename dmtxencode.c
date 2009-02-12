@@ -80,9 +80,11 @@ dmtxEncodeCreate(void)
 
    enc->scheme = DmtxSchemeEncodeAscii;
    enc->sizeIdxRequest = DmtxSymbolSquareAuto;
-   enc->imageFlip = DmtxFlipNone;
    enc->marginSize = 10;
    enc->moduleSize = 5;
+   enc->pixelPacking = DmtxPack24bppRGB;
+   enc->imageFlip = DmtxFlipNone;
+   enc->rowPadBytes = 0;
 
    /* Initialize background color to white */
 /* enc.region.gradient.ray.p.R = 255.0;
@@ -130,20 +132,31 @@ extern DmtxPassFail
 dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value)
 {
    switch(prop) {
+
+      /* Encoding details */
       case DmtxPropScheme:
          enc->scheme = value;
          break;
       case DmtxPropSizeRequest:
          enc->sizeIdxRequest = value;
          break;
-      case DmtxPropImageFlip:
-         enc->imageFlip = value;
-         break;
+
+      /* Presentation details */
       case DmtxPropMarginSize:
          enc->marginSize = value;
          break;
       case DmtxPropModuleSize:
          enc->moduleSize = value;
+         break;
+
+      /* Image properties */
+      case DmtxPropPixelPacking:
+         enc->pixelPacking = value;
+         break;
+      case DmtxPropImageFlip:
+         enc->imageFlip = value;
+         break;
+      case DmtxPropRowPadBytes:
          break;
    }
 
@@ -187,6 +200,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    int padCount;
    int width, height;
    unsigned char buf[4096];
+   unsigned char *pxl;
 
    /* Encode input string into data codewords */
    sizeIdx = enc->sizeIdxRequest;
@@ -225,11 +239,18 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    height = 2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize);
 
    /* Allocate memory for the image to be generated */
-   enc->image = dmtxImageCreate(NULL, width, height, 24, DmtxPackRGB);
+   pxl = (unsigned char *)malloc(width * height * 3);
+   if(pxl == NULL) {
+      perror("pixel malloc error");
+      return DmtxFail;
+   }
+
+   enc->image = dmtxImageCreate(pxl, width, height, enc->pixelPacking);
    if(enc->image == NULL) {
       perror("image malloc error");
       return DmtxFail;
    }
+
    dmtxImageSetProp(enc->image, DmtxPropImageFlip, enc->imageFlip);
 
    /* Insert finder and aligment pattern modules */

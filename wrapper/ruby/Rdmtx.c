@@ -40,11 +40,13 @@ static VALUE rdmtx_decode(VALUE self, VALUE image /* Image from RMagick (Magick:
     int width = NUM2INT(rb_funcall(image, rb_intern("columns"), 0));
     int height = NUM2INT(rb_funcall(image, rb_intern("rows"), 0));
 
-    DmtxImage * dmtxImage = dmtxImageCreate((unsigned char *)imageBuffer, width, height, 24, DmtxPackRGB);
-    dmtxImageSetProp(dmtxImage, DmtxPropScaledXmin, 0);
+    DmtxImage *dmtxImage = dmtxImageCreate((unsigned char *)imageBuffer, width,
+          height, DmtxPack24bppRGB);
+
+/*  dmtxImageSetProp(dmtxImage, DmtxPropScaledXmin, 0);
     dmtxImageSetProp(dmtxImage, DmtxPropScaledXmax, width);
     dmtxImageSetProp(dmtxImage, DmtxPropScaledYmin, 0);
-    dmtxImageSetProp(dmtxImage, DmtxPropScaledYmax, height);
+    dmtxImageSetProp(dmtxImage, DmtxPropScaledYmax, height); */
 
     VALUE results = rb_ary_new();
 
@@ -89,6 +91,7 @@ static VALUE rdmtx_encode(VALUE self, VALUE string) {
 
     VALUE safeString = StringValue(string);
 
+    dmtxEncodeSetProp(enc, DmtxPropPixelPacking, DmtxPack24bppRGB);
     dmtxEncodeSetProp(enc, DmtxPropSizeRequest, DmtxSymbolSquareAuto);
 
     /* Create barcode image */

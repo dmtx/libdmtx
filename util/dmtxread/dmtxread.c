@@ -124,11 +124,13 @@ main(int argc, char *argv[])
          }
 
          /* Initialize libdmtx image */
-         img = dmtxImageCreate(pxl, width, height, 24, DmtxPackRGB);
+         img = dmtxImageCreate(pxl, width, height, DmtxPack24bppRGB);
          if(img == NULL) {
             CleanupMagick(&wand, DmtxFalse);
             FatalError(EX_SOFTWARE, "dmtxImageCreate() error");
          }
+
+         dmtxImageSetProp(img, DmtxPropImageFlip, DmtxFlipNone);
 
          /* Initialize scan */
          dec = dmtxDecodeCreate(img);

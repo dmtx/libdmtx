@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
    }
 
    /* fprintf(stdout, "pitch:%d\n", picture->pitch); assert? */
-   img = dmtxImageCreate(picture->pixels, picture->w, picture->h, 32, DmtxPackXRGB);
+   img = dmtxImageCreate(picture->pixels, picture->w, picture->h, DmtxPack32bppXRGB);
    if(img == NULL) {
       fprintf(stderr, "Unable to create image\n");
       exit(1);

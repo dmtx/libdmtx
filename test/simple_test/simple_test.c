@@ -62,7 +62,7 @@ main(int argc, char *argv[])
 
    /* 3) DECODE the Data Matrix barcode from the copied image */
 
-   img = dmtxImageCreate(pxl, width, height, 24, DmtxPackRGB);
+   img = dmtxImageCreate(pxl, width, height, DmtxPack24bppRGB);
    assert(img != NULL);
 
    dec = dmtxDecodeCreate(img);

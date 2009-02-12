@@ -165,8 +165,9 @@ typedef enum {
    DmtxPropModuleSize,
    DmtxPropBitsPerPixel,
    DmtxPropBytesPerPixel,
+   DmtxPropPixelPacking,
    DmtxPropImageFlip,
-   DmtxPropRowPadMultiple,
+   DmtxPropRowPadBytes,
    /* scaled image properties */
    DmtxPropScale             = 400,
    DmtxPropScaledWidth,
@@ -215,16 +216,30 @@ typedef enum {
 } DmtxSymbolSize;
 
 typedef enum {
-   DmtxPackK,
-   DmtxPackRGB,
-   DmtxPackBGR,
-   DmtxPackRGBX,
-   DmtxPackBGRX,
-   DmtxPackXRGB,
-   DmtxPackXBGR,
-   DmtxPackYCbCr,
-   DmtxPackCMYK,
-   DmtxPackCustom
+   /* Custom format */
+   DmtxPackCustom            = 100,
+   /* 1 bpp */
+   DmtxPack1bppK             = 200,
+   /* 8 bpp grayscale */
+   DmtxPack8bppK             = 300,
+   /* 16 bpp formats */
+   DmtxPack16bppRGB          = 400,
+   DmtxPack16bppRGBX,
+   DmtxPack16bppXRGB,
+   DmtxPack16bppBGR,
+   DmtxPack16bppBGRX,
+   DmtxPack16bppXBGR,
+   DmtxPack16bppYCbCr,
+   /* 24 bpp formats */
+   DmtxPack24bppRGB          = 500,
+   DmtxPack24bppBGR,
+   DmtxPack24bppYCbCr,
+   /* 32 bpp formats */
+   DmtxPack32bppRGBX         = 600,
+   DmtxPack32bppXRGB,
+   DmtxPack32bppBGRX,
+   DmtxPack32bppXBGR,
+   DmtxPack32bppCMYK
 } DmtxPackOrder;
 
 typedef enum {
@@ -272,12 +287,12 @@ typedef struct DmtxImage_struct {
    int             width;  /* unscaled */
    int             height; /* unscaled */
    int             bitsPerPixel;
+   int             pixelPacking;
+   int             imageFlip;
+   int             rowPadBytes;
    int             channelCount;
    int             channelStart[4];
    int             bitsPerChannel[4];
-   int             pack;
-   int             flip;
-   char            mallocByDmtx;
    int             xMin;   /* unscaled */
    int             xMax;   /* unscaled */
    int             yMin;   /* unscaled */
@@ -453,9 +468,11 @@ typedef struct DmtxEncode_struct {
    int method;
    int scheme;
    int sizeIdxRequest;
-   int imageFlip;
    int marginSize;
    int moduleSize;
+   int pixelPacking;
+   int imageFlip;
+   int rowPadBytes;
    DmtxMessage *message;
    DmtxImage *image;
    DmtxRegion region;
@@ -538,9 +555,9 @@ extern DmtxMessage *dmtxMessageCreate(int sizeIdx, int symbolFormat);
 extern DmtxPassFail dmtxMessageDestroy(DmtxMessage **msg);
 
 /* dmtximage.c */
-extern DmtxImage *dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int packing);
+extern DmtxImage *dmtxImageCreate(unsigned char *pxl, int width, int height, int pack);
 extern DmtxPassFail dmtxImageDestroy(DmtxImage **img);
-extern DmtxPassFail dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel);
+extern DmtxPassFail dmtxImageSetChannel(DmtxImage *img, int channelStart, int bitsPerChannel);
 extern DmtxPassFail dmtxImageSetProp(DmtxImage *img, int prop, int value);
 extern int dmtxImageGetProp(DmtxImage *img, int prop);
 extern int dmtxImageGetPixelOffset(DmtxImage *img, int x, int y);

@@ -96,110 +96,116 @@ Contact: mike@dragonflylogic.com
  * @return xxx
  */
 extern DmtxImage *
-dmtxImageCreate(unsigned char *pxl, int width, int height, int bpp, int pack)
+dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
 {
-   int bytesPerPixel;
    DmtxPassFail err;
    DmtxImage *img;
+
+   if(pxl == NULL || width < 1 || height < 1)
+      return NULL;
 
    img = (DmtxImage *)calloc(1, sizeof(DmtxImage));
    if(img == NULL)
       return NULL;
 
-   img->bitsPerPixel = bpp;
-   img->pack = pack;
-   img->flip = DmtxFlipNone;
+   img->pxl = pxl;
+   img->width = width;
+   img->height = height;
+   img->pixelPacking = pack;
+   img->imageFlip = DmtxFlipNone;
+   img->channelCount = 0;
 
-   img->width = img->widthScaled = width;
-   img->height = img->heightScaled = height;
+   /* XXX later these settings move to DmtxDecode */
+   img->widthScaled = width;
+   img->heightScaled = height;
    img->scale = 1;
    img->xMin = img->xMinScaled = 0;
    img->xMax = img->xMaxScaled = width - 1;
    img->yMin = img->yMinScaled = 0;
    img->yMax = img->yMaxScaled = height - 1;
 
-   if(pxl != NULL) {
-      img->mallocByDmtx = DmtxFalse;
-      img->pxl = pxl;
-   }
-   else {
-      img->mallocByDmtx = DmtxTrue;
-
-      /* Pixels must fall along byte boundaries for auto malloc option */
-      if(img->bitsPerPixel % 8 != 0)
+   switch(pack) {
+      case DmtxPackCustom:
+         break;
+      case DmtxPack1bppK:
+         img->bitsPerPixel = 1;
+         break;
+      case DmtxPack8bppK:
+         img->bitsPerPixel = 8;
+         break;
+      case DmtxPack16bppRGB:
+      case DmtxPack16bppRGBX:
+      case DmtxPack16bppXRGB:
+      case DmtxPack16bppBGR:
+      case DmtxPack16bppBGRX:
+      case DmtxPack16bppXBGR:
+      case DmtxPack16bppYCbCr:
+         img->bitsPerPixel = 16;
+         break;
+      case DmtxPack24bppRGB:
+      case DmtxPack24bppBGR:
+      case DmtxPack24bppYCbCr:
+         img->bitsPerPixel = 24;
+         break;
+      case DmtxPack32bppRGBX:
+      case DmtxPack32bppXRGB:
+      case DmtxPack32bppBGRX:
+      case DmtxPack32bppXBGR:
+      case DmtxPack32bppCMYK:
+         img->bitsPerPixel = 32;
+         break;
+      default:
          return NULL;
-
-      bytesPerPixel = img->bitsPerPixel/8;
-      img->pxl = malloc(bytesPerPixel * width * height * sizeof(unsigned char));
-      if(img->pxl == NULL) {
-         free(img);
-         return NULL;
-      }
    }
 
    switch(pack) {
-      case DmtxPackK:
-         if(bpp == 1 || bpp == 8)
-            err = dmtxImageAddChannel(img, 0, bpp);
-         else
-            return NULL;
-         break;
-      case DmtxPackRGB:
-      case DmtxPackBGR:
-      case DmtxPackYCbCr:
-         if(bpp == 16) {
-            err = dmtxImageAddChannel(img,  0, 5);
-            err = dmtxImageAddChannel(img,  5, 5);
-            err = dmtxImageAddChannel(img, 10, 5);
-         }
-         else if(bpp == 24) {
-            err = dmtxImageAddChannel(img,  0, 8);
-            err = dmtxImageAddChannel(img,  8, 8);
-            err = dmtxImageAddChannel(img, 16, 8);
-         }
-         else {
-            return NULL;
-         }
-         break;
-      case DmtxPackRGBX:
-      case DmtxPackBGRX:
-         if(bpp == 16) {
-            err = dmtxImageAddChannel(img,  0, 5);
-            err = dmtxImageAddChannel(img,  5, 5);
-            err = dmtxImageAddChannel(img, 10, 5);
-         }
-         else if(bpp == 32) {
-            err = dmtxImageAddChannel(img,  0, 8);
-            err = dmtxImageAddChannel(img,  8, 8);
-            err = dmtxImageAddChannel(img, 16, 8);
-         }
-         else {
-            return NULL;
-         }
-         break;
-      case DmtxPackXRGB:
-      case DmtxPackXBGR:
-         if(bpp == 16) {
-            err = dmtxImageAddChannel(img,  1, 5);
-            err = dmtxImageAddChannel(img,  6, 5);
-            err = dmtxImageAddChannel(img, 11, 5);
-         }
-         else if(bpp == 32) {
-            err = dmtxImageAddChannel(img,  8, 8);
-            err = dmtxImageAddChannel(img, 16, 8);
-            err = dmtxImageAddChannel(img, 24, 8);
-         }
-         else {
-            return NULL;
-         }
-         break;
-      case DmtxPackCMYK:
-         err = dmtxImageAddChannel(img,  0, 8);
-         err = dmtxImageAddChannel(img,  8, 8);
-         err = dmtxImageAddChannel(img, 16, 8);
-         err = dmtxImageAddChannel(img, 24, 8);
-         break;
       case DmtxPackCustom:
+         break;
+      case DmtxPack1bppK:
+         err = dmtxImageSetChannel(img, 0, 1);
+         break;
+      case DmtxPack8bppK:
+         err = dmtxImageSetChannel(img, 0, 8);
+         break;
+      case DmtxPack16bppRGB:
+      case DmtxPack16bppBGR:
+      case DmtxPack16bppYCbCr:
+         err = dmtxImageSetChannel(img,  0, 5);
+         err = dmtxImageSetChannel(img,  5, 5);
+         err = dmtxImageSetChannel(img, 10, 5);
+         break;
+      case DmtxPack24bppRGB:
+      case DmtxPack24bppBGR:
+      case DmtxPack24bppYCbCr:
+      case DmtxPack32bppRGBX:
+      case DmtxPack32bppBGRX:
+         err = dmtxImageSetChannel(img,  0, 8);
+         err = dmtxImageSetChannel(img,  8, 8);
+         err = dmtxImageSetChannel(img, 16, 8);
+         break;
+      case DmtxPack16bppRGBX:
+      case DmtxPack16bppBGRX:
+         err = dmtxImageSetChannel(img,  0, 5);
+         err = dmtxImageSetChannel(img,  5, 5);
+         err = dmtxImageSetChannel(img, 10, 5);
+         break;
+      case DmtxPack16bppXRGB:
+      case DmtxPack16bppXBGR:
+         err = dmtxImageSetChannel(img,  1, 5);
+         err = dmtxImageSetChannel(img,  6, 5);
+         err = dmtxImageSetChannel(img, 11, 5);
+         break;
+      case DmtxPack32bppXRGB:
+      case DmtxPack32bppXBGR:
+         err = dmtxImageSetChannel(img,  8, 8);
+         err = dmtxImageSetChannel(img, 16, 8);
+         err = dmtxImageSetChannel(img, 24, 8);
+         break;
+      case DmtxPack32bppCMYK:
+         err = dmtxImageSetChannel(img,  0, 8);
+         err = dmtxImageSetChannel(img,  8, 8);
+         err = dmtxImageSetChannel(img, 16, 8);
+         err = dmtxImageSetChannel(img, 24, 8);
          break;
       default:
          return NULL;
@@ -219,9 +225,6 @@ dmtxImageDestroy(DmtxImage **img)
    if(img == NULL || *img == NULL)
       return DmtxFail;
 
-   if((*img)->mallocByDmtx == DmtxTrue && (*img)->pxl != NULL)
-      free((*img)->pxl);
-
    free(*img);
 
    *img = NULL;
@@ -234,7 +237,7 @@ dmtxImageDestroy(DmtxImage **img)
  *
  */
 extern DmtxPassFail
-dmtxImageAddChannel(DmtxImage *img, int channelStart, int bitsPerChannel)
+dmtxImageSetChannel(DmtxImage *img, int channelStart, int bitsPerChannel)
 {
    if(img->channelCount >= 4) /* IMAGE_MAX_CHANNEL */
       return DmtxFail;
@@ -270,6 +273,12 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
          img->height = value;
          img->heightScaled = img->height/img->scale;
          break;
+      case DmtxPropImageFlip:
+         img->imageFlip = value;
+         break;
+      case DmtxPropRowPadBytes:
+         img->rowPadBytes = value;
+         break;
       case DmtxPropXmin:
          img->xMin = value;
          img->xMinScaled = img->xMin/img->scale;
@@ -285,12 +294,6 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
       case DmtxPropYmax: /* Deliberate y-flip */
          img->yMin = img->height - value - 1;
          img->yMinScaled = img->yMin/img->scale;
-         break;
-      case DmtxPropImageFlip:
-         img->flip = value;
-         break;
-      case DmtxPropRowPadMultiple:
-         /* TODO: .NET row padding condition */
          break;
       case DmtxPropScale:
          img->scale = value;
@@ -382,12 +385,12 @@ dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
    int offset;
 
    assert(img != NULL);
-   assert(!(img->flip & DmtxFlipX)); /* not implemented */
+   assert(!(img->imageFlip & DmtxFlipX)); /* not implemented */
 
    if(dmtxImageContainsInt(img, 0, x, y) == DmtxFalse)
       return DmtxUndefined;
 
-   if(img->flip & DmtxFlipY)
+   if(img->imageFlip & DmtxFlipY)
       offset = img->scale * (y * img->width + x);
    else
       offset = ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));

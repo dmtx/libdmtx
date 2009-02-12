@@ -110,10 +110,10 @@ int main(int argc, char *argv[])
 
       /* Capture screenshot of generated image */
       glReadPixels(2, 324, width, height, GL_RGB, GL_UNSIGNED_BYTE, capturePxl);
-      gImage = dmtxImageCreate(capturePxl, width, height, 24, DmtxPackRGB);
+      gImage = dmtxImageCreate(capturePxl, width, height, DmtxPack24bppRGB);
       assert(gImage != NULL);
 
-      /* Pixels from glReadPixels are flipped by libdmtx definition */
+      /* Pixels from glReadPixels are Y-flipped according to libdmtx */
       dmtxImageSetProp(gImage, DmtxPropImageFlip, DmtxFlipY);
 
       /* Start fresh scan */
