@@ -80,24 +80,25 @@ namespace Libdmtx {
             } catch (Exception ex) {
                 throw new DmtxException("Error calling native function.", ex);
             }
-            if (status == RETURN_NO_MEMORY)
+            if (status == RETURN_NO_MEMORY) {
                 throw new DmtxOutOfMemoryException("Not enough memory.");
-            else if (status == RETURN_INVALID_ARGUMENT)
+            } else if (status == RETURN_INVALID_ARGUMENT) {
                 throw new DmtxInvalidArgumentException("Invalid options configuration.");
-            else if ((status > 0) || (results == IntPtr.Zero))
+            } else if ((status > 0) || (results == IntPtr.Zero)) {
                 throw new DmtxException("Unknown error.");
+            }
 
             DmtxDecoded[] result;
             try {
                 result = new DmtxDecoded[resultcount];
                 IntPtr accResult = results;
                 for (uint i = 0; i < resultcount; i++) {
-                    DecodedInternal intResult = (DecodedInternal)
-                        Marshal.PtrToStructure(accResult, typeof(DecodedInternal));
-                    result[i] = new DmtxDecoded();
-                    result[i].Corners = intResult.Corners;
-                    result[i].SymbolInfo = intResult.SymbolInfo;
-                    result[i].Data = new byte[intResult.DataSize];
+                    DecodedInternal intResult = (DecodedInternal)Marshal.PtrToStructure(accResult, typeof(DecodedInternal));
+                    result[i] = new DmtxDecoded {
+                        Corners = intResult.Corners,
+                        SymbolInfo = intResult.SymbolInfo,
+                        Data = new byte[intResult.DataSize]
+                    };
                     for (int dataIdx = 0; dataIdx < intResult.DataSize; dataIdx++) {
                         result[i].Data[dataIdx] = Marshal.ReadByte(intResult.Data, dataIdx);
                     }
@@ -116,10 +117,8 @@ namespace Libdmtx {
         }
 
         private static byte[] BitmapToByteArray(Bitmap b) {
-            BitmapData bd = b.LockBits(
-                     new Rectangle(0, 0, b.Width, b.Height),
-                     ImageLockMode.ReadOnly,
-                     PixelFormat.Format24bppRgb);
+            Rectangle rect = new Rectangle(0, 0, b.Width, b.Height);
+            BitmapData bd = b.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
             try {
                 byte[] pxl = new byte[b.Width * b.Height * 3];
                 for (int y = 0; y < b.Height; y++) {
@@ -157,43 +156,32 @@ namespace Libdmtx {
             IntPtr result;
             byte status;
             try {
-                status = DmtxEncode(
-                    data,
-                    (UInt16)data.Length,
-                    out result,
-                    options);
+                status = DmtxEncode(data, (UInt16)data.Length, out result, options);
             } catch (Exception ex) {
                 throw new DmtxException("Encoding error.", ex);
             }
-            if (status == RETURN_NO_MEMORY)
+            if (status == RETURN_NO_MEMORY) {
                 throw new DmtxOutOfMemoryException("Not enough memory.");
-            else if (status == RETURN_INVALID_ARGUMENT)
+            } else if (status == RETURN_INVALID_ARGUMENT) {
                 throw new DmtxInvalidArgumentException("Invalid options configuration.");
-            else if (status == RETURN_ENCODE_ERROR)
+            } else if (status == RETURN_ENCODE_ERROR) {
                 throw new DmtxException("Error while encoding.");
-            else if ((status > 0) || (result == IntPtr.Zero))
+            } else if ((status > 0) || (result == IntPtr.Zero)) {
                 throw new DmtxException("Unknown error.");
+            }
 
             DmtxEncoded ret;
             EncodedInternal intResult = null;
             try {
-                intResult = (EncodedInternal)
-                    Marshal.PtrToStructure(result, typeof(EncodedInternal));
-                ret = new DmtxEncoded();
-                ret.SymbolInfo = intResult.SymbolInfo;
-                ret.Bitmap = new Bitmap(
-                    (int)intResult.Width,
-                    (int)intResult.Height,
-                    PixelFormat.Format24bppRgb);
-                BitmapData bd = ret.Bitmap.LockBits(
-                    new Rectangle(0, 0, ret.Bitmap.Width, ret.Bitmap.Height),
-                    ImageLockMode.WriteOnly,
-                    PixelFormat.Format24bppRgb);
+                intResult = (EncodedInternal)Marshal.PtrToStructure(result, typeof(EncodedInternal));
+                ret = new DmtxEncoded {
+                    SymbolInfo = intResult.SymbolInfo,
+                    Bitmap = new Bitmap((int)intResult.Width, (int)intResult.Height, PixelFormat.Format24bppRgb)
+                };
+                Rectangle rect = new Rectangle(0, 0, ret.Bitmap.Width, ret.Bitmap.Height);
+                BitmapData bd = ret.Bitmap.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
                 try {
-                    DmtxCopyEncodeResult(
-                        intResult.Data,
-                        (UInt32)Math.Abs(bd.Stride),
-                        bd.Scan0);
+                    DmtxCopyEncodeResult(intResult.Data, (UInt32)Math.Abs(bd.Stride), bd.Scan0);
                 } finally {
                     ret.Bitmap.UnlockBits(bd);
                 }
@@ -201,8 +189,9 @@ namespace Libdmtx {
                 throw new DmtxException("Error parsing encode result.", ex);
             } finally {
                 try {
-                    if (intResult != null)
+                    if (intResult != null) {
                         DmtxFreeEncodeResult(intResult.Data);
+                    }
                 } catch (Exception ex) {
                     throw new DmtxException("Error freeing memory.", ex);
                 }
