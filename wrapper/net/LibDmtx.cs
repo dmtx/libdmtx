@@ -68,21 +68,15 @@ namespace Libdmtx {
             UInt32 resultcount;
             byte status;
             try {
-                BitmapData bd = b.LockBits(
-                     new Rectangle(0, 0, b.Width, b.Height),
-                     ImageLockMode.ReadOnly,
-                     PixelFormat.Format24bppRgb);
-                try {
-                    status = DmtxDecode(
-                                bd.Scan0,
-                                (UInt32)bd.Stride / 3,//b.Width,
-                                (UInt32)b.Height,
-                                out results,
-                                out resultcount,
-                                options);
-                } finally {
-                    b.UnlockBits(bd);
-                }
+                byte[] pxl = BitmapToByteArray(b);
+
+                status = DmtxDecode(
+                            pxl,
+                            (UInt32)b.Width,
+                            (UInt32)b.Height,
+                            out results,
+                            out resultcount,
+                            options);
             } catch (Exception ex) {
                 throw new DmtxException("Error calling native function.", ex);
             }
@@ -119,6 +113,29 @@ namespace Libdmtx {
                 }
             }
             return result;
+        }
+
+        private static byte[] BitmapToByteArray(Bitmap b) {
+            BitmapData bd = b.LockBits(
+                     new Rectangle(0, 0, b.Width, b.Height),
+                     ImageLockMode.ReadOnly,
+                     PixelFormat.Format24bppRgb);
+            try {
+                byte[] pxl = new byte[b.Width * b.Height * 3];
+                for (int y = 0; y < b.Height; y++) {
+                    int rowOffset = y * bd.Stride;
+                    for (int x = 0; x < b.Width; x++) {
+                        int pxlOffset = (y * b.Width * 3) + (x * 3);
+                        int offset = rowOffset + (x * 3);
+                        pxl[pxlOffset + 2] = Marshal.ReadByte(bd.Scan0, offset + 0);
+                        pxl[pxlOffset + 1] = Marshal.ReadByte(bd.Scan0, offset + 1);
+                        pxl[pxlOffset + 0] = Marshal.ReadByte(bd.Scan0, offset + 2);
+                    }
+                }
+                return pxl;
+            } finally {
+                b.UnlockBits(bd);
+            }
         }
 
         /// <summary>
@@ -196,7 +213,7 @@ namespace Libdmtx {
         [DllImport("libdmtx.dll", EntryPoint = "dmtx_decode")]
         private static extern byte
         DmtxDecode(
-            [In] IntPtr image,
+            [In] byte[] image,
             [In] UInt32 width,
             [In] UInt32 height,
             [Out] out IntPtr results,
@@ -482,7 +499,7 @@ namespace Libdmtx {
         public DmtxException(string message, Exception innerException)
             : base(message, innerException) { }
     }
-    
+
     /// <summary>
     /// Out of memory exception.
     /// </summary>

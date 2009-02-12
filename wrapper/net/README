@@ -5,33 +5,25 @@ libdmtx-net a .NET wrapper for libdmtx that was originally
 written by Tomas Valenta, currently maintained by Joseph Ferner 
 and is distributed as part of the libdmtx package.
 
-
-1. libdmtx Installation
+1. libdmtx-net Installation
 -----------------------------------------------------------------
 
-Install libdmtx according to the instructions for your platform.
-Shortly, compile dmtx.c (yes, just this one file) and optionally
-link to a static library.
+a) Compile the libdmtx solution.
 
+b) Compile the libdmtx.net solution.
 
-2. libdmtx-net Installation
------------------------------------------------------------------
+c) Add a reference to Libdmtx.Net.dll in you're project.
+   (Make sure you copy libdmtx.dll into the same directory
+   as you're binaries).
 
-a) Compile libdmtx.c and link it with the binary from section 1
-into a DLL.
-
-b) Add file LibDmtx.cs into your .NET project, copy DLL from
-point a) into the project's output folder and enjoy.
-
-
-3. Dependencies
+2. Dependencies
 -----------------------------------------------------------------
 
 Requires .NET Framework 2.0 (or higher) and C runtime library,
 for example Microsoft Visual C++ Runtime.
 
 
-4. Using
+3. Using
 -----------------------------------------------------------------
 
 Using is very similar to the command line utilities dmtxread
@@ -39,7 +31,7 @@ and dmtxwrite. This disallows to use the library as smart as
 with C API, but saves unmanaged calls from .NET which cost
 some overhead.
 
-4.1. Decoding
+3.1. Decoding
 -----------------------------------------------------------------
 LibDmtx.DecodeOptions o = new LibDmtx.DecodeOptions();
 Bitmap b = new Bitmap(@"bitmap.png");
@@ -49,30 +41,18 @@ for (uint i = 0; i < res.Length; i++) {
 	Console.WriteLine("Code " + i + ": " + str);
 }
 
-4.2. Encoding
+3.2. Encoding
 -----------------------------------------------------------------
 LibDmtx.EncodeOptions o = new LibDmtx.EncodeOptions();
 byte[] dataToEncode = Encoding.ASCII.GetBytes("Hello World!");
 LibDmtx.DmtxEncoded en = LibDmtx.Encode(dataToEncode, o);
 pictureBox1.Image = en.bitmap;
 
-4.3. More Information
+3.3. More Information
 -----------------------------------------------------------------
-See the source, LibDmtx.cs is a good start. :-)
+See the source or the unit tests.
 
-
-5. Known issues
+4. Known issues
 -----------------------------------------------------------------
 
-a) .NET stores bitmap lines always aligned to number of bytes
-divisible by 4, i.e. it is padded from the right. For example
-3x3 pixels RGB picture might look in memory like this:
-  RGBRGBRGBPPP
-  RGBRGBRGBPPP
-  RGBRGBRGBPPP
-where P are padding bytes. It means that 3x3 image must be passed
-to libdmtx for decoding as 4x3 image with some random data
-(usually zeros) in the last column. This might cause problems
-with decoding.
-
-b) Probably some minor bugs.
+a) Probably some minor bugs.
