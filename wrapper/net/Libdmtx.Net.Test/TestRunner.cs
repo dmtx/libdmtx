@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: libdmtx@fernsroth.com
 */
 
-/* $Id: TestRunner.cs 685 2009-02-12 17:20:26Z joegtp $ */
+/* $Id$ */
 
 using System;
 
