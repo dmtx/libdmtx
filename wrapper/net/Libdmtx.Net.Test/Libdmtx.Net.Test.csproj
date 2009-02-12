@@ -79,6 +79,9 @@
   <ItemGroup>
     <EmbeddedResource Include="TestImages\Test001.png" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="TestImages\Test002.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
     <BeforeBuildCopyItem Include="$(SolutionDir)..\..\project\visualc9\$(ConfigurationName)\*.dll">

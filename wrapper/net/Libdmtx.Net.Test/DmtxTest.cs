@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
@@ -14,6 +15,33 @@ namespace Libdmtx {
             DecodeOptions opt = new DecodeOptions();
             DmtxDecoded[] decodeResults = Dmtx.Decode(bm, opt);
             Assert.AreEqual(1, decodeResults.Length);
+            string data = Encoding.ASCII.GetString(decodeResults[0].Data).TrimEnd('\0');
+            Assert.AreEqual("Test", data);
+        }
+
+        [Test]
+        public void TestDecodeTwoBarCodes() {
+            Bitmap bm = GetBitmapFromResource("Libdmtx.TestImages.Test002.png");
+            DecodeOptions opt = new DecodeOptions();
+            DmtxDecoded[] decodeResults = Dmtx.Decode(bm, opt);
+            Assert.AreEqual(2, decodeResults.Length);
+            string data1 = Encoding.ASCII.GetString(decodeResults[0].Data).TrimEnd('\0');
+            Assert.AreEqual("Test1", data1);
+            string data2 = Encoding.ASCII.GetString(decodeResults[1].Data).TrimEnd('\0');
+            Assert.AreEqual("Test2", data2);
+        }
+
+        [Test]
+        public void TestDecodeWithCallback() {
+            List<DmtxDecoded> decodeResults = new List<DmtxDecoded>();
+            Bitmap bm = GetBitmapFromResource("Libdmtx.TestImages.Test002.png");
+            DecodeOptions opt = new DecodeOptions();
+            Dmtx.Decode(bm, opt, d => decodeResults.Add(d));
+            Assert.AreEqual(2, decodeResults.Count);
+            string data1 = Encoding.ASCII.GetString(decodeResults[0].Data).TrimEnd('\0');
+            Assert.AreEqual("Test1", data1);
+            string data2 = Encoding.ASCII.GetString(decodeResults[1].Data).TrimEnd('\0');
+            Assert.AreEqual("Test2", data2);
         }
 
         [Test]

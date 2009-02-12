@@ -23,6 +23,7 @@ Contact: libdmtx@fernsroth.com
 /* $Id$ */
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -64,56 +65,47 @@ namespace Libdmtx {
         /// </code>
         /// </example>
         public static DmtxDecoded[] Decode(Bitmap b, DecodeOptions options) {
-            IntPtr results;
-            UInt32 resultcount;
-            byte status;
+            List<DmtxDecoded> results = new List<DmtxDecoded>();
+            Decode(b, options, d => results.Add(d));
+            return results.ToArray();
+        }
+
+        public delegate void DecodeCallback(DmtxDecoded decoded);
+        public static void Decode(Bitmap b, DecodeOptions options, DecodeCallback Callback) {
             try {
                 byte[] pxl = BitmapToByteArray(b);
 
-                status = DmtxDecode(
-                            pxl,
-                            (UInt32)b.Width,
-                            (UInt32)b.Height,
-                            out results,
-                            out resultcount,
-                            options);
+                byte status = DmtxDecode(
+                    pxl,
+                    (UInt32)b.Width,
+                    (UInt32)b.Height,
+                    options,
+                    dmtxDecodeResult => {
+                        DmtxDecoded result;
+                        try {
+                            result = new DmtxDecoded {
+                                Corners = dmtxDecodeResult.Corners,
+                                SymbolInfo = dmtxDecodeResult.SymbolInfo,
+                                Data = new byte[dmtxDecodeResult.DataSize]
+                            };
+                            for (int dataIdx = 0; dataIdx < dmtxDecodeResult.DataSize; dataIdx++) {
+                                result.Data[dataIdx] = Marshal.ReadByte(dmtxDecodeResult.Data, dataIdx);
+                            }
+                            Callback(result);
+                        } catch (Exception ex) {
+                            throw new DmtxException("Error parsing decode results.", ex);
+                        }
+                    });
+                if (status == RETURN_NO_MEMORY) {
+                    throw new DmtxOutOfMemoryException("Not enough memory.");
+                } else if (status == RETURN_INVALID_ARGUMENT) {
+                    throw new DmtxInvalidArgumentException("Invalid options configuration.");
+                } else if (status > 0) {
+                    throw new DmtxException("Unknown error.");
+                }
             } catch (Exception ex) {
                 throw new DmtxException("Error calling native function.", ex);
             }
-            if (status == RETURN_NO_MEMORY) {
-                throw new DmtxOutOfMemoryException("Not enough memory.");
-            } else if (status == RETURN_INVALID_ARGUMENT) {
-                throw new DmtxInvalidArgumentException("Invalid options configuration.");
-            } else if ((status > 0) || (results == IntPtr.Zero)) {
-                throw new DmtxException("Unknown error.");
-            }
-
-            DmtxDecoded[] result;
-            try {
-                result = new DmtxDecoded[resultcount];
-                IntPtr accResult = results;
-                for (uint i = 0; i < resultcount; i++) {
-                    DecodedInternal intResult = (DecodedInternal)Marshal.PtrToStructure(accResult, typeof(DecodedInternal));
-                    result[i] = new DmtxDecoded {
-                        Corners = intResult.Corners,
-                        SymbolInfo = intResult.SymbolInfo,
-                        Data = new byte[intResult.DataSize]
-                    };
-                    for (int dataIdx = 0; dataIdx < intResult.DataSize; dataIdx++) {
-                        result[i].Data[dataIdx] = Marshal.ReadByte(intResult.Data, dataIdx);
-                    }
-                    accResult = (IntPtr)((long)accResult + Marshal.SizeOf(intResult));
-                }
-            } catch (Exception ex) {
-                throw new DmtxException("Error parsing decode results.", ex);
-            } finally {
-                try {
-                    DmtxFreeDecodeResult(results, resultcount);
-                } catch (Exception ex) {
-                    throw new DmtxException("Error freeing memory.", ex);
-                }
-            }
-            return result;
         }
 
         private static byte[] BitmapToByteArray(Bitmap b) {
@@ -199,21 +191,17 @@ namespace Libdmtx {
             return ret;
         }
 
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void DmtxDecodeCallback(DecodedInternal dmtxDecodeResult);
+
         [DllImport("libdmtx.dll", EntryPoint = "dmtx_decode")]
         private static extern byte
         DmtxDecode(
             [In] byte[] image,
             [In] UInt32 width,
             [In] UInt32 height,
-            [Out] out IntPtr results,
-            [Out] out UInt32 resultcount,
-            [In] DecodeOptions options);
-
-        [DllImport("libdmtx.dll", EntryPoint = "dmtx_free_decode_result")]
-        private static extern void
-        DmtxFreeDecodeResult(
-            [In] IntPtr result,
-            [In] UInt32 count);
+            [In] DecodeOptions options,
+            [In] DmtxDecodeCallback callback);
 
         [DllImport("libdmtx.dll", EntryPoint = "dmtx_encode")]
         private static extern byte
@@ -328,7 +316,7 @@ namespace Libdmtx {
     }
 
     /// <summary>
-    /// Options used for decoding using <see cref="Dmtx.Decode"/>
+    /// Options used for decoding using <see cref="Dmtx.Decode(Bitmap,DecodeOptions)"/>
     /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     public class DecodeOptions {
@@ -429,7 +417,7 @@ namespace Libdmtx {
     }
 
     /// <summary>
-    /// Returned from <see cref="Dmtx.Decode"/>.
+    /// Returned from <see cref="Dmtx.Decode(Bitmap,DecodeOptions)"/>.
     /// </summary>
     public class DmtxDecoded {
         /// <summary>

@@ -31,9 +31,8 @@ DMTX_EXTERN unsigned char
 dmtx_decode(const void *rgb_image,
 			const dmtx_uint32_t width,
 			const dmtx_uint32_t height,
-			dmtx_decoded_t **decode_results,
-			dmtx_uint32_t *result_count,
-			const dmtx_decode_options_t *options)
+			const dmtx_decode_options_t *options,
+			void(*callbackFunc)(dmtx_decoded_t *decode_result))
 {
 	DmtxImage *img = NULL;
 	DmtxDecode *decode = NULL;
@@ -44,10 +43,8 @@ dmtx_decode(const void *rgb_image,
 	DmtxPassFail err = DmtxPass;
 	DmtxTime msec, *timeout = NULL;
 	DmtxVector2 p00, p10, p11, p01;
-	dmtx_decoded_t *results = NULL;
 	double rotate;
-
-	*result_count = 0;
+	int result_count;
 
 	// Create libdmtx's image structure
 	img = dmtxImageCreate(
@@ -105,81 +102,60 @@ dmtx_decode(const void *rgb_image,
 		return DMTX_RETURN_INVALID_ARGUMENT;
 	}
 
-	// Prepare results buffer
-	if (max_results < 1) max_results = 100;
-	*decode_results = calloc(max_results, sizeof(dmtx_decoded_t));
-	results = *decode_results;
-	if (results == NULL) {
-		dmtxImageDestroy(&img);
-		return DMTX_RETURN_NO_MEMORY;
-	}
-	memset(results, 0, max_results * sizeof(dmtx_decoded_t));
-
 	// Find and decode matrices in the image
 	region = dmtxRegionFindNext(decode, timeout);
-	while ((region != NULL) && (*result_count < max_results)) {
+	result_count = 0;
+	while ((region != NULL) && (result_count < max_results)) {
+		dmtx_decoded_t result;
+
 		p00.X = p00.Y = p10.Y = p01.X = 0.0;
 		p10.X = p01.Y = p11.X = p11.Y = 1.0;
 		dmtxMatrix3VMultiplyBy(&p00, region->fit2raw);
 		dmtxMatrix3VMultiplyBy(&p10, region->fit2raw);
 		dmtxMatrix3VMultiplyBy(&p11, region->fit2raw);
 		dmtxMatrix3VMultiplyBy(&p01, region->fit2raw);
-		results[*result_count].corners.corner0.x =
-			(dmtx_uint16_t)(p00.X + 0.5);
-		results[*result_count].corners.corner0.y =
-			(dmtx_uint16_t)(height - 1 - (int)(p00.Y + 0.5));
-		results[*result_count].corners.corner1.x =
-			(dmtx_uint16_t)(p01.X + 0.5);
-		results[*result_count].corners.corner1.y =
-			(dmtx_uint16_t)(height - 1 - (int)(p01.Y + 0.5));
-		results[*result_count].corners.corner2.x =
-			(dmtx_uint16_t)(p10.X + 0.5);
-		results[*result_count].corners.corner2.y =
-			(dmtx_uint16_t)(height - 1 - (int)(p10.Y + 0.5));
-		results[*result_count].corners.corner3.x =
-			(dmtx_uint16_t)(p11.X + 0.5);
-		results[*result_count].corners.corner3.y =
-			(dmtx_uint16_t)(height - 1 - (int)(p11.Y + 0.5));
+		result.corners.corner0.x = (dmtx_uint16_t)(p00.X + 0.5);
+		result.corners.corner0.y = (dmtx_uint16_t)(height - 1 - (int)(p00.Y + 0.5));
+		result.corners.corner1.x = (dmtx_uint16_t)(p01.X + 0.5);
+		result.corners.corner1.y = (dmtx_uint16_t)(height - 1 - (int)(p01.Y + 0.5));
+		result.corners.corner2.x = (dmtx_uint16_t)(p10.X + 0.5);
+		result.corners.corner2.y = (dmtx_uint16_t)(height - 1 - (int)(p10.Y + 0.5));
+		result.corners.corner3.x = (dmtx_uint16_t)(p11.X + 0.5);
+		result.corners.corner3.y = (dmtx_uint16_t)(height - 1 - (int)(p11.Y + 0.5));
 
 		rotate = (2 * M_PI) + (atan2(region->fit2raw[0][1], region->fit2raw[1][1]) -
 			atan2(region->fit2raw[1][0], region->fit2raw[0][0])) / 2.0;
 		rotate = (rotate * 180/M_PI);  // degrees
 		if (rotate >= 360) rotate -= 360;
-		results[*result_count].symbolInfo.angle =
-			(dmtx_uint16_t) (rotate + 0.5);
-		results[*result_count].symbolInfo.cols = (dmtx_uint16_t)
-			dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
-		results[*result_count].symbolInfo.rows = (dmtx_uint16_t)
-			dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
-		results[*result_count].symbolInfo.horizDataRegions = (dmtx_uint16_t)
-			dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions, region->sizeIdx);
-		results[*result_count].symbolInfo.vertDataRegions = (dmtx_uint16_t)
-			dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, region->sizeIdx);
-		results[*result_count].symbolInfo.interleavedBlocks = (dmtx_uint16_t)
-			dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, region->sizeIdx);
-		results[*result_count].symbolInfo.capacity = (dmtx_uint16_t)
-			dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, region->sizeIdx);
-		results[*result_count].symbolInfo.errorWords = (dmtx_uint16_t)
-			dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, region->sizeIdx);
+		result.symbolInfo.angle = (dmtx_uint16_t) (rotate + 0.5);
+		result.symbolInfo.cols = (dmtx_uint16_t) dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
+		result.symbolInfo.rows = (dmtx_uint16_t) dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
+		result.symbolInfo.horizDataRegions = (dmtx_uint16_t) dmtxGetSymbolAttribute(DmtxSymAttribHorizDataRegions, region->sizeIdx);
+		result.symbolInfo.vertDataRegions = (dmtx_uint16_t) dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, region->sizeIdx);
+		result.symbolInfo.interleavedBlocks = (dmtx_uint16_t) dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, region->sizeIdx);
+		result.symbolInfo.capacity = (dmtx_uint16_t) dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, region->sizeIdx);
+		result.symbolInfo.errorWords = (dmtx_uint16_t) dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, region->sizeIdx);
 
 		if (options->mocaic)
 			msg = dmtxDecodeMosaicRegion(decode, region, options->correctionsMax);
 		else
 			msg = dmtxDecodeMatrixRegion(decode, region, options->correctionsMax);
 		if (msg != NULL) {
-			results[*result_count].data = malloc(msg->outputSize);
-			if (results[*result_count].data != NULL) {
-				memcpy(results[*result_count].data, msg->output, msg->outputSize);
-				results[*result_count].dataSize = msg->outputSize;
+			result.data = malloc(msg->outputSize);
+			if (result.data != NULL) {
+				memcpy(result.data, msg->output, msg->outputSize);
+				result.dataSize = msg->outputSize;
 			}
-			results[*result_count].symbolInfo.padWords = (dmtx_uint16_t)
-				msg->padCount;
-			results[*result_count].symbolInfo.dataWords = (dmtx_uint16_t) (
-				results[*result_count].symbolInfo.capacity -
-				results[*result_count].symbolInfo.padWords);
+			result.symbolInfo.padWords = (dmtx_uint16_t) msg->padCount;
+			result.symbolInfo.dataWords = (dmtx_uint16_t) (
+				result.symbolInfo.capacity -
+				result.symbolInfo.padWords);
 			dmtxMessageDestroy(&msg);
 		}
-		(*result_count)++;
+
+		callbackFunc(&result);
+
+		result_count++;
 		region = dmtxRegionFindNext(decode, timeout);
 	}
 
@@ -190,17 +166,6 @@ dmtx_decode(const void *rgb_image,
 
 	return returncode;
 }
-
-DMTX_EXTERN void
-dmtx_free_decode_result(const dmtx_decoded_t *ptr,
-						const dmtx_uint32_t result_count)
-{
-	dmtx_uint32_t i;
-	for (i = 0; i < result_count; i++)
-		free(ptr[i].data);
-	free((void *) ptr);  // remove const warning
-}
-
 
 DMTX_EXTERN unsigned char
 dmtx_encode(const void *plain_text,
