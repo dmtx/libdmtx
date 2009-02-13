@@ -104,3 +104,27 @@ timeAddTest(void)
       FatalError(5, "timeAddTest\n");
    }
 }
+
+/**
+ *
+ *
+ */
+/*
+static void
+TestRGB(void)
+{
+   unsigned char *pxl;
+   FILE *fp;
+
+   pxl = (unsigned char *)malloc(320 * 240 * 3);
+   assert(pxl != NULL);
+
+   fp = fopen("fruit_matrix.rgb", "rb");
+   assert(fp != NULL);
+
+   fread(ptr, 3, 320 * 240, fp);
+   fclose(fp);
+
+   dmtxImageCreate(ptr, 320, 240, DmtxPack24bppRGB);
+}
+*/
