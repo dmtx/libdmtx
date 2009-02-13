@@ -755,7 +755,9 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
                rgb[2] += (shade * (255 - rgb[2]));
             }
          }
-         fwrite(rgb, sizeof(char), 3, fp);
+         fputc(rgb[0], fp);
+         fputc(rgb[1], fp);
+         fputc(rgb[2], fp);
       }
    }
 
