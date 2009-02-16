@@ -73,7 +73,7 @@ public class DMTXImage {
   /**
    * Decode the image, returning tags found (as DMTXTag objects)
    */
-  public native DMTXTag[] getTags(int aMaxTagCount);
+  public native DMTXTag[] getTags(int aMaxTagCount, int searchTimeout);
 
   /**
    * Generate a BufferedImage from the image and return it

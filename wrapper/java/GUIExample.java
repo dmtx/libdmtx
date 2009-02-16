@@ -31,6 +31,7 @@ import java.io.File;
 import org.libdmtx.*;
 
 public class GUIExample extends Frame {
+  public static final int SEARCH_TIMEOUT = 10000;
   BufferedImage testImage;
   DMTXTag []tags;
 
@@ -45,7 +46,7 @@ public class GUIExample extends Frame {
 
       setSize(lDImg.width, lDImg.height);
 
-      tags = lDImg.getTags(4);
+      tags = lDImg.getTags(4, SEARCH_TIMEOUT);
     } catch (Exception e) {
       System.out.println(e);
     }

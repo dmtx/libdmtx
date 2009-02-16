@@ -30,6 +30,7 @@ import java.io.File;
 import org.libdmtx.*;
 
 public class CLIExample {
+  public static final int SEARCH_TIMEOUT = 10000;
   BufferedImage testImage;
   DMTXTag []tags;
 
@@ -43,7 +44,7 @@ public class CLIExample {
       DMTXImage lDImg = new DMTXImage(testImage);
 
       long startTime = System.currentTimeMillis();
-      tags = lDImg.getTags(4);
+      tags = lDImg.getTags(4, SEARCH_TIMEOUT);
       decodingTime = System.currentTimeMillis() - startTime;
     } catch (Exception e) {
       System.out.println(e);

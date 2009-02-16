@@ -31,8 +31,6 @@ Contact: mike@dragonflylogic.com
 #include <malloc.h>
 #include <dmtx.h>
 
-#define SEARCH_TIMEOUT    10000
-
 /**
  * Construct from ID (static factory method since JNI doesn't allow native
  * constructors).
@@ -40,21 +38,23 @@ Contact: mike@dragonflylogic.com
 JNIEXPORT jobject JNICALL
 Java_org_libdmtx_DMTXImage_createTag(JNIEnv *aEnv, jclass aClass, jstring aID)
 {
-   unsigned char  lStrID[64];
-   DmtxEncode    *lEncoded;
-   jclass         lImageClass;
-   jmethodID      lConstructor;
-   jobject        lResult;
-   jintArray      lJavaData;
-   int            lW, lH, lBPP, lI, lJ;
-   jint          *lPixels;
+   DmtxEncode *lEncoded;
+   jclass      lImageClass;
+   jmethodID   lConstructor;
+   jobject     lResult;
+   jintArray   lJavaData;
+   int         lW, lH, lBPP, lI, lJ;
+   jint       *lPixels;
 
    /* Convert ID into string */
-   sprintf(lStrID, "%d", aID);
+   const char *sStrID = (*aEnv)->GetStringUTFChars(aEnv, aID, NULL);
 
    /* Create Data Matrix */
    lEncoded = dmtxEncodeCreate();
-   dmtxEncodeDataMatrix(lEncoded, strlen(lStrID), lStrID);
+   dmtxEncodeDataMatrix(lEncoded, strlen(lStrID), sStrID);
+
+   /* Finished with ID, so release it */
+   (*aEnv)->ReleaseStringUTFChars(aEnv, aID, sStrID);
 
    dmtxEncodeSetProp(lEncoded, DmtxPropPixelPacking, DmtxPack32bppRGBX);
    dmtxEncodeSetProp(lEncoded, DmtxPropImageFlip, DmtxFlipNone);
@@ -115,7 +115,8 @@ Java_org_libdmtx_DMTXImage_createTag(JNIEnv *aEnv, jclass aClass, jstring aID)
  * Decode the image, returning tags found (as DMTXTag objects)
  */
 JNIEXPORT jobjectArray JNICALL
-Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, jobject aImage, jint aTagCount)
+Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, jobject aImage,
+      jint aTagCount, jint lSearchTimeout)
 {
    jclass        lImageClass, lTagClass, lPointClass;
    jmethodID     lTagConstructor, lPointConstructor;
@@ -187,7 +188,7 @@ Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, jobject aImage, jint aTagCount)
       return NULL;
 
    /* Find all tags that we can inside timeout */
-   lTimeout = dmtxTimeAdd(dmtxTimeNow(), SEARCH_TIMEOUT);
+   lTimeout = dmtxTimeAdd(dmtxTimeNow(), lSearchTimeout);
 
    while(lTagCount < aTagCount && (lRegion = dmtxRegionFindNext(lDecode, &lTimeout))) {
       jstring sStringID;
