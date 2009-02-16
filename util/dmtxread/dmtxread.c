@@ -42,7 +42,7 @@ main(int argc, char *argv[])
    int err;
    int fileIndex, imgPageIndex;
    int fileCount;
-   int imageScanCount, pageScanCount;
+   int imgScanCount, pageScanCount;
    int width, height;
    unsigned char *pxl;
    UserOptions opt;
@@ -65,7 +65,7 @@ main(int argc, char *argv[])
    MagickWandGenesis();
 
    /* Loop once for each image named on command line */
-   imageScanCount = 0;
+   imgScanCount = 0;
    for(i = 0; i < fileCount; i++) {
 
       /* Open image from file or stream (might contain multiple pages) */
@@ -165,17 +165,18 @@ main(int argc, char *argv[])
                msg = dmtxDecodeMatrixRegion(dec, reg, opt.correctionsMax);
 
             if(msg != NULL) {
-               PrintDecodedOutput(&opt, img, reg, msg, imgPageIndex);
+               PrintStats(msg, img, reg, imgPageIndex, &opt);
+               PrintMessage(msg, &opt);
 
                pageScanCount++;
-               imageScanCount++;
+               imgScanCount++;
 
                dmtxMessageDestroy(&msg);
             }
 
             dmtxRegionDestroy(&reg);
 
-            if(opt.stopAfter != DmtxUndefined && imageScanCount >= opt.stopAfter)
+            if(opt.stopAfter != DmtxUndefined && imgScanCount >= opt.stopAfter)
                break;
          }
 
@@ -192,7 +193,7 @@ main(int argc, char *argv[])
 
    MagickWandTerminus();
 
-   exit((imageScanCount > 0) ? EX_OK : 1);
+   exit((imgScanCount > 0) ? EX_OK : 1);
 }
 
 /**
@@ -210,11 +211,11 @@ GetDefaultOptions(void)
    opt.codewords = DmtxFalse;
    opt.edgeMin = DmtxUndefined;
    opt.edgeMax = DmtxUndefined;
-   opt.squareDevn = DmtxUndefined;
    opt.scanGap = 2;
    opt.timeoutMS = DmtxUndefined;
    opt.newline = DmtxFalse;
    opt.page = DmtxUndefined;
+   opt.squareDevn = DmtxUndefined;
    opt.dpi = DmtxUndefined;
    opt.sizeIdxExpected = DmtxSymbolShapeAuto;
    opt.edgeThresh = 5;
@@ -230,6 +231,7 @@ GetDefaultOptions(void)
    opt.corners = DmtxFalse;
    opt.shrinkMin = 1;
    opt.shrinkMax = 1;
+   opt.unicode = DmtxFalse;
    opt.verbose = DmtxFalse;
 
    return opt;
@@ -276,6 +278,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
          {"page-numbers",     no_argument,       NULL, 'P'},
          {"corners",          no_argument,       NULL, 'R'},
          {"shrink",           required_argument, NULL, 'S'},
+         {"unicode",          no_argument,       NULL, 'U'},
          {"verbose",          no_argument,       NULL, 'v'},
          {"version",          no_argument,       NULL, 'V'},
          {"help",             no_argument,       NULL,  0 },
@@ -288,7 +291,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
 
    for(;;) {
       optchr = getopt_long(*argcp, *argvp,
-            "ce:E:g:lm:np:q:r:s:t:x:X:y:Y:vC:DMN:PRS:V", longOptions, &longIndex);
+            "ce:E:g:lm:np:q:r:s:t:x:X:y:Y:vC:DMN:PRS:UV", longOptions, &longIndex);
       if(optchr == -1)
          break;
 
@@ -412,6 +415,9 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
                FatalError(EX_USAGE, _("Invalid shrink factor specified \"%s\""), optarg);
             /* XXX later also popular shrinkMin based on N-N range */
             break;
+         case 'U':
+            opt->unicode = DmtxTrue;
+            break;
          case 'V':
             fprintf(stdout, "%s version %s\n", programName, DmtxVersion);
             fprintf(stdout, "libdmtx version %s\n", dmtxVersion());
@@ -481,6 +487,7 @@ OPTIONS:\n"), programName, programName);
   -P, --page-numbers          prefix decoded message with fax/tiff page number\n\
   -R, --corners               prefix decoded message with corner locations\n\
   -S, --shrink=N              internally shrink image by a factor of N\n\
+  -U, --unicode               print Extended ASCII in Unicode (UTF-8)\n\
   -v, --verbose               use verbose messages\n\
   -V, --version               print program version information\n\
       --help                  display this help and exit\n"));
@@ -563,8 +570,8 @@ SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt)
  * @return DmtxPass | DmtxFail
  */
 static DmtxPassFail
-PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
-      DmtxRegion *reg, DmtxMessage *msg, int imgPageIndex)
+PrintStats(DmtxMessage *msg, DmtxImage *image, DmtxRegion *reg,
+      int imgPageIndex, UserOptions *opt)
 {
    int i;
    int height;
@@ -624,6 +631,20 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       fprintf(stdout, "%d,%d:", (int)(p01.X + 0.5), height - 1 - (int)(p01.Y + 0.5));
    }
 
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+static DmtxPassFail
+PrintMessage(DmtxMessage *msg, UserOptions *opt)
+{
+   int i;
+   int remainingDataWords;
+   int dataWordLength;
+
    if(opt->codewords == DmtxTrue) {
       for(i = 0; i < msg->codeSize; i++) {
          remainingDataWords = dataWordLength - i;
@@ -636,11 +657,28 @@ PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
       }
    }
    else {
-      fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
-      if(opt->newline == DmtxTrue)
+      if(opt->unicode == DmtxTrue) {
+         for(i = 0; i < msg->outputIdx; i++) {
+            if(msg->output[i] < 128) {
+               fputc(msg->output[i], stdout);
+            }
+            else if(msg->output[i] < 192) {
+              fputc(0xC2, stdout);
+              fputc(msg->output[i], stdout);
+            }
+            else {
+               fputc(0xC3, stdout);
+               fputc(msg->output[i] - 64, stdout);
+            }
+         }
+      }
+      else {
+         fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
+      }
+
+      if(opt->newline)
          fputc('\n', stdout);
    }
-   fflush(stdout);
 
    return DmtxPass;
 }

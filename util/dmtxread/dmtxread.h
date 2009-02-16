@@ -51,11 +51,11 @@ typedef struct {
    int codewords;       /* -c, --codewords */
    int edgeMin;         /* -e, --minimum-edge */
    int edgeMax;         /* -E, --maximum-edge */
-   int squareDevn;      /* -d, --square-deviation */
    int scanGap;         /* -g, --gap */
    int timeoutMS;       /* -m, --milliseconds */
    int newline;         /* -n, --newline */
    int page;            /* -p, --page */
+   int squareDevn;      /* -q, --square-deviation */
    int dpi;             /* -r, --resolution */
    int sizeIdxExpected; /* -s, --symbol-size */
    int edgeThresh;      /* -t, --threshold */
@@ -69,8 +69,9 @@ typedef struct {
    int stopAfter;       /* -N, --stop-after */
    int pageNumbers;     /* -P, --page-numbers */
    int corners;         /* -R, --corners */
-   int shrinkMax;       /* -s, --shrink */
-   int shrinkMin;       /* -s, --shrink (if range specified) */
+   int shrinkMax;       /* -S, --shrink */
+   int shrinkMin;       /* -S, --shrink (if range specified) */
+   int unicode;         /* -U, --unicode */
    int verbose;         /* -v, --verbose */
 } UserOptions;
 
@@ -79,8 +80,9 @@ static UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[]);
 static void ShowUsage(int status);
 static DmtxPassFail SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt);
-static DmtxPassFail PrintDecodedOutput(UserOptions *opt, DmtxImage *image,
-      DmtxRegion *region, DmtxMessage *message, int imgPageIndex);
+static DmtxPassFail PrintStats(DmtxMessage *msg, DmtxImage *image,
+      DmtxRegion *reg, int imgPageIndex, UserOptions *opt);
+static DmtxPassFail PrintMessage(DmtxMessage *msg, UserOptions *opt);
 static void CleanupMagick(MagickWand **wand, int magicError);
 static void ListImageFormats(void);
 static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);
