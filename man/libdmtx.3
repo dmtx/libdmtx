@@ -27,7 +27,7 @@ Creates a new \fBDmtxEncode\fP structure and initializes the encoding process. T
 
 2. Call \fBdmtxEncodeSetProp()\fP [optional]
 
-Control specific properties of the encoding behavior. If this function is not called, libdmtx will use the default values set by \fBdmtxEncodeCreate()\fP above. The complementary function, \fBdmtxEncodeGetProp()\fP, allows you to read the current settings.
+Allows you to control specific aspects of the encoding behavior. If this function is not called, libdmtx will use the defaults set by \fBdmtxEncodeCreate()\fP above. The complementary function, \fBdmtxEncodeGetProp()\fP, allows you to read the current settings.
 
 3. Call either \fBdmtxEncodeDataMatrix()\fP or \fBdmtxEncodeDataMosaic()\fP
 
@@ -35,56 +35,60 @@ Call one of these functions to generate an image of the desired barcode type. Yo
 
 4. Call \fBdmtxEncodeDestroy()\fP
 
-Releases the memory allocated during the encoding process.
+Releases memory allocated during the encoding process.
 
 .SH DECODING - Reading Data Matrix Barcodes
-Barcode reading takes more steps than barcode generation, mainly because libdmtx must find a barcode before it can be decoded. Even so, it's a straightforward process that uses 4 main structures:
+Barcode reading takes more steps than barcode generation, mainly because libdmtx must find a barcode region before it can be decoded. However, it remains a straightforward process that uses 4 main structures:
 
-\fBDmtxImage\fP holds image properties and a pointer to the pixel data. The calling program uses this structure to communicate image data with libdmtx.
+\fBDmtxImage\fP holds image properties and a pointer to the existing pixel data. The calling program uses this structure to communicate image data with libdmtx.
 
-\fBDmtxDecode\fP holds values for controlling decode behavior and tracking scan progress. When scanning a new image, calling programs should create a new \fBDmtxDecode\fP structure instead of reusing an old one.
+\fBDmtxDecode\fP holds values for controlling decode behavior and tracking scan progress. When scanning a new image, calling programs should always create a new \fBDmtxDecode\fP structure instead of reusing an old one.
 
 \fBDmtxRegion\fP defines a 4-sided region in pixel coordinates. A region may occur in almost any orientation, and its corners will not necessarily form right angles. libdmtx uses this structure to store the location of potential barcodes, which are then returned one at a time to the calling program.
 
 \fBDmtxMessage\fP holds the decoded message after being extracted from the barcode region. A successfully decoded region will produce exactly one message.
 
-Use the following functions to detect and decode Data Matrix barcodes:
+Use the following functions to find and decode Data Matrix barcodes:
 
 1. Call \fBdmtxImageCreate()\fP
 
 Creates and initializes a new \fBDmtxImage\fP structure using pixel data provided by the calling application. Parameters include a pointer to the existing pixel array, image width, height, and the pixel packing format.
 
-2. Call \fBdmtxDecodeCreate()\fP
+2. Call \fBdmtxImageSetProp()\fP [optional]
+
+xxx
+
+3. Call \fBdmtxDecodeCreate()\fP
 
 Creates and initializes a new \fBDmtxDecode\fP struct, which designates the image to be scanned and initializes the grid pattern. This function must be called before any other scanning functions.
 
-3. Call \fBdmtxDecodeSetProp()\fP [optional]
+4. Call \fBdmtxDecodeSetProp()\fP [optional]
 
-Sets internal properties to control decoding behavior. This feature allows applications to tune performance and accuracy for specific image conditions. A \fBdmtxDecodeGetProp()\fP function is also available.
+Sets internal properties to control decoding behavior. This feature allows you to optimize performance and accuracy for specific image conditions. A \fBdmtxDecodeGetProp()\fP function is also available.
 
-4. Call \fBdmtxRegionFindNext()\fP
+5. Call \fBdmtxRegionFindNext()\fP
 
 Searches every pixel location in a grid pattern looking for potential barcode regions. A \fBDmtxRegion\fP is returned whenever A) a potential barcode region is found, or B) the final pixel has been scanned. Subsequent calls to this function will resume the search where the previous call left off.
 
-5. Call either \fBdmtxDecodeMatrixRegion()\fP or \fBdmtxDecodeMosaicRegion()\fP
+6. Call either \fBdmtxDecodeMatrixRegion()\fP or \fBdmtxDecodeMosaicRegion()\fP
 
-Extract bit values from the barcode region and decode the underlying message. \fBDmtxMessage\fP values returned from this function must be freed after use.
+Extracts raw data from the barcode region and decodes the underlying message.
 
-6. Call \fBdmtxMessageDestroy()\fP
+7. Call \fBdmtxMessageDestroy()\fP
 
 Releases the memory held by a \fBDmtxMessage\fP struct. The complementary function, \fBdmtxMessageCreate()\fP, is automatically called by \fBdmtxDecodeMatrixRegion()\fP and therefore is not normally used by the calling program.
 
-7. Call \fBdmtxRegionDestroy()\fP
+8. Call \fBdmtxRegionDestroy()\fP
 
 Releases the memory held by a \fBDmtxRegion\fP struct. The complementary function, \fBdmtxRegionCreate()\fP, is automatically called by \fBdmtxRegionFindNext()\fP (actually \fBdmtxRegionScanPixel()\fP) and therefore is not normally used by the calling program.
 
-8. Call \fBdmtxDecodeDestroy()\fP
+9. Call \fBdmtxDecodeDestroy()\fP
 
 Releases the memory held by a \fBDmtxDecode\fP struct. This is the complementary function to \fBdmtxDecodeCreate()\fP.
 
-9. Call \fBdmtxImageDestroy()\fP
+10. Call \fBdmtxImageDestroy()\fP
 
-Releases the memory held by a \fBDmtxImage\fP struct. If \fBdmtxImageCreate()\fP was called with NULL as the first parameter, \fBdmtxImageDestroy()\fP will free the pixel memory. Otherwise it will leave the memory intact.
+Releases the memory held by a \fBDmtxImage\fP struct.
 
 .SH EXAMPLE PROGRAM
 

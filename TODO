@@ -394,15 +394,15 @@ Proposed Change: Latest thoughts on region detection
 
   c = connected edge flag
   u = upstream direction
-  t = meets min threshhold flag
+  t = meets min threshold flag
   d = downstream direction
 
 * Step through entire image and assign best downstream neighbor if above certain
-  threshhold. (sets t and d bits)
+  threshold. (sets t and d bits)
 
 * Step through grid locations looking for edge candidates:
 
-* If below threshhold (t == 0) OR
+* If below threshold (t == 0) OR
   if edge was connected in a previous step (c == 1)
   then skip to next
 
