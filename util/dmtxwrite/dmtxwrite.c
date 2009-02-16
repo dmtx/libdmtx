@@ -344,7 +344,7 @@ ShowUsage(int status)
    else {
       fprintf(stdout, _("Usage: %s [OPTION]... [FILE]\n"), programName);
       fprintf(stdout, _("\
-Encode FILE or STDIN and write Data Matrix barcode to desired format\n\
+Encode FILE or standard input and write Data Matrix image\n\
 \n\
 Example: %s message.txt -o message.png\n\
 Example: echo -n 123456 | %s -o message.png\n\
@@ -354,11 +354,11 @@ OPTIONS:\n"), programName, programName);
   -c, --codewords             print codeword listing\n\
   -d, --module=NUM            module size (in pixels)\n\
   -m, --margin=NUM            margin size (in pixels)\n\
-  -e, --encoding=[bfactxe8]   primary encodation scheme\n\
-            b = Best optimized    a = ASCII [default]\n\
-            f = Fast optimized    c = C40\n\
-            e = EDIFACT           t = Text\n\
-            8 = Base 256          x = X12\n"));
+  -e, --encoding=[abcet8x]    primary encodation scheme\n\
+            a = ASCII [default]   b = Best optimized [beta]\n\
+            c = C40               e = EDIFACT\n\
+            t = Text              8 = Base 256\n\
+            x = X12\n"));
       fprintf(stdout, _("\
   -f, --format=FORMAT         PNG [default], TIF, GIF, PDF, etc...\n\
   -l, --list-formats          list supported image formats\n\
