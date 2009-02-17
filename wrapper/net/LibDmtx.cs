@@ -73,10 +73,12 @@ namespace Libdmtx {
 
         public delegate void DecodeCallback(DmtxDecoded decoded);
         public static void Decode(Bitmap b, DecodeOptions options, DecodeCallback Callback) {
+            Exception decodeException = null;
+            byte status;
             try {
                 byte[] pxl = BitmapToByteArray(b);
 
-                byte status = DmtxDecode(
+                status = DmtxDecode(
                     pxl,
                     (UInt32)b.Width,
                     (UInt32)b.Height,
@@ -93,19 +95,24 @@ namespace Libdmtx {
                                 result.Data[dataIdx] = Marshal.ReadByte(dmtxDecodeResult.Data, dataIdx);
                             }
                             Callback(result);
+                            return true;
                         } catch (Exception ex) {
-                            throw new DmtxException("Error parsing decode results.", ex);
+                            decodeException = new DmtxException("Error parsing decode results.", ex);
+                            return false;
                         }
                     });
-                if (status == RETURN_NO_MEMORY) {
-                    throw new DmtxOutOfMemoryException("Not enough memory.");
-                } else if (status == RETURN_INVALID_ARGUMENT) {
-                    throw new DmtxInvalidArgumentException("Invalid options configuration.");
-                } else if (status > 0) {
-                    throw new DmtxException("Unknown error.");
-                }
             } catch (Exception ex) {
                 throw new DmtxException("Error calling native function.", ex);
+            }
+            if (decodeException != null) {
+                throw decodeException;
+            }
+            if (status == RETURN_NO_MEMORY) {
+                throw new DmtxOutOfMemoryException("Not enough memory.");
+            } else if (status == RETURN_INVALID_ARGUMENT) {
+                throw new DmtxInvalidArgumentException("Invalid options configuration.");
+            } else if (status > 0) {
+                throw new DmtxException("Unknown error.");
             }
         }
 
@@ -193,7 +200,7 @@ namespace Libdmtx {
         }
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate void DmtxDecodeCallback(DecodedInternal dmtxDecodeResult);
+        private delegate bool DmtxDecodeCallback(DecodedInternal dmtxDecodeResult);
 
         [DllImport("libdmtx.dll", EntryPoint = "dmtx_decode")]
         private static extern byte

@@ -125,7 +125,7 @@ dmtx_decode(const void *rgb_image,
 			const dmtx_uint32_t width,
 			const dmtx_uint32_t height,
 			const dmtx_decode_options_t *options,
-			void(*callbackFunc)(dmtx_decoded_t *decode_result));
+			int(*callbackFunc)(dmtx_decoded_t *decode_result));
 
 DMTX_EXTERN unsigned char
 dmtx_encode(const void *plain_text,

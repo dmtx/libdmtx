@@ -33,7 +33,7 @@ dmtx_decode(const unsigned char *rgb_image,
 			const dmtx_uint32_t width,
 			const dmtx_uint32_t height,
 			const dmtx_decode_options_t *options,
-			void(*callbackFunc)(dmtx_decoded_t *decode_result))
+			int(*callbackFunc)(dmtx_decoded_t *decode_result))
 {
 	DmtxImage *img = NULL;
 	DmtxDecode *decode = NULL;
@@ -151,7 +151,10 @@ dmtx_decode(const unsigned char *rgb_image,
 			dmtxMessageDestroy(&msg);
 		}
 
-		callbackFunc(&result);
+		if(callbackFunc(&result)==0) {
+			returncode = -1; /* TODO: find a better error code for this libdmtx.h doesn't have one. */
+			break;
+		}
 
 		result_count++;
 		region = dmtxRegionFindNext(decode, timeout);
