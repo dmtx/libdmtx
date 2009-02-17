@@ -51,7 +51,7 @@ Java_org_libdmtx_DMTXImage_createTag(JNIEnv *aEnv, jclass aClass, jstring aID)
 
    /* Create Data Matrix */
    lEncoded = dmtxEncodeCreate();
-   dmtxEncodeDataMatrix(lEncoded, strlen(lStrID), sStrID);
+   dmtxEncodeDataMatrix(lEncoded, strlen(sStrID), (unsigned char *)sStrID);
 
    /* Finished with ID, so release it */
    (*aEnv)->ReleaseStringUTFChars(aEnv, aID, sStrID);
