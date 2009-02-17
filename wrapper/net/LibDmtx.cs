@@ -97,7 +97,7 @@ namespace Libdmtx {
                             Callback(result);
                             return true;
                         } catch (Exception ex) {
-                            decodeException = new DmtxException("Error parsing decode results.", ex);
+                            decodeException = ex;
                             return false;
                         }
                     });

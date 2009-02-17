@@ -74,13 +74,16 @@ namespace Libdmtx {
         public void TestDecodeWithCallbackThrowException() {
             Bitmap bm = GetBitmapFromResource("Libdmtx.TestImages.Test002.png");
             DecodeOptions opt = new DecodeOptions();
+            int callCount = 0;
             try {
                 Dmtx.Decode(bm, opt, d => {
+                    callCount++;
                     throw new Exception("Test Exception");
                 });
                 Assert.Fail("Should have gotten an exception.");
             } catch (Exception ex) {
-                Assert.AreEqual("Error parsing decode results.", ex.Message);
+                Assert.AreEqual(1, callCount);
+                Assert.AreEqual("Test Exception", ex.Message);
             }
         }
 
