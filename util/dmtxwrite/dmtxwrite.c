@@ -36,6 +36,7 @@ int
 main(int argc, char *argv[])
 {
    int err;
+   char *format;
    UserOptions opt;
    DmtxEncode *enc;
    unsigned char codeBuffer[DMTXWRITE_BUFFER_SIZE];
@@ -65,7 +66,7 @@ main(int argc, char *argv[])
    dmtxEncodeSetProp(enc, DmtxPropSizeRequest, opt.sizeIdx);
 
    /* Read input data into buffer */
-   ReadData(&codeBufferSize, codeBuffer, &opt);
+   ReadInputData(&codeBufferSize, codeBuffer, &opt);
 
    /* Create barcode image */
    if(opt.mosaic == DmtxTrue)
@@ -82,10 +83,19 @@ main(int argc, char *argv[])
       if(opt.preview == DmtxTrue)
          WriteAsciiPreview(enc);
       if(opt.codewords == DmtxTrue)
-         WriteCodewords(enc);
+         WriteCodewordList(enc);
    }
    else {
-      WriteImageFile(&opt, enc);
+      format = GetImageFormat(&opt);
+      if(format == NULL)
+         format = "png";
+
+      if(strncasecmp(format, "svg", 4) == 0)
+         WriteSvgFile(&opt, enc, 0);
+      else if(strncasecmp(format, "svg_def", 8) == 0)
+         WriteSvgFile(&opt, enc, 1);
+      else
+         WriteImageFile(&opt, enc, format);
    }
 
    /* Clean up */
@@ -310,7 +320,7 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
  *
  */
 static void
-ReadData(int *codeBufferSize, unsigned char *codeBuffer, UserOptions *opt)
+ReadInputData(int *codeBufferSize, unsigned char *codeBuffer, UserOptions *opt)
 {
    int fd;
 
@@ -394,25 +404,6 @@ OPTIONS:\n"), programName, programName);
  *
  *
  */
-static char *
-FilenameExtension(char *path)
-{
-   char *ptr;
-
-   if(path == NULL)
-      return NULL;
-
-   ptr = strrchr(path, '.');
-   if(ptr != NULL)
-      return ptr + 1;
-
-   return NULL;
-}
-
-/**
- *
- *
- */
 static void
 CleanupMagick(MagickWand **wand, int magickError)
 {
@@ -471,9 +462,33 @@ ListImageFormats(void)
 /**
  *
  *
+ *
+ */
+static char *
+GetImageFormat(UserOptions *opt)
+{
+   char *ptr = NULL;
+
+   /* Derive format from filename extension */
+   if(opt->outputPath != NULL) {
+      ptr = strrchr(opt->outputPath, '.');
+      if(ptr != NULL)
+         ptr++;
+   }
+
+   /* If still undefined then use format argument */
+   if(ptr == NULL || strnlen(ptr, 1) == 0)
+      ptr = opt->format;
+
+   return ptr;
+}
+
+/**
+ *
+ *
  */
 static void
-WriteImageFile(UserOptions *opt, DmtxEncode *enc)
+WriteImageFile(UserOptions *opt, DmtxEncode *enc, char *format)
 {
    MagickBooleanType success;
    MagickWand *wand;
@@ -483,36 +498,93 @@ WriteImageFile(UserOptions *opt, DmtxEncode *enc)
 
    wand = NewMagickWand();
    if(wand == NULL)
-      FatalError(EX_OSERR, "undefined error");
+      FatalError(EX_OSERR, "Undefined error");
 
    success = MagickConstituteImage(wand, enc->image->width, enc->image->height,
          "RGB", CharPixel, enc->image->pxl);
    if(success == MagickFalse) {
       CleanupMagick(&wand, DmtxTrue);
-      FatalError(EX_OSERR, "undefined error");
+      FatalError(EX_OSERR, "Undefined error");
    }
 
-   if(opt->outputPath == NULL) {
-      outputPath = "-";
-      success = MagickSetImageFormat(wand, (opt->format != NULL) ? opt->format : "PNG");
-      if(success == MagickFalse) {
-         CleanupMagick(&wand, DmtxTrue);
-         FatalError(EX_OSERR, "undefined error");
-      }
+   success = MagickSetImageFormat(wand, format);
+   if(success == MagickFalse) {
+      CleanupMagick(&wand, DmtxFalse);
+      FatalError(EX_OSERR, "Illegal format \"%s\"", format);
    }
-   else {
-      outputPath = opt->outputPath;
-   }
+
+   outputPath = (opt->outputPath == NULL) ? "-" : opt->outputPath;
 
    success = MagickWriteImage(wand, outputPath);
    if(success == MagickFalse) {
       CleanupMagick(&wand, DmtxTrue);
-      FatalError(EX_OSERR, "undefined error");
+      FatalError(EX_OSERR, "Undefined error");
    }
 
    CleanupMagick(&wand, DmtxFalse);
 
    MagickWandTerminus();
+}
+
+/**
+ *
+ *
+ */
+static void
+WriteSvgFile(UserOptions *opt, DmtxEncode *enc, int def)
+{
+   int col, row, rowInv;
+   int width, height, module;
+   FILE *fp;
+
+   if(opt->outputPath == NULL) {
+      fp = stdout;
+   }
+   else {
+      fp = fopen(opt->outputPath, "wb");
+      if(fp == NULL)
+         FatalError(EX_CANTCREAT, "Unable to create output file \"%s\"", opt->outputPath);
+   }
+
+   width = 2 * enc->marginSize + (enc->region.symbolCols * enc->moduleSize);
+   height = 2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize);
+
+   /* SVG Header */
+   fprintf(fp, "\
+<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n\
+<!-- Created with dmtxwrite (http://www.libdmtx.org/) -->\n\
+<svg\n\
+   xmlns:svg=\"http://www.w3.org/2000/svg\"\n\
+   xmlns=\"http://www.w3.org/2000/svg\"\n\
+   xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n\
+   version=\"1.0\"\n\
+   width=\"%d\"\n\
+   height=\"%d\"\n\
+   id=\"svg2\">\n\
+  <defs>\n\
+  <g id=\"dmtx_0001\">\n", width, height);
+
+   /* Write Data Matrix ON modules */
+   for(row = 0; row < enc->region.symbolRows; row++) {
+      rowInv = enc->region.symbolRows - row - 1;
+      for(col = 0; col < enc->region.symbolCols; col++) {
+         module = dmtxSymbolModuleStatus(enc->message, enc->region.sizeIdx, row, col);
+         if(module & DmtxModuleOn)
+            fprintf(fp, "    <rect width=\"%d\" height=\"%d\" x=\"%d\" y=\"%d\" />\n",
+                  opt->moduleSize, opt->moduleSize,
+                  col * opt->moduleSize + opt->marginSize,
+                  rowInv * opt->moduleSize + opt->marginSize);
+      }
+   }
+
+   /* Close SVG document */
+   fprintf(fp, "\
+  </g>\n\
+  </defs>\n\
+\n\
+  <use xlink:href=\"#dmtx_0001\" x='0' y='0' style=\"fill:#000000;fill-opacity:1;stroke:none\" />\n\
+\n\
+</svg>\n");
 }
 
 /**
@@ -545,7 +617,7 @@ WriteAsciiPreview(DmtxEncode *enc)
  *
  */
 static void
-WriteCodewords(DmtxEncode *enc)
+WriteCodewordList(DmtxEncode *enc)
 {
    int i;
    int dataWordLength;

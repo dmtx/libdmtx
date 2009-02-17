@@ -78,13 +78,14 @@ typedef struct {
 
 static UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[]);
-static void ReadData(int *codeBuffer, unsigned char *codeBufferSize, UserOptions *opt);
+static void ReadInputData(int *codeBuffer, unsigned char *codeBufferSize, UserOptions *opt);
 static void ShowUsage(int status);
-static char *FilenameExtension(char *path);
 static void CleanupMagick(MagickWand **wand, int magickError);
 static void ListImageFormats(void);
-static void WriteImageFile(UserOptions *opt, DmtxEncode *encode);
-static void WriteAsciiPreview(DmtxEncode *encode);
-static void WriteCodewords(DmtxEncode *encode);
+static char *GetImageFormat(UserOptions *opt);
+static void WriteImageFile(UserOptions *opt, DmtxEncode *enc, char *format);
+static void WriteSvgFile(UserOptions *opt, DmtxEncode *enc, int def);
+static void WriteAsciiPreview(DmtxEncode *enc);
+static void WriteCodewordList(DmtxEncode *enc);
 
 #endif
