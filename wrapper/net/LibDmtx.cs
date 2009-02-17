@@ -67,7 +67,7 @@ namespace Libdmtx {
         /// </example>
         public static DmtxDecoded[] Decode(Bitmap b, DecodeOptions options) {
             List<DmtxDecoded> results = new List<DmtxDecoded>();
-            Decode(b, options, d => results.Add(d));
+            Decode(b, options, delegate(DmtxDecoded d) { results.Add(d); });
             return results.ToArray();
         }
 
@@ -81,7 +81,7 @@ namespace Libdmtx {
                     (UInt32)b.Width,
                     (UInt32)b.Height,
                     options,
-                    dmtxDecodeResult => {
+                    delegate(DecodedInternal dmtxDecodeResult) {
                         DmtxDecoded result;
                         try {
                             result = new DmtxDecoded {
