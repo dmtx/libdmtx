@@ -24,6 +24,8 @@ Contact: libdmtx@fernsroth.com
 
 using System;
 using System.Collections.Generic;
+using System.Drawing.Imaging;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using NUnit.Framework;
@@ -83,6 +85,28 @@ namespace Libdmtx {
             string version = Dmtx.Version;
             Assert.IsNotNull(version);
             Assert.IsTrue(Regex.IsMatch(version, @"[0-9]+\.[0-9]+\.[0-9]+"));
+        }
+
+        [Test]
+        public void TestBitmapToByteArray() {
+            Bitmap bm = new Bitmap(2, 2, PixelFormat.Format24bppRgb);
+            bm.SetPixel(0, 0, Color.FromArgb(1, 2, 3));
+            bm.SetPixel(1, 0, Color.FromArgb(4, 5, 6));
+            bm.SetPixel(0, 1, Color.FromArgb(7, 8, 9));
+            bm.SetPixel(1, 1, Color.FromArgb(10, 11, 12));
+            byte[] pxl = ExecuteBitmapToByteArray(bm);
+            Assert.AreEqual(12, pxl.Length);
+            for (int i = 0; i < pxl.Length; i++) {
+                Assert.AreEqual(i + 1, pxl[i]);
+            }
+        }
+
+        private byte[] ExecuteBitmapToByteArray(Bitmap bm) {
+            MethodInfo method = typeof(Dmtx).GetMethod("BitmapToByteArray", BindingFlags.Static | BindingFlags.NonPublic);
+            if (method == null) {
+                Assert.Fail("Method 'BitmapToByteArray' could not be found.");
+            }
+            return (byte[])method.Invoke(null, new object[] { bm });
         }
 
         private static void AssertAreEqual(Bitmap expectedBitmap, Bitmap foundBitmap) {
