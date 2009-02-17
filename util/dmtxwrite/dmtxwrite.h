@@ -83,9 +83,9 @@ static void ShowUsage(int status);
 static void CleanupMagick(MagickWand **wand, int magickError);
 static void ListImageFormats(void);
 static char *GetImageFormat(UserOptions *opt);
-static void WriteImageFile(UserOptions *opt, DmtxEncode *enc, char *format);
-static void WriteSvgFile(UserOptions *opt, DmtxEncode *enc, int def);
-static void WriteAsciiPreview(DmtxEncode *enc);
-static void WriteCodewordList(DmtxEncode *enc);
+static DmtxPassFail WriteImageFile(UserOptions *opt, DmtxEncode *enc, char *format);
+static DmtxPassFail WriteSvgFile(UserOptions *opt, DmtxEncode *enc, char *format);
+static DmtxPassFail WriteAsciiPreview(DmtxEncode *enc);
+static DmtxPassFail WriteCodewordList(DmtxEncode *enc);
 
 #endif

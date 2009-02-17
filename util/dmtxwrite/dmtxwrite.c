@@ -90,10 +90,8 @@ main(int argc, char *argv[])
       if(format == NULL)
          format = "png";
 
-      if(strncasecmp(format, "svg", 4) == 0)
-         WriteSvgFile(&opt, enc, 0);
-      else if(strncasecmp(format, "svg_def", 8) == 0)
-         WriteSvgFile(&opt, enc, 1);
+      if(strncasecmp(format, "svg", 3) == 0)
+         WriteSvgFile(&opt, enc, format);
       else
          WriteImageFile(&opt, enc, format);
    }
@@ -476,6 +474,10 @@ GetImageFormat(UserOptions *opt)
          ptr++;
    }
 
+   /* Found filename extension but format was also provided */
+   if(ptr != NULL && strlen(ptr) > 0 && opt->format != NULL)
+      fprintf(stderr, "WARNING: --format (-f) argument ignored; format take from filename\n");
+
    /* If still undefined then use format argument */
    if(ptr == NULL || strnlen(ptr, 1) == 0)
       ptr = opt->format;
@@ -487,7 +489,7 @@ GetImageFormat(UserOptions *opt)
  *
  *
  */
-static void
+static DmtxPassFail
 WriteImageFile(UserOptions *opt, DmtxEncode *enc, char *format)
 {
    MagickBooleanType success;
@@ -524,18 +526,30 @@ WriteImageFile(UserOptions *opt, DmtxEncode *enc, char *format)
    CleanupMagick(&wand, DmtxFalse);
 
    MagickWandTerminus();
+
+   return DmtxPass;
 }
 
 /**
  *
  *
  */
-static void
-WriteSvgFile(UserOptions *opt, DmtxEncode *enc, int def)
+static DmtxPassFail
+WriteSvgFile(UserOptions *opt, DmtxEncode *enc, char *format)
 {
    int col, row, rowInv;
    int width, height, module;
+   int defineOnly = DmtxFalse;
+   char *idString = NULL;
    FILE *fp;
+
+   if(strncasecmp(format, "svg:", 4) == 0) {
+      defineOnly = DmtxTrue;
+      idString = &format[4];
+   }
+
+   if(idString == NULL || strlen(idString) == 0)
+      idString = "dmtx_0001";
 
    if(opt->outputPath == NULL) {
       fp = stdout;
@@ -549,8 +563,9 @@ WriteSvgFile(UserOptions *opt, DmtxEncode *enc, int def)
    width = 2 * enc->marginSize + (enc->region.symbolCols * enc->moduleSize);
    height = 2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize);
 
-   /* SVG Header */
-   fprintf(fp, "\
+   /* Print SVG Header */
+   if(defineOnly == DmtxFalse) {
+      fprintf(fp, "\
 <?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n\
 <!-- Created with dmtxwrite (http://www.libdmtx.org/) -->\n\
 <svg\n\
@@ -561,8 +576,10 @@ WriteSvgFile(UserOptions *opt, DmtxEncode *enc, int def)
    width=\"%d\"\n\
    height=\"%d\"\n\
    id=\"svg2\">\n\
-  <defs>\n\
-  <g id=\"dmtx_0001\">\n", width, height);
+  <defs>\n", width, height);
+   }
+
+   fprintf(fp, "  <g id=\"%s\">\n", idString);
 
    /* Write Data Matrix ON modules */
    for(row = 0; row < enc->region.symbolRows; row++) {
@@ -577,21 +594,26 @@ WriteSvgFile(UserOptions *opt, DmtxEncode *enc, int def)
       }
    }
 
+   fprintf(fp, "  </g>\n");
+
    /* Close SVG document */
-   fprintf(fp, "\
-  </g>\n\
+   if(defineOnly == DmtxFalse) {
+      fprintf(fp, "\
   </defs>\n\
 \n\
-  <use xlink:href=\"#dmtx_0001\" x='0' y='0' style=\"fill:#000000;fill-opacity:1;stroke:none\" />\n\
+  <use xlink:href=\"#%s\" x='0' y='0' style=\"fill:#000000;fill-opacity:1;stroke:none\" />\n\
 \n\
-</svg>\n");
+</svg>\n", idString);
+   }
+
+   return DmtxPass;
 }
 
 /**
  *
  *
  */
-static void
+static DmtxPassFail
 WriteAsciiPreview(DmtxEncode *enc)
 {
    int symbolRow, symbolCol;
@@ -610,13 +632,15 @@ WriteAsciiPreview(DmtxEncode *enc)
    }
 
    fputc('\n', stdout);
+
+   return DmtxPass;
 }
 
 /**
  *
  *
  */
-static void
+static DmtxPassFail
 WriteCodewordList(DmtxEncode *enc)
 {
    int i;
@@ -634,4 +658,6 @@ WriteCodewordList(DmtxEncode *enc)
       else
          fprintf(stdout, "%c:%03d\n", 'e', enc->message->code[i]);
    }
+
+   return DmtxPass;
 }
