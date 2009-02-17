@@ -29,10 +29,10 @@ Contact: mike@dragonflylogic.com
 
 /**
  * receives symbol row and col and returns status
- * DMTX_MODULE_ON / !DMTX_MODULE_ON (DMTX_MODULE_OFF)
- * DMTX_MODULE_ASSIGNED
- * DMTX_MODULE_VISITED
- * DmtxModuleData / !DmtxModuleData (DMTX_MODULE_ALIGNMENT)
+ * DmtxModuleOn / !DmtxModuleOn (DmtxModuleOff)
+ * DmtxModuleAssigned
+ * DmtxModuleVisited
+ * DmtxModuleData / !DmtxModuleData (DmtxModuleAlignment)
  * row and col are expressed in symbol coordinates, so (0,0) is the intersection of the "L"
  */
 int

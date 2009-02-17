@@ -273,7 +273,6 @@ typedef struct DmtxVector2_struct {
  * @brief DmtxRay2
  */
 typedef struct DmtxRay2_struct {
-/* char        isDefined; */
    double      tMin, tMax;
    DmtxVector2 p;
    DmtxVector2 v;
