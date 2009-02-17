@@ -476,7 +476,7 @@ GetImageFormat(UserOptions *opt)
 
    /* Found filename extension but format was also provided */
    if(ptr != NULL && strlen(ptr) > 0 && opt->format != NULL)
-      fprintf(stderr, "WARNING: --format (-f) argument ignored; format take from filename\n");
+      fprintf(stderr, "WARNING: --format (-f) argument ignored; Format taken from filename\n");
 
    /* If still undefined then use format argument */
    if(ptr == NULL || strnlen(ptr, 1) == 0)
