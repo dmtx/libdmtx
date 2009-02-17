@@ -273,7 +273,7 @@ typedef struct DmtxVector2_struct {
  * @brief DmtxRay2
  */
 typedef struct DmtxRay2_struct {
-   char        isDefined;
+/* char        isDefined; */
    double      tMin, tMax;
    DmtxVector2 p;
    DmtxVector2 v;
@@ -395,9 +395,9 @@ typedef struct DmtxRegion_struct {
  * @brief DmtxMessage
  */
 typedef struct DmtxMessage_struct {
-   int             arraySize;     /* mappingRows * mappingCols */
-   int             codeSize;      /* Size of encoded data (data words + error words) */
-   int             outputSize;    /* Size of buffer used to hold decoded data */
+   size_t          arraySize;     /* mappingRows * mappingCols */
+   size_t          codeSize;      /* Size of encoded data (data words + error words) */
+   size_t          outputSize;    /* Size of buffer used to hold decoded data */
    int             outputIdx;     /* Internal index used to store output progress */
    int             padCount;
    unsigned char   *array;        /* Pointer to internal representation of scanned Data Matrix modules */
@@ -568,34 +568,34 @@ extern DmtxBoolean dmtxImageContainsFloat(DmtxImage *img, double x, double y);
 
 /* dmtxvector2.c */
 extern DmtxVector2 *dmtxVector2AddTo(DmtxVector2 *v1, const DmtxVector2 *v2);
-extern DmtxVector2 *dmtxVector2Add(DmtxVector2 *vOut, const DmtxVector2 *v1, const DmtxVector2 *v2);
+extern DmtxVector2 *dmtxVector2Add(/*@out@*/ DmtxVector2 *vOut, const DmtxVector2 *v1, const DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2SubFrom(DmtxVector2 *v1, const DmtxVector2 *v2);
-extern DmtxVector2 *dmtxVector2Sub(DmtxVector2 *vOut, const DmtxVector2 *v1, const DmtxVector2 *v2);
+extern DmtxVector2 *dmtxVector2Sub(/*@out@*/ DmtxVector2 *vOut, const DmtxVector2 *v1, const DmtxVector2 *v2);
 extern DmtxVector2 *dmtxVector2ScaleBy(DmtxVector2 *v, double s);
-extern DmtxVector2 *dmtxVector2Scale(DmtxVector2 *vOut, const DmtxVector2 *v, double s);
+extern DmtxVector2 *dmtxVector2Scale(/*@out@*/ DmtxVector2 *vOut, const DmtxVector2 *v, double s);
 extern double dmtxVector2Cross(const DmtxVector2 *v1, const DmtxVector2 *v2);
 extern double dmtxVector2Norm(DmtxVector2 *v);
 extern double dmtxVector2Dot(const DmtxVector2 *v1, const DmtxVector2 *v2);
 extern double dmtxVector2Mag(const DmtxVector2 *v);
 extern double dmtxDistanceFromRay2(const DmtxRay2 *r, const DmtxVector2 *q);
 extern double dmtxDistanceAlongRay2(const DmtxRay2 *r, const DmtxVector2 *q);
-extern int dmtxRay2Intersect(DmtxVector2 *point, const DmtxRay2 *p0, const DmtxRay2 *p1);
-extern DmtxPassFail dmtxPointAlongRay2(DmtxVector2 *point, const DmtxRay2 *r, double t);
+extern int dmtxRay2Intersect(/*@out@*/ DmtxVector2 *point, const DmtxRay2 *p0, const DmtxRay2 *p1);
+extern DmtxPassFail dmtxPointAlongRay2(/*@out@*/ DmtxVector2 *point, const DmtxRay2 *r, double t);
 
 /* dmtxmatrix3.c */
-extern void dmtxMatrix3Copy(DmtxMatrix3 m0, DmtxMatrix3 m1);
-extern void dmtxMatrix3Identity(DmtxMatrix3 m);
-extern void dmtxMatrix3Translate(DmtxMatrix3 m, double tx, double ty);
-extern void dmtxMatrix3Rotate(DmtxMatrix3 m, double angle);
-extern void dmtxMatrix3Scale(DmtxMatrix3 m, double sx, double sy);
-extern void dmtxMatrix3Shear(DmtxMatrix3 m, double shx, double shy);
-extern void dmtxMatrix3LineSkewTop(DmtxMatrix3 m, double b0, double b1, double sz);
-extern void dmtxMatrix3LineSkewTopInv(DmtxMatrix3 m, double b0, double b1, double sz);
-extern void dmtxMatrix3LineSkewSide(DmtxMatrix3 m, double b0, double b1, double sz);
-extern void dmtxMatrix3LineSkewSideInv(DmtxMatrix3 m, double b0, double b1, double sz);
-extern void dmtxMatrix3Multiply(DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1);
+extern void dmtxMatrix3Copy(/*@out@*/ DmtxMatrix3 m0, DmtxMatrix3 m1);
+extern void dmtxMatrix3Identity(/*@out@*/ DmtxMatrix3 m);
+extern void dmtxMatrix3Translate(/*@out@*/ DmtxMatrix3 m, double tx, double ty);
+extern void dmtxMatrix3Rotate(/*@out@*/ DmtxMatrix3 m, double angle);
+extern void dmtxMatrix3Scale(/*@out@*/ DmtxMatrix3 m, double sx, double sy);
+extern void dmtxMatrix3Shear(/*@out@*/ DmtxMatrix3 m, double shx, double shy);
+extern void dmtxMatrix3LineSkewTop(/*@out@*/ DmtxMatrix3 m, double b0, double b1, double sz);
+extern void dmtxMatrix3LineSkewTopInv(/*@out@*/ DmtxMatrix3 m, double b0, double b1, double sz);
+extern void dmtxMatrix3LineSkewSide(/*@out@*/ DmtxMatrix3 m, double b0, double b1, double sz);
+extern void dmtxMatrix3LineSkewSideInv(/*@out@*/ DmtxMatrix3 m, double b0, double b1, double sz);
+extern void dmtxMatrix3Multiply(/*@out@*/ DmtxMatrix3 mOut, DmtxMatrix3 m0, DmtxMatrix3 m1);
 extern void dmtxMatrix3MultiplyBy(DmtxMatrix3 m0, DmtxMatrix3 m1);
-extern int dmtxMatrix3VMultiply(DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m);
+extern int dmtxMatrix3VMultiply(/*@out@*/ DmtxVector2 *vOut, DmtxVector2 *vIn, DmtxMatrix3 m);
 extern int dmtxMatrix3VMultiplyBy(DmtxVector2 *v, DmtxMatrix3 m);
 extern void dmtxMatrix3Print(DmtxMatrix3 m);
 

@@ -184,8 +184,8 @@ static int GfDoublify(int a, int b);
 
 /* dmtxscangrid.c */
 static DmtxScanGrid InitScanGrid(DmtxImage *img, int smallestFeature);
-static int PopGridLocation(DmtxScanGrid *grid, DmtxPixelLoc *locPtr);
-static int GetGridCoordinates(DmtxScanGrid *grid, DmtxPixelLoc *locPtr);
+static int PopGridLocation(DmtxScanGrid *grid, /*@out@*/ DmtxPixelLoc *locPtr);
+static int GetGridCoordinates(DmtxScanGrid *grid, /*@out@*/ DmtxPixelLoc *locPtr);
 static void SetDerivedFields(DmtxScanGrid *grid);
 
 /* dmtxsymbol.c */

@@ -53,7 +53,7 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
 
 version 0.7.0: (planned XX-Feb-2009)
-FOCUS: API cleanup, custom pixel packing
+FOCUS: API cleanup, custom pixel packing, cross platform support
   o libdmtx:   Fix 64b->32b int assignment warnings
 $ o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
   x libdmtx:   Experiment with dmtxImageCreate() that takes fewer parameters
@@ -71,6 +71,8 @@ $ o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
   x libdmtx:   Change all major types to use Create() and Destroy() convention
   x dmtxread:  Fix diagnostic image output
   x dmtxread:  Fix misrepresented capacity in verbose mode
+  o dmtxwrite: True vector SVG output, bypassing ImageMagick
+  o dmtxwrite: "-f pdf -o test" should produce a PDF
   x dmtxwrite: Use Magick to write images of major raster formats
   x dmtxwrite: Bad option should give short "invalid option -- N; --help for more"
   x dmtxwrite: Use HandleArgs() to capture requests, and process afterward

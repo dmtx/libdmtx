@@ -1214,7 +1214,7 @@ static int
 TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int streamDir)
 {
    unsigned char *beforeCache, *afterCache;
-   int onEdge;
+   DmtxBoolean onEdge;
    int distSq, distSqMax;
    int travel, outward;
    int xDiff, yDiff;
@@ -1230,7 +1230,7 @@ TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int stream
    flow = GetPointFlow(dec, reg->flowBegin.plane, loc0, dmtxNeighborNone);
    distSqMax = (line.xDelta * line.xDelta) + (line.yDelta * line.yDelta);
    steps = 0;
-   onEdge = 1;
+   onEdge = DmtxTrue;
 
    beforeStep = loc0;
    beforeCache = GetCacheAddress(dec, loc0.X, loc0.Y);
@@ -1240,14 +1240,14 @@ TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int stream
       *beforeCache = 0x00; /* probably should just overwrite one direction */
 
    do {
-      if(onEdge != 0) {
+      if(onEdge == DmtxTrue) {
          flowNext = FindStrongestNeighbor(dec, flow, streamDir);
          if(flowNext.mag == DmtxUndefined)
             break;
 
          err = BresLineGetStep(line, flowNext.loc, &travel, &outward);
          if(flowNext.mag < 50 || outward < 0 || (outward == 0 && travel < 0)) {
-            onEdge = 0;
+            onEdge = DmtxFalse;
          }
          else {
             BresLineStep(&line, travel, outward);
@@ -1255,11 +1255,11 @@ TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int stream
          }
       }
 
-      if(!onEdge) {
+      if(onEdge == DmtxFalse) {
          BresLineStep(&line, 1, 0);
          flow = GetPointFlow(dec, reg->flowBegin.plane, line.loc, dmtxNeighborNone);
          if(flow.mag > 50)
-            onEdge = 1;
+            onEdge = DmtxTrue;
       }
 
       afterStep = line.loc;

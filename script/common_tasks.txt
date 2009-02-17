@@ -20,6 +20,10 @@ $ svn merge --ignore-ancestry \
 (verify updates)
 $ svn commit
 
+Generate splint warnings
+$ splint -posix-strict-lib dmtx.c
+
+
 Release Checklist
 -----------------------------------------------------------------
 
