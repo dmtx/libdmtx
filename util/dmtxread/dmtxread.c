@@ -166,7 +166,7 @@ main(int argc, char *argv[])
 
             if(msg != NULL) {
                PrintStats(msg, img, reg, imgPageIndex, &opt);
-               PrintMessage(msg, &opt);
+               PrintMessage(msg, reg, &opt);
 
                pageScanCount++;
                imgScanCount++;
@@ -573,11 +573,9 @@ static DmtxPassFail
 PrintStats(DmtxMessage *msg, DmtxImage *image, DmtxRegion *reg,
       int imgPageIndex, UserOptions *opt)
 {
-   int i;
    int height;
    int dataWordLength;
    int rotateInt;
-   int remainingDataWords;
    double rotate;
    DmtxVector2 p00, p10, p11, p01;
 
@@ -639,13 +637,14 @@ PrintStats(DmtxMessage *msg, DmtxImage *image, DmtxRegion *reg,
  *
  */
 static DmtxPassFail
-PrintMessage(DmtxMessage *msg, UserOptions *opt)
+PrintMessage(DmtxMessage *msg, DmtxRegion *reg, UserOptions *opt)
 {
    int i;
    int remainingDataWords;
    int dataWordLength;
 
    if(opt->codewords == DmtxTrue) {
+      dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, reg->sizeIdx);
       for(i = 0; i < msg->codeSize; i++) {
          remainingDataWords = dataWordLength - i;
          if(remainingDataWords > msg->padCount)

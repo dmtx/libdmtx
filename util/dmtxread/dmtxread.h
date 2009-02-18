@@ -82,7 +82,7 @@ static void ShowUsage(int status);
 static DmtxPassFail SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt);
 static DmtxPassFail PrintStats(DmtxMessage *msg, DmtxImage *image,
       DmtxRegion *reg, int imgPageIndex, UserOptions *opt);
-static DmtxPassFail PrintMessage(DmtxMessage *msg, UserOptions *opt);
+static DmtxPassFail PrintMessage(DmtxMessage *msg, DmtxRegion *reg, UserOptions *opt);
 static void CleanupMagick(MagickWand **wand, int magicError);
 static void ListImageFormats(void);
 static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);
