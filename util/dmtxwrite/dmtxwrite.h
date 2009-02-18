@@ -87,5 +87,6 @@ static DmtxPassFail WriteImageFile(UserOptions *opt, DmtxEncode *enc, char *form
 static DmtxPassFail WriteSvgFile(UserOptions *opt, DmtxEncode *enc, char *format);
 static DmtxPassFail WriteAsciiPreview(DmtxEncode *enc);
 static DmtxPassFail WriteCodewordList(DmtxEncode *enc);
+static DmtxBoolean StrNCmpI(const char *s1, const char *s2, size_t n);
 
 #endif

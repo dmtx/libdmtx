@@ -90,7 +90,7 @@ main(int argc, char *argv[])
       if(format == NULL)
          format = "png";
 
-      if(strncasecmp(format, "svg", 3) == 0)
+      if(StrNCmpI(format, "svg", 3) == DmtxTrue)
          WriteSvgFile(&opt, enc, format);
       else
          WriteImageFile(&opt, enc, format);
@@ -543,7 +543,7 @@ WriteSvgFile(UserOptions *opt, DmtxEncode *enc, char *format)
    char *idString = NULL;
    FILE *fp;
 
-   if(strncasecmp(format, "svg:", 4) == 0) {
+   if(StrNCmpI(format, "svg:", 4) == DmtxTrue) {
       defineOnly = DmtxTrue;
       idString = &format[4];
    }
@@ -660,4 +660,26 @@ WriteCodewordList(DmtxEncode *enc)
    }
 
    return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+static DmtxBoolean
+StrNCmpI(const char *s1, const char *s2, size_t n)
+{
+   size_t i;
+
+   if(s1 == NULL || s2 == NULL || n == 0)
+      return DmtxFalse;
+
+   for(i = 0; i < n; i++) {
+      if(tolower(s1[i]) != tolower(s2[i]))
+         return DmtxFalse;
+      if(s1[i] == '\0' || s2[i] == '\0')
+         break;
+   }
+
+   return DmtxTrue;
 }
