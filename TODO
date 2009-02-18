@@ -79,9 +79,9 @@ $ o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
   x wrapper:   New Java wrapper (thanks Pete and Dikran!)
   x wrapper:   New .NET wrapper (thanks Vali and Joe!)
-  o project:   Add comment to wiki pages that points to source README
-  / project:   Update all documentation to reflect API changes
-$ / project:   Figure out earliest usable Magick version for configure.ac
+  / project:   Update documentation to reflect API changes
+  x project:   Add comment to wiki pages that points to source README
+  x project:   Figure out earliest usable Magick version for configure.ac
   x project:   Clean up test utils use of "dmtx.h" vs <dmtx.h> and dmtx.c
   x project:   Add simple_test project to libdmtx.sln
   x project:   Rename wiki page to "Windows (VisualC)"

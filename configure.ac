@@ -89,9 +89,9 @@ if test x$dmtxread = xtrue \
    ifdef([PKG_CHECK_MODULES],
          [PKG_CHECK_MODULES(
             MAGICK,
-            Wand >= 6.2.5,
+            Wand >= 6.2.4,
             true,
-            AC_MSG_ERROR([[dmtxread/dmtxwrite requires Wand >= 6.2.5]]))],
+            AC_MSG_ERROR([[dmtxread/dmtxwrite requires Wand >= 6.2.4]]))],
          [AC_MSG_ERROR([Building dmtxread/dmtxwrite requires a working autoconf/pkg-config])])
    AC_SUBST(MAGICK_CFLAGS)
    AC_SUBST(MAGICK_LIBS)

@@ -28,41 +28,20 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * libdmtx handles each image as a single 1D array of packed pixel data.
- * All image operations will read or write to this array, but will never
- * access a filesystem or other external target directly. Instead, libdmtx
- * relies on the calling program to transfer data between this array and
- * the outside world (e.g., saving to disk, acquiring camera input,
- * etc...), and therefore requires an approach for efficiently sharing
- * pixel data. Calling programs have two options:
- *
- *  1) libdmtx can use an existing array of pixels that was previously
- *     allocated by the calling program. Data in this array will not be
- *     altered by the barcode scanning process, so libdmtx can safely use
- *     display memory and pixel buffers to achieve fast performance. Pixel
- *     memory used with this option will not be freed when the DmtxImage
- *     struct is released by dmtxImageDestroy().
- *
- *  2) libdmtx can also allocate the pixel array itself. When scanning a
- *     barcode, this option requires the calling program to write a copy
- *     of its pixel data to the newly allocated array (more work than #1
- *     above). This memory will be freed automatically when the DmtxImage
- *     struct is released by dmtxImageDestroy().
- *
- * When calling dmtxImageCreate() the program must also specify certain
- * parameters to instruct libdmtx about the underlying image structure.
- * This allows the library to use a large number of image structures (i.e.,
- * row orders, packing format, color depths) while still presenting a
- * consistent pixel coordinate scheme to the caller.
+ * libdmtx treats image data as a single 1D array of packed pixels. When
+ * reading and writing barcodes this array provides the sole mechanism for
+ * pixel storage, and libdmtx relies on the calling program to transfer
+ * images to and from the outside world (e.g., saving to disk, acquiring
+ * camera input, etc...). 
  *
  * Regardless of how an image is stored internally, libdmtx always
  * considers (x=0,y=0) to represent the bottom-left pixel location of an
- * image. Care must be taken to ensure that images are properly flipped
- * (or not flipped) for this behavior to work correctly.
+ * image. Care must be taken to ensure that images are correctly flipped
+ * (or not flipped) for this behavior to function properly.
  *
- * By default libdmtx treats the first pixel in arrays as the top-right
+ * By default libdmtx treats the first pixel in an array as the top-left
  * location of an image, with horizontal rows working downward to the
- * final pixel at the bottom-left corner. If mapping a pixel buffer this
+ * final pixel at the bottom-right corner. If mapping a pixel buffer this
  * way produces an inverted image, then specify DmtxFlipY at image
  * creation time to remove the inversion. Note that DmtxFlipY has no
  * significant affect on performance since it only modifies the pixel
@@ -83,7 +62,7 @@ Contact: mike@dragonflylogic.com
  *
  *                    (0,0)              (WIDTH-1,0)
  *
- * Note:
+ * Notes:
  *   - OpenGL pixel arrays obtained with glReadPixels() are stored
  *     bottom-to-top; use DmtxFlipY
  *   - Many popular image formats (e.g., PNG, GIF) store rows
