@@ -113,9 +113,18 @@ namespace Libdmtx {
             bm.SetPixel(1, 1, Color.FromArgb(10, 11, 12));
             byte[] pxl = ExecuteBitmapToByteArray(bm);
             Assert.AreEqual(12, pxl.Length);
-            for (int i = 0; i < pxl.Length; i++) {
-                Assert.AreEqual(i + 1, pxl[i]);
-            }
+            Assert.AreEqual(3, pxl[0]);
+            Assert.AreEqual(2, pxl[1]);
+            Assert.AreEqual(1, pxl[2]);
+            Assert.AreEqual(6, pxl[3]);
+            Assert.AreEqual(5, pxl[4]);
+            Assert.AreEqual(4, pxl[5]);
+            Assert.AreEqual(9, pxl[6]);
+            Assert.AreEqual(8, pxl[7]);
+            Assert.AreEqual(7, pxl[8]);
+            Assert.AreEqual(12, pxl[9]);
+            Assert.AreEqual(11, pxl[10]);
+            Assert.AreEqual(10, pxl[11]);
         }
 
         private byte[] ExecuteBitmapToByteArray(Bitmap bm) {

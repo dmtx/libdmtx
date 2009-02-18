@@ -86,11 +86,10 @@ namespace Libdmtx {
                     delegate(DecodedInternal dmtxDecodeResult) {
                         DmtxDecoded result;
                         try {
-                            result = new DmtxDecoded {
-                                Corners = dmtxDecodeResult.Corners,
-                                SymbolInfo = dmtxDecodeResult.SymbolInfo,
-                                Data = new byte[dmtxDecodeResult.DataSize]
-                            };
+                            result = new DmtxDecoded();
+                            result.Corners = dmtxDecodeResult.Corners;
+                            result.SymbolInfo = dmtxDecodeResult.SymbolInfo;
+                            result.Data = new byte[dmtxDecodeResult.DataSize];
                             for (int dataIdx = 0; dataIdx < dmtxDecodeResult.DataSize; dataIdx++) {
                                 result.Data[dataIdx] = Marshal.ReadByte(dmtxDecodeResult.Data, dataIdx);
                             }
@@ -121,16 +120,7 @@ namespace Libdmtx {
             BitmapData bd = b.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
             try {
                 byte[] pxl = new byte[b.Width * b.Height * 3];
-                for (int y = 0; y < b.Height; y++) {
-                    int rowOffset = y * bd.Stride;
-                    for (int x = 0; x < b.Width; x++) {
-                        int pxlOffset = (y * b.Width * 3) + (x * 3);
-                        int offset = rowOffset + (x * 3);
-                        pxl[pxlOffset + 2] = Marshal.ReadByte(bd.Scan0, offset + 0);
-                        pxl[pxlOffset + 1] = Marshal.ReadByte(bd.Scan0, offset + 1);
-                        pxl[pxlOffset + 0] = Marshal.ReadByte(bd.Scan0, offset + 2);
-                    }
-                }
+                DmtxBitmapToByteArray(bd.Scan0, bd.Stride, b.Width, b.Height, pxl);
                 return pxl;
             } finally {
                 b.UnlockBits(bd);
@@ -174,10 +164,9 @@ namespace Libdmtx {
             EncodedInternal intResult = null;
             try {
                 intResult = (EncodedInternal)Marshal.PtrToStructure(result, typeof(EncodedInternal));
-                ret = new DmtxEncoded {
-                    SymbolInfo = intResult.SymbolInfo,
-                    Bitmap = new Bitmap((int)intResult.Width, (int)intResult.Height, PixelFormat.Format24bppRgb)
-                };
+                ret = new DmtxEncoded();
+                ret.SymbolInfo = intResult.SymbolInfo;
+                ret.Bitmap = new Bitmap((int)intResult.Width, (int)intResult.Height, PixelFormat.Format24bppRgb);
                 Rectangle rect = new Rectangle(0, 0, ret.Bitmap.Width, ret.Bitmap.Height);
                 BitmapData bd = ret.Bitmap.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
                 try {
@@ -210,6 +199,15 @@ namespace Libdmtx {
             [In] UInt32 height,
             [In] DecodeOptions options,
             [In] DmtxDecodeCallback callback);
+
+        [DllImport("libdmtx.dll", EntryPoint = "dmtx_bitmap_to_byte_array")]
+        private static extern void DmtxBitmapToByteArray(
+            [In] IntPtr image,
+            [In] Int32 stride,
+            [In] Int32 width,
+            [In] Int32 height,
+            [Out] byte[] dest
+            );
 
         [DllImport("libdmtx.dll", EntryPoint = "dmtx_encode")]
         private static extern byte

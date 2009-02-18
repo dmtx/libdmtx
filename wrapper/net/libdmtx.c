@@ -48,7 +48,7 @@ dmtx_decode(const unsigned char *rgb_image,
 	int result_count;
 
 	// Create libdmtx's image structure
-	img = dmtxImageCreate((unsigned char *)rgb_image, (int) width, (int) height, DmtxPack24bppRGB);
+	img = dmtxImageCreate((unsigned char *)rgb_image, (int) width, (int) height, DmtxPack24bppBGR);
 	if (img == NULL) return DMTX_RETURN_NO_MEMORY;
 
 	// Apply options
@@ -152,7 +152,6 @@ dmtx_decode(const unsigned char *rgb_image,
 		}
 
 		if(callbackFunc(&result)==0) {
-			returncode = -1; /* TODO: find a better error code for this libdmtx.h doesn't have one. */
 			break;
 		}
 
@@ -166,6 +165,22 @@ dmtx_decode(const unsigned char *rgb_image,
 	dmtxImageDestroy(&img);
 
 	return returncode;
+}
+
+DMTX_EXTERN void
+dmtx_bitmap_to_byte_array(const unsigned char* src,
+						  int stride,
+						  int width,
+						  int height,
+						  unsigned char* dest)
+{
+	int y;
+
+	for (y = 0; y < height; y++) {
+		memcpy(dest, src, width*3);
+		src += stride;
+		dest += width * 3;
+    }
 }
 
 DMTX_EXTERN unsigned char
