@@ -40,11 +40,11 @@ Releases memory allocated during the encoding process.
 .SH DECODING - Reading Data Matrix Barcodes
 Barcode reading takes more steps than barcode generation, mainly because libdmtx must find a barcode region before it can be decoded. However, it remains a straightforward process that uses 4 main structures:
 
-\fBDmtxImage\fP holds image properties and a pointer to the existing pixel data. The calling program uses this structure to communicate image data with libdmtx.
+\fBDmtxImage\fP holds image properties and a pointer to pixel data held by the calling program.
 
 \fBDmtxDecode\fP holds values for controlling decode behavior and tracking scan progress. When scanning a new image, calling programs should always create a new \fBDmtxDecode\fP structure instead of reusing an old one.
 
-\fBDmtxRegion\fP defines a 4-sided region in pixel coordinates. A region may occur in almost any orientation, and its corners will not necessarily form right angles. libdmtx uses this structure to store the location of potential barcodes, which are then returned one at a time to the calling program.
+\fBDmtxRegion\fP defines a 4-sided region in pixel coordinates. Regions may be found in almost any orientation, and their corners won't necessarily form right angles. libdmtx uses this structure to store the location of potential barcodes, which are then returned to the calling program one-at-a-time.
 
 \fBDmtxMessage\fP holds the decoded message after being extracted from the barcode region. A successfully decoded region will produce exactly one message.
 

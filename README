@@ -14,17 +14,13 @@ README.osx, README.visualc, etc...).
 1. Introduction
 -----------------------------------------------------------------
 
-libdmtx is open source software for reading and writing Data
-Matrix barcodes of the modern ECC200 variety. It runs on several
-platforms and provides bindings for a variety of languages. At
-its core libdmtx is a shared library, allowing C/C++ programs to
-use its capabilities without restrictions or overhead.
-
-The included utility programs provide the official command line
+libdmtx is a software library that enables programs to read and
+write Data Matrix barcodes of the modern ECC200 variety. The
+library runs natively on several platforms, and can be accessed
+by multiple languages using the libdmtx language wrappers. The
+utility programs dmtxread and dmtxwrite provide a command line
 interface for libdmtx, and serve as a good reference for
-programmers who wish to write their own programs that interact
-with libdmtx. This software is distributed with the LGPL license
-and can be used freely under those terms.
+developers writing their own libdmtx-enabled programs.
 
 
 2. Package Components

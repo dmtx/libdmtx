@@ -29,17 +29,12 @@ Contact: mike@dragonflylogic.com
 
 /**
  * libdmtx treats image data as a single 1D array of packed pixels. When
- * reading and writing barcodes this array provides the sole mechanism for
- * pixel storage, and libdmtx relies on the calling program to transfer
- * images to and from the outside world (e.g., saving to disk, acquiring
- * camera input, etc...). 
+ * reading and writing barcodes, this array provides the sole mechanism for
+ * pixel storage and libdmtx relies on the calling program to transfer
+ * images to/from the outside world (e.g., saving to disk, acquiring camera
+ * input, etc...).
  *
- * Regardless of how an image is stored internally, libdmtx always
- * considers (x=0,y=0) to represent the bottom-left pixel location of an
- * image. Care must be taken to ensure that images are correctly flipped
- * (or not flipped) for this behavior to function properly.
- *
- * By default libdmtx treats the first pixel in an array as the top-left
+ * By default, libdmtx treats the first pixel of an array as the top-left
  * location of an image, with horizontal rows working downward to the
  * final pixel at the bottom-right corner. If mapping a pixel buffer this
  * way produces an inverted image, then specify DmtxFlipY at image
@@ -47,6 +42,10 @@ Contact: mike@dragonflylogic.com
  * significant affect on performance since it only modifies the pixel
  * mapping math and does not alter any pixel data. If the image appears
  * correctly without any flips then specify DmtxFlipNone.
+ *
+ * Regardless of how an image is stored internally, all libdmtx functions
+ * consider coordinate (x=0,y=0) to represent the bottom-left pixel
+ * location of an image.
  *
  *                (0,HEIGHT-1)        (WIDTH-1,HEIGHT-1)
  *

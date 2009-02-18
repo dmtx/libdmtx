@@ -55,7 +55,7 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
 version 0.7.0: (planned XX-Feb-2009)
 FOCUS: API cleanup, custom pixel packing, cross platform support
   o libdmtx:   Fix 64b->32b int assignment warnings
-$ o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
+! o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
   x libdmtx:   Experiment with dmtxImageCreate() that takes fewer parameters
   x libdmtx:   Add DmtxUndefined to replace "-1" for undefined fixes, offset, etc...
   x libdmtx:   Take DmtxFlip parameter out of dmtxImageCreate()
@@ -385,6 +385,7 @@ advantages:
   * High precision fit should apply equally well to contiguous-
     edge and dot peen symbols
 
+
 Proposed Change: Latest thoughts on region detection
 -----------------------------------------------------------------
 
@@ -479,8 +480,8 @@ Release 0.7
 
 10) Tight fit based on repeating calibration pattern
 
-Release 0.8
 
+For Release 0.8
 -----------------------------------------------------------------
 
   byte 1:  pntflow
