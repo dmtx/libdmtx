@@ -55,7 +55,8 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
 version 0.7.0: (planned XX-Feb-2009)
 FOCUS: API cleanup, custom pixel packing, cross platform support
   o libdmtx:   Fix 64b->32b int assignment warnings
-! o libdmtx:   Add padding multiple for image rows (dmtxImageSetProp)
+  o libdmtx:   FNC1 and correct upper shift (thanks Robin!)
+  / libdmtx:   Support byte-padded row sizes via dmtxImageSetProp()
   x libdmtx:   Experiment with dmtxImageCreate() that takes fewer parameters
   x libdmtx:   Add DmtxUndefined to replace "-1" for undefined fixes, offset, etc...
   x libdmtx:   Take DmtxFlip parameter out of dmtxImageCreate()
@@ -69,6 +70,7 @@ FOCUS: API cleanup, custom pixel packing, cross platform support
   x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
   x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
   x libdmtx:   Change all major types to use Create() and Destroy() convention
+  x dmtxread:  Option to print extended ASCII as UTF-8 (thanks Robin!)
   x dmtxread:  Fix diagnostic image output
   x dmtxread:  Fix misrepresented capacity in verbose mode
   x dmtxwrite: True vector SVG output bypassing ImageMagick (thanks Richard!)
