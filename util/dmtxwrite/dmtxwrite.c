@@ -538,6 +538,7 @@ static DmtxPassFail
 WriteSvgFile(UserOptions *opt, DmtxEncode *enc, char *format)
 {
    int col, row, rowInv;
+   int symbolCols, symbolRows;
    int width, height, module;
    int defineOnly = DmtxFalse;
    char *idString = NULL;
@@ -563,6 +564,9 @@ WriteSvgFile(UserOptions *opt, DmtxEncode *enc, char *format)
    width = 2 * enc->marginSize + (enc->region.symbolCols * enc->moduleSize);
    height = 2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize);
 
+   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, enc->region.sizeIdx);
+   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, enc->region.sizeIdx);
+
    /* Print SVG Header */
    if(defineOnly == DmtxFalse) {
       fprintf(fp, "\
@@ -580,6 +584,8 @@ WriteSvgFile(UserOptions *opt, DmtxEncode *enc, char *format)
    }
 
    fprintf(fp, "  <g id=\"%s\">\n", idString);
+   fprintf(fp, "    <desc>Layout:%dx%d Symbol:%dx%d Data Matrix</desc>\n",
+         width, height, symbolCols, symbolRows);
 
    /* Write Data Matrix ON modules */
    for(row = 0; row < enc->region.symbolRows; row++) {
