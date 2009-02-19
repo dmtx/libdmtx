@@ -178,7 +178,7 @@ Java_org_libdmtx_DMTXImage_getTags(JNIEnv *aEnv, jobject aImage,
       return NULL;
 
    /* Create DmtxDecode object */
-   lDecode = dmtxDecodeCreate(lImage);
+   lDecode = dmtxDecodeCreate(lImage, 1);
    if(lDecode == NULL)
       return NULL;
 

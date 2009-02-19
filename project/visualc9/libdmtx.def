@@ -17,6 +17,8 @@ EXPORTS
   dmtxDecodeDestroy
   dmtxDecodeSetProp
   dmtxDecodeGetProp
+  dmtxDecodeGetCache
+  dmtxDecodeGetPixelValue
   dmtxDecodeMatrixRegion
   dmtxDecodeMosaicRegion
 
@@ -35,7 +37,7 @@ EXPORTS
   dmtxImageSetChannel
   dmtxImageSetProp
   dmtxImageGetProp
-  dmtxImageGetPixelOffset
+  dmtxImageGetByteOffset
   dmtxImageGetPixelValue
   dmtxImageSetPixelValue
   dmtxImageContainsInt

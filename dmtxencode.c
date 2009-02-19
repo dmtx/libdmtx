@@ -158,6 +158,9 @@ dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value)
          break;
       case DmtxPropRowPadBytes:
          break;
+      default:
+         exit(1); /* XXX fatal error */
+         break;
    }
 
    return DmtxPass;
@@ -179,6 +182,9 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
          return enc->moduleSize;
       case DmtxPropScheme:
          return enc->scheme;
+      default:
+         exit(1); /* XXX fatal error */
+         break;
    }
 
    return DmtxUndefined;
@@ -522,8 +528,9 @@ PrintPattern(DmtxEncode *enc)
    int symbolRow, symbolCol;
    int pixelRow, pixelCol;
    int moduleStatus;
-   double sxy, txy;
+   size_t rowSize, height;
    int rgb[3];
+   double sxy, txy;
    DmtxMatrix3 m1, m2;
    DmtxVector2 vIn, vOut;
 
@@ -538,11 +545,10 @@ PrintPattern(DmtxEncode *enc)
    dmtxMatrix3Scale(m2, enc->moduleSize, enc->moduleSize);
    dmtxMatrix3Multiply(enc->rxfrm, m2, m1);
 
-   /* Print raster version of barcode pattern
-      IMPORTANT: DmtxImage is stored with its origin at bottom-right
-      (unlike common image file formats) to preserve "right-handed" 2D space */
+   rowSize = dmtxImageGetProp(enc->image, DmtxPropRowSizeBytes);
+   height = dmtxImageGetProp(enc->image, DmtxPropHeight);
 
-   memset(enc->image->pxl, 0xff, dmtxImageGetProp(enc->image, DmtxPropArea) * (enc->image->bitsPerPixel/8));
+   memset(enc->image->pxl, 0xff, rowSize * height);
 
    for(symbolRow = 0; symbolRow < enc->region.symbolRows; symbolRow++) {
       for(symbolCol = 0; symbolCol < enc->region.symbolCols; symbolCol++) {

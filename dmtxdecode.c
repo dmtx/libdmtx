@@ -33,7 +33,7 @@ Contact: mike@dragonflylogic.com
  * @return Initialized DmtxDecode struct
  */
 extern DmtxDecode *
-dmtxDecodeCreate(DmtxImage *img)
+dmtxDecodeCreate(DmtxImage *img, int scale)
 {
    DmtxDecode *dec;
    int width, height;
@@ -42,35 +42,30 @@ dmtxDecodeCreate(DmtxImage *img)
    if(dec == NULL)
       return NULL;
 
-   dec->image = img;
+   width = dmtxImageGetProp(img, DmtxPropWidth) / scale;
+   height = dmtxImageGetProp(img, DmtxPropHeight) / scale;
 
-   width = dmtxImageGetProp(img, DmtxPropWidth);
-   height = dmtxImageGetProp(img, DmtxPropHeight);
+   dec->edgeMin = DmtxUndefined;
+   dec->edgeMax = DmtxUndefined;
+   dec->scanGap = 1; /* unscaled */
+   dec->squareDevn = cos(50 * (M_PI/180));
+   dec->sizeIdxExpected = DmtxSymbolShapeAuto;
+   dec->edgeThresh = 10;
 
-   /* XXX size cache according to scaled size instead */
+   dec->xMin = 0;
+   dec->xMax = width - 1;
+   dec->yMin = 0;
+   dec->yMax = height - 1;
+   dec->scale = scale;
+
    dec->cache = (unsigned char *)calloc(width * height, sizeof(unsigned char));
    if(dec->cache == NULL) {
       free(dec);
       return NULL;
    }
 
-   /* XXX These values should probably be stored in the decode struct */
-   img->scale = 1;
-   img->xMin = img->xMinScaled = 0;
-   img->xMax = img->xMaxScaled = img->width - 1;
-   img->yMin = img->yMinScaled = 0;
-   img->yMax = img->yMaxScaled = img->height - 1;
-
-   dec->edgeMin = DmtxUndefined;
-   dec->edgeMax = DmtxUndefined;
-   dec->scanGap = 1;
-   dec->squareDevn = cos(50 * (M_PI/180));
-   dec->sizeIdxExpected = DmtxSymbolShapeAuto;
-   dec->edgeThresh = 10;
-   dec->shrinkMin = 1;
-   dec->shrinkMax = 1;
-
-   dec->grid = InitScanGrid(img, dec->scanGap);
+   dec->image = img;
+   dec->grid = InitScanGrid(dec);
 
    return dec;
 }
@@ -103,8 +98,6 @@ dmtxDecodeDestroy(DmtxDecode **dec)
 extern DmtxPassFail
 dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
 {
-   DmtxPassFail err;
-
    switch(prop) {
       case DmtxPropEdgeMin:
          dec->edgeMin = value;
@@ -124,40 +117,23 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
       case DmtxPropEdgeThresh:
          dec->edgeThresh = value;
          break;
+      /* Min and Max values will arrive unscaled */
       case DmtxPropXmin:
-         err = dmtxImageSetProp(dec->image, DmtxPropXmin, value);
-         if(err == DmtxFail)
-            return DmtxFail;
+         dec->xMin = value / dec->scale;
          break;
       case DmtxPropXmax:
-         err = dmtxImageSetProp(dec->image, DmtxPropXmax, value);
-         if(err == DmtxFail)
-            return DmtxFail;
+         dec->xMax = value / dec->scale;
          break;
       case DmtxPropYmin:
-         err = dmtxImageSetProp(dec->image, DmtxPropYmin, value);
-         if(err == DmtxFail)
-            return DmtxFail;
+         dec->yMin = value / dec->scale;
          break;
       case DmtxPropYmax:
-         err = dmtxImageSetProp(dec->image, DmtxPropYmax, value);
-         if(err == DmtxFail)
-            return DmtxFail;
+         dec->yMax = value / dec->scale;
          break;
-      case DmtxPropShrinkMin:
-         dec->shrinkMin = value;
-         break;
-      case DmtxPropShrinkMax:
-         dec->shrinkMax = value;
-         err = dmtxImageSetProp(dec->image, DmtxPropScale, value);
-         if(err == DmtxFail)
-            return DmtxFail;
+      default:
+         exit(1); /* XXX fatal error */
          break;
    }
-
-   /* Minimum image scale can't be larger than maximum image scale */
-   if(dec->shrinkMin < 1 || dec->shrinkMax < dec->shrinkMin)
-      return DmtxFail;
 
    if(dec->squareDevn <= 0.0 || dec->squareDevn >= 1.0)
       return DmtxFail;
@@ -168,8 +144,8 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
    if(dec->edgeThresh < 1 || dec->edgeThresh > 100)
       return DmtxFail;
 
-   /* Reinitialize scangrid if any inputs changed */
-   dec->grid = InitScanGrid(dec->image, dec->scanGap);
+   /* Reinitialize scangrid in case any inputs changed */
+   dec->grid = InitScanGrid(dec);
 
    return DmtxPass;
 }
@@ -197,20 +173,89 @@ dmtxDecodeGetProp(DmtxDecode *dec, int prop)
       case DmtxPropEdgeThresh:
          return dec->edgeThresh;
       case DmtxPropXmin:
-         return dmtxImageGetProp(dec->image, DmtxPropXmin);
+         return dec->xMin;
       case DmtxPropXmax:
-         return dmtxImageGetProp(dec->image, DmtxPropXmax);
+         return dec->xMax;
       case DmtxPropYmin:
-         return dmtxImageGetProp(dec->image, DmtxPropYmin);
+         return dec->yMin;
       case DmtxPropYmax:
-         return dmtxImageGetProp(dec->image, DmtxPropYmax);
-      case DmtxPropShrinkMin:
-         return dec->shrinkMin;
-      case DmtxPropShrinkMax:
-         return dec->shrinkMax;
+         return dec->yMax;
+      case DmtxPropScale:
+         return dec->scale;
+      case DmtxPropWidth:
+         return dmtxImageGetProp(dec->image, DmtxPropWidth) / dec->scale;
+      case DmtxPropHeight:
+         return dmtxImageGetProp(dec->image, DmtxPropHeight) / dec->scale;
+      default:
+         exit(1); /* XXX fatal error */
+         break;
    }
 
    return DmtxUndefined;
+}
+
+/**
+ * @brief  Returns xxx
+ * @param  img
+ * @param  Scaled x coordinate
+ * @param  Scaled y coordinate
+ * @return Scaled pixel offset
+ */
+extern unsigned char *
+dmtxDecodeGetCache(DmtxDecode *dec, int x, int y)
+{
+   int width, height;
+
+   assert(dec != NULL);
+
+   width = dmtxDecodeGetProp(dec, DmtxPropWidth);
+   height = dmtxDecodeGetProp(dec, DmtxPropHeight);
+
+   if(x < 0 || x >= width || y < 0 || y >= height)
+      return NULL;
+
+   return &(dec->cache[y * width + x]);
+}
+
+/**
+ *
+ *
+ */
+extern DmtxPassFail
+dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, int *value)
+{
+   int xUnscaled, yUnscaled;
+   DmtxPassFail err;
+
+   xUnscaled = x * dec->scale;
+   yUnscaled = y * dec->scale;
+
+/* Remove spherical lens distortion */
+/* int width, height;
+   double radiusPow2, radiusPow4;
+   double factor;
+   DmtxVector2 pointShifted;
+   DmtxVector2 correctedPoint;
+
+   width = dmtxImageGetProp(img, DmtxPropWidth);
+   height = dmtxImageGetProp(img, DmtxPropHeight);
+
+   pointShifted.X = point.X - width/2.0;
+   pointShifted.Y = point.Y - height/2.0;
+
+   radiusPow2 = pointShifted.X * pointShifted.X + pointShifted.Y * pointShifted.Y;
+   radiusPow4 = radiusPow2 * radiusPow2;
+
+   factor = 1 + (k1 * radiusPow2) + (k2 * radiusPow4);
+
+   correctedPoint.X = pointShifted.X * factor + width/2.0;
+   correctedPoint.Y = pointShifted.Y * factor + height/2.0;
+
+   return correctedPoint; */
+
+   err = dmtxImageGetPixelValue(dec->image, xUnscaled, yUnscaled, channel, value);
+
+   return err;
 }
 
 /**
@@ -224,8 +269,7 @@ extern DmtxMessage *
 dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 {
    int row, col;
-   int width, height;
-   int offset;
+   unsigned char *cache;
    DmtxMessage *msg;
    DmtxVector2 p;
 
@@ -233,7 +277,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
    if(msg == NULL)
       return NULL;
 
-   if(PopulateArrayFromMatrix(msg, dec->image, reg) != DmtxPass) {
+   if(PopulateArrayFromMatrix(dec, reg, msg) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
    }
@@ -246,21 +290,19 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
       return NULL;
    }
 
-   width = dmtxImageGetProp(dec->image, DmtxPropScaledWidth);
-   height = dmtxImageGetProp(dec->image, DmtxPropScaledHeight);
-   for(row = 0; row < height; row++) {
-      for(col = 0; col < width; col++) {
+   for(row = dec->yMin; row < dec->yMax; row++) {
+      for(col = dec->xMin; col < dec->xMax; col++) {
          p.X = col;
          p.Y = row;
          dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
          /* XXX tighten these boundaries can by accounting for barcode size */
          if(p.X >= -0.1 && p.X <= 1.1 && p.Y >= -0.1 && p.Y <= 1.1) {
 
-            offset = dmtxImageGetPixelOffset(dec->image, col, row);
-            if(offset == DmtxUndefined)
+            cache = dmtxDecodeGetCache(dec, col, row);
+            if(cache == NULL)
                continue;
             else
-               dec->cache[offset] |= 0x80; /* Mark as visited */
+               *cache |= 0x80; /* Mark as visited */
          }
       }
    }
@@ -298,7 +340,7 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
    gMesg.code += gMesg.codeSize;
    bMesg.code += (bMesg.codeSize * 2);
 
-   if(PopulateArrayFromMosaic(msg, dec->image, reg) != DmtxPass) {
+   if(PopulateArrayFromMosaic(dec, reg, msg) != DmtxPass) {
       dmtxMessageDestroy(&msg);
       return NULL;
    }
@@ -778,7 +820,7 @@ UnRandomize255State(unsigned char value, int idx)
  * @return DmtxPass | DmtxFail
  */
 static DmtxPassFail
-PopulateArrayFromMatrix(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
+PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg)
 {
    int weightFactor;
    int mapWidth, mapHeight;
@@ -814,10 +856,10 @@ PopulateArrayFromMatrix(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
          xOrigin = xRegionCount * (mapWidth + 2) + 1;
 
          memset(tally, 0x00, 24 * 24 * sizeof(int));
-         TallyModuleJumps(img, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirUp);
-         TallyModuleJumps(img, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirLeft);
-         TallyModuleJumps(img, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirDown);
-         TallyModuleJumps(img, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirRight);
+         TallyModuleJumps(dec, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirUp);
+         TallyModuleJumps(dec, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirLeft);
+         TallyModuleJumps(dec, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirDown);
+         TallyModuleJumps(dec, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirRight);
 
          /* Decide module status based on final tallies */
          for(mapRow = 0; mapRow < mapHeight; mapRow++) {
@@ -855,7 +897,7 @@ PopulateArrayFromMatrix(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
  * @return void
  */
 static void
-TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir)
+TallyModuleJumps(DmtxDecode *dec, DmtxRegion *reg, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir)
 {
    int extent, weight;
    int travelStep;
@@ -909,7 +951,7 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
          decide status based on predictable barcode border pattern */
 
       *travel = travelStart;
-      color = ReadModuleColor(img, reg, symbolRow, symbolCol, reg->sizeIdx);
+      color = ReadModuleColor(dec, reg, symbolRow, symbolCol, reg->sizeIdx);
       tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
       statusModule = (travelStep == 1 || (*line & 0x01) == 0) ? DmtxModuleOnRGB : DmtxModuleOff;
@@ -924,7 +966,7 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
          /* For normal data-bearing modules capture color and decide
             module status based on comparison to previous "known" module */
 
-         color = ReadModuleColor(img, reg, symbolRow, symbolCol, reg->sizeIdx);
+         color = ReadModuleColor(dec, reg, symbolRow, symbolCol, reg->sizeIdx);
          tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
          if(statusPrev == DmtxModuleOnRGB) {
@@ -962,7 +1004,7 @@ TallyModuleJumps(DmtxImage *img, DmtxRegion *reg, int tally[][24], int xOrigin, 
  * @return DmtxPass | DmtxFail
  */
 static DmtxPassFail
-PopulateArrayFromMosaic(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
+PopulateArrayFromMosaic(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg)
 {
    int col, row, rowTmp;
    int symbolRow, symbolCol;
@@ -987,7 +1029,7 @@ PopulateArrayFromMosaic(DmtxMessage *msg, DmtxImage *img, DmtxRegion *reg)
          symbolCol = col + 2 * (col / dataRegionCols) + 1;
 
 /* to fix this function, add rColor, gColor, bColor, and change ReadModuleColor() to accept plane as a parameter */
-         color = ReadModuleColor(img, reg, symbolRow, symbolCol, reg->sizeIdx);
+         color = ReadModuleColor(dec, reg, symbolRow, symbolCol, reg->sizeIdx);
 
          /* Value has been assigned, but not visited */
 /*       if(color.R < 50) this is broken for the moment */

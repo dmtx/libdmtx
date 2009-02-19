@@ -2,21 +2,23 @@
 
 ERROR_COUNT=0
 
+for PNG_BARCODE in compare_confirmed/barcode_*_?.png; do
+   PNM_BARCODE=$(echo $PNG_BARCODE | sed -e 's/\.png$/.pnm/')
+   convert -depth 8 -type TrueColor $PNG_BARCODE $PNM_BARCODE
+done
+
 echo "Comparing generated barcodes against confirmed results"
 echo "-----------------------------------------------------------------"
 
-for file in compare_confirmed/confirmed_*_?.png; do
+for file in compare_confirmed/barcode_*_?.pnm; do
 
    TEST_BARCODE=compare_generated/$(basename $file | sed -e 's/^confirmed_/barcode_/')
-
    if [[ ! -r "$TEST_BARCODE" ]]; then
       continue
    fi
 
-   diff $file $TEST_BARCODE
-   ERROR=$?
-
-   if [[ "$ERROR" -ne 0 ]]; then
+   cmp $file $TEST_BARCODE
+   if [[ $? -ne 0 ]]; then
       ERROR_COUNT=$[$ERROR_COUNT + 1]
    fi
 

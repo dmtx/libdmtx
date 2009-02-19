@@ -222,34 +222,3 @@ dmtxPointAlongRay2(DmtxVector2 *point, const DmtxRay2 *r, double t)
 
    return DmtxPass;
 }
-
-/**
- *
- *
- */
-extern DmtxVector2
-dmtxRemoveLensDistortion(DmtxVector2 point, DmtxImage *img, double k1, double k2)
-{
-   int width, height;
-   double radiusPow2, radiusPow4;
-   double factor;
-   DmtxVector2 pointShifted;
-   DmtxVector2 correctedPoint;
-
-   /* XXX this function can be rewritten using vector math notation */
-   width = dmtxImageGetProp(img, DmtxPropScaledWidth);
-   height = dmtxImageGetProp(img, DmtxPropScaledHeight);
-
-   pointShifted.X = point.X - width/2.0;
-   pointShifted.Y = point.Y - height/2.0;
-
-   radiusPow2 = pointShifted.X * pointShifted.X + pointShifted.Y * pointShifted.Y;
-   radiusPow4 = radiusPow2 * radiusPow2;
-
-   factor = 1 + (k1 * radiusPow2) + (k2 * radiusPow4);
-
-   correctedPoint.X = pointShifted.X * factor + width/2.0;
-   correctedPoint.Y = pointShifted.Y * factor + height/2.0;
-
-   return correctedPoint;
-}

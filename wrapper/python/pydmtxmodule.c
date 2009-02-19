@@ -168,7 +168,7 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    if(img == NULL)
       return NULL;
 
-   dec = dmtxDecodeCreate(img);
+   dec = dmtxDecodeCreate(img, 1);
    if(dec == NULL) {
       dmtxImageDestroy(&img);
       return NULL;

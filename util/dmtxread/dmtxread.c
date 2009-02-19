@@ -84,10 +84,6 @@ main(int argc, char *argv[])
          }
       }
 
-      /* Unfortunately MagickSetImageUnits() alters image, not info struct.
-         Can't find a Wand function that will update units in info struct
-         like we did before. */
-
       success = MagickReadImage(wand, filePath);
       if(success == MagickFalse) {
          CleanupMagick(&wand, DmtxTrue);
@@ -133,7 +129,7 @@ main(int argc, char *argv[])
          dmtxImageSetProp(img, DmtxPropImageFlip, DmtxFlipNone);
 
          /* Initialize scan */
-         dec = dmtxDecodeCreate(img);
+         dec = dmtxDecodeCreate(img, opt.shrinkMin);
          if(dec == NULL) {
             CleanupMagick(&wand, DmtxFalse);
             FatalError(EX_SOFTWARE, "decode create error");
@@ -165,8 +161,8 @@ main(int argc, char *argv[])
                msg = dmtxDecodeMatrixRegion(dec, reg, opt.correctionsMax);
 
             if(msg != NULL) {
-               PrintStats(msg, img, reg, imgPageIndex, &opt);
-               PrintMessage(msg, reg, &opt);
+               PrintStats(dec, reg, msg, imgPageIndex, &opt);
+               PrintMessage(reg, msg, &opt);
 
                pageScanCount++;
                imgScanCount++;
@@ -410,10 +406,12 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             opt->corners = DmtxTrue;
             break;
          case 'S':
-            err = StringToInt(&(opt->shrinkMax), optarg, &ptr);
-            if(err != DmtxPass || opt->shrinkMax < 1 || *ptr != '\0')
+            err = StringToInt(&(opt->shrinkMin), optarg, &ptr);
+            if(err != DmtxPass || opt->shrinkMin < 1 || *ptr != '\0')
                FatalError(EX_USAGE, _("Invalid shrink factor specified \"%s\""), optarg);
-            /* XXX later also popular shrinkMin based on N-N range */
+
+            /* XXX later populate shrinkMax based on specified N-N range */
+            opt->shrinkMax = opt->shrinkMin;
             break;
          case 'U':
             opt->unicode = DmtxTrue;
@@ -552,12 +550,6 @@ SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt)
       RETURN_IF_FAILED(err)
    }
 
-   err = dmtxDecodeSetProp(dec, DmtxPropShrinkMin, opt->shrinkMin);
-   RETURN_IF_FAILED(err)
-
-   err = dmtxDecodeSetProp(dec, DmtxPropShrinkMax, opt->shrinkMax);
-   RETURN_IF_FAILED(err)
-
 #undef RETURN_IF_FAILED
 
    return DmtxPass;
@@ -570,7 +562,7 @@ SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt)
  * @return DmtxPass | DmtxFail
  */
 static DmtxPassFail
-PrintStats(DmtxMessage *msg, DmtxImage *image, DmtxRegion *reg,
+PrintStats(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg,
       int imgPageIndex, UserOptions *opt)
 {
    int height;
@@ -579,7 +571,7 @@ PrintStats(DmtxMessage *msg, DmtxImage *image, DmtxRegion *reg,
    double rotate;
    DmtxVector2 p00, p10, p11, p01;
 
-   height = dmtxImageGetProp(image, DmtxPropScaledHeight);
+   height = dmtxDecodeGetProp(dec, DmtxPropHeight);
 
    p00.X = p00.Y = p10.Y = p01.X = 0.0;
    p10.X = p01.Y = p11.X = p11.Y = 1.0;
@@ -637,7 +629,7 @@ PrintStats(DmtxMessage *msg, DmtxImage *image, DmtxRegion *reg,
  *
  */
 static DmtxPassFail
-PrintMessage(DmtxMessage *msg, DmtxRegion *reg, UserOptions *opt)
+PrintMessage(DmtxRegion *reg, DmtxMessage *msg, UserOptions *opt)
 {
    int i;
    int remainingDataWords;
@@ -750,9 +742,9 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 {
    int row, col;
    int width, height;
-   int offset;
    int rgb[3];
    double shade;
+   unsigned char *cache;
    FILE *fp;
 
    fp = fopen(imagePath, "wb");
@@ -761,32 +753,32 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
       FatalError(EX_CANTCREAT, _("Unable to write image \"%s\""), imagePath);
    }
 
-   width = dmtxImageGetProp(dec->image, DmtxPropScaledWidth);
-   height = dmtxImageGetProp(dec->image, DmtxPropScaledHeight);
+   width = dmtxDecodeGetProp(dec, DmtxPropWidth);
+   height = dmtxDecodeGetProp(dec, DmtxPropHeight);
 
    /* Test each pixel of input image to see if it lies in region */
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
 
-         offset = dmtxImageGetPixelOffset(dec->image, col, row);
-         if(offset == DmtxUndefined) {
+         cache = dmtxDecodeGetCache(dec, col, row);
+         if(cache == NULL) {
             rgb[0] = 0;
             rgb[1] = 0;
             rgb[2] = 128;
          }
          else {
-            dmtxImageGetPixelValue(dec->image, col, row, 0, &rgb[0]);
-            dmtxImageGetPixelValue(dec->image, col, row, 1, &rgb[1]);
-            dmtxImageGetPixelValue(dec->image, col, row, 2, &rgb[2]);
+            dmtxDecodeGetPixelValue(dec, col, row, 0, &rgb[0]);
+            dmtxDecodeGetPixelValue(dec, col, row, 1, &rgb[1]);
+            dmtxDecodeGetPixelValue(dec, col, row, 2, &rgb[2]);
 
-            if(dec->cache[offset] & 0x40) {
+            if(*cache & 0x40) {
                rgb[0] = 255;
                rgb[1] = 0;
                rgb[2] = 0;
             }
             else {
-               shade = (dec->cache[offset] & 0x80) ? 0.0 : 0.7;
+               shade = (*cache & 0x80) ? 0.0 : 0.7;
                rgb[0] += (shade * (255 - rgb[0]));
                rgb[1] += (shade * (255 - rgb[1]));
                rgb[2] += (shade * (255 - rgb[2]));

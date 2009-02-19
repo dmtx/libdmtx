@@ -43,15 +43,10 @@ static VALUE rdmtx_decode(VALUE self, VALUE image /* Image from RMagick (Magick:
     DmtxImage *dmtxImage = dmtxImageCreate((unsigned char *)imageBuffer, width,
           height, DmtxPack24bppRGB);
 
-/*  dmtxImageSetProp(dmtxImage, DmtxPropScaledXmin, 0);
-    dmtxImageSetProp(dmtxImage, DmtxPropScaledXmax, width);
-    dmtxImageSetProp(dmtxImage, DmtxPropScaledYmin, 0);
-    dmtxImageSetProp(dmtxImage, DmtxPropScaledYmax, height); */
-
     VALUE results = rb_ary_new();
 
     /* Initialize decode struct for newly loaded image */
-    DmtxDecode * decode = dmtxDecodeCreate(dmtxImage);
+    DmtxDecode * decode = dmtxDecodeCreate(dmtxImage, 1);
 
     DmtxRegion * region;
 

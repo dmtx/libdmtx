@@ -65,7 +65,7 @@ main(int argc, char *argv[])
    img = dmtxImageCreate(pxl, width, height, DmtxPack24bppRGB);
    assert(img != NULL);
 
-   dec = dmtxDecodeCreate(img);
+   dec = dmtxDecodeCreate(img, 1);
    assert(dec != NULL);
 
    reg = dmtxRegionFindNext(dec, NULL);

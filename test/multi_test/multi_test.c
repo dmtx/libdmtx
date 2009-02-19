@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
       SDL_FillRect(screen, NULL, 0xff000050);
       SDL_BlitSurface(picture, NULL, screen, &imageLoc);
 
-      dec = dmtxDecodeCreate(img);
+      dec = dmtxDecodeCreate(img, 1);
 
       if(state.rightButton == SDL_PRESSED) {
 
@@ -306,42 +306,41 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
    int row, col;
    int width, height;
-   int offset;
    int rgb[3];
    double shade;
+   unsigned char *cache;
    FILE *fp;
 
    fp = fopen(imagePath, "wb");
-   if(fp == NULL) {
+   if(fp == NULL)
       exit(1);
-   }
 
-   width = dmtxImageGetProp(dec->image, DmtxPropScaledWidth);
-   height = dmtxImageGetProp(dec->image, DmtxPropScaledHeight);
+   width = dmtxDecodeGetProp(dec, DmtxPropWidth);
+   height = dmtxDecodeGetProp(dec, DmtxPropHeight);
 
    /* Test each pixel of input image to see if it lies in region */
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
 
-         offset = dmtxImageGetPixelOffset(dec->image, col, row);
-         if(offset == DmtxUndefined) {
+         cache = dmtxDecodeGetCache(dec, col, row);
+         if(cache == NULL) {
             rgb[0] = 0;
             rgb[1] = 0;
             rgb[2] = 128;
          }
          else {
-            dmtxImageGetPixelValue(dec->image, col, row, 0, &rgb[0]);
-            dmtxImageGetPixelValue(dec->image, col, row, 1, &rgb[1]);
-            dmtxImageGetPixelValue(dec->image, col, row, 2, &rgb[2]);
+            dmtxDecodeGetPixelValue(dec, col, row, 0, &rgb[0]);
+            dmtxDecodeGetPixelValue(dec, col, row, 1, &rgb[1]);
+            dmtxDecodeGetPixelValue(dec, col, row, 2, &rgb[2]);
 
-            if(dec->cache[offset] & 0x40) {
+            if(*cache & 0x40) {
                rgb[0] = 255;
                rgb[1] = 0;
                rgb[2] = 0;
             }
             else {
-               shade = (dec->cache[offset] & 0x80) ? 0.0 : 0.7;
+               shade = (*cache & 0x80) ? 0.0 : 0.7;
                rgb[0] += (shade * (255 - rgb[0]));
                rgb[1] += (shade * (255 - rgb[1]));
                rgb[2] += (shade * (255 - rgb[2]));

@@ -141,42 +141,33 @@ typedef enum {
 } DmtxCornerLoc;
 
 typedef enum {
-   /* encoding properties */
+   /* Encoding properties */
    DmtxPropScheme            = 100,
    DmtxPropSizeRequest,
-   /* decoding properties */
+   DmtxPropMarginSize,
+   DmtxPropModuleSize,
+   /* Decoding properties */
    DmtxPropEdgeMin           = 200,
    DmtxPropEdgeMax,
    DmtxPropScanGap,
    DmtxPropSquareDevn,
    DmtxPropSymbolSize,
    DmtxPropEdgeThresh,
-   DmtxPropShrinkMin,
-   DmtxPropShrinkMax,
-   /* image properties */
+   /* Image properties */
    DmtxPropWidth             = 300,
    DmtxPropHeight,
-   DmtxPropArea,
-   DmtxPropXmin,
+   DmtxPropPixelPacking,
+   DmtxPropBitsPerPixel,
+   DmtxPropBytesPerPixel,
+   DmtxPropRowPadBytes,
+   DmtxPropRowSizeBytes,
+   DmtxPropImageFlip,
+   /* Image modifiers */
+   DmtxPropXmin              = 400,
    DmtxPropXmax,
    DmtxPropYmin,
    DmtxPropYmax,
-   DmtxPropMarginSize,
-   DmtxPropModuleSize,
-   DmtxPropBitsPerPixel,
-   DmtxPropBytesPerPixel,
-   DmtxPropPixelPacking,
-   DmtxPropImageFlip,
-   DmtxPropRowPadBytes,
-   /* scaled image properties */
-   DmtxPropScale             = 400,
-   DmtxPropScaledWidth,
-   DmtxPropScaledHeight,
-   DmtxPropScaledArea,
-   DmtxPropScaledXmin,
-   DmtxPropScaledXmax,
-   DmtxPropScaledYmin,
-   DmtxPropScaledYmax
+   DmtxPropScale
 } DmtxProperty;
 
 typedef enum {
@@ -283,26 +274,17 @@ typedef struct DmtxRay2_struct {
  * @brief DmtxImage
  */
 typedef struct DmtxImage_struct {
-   int             width;  /* unscaled */
-   int             height; /* unscaled */
-   int             bitsPerPixel;
+   int             width;
+   int             height;
    int             pixelPacking;
-   int             imageFlip;
+   int             bitsPerPixel;
+   int             bytesPerPixel;
    int             rowPadBytes;
+   int             rowSizeBytes;
+   int             imageFlip;
    int             channelCount;
    int             channelStart[4];
    int             bitsPerChannel[4];
-   int             xMin;   /* unscaled */
-   int             xMax;   /* unscaled */
-   int             yMin;   /* unscaled */
-   int             yMax;   /* unscaled */
-   int             scale;
-   int             widthScaled;
-   int             heightScaled;
-   int             xMinScaled;
-   int             xMaxScaled;
-   int             yMinScaled;
-   int             yMaxScaled;
    unsigned char   *pxl;
 } DmtxImage;
 
@@ -437,14 +419,22 @@ typedef struct DmtxScanGrid_struct {
  * @brief DmtxDecode
  */
 typedef struct DmtxDecode_struct {
+   /* Options */
    int             edgeMin;
    int             edgeMax;
    int             scanGap;
    double          squareDevn;
    int             sizeIdxExpected;
    int             edgeThresh;
-   int             shrinkMin;
-   int             shrinkMax;
+
+   /* Image modifiers */
+   int             xMin;
+   int             xMax;
+   int             yMin;
+   int             yMax;
+   int             scale;
+
+   /* Internals */
    unsigned char   *cache;
    DmtxImage       *image;
    DmtxScanGrid    grid;
@@ -533,10 +523,12 @@ extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *
 extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s);
 
 /* dmtxdecode.c */
-extern DmtxDecode *dmtxDecodeCreate(DmtxImage *img);
+extern DmtxDecode *dmtxDecodeCreate(DmtxImage *img, int scale);
 extern DmtxPassFail dmtxDecodeDestroy(DmtxDecode **dec);
 extern DmtxPassFail dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
 extern int dmtxDecodeGetProp(DmtxDecode *dec, int prop);
+extern unsigned char *dmtxDecodeGetCache(DmtxDecode *dec, int x, int y);
+extern DmtxPassFail dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, int *value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 
@@ -559,7 +551,7 @@ extern DmtxPassFail dmtxImageDestroy(DmtxImage **img);
 extern DmtxPassFail dmtxImageSetChannel(DmtxImage *img, int channelStart, int bitsPerChannel);
 extern DmtxPassFail dmtxImageSetProp(DmtxImage *img, int prop, int value);
 extern int dmtxImageGetProp(DmtxImage *img, int prop);
-extern int dmtxImageGetPixelOffset(DmtxImage *img, int x, int y);
+extern int dmtxImageGetByteOffset(DmtxImage *img, int x, int y);
 extern DmtxPassFail dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value);
 extern DmtxPassFail dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value);
 extern DmtxBoolean dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);

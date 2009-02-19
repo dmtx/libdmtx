@@ -69,9 +69,9 @@ Contact: mike@dragonflylogic.com
  */
 
 /**
- * @brief  xxx
- * @param  xxx
- * @return xxx
+ * @brief  XXX
+ * @param  XXX
+ * @return XXX
  */
 extern DmtxImage *
 dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
@@ -90,17 +90,6 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
    img->width = width;
    img->height = height;
    img->pixelPacking = pack;
-   img->imageFlip = DmtxFlipNone;
-   img->channelCount = 0;
-
-   /* XXX later these settings move to DmtxDecode */
-   img->widthScaled = width;
-   img->heightScaled = height;
-   img->scale = 1;
-   img->xMin = img->xMinScaled = 0;
-   img->xMax = img->xMaxScaled = width - 1;
-   img->yMin = img->yMinScaled = 0;
-   img->yMax = img->yMaxScaled = height - 1;
 
    switch(pack) {
       case DmtxPackCustom:
@@ -135,6 +124,14 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
       default:
          return NULL;
    }
+   img->bytesPerPixel = img->bitsPerPixel/8;
+
+   img->rowPadBytes = 0;
+   img->rowSizeBytes = img->width * img->bytesPerPixel + img->rowPadBytes;
+   img->imageFlip = DmtxFlipNone;
+
+   /* Leave channelStart[] and bitsPerChannel[] with zeros from calloc */
+   img->channelCount = 0;
 
    switch(pack) {
       case DmtxPackCustom:
@@ -243,58 +240,17 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
       return DmtxFail;
 
    switch(prop) {
-      case DmtxPropWidth:
-         img->width = value;
-         img->widthScaled = img->width/img->scale;
-         break;
-      case DmtxPropHeight:
-         img->height = value;
-         img->heightScaled = img->height/img->scale;
+      case DmtxPropRowPadBytes:
+         img->rowPadBytes = value;
+         img->rowSizeBytes = img->width * (img->bitsPerPixel/8) + img->rowPadBytes;
          break;
       case DmtxPropImageFlip:
          img->imageFlip = value;
          break;
-      case DmtxPropRowPadBytes:
-         img->rowPadBytes = value;
-         break;
-      case DmtxPropXmin:
-         img->xMin = value;
-         img->xMinScaled = img->xMin/img->scale;
-         break;
-      case DmtxPropXmax:
-         img->xMax = value;
-         img->xMaxScaled = img->xMax/img->scale;
-         break;
-      case DmtxPropYmin: /* Deliberate y-flip */
-         img->yMax = img->height - value - 1;
-         img->yMaxScaled = img->yMax/img->scale;
-         break;
-      case DmtxPropYmax: /* Deliberate y-flip */
-         img->yMin = img->height - value - 1;
-         img->yMinScaled = img->yMin/img->scale;
-         break;
-      case DmtxPropScale:
-         img->scale = value;
-         img->widthScaled = img->width/value;
-         img->heightScaled = img->height/value;
-         img->xMinScaled = img->xMin/value;
-         img->xMaxScaled = img->xMax/value;
-         img->yMinScaled = img->yMin/value;
-         img->yMaxScaled = img->yMax/value;
-         break;
-
       default:
-         return DmtxFail;
+         exit(1); /* XXX fatal error */
+         break;
    }
-
-   /* Specified range has non-positive area */
-   if(img->xMin >= img->xMax || img->yMin >= img->yMax)
-      return DmtxFail;
-
-   /* Specified range extends beyond image boundaries */
-   if(img->xMin < 0 || img->xMax >= img->width ||
-         img->yMin < 0 || img->yMax >= img->height)
-      return DmtxFail;
 
    return DmtxPass;
 }
@@ -315,65 +271,46 @@ dmtxImageGetProp(DmtxImage *img, int prop)
          return img->width;
       case DmtxPropHeight:
          return img->height;
+      case DmtxPropPixelPacking:
+         return img->pixelPacking;
       case DmtxPropBitsPerPixel:
          return img->bitsPerPixel;
       case DmtxPropBytesPerPixel:
-         return img->bitsPerPixel/8;
-      case DmtxPropArea:
-         return img->width * img->height;
-      case DmtxPropXmin:
-         return img->xMin;
-      case DmtxPropXmax:
-         return img->xMax;
-      case DmtxPropYmin:
-         return img->yMin;
-      case DmtxPropYmax:
-         return img->yMax;
-      case DmtxPropScale:
-         return img->scale;
-      case DmtxPropScaledWidth:
-         return img->width/img->scale;
-      case DmtxPropScaledHeight:
-         return img->height/img->scale;
-      case DmtxPropScaledArea:
-         return (img->width/img->scale) * (img->height/img->scale);
-      case DmtxPropScaledXmin:
-         return img->xMinScaled;
-      case DmtxPropScaledXmax:
-         return img->xMaxScaled;
-      case DmtxPropScaledYmin:
-         return img->yMinScaled;
-      case DmtxPropScaledYmax:
-         return img->yMaxScaled;
+         return img->bytesPerPixel;
+      case DmtxPropRowPadBytes:
+         return img->rowPadBytes;
+      case DmtxPropRowSizeBytes:
+         return img->rowSizeBytes;
+      case DmtxPropImageFlip:
+         return img->imageFlip;
+      default:
+         exit(1); /* XXX fatal error */
+         break;
    }
 
    return DmtxUndefined;
 }
 
 /**
- * @brief  Returns pixel offset for unscaled image
+ * @brief  Returns pixel offset for image
  * @param  img
- * @param  x Scaled x coordinate
- * @param  y Scaled y coordinate
- * @return Unscaled pixel offset
+ * @param  x coordinate
+ * @param  y coordinate
+ * @return pixe byte offset
  */
 extern int
-dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
+dmtxImageGetByteOffset(DmtxImage *img, int x, int y)
 {
-   int offset;
-
    assert(img != NULL);
-   assert(!(img->imageFlip & DmtxFlipX)); /* not implemented */
+   assert(!(img->imageFlip & DmtxFlipX)); /* DmtxFlipX is not an option */
 
    if(dmtxImageContainsInt(img, 0, x, y) == DmtxFalse)
       return DmtxUndefined;
 
    if(img->imageFlip & DmtxFlipY)
-      offset = img->scale * (y * img->width + x);
-   else
-      offset = ((img->heightScaled - y - 1) * img->scale * img->width + (x * img->scale));
+      return (y * img->rowSizeBytes + x * img->bytesPerPixel);
 
-   return offset;
+   return ((img->height - y - 1) * img->rowSizeBytes + x * img->bytesPerPixel);
 }
 
 /**
@@ -383,64 +320,16 @@ dmtxImageGetPixelOffset(DmtxImage *img, int x, int y)
 extern DmtxPassFail
 dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
 {
-   unsigned char *pixelPtr;
+   int offset;
+/* unsigned char *pixelPtr;
    int pixelValue;
-   int offset;
    int mask;
-   int bitShift;
-   int bytesPerPixel;
+   int bitShift; */
 
    assert(img != NULL);
    assert(channel < img->channelCount);
 
-   offset = dmtxImageGetPixelOffset(img, x, y);
-   if(offset == DmtxUndefined)
-      return DmtxFail;
-
-   switch(img->bitsPerChannel[channel]) {
-      case 1:
-         assert(img->bitsPerPixel == 1);
-         mask = 0x01 << (7 - offset%8);
-         *value = (img->pxl[offset/8] & mask) ? 255 : 0;
-         break;
-      case 5:
-         /* XXX might be expensive if we want to scale perfect 0-255 range */
-         assert(img->bitsPerPixel == 16);
-         pixelPtr = img->pxl + (offset * (img->bitsPerPixel/8));
-         pixelValue = (*pixelPtr << 8) | (*(pixelPtr+1));
-         bitShift = img->bitsPerPixel - 5 - img->channelStart[channel];
-         mask = 0x1f << bitShift;
-         *value = (((pixelValue & mask) >> bitShift) << 3);
-         break;
-      case 8:
-         assert(img->channelStart[channel] % 8 == 0);
-         assert(img->bitsPerPixel % 8 == 0);
-         bytesPerPixel = img->bitsPerPixel / 8;
-         *value = img->pxl[offset * bytesPerPixel + channel];
-         break;
-   }
-
-   return DmtxPass;
-}
-
-/**
- *
- *
- */
-extern DmtxPassFail
-dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value)
-{
-/* unsigned char *pixelPtr; */
-/* int pixelValue; */
-   int offset;
-/* int mask; */
-/* int bitShift; */
-   int bytesPerPixel;
-
-   assert(img != NULL);
-   assert(channel < img->channelCount);
-
-   offset = dmtxImageGetPixelOffset(img, x, y);
+   offset = dmtxImageGetByteOffset(img, x, y);
    if(offset == DmtxUndefined)
       return DmtxFail;
 
@@ -462,8 +351,52 @@ dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value)
       case 8:
          assert(img->channelStart[channel] % 8 == 0);
          assert(img->bitsPerPixel % 8 == 0);
-         bytesPerPixel = img->bitsPerPixel / 8;
-         img->pxl[offset * bytesPerPixel + channel] = value;
+         *value = img->pxl[offset + channel];
+         break;
+   }
+
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+extern DmtxPassFail
+dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value)
+{
+   int offset;
+/* unsigned char *pixelPtr; */
+/* int pixelValue; */
+/* int mask; */
+/* int bitShift; */
+
+   assert(img != NULL);
+   assert(channel < img->channelCount);
+
+   offset = dmtxImageGetByteOffset(img, x, y);
+   if(offset == DmtxUndefined)
+      return DmtxFail;
+
+   switch(img->bitsPerChannel[channel]) {
+      case 1:
+/*       assert(img->bitsPerPixel == 1);
+         mask = 0x01 << (7 - offset%8);
+         *value = (img->pxl[offset/8] & mask) ? 255 : 0; */
+         break;
+      case 5:
+         /* XXX might be expensive if we want to scale perfect 0-255 range */
+/*       assert(img->bitsPerPixel == 16);
+         pixelPtr = img->pxl + (offset * (img->bitsPerPixel/8));
+         pixelValue = (*pixelPtr << 8) | (*(pixelPtr+1));
+         bitShift = img->bitsPerPixel - 5 - img->channelStart[channel];
+         mask = 0x1f << bitShift;
+         *value = (((pixelValue & mask) >> bitShift) << 3); */
+         break;
+      case 8:
+         assert(img->channelStart[channel] % 8 == 0);
+         assert(img->bitsPerPixel % 8 == 0);
+         img->pxl[offset + channel] = value;
          break;
    }
 
@@ -473,9 +406,9 @@ dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value)
 /**
  * @brief  Test whether image contains a coordinate expressed in integers
  * @param  img
- * @param  margin Unscaled margin width
- * @param  x Scaled x coordinate
- * @param  y Scaled y coordinate
+ * @param  margin width
+ * @param  x coordinate
+ * @param  y coordinate
  * @return DmtxTrue | DmtxFalse
  */
 extern DmtxBoolean
@@ -483,8 +416,8 @@ dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 {
    assert(img != NULL);
 
-   if(x - margin >= img->xMinScaled && x + margin <= img->xMaxScaled &&
-         y - margin >= img->yMinScaled && y + margin <= img->yMaxScaled)
+   if(x - margin >= 0 && x + margin < img->width &&
+         y - margin >= 0 && y + margin < img->height)
       return DmtxTrue;
 
    return DmtxFalse;
@@ -493,8 +426,8 @@ dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 /**
  * @brief  Test whether image contains a coordinate expressed in floating points
  * @param  img
- * @param  x Scaled x coordinate
- * @param  y Scaled y coordinate
+ * @param  x coordinate
+ * @param  y coordinate
  * @return DmtxTrue | DmtxFalse
  */
 extern DmtxBoolean
@@ -502,8 +435,7 @@ dmtxImageContainsFloat(DmtxImage *img, double x, double y)
 {
    assert(img != NULL);
 
-   if(x >= (double)img->xMinScaled && x <= (double)img->xMaxScaled &&
-         y >= (double)img->yMinScaled && y <= (double)img->yMaxScaled)
+   if(x >= 0.0 && x < (double)img->width && y >= 0.0 && y < (double)img->height)
       return DmtxTrue;
 
    return DmtxFalse;

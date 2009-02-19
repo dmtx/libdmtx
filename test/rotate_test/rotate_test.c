@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
       dmtxImageSetProp(gImage, DmtxPropImageFlip, DmtxFlipY);
 
       /* Start fresh scan */
-      dec = dmtxDecodeCreate(gImage);
+      dec = dmtxDecodeCreate(gImage, 1);
       assert(dec != NULL);
 
       for(;;) {

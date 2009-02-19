@@ -80,9 +80,9 @@ static UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[]);
 static void ShowUsage(int status);
 static DmtxPassFail SetDecodeOptions(DmtxDecode *dec, DmtxImage *img, UserOptions *opt);
-static DmtxPassFail PrintStats(DmtxMessage *msg, DmtxImage *image,
-      DmtxRegion *reg, int imgPageIndex, UserOptions *opt);
-static DmtxPassFail PrintMessage(DmtxMessage *msg, DmtxRegion *reg, UserOptions *opt);
+static DmtxPassFail PrintStats(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg,
+      int imgPageIndex, UserOptions *opt);
+static DmtxPassFail PrintMessage(DmtxRegion *reg, DmtxMessage *msg, UserOptions *opt);
 static void CleanupMagick(MagickWand **wand, int magicError);
 static void ListImageFormats(void);
 static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);

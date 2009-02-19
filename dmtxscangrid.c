@@ -29,26 +29,26 @@ Contact: mike@dragonflylogic.com
 
 /**
  * @brief  Initialize scan grid pattern
- * @param  xMin
- * @param  xMax
- * @param  yMin
- * @param  yMax
- * @param  smallestFeature
+ * @param  dec
  * @return Initialized grid
  */
 static DmtxScanGrid
-InitScanGrid(DmtxImage *img, int smallestFeature)
+InitScanGrid(DmtxDecode *dec)
 {
+   int scale, smallestFeature;
    int xExtent, yExtent, maxExtent;
    int extent;
    DmtxScanGrid grid;
 
    memset(&grid, 0x00, sizeof(DmtxScanGrid));
 
-   grid.xMin = dmtxImageGetProp(img, DmtxPropScaledXmin);
-   grid.xMax = dmtxImageGetProp(img, DmtxPropScaledXmax);
-   grid.yMin = dmtxImageGetProp(img, DmtxPropScaledYmin);
-   grid.yMax = dmtxImageGetProp(img, DmtxPropScaledYmax);
+   scale = dmtxDecodeGetProp(dec, DmtxPropScale);
+   smallestFeature = dmtxDecodeGetProp(dec, DmtxPropScanGap) / scale;
+
+   grid.xMin = dmtxDecodeGetProp(dec, DmtxPropXmin);
+   grid.xMax = dmtxDecodeGetProp(dec, DmtxPropXmax);
+   grid.yMin = dmtxDecodeGetProp(dec, DmtxPropYmin);
+   grid.yMax = dmtxDecodeGetProp(dec, DmtxPropYmax);
 
    /* Values that get set once */
    xExtent = grid.xMax - grid.xMin;

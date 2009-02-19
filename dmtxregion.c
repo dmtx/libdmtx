@@ -109,7 +109,7 @@ dmtxRegionFindNext(DmtxDecode *dec, DmtxTime *timeout)
 extern DmtxRegion *
 dmtxRegionScanPixel(DmtxDecode *dec, int x, int y)
 {
-   int offset;
+   unsigned char *cache;
    DmtxRegion reg;
    DmtxPointFlow flowBegin;
    DmtxPixelLoc loc;
@@ -117,11 +117,11 @@ dmtxRegionScanPixel(DmtxDecode *dec, int x, int y)
    loc.X = x;
    loc.Y = y;
 
-   offset = dmtxImageGetPixelOffset(dec->image, loc.X, loc.Y);
-   if(offset == DmtxUndefined)
+   cache = dmtxDecodeGetCache(dec, loc.X, loc.Y);
+   if(cache == NULL)
       return NULL;
 
-   if((int)(dec->cache[offset] & 0x80) != 0x00)
+   if((int)(*cache & 0x80) != 0x00)
       return NULL;
 
    /* Test for presence of any reasonable edge at this location */
@@ -248,7 +248,7 @@ MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow begin)
 
    /* Filter out region candidates that are smaller than expected */
    if(dec->edgeMin != DmtxUndefined) {
-      scale = dmtxImageGetProp(dec->image, DmtxPropScale);
+      scale = dmtxDecodeGetProp(dec, DmtxPropScale);
 
       if(symbolShape == DmtxSymbolSquareAuto)
          minArea = (dec->edgeMin * dec->edgeMin)/(scale * scale);
@@ -379,23 +379,6 @@ DistanceSquared(DmtxPixelLoc a, DmtxPixelLoc b)
    return (xDelta * xDelta) + (yDelta * yDelta);
 }
 
-
-/**
- *
- *
- */
-static unsigned char *
-GetCacheAddress(DmtxDecode *dec, int x, int y)
-{
-   int offset;
-
-   offset = dmtxImageGetPixelOffset(dec->image, x, y);
-   if(offset == DmtxUndefined)
-      return NULL;
-
-   return &(dec->cache[offset]);
-}
-
 /**
  *
  *
@@ -404,14 +387,18 @@ extern DmtxPassFail
 dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
       DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01)
 {
-   DmtxVector2 vOT, vOR, vTX, vRX, vTmp;
+   double xMax, yMax;
    double tx, ty, phi, shx, scx, scy, skx, sky;
    double dimOT, dimOR, dimTX, dimRX, ratio;
+   DmtxVector2 vOT, vOR, vTX, vRX, vTmp;
    DmtxMatrix3 m, mtxy, mphi, mshx, mscx, mscy, mscxy, msky, mskx;
 
-   if(dmtxImageContainsFloat(dec->image, p00.X, p00.Y) == DmtxFalse ||
-         dmtxImageContainsFloat(dec->image, p01.X, p01.Y) == DmtxFalse ||
-         dmtxImageContainsFloat(dec->image, p10.X, p10.Y) == DmtxFalse)
+   xMax = (double)(dmtxDecodeGetProp(dec, DmtxPropWidth) - 1);
+   yMax = (double)(dmtxDecodeGetProp(dec, DmtxPropHeight) - 1);
+
+   if(p00.X < 0.0 || p00.Y < 0.0 || p00.X > xMax || p00.Y > yMax ||
+         p01.X < 0.0 || p01.Y < 0.0 || p01.X > xMax || p01.Y > yMax ||
+         p10.X < 0.0 || p10.Y < 0.0 || p10.X > xMax || p10.Y > yMax)
       return DmtxFail;
 
    dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &p01, &p00)); /* XXX could use MagSquared() */
@@ -606,7 +593,7 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
 
 /**
  * @brief  Read color of Data Matrix module location
- * @param  image
+ * @param  dec
  * @param  reg
  * @param  symbolRow
  * @param  symbolCol
@@ -614,7 +601,7 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
  * @return Averaged module color
  */
 static int
-ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, int sizeIdx)
+ReadModuleColor(DmtxDecode *dec, DmtxRegion *reg, int symbolRow, int symbolCol, int sizeIdx)
 {
    int err;
    int i;
@@ -635,7 +622,7 @@ ReadModuleColor(DmtxImage *img, DmtxRegion *reg, int symbolRow, int symbolCol, i
 
       dmtxMatrix3VMultiplyBy(&p, reg->fit2raw);
 
-      err = dmtxImageGetPixelValue(img, (int)(p.X + 0.5), (int)(p.Y + 0.5),
+      err = dmtxDecodeGetPixelValue(dec, (int)(p.X + 0.5), (int)(p.Y + 0.5),
             reg->flowBegin.plane, &colorTmp);
       color += colorTmp;
    }
@@ -695,7 +682,7 @@ MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg)
       /* Sum module colors along horizontal calibration bar */
       row = symbolRows - 1;
       for(col = 0; col < symbolCols; col++) {
-         color = ReadModuleColor(img, reg, row, col, sizeIdx);
+         color = ReadModuleColor(dec, reg, row, col, sizeIdx);
          if((col & 0x01) != 0x00)
             colorOffAvg += color;
          else
@@ -705,7 +692,7 @@ MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg)
       /* Sum module colors along vertical calibration bar */
       col = symbolCols - 1;
       for(row = 0; row < symbolRows; row++) {
-         color = ReadModuleColor(img, reg, row, col, sizeIdx);
+         color = ReadModuleColor(dec, reg, row, col, sizeIdx);
          if((row & 0x01) != 0x00)
             colorOffAvg += color;
          else
@@ -741,41 +728,41 @@ MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg)
    reg->mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, reg->sizeIdx);
 
    /* Tally jumps on horizontal calibration bar to verify sizeIdx */
-   jumpCount = CountJumpTally(img, reg, 0, reg->symbolRows - 1, DmtxDirRight);
+   jumpCount = CountJumpTally(dec, reg, 0, reg->symbolRows - 1, DmtxDirRight);
    errors = abs(1 + jumpCount - reg->symbolCols);
    if(jumpCount < 0 || errors > 2)
       return DmtxFail;
 
    /* Tally jumps on vertical calibration bar to verify sizeIdx */
-   jumpCount = CountJumpTally(img, reg, reg->symbolCols - 1, 0, DmtxDirUp);
+   jumpCount = CountJumpTally(dec, reg, reg->symbolCols - 1, 0, DmtxDirUp);
    errors = abs(1 + jumpCount - reg->symbolRows);
    if(jumpCount < 0 || errors > 2)
       return DmtxFail;
 
    /* Tally jumps on horizontal finder bar to verify sizeIdx */
-   errors = CountJumpTally(img, reg, 0, 0, DmtxDirRight);
+   errors = CountJumpTally(dec, reg, 0, 0, DmtxDirRight);
    if(jumpCount < 0 || errors > 2)
       return DmtxFail;
 
    /* Tally jumps on vertical finder bar to verify sizeIdx */
-   errors = CountJumpTally(img, reg, 0, 0, DmtxDirUp);
+   errors = CountJumpTally(dec, reg, 0, 0, DmtxDirUp);
    if(errors < 0 || errors > 2)
       return DmtxFail;
 
    /* Tally jumps on surrounding whitespace, else fail */
-   errors = CountJumpTally(img, reg, 0, -1, DmtxDirRight);
+   errors = CountJumpTally(dec, reg, 0, -1, DmtxDirRight);
    if(errors < 0 || errors > 2)
       return DmtxFail;
 
-   errors = CountJumpTally(img, reg, -1, 0, DmtxDirUp);
+   errors = CountJumpTally(dec, reg, -1, 0, DmtxDirUp);
    if(errors < 0 || errors > 2)
       return DmtxFail;
 
-   errors = CountJumpTally(img, reg, 0, reg->symbolRows, DmtxDirRight);
+   errors = CountJumpTally(dec, reg, 0, reg->symbolRows, DmtxDirRight);
    if(errors < 0 || errors > 2)
       return DmtxFail;
 
-   errors = CountJumpTally(img, reg, reg->symbolCols, 0, DmtxDirUp);
+   errors = CountJumpTally(dec, reg, reg->symbolCols, 0, DmtxDirUp);
    if(errors < 0 || errors > 2)
       return DmtxFail;
 
@@ -792,7 +779,7 @@ MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg)
  * @return Jump count
  */
 static int
-CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDirection dir)
+CountJumpTally(DmtxDecode *dec, DmtxRegion *reg, int xStart, int yStart, DmtxDirection dir)
 {
    int x, xInc = 0;
    int y, yInc = 0;
@@ -817,7 +804,7 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
 
    darkOnLight = (int)(reg->offColor > reg->onColor);
    jumpThreshold = abs((int)(0.4 * (reg->onColor - reg->offColor) + 0.5));
-   color = ReadModuleColor(img, reg, yStart, xStart, reg->sizeIdx);
+   color = ReadModuleColor(dec, reg, yStart, xStart, reg->sizeIdx);
    tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
    for(x = xStart + xInc, y = yStart + yInc;
@@ -826,7 +813,7 @@ CountJumpTally(DmtxImage *img, DmtxRegion *reg, int xStart, int yStart, DmtxDire
          x += xInc, y += yInc) {
 
       tPrev = tModule;
-      color = ReadModuleColor(img, reg, y, x, reg->sizeIdx);
+      color = ReadModuleColor(dec, reg, y, x, reg->sizeIdx);
       tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
       if(state == DmtxModuleOff) {
@@ -865,7 +852,7 @@ GetPointFlow(DmtxDecode *dec, int colorPlane, DmtxPixelLoc loc, int arrive)
    for(patternIdx = 0; patternIdx < 8; patternIdx++) {
       xAdjust = loc.X + dmtxPatternX[patternIdx];
       yAdjust = loc.Y + dmtxPatternY[patternIdx];
-      err = dmtxImageGetPixelValue(dec->image, xAdjust, yAdjust, colorPlane,
+      err = dmtxDecodeGetPixelValue(dec, xAdjust, yAdjust, colorPlane,
             &colorPattern[patternIdx]);
       if(err == DmtxFail)
          return dmtxBlankEdge;
@@ -923,7 +910,6 @@ static DmtxPointFlow
 FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center, int sign)
 {
    int i;
-   int offset;
    int strongIdx;
    int attempt, attemptDiff;
    int occupied;
@@ -940,11 +926,10 @@ FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center, int sign)
       loc.X = center.loc.X + dmtxPatternX[i];
       loc.Y = center.loc.Y + dmtxPatternY[i];
 
-      offset = dmtxImageGetPixelOffset(dec->image, loc.X, loc.Y);
-      if(offset == DmtxUndefined)
+      cache = dmtxDecodeGetCache(dec, loc.X, loc.Y);
+      if(cache == NULL)
          continue;
 
-      cache = &(dec->cache[offset]);
       if((int)(*cache & 0x80) != 0x00) {
          if(++occupied > 2)
             return dmtxBlankEdge;
@@ -978,15 +963,12 @@ FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek)
 {
    int i;
    int sign;
-   int offset;
    DmtxFollow follow;
 
    follow.loc = reg->flowBegin.loc;
-   offset = dmtxImageGetPixelOffset(dec->image, follow.loc.X, follow.loc.Y);
-   assert(offset != DmtxUndefined);
-
    follow.step = 0;
-   follow.ptr = &(dec->cache[offset]);
+   follow.ptr = dmtxDecodeGetCache(dec, follow.loc.X, follow.loc.Y);
+   assert(follow.ptr != NULL);
    follow.neighbor = *follow.ptr;
 
    sign = (seek > 0) ? +1 : -1;
@@ -1006,15 +988,12 @@ FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek)
 static DmtxFollow
 FollowSeekLoc(DmtxDecode *dec, DmtxPixelLoc loc)
 {
-   int offset;
    DmtxFollow follow;
 
    follow.loc = loc;
-   offset = dmtxImageGetPixelOffset(dec->image, follow.loc.X, follow.loc.Y);
-   assert(offset != DmtxUndefined);
-
    follow.step = 0;
-   follow.ptr = &(dec->cache[offset]);
+   follow.ptr = dmtxDecodeGetCache(dec, follow.loc.X, follow.loc.Y);
+   assert(follow.ptr != NULL);
    follow.neighbor = *follow.ptr;
 
    return follow;
@@ -1028,7 +1007,6 @@ FollowSeekLoc(DmtxDecode *dec, DmtxPixelLoc loc)
 static DmtxFollow
 FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
 {
-   int offset;
    int patternIdx;
    int stepMod;
    int factor;
@@ -1058,11 +1036,9 @@ FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
       follow.loc.Y = followBeg.loc.Y + dmtxPatternY[patternIdx];
    }
 
-   offset = dmtxImageGetPixelOffset(dec->image, follow.loc.X, follow.loc.Y);
-   assert(offset != DmtxUndefined);
-
    follow.step = followBeg.step + sign;
-   follow.ptr = &(dec->cache[offset]);
+   follow.ptr = dmtxDecodeGetCache(dec, follow.loc.X, follow.loc.Y);
+   assert(follow.ptr != NULL);
    follow.neighbor = *follow.ptr;
 
    return follow;
@@ -1075,7 +1051,6 @@ FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
 static DmtxFollow
 FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
 {
-   int offset;
    int patternIdx;
    DmtxFollow follow;
 
@@ -1086,11 +1061,9 @@ FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
    follow.loc.X = followBeg.loc.X + dmtxPatternX[patternIdx];
    follow.loc.Y = followBeg.loc.Y + dmtxPatternY[patternIdx];
 
-   offset = dmtxImageGetPixelOffset(dec->image, follow.loc.X, follow.loc.Y);
-   assert(offset != DmtxUndefined);
-
    follow.step = followBeg.step + sign;
-   follow.ptr = &(dec->cache[offset]);
+   follow.ptr = dmtxDecodeGetCache(dec, follow.loc.X, follow.loc.Y);
+   assert(follow.ptr != NULL);
    follow.neighbor = *follow.ptr;
 
    return follow;
@@ -1110,18 +1083,14 @@ TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin, 
    int posAssigns, negAssigns, clears;
    int sign;
    int steps;
-   int offset;
    unsigned char *cache, *cacheNext, *cacheBeg;
    DmtxPointFlow flow, flowNext;
    DmtxPixelLoc boundMin, boundMax;
 
-   /* check offset before starting */
-   offset = dmtxImageGetPixelOffset(dec->image, flowBegin.loc.X, flowBegin.loc.Y);
-   if(offset == DmtxUndefined)
-      return DmtxFail;
-
    boundMin = boundMax = flowBegin.loc;
-   cacheBeg = &(dec->cache[offset]);
+   cacheBeg = dmtxDecodeGetCache(dec, flowBegin.loc.X, flowBegin.loc.Y);
+   if(cacheBeg == NULL)
+      return DmtxFail;
    *cacheBeg = (0x80 | 0x40); /* Mark location as visited and assigned */
 
    reg->flowBegin = flowBegin;
@@ -1143,12 +1112,10 @@ TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin, 
          if(flowNext.mag < 50)
             break;
 
-         offset = dmtxImageGetPixelOffset(dec->image, flowNext.loc.X, flowNext.loc.Y);
-         if(offset == DmtxUndefined)
-            break;
-
          /* Get the neighbor's cache location */
-         cacheNext = &(dec->cache[offset]);
+         cacheNext = dmtxDecodeGetCache(dec, flowNext.loc.X, flowNext.loc.Y);
+         if(cacheNext == NULL)
+            break;
          assert(!(*cacheNext & 0x80));
 
          /* Mark departure from current location. If flowing downstream
@@ -1233,7 +1200,7 @@ TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int stream
    onEdge = DmtxTrue;
 
    beforeStep = loc0;
-   beforeCache = GetCacheAddress(dec, loc0.X, loc0.Y);
+   beforeCache = dmtxDecodeGetCache(dec, loc0.X, loc0.Y);
    if(beforeCache == NULL)
       return DmtxFail;
    else
@@ -1263,7 +1230,7 @@ TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int stream
       }
 
       afterStep = line.loc;
-      afterCache = GetCacheAddress(dec, afterStep.X, afterStep.Y);
+      afterCache = dmtxDecodeGetCache(dec, afterStep.X, afterStep.Y);
       if(afterCache == NULL)
          break;
 
@@ -1880,7 +1847,7 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
 {
    int row, col;
    int width, height;
-   int offset;
+   unsigned char *cache;
    int rgb[3];
    FILE *fp;
    DmtxVector2 p;
@@ -1893,8 +1860,8 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
       exit(3);
    }
 
-   width = dmtxImageGetProp(dec->image, DmtxPropScaledWidth);
-   height = dmtxImageGetProp(dec->image, DmtxPropScaledHeight);
+   width = dmtxDecodeGetProp(dec, DmtxPropWidth);
+   height = dmtxDecodeGetProp(dec->image, DmtxPropHeight);
 
    img = dmtxImageCreate(NULL, width, height, DmtxPack24bppRGB);
 
@@ -1902,16 +1869,16 @@ WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
 
-         offset = dmtxImageGetPixelOffset(dec->image, col, row);
-         if(offset == DmtxUndefined) {
+         cache = dmtxDecodeGetCache(dec, col, row);
+         if(cache == NULL) {
             rgb[0] = 0;
             rgb[1] = 0;
             rgb[2] = 128;
          }
          else {
-            dmtxImageGetPixelValue(dec->image, col, row, 0, &rgb[0]);
-            dmtxImageGetPixelValue(dec->image, col, row, 1, &rgb[1]);
-            dmtxImageGetPixelValue(dec->image, col, row, 2, &rgb[2]);
+            dmtxDecodeGetPixelValue(dec, col, row, 0, &rgb[0]);
+            dmtxDecodeGetPixelValue(dec, col, row, 1, &rgb[1]);
+            dmtxDecodeGetPixelValue(dec, col, row, 2, &rgb[2]);
 
             p.X = col;
             p.Y = row;
