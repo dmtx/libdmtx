@@ -32,6 +32,7 @@ DMTX_EXTERN unsigned char
 dmtx_decode(const unsigned char *rgb_image,
 			const dmtx_uint32_t width,
 			const dmtx_uint32_t height,
+			const dmtx_uint32_t bitmapStride,
 			const dmtx_decode_options_t *options,
 			int(*callbackFunc)(dmtx_decoded_t *decode_result))
 {
@@ -50,6 +51,8 @@ dmtx_decode(const unsigned char *rgb_image,
 	// Create libdmtx's image structure
 	img = dmtxImageCreate((unsigned char *)rgb_image, (int) width, (int) height, DmtxPack24bppBGR);
 	if (img == NULL) return DMTX_RETURN_NO_MEMORY;
+
+	dmtxImageSetProp(img, DmtxPropRowPadBytes, bitmapStride % 3);
 
 	// Apply options
 	decode = dmtxDecodeCreate(img, options->shrink);
@@ -159,22 +162,6 @@ dmtx_decode(const unsigned char *rgb_image,
 	dmtxImageDestroy(&img);
 
 	return returncode;
-}
-
-DMTX_EXTERN void
-dmtx_bitmap_to_byte_array(const unsigned char* src,
-						  int stride,
-						  int width,
-						  int height,
-						  unsigned char* dest)
-{
-	int y;
-
-	for (y = 0; y < height; y++) {
-		memcpy(dest, src, width*3);
-		src += stride;
-		dest += width * 3;
-    }
 }
 
 DMTX_EXTERN unsigned char

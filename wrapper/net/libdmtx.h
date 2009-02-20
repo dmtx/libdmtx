@@ -123,15 +123,9 @@ DMTX_EXTERN unsigned char
 dmtx_decode(const void *rgb_image,
 			const dmtx_uint32_t width,
 			const dmtx_uint32_t height,
+			const dmtx_uint32_t bitmapStride,
 			const dmtx_decode_options_t *options,
 			int(*callbackFunc)(dmtx_decoded_t *decode_result));
-
-DMTX_EXTERN void
-dmtx_bitmap_to_byte_array(const unsigned char* scan0,
-						  int stride,
-						  int width,
-						  int height,
-						  unsigned char* dest);
 
 DMTX_EXTERN unsigned char
 dmtx_encode(const void *plain_text,

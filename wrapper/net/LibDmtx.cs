@@ -76,12 +76,14 @@ namespace Libdmtx {
             Exception decodeException = null;
             byte status;
             try {
-                byte[] pxl = BitmapToByteArray(b);
+                int bitmapStride;
+                byte[] pxl = BitmapToByteArray(b, out bitmapStride);
 
                 status = DmtxDecode(
                     pxl,
                     (UInt32)b.Width,
                     (UInt32)b.Height,
+                    (UInt32)bitmapStride,
                     options,
                     delegate(DecodedInternal dmtxDecodeResult) {
                         DmtxDecoded result;
@@ -115,12 +117,13 @@ namespace Libdmtx {
             }
         }
 
-        private static byte[] BitmapToByteArray(Bitmap b) {
+        private static byte[] BitmapToByteArray(Bitmap b, out int stride) {
             Rectangle rect = new Rectangle(0, 0, b.Width, b.Height);
             BitmapData bd = b.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format24bppRgb);
             try {
-                byte[] pxl = new byte[b.Width * b.Height * 3];
-                DmtxBitmapToByteArray(bd.Scan0, bd.Stride, b.Width, b.Height, pxl);
+                byte[] pxl = new byte[bd.Stride * b.Height];
+                Marshal.Copy(bd.Scan0, pxl, 0, bd.Stride * b.Height);
+                stride = bd.Stride;
                 return pxl;
             } finally {
                 b.UnlockBits(bd);
@@ -197,17 +200,9 @@ namespace Libdmtx {
             [In] byte[] image,
             [In] UInt32 width,
             [In] UInt32 height,
+            [In] UInt32 bitmapStride,
             [In] DecodeOptions options,
             [In] DmtxDecodeCallback callback);
-
-        [DllImport("libdmtx.dll", EntryPoint = "dmtx_bitmap_to_byte_array")]
-        private static extern void DmtxBitmapToByteArray(
-            [In] IntPtr image,
-            [In] Int32 stride,
-            [In] Int32 width,
-            [In] Int32 height,
-            [Out] byte[] dest
-            );
 
         [DllImport("libdmtx.dll", EntryPoint = "dmtx_encode")]
         private static extern byte

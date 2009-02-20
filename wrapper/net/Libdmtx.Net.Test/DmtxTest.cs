@@ -111,28 +111,38 @@ namespace Libdmtx {
             bm.SetPixel(1, 0, Color.FromArgb(4, 5, 6));
             bm.SetPixel(0, 1, Color.FromArgb(7, 8, 9));
             bm.SetPixel(1, 1, Color.FromArgb(10, 11, 12));
-            byte[] pxl = ExecuteBitmapToByteArray(bm);
-            Assert.AreEqual(12, pxl.Length);
+            int stride;
+            byte[] pxl = ExecuteBitmapToByteArray(bm, out stride);
+            Assert.AreEqual(16, pxl.Length);
+            Assert.AreEqual(8, stride);
+            
+            // line 1
             Assert.AreEqual(3, pxl[0]);
             Assert.AreEqual(2, pxl[1]);
             Assert.AreEqual(1, pxl[2]);
             Assert.AreEqual(6, pxl[3]);
             Assert.AreEqual(5, pxl[4]);
             Assert.AreEqual(4, pxl[5]);
-            Assert.AreEqual(9, pxl[6]);
-            Assert.AreEqual(8, pxl[7]);
-            Assert.AreEqual(7, pxl[8]);
-            Assert.AreEqual(12, pxl[9]);
-            Assert.AreEqual(11, pxl[10]);
-            Assert.AreEqual(10, pxl[11]);
+
+            // line 2
+            Assert.AreEqual(9, pxl[8]);
+            Assert.AreEqual(8, pxl[9]);
+            Assert.AreEqual(7, pxl[10]);
+            Assert.AreEqual(12, pxl[11]);
+            Assert.AreEqual(11, pxl[12]);
+            Assert.AreEqual(10, pxl[13]);
         }
 
-        private byte[] ExecuteBitmapToByteArray(Bitmap bm) {
-            MethodInfo method = typeof(Dmtx).GetMethod("BitmapToByteArray", BindingFlags.Static | BindingFlags.NonPublic);
+        private byte[] ExecuteBitmapToByteArray(Bitmap bm, out int stride) {
+            Type[] paramTypes = new[] { typeof(Bitmap), typeof(int).MakeByRefType() };
+            MethodInfo method = typeof(Dmtx).GetMethod("BitmapToByteArray", BindingFlags.Static | BindingFlags.NonPublic, null, paramTypes, null);
             if (method == null) {
                 Assert.Fail("Method 'BitmapToByteArray' could not be found.");
             }
-            return (byte[])method.Invoke(null, new object[] { bm });
+            object[] parameters = new object[] { bm, 0 };
+            byte[] results = (byte[])method.Invoke(null, parameters);
+            stride = (int)parameters[1];
+            return results;
         }
 
         private static void AssertAreEqual(Bitmap expectedBitmap, Bitmap foundBitmap) {
