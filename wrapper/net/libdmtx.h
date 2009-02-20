@@ -55,7 +55,7 @@ typedef struct dmtx_decode_options_t {
 	dmtx_int16_t squareDevn;
 	dmtx_int32_t timeoutMS;
 	dmtx_int16_t sizeIdxExpected;
-	dmtx_int16_t edgeTresh;
+	dmtx_int16_t edgeThresh;
 	dmtx_int16_t maxCodes;
 	dmtx_int16_t xMin;
 	dmtx_int16_t xMax;
@@ -63,8 +63,6 @@ typedef struct dmtx_decode_options_t {
 	dmtx_int16_t yMax;
 	dmtx_int16_t correctionsMax;
 	dmtx_uint16_t mosaic;
-	dmtx_int16_t shrinkMin;
-	dmtx_int16_t shrinkMax;
 } dmtx_decode_options_t;
 
 typedef struct dmtx_encode_options_t {

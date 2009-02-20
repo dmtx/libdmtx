@@ -52,7 +52,7 @@ dmtx_decode(const unsigned char *rgb_image,
 	if (img == NULL) return DMTX_RETURN_NO_MEMORY;
 
 	// Apply options
-	decode = dmtxDecodeCreate(img);
+	decode = dmtxDecodeCreate(img, 1);
 	timeout = (options->timeoutMS != DmtxUndefined) ? &msec : NULL;
 	if (timeout != NULL)
 		msec = dmtxTimeAdd(dmtxTimeNow(), options->timeoutMS);
@@ -71,8 +71,8 @@ dmtx_decode(const unsigned char *rgb_image,
 			) != DmtxPass)) break;
 		if ((err = dmtxDecodeSetProp(decode, DmtxPropSymbolSize, options->sizeIdxExpected)
 			) != DmtxPass) break;
-		if ((options->edgeTresh != DmtxUndefined) &&
-			((err = dmtxDecodeSetProp(decode, DmtxPropEdgeThresh, options->edgeTresh)
+		if ((options->edgeThresh != DmtxUndefined) &&
+			((err = dmtxDecodeSetProp(decode, DmtxPropEdgeThresh, options->edgeThresh)
 			) != DmtxPass)) break;
 		if ((options->xMax != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropXmax, options->xMax)
@@ -85,12 +85,6 @@ dmtx_decode(const unsigned char *rgb_image,
 			) != DmtxPass)) break;
 		if ((options->yMin != DmtxUndefined) &&
 			((err = dmtxDecodeSetProp(decode, DmtxPropYmin, options->yMin)
-			) != DmtxPass)) break;
-		if ((options->shrinkMax != DmtxUndefined) &&
-			((err = dmtxDecodeSetProp(decode, DmtxPropShrinkMax, options->shrinkMax)
-			) != DmtxPass)) break;
-		if ((options->shrinkMin != DmtxUndefined) &&
-			((err = dmtxDecodeSetProp(decode, DmtxPropShrinkMin, options->shrinkMin)
 			) != DmtxPass)) break;
 		break;
 	}

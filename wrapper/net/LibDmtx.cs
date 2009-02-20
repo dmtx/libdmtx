@@ -332,7 +332,7 @@ namespace Libdmtx {
         public Int16 SquareDevn = Dmtx.DmtxUndefined;
         public Int32 TimeoutMS = Dmtx.DmtxUndefined;
         public CodeSize SizeIdxExpected = CodeSize.SymbolShapeAuto;
-        public Int16 EdgeTresh = Dmtx.DmtxUndefined;
+        public Int16 EdgeThresh = Dmtx.DmtxUndefined;
         public Int16 MaxCodes = Dmtx.DmtxUndefined;
         public Int16 XMin = Dmtx.DmtxUndefined;
         public Int16 XMax = Dmtx.DmtxUndefined;
@@ -340,8 +340,6 @@ namespace Libdmtx {
         public Int16 YMax = Dmtx.DmtxUndefined;
         public Int16 CorrectionsMax = Dmtx.DmtxUndefined;
         public CodeType CodeType = CodeType.DataMatrix;
-        public Int16 ShrinkMin = Dmtx.DmtxUndefined;
-        public Int16 ShrinkMax = Dmtx.DmtxUndefined;
     }
 
     /// <summary>
