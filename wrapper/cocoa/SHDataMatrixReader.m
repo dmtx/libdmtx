@@ -146,7 +146,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	}
 
 	// Create bitmap context.
-	CGContextRef contextRef = CGBitmapContextCreate(memory, width, height, 8, bytesPerRow, colorSpaceRef, kCGImageAlphaPremultipliedFirst);
+	CGContextRef contextRef = CGBitmapContextCreate(memory, width, height, 8,
+			bytesPerRow, colorSpaceRef, kCGImageAlphaPremultipliedFirst);
 	if(contextRef == NULL) {
 		CGColorSpaceRelease(colorSpaceRef);
 		free(memory);
@@ -157,7 +158,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	CGColorSpaceRelease(colorSpaceRef);
 
 	// Scale image to desired size.
-	CGContextDrawImage(contextRef, CGRectMake(0.0f, 0.0f, (CGFloat)width, (CGFloat)height), imageRef);
+	CGContextDrawImage(contextRef, CGRectMake(0.0f, 0.0f, (CGFloat)width,
+			(CGFloat)height), imageRef);
 
 	// Get context data.
 	unsigned char *data = (unsigned char *)CGBitmapContextGetData(contextRef);
@@ -168,23 +170,23 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	}
 
 	// Create dmtx image.
-	DmtxImage *dmtxImage = dmtxImageMalloc((int)width, (int)height);
+	DmtxImage *dmtxImage = dmtxImageCreate(data, (int)width, (int)height, DmtxProp24bppRGB);
 	if(dmtxImage == NULL) {
 		CGContextRelease(contextRef);
 		free(memory);
 		return NULL;
 	}
 
-	// Copy horizontally flipped image data.
-	NSUInteger row, column, index;
-	for(row = 0; row < height; row++) {
-		for(column = 0; column < width; column++) {
-			index = (height - row - 1) * width + column;
-			dmtxImage->pxl[index].R = data[row * width * 4 + column * 4 + 1];
-			dmtxImage->pxl[index].G = data[row * width * 4 + column * 4 + 2];
-			dmtxImage->pxl[index].B = data[row * width * 4 + column * 4 + 3];
-		}
-	}
+	// Copy horizontally flipped image data. (mbl: no longer needed)
+	//NSUInteger row, column, index;
+	//for(row = 0; row < height; row++) {
+	//	for(column = 0; column < width; column++) {
+	//		index = (height - row - 1) * width + column;
+	//		dmtxImage->pxl[index].R = data[row * width * 4 + column * 4 + 1];
+	//		dmtxImage->pxl[index].G = data[row * width * 4 + column * 4 + 2];
+	//		dmtxImage->pxl[index].B = data[row * width * 4 + column * 4 + 3];
+	//	}
+	//}
 
 	// Release bitmap context.
 	CGContextRelease(contextRef);
@@ -193,7 +195,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	free(memory);
 
 	return dmtxImage;
-
 }
 
 @end
