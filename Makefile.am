@@ -37,6 +37,8 @@ EXTRA_DIST = KNOWNBUG \
 	script/dist-image.sh \
 	test/rotate_test/images/test_image??.png \
 	wrapper/cocoa/* \
+	wrapper/java/* \
+	wrapper/net/* \
 	wrapper/php/* \
 	wrapper/python/* \
 	wrapper/ruby/*

@@ -88,18 +88,19 @@ Release Checklist
 
 8) o Perform final test build
 
-   o $ make uninstall
-   o $ make clean
-   o $ make distclean
-   o $ ./autogen.sh
-   o $ ./configure
-   o $ make
-   o $ make check
-   o $ sudo make install
-   o $ test/multi_test/multi_test; echo $?
-   o $ test/rotate_test/rotate_test
-   o $ test/simple_test/simple_test; echo $?
-   o $ test/unit_test/unit_test; echo $?
+   o # final commit
+   o svn diff # confirm no diffs
+   o sudo make uninstall
+   o make clean && make distclean
+   o $ ./autogen.sh && ./configure && make && make check && sudo make install
+   o # run tests, confirm it works
+   o $ cd ..
+   o $ svn co https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk release
+   o $ cd release
+   o $ find . -type d -name ".svn" -exec rm -Rf {} \;
+   o $ find . -type d -name ".svn"
+   o $ ./autogen.sh && ./configure # don't build though
+   o # run tests, confirm it works
 
 9) o Build and test tarballs
 
@@ -109,31 +110,29 @@ Release Checklist
      distribution (especially in the wrapper directories)
    o $ md5sum libdmtx*.tar.* > MD5SUM.txt
 
-10) o Final subversion commit
-
-11) o Upload release to SourceForge
+10) o Upload release to SourceForge
 
     o $ scp libdmtx-x.x.x.tar.* user@frs.sourceforge.net/uploads
 
-12) o SourceForge release administration
+11) o SourceForge release administration
 
     o Create SourceForge release
     o Upload release notes
     o Publish news item
 
-13) o Tag final release in SVN (do this only after uploading to
+12) o Tag final release in SVN (do this only after uploading to
       SourceForge in case something changes at the last minute)
 
     o $ svn copy https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk \
                  https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/tags/release-0.6.0 \
            -m "Tagged libdmtx 0.6.0 release"
 
-14) o Update minor number in trunk (e.g., 0.6.0 -> 0.6.1)
+13) o Update minor number in unstable trunk (e.g., 0.6.0 -> 0.6.1)
 
     o Use file list from step 4 above
     o ./autogen.sh
     o ./configure
     o svn commit
 
-15) o Update libdmtx.org with news item, download entry, and new
+14) o Update libdmtx.org with news item, download entry, and new
       project status
