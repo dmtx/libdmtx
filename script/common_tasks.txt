@@ -53,8 +53,8 @@ Release Checklist
    o project/visualc9/README.txt
 
    o wrapper/cocoa/README    o wrapper/java/README
-   o wrapper/php/README      o wrapper/python/README
-   o wrapper/ruby/README
+   o wrapper/net/README      o wrapper/php/README
+   o wrapper/python/README   o wrapper/ruby/README
 
    o man/dmtxread.1          o man/dmtxwrite.1
    o man/dmtxquery.1         o man/libdmtx.3
@@ -67,6 +67,7 @@ Release Checklist
    o README.visualc
    o wrapper/cocoa/README
    o wrapper/java/README
+   o wrapper/net/README
    o wrapper/php/README
    o wrapper/python/README
    o wrapper/ruby/README
@@ -82,28 +83,28 @@ Release Checklist
 
    o wrapper/cocoa/README
    o wrapper/java/README
+   o wrapper/net/README
    o wrapper/php/README
    o wrapper/python/README
    o wrapper/ruby/README
 
 8) o Perform final test build
 
+   o svn update # get any pending updates
    o # final commit
-   o svn diff # confirm no diffs
-   o sudo make uninstall
-   o make clean && make distclean
+   o svn diff # confirm no diffs, code is final
+   o sudo make uninstall && make clean && make distclean
    o $ ./autogen.sh && ./configure && make && make check && sudo make install
-   o # run tests, confirm it works
+   o # Run tests and confirm it works. Start step over if changes are needed.
+
+9) o Build and test tarballs
+
    o $ cd ..
    o $ svn co https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk release
    o $ cd release
    o $ find . -type d -name ".svn" -exec rm -Rf {} \;
    o $ find . -type d -name ".svn"
    o $ ./autogen.sh && ./configure # don't build though
-   o # run tests, confirm it works
-
-9) o Build and test tarballs
-
    o $ make dist-gzip
    o $ make dist-bzip2
    o Verify no extraneous files made their way into the
