@@ -63,6 +63,7 @@ typedef struct dmtx_decode_options_t {
 	dmtx_int16_t yMax;
 	dmtx_int16_t correctionsMax;
 	dmtx_uint16_t mosaic;
+	dmtx_int16_t shrink;
 } dmtx_decode_options_t;
 
 typedef struct dmtx_encode_options_t {

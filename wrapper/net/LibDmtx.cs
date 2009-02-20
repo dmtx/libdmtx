@@ -340,6 +340,7 @@ namespace Libdmtx {
         public Int16 YMax = Dmtx.DmtxUndefined;
         public Int16 CorrectionsMax = Dmtx.DmtxUndefined;
         public CodeType CodeType = CodeType.DataMatrix;
+        public Int16 Shrink = 1;
     }
 
     /// <summary>

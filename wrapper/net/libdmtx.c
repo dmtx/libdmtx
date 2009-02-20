@@ -52,7 +52,7 @@ dmtx_decode(const unsigned char *rgb_image,
 	if (img == NULL) return DMTX_RETURN_NO_MEMORY;
 
 	// Apply options
-	decode = dmtxDecodeCreate(img, 1);
+	decode = dmtxDecodeCreate(img, options->shrink);
 	timeout = (options->timeoutMS != DmtxUndefined) ? &msec : NULL;
 	if (timeout != NULL)
 		msec = dmtxTimeAdd(dmtxTimeNow(), options->timeoutMS);
