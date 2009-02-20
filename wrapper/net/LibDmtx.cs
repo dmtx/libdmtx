@@ -24,9 +24,11 @@ Contact: libdmtx@fernsroth.com
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Text;
 
 namespace Libdmtx {
     /// <summary>
@@ -191,6 +193,46 @@ namespace Libdmtx {
             return ret;
         }
 
+        public static Bitmap PnmToBitmap(Stream pnmInputStream) {
+            // read header
+            if (ReadLine(pnmInputStream) != "P6") {
+                throw new Exception("Invalid PNM file format. Header was invalid.");
+            }
+            string widthHeightLine = ReadLine(pnmInputStream);
+            string[] widthHeightParts = widthHeightLine.Split(' ');
+            int width = int.Parse(widthHeightParts[0]);
+            int height = int.Parse(widthHeightParts[1]);
+            ReadLine(pnmInputStream); // ignore max value
+
+            Bitmap result = new Bitmap(width, height, PixelFormat.Format24bppRgb);
+
+            // transfer pixel data to bitmap
+            Rectangle rect = new Rectangle(0, 0, width, height);
+            BitmapData bd = result.LockBits(rect, ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
+            try {
+                byte[] buffer = new byte[height * bd.Stride];
+                for (int y = 0; y < height; y++) {
+                    int rowOffset = y * bd.Stride;
+                    pnmInputStream.Read(buffer, rowOffset, width * 3);
+                }
+
+                Marshal.Copy(buffer, 0, bd.Scan0, buffer.Length);
+            } finally {
+                result.UnlockBits(bd);
+            }
+
+            return result;
+        }
+
+        private static string ReadLine(Stream stream) {
+            StringBuilder result = new StringBuilder();
+            int b;
+            while ((b = stream.ReadByte()) != '\n') {
+                result.Append((char)b);
+            }
+            return result.ToString();
+        }
+
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate bool DmtxDecodeCallback(DecodedInternal dmtxDecodeResult);
 
@@ -336,6 +378,7 @@ namespace Libdmtx {
         public Int16 CorrectionsMax = Dmtx.DmtxUndefined;
         public CodeType CodeType = CodeType.DataMatrix;
         public Int16 Shrink = 1;
+        public string DiagnoseOutputFileName = null;
     }
 
     /// <summary>

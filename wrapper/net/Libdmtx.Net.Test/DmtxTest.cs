@@ -105,6 +105,51 @@ namespace Libdmtx {
         }
 
         [Test]
+        public void TestStrideAndPadding() {
+            EncodeOptions encodeOptions = new EncodeOptions {
+                MarginSize = 2,
+                ModuleSize = 2
+            };
+            DmtxEncoded encoded = Dmtx.Encode(Encoding.ASCII.GetBytes("t"), encodeOptions);
+            Bitmap bm = encoded.Bitmap;
+
+            // make sure we have an image who's stride is not divisable by 3
+            int stride;
+            ExecuteBitmapToByteArray(bm, out stride);
+            if (stride % 3 == 0) {
+                bm = BitmapIncreaseCanvas(bm, bm.Width + 1, bm.Height, Color.White);
+                ExecuteBitmapToByteArray(bm, out stride);
+            }
+            Assert.AreNotEqual(0, stride % 3, "Stride was divisable by 3 which doesn't make a very good test");
+
+            string tempFileName = Path.GetTempFileName();
+            DecodeOptions opt = new DecodeOptions {
+                DiagnoseOutputFileName = tempFileName
+            };
+            DmtxDecoded[] decodedImages = Dmtx.Decode(bm, opt);
+
+            // ensure the image looks correct
+            Bitmap diagnoseImage;
+            using (Stream stream = File.OpenRead(tempFileName)) {
+                diagnoseImage = Dmtx.PnmToBitmap(stream);
+            }
+            //diagnoseImage.Save("c:/temp/diagnose.bmp", ImageFormat.Bmp);
+
+            Assert.AreEqual(24.0, diagnoseImage.Width, 1.0);
+            Assert.AreEqual(24.0, diagnoseImage.Height, 1.0);
+
+            Assert.AreEqual(1, decodedImages.Length, "Didn't find barcode");
+
+            // make sure the left line is straight up and down (not skewed)
+            for (int y = 4; y < diagnoseImage.Height - 4; y++) {
+                Color clrLeft = diagnoseImage.GetPixel(1, y);
+                Color clrRight = diagnoseImage.GetPixel(3, y);
+                Assert.AreEqual(1.0, clrLeft.GetBrightness(), 0.01, "at location [1, " + y + "]");
+                Assert.AreEqual(0.698, clrRight.GetBrightness(), 0.01, "at location [3, " + y + "]");
+            }
+        }
+
+        [Test]
         public void TestBitmapToByteArray() {
             Bitmap bm = new Bitmap(2, 2, PixelFormat.Format24bppRgb);
             bm.SetPixel(0, 0, Color.FromArgb(1, 2, 3));
@@ -115,7 +160,7 @@ namespace Libdmtx {
             byte[] pxl = ExecuteBitmapToByteArray(bm, out stride);
             Assert.AreEqual(16, pxl.Length);
             Assert.AreEqual(8, stride);
-            
+
             // line 1
             Assert.AreEqual(3, pxl[0]);
             Assert.AreEqual(2, pxl[1]);
@@ -164,6 +209,16 @@ namespace Libdmtx {
             }
             Bitmap bm = (Bitmap)Image.FromStream(stream);
             return bm;
+        }
+
+        private Bitmap BitmapIncreaseCanvas(Image bm, int newWidth, int newHeight, Color fillColor) {
+            Bitmap result = new Bitmap(newWidth, newHeight, bm.PixelFormat);
+            using (Graphics g = Graphics.FromImage(result))
+            using (Brush brush = new SolidBrush(fillColor)) {
+                g.FillRectangle(brush, 0, 0, result.Width, result.Height);
+                g.DrawImage(bm, 0, 0);
+            }
+            return result;
         }
     }
 }
