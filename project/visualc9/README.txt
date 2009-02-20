@@ -43,13 +43,15 @@ location will be:
 
   C:\Program Files\ImageMagick-6.4.8-Q8
 
-The libdmtx-win32 package contains 5 files:
+The libdmtx-win32 package contains 8 files:
 
-  * dmtxread.exe    dmtxread executable
-  * dmtxwrite.exe   dmtxwrite executable
-  * libdmtx.dll     libdmtx Windows DLL (Dynamic-link library)
-  * libdmtx.lib     libdmtx Windows import library
-  * README.txt      This file
+  * dmtxread.exe     dmtxread executable
+  * dmtxwrite.exe    dmtxwrite executable
+  * dmtxquery.exe    dmtxquery executable
+  * simple_test.exe  simple_test executable
+  * libdmtx.dll      libdmtx Windows DLL (Dynamic-link library)
+  * libdmtx.lib      libdmtx Windows import library
+  * README.txt       This file
 
 After this you should be able to call dmtxread and dmtxwrite from
 the DOS or Cygwin prompt.
