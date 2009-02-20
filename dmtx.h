@@ -415,6 +415,15 @@ typedef struct DmtxScanGrid_struct {
 } DmtxScanGrid;
 
 /**
+ * @struct DmtxTime
+ * @brief DmtxTime
+ */
+typedef struct DmtxTime_struct {
+   time_t sec;
+   unsigned long usec;
+} DmtxTime;
+
+/**
  * @struct DmtxDecode
  * @brief DmtxDecode
  */
@@ -441,32 +450,23 @@ typedef struct DmtxDecode_struct {
 } DmtxDecode;
 
 /**
- * @struct DmtxTime
- * @brief DmtxTime
- */
-typedef struct DmtxTime_struct {
-   time_t sec;
-   unsigned long usec;
-} DmtxTime;
-
-/**
  * @struct DmtxEncode
  * @brief DmtxEncode
  */
 typedef struct DmtxEncode_struct {
-   int method;
-   int scheme;
-   int sizeIdxRequest;
-   int marginSize;
-   int moduleSize;
-   int pixelPacking;
-   int imageFlip;
-   int rowPadBytes;
-   DmtxMessage *message;
-   DmtxImage *image;
-   DmtxRegion region;
-   DmtxMatrix3 xfrm;  /* XXX still necessary? */
-   DmtxMatrix3 rxfrm; /* XXX still necessary? */
+   int             method;
+   int             scheme;
+   int             sizeIdxRequest;
+   int             marginSize;
+   int             moduleSize;
+   int             pixelPacking;
+   int             imageFlip;
+   int             rowPadBytes;
+   DmtxMessage     *message;
+   DmtxImage       *image;
+   DmtxRegion      region;
+   DmtxMatrix3     xfrm;  /* XXX still necessary? */
+   DmtxMatrix3     rxfrm; /* XXX still necessary? */
 } DmtxEncode;
 
 /**

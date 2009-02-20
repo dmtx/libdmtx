@@ -81,6 +81,9 @@ dmtxDecodeDestroy(DmtxDecode **dec)
    if(dec == NULL || *dec == NULL)
       return DmtxFail;
 
+   if((*dec)->cache != NULL)
+      free((*dec)->cache);
+
    free(*dec);
 
    *dec = NULL;
