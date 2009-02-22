@@ -574,7 +574,7 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
             else if(c40Values[i] <= 26)
                msg->output[msg->outputIdx++] = c40Values[i] + 69; /* ASCII 91 - 95 */
             else if(c40Values[i] == 27)
-               msg->output[msg->outputIdx++] = 0x1d; /* FNC1 */
+               msg->output[msg->outputIdx++] = 0x1d; /* FNC1 -- XXX depends on position */
             else if(c40Values[i] == 30)
                fprintf(stdout, "Upper Shift (?)"); /* Upper Shift (eh?) */
 
