@@ -33,6 +33,12 @@ Contact: mike@dragonflylogic.com
 #define DmtxAlmostZero                 0.000001
 #define DmtxAlmostInfinity            -1
 
+#define DmtxC40TextShiftBasic          0
+#define DmtxC40TextShift1              1
+#define DmtxC40TextShift2              2
+#define DmtxC40TextShift3              3
+#define DmtxC40TextShiftUpper          4
+
 #undef min
 #define min(X,Y) (((X) < (Y)) ? (X) : (Y))
 
@@ -94,6 +100,11 @@ typedef struct DmtxBresLine_struct {
    DmtxPixelLoc loc1;
 } DmtxBresLine;
 
+typedef struct C40TextState_struct {
+   int shift;
+   DmtxBoolean upperShift;
+} C40TextState;
+
 /* dmtxregion.c */
 static double RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle);
 static DmtxPointFlow MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc0);
@@ -126,6 +137,7 @@ static void DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outpu
 static unsigned char *NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr);
 static unsigned char *DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
+static void PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, unsigned char value);
 static unsigned char *DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme);
 static unsigned char *DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);

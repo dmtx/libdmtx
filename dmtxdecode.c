@@ -47,16 +47,17 @@ dmtxDecodeCreate(DmtxImage *img, int scale)
 
    dec->edgeMin = DmtxUndefined;
    dec->edgeMax = DmtxUndefined;
-   dec->scanGap = 1; /* unscaled */
    dec->squareDevn = cos(50 * (M_PI/180));
    dec->sizeIdxExpected = DmtxSymbolShapeAuto;
    dec->edgeThresh = 10;
+   dec->scale = scale;
 
+   /* Unscaled values */
+   dec->scanGap = 1;
    dec->xMin = 0;
    dec->xMax = width - 1;
    dec->yMin = 0;
    dec->yMax = height - 1;
-   dec->scale = scale;
 
    dec->cache = (unsigned char *)calloc(width * height, sizeof(unsigned char));
    if(dec->cache == NULL) {
@@ -120,7 +121,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
       case DmtxPropEdgeThresh:
          dec->edgeThresh = value;
          break;
-      /* Min and Max values will arrive unscaled */
+      /* Min and Max values arrive unscaled */
       case DmtxPropXmin:
          dec->xMin = value / dec->scale;
          break;
@@ -515,6 +516,24 @@ DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
 }
 
 /**
+ *
+ *
+ */
+static void
+PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, unsigned char value)
+{
+   msg->output[msg->outputIdx] = value;
+
+   if(state->upperShift == DmtxTrue)
+      msg->output[msg->outputIdx] += 128;
+
+   msg->outputIdx++;
+
+   state->shift = DmtxC40TextShiftBasic;
+   state->upperShift = DmtxFalse;
+}
+
+/**
  * @brief  Decode stream assuming C40 or Text encodation
  * @param  msg
  * @param  ptr
@@ -527,8 +546,11 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
 {
    int i;
    int packed;
-   int shift = 0;
    unsigned char c40Values[3];
+   C40TextState state;
+
+   state.shift = DmtxC40TextShiftBasic;
+   state.upperShift = DmtxFalse;
 
    assert(encScheme == DmtxSchemeDecodeC40 || encScheme == DmtxSchemeDecodeText);
 
@@ -542,58 +564,59 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
       ptr += 2;
 
       for(i = 0; i < 3; i++) {
-         if(shift == 0) { /* Basic set */
+         if(state.shift == DmtxC40TextShiftBasic) { /* Basic set */
             if(c40Values[i] <= 2) {
-               shift = c40Values[i] + 1;
+               state.shift = c40Values[i] + 1;
             }
             else if(c40Values[i] == 3) {
-               msg->output[msg->outputIdx++] = ' '; /* Space */
+               PushOutputC40TextWord(msg, &state, ' ');
             }
             else if(c40Values[i] <= 13) {
-               msg->output[msg->outputIdx++] = c40Values[i] - 13 + '9'; /* 0-9 */
+               PushOutputC40TextWord(msg, &state, c40Values[i] - 13 + '9'); /* 0-9 */
             }
             else if(c40Values[i] <= 39) {
                if(encScheme == DmtxSchemeDecodeC40) {
-                  msg->output[msg->outputIdx++] = c40Values[i] - 39 + 'Z'; /* A-Z */
+                  PushOutputC40TextWord(msg, &state, c40Values[i] - 39 + 'Z'); /* A-Z */
                }
                else if(encScheme == DmtxSchemeDecodeText) {
-                  msg->output[msg->outputIdx++] = c40Values[i] - 39 + 'z'; /* a-z */
+                  PushOutputC40TextWord(msg, &state, c40Values[i] - 39 + 'z'); /* a-z */
                }
             }
          }
-         else if(shift == 1) { /* Shift 1 set */
-            msg->output[msg->outputIdx++] = c40Values[i]; /* ASCII 0 - 31 */
-
-            shift = 0;
+         else if(state.shift == DmtxC40TextShift1) { /* Shift 1 set */
+            PushOutputC40TextWord(msg, &state, c40Values[i]); /* ASCII 0 - 31 */
          }
-         else if(shift == 2) { /* Shift 2 set */
+         else if(state.shift == DmtxC40TextShift2) { /* Shift 2 set */
             if(c40Values[i] <= 14)
-               msg->output[msg->outputIdx++] = c40Values[i] + 33; /* ASCII 33 - 47 */
+               PushOutputC40TextWord(msg, &state, c40Values[i] + 33); /* ASCII 33 - 47 */
             else if(c40Values[i] <= 21)
-               msg->output[msg->outputIdx++] = c40Values[i] + 43; /* ASCII 58 - 64 */
+               PushOutputC40TextWord(msg, &state, c40Values[i] + 43); /* ASCII 58 - 64 */
             else if(c40Values[i] <= 26)
-               msg->output[msg->outputIdx++] = c40Values[i] + 69; /* ASCII 91 - 95 */
+               PushOutputC40TextWord(msg, &state, c40Values[i] + 69); /* ASCII 91 - 95 */
             else if(c40Values[i] == 27)
-               msg->output[msg->outputIdx++] = 0x1d; /* FNC1 -- XXX depends on position */
+               PushOutputC40TextWord(msg, &state, 0x1d); /* FNC1 -- XXX depends on position */
             else if(c40Values[i] == 30)
-               fprintf(stdout, "Upper Shift (?)"); /* Upper Shift (eh?) */
-
-            shift = 0;
+               state.shift = DmtxC40TextShiftUpper;
          }
-         else if(shift == 3) { /* Shift 3 set */
+         else if(state.shift == DmtxC40TextShift3) { /* Shift 3 set */
             if(encScheme == DmtxSchemeDecodeC40) {
-               msg->output[msg->outputIdx++] = c40Values[i] + 96;
+               PushOutputC40TextWord(msg, &state, c40Values[i] + 96);
             }
             else if(encScheme == DmtxSchemeDecodeText) {
                if(c40Values[i] == 0)
-                  msg->output[msg->outputIdx++] = c40Values[i] + 96;
+                  PushOutputC40TextWord(msg, &state, c40Values[i] + 96);
                else if(c40Values[i] <= 26)
-                  msg->output[msg->outputIdx++] = c40Values[i] - 26 + 'Z'; /* A-Z */
+                  PushOutputC40TextWord(msg, &state, c40Values[i] - 26 + 'Z'); /* A-Z */
                else
-                  msg->output[msg->outputIdx++] = c40Values[i] - 31 + 127; /* { | } ~ DEL */
+                  PushOutputC40TextWord(msg, &state, c40Values[i] - 31 + 127); /* { | } ~ DEL */
             }
-
-            shift = 0;
+         }
+         else if(state.shift == DmtxC40TextShiftUpper) { /* Upper Shift */
+            state.upperShift = DmtxTrue;
+            if(c40Values[i] <= 2)
+               state.shift = c40Values[i] + 1;
+            else
+               PushOutputC40TextWord(msg, &state, c40Values[i]);
          }
       }
 
