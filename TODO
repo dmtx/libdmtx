@@ -53,6 +53,7 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
 
 version 0.7.0: (planned XX-Feb-2009)
 FOCUS: API cleanup, custom pixel packing, cross platform support
+  o libdmtx:   Test with 1 channel, 2 channel, 4 channel images
   o libdmtx:   Fix 64b->32b int assignment warnings
   x libdmtx:   FNC1 and correct upper shift (thanks Robin!)
   x libdmtx:   Support byte-padded row sizes via dmtxImageSetProp()
@@ -81,7 +82,7 @@ FOCUS: API cleanup, custom pixel packing, cross platform support
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
   x wrapper:   New Java wrapper (thanks Pete and Dikran!)
   x wrapper:   New .NET wrapper (thanks Vali and Joe!)
-  o project:   Make 0.6-to-0.7 porting doc by porting old dmtxread and dmtxwrite
+  / project:   Make 0.6-to-0.7 porting doc by porting old dmtxread and dmtxwrite
   / project:   Update documentation to reflect API changes
   x project:   Add comment to wiki pages that points to source README
   x project:   Figure out earliest usable Magick version for configure.ac

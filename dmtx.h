@@ -162,6 +162,7 @@ typedef enum {
    DmtxPropRowPadBytes,
    DmtxPropRowSizeBytes,
    DmtxPropImageFlip,
+   DmtxPropChannelCount,
    /* Image modifiers */
    DmtxPropXmin              = 400,
    DmtxPropXmax,

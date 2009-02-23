@@ -283,6 +283,8 @@ dmtxImageGetProp(DmtxImage *img, int prop)
          return img->rowSizeBytes;
       case DmtxPropImageFlip:
          return img->imageFlip;
+      case DmtxPropChannelCount:
+         return img->channelCount;
       default:
          exit(1); /* XXX fatal error */
          break;

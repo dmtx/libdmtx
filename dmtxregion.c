@@ -168,13 +168,16 @@ MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc)
 {
    int i;
    int strongIdx;
+   int channelCount;
    DmtxPointFlow flow, flowPlane[3];
    DmtxPointFlow flowPos, flowPosBack;
    DmtxPointFlow flowNeg, flowNegBack;
 
+   channelCount = dec->image->channelCount;
+
    /* Find whether red, green, or blue shows the strongest edge */
    strongIdx = 0;
-   for(i = 0; i < 3; i++) {
+   for(i = 0; i < channelCount; i++) {
       flowPlane[i] = GetPointFlow(dec, i, loc, dmtxNeighborNone);
       if(i > 0 && flowPlane[i].mag > flowPlane[strongIdx].mag)
          strongIdx = i;
@@ -601,7 +604,8 @@ RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2, double angle)
  * @return Averaged module color
  */
 static int
-ReadModuleColor(DmtxDecode *dec, DmtxRegion *reg, int symbolRow, int symbolCol, int sizeIdx)
+ReadModuleColor(DmtxDecode *dec, DmtxRegion *reg, int symbolRow, int symbolCol,
+      int sizeIdx, int colorPlane)
 {
    int err;
    int i;
@@ -623,7 +627,7 @@ ReadModuleColor(DmtxDecode *dec, DmtxRegion *reg, int symbolRow, int symbolCol, 
       dmtxMatrix3VMultiplyBy(&p, reg->fit2raw);
 
       err = dmtxDecodeGetPixelValue(dec, (int)(p.X + 0.5), (int)(p.Y + 0.5),
-            reg->flowBegin.plane, &colorTmp);
+            colorPlane, &colorTmp);
       color += colorTmp;
    }
 
@@ -682,7 +686,7 @@ MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg)
       /* Sum module colors along horizontal calibration bar */
       row = symbolRows - 1;
       for(col = 0; col < symbolCols; col++) {
-         color = ReadModuleColor(dec, reg, row, col, sizeIdx);
+         color = ReadModuleColor(dec, reg, row, col, sizeIdx, reg->flowBegin.plane);
          if((col & 0x01) != 0x00)
             colorOffAvg += color;
          else
@@ -692,7 +696,7 @@ MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg)
       /* Sum module colors along vertical calibration bar */
       col = symbolCols - 1;
       for(row = 0; row < symbolRows; row++) {
-         color = ReadModuleColor(dec, reg, row, col, sizeIdx);
+         color = ReadModuleColor(dec, reg, row, col, sizeIdx, reg->flowBegin.plane);
          if((row & 0x01) != 0x00)
             colorOffAvg += color;
          else
@@ -804,7 +808,7 @@ CountJumpTally(DmtxDecode *dec, DmtxRegion *reg, int xStart, int yStart, DmtxDir
 
    darkOnLight = (int)(reg->offColor > reg->onColor);
    jumpThreshold = abs((int)(0.4 * (reg->onColor - reg->offColor) + 0.5));
-   color = ReadModuleColor(dec, reg, yStart, xStart, reg->sizeIdx);
+   color = ReadModuleColor(dec, reg, yStart, xStart, reg->sizeIdx, reg->flowBegin.plane);
    tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
    for(x = xStart + xInc, y = yStart + yInc;
@@ -813,7 +817,7 @@ CountJumpTally(DmtxDecode *dec, DmtxRegion *reg, int xStart, int yStart, DmtxDir
          x += xInc, y += yInc) {
 
       tPrev = tModule;
-      color = ReadModuleColor(dec, reg, y, x, reg->sizeIdx);
+      color = ReadModuleColor(dec, reg, y, x, reg->sizeIdx, reg->flowBegin.plane);
       tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
       if(state == DmtxModuleOff) {

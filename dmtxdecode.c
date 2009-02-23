@@ -326,62 +326,48 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 extern DmtxMessage *
 dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 {
-   int row, col;
-   int mappingRows, mappingCols;
-   DmtxMessage *msg;
-   DmtxMessage rMesg, gMesg, bMesg;
+   int offset;
+   int colorPlane;
+   DmtxMessage *oMsg, *rMsg, *gMsg, *bMsg;
 
-   mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, reg->sizeIdx);
-   mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, reg->sizeIdx);
+   colorPlane = reg->flowBegin.plane;
 
-   msg = dmtxMessageCreate(reg->sizeIdx, DmtxFormatMosaic);
-   if(msg == NULL)
-      return NULL;
+   reg->flowBegin.plane = 0; /* kind of a hack */
+   rMsg = dmtxDecodeMatrixRegion(dec, reg, fix);
 
-   rMesg = gMesg = bMesg = *msg;
-   rMesg.codeSize = gMesg.codeSize = bMesg.codeSize = msg->codeSize/3;
+   reg->flowBegin.plane = 1; /* kind of a hack */
+   gMsg = dmtxDecodeMatrixRegion(dec, reg, fix);
 
-   gMesg.code += gMesg.codeSize;
-   bMesg.code += (bMesg.codeSize * 2);
+   reg->flowBegin.plane = 2; /* kind of a hack */
+   bMsg = dmtxDecodeMatrixRegion(dec, reg, fix);
 
-   if(PopulateArrayFromMosaic(dec, reg, msg) != DmtxPass) {
-      dmtxMessageDestroy(&msg);
-      return NULL;
-   }
+   reg->flowBegin.plane = colorPlane;
 
-   ModulePlacementEcc200(msg->array, rMesg.code, reg->sizeIdx, DmtxModuleOnRed);
-   if(DecodeCheckErrors(rMesg.code, reg->sizeIdx, fix) != DmtxPass) {
-      dmtxMessageDestroy(&msg);
+   oMsg = dmtxMessageCreate(reg->sizeIdx, DmtxFormatMosaic);
+
+   if(oMsg == NULL || rMsg == NULL || gMsg == NULL || bMsg == NULL) {
+      dmtxMessageDestroy(&oMsg);
+      dmtxMessageDestroy(&rMsg);
+      dmtxMessageDestroy(&gMsg);
+      dmtxMessageDestroy(&bMsg);
       return NULL;
    }
 
-   for(row = 0; row < mappingRows; row++)
-      for(col = 0; col < mappingCols; col++)
-         msg->array[row*mappingCols+col] &= (0xff ^ DmtxModuleVisited);
+   offset = 0;
+   memcpy(oMsg->output + offset, rMsg->output, rMsg->outputIdx);
+   offset += rMsg->outputIdx;
+   memcpy(oMsg->output + offset, gMsg->output, gMsg->outputIdx);
+   offset += gMsg->outputIdx;
+   memcpy(oMsg->output + offset, bMsg->output, bMsg->outputIdx);
+   offset += bMsg->outputIdx;
 
-   ModulePlacementEcc200(msg->array, gMesg.code, reg->sizeIdx, DmtxModuleOnGreen);
-   if(DecodeCheckErrors(gMesg.code, reg->sizeIdx, fix) != DmtxPass) {
-      dmtxMessageDestroy(&msg);
-      return NULL;
-   }
+   oMsg->outputIdx = offset;
 
-   for(row = 0; row < mappingRows; row++)
-      for(col = 0; col < mappingCols; col++)
-         msg->array[row*mappingCols+col] &= (0xff ^ DmtxModuleVisited);
+   dmtxMessageDestroy(&rMsg);
+   dmtxMessageDestroy(&gMsg);
+   dmtxMessageDestroy(&bMsg);
 
-   ModulePlacementEcc200(msg->array, bMesg.code, reg->sizeIdx, DmtxModuleOnBlue);
-   if(DecodeCheckErrors(bMesg.code, reg->sizeIdx, fix) != DmtxPass) {
-      dmtxMessageDestroy(&msg);
-      return NULL;
-   }
-
-   DecodeDataStream(&rMesg, reg->sizeIdx, NULL);
-   DecodeDataStream(&gMesg, reg->sizeIdx, rMesg.output + rMesg.outputIdx);
-   DecodeDataStream(&bMesg, reg->sizeIdx, gMesg.output + gMesg.outputIdx);
-
-   msg->outputIdx = rMesg.outputIdx + gMesg.outputIdx + bMesg.outputIdx;
-
-   return msg;
+   return oMsg;
 }
 
 /**
@@ -839,6 +825,118 @@ UnRandomize255State(unsigned char value, int idx)
 }
 
 /**
+ * @brief  Increment counters used to determine module values
+ * @param  img
+ * @param  reg
+ * @param  tally
+ * @param  xOrigin
+ * @param  yOrigin
+ * @param  mapWidth
+ * @param  mapHeight
+ * @param  dir
+ * @return void
+ */
+static void
+TallyModuleJumps(DmtxDecode *dec, DmtxRegion *reg, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir)
+{
+   int extent, weight;
+   int travelStep;
+   int symbolRow, symbolCol;
+   int mapRow, mapCol;
+   int lineStart, lineStop;
+   int travelStart, travelStop;
+   int *line, *travel;
+   int jumpThreshold;
+   int darkOnLight;
+   int color;
+   int statusPrev, statusModule;
+   int tPrev, tModule;
+
+   assert(dir == DmtxDirUp || dir == DmtxDirLeft || dir == DmtxDirDown || dir == DmtxDirRight);
+
+   travelStep = (dir == DmtxDirUp || dir == DmtxDirRight) ? 1 : -1;
+
+   /* Abstract row and column progress using pointers to allow grid
+      traversal in all 4 directions using same logic */
+
+   if((dir & DmtxDirHorizontal) != 0x00) {
+      line = &symbolRow;
+      travel = &symbolCol;
+      extent = mapWidth;
+      lineStart = yOrigin;
+      lineStop = yOrigin + mapHeight;
+      travelStart = (travelStep == 1) ? xOrigin - 1 : xOrigin + mapWidth;
+      travelStop = (travelStep == 1) ? xOrigin + mapWidth : xOrigin - 1;
+   }
+   else {
+      assert(dir & DmtxDirVertical);
+      line = &symbolCol;
+      travel = &symbolRow;
+      extent = mapHeight;
+      lineStart = xOrigin;
+      lineStop = xOrigin + mapWidth;
+      travelStart = (travelStep == 1) ? yOrigin - 1: yOrigin + mapHeight;
+      travelStop = (travelStep == 1) ? yOrigin + mapHeight : yOrigin - 1;
+   }
+
+
+   darkOnLight = (int)(reg->offColor > reg->onColor);
+   jumpThreshold = abs((int)(0.4 * (reg->offColor - reg->onColor) + 0.5));
+
+   assert(jumpThreshold >= 0);
+
+   for(*line = lineStart; *line < lineStop; (*line)++) {
+
+      /* Capture tModule for each leading border module as normal but
+         decide status based on predictable barcode border pattern */
+
+      *travel = travelStart;
+      color = ReadModuleColor(dec, reg, symbolRow, symbolCol, reg->sizeIdx, reg->flowBegin.plane);
+      tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
+
+      statusModule = (travelStep == 1 || (*line & 0x01) == 0) ? DmtxModuleOnRGB : DmtxModuleOff;
+
+      weight = extent;
+
+      while((*travel += travelStep) != travelStop) {
+
+         tPrev = tModule;
+         statusPrev = statusModule;
+
+         /* For normal data-bearing modules capture color and decide
+            module status based on comparison to previous "known" module */
+
+         color = ReadModuleColor(dec, reg, symbolRow, symbolCol, reg->sizeIdx, reg->flowBegin.plane);
+         tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
+
+         if(statusPrev == DmtxModuleOnRGB) {
+            if(tModule < tPrev - jumpThreshold)
+               statusModule = DmtxModuleOff;
+            else
+               statusModule = DmtxModuleOnRGB;
+         }
+         else if(statusPrev == DmtxModuleOff) {
+            if(tModule > tPrev + jumpThreshold)
+               statusModule = DmtxModuleOnRGB;
+            else
+               statusModule = DmtxModuleOff;
+         }
+
+         mapRow = symbolRow - yOrigin;
+         mapCol = symbolCol - xOrigin;
+         assert(mapRow < 24 && mapCol < 24);
+
+         if(statusModule == DmtxModuleOnRGB)
+            tally[mapRow][mapCol] += (2 * weight);
+
+         weight--;
+      }
+
+      assert(weight == 0);
+   }
+}
+
+/**
  * @brief  Populate array with codeword values based on module colors
  * @param  msg
  * @param  img
@@ -906,174 +1004,6 @@ PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg)
          }
       }
    }
-
-   return DmtxPass;
-}
-
-/**
- * @brief  Increment counters used to determine module values
- * @param  img
- * @param  reg
- * @param  tally
- * @param  xOrigin
- * @param  yOrigin
- * @param  mapWidth
- * @param  mapHeight
- * @param  dir
- * @return void
- */
-static void
-TallyModuleJumps(DmtxDecode *dec, DmtxRegion *reg, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir)
-{
-   int extent, weight;
-   int travelStep;
-   int symbolRow, symbolCol;
-   int mapRow, mapCol;
-   int lineStart, lineStop;
-   int travelStart, travelStop;
-   int *line, *travel;
-   int jumpThreshold;
-   int darkOnLight;
-   int color;
-   int statusPrev, statusModule;
-   int tPrev, tModule;
-
-   assert(dir == DmtxDirUp || dir == DmtxDirLeft || dir == DmtxDirDown || dir == DmtxDirRight);
-
-   travelStep = (dir == DmtxDirUp || dir == DmtxDirRight) ? 1 : -1;
-
-   /* Abstract row and column progress using pointers to allow grid
-      traversal in all 4 directions using same logic */
-
-   if((dir & DmtxDirHorizontal) != 0x00) {
-      line = &symbolRow;
-      travel = &symbolCol;
-      extent = mapWidth;
-      lineStart = yOrigin;
-      lineStop = yOrigin + mapHeight;
-      travelStart = (travelStep == 1) ? xOrigin - 1 : xOrigin + mapWidth;
-      travelStop = (travelStep == 1) ? xOrigin + mapWidth : xOrigin - 1;
-   }
-   else {
-      assert(dir & DmtxDirVertical);
-      line = &symbolCol;
-      travel = &symbolRow;
-      extent = mapHeight;
-      lineStart = xOrigin;
-      lineStop = xOrigin + mapWidth;
-      travelStart = (travelStep == 1) ? yOrigin - 1: yOrigin + mapHeight;
-      travelStop = (travelStep == 1) ? yOrigin + mapHeight : yOrigin - 1;
-   }
-
-
-   darkOnLight = (int)(reg->offColor > reg->onColor);
-   jumpThreshold = abs((int)(0.4 * (reg->offColor - reg->onColor) + 0.5));
-
-   assert(jumpThreshold >= 0);
-
-   for(*line = lineStart; *line < lineStop; (*line)++) {
-
-      /* Capture tModule for each leading border module as normal but
-         decide status based on predictable barcode border pattern */
-
-      *travel = travelStart;
-      color = ReadModuleColor(dec, reg, symbolRow, symbolCol, reg->sizeIdx);
-      tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
-
-      statusModule = (travelStep == 1 || (*line & 0x01) == 0) ? DmtxModuleOnRGB : DmtxModuleOff;
-
-      weight = extent;
-
-      while((*travel += travelStep) != travelStop) {
-
-         tPrev = tModule;
-         statusPrev = statusModule;
-
-         /* For normal data-bearing modules capture color and decide
-            module status based on comparison to previous "known" module */
-
-         color = ReadModuleColor(dec, reg, symbolRow, symbolCol, reg->sizeIdx);
-         tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
-
-         if(statusPrev == DmtxModuleOnRGB) {
-            if(tModule < tPrev - jumpThreshold)
-               statusModule = DmtxModuleOff;
-            else
-               statusModule = DmtxModuleOnRGB;
-         }
-         else if(statusPrev == DmtxModuleOff) {
-            if(tModule > tPrev + jumpThreshold)
-               statusModule = DmtxModuleOnRGB;
-            else
-               statusModule = DmtxModuleOff;
-         }
-
-         mapRow = symbolRow - yOrigin;
-         mapCol = symbolCol - xOrigin;
-         assert(mapRow < 24 && mapCol < 24);
-
-         if(statusModule == DmtxModuleOnRGB)
-            tally[mapRow][mapCol] += (2 * weight);
-
-         weight--;
-      }
-
-      assert(weight == 0);
-   }
-}
-
-/**
- * @brief  Populate array with codeword values based on module colors
- * @param  msg
- * @param  img
- * @param  reg
- * @return DmtxPass | DmtxFail
- */
-static DmtxPassFail
-PopulateArrayFromMosaic(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg)
-{
-   int col, row, rowTmp;
-   int symbolRow, symbolCol;
-   int dataRegionRows, dataRegionCols;
-   int color;
-
-   dataRegionRows = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionRows, reg->sizeIdx);
-   dataRegionCols = dmtxGetSymbolAttribute(DmtxSymAttribDataRegionCols, reg->sizeIdx);
-
-   memset(msg->array, 0x00, msg->arraySize);
-
-   for(row = 0; row < reg->mappingRows; row++) {
-
-      /* Transform mapping row to symbol row (Swap because the array's
-         origin is top-left and everything else is bottom-left) */
-      rowTmp = reg->mappingRows - row - 1;
-      symbolRow = rowTmp + 2 * (rowTmp / dataRegionRows) + 1;
-
-      for(col = 0; col < reg->mappingCols; col++) {
-
-         /* Transform mapping col to symbol col */
-         symbolCol = col + 2 * (col / dataRegionCols) + 1;
-
-/* to fix this function, add rColor, gColor, bColor, and change ReadModuleColor() to accept plane as a parameter */
-         color = ReadModuleColor(dec, reg, symbolRow, symbolCol, reg->sizeIdx);
-
-         /* Value has been assigned, but not visited */
-/*       if(color.R < 50) this is broken for the moment */
-         if(color < 50)
-            msg->array[row*reg->mappingCols+col] |= DmtxModuleOnRed;
-/*       if(color.G < 50) this is broken for the moment */
-         if(color < 50)
-            msg->array[row*reg->mappingCols+col] |= DmtxModuleOnGreen;
-/*       if(color.B < 50) this is broken for the moment */
-         if(color < 50)
-            msg->array[row*reg->mappingCols+col] |= DmtxModuleOnBlue;
-
-         msg->array[row*reg->mappingCols+col] |= DmtxModuleAssigned;
-      }
-   }
-
-   /* Ideal barcode drawn in lower-right (final) window pane */
-/* CALLBACK_DECODE_FUNC2(finalCallback, dec, dec, reg); */
 
    return DmtxPass;
 }

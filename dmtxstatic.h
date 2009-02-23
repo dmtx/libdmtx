@@ -110,7 +110,7 @@ static double RightAngleTrueness(DmtxVector2 c0, DmtxVector2 c1, DmtxVector2 c2,
 static DmtxPointFlow MatrixRegionSeekEdge(DmtxDecode *dec, DmtxPixelLoc loc0);
 static DmtxPassFail MatrixRegionOrientation(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin);
 static long DistanceSquared(DmtxPixelLoc a, DmtxPixelLoc b);
-static int ReadModuleColor(DmtxDecode *dec, DmtxRegion *reg, int symbolRow, int symbolCol, int sizeIdx);
+static int ReadModuleColor(DmtxDecode *dec, DmtxRegion *reg, int symbolRow, int symbolCol, int sizeIdx, int colorPlane);
 
 static DmtxPassFail MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg);
 static int CountJumpTally(DmtxDecode *dec, DmtxRegion *reg, int xStart, int yStart, DmtxDirection dir);
@@ -144,9 +144,8 @@ static unsigned char *DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, 
 static unsigned char *DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
 /* static unsigned char UnRandomize253State(unsigned char codewordValue, int codewordPosition); */
 static unsigned char UnRandomize255State(unsigned char value, int idx);
-static DmtxPassFail PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg);
 static void TallyModuleJumps(DmtxDecode *dec, DmtxRegion *reg, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir);
-static DmtxPassFail PopulateArrayFromMosaic(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg);
+static DmtxPassFail PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg);
 
 /* dmtxencode.c */
 static int AddPadChars(unsigned char *buf, int *bufSize, int paddedSize);
