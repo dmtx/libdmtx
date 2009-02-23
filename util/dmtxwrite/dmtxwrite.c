@@ -541,7 +541,9 @@ WriteSvgFile(UserOptions *opt, DmtxEncode *enc, char *format)
    int symbolCols, symbolRows;
    int width, height, module;
    int defineOnly = DmtxFalse;
+   unsigned char mosaicRed, mosaicGrn, mosaicBlu;
    char *idString = NULL;
+   char style[100];
    FILE *fp;
 
    if(StrNCmpI(format, "svg:", 4) == DmtxTrue) {
@@ -592,11 +594,23 @@ WriteSvgFile(UserOptions *opt, DmtxEncode *enc, char *format)
       rowInv = enc->region.symbolRows - row - 1;
       for(col = 0; col < enc->region.symbolCols; col++) {
          module = dmtxSymbolModuleStatus(enc->message, enc->region.sizeIdx, row, col);
-         if(module & DmtxModuleOn)
-            fprintf(fp, "    <rect width=\"%d\" height=\"%d\" x=\"%d\" y=\"%d\" />\n",
+         if(opt->mosaic == DmtxTrue) {
+            mosaicRed = (module & DmtxModuleOnRed) ? 0x00 : 0xff;
+            mosaicGrn = (module & DmtxModuleOnGreen) ? 0x00 : 0xff;
+            mosaicBlu = (module & DmtxModuleOnBlue) ? 0x00 : 0xff;
+            snprintf(style, 100, "style=\"fill:#%02x%02x%02x;fill-opacity:1;stroke:none\" ",
+                  mosaicRed, mosaicGrn, mosaicBlu);
+         }
+         else {
+            style[0] = '\0';
+         }
+
+         if(module & DmtxModuleOn) {
+            fprintf(fp, "    <rect width=\"%d\" height=\"%d\" x=\"%d\" y=\"%d\" %s/>\n",
                   opt->moduleSize, opt->moduleSize,
                   col * opt->moduleSize + opt->marginSize,
-                  rowInv * opt->moduleSize + opt->marginSize);
+                  rowInv * opt->moduleSize + opt->marginSize, style);
+         }
       }
    }
 
