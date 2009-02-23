@@ -1,8 +1,10 @@
 /*
 Cocoa wrapper for libdmtx
 
-Created by Stefan Hafeneger on 28.05.08.
 Copyright (C) 2008 CocoaHeads Aachen. All rights reserved.
+Copyright (C) 2009 Romain Goyet
+
+Created by Stefan Hafeneger on 28.05.08.
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -27,9 +29,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 @interface SHDataMatrixReader ()
 #if TARGET_OS_IPHONE
-- (DmtxImage *)scaledDmtxImageForImage:(UIImage *)image;
+- (NSData *)_ARGB8DataForImage:(UIImage *)image;
 #else
-- (DmtxImage *)scaledDmtxImageForImage:(NSImage *)image;
+- (NSData *)_ARGB8DataForImage:(NSImage *)image;
 #endif
 @end
 
@@ -65,10 +67,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 	NSMutableArray *messages = [NSMutableArray array];
 
+    NSData * imageData = [self _ARGB8DataForImage:image];
 	// Create dmtx image.
-	DmtxImage *dmtxImage = [self scaledDmtxImageForImage:image];
-	if(dmtxImage == NULL)
+	DmtxImage *dmtxImage = dmtxImageCreate([imageData bytes], 500, 500, DmtxPack32bppXRGB);
+	if(dmtxImage == NULL) {
+        [imageData release];
 		return nil;
+    }
 
 	// Initialize dmtx decode struct for image.
 	DmtxDecode *dmtxDecode = dmtxDecodeCreate(dmtxImage, 1);
@@ -115,9 +120,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 }
 
 #if TARGET_OS_IPHONE
-- (DmtxImage *)scaledDmtxImageForImage:(UIImage *)image {
+- (NSData *)_ARGB8DataForImage:(UIImage *)image {
 #else
-- (DmtxImage *)scaledDmtxImageForImage:(NSImage *)image {
+- (NSData *)_ARGB8DataForImage:(NSImage *)image {
 #endif
 
 #if TARGET_OS_IPHONE
@@ -169,24 +174,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 		return NULL;
 	}
 
-	// Create dmtx image.
-	DmtxImage *dmtxImage = dmtxImageCreate(data, (int)width, (int)height, DmtxProp24bppRGB);
-	if(dmtxImage == NULL) {
-		CGContextRelease(contextRef);
-		free(memory);
-		return NULL;
-	}
-
-	// Copy horizontally flipped image data. (mbl: no longer needed)
-	//NSUInteger row, column, index;
-	//for(row = 0; row < height; row++) {
-	//	for(column = 0; column < width; column++) {
-	//		index = (height - row - 1) * width + column;
-	//		dmtxImage->pxl[index].R = data[row * width * 4 + column * 4 + 1];
-	//		dmtxImage->pxl[index].G = data[row * width * 4 + column * 4 + 2];
-	//		dmtxImage->pxl[index].B = data[row * width * 4 + column * 4 + 3];
-	//	}
-	//}
+    NSData * imageData = [NSData dataWithBytes:data length:width*height*4];
 
 	// Release bitmap context.
 	CGContextRelease(contextRef);
@@ -194,7 +182,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 	// Free context memory.
 	free(memory);
 
-	return dmtxImage;
+	return imageData;
 }
 
 @end
