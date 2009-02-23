@@ -479,7 +479,7 @@ GetImageFormat(UserOptions *opt)
       fprintf(stderr, "WARNING: --format (-f) argument ignored; Format taken from filename\n");
 
    /* If still undefined then use format argument */
-   if(ptr == NULL || strnlen(ptr, 1) == 0)
+   if(ptr == NULL || strlen(ptr) == 0)
       ptr = opt->format;
 
    return ptr;
