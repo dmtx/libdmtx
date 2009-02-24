@@ -515,7 +515,7 @@ PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, unsigned char value
 
    msg->outputIdx++;
 
-   state->shift = DmtxC40TextShiftBasic;
+   state->shift = DmtxC40TextBasicSet;
    state->upperShift = DmtxFalse;
 }
 
@@ -535,7 +535,7 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
    unsigned char c40Values[3];
    C40TextState state;
 
-   state.shift = DmtxC40TextShiftBasic;
+   state.shift = DmtxC40TextBasicSet;
    state.upperShift = DmtxFalse;
 
    assert(encScheme == DmtxSchemeDecodeC40 || encScheme == DmtxSchemeDecodeText);
@@ -550,7 +550,7 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
       ptr += 2;
 
       for(i = 0; i < 3; i++) {
-         if(state.shift == DmtxC40TextShiftBasic) { /* Basic set */
+         if(state.shift == DmtxC40TextBasicSet) { /* Basic set */
             if(c40Values[i] <= 2) {
                state.shift = c40Values[i] + 1;
             }
@@ -573,16 +573,22 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
             PushOutputC40TextWord(msg, &state, c40Values[i]); /* ASCII 0 - 31 */
          }
          else if(state.shift == DmtxC40TextShift2) { /* Shift 2 set */
-            if(c40Values[i] <= 14)
+            if(c40Values[i] <= 14) {
                PushOutputC40TextWord(msg, &state, c40Values[i] + 33); /* ASCII 33 - 47 */
-            else if(c40Values[i] <= 21)
+            }
+            else if(c40Values[i] <= 21) {
                PushOutputC40TextWord(msg, &state, c40Values[i] + 43); /* ASCII 58 - 64 */
-            else if(c40Values[i] <= 26)
+            }
+            else if(c40Values[i] <= 26) {
                PushOutputC40TextWord(msg, &state, c40Values[i] + 69); /* ASCII 91 - 95 */
-            else if(c40Values[i] == 27)
-               PushOutputC40TextWord(msg, &state, 0x1d); /* FNC1 -- XXX depends on position */
-            else if(c40Values[i] == 30)
-               state.shift = DmtxC40TextShiftUpper;
+            }
+            else if(c40Values[i] == 27) {
+               PushOutputC40TextWord(msg, &state, 0x1d); /* FNC1 -- XXX depends on position? */
+            }
+            else if(c40Values[i] == 30) {
+               state.upperShift = DmtxTrue;
+               state.shift = DmtxC40TextBasicSet;
+            }
          }
          else if(state.shift == DmtxC40TextShift3) { /* Shift 3 set */
             if(encScheme == DmtxSchemeDecodeC40) {
@@ -596,13 +602,6 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
                else
                   PushOutputC40TextWord(msg, &state, c40Values[i] - 31 + 127); /* { | } ~ DEL */
             }
-         }
-         else if(state.shift == DmtxC40TextShiftUpper) { /* Upper Shift */
-            state.upperShift = DmtxTrue;
-            if(c40Values[i] <= 2)
-               state.shift = c40Values[i] + 1;
-            else
-               PushOutputC40TextWord(msg, &state, c40Values[i]);
          }
       }
 

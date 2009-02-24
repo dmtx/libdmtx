@@ -33,11 +33,10 @@ Contact: mike@dragonflylogic.com
 #define DmtxAlmostZero                 0.000001
 #define DmtxAlmostInfinity            -1
 
-#define DmtxC40TextShiftBasic          0
+#define DmtxC40TextBasicSet            0
 #define DmtxC40TextShift1              1
 #define DmtxC40TextShift2              2
 #define DmtxC40TextShift3              3
-#define DmtxC40TextShiftUpper          4
 
 #undef min
 #define min(X,Y) (((X) < (Y)) ? (X) : (Y))

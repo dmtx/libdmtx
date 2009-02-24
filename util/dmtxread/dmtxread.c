@@ -654,11 +654,11 @@ PrintMessage(DmtxRegion *reg, DmtxMessage *msg, UserOptions *opt)
                fputc(msg->output[i], stdout);
             }
             else if(msg->output[i] < 192) {
-              fputc(0xC2, stdout);
+              fputc(0xc2, stdout);
               fputc(msg->output[i], stdout);
             }
             else {
-               fputc(0xC3, stdout);
+               fputc(0xc3, stdout);
                fputc(msg->output[i] - 64, stdout);
             }
          }
