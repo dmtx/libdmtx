@@ -585,7 +585,7 @@ WriteSvgFile(UserOptions *opt, DmtxEncode *enc, char *format)
   <defs>\n", width, height);
    }
 
-   fprintf(fp, "  <g id=\"%s\">\n", idString);
+   fprintf(fp, "  <symbol id=\"%s\">\n", idString);
    fprintf(fp, "    <desc>Layout:%dx%d Symbol:%dx%d Data Matrix</desc>\n",
          width, height, symbolCols, symbolRows);
 
@@ -614,7 +614,7 @@ WriteSvgFile(UserOptions *opt, DmtxEncode *enc, char *format)
       }
    }
 
-   fprintf(fp, "  </g>\n");
+   fprintf(fp, "  </symbol>\n");
 
    /* Close SVG document */
    if(defineOnly == DmtxFalse) {
