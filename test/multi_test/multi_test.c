@@ -50,7 +50,7 @@ static struct AppState InitAppState(void);
 static SDL_Surface *SetWindowSize(int windowWidth, int windowHeight);
 static int HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface **screen);
 static int NudgeImage(int windowExtent, int pictureExtent, int imageLoc);
-static void WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath);
+static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);
 
 int main(int argc, char *argv[])
 {
@@ -302,55 +302,25 @@ NudgeImage(int windowExtent, int pictureExtent, int imageLoc)
  *
  **/
 static void
-WriteDiagnosticImage(DmtxDecode *dec, DmtxRegion *reg, char *imagePath)
+WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 {
-   int row, col;
-   int width, height;
-   int rgb[3];
-   double shade;
-   unsigned char *cache;
+   int totalBytes, headerBytes;
+   int bytesWritten;
+   unsigned char *pnm;
    FILE *fp;
 
    fp = fopen(imagePath, "wb");
    if(fp == NULL)
       exit(1);
 
-   width = dmtxDecodeGetProp(dec, DmtxPropWidth);
-   height = dmtxDecodeGetProp(dec, DmtxPropHeight);
+   pnm = dmtxDecodeCreateDiagnostic(dec, &totalBytes, &headerBytes, 0);
+   if(pnm == NULL)
+      exit(1);
 
-   /* Test each pixel of input image to see if it lies in region */
-   fprintf(fp, "P6\n%d %d\n255\n", width, height);
-   for(row = height - 1; row >= 0; row--) {
-      for(col = 0; col < width; col++) {
+   bytesWritten = fwrite(pnm, sizeof(unsigned char), totalBytes, fp);
+   if(bytesWritten != totalBytes)
+      exit(1);
 
-         cache = dmtxDecodeGetCache(dec, col, row);
-         if(cache == NULL) {
-            rgb[0] = 0;
-            rgb[1] = 0;
-            rgb[2] = 128;
-         }
-         else {
-            dmtxDecodeGetPixelValue(dec, col, row, 0, &rgb[0]);
-            dmtxDecodeGetPixelValue(dec, col, row, 1, &rgb[1]);
-            dmtxDecodeGetPixelValue(dec, col, row, 2, &rgb[2]);
-
-            if(*cache & 0x40) {
-               rgb[0] = 255;
-               rgb[1] = 0;
-               rgb[2] = 0;
-            }
-            else {
-               shade = (*cache & 0x80) ? 0.0 : 0.7;
-               rgb[0] += (shade * (255 - rgb[0]));
-               rgb[1] += (shade * (255 - rgb[1]));
-               rgb[2] += (shade * (255 - rgb[2]));
-            }
-         }
-         fputc(rgb[0], fp);
-         fputc(rgb[1], fp);
-         fputc(rgb[2], fp);
-      }
-   }
-
+   free(pnm);
    fclose(fp);
 }
