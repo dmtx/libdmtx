@@ -740,7 +740,6 @@ ListImageFormats(void)
 static void
 WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 {
-   int width, height;
    int totalBytes, headerBytes;
    int bytesWritten;
    unsigned char *pnm;
@@ -756,7 +755,7 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
    if(pnm == NULL)
       FatalError(EX_OSERR, _("Unable to create diagnostic image"));
 
-   bytesWritten = fwrite(pnm, sizeof(unsigned char *), totalBytes, fp);
+   bytesWritten = fwrite(pnm, sizeof(unsigned char), totalBytes, fp);
    if(bytesWritten != totalBytes)
       FatalError(EX_IOERR, _("Unable to write diagnostic image"));
 
