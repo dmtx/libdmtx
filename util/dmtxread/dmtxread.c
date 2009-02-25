@@ -740,56 +740,27 @@ ListImageFormats(void)
 static void
 WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 {
-   int row, col;
    int width, height;
-   int rgb[3];
-   double shade;
-   unsigned char *cache;
+   int totalBytes, headerBytes;
+   int bytesWritten;
+   unsigned char *pnm;
    FILE *fp;
 
    fp = fopen(imagePath, "wb");
    if(fp == NULL) {
       perror(programName);
-      FatalError(EX_CANTCREAT, _("Unable to write image \"%s\""), imagePath);
+      FatalError(EX_CANTCREAT, _("Unable to create image \"%s\""), imagePath);
    }
 
-   width = dmtxDecodeGetProp(dec, DmtxPropWidth);
-   height = dmtxDecodeGetProp(dec, DmtxPropHeight);
+   pnm = dmtxDecodeCreateDiagnostic(dec, &totalBytes, &headerBytes, 0);
+   if(pnm == NULL)
+      FatalError(EX_OSERR, _("Unable to create diagnostic image"));
 
-   /* Test each pixel of input image to see if it lies in region */
-   fprintf(fp, "P6\n%d %d\n255\n", width, height);
-   for(row = height - 1; row >= 0; row--) {
-      for(col = 0; col < width; col++) {
+   bytesWritten = fwrite(pnm, sizeof(unsigned char *), totalBytes, fp);
+   if(bytesWritten != totalBytes)
+      FatalError(EX_IOERR, _("Unable to write diagnostic image"));
 
-         cache = dmtxDecodeGetCache(dec, col, row);
-         if(cache == NULL) {
-            rgb[0] = 0;
-            rgb[1] = 0;
-            rgb[2] = 128;
-         }
-         else {
-            dmtxDecodeGetPixelValue(dec, col, row, 0, &rgb[0]);
-            dmtxDecodeGetPixelValue(dec, col, row, 1, &rgb[1]);
-            dmtxDecodeGetPixelValue(dec, col, row, 2, &rgb[2]);
-
-            if(*cache & 0x40) {
-               rgb[0] = 255;
-               rgb[1] = 0;
-               rgb[2] = 0;
-            }
-            else {
-               shade = (*cache & 0x80) ? 0.0 : 0.7;
-               rgb[0] += (shade * (255 - rgb[0]));
-               rgb[1] += (shade * (255 - rgb[1]));
-               rgb[2] += (shade * (255 - rgb[2]));
-            }
-         }
-         fputc(rgb[0], fp);
-         fputc(rgb[1], fp);
-         fputc(rgb[2], fp);
-      }
-   }
-
+   free(pnm);
    fclose(fp);
 }
 

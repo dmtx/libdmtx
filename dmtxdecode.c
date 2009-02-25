@@ -374,79 +374,78 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
  *
  *
  */
-extern DmtxImage *
-dmtxDecodeCreateDiagnostic(DmtxDecode *dec)
+extern unsigned char *
+dmtxDecodeCreateDiagnostic(DmtxDecode *dec, int *totalBytes, int *headerBytes, int style)
 {
-   int row, col, chn, val;
+   int i, row, col;
    int width, height;
-   int pixelPacking;
-   int bytesPerPixel;
-   int rowPadBytes;
-   int imageFlip;
-   int channelCount;
-   int rowSizeBytes;
+   int widthDigits, heightDigits;
+   int count, channelCount;
+   int rgb[3];
    double shade;
-   unsigned char *cache;
-   unsigned char *pxl;
-   DmtxImage *img;
+   unsigned char *pnm, *output, *cache;
 
-   /* Get scaled image properties */
    width = dmtxDecodeGetProp(dec, DmtxPropWidth);
    height = dmtxDecodeGetProp(dec, DmtxPropHeight);
-
-   /* Get regular image properties */
-   pixelPacking = dmtxImageGetProp(dec->image, DmtxPropPixelPacking);
-   bytesPerPixel = dmtxImageGetProp(dec->image, DmtxPropBytesPerPixel);
-   rowPadBytes = dmtxImageGetProp(dec->image, DmtxPropRowPadBytes);
-   imageFlip = dmtxImageGetProp(dec->image, DmtxPropImageFlip);
    channelCount = dmtxImageGetProp(dec->image, DmtxPropChannelCount);
 
-   rowSizeBytes = width * bytesPerPixel + rowPadBytes;
-   pxl = (unsigned char *)calloc(rowSizeBytes * height, 1);
-   if(pxl == NULL)
+   /* Count width digits */
+   for(widthDigits = 0, i = width; i > 0; i /= 10)
+      widthDigits++;
+
+   /* Count height digits */
+   for(heightDigits = 0, i = height; i > 0; i /= 10)
+      heightDigits++;
+
+   *headerBytes = widthDigits + heightDigits + 9;
+   *totalBytes = *headerBytes + width * height * 3;
+
+   pnm = (unsigned char *)malloc(*totalBytes);
+   if(pnm == NULL)
       return NULL;
 
-   img = dmtxImageCreate(pxl, width, height, pixelPacking);
-   if(img == NULL) {
-      free(pxl);
+   count = snprintf((char *)pnm, *headerBytes + 1, "P6\n%d %d\n255\n", width, height);
+   if(count != *headerBytes) {
+      free(pnm);
       return NULL;
    }
 
-   dmtxImageSetProp(dec->image, DmtxPropRowPadBytes, rowPadBytes);
-   dmtxImageSetProp(dec->image, DmtxPropImageFlip, imageFlip);
-
-   /* Copy unsettable private members to accommodate custom packing orders */
-   channelCount = dec->image->channelCount;
-   memcpy(img->channelStart, dec->image->channelStart, sizeof(img->channelStart));
-   memcpy(img->bitsPerChannel, dec->image->bitsPerChannel, sizeof(img->bitsPerChannel));
-
-   /* Test each pixel of input image to see if it lies in region */
-   for(row = 0; row < height; row++) {
+   output = pnm + (*headerBytes);
+   for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
-         for(chn = 0; chn < channelCount; chn++) {
-
-            cache = dmtxDecodeGetCache(dec, col, row);
-            if(cache == NULL) {
-               val = 0;
-            }
-            else {
-               dmtxDecodeGetPixelValue(dec, col, row, 0, &val);
-
-               if(*cache & 0x40) {
-                  val = 255;
-               }
-               else {
-                  shade = (*cache & 0x80) ? 0.0 : 0.7;
-                  val += (shade * (255 - val));
-               }
-            }
-
-            dmtxImageSetPixelValue(img, col, row, chn, val);
+         cache = dmtxDecodeGetCache(dec, col, row);
+         if(cache == NULL) {
+            rgb[0] = 0;
+            rgb[1] = 0;
+            rgb[2] = 128;
          }
+         else if(*cache & 0x40) {
+            rgb[0] = 255;
+            rgb[1] = 0;
+            rgb[2] = 0;
+         }
+         else {
+            shade = (*cache & 0x80) ? 0.0 : 0.7;
+            for(i = 0; i < 3; i++) {
+               if(i < channelCount)
+                  dmtxDecodeGetPixelValue(dec, col, row, i, &rgb[i]);
+               else
+                  dmtxDecodeGetPixelValue(dec, col, row, 0, &rgb[i]);
+
+               rgb[i] += (shade * (255 - rgb[i]));
+            }
+         }
+         assert(rgb[0] < 256);
+         assert(rgb[1] < 256);
+         assert(rgb[2] < 256);
+         *(output++) = (unsigned char)rgb[0];
+         *(output++) = (unsigned char)rgb[1];
+         *(output++) = (unsigned char)rgb[2];
       }
    }
+   assert(output == pnm + *totalBytes);
 
-   return img;
+   return pnm;
 }
 
 /**
