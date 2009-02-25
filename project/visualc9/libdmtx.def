@@ -21,6 +21,7 @@ EXPORTS
   dmtxDecodeGetPixelValue
   dmtxDecodeMatrixRegion
   dmtxDecodeMosaicRegion
+  dmtxDecodeCreateDiagnostic
 
   dmtxMessageCreate
   dmtxMessageDestroy

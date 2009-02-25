@@ -532,6 +532,7 @@ extern unsigned char *dmtxDecodeGetCache(DmtxDecode *dec, int x, int y);
 extern DmtxPassFail dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, int *value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
+extern DmtxImage *dmtxDecodeCreateDiagnostic(DmtxDecode *dec);
 
 /* dmtxregion.c */
 extern DmtxRegion *dmtxRegionCreate(DmtxRegion *reg);

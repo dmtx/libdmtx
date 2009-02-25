@@ -371,6 +371,85 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 }
 
 /**
+ *
+ *
+ */
+extern DmtxImage *
+dmtxDecodeCreateDiagnostic(DmtxDecode *dec)
+{
+   int row, col, chn, val;
+   int width, height;
+   int pixelPacking;
+   int bytesPerPixel;
+   int rowPadBytes;
+   int imageFlip;
+   int channelCount;
+   int rowSizeBytes;
+   double shade;
+   unsigned char *cache;
+   unsigned char *pxl;
+   DmtxImage *img;
+
+   /* Get scaled image properties */
+   width = dmtxDecodeGetProp(dec, DmtxPropWidth);
+   height = dmtxDecodeGetProp(dec, DmtxPropHeight);
+
+   /* Get regular image properties */
+   pixelPacking = dmtxImageGetProp(dec->image, DmtxPropPixelPacking);
+   bytesPerPixel = dmtxImageGetProp(dec->image, DmtxPropBytesPerPixel);
+   rowPadBytes = dmtxImageGetProp(dec->image, DmtxPropRowPadBytes);
+   imageFlip = dmtxImageGetProp(dec->image, DmtxPropImageFlip);
+   channelCount = dmtxImageGetProp(dec->image, DmtxPropChannelCount);
+
+   rowSizeBytes = width * bytesPerPixel + rowPadBytes;
+   pxl = (unsigned char *)calloc(rowSizeBytes * height, 1);
+   if(pxl == NULL)
+      return NULL;
+
+   img = dmtxImageCreate(pxl, width, height, pixelPacking);
+   if(img == NULL) {
+      free(pxl);
+      return NULL;
+   }
+
+   dmtxImageSetProp(dec->image, DmtxPropRowPadBytes, rowPadBytes);
+   dmtxImageSetProp(dec->image, DmtxPropImageFlip, imageFlip);
+
+   /* Copy unsettable private members to accommodate custom packing orders */
+   channelCount = dec->image->channelCount;
+   memcpy(img->channelStart, dec->image->channelStart, sizeof(img->channelStart));
+   memcpy(img->bitsPerChannel, dec->image->bitsPerChannel, sizeof(img->bitsPerChannel));
+
+   /* Test each pixel of input image to see if it lies in region */
+   for(row = 0; row < height; row++) {
+      for(col = 0; col < width; col++) {
+         for(chn = 0; chn < channelCount; chn++) {
+
+            cache = dmtxDecodeGetCache(dec, col, row);
+            if(cache == NULL) {
+               val = 0;
+            }
+            else {
+               dmtxDecodeGetPixelValue(dec, col, row, 0, &val);
+
+               if(*cache & 0x40) {
+                  val = 255;
+               }
+               else {
+                  shade = (*cache & 0x80) ? 0.0 : 0.7;
+                  val += (shade * (255 - val));
+               }
+            }
+
+            dmtxImageSetPixelValue(img, col, row, chn, val);
+         }
+      }
+   }
+
+   return img;
+}
+
+/**
  * @brief  Translate encoded data stream into final output
  * @param  msg
  * @param  sizeIdx
