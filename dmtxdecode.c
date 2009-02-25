@@ -432,12 +432,11 @@ dmtxDecodeCreateDiagnostic(DmtxDecode *dec, int *totalBytes, int *headerBytes, i
                else
                   dmtxDecodeGetPixelValue(dec, col, row, 0, &rgb[i]);
 
-               rgb[i] += (shade * (255 - rgb[i]));
+               rgb[i] += (int)(shade * (double)(255 - rgb[i]) + 0.5);
+               if(rgb[i] > 255)
+                  rgb[i] = 255;
             }
          }
-         assert(rgb[0] < 256);
-         assert(rgb[1] < 256);
-         assert(rgb[2] < 256);
          *(output++) = (unsigned char)rgb[0];
          *(output++) = (unsigned char)rgb[1];
          *(output++) = (unsigned char)rgb[2];

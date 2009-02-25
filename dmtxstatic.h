@@ -30,6 +30,10 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTXSTATIC_H__
 #define __DMTXSTATIC_H__
 
+#ifdef _VISUALC_
+#define snprintf sprintf_s
+#endif
+
 #define DmtxAlmostZero                 0.000001
 #define DmtxAlmostInfinity            -1
 

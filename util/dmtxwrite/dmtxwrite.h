@@ -46,6 +46,7 @@ Contact: mike@dragonflylogic.com
 
 #ifdef _VISUALC_
 #include <io.h>
+#define snprintf sprintf_s
 #endif
 
 #if ENABLE_NLS
