@@ -31,25 +31,26 @@ for doing this are provided here:
 3. External Dependencies
 -----------------------------------------------------------------
 
-The dmtxread command line utility requires GraphicsMagick to be
-installed on your system. To satisfy this requirement you can
-download and install the current stable branch of GraphicsMagick
-from http://www.graphicsmagick.org/. Detailed instructions are
-available at http://www.graphicsmagick.org/INSTALL-unix.html.
+The dmtxread and dmtxwrite command line utilities require
+ImageMagick to be installed on your system. To satisfy this
+requirement you can download and install the current stable
+branch of ImageMagick from:
 
-After downloading, unpack the GraphicsMagick sources and run:
+   https://sourceforge.net/projects/imagemagick/
+
+After downloading, unpack the ImageMagick sources and run:
 
   $ ./configure
   $ make
   $ make install
 
 Alternatively, if you only want the core library and don't care
-about the command line utilities then you can just disable
-dmtxread and avoid messing with GraphicsMagick entirely. This is
-accomplished by passing "--disable-dmtxread" to ./configure when
-installing libdmtx.
+about the command line utilities, you can just disable them and
+avoid messing with ImageMagick entirely. This is accomplished by
+passing "--disable-dmtxread --disable-dmtxwrite" to ./configure
+when installing libdmtx.
 
-  $ ./configure --disable-dmtxread
+  $ ./configure --disable-dmtxread --disable-dmtxwrite
 
 
 4. Building and installing libdmtx

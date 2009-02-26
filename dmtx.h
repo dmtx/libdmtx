@@ -530,7 +530,7 @@ extern DmtxDecode *dmtxDecodeCreate(DmtxImage *img, int scale);
 extern DmtxPassFail dmtxDecodeDestroy(DmtxDecode **dec);
 extern DmtxPassFail dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
 extern int dmtxDecodeGetProp(DmtxDecode *dec, int prop);
-extern unsigned char *dmtxDecodeGetCache(DmtxDecode *dec, int x, int y);
+extern /*@exposed@*/ unsigned char *dmtxDecodeGetCache(DmtxDecode *dec, int x, int y);
 extern DmtxPassFail dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, int *value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);

@@ -211,7 +211,7 @@ Type:        Utility program
 Description: Read Data Matrix barcodes from the command line
 Location:    libdmtx/util/dmtxread
 Build:       make
-Requires:    GraphicsMagick
+Requires:    ImageMagick
 Disable:     ./configure --disable-dmtxread
 
 -----------------------------------
@@ -221,7 +221,7 @@ Type:        Utility program
 Description: Create Data Matrix barcodes from the command line
 Location:    libdmtx/util/dmtxwrite
 Build:       make
-Requires:    libpng
+Requires:    ImageMagick
 Disable:     ./configure --disable-dmtxwrite
 
 -----------------------------------

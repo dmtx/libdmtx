@@ -33,11 +33,11 @@ version of the library. Recommendations are provided at:
 Some libdmtx command line utilities have dependencies on external
 software. For example:
 
-  * dmtxread requires GraphicsMagick, which must be downloaded
-    and built from its source distribution. After doing this,
-    simply add the relevant "-L" and "-I" options to the CFLAGS
-    and LDFLAGS environment variables before running the
-    ./configure script.
+  * dmtxread requires ImageMagick, which must be downloaded and
+    built from its source distribution. After doing this, simply
+    add the relevant "-L" and "-I" options to the CFLAGS and
+    LDFLAGS environment variables before running the ./configure
+    script.
 
   * dmtxwrite requires libpng, which can be installed easily with
     MacPorts.
