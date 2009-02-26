@@ -116,11 +116,13 @@
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="..\.."
+				PreprocessorDefinitions="WIN32;_VISUALC_"
 				RuntimeLibrary="2"
 				StructMemberAlignment="4"
 				EnableFunctionLevelLinking="true"
 				TreatWChar_tAsBuiltInType="false"
 				WarningLevel="3"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
 			/>
 			<Tool

@@ -1053,7 +1053,7 @@ FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
  *
  */
 static DmtxFollow
-FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign)
+FollowStep2(DmtxDecode *dec, DmtxFollow followBeg, int sign)
 {
    int patternIdx;
    DmtxFollow follow;
@@ -1416,7 +1416,7 @@ FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int st
  *
  */
 static DmtxBestLine
-FindBestSolidLine2(DmtxDecode *dec, DmtxRegion *reg, DmtxPixelLoc loc0, int tripSteps, int sign, int houghAvoid)
+FindBestSolidLine2(DmtxDecode *dec, DmtxPixelLoc loc0, int tripSteps, int sign, int houghAvoid)
 {
    int hough[3][DMTX_HOUGH_RES] = { { 0 } };
    int houghMin, houghMax;
@@ -1489,7 +1489,7 @@ FindBestSolidLine2(DmtxDecode *dec, DmtxRegion *reg, DmtxPixelLoc loc0, int trip
 
 /*    CALLBACK_POINT_PLOT(follow.loc, (sign > 1) ? 4 : 3, 1, 2); */
 
-      follow = FollowStep2(dec, reg, follow, sign);
+      follow = FollowStep2(dec, follow, sign);
    }
 
    line.angle = angleBest;
@@ -1663,7 +1663,7 @@ MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int edgeLoc)
    line = BresLineInit(loc0, loc1, locOrigin);
    steps = TrailBlazeGapped(dec, reg, line, streamDir);
 
-   bestLine = FindBestSolidLine2(dec, reg, loc0, steps, streamDir, avoidAngle);
+   bestLine = FindBestSolidLine2(dec, loc0, steps, streamDir, avoidAngle);
    if(bestLine.mag < 5) {
       ;
    }

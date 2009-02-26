@@ -157,9 +157,8 @@ dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value)
          enc->imageFlip = value;
          break;
       case DmtxPropRowPadBytes:
-         break;
+         enc->rowPadBytes = value;
       default:
-         exit(1); /* XXX fatal error */
          break;
    }
 
@@ -183,7 +182,6 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
       case DmtxPropScheme:
          return enc->scheme;
       default:
-         exit(1); /* XXX fatal error */
          break;
    }
 
@@ -494,8 +492,12 @@ Randomize253State(unsigned char codewordValue, int codewordPosition)
 
    pseudoRandom = ((149 * codewordPosition) % 253) + 1;
    tmp = codewordValue + pseudoRandom;
+   if(tmp > 254)
+      tmp -= 254;
 
-   return (tmp <= 254) ? tmp : tmp - 254;
+   assert(tmp >= 0 && tmp < 256);
+
+   return (unsigned char)tmp;
 }
 
 /**

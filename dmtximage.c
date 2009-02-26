@@ -248,7 +248,6 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
          img->imageFlip = value;
          break;
       default:
-         exit(1); /* XXX fatal error */
          break;
    }
 
@@ -286,7 +285,6 @@ dmtxImageGetProp(DmtxImage *img, int prop)
       case DmtxPropChannelCount:
          return img->channelCount;
       default:
-         exit(1); /* XXX fatal error */
          break;
    }
 

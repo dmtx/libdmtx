@@ -30,10 +30,6 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTXSTATIC_H__
 #define __DMTXSTATIC_H__
 
-#ifdef _VISUALC_
-#define snprintf sprintf_s
-#endif
-
 #define DmtxAlmostZero                 0.000001
 #define DmtxAlmostInfinity            -1
 
@@ -122,12 +118,12 @@ static DmtxPointFlow FindStrongestNeighbor(DmtxDecode *dec, DmtxPointFlow center
 static DmtxFollow FollowSeek(DmtxDecode *dec, DmtxRegion *reg, int seek);
 static DmtxFollow FollowSeekLoc(DmtxDecode *dec, DmtxPixelLoc loc);
 static DmtxFollow FollowStep(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
-static DmtxFollow FollowStep2(DmtxDecode *dec, DmtxRegion *reg, DmtxFollow followBeg, int sign);
+static DmtxFollow FollowStep2(DmtxDecode *dec, DmtxFollow followBeg, int sign);
 static DmtxPassFail TrailBlazeContinuous(DmtxDecode *dec, DmtxRegion *reg, DmtxPointFlow flowBegin, int maxDiagonal);
 static int TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int streamDir);
 static int TrailClear(DmtxDecode *dec, DmtxRegion *reg, int clearMask);
 static DmtxBestLine FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int streamDir, int houghAvoid);
-static DmtxBestLine FindBestSolidLine2(DmtxDecode *dec, DmtxRegion *reg, DmtxPixelLoc loc0, int tripSteps, int sign, int houghAvoid);
+static DmtxBestLine FindBestSolidLine2(DmtxDecode *dec, DmtxPixelLoc loc0, int tripSteps, int sign, int houghAvoid);
 static DmtxPassFail FindTravelLimits(DmtxDecode *dec, DmtxRegion *reg, DmtxBestLine *line);
 static DmtxPassFail MatrixRegionAlignCalibEdge(DmtxDecode *dec, DmtxRegion *reg, int whichEdge);
 static DmtxBresLine BresLineInit(DmtxPixelLoc loc0, DmtxPixelLoc loc1, DmtxPixelLoc locInside);
@@ -141,7 +137,7 @@ static unsigned char *NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned
 static void PushOutputWord(DmtxMessage *msg, int value);
 static void PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value);
 static unsigned char *DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
-static unsigned char *DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
+static unsigned char *DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr);
 static unsigned char *DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme);
 static unsigned char *DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);

@@ -134,8 +134,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
       case DmtxPropYmax:
          dec->yMax = value / dec->scale;
          break;
-      default:
-         exit(1); /* XXX fatal error */
+      default;
          break;
    }
 
@@ -190,8 +189,7 @@ dmtxDecodeGetProp(DmtxDecode *dec, int prop)
          return dmtxImageGetProp(dec->image, DmtxPropWidth) / dec->scale;
       case DmtxPropHeight:
          return dmtxImageGetProp(dec->image, DmtxPropHeight) / dec->scale;
-      default:
-         exit(1); /* XXX fatal error */
+      default;
          break;
    }
 
@@ -389,6 +387,8 @@ dmtxDecodeCreateDiagnostic(DmtxDecode *dec, int *totalBytes, int *headerBytes, i
    height = dmtxDecodeGetProp(dec, DmtxPropHeight);
    channelCount = dmtxImageGetProp(dec->image, DmtxPropChannelCount);
 
+   style = 1; /* this doesn't mean anything yet */
+
    /* Count width digits */
    for(widthDigits = 0, i = width; i > 0; i /= 10)
       widthDigits++;
@@ -404,7 +404,12 @@ dmtxDecodeCreateDiagnostic(DmtxDecode *dec, int *totalBytes, int *headerBytes, i
    if(pnm == NULL)
       return NULL;
 
+#ifdef _VISUALC_
+   count = sprintf_s((char *)pnm, *headerBytes + 1, "P6\n%d %d\n255\n", width, height);
+#else
    count = snprintf((char *)pnm, *headerBytes + 1, "P6\n%d %d\n255\n", width, height);
+#endif
+
    if(count != *headerBytes) {
       free(pnm);
       return NULL;
@@ -476,7 +481,7 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
             break;
 
          case DmtxSchemeDecodeAsciiExt:
-            ptr = DecodeSchemeAsciiExt(msg, ptr, dataEnd);
+            ptr = DecodeSchemeAsciiExt(msg, ptr);
             break;
 
          case DmtxSchemeDecodeC40:
@@ -544,7 +549,7 @@ PushOutputWord(DmtxMessage *msg, int value)
 {
    assert(value >= 0 && value < 256);
 
-   msg->output[msg->outputIdx++] = value;
+   msg->output[msg->outputIdx++] = (unsigned char)value;
 }
 
 /**
@@ -556,10 +561,12 @@ PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value)
 {
    assert(value >= 0 && value < 256);
 
-   msg->output[msg->outputIdx] = value;
+   msg->output[msg->outputIdx] = (unsigned char)value;
 
-   if(state->upperShift == DmtxTrue)
+   if(state->upperShift == DmtxTrue) {
+      assert(value < 128);
       msg->output[msg->outputIdx] += 128;
+   }
 
    msg->outputIdx++;
 
@@ -603,7 +610,7 @@ DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
  * @return Pointer to next undecoded codeword
  */
 static unsigned char *
-DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr)
 {
    PushOutputWord(msg, *ptr + 128);
 
@@ -720,7 +727,7 @@ DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
    int i;
    int packed;
-   unsigned char x12Values[3];
+   int x12Values[3];
 
    while(ptr < dataEnd) {
 
@@ -891,8 +898,12 @@ UnRandomize253State(unsigned char codewordValue, int codewordPosition)
 
    pseudoRandom = ((149 * codewordPosition) % 253) + 1;
    tmp = codewordValue - pseudoRandom;
+   if(tmp < 1)
+      tmp += 254;
 
-   return (tmp >= 1) ? tmp : tmp + 254;
+   assert(tmp >= 0 && tmp < 256);
+
+   return (unsigned char)tmp;
 }
 */
 
@@ -910,8 +921,12 @@ UnRandomize255State(unsigned char value, int idx)
 
    pseudoRandom = ((149 * idx) % 255) + 1;
    tmp = value - pseudoRandom;
+   if(tmp < 0)
+      tmp += 256;
 
-   return (tmp >= 0) ? tmp : tmp + 256;
+   assert(tmp >= 0 && tmp < 256);
+
+   return (unsigned char)tmp;
 }
 
 /**
