@@ -591,7 +591,7 @@ DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
    }
    else if(*ptr == 129) {
       assert(dataEnd >= ptr);
-      assert(dataEnd - ptr <= MAXINT);
+      assert(dataEnd - ptr <= INT_MAX);
       msg->padCount = (int)(dataEnd - ptr);
       return dataEnd;
    }
@@ -862,7 +862,7 @@ DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
 
    /* Find positional index used for unrandomizing */
    assert(ptr + 1 >= msg->code);
-   assert(ptr + 1 - msg->code <= MAXINT);
+   assert(ptr + 1 - msg->code <= INT_MAX);
    idx = (int)(ptr + 1 - msg->code);
 
    d0 = UnRandomize255State(*(ptr++), idx++);

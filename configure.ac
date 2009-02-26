@@ -20,7 +20,6 @@ AC_SEARCH_LIBS([sin], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
 AC_SEARCH_LIBS([cos], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
 AC_SEARCH_LIBS([atan2], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
 
-AC_CHECK_HEADERS([values.h])
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_FUNCS([gettimeofday])
 

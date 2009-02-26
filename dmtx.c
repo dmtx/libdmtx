@@ -31,6 +31,7 @@ Contact: mike@dragonflylogic.com
 #include <stdio.h>
 #include <sys/types.h>
 #include <ctype.h>
+#include <limits.h>
 #include <float.h>
 #include <string.h>
 #include <errno.h>
@@ -41,10 +42,6 @@ Contact: mike@dragonflylogic.com
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
-
-#ifdef HAVE_VALUES_H
-#include <values.h>
 #endif
 
 #ifndef CALLBACK_POINT_PLOT
