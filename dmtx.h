@@ -30,6 +30,14 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTX_H__
 #define __DMTX_H__
 
+/* Time headers are required for DmtxTime struct below */
+
+#include <time.h>
+
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

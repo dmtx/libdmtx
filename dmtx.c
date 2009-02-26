@@ -34,7 +34,6 @@ Contact: mike@dragonflylogic.com
 #include <float.h>
 #include <string.h>
 #include <errno.h>
-#include <time.h>
 #include <assert.h>
 #include <math.h>
 #include "dmtx.h"
@@ -42,10 +41,6 @@ Contact: mike@dragonflylogic.com
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
-
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
 #endif
 
 #ifdef HAVE_VALUES_H
