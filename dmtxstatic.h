@@ -138,9 +138,10 @@ static DmtxPassFail BresLineStep(DmtxBresLine *line, int travel, int outward);
 /* dmtxdecode.c */
 static void DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart);
 static unsigned char *NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr);
+static void PushOutputWord(DmtxMessage *msg, int value);
+static void PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value);
 static unsigned char *DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
-static void PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, unsigned char value);
 static unsigned char *DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme);
 static unsigned char *DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);

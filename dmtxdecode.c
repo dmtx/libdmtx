@@ -536,6 +536,38 @@ NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr)
 }
 
 /**
+ *
+ *
+ */
+static void
+PushOutputWord(DmtxMessage *msg, int value)
+{
+   assert(value >= 0 && value < 256);
+
+   msg->output[msg->outputIdx++] = value;
+}
+
+/**
+ *
+ *
+ */
+static void
+PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value)
+{
+   assert(value >= 0 && value < 256);
+
+   msg->output[msg->outputIdx] = value;
+
+   if(state->upperShift == DmtxTrue)
+      msg->output[msg->outputIdx] += 128;
+
+   msg->outputIdx++;
+
+   state->shift = DmtxC40TextBasicSet;
+   state->upperShift = DmtxFalse;
+}
+
+/**
  * @brief  Decode stream assuming standard ASCII encodation
  * @param  msg
  * @param  ptr
@@ -548,7 +580,7 @@ DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
    int digits;
 
    if(*ptr <= 128) {
-      msg->output[msg->outputIdx++] = *ptr - 1;
+      PushOutputWord(msg, *ptr - 1);
    }
    else if(*ptr == 129) {
       msg->padCount = dataEnd - ptr; /* fix 64b->32b assignment w/ tmp and assert */
@@ -556,8 +588,8 @@ DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
    }
    else if(*ptr <= 229) {
       digits = *ptr - 130;
-      msg->output[msg->outputIdx++] = digits/10 + '0';
-      msg->output[msg->outputIdx++] = digits - (digits/10)*10 + '0';
+      PushOutputWord(msg, digits/10 + '0');
+      PushOutputWord(msg, digits - (digits/10)*10 + '0');
    }
 
    return ptr + 1;
@@ -573,27 +605,9 @@ DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
 static unsigned char *
 DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
-   msg->output[msg->outputIdx++] = *ptr + 128;
+   PushOutputWord(msg, *ptr + 128);
 
    return ptr + 1;
-}
-
-/**
- *
- *
- */
-static void
-PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, unsigned char value)
-{
-   msg->output[msg->outputIdx] = value;
-
-   if(state->upperShift == DmtxTrue)
-      msg->output[msg->outputIdx] += 128;
-
-   msg->outputIdx++;
-
-   state->shift = DmtxC40TextBasicSet;
-   state->upperShift = DmtxFalse;
 }
 
 /**
@@ -609,7 +623,7 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
 {
    int i;
    int packed;
-   unsigned char c40Values[3];
+   int c40Values[3];
    C40TextState state;
 
    state.shift = DmtxC40TextBasicSet;
@@ -719,17 +733,17 @@ DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 
       for(i = 0; i < 3; i++) {
          if(x12Values[i] == 0)
-            msg->output[msg->outputIdx++] = 13;
+            PushOutputWord(msg, 13);
          else if(x12Values[i] == 1)
-            msg->output[msg->outputIdx++] = 42;
+            PushOutputWord(msg, 42);
          else if(x12Values[i] == 2)
-            msg->output[msg->outputIdx++] = 62;
+            PushOutputWord(msg, 62);
          else if(x12Values[i] == 3)
-            msg->output[msg->outputIdx++] = 32;
+            PushOutputWord(msg, 32);
          else if(x12Values[i] <= 13)
-            msg->output[msg->outputIdx++] = x12Values[i] + 44;
+            PushOutputWord(msg, x12Values[i] + 44);
          else if(x12Values[i] <= 90)
-            msg->output[msg->outputIdx++] = x12Values[i] + 51;
+            PushOutputWord(msg, x12Values[i] + 51);
       }
 
       /* Unlatch if codeword 254 follows 2 codewords in C40/Text encodation */
@@ -779,7 +793,7 @@ DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
             return ptr;
          }
 
-         msg->output[msg->outputIdx++] = unpacked[i] ^ (((unpacked[i] & 0x20) ^ 0x20) << 1);
+         PushOutputWord(msg, unpacked[i] ^ (((unpacked[i] & 0x20) ^ 0x20) << 1));
       }
 
       /* Unlatch is implied if fewer than 3 codewords remain */
@@ -810,7 +824,7 @@ DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
          assert(bits == 0); // should be padded with zero-value bits
          return ptr;
       }
-      msg->output[msg->outputIdx++] = value ^ (((value & 0x20) ^ 0x20) << 1);
+      PushOutputWord(msg, value ^ (((value & 0x20) ^ 0x20) << 1));
 
       // Unlatch implied if just completed triplet and 1 or 2 words are left
       if(bitCount == 0 && dataEnd - ptr - 1 > 0 && dataEnd - ptr - 1 < 3)
@@ -857,7 +871,7 @@ DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
    }
 
    while(ptr < ptrEnd) {
-      msg->output[msg->outputIdx++] = UnRandomize255State(*(ptr++), i++);
+      PushOutputWord(msg, UnRandomize255State(*(ptr++), i++));
    }
 
    return ptr;
