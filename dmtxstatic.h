@@ -200,6 +200,9 @@ static void SetDerivedFields(DmtxScanGrid *grid);
 /* dmtxsymbol.c */
 static int FindCorrectSymbolSize(int dataWords, int symbolShape);
 
+/* dmtximage.c */
+static int GetBitsPerPixel(int pack);
+
 static const int dmtxNeighborNone = 8;
 static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };
 static const int dmtxPatternY[] = { -1, -1, -1,  0,  1,  1,  1,  0 };

@@ -90,42 +90,8 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
    img->width = width;
    img->height = height;
    img->pixelPacking = pack;
-
-   switch(pack) {
-      case DmtxPackCustom:
-         break;
-      case DmtxPack1bppK:
-         img->bitsPerPixel = 1;
-         break;
-      case DmtxPack8bppK:
-         img->bitsPerPixel = 8;
-         break;
-      case DmtxPack16bppRGB:
-      case DmtxPack16bppRGBX:
-      case DmtxPack16bppXRGB:
-      case DmtxPack16bppBGR:
-      case DmtxPack16bppBGRX:
-      case DmtxPack16bppXBGR:
-      case DmtxPack16bppYCbCr:
-         img->bitsPerPixel = 16;
-         break;
-      case DmtxPack24bppRGB:
-      case DmtxPack24bppBGR:
-      case DmtxPack24bppYCbCr:
-         img->bitsPerPixel = 24;
-         break;
-      case DmtxPack32bppRGBX:
-      case DmtxPack32bppXRGB:
-      case DmtxPack32bppBGRX:
-      case DmtxPack32bppXBGR:
-      case DmtxPack32bppCMYK:
-         img->bitsPerPixel = 32;
-         break;
-      default:
-         return NULL;
-   }
+   img->bitsPerPixel = GetBitsPerPixel(pack);
    img->bytesPerPixel = img->bitsPerPixel/8;
-
    img->rowPadBytes = 0;
    img->rowSizeBytes = img->width * img->bytesPerPixel + img->rowPadBytes;
    img->imageFlip = DmtxFlipNone;
@@ -439,4 +405,41 @@ dmtxImageContainsFloat(DmtxImage *img, double x, double y)
       return DmtxTrue;
 
    return DmtxFalse;
+}
+
+/**
+ *
+ *
+ */
+static int
+GetBitsPerPixel(int pack)
+{
+   switch(pack) {
+      case DmtxPack1bppK:
+         return 1;
+      case DmtxPack8bppK:
+         return 8;
+      case DmtxPack16bppRGB:
+      case DmtxPack16bppRGBX:
+      case DmtxPack16bppXRGB:
+      case DmtxPack16bppBGR:
+      case DmtxPack16bppBGRX:
+      case DmtxPack16bppXBGR:
+      case DmtxPack16bppYCbCr:
+         return 16;
+      case DmtxPack24bppRGB:
+      case DmtxPack24bppBGR:
+      case DmtxPack24bppYCbCr:
+         return  24;
+      case DmtxPack32bppRGBX:
+      case DmtxPack32bppXRGB:
+      case DmtxPack32bppBGRX:
+      case DmtxPack32bppXBGR:
+      case DmtxPack32bppCMYK:
+         return  32;
+      default:
+         break;
+   }
+
+   return DmtxUndefined;
 }

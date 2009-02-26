@@ -202,7 +202,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    int dataWordCount;
    int sizeIdx;
    int padCount;
-   int width, height;
+   int width, height, bitsPerPixel;
    unsigned char buf[4096];
    unsigned char *pxl;
 
@@ -231,19 +231,22 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    enc->message->padCount = padCount;
    memcpy(enc->message->code, buf, dataWordCount);
 
-/* fprintf(stdout, "\n\nsize:    %dx%d w/ %d error codewords\n", rows, cols, errorWordLength(enc->region.sizeIdx)); */
-
    /* Generate error correction codewords */
    GenReedSolEcc(enc->message, enc->region.sizeIdx);
 
    /* Module placement in region */
-   ModulePlacementEcc200(enc->message->array, enc->message->code, enc->region.sizeIdx, DmtxModuleOnRGB);
+   ModulePlacementEcc200(enc->message->array, enc->message->code,
+         enc->region.sizeIdx, DmtxModuleOnRGB);
 
    width = 2 * enc->marginSize + (enc->region.symbolCols * enc->moduleSize);
    height = 2 * enc->marginSize + (enc->region.symbolRows * enc->moduleSize);
+   bitsPerPixel = GetBitsPerPixel(enc->pixelPacking);
+   if(bitsPerPixel == DmtxUndefined)
+      return DmtxFail;
+   assert(bitsPerPixel % 8 == 0);
 
    /* Allocate memory for the image to be generated */
-   pxl = (unsigned char *)malloc(width * height * 3);
+   pxl = (unsigned char *)malloc(width * height * (bitsPerPixel/8) + enc->rowPadBytes);
    if(pxl == NULL) {
       perror("pixel malloc error");
       return DmtxFail;
@@ -256,6 +259,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    }
 
    dmtxImageSetProp(enc->image, DmtxPropImageFlip, enc->imageFlip);
+   dmtxImageSetProp(enc->image, DmtxPropRowPadBytes, enc->rowPadBytes);
 
    /* Insert finder and aligment pattern modules */
    PrintPattern(enc);

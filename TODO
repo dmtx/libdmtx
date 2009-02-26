@@ -55,7 +55,7 @@ version 0.7.0: (planned XX-Feb-2009)
 FOCUS: API cleanup, custom pixel packing, cross platform support
   o libdmtx:   Test with 1 channel, 2 channel, 4 channel images
   o libdmtx:   Fix 64b->32b int assignment warnings
-  o libdmtx:   dmtxEncodeDataMatrix needs to account for rowPadBytes (and other?)
+  x libdmtx:   dmtxEncodeDataMatrix needs to account for rowPadBytes
   x libdmtx:   FNC1 and correct upper shift (thanks Robin!)
   x libdmtx:   Support byte-padded row sizes via dmtxImageSetProp()
   x libdmtx:   Move image scaling factors to DmtxDecode
