@@ -590,7 +590,9 @@ DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
       PushOutputWord(msg, *ptr - 1);
    }
    else if(*ptr == 129) {
-      msg->padCount = dataEnd - ptr; /* fix 64b->32b assignment w/ tmp and assert */
+      assert(dataEnd >= ptr);
+      assert(dataEnd - ptr <= MAXINT);
+      msg->padCount = (int)(dataEnd - ptr);
       return dataEnd;
    }
    else if(*ptr <= 229) {
@@ -855,13 +857,15 @@ static unsigned char *
 DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
    int d0, d1;
-   int i;
+   int idx;
    unsigned char *ptrEnd;
 
-   /* XXX i is the positional index used for unrandomizing */
-   i = ptr - msg->code + 1;
+   /* Find positional index used for unrandomizing */
+   assert(ptr + 1 >= msg->code);
+   assert(ptr + 1 - msg->code <= MAXINT);
+   idx = (int)(ptr + 1 - msg->code);
 
-   d0 = UnRandomize255State(*(ptr++), i++);
+   d0 = UnRandomize255State(*(ptr++), idx++);
    if(d0 == 0) {
       ptrEnd = dataEnd;
    }
@@ -869,7 +873,7 @@ DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
       ptrEnd = ptr + d0;
    }
    else {
-      d1 = UnRandomize255State(*(ptr++), i++);
+      d1 = UnRandomize255State(*(ptr++), idx++);
       ptrEnd = ptr + (d0 - 249) * 250 + d1;
    }
 
@@ -878,7 +882,7 @@ DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
    }
 
    while(ptr < ptrEnd) {
-      PushOutputWord(msg, UnRandomize255State(*(ptr++), i++));
+      PushOutputWord(msg, UnRandomize255State(*(ptr++), idx++));
    }
 
    return ptr;

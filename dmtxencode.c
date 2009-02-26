@@ -965,7 +965,9 @@ EncodeTripletCodeword(DmtxChannel *channel)
                channel->inputPtr--;
             }
 
-            inputCount = channel->inputStop - channel->inputPtr;
+            assert(channel->inputStop >= channel->inputPtr);
+            assert(channel->inputStop - channel->inputPtr <= MAXINT);
+            inputCount = (int)(channel->inputStop - channel->inputPtr);
 
             ProcessEndOfSymbolTriplet(channel, &triplet, tripletCount, inputCount);
             break;
@@ -1506,7 +1508,9 @@ TestForEndOfSymbolEdifact(DmtxChannel *channel)
     */
 
    /* Count remaining input values assuming EDIFACT encodation */
-   edifactValues = channel->inputStop - channel->inputPtr;
+   assert(channel->inputStop >= channel->inputPtr);
+   assert(channel->inputStop - channel->inputPtr <= MAXINT);
+   edifactValues = (int)(channel->inputStop - channel->inputPtr);
 
    /* Can't end symbol right now if there are 5+ values remaining
       (noting that '9999' can still terminate in case (f)) */
