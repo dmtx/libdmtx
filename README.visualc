@@ -10,89 +10,72 @@ found in this directory, contains a high level summary of libdmtx
 and its components.
 
 
-1. Introduction
+1. Compiling libdmtx DLL and Import Library
 -----------------------------------------------------------------
 
-The following instructions will create static builds of dmtxread
-and dmtxwrite for Windows using MS Visual Studio.
+The libdmtx source package provides solution and project files
+for Visual Studio 9.0 in the project/visualc9 directory. Use the
+following steps if you wish to compile only the core library:
+
+  * File > Open > File > [libdmtx]/project/visualc9/libdmtx.sln
+
+  * Select/Highlight "libdmtx" in the Solution Explorer
+
+  * Build > Configuration Manager > Active solution configuration
+      Select "Debug" or "Release"
+
+  * Build > Build libdmtx
+
+The Debug or Release directory in project/visualc9 will now
+hold the files libdmtx.dll and libdmtx.lib.
 
 
-2. Create a New Project
+2. Compiling the libdmtx Command Line Utilities
 -----------------------------------------------------------------
 
-  a. Download newest versions of libdmtx, libpng, and zlib
-     packages from their official sites.
+The solution file mentioned above also includes projects for the
+libdmtx command line utilities. The most significant utilities,
+dmtxread.exe and dmtxwrite.exe, also require the ImageMagick
+package to be installed on your computer. To build the utilities:
 
-  b. Unpack into a directory as siblings (same folder level).
+  * Download and install ImageMagick to your system:
 
-  c. Create project
-     * Open Visual C++ 2008 Express Edition and select "File >
-       New > Project From Existing Code..."
-     * Click Next to indicate you want to create a "Visual C++"
-       project.
-     * Specify Project file location to indicate where the
-       Visual C++ project files should be saved.
-     * Set Project name to "libdmtx_utils" (or whatever).
-     * Important: Uncheck the Add files to the project from
-       these folders checkbox.
-     * Click Next.
+    http://downloads.sourceforge.net/imagemagick/ImageMagick-X.X.X-XX-Q8-windows-dll.exe
 
-  d. Select Use Visual Studio and change Project Type to
-     "Console application project".
-     Click Next.
+    When ImageMagick installer prompts you for install options,
+    select the following checkboxes:
 
-  e. Keep clicking Next and then click Finish.
+      o Update executable search path
+      o Install development headers and libraries for C and C++
 
+  * File > Open > File > [libdmtx]/project/visualc9/libdmtx.sln
 
-3. Add Necessary Project Files
------------------------------------------------------------------
+  * Right click on dmtxread in the Solution Explorer:
 
-Next we need to tell Visual C++ which files we want to include as
-part of our project. For this example we're going to include
-"dmtxread" but you alternatively could choose "dmtxwrite" if that
-is your goal. Files can be included by right-clicking entire
-folders or individual files in the Solution Explorer window, then
-selecting Include In Project from the resulting pop-up. Doing
-this, go through the list and include the following items:
+    Properties > Configuration Properties > Linker > General >
+    Additional Library Directories > C:\[ImageMagick]
 
-   * libdmtx-0.6.1/dmtx.c
-   * libdmtx-0.6.1/dmtx.h
-   * libdmtx-0.6.1/util/dmtxread (whole folder)
-   * libdmtx-0.6.1/util/common (whole folder)
-   * All *.c and *.h files in the main libpng folder (not
-     including subdirectories) except for example.c and pngtest.c
-   * All *.c and *.h files in the main zlib folder (not including
-     subdirectories) except for example.c and minigzip.c
+    Update [ImageMagick] path to reflect the install path and
+    version of ImageMagick you installed above.
+
+  * Right click on dmtxwrite in the Solution Explorer:
+
+    Properties > Configuration Properties > Linker > General >
+    Additional Library Directories > C:\[ImageMagick]
+
+    Update [ImageMagick] path to reflect the install path and
+    version of ImageMagick you installed above.
+
+  * Build > Configuration Manager > Active solution configuration
+      Select "Debug" or "Release"
+
+  * Build > Build Solution (or press F7)
+
+The Debug or Release directory in project/visualc9 will now
+hold the compiled files.
 
 
-4. Add Necessary Include Paths
------------------------------------------------------------------
-
-Almost done. We still need to tell Visual C++ where to look for
-header files. This step can be done only after adding the project
-files above, since the C/C++ options won't appear otherwise. To
-add the include paths, right-click on the project name
-("libdmtx_utils" in this example) in the Solution Explorer and
-select Properties. This brings up a dialog that offers several
-configurations. Expand Configuration Properties > C/C++ > General
-and you should see a field on the right called Additional Include
-Directories. Click on the "..." within this field and add the
-following directories by clicking on the "new folder" icon.
-
-   * Path to the main libdmtx directory
-   * Path to libdmtx/util/common directory
-   * Path to libdmtx/util/dmtxread or libdmtx/util/dmtxwrite
-     (depending on which utility want)
-   * Path to the main libpng directory
-   * Path to the main zlib directory
-
-That's it. You should now be able to "Build Solution" (F7) and
-after a bunch of warnings it will say "1 succeeded". It is left
-as an exercise for the reader to find where Visual C++ placed the
-resulting executable.
-
-
-5. This Document
+3. This Document
 -----------------------------------------------------------------
 
 This document is derived from the wiki page located at:

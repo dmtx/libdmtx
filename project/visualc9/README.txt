@@ -26,9 +26,9 @@ main directory of the source package.
 2. ImageMagick Installation
 -----------------------------------------------------------------
 
-Both dmtxread.exe and dmtxwrite.exe also require the ImageMagick to be
-installed on your computer. This package can be downloaded from
-either sourceforge.net or imagemagick.org:
+Both dmtxread.exe and dmtxwrite.exe also require the ImageMagick
+to be installed on your computer. This package can be downloaded
+from either sourceforge.net or imagemagick.org:
 
   http://downloads.sourceforge.net/imagemagick/ImageMagick-6.4.8-10-Q8-windows-dll.exe
 
