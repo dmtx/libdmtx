@@ -134,7 +134,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
       case DmtxPropYmax:
          dec->yMax = value / dec->scale;
          break;
-      default;
+      default:
          break;
    }
 
@@ -189,7 +189,7 @@ dmtxDecodeGetProp(DmtxDecode *dec, int prop)
          return dmtxImageGetProp(dec->image, DmtxPropWidth) / dec->scale;
       case DmtxPropHeight:
          return dmtxImageGetProp(dec->image, DmtxPropHeight) / dec->scale;
-      default;
+      default:
          break;
    }
 
