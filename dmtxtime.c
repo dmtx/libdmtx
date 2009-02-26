@@ -33,7 +33,6 @@ Contact: mike@dragonflylogic.com
 
 #include <sys/time.h>
 #include <time.h>
-
 #define DMTX_TIME_PREC_USEC 1
 
 /**
@@ -57,10 +56,9 @@ dmtxTimeNow(void)
    return tNow;
 }
 
-#elif defined (_MSC_VER)
+#elif defined(_MSC_VER)
 
 #include <Windows.h>
-
 #define DMTX_TIME_PREC_USEC 1
 
 /**
@@ -90,7 +88,6 @@ dmtxTimeNow(void)
 #else
 
 #include <time.h>
-
 #define DMTX_TIME_PREC_USEC 1000000
 
 /**
