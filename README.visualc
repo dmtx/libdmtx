@@ -14,10 +14,10 @@ and its components.
 -----------------------------------------------------------------
 
 The libdmtx source package provides solution and project files
-for Visual Studio 9.0 in the project/visualc9 directory. Use the
+for Visual Studio 9.0 in the project\visualc9 directory. Use the
 following steps if you wish to compile only the core library:
 
-  * File > Open > File > [libdmtx]/project/visualc9/libdmtx.sln
+  * File > Open > File > C:\[libdmtx]\project\visualc9\libdmtx.sln
 
   * Select/Highlight "libdmtx" in the Solution Explorer
 
@@ -26,7 +26,7 @@ following steps if you wish to compile only the core library:
 
   * Build > Build libdmtx
 
-The Debug or Release directory in project/visualc9 will now
+The Debug or Release directory in project\visualc9 will now
 hold the files libdmtx.dll and libdmtx.lib.
 
 
@@ -35,43 +35,43 @@ hold the files libdmtx.dll and libdmtx.lib.
 
 The solution file mentioned above also includes projects for the
 libdmtx command line utilities. The most significant utilities,
-dmtxread.exe and dmtxwrite.exe, also require the ImageMagick
-package to be installed on your computer. To build the utilities:
+dmtxread.exe and dmtxwrite.exe, require ImageMagick to be
+installed on your computer. To build the utilities:
 
-  * Download and install ImageMagick to your system:
+  * Download and run the ImageMagick installer program:
 
     http://downloads.sourceforge.net/imagemagick/ImageMagick-X.X.X-XX-Q8-windows-dll.exe
 
-    When ImageMagick installer prompts you for install options,
-    select the following checkboxes:
+    When the installer prompts you with options, make sure the
+    following checkboxes are selected:
 
-      o Update executable search path
-      o Install development headers and libraries for C and C++
+      x Update executable search path
+      x Install development headers and libraries for C and C++
 
-  * File > Open > File > [libdmtx]/project/visualc9/libdmtx.sln
+  * File > Open > File > C:\[libdmtx]\project\visualc9\libdmtx.sln
 
-  * Right click on dmtxread in the Solution Explorer:
-
-    Properties > Configuration Properties > Linker > General >
-    Additional Library Directories > C:\[ImageMagick]
-
-    Update [ImageMagick] path to reflect the install path and
-    version of ImageMagick you installed above.
-
-  * Right click on dmtxwrite in the Solution Explorer:
+  * Right-click on dmtxread in the Solution Explorer:
 
     Properties > Configuration Properties > Linker > General >
     Additional Library Directories > C:\[ImageMagick]
 
-    Update [ImageMagick] path to reflect the install path and
-    version of ImageMagick you installed above.
+    Update the [ImageMagick] path to match the installation path
+    you installed above.
+
+  * Right-click on dmtxwrite in the Solution Explorer:
+
+    Properties > Configuration Properties > Linker > General >
+    Additional Library Directories > C:\[ImageMagick]
+
+    Update the [ImageMagick] path to match the installation path
+    you installed above.
 
   * Build > Configuration Manager > Active solution configuration
       Select "Debug" or "Release"
 
   * Build > Build Solution (or press F7)
 
-The Debug or Release directory in project/visualc9 will now
+The Debug or Release directory in project\visualc9 will now
 hold the compiled files.
 
 

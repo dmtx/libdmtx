@@ -28,11 +28,6 @@ of Unix:
    * HP-UX
    * AIX
 
-Common Unix Issues
-
-   * Missing getopt.h / getopt_long
-   * Missing library dependencies (libpng, libtiff)
-
 
 3. This Document
 -----------------------------------------------------------------

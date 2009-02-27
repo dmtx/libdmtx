@@ -16,10 +16,10 @@ cc file.c -ldmtx
 .SH DESCRIPTION
 \fIlibdmtx\fP is a software library that enables programs to read and write Data Matrix barcodes of the modern ECC200 variety. The library runs natively on several platforms, and can be accessed by multiple languages using the libdmtx language wrappers. The utility programs \fIdmtxread\fP and \fIdmtxwrite\fP provide a command line interface for libdmtx, and serve as a good reference for developers writing their own libdmtx-enabled programs.
 
-Data Matrix barcodes store data as a pattern of ON and OFF modules (often black on white) in a grid pattern that resembles a checkerboard. Like other 2D symbologies, Data Matrix symbols have a large data capacity compared to their traditional 1D cousins, and employ sophisticated error correction techniques. Data Matrix barcodes can be square or rectangle in shape, and offer several encodation schemes for optimized storage of text and/or binary data. The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
+Data Matrix barcodes store data as a pattern of ON and OFF modules (often black on white) in a grid pattern that resembles a checkerboard. Like other 2D symbologies, Data Matrix barcodes have a large data capacity compared to their traditional 1D cousins, and employ sophisticated error correction techniques. Data Matrix barcodes can be square or rectangle in shape, and offer several encodation schemes for optimized storage of text and/or binary data. The Data Matrix symbology was invented and released into the public domain by RVSI Acuity CiMatrix.
 
 .SH ENCODING - Generating Data Matrix Barcodes
-Programs can generate a barcode with just a few basic calls to libdmtx:
+C/C++ programs can generate a barcode with just a few basic calls to libdmtx:
 
 1. Call \fBdmtxEncodeCreate()\fP
 
@@ -27,11 +27,11 @@ Creates a new \fBDmtxEncode\fP structure and initializes the encoding process. T
 
 2. Call \fBdmtxEncodeSetProp()\fP [optional]
 
-Allows you to control specific aspects of the encoding behavior. If this function is not called, libdmtx will use the defaults set by \fBdmtxEncodeCreate()\fP above. The complementary function, \fBdmtxEncodeGetProp()\fP, allows you to read the current settings.
+Allows you to control specific aspects of the encoding behavior. If this function is not called, libdmtx will use the defaults set by \fBdmtxEncodeCreate()\fP above. The complementary function, \fBdmtxEncodeGetProp()\fP, allows you to detect the current settings.
 
 3. Call either \fBdmtxEncodeDataMatrix()\fP or \fBdmtxEncodeDataMosaic()\fP
 
-Call one of these functions to generate an image of the desired barcode type. Your program is responsible for dispatching the resulting image data to its destination, whether that means displaying it on a screen, writing an image file, copying it elsewhere, etc...
+Call one of these functions to generate an image of the desired barcode type. Your program is responsible for dispatching the resulting output to its destination, whether that means displaying it on a screen, writing an image file, copying it elsewhere, etc...
 
 4. Call \fBdmtxEncodeDestroy()\fP
 
@@ -56,11 +56,11 @@ Creates and initializes a new \fBDmtxImage\fP structure using pixel data provide
 
 2. Call \fBdmtxImageSetProp()\fP [optional]
 
-xxx
+Sets image properties to control the pixel mapping logic. These settings allow libdmtx to understand many native in-memory image layouts, thus preventing the extra work of transforming and copying data to a one-size-fits-all format. A \fBdmtxDecodeGetProp()\fP function is also available for detecting the current image properties.
 
 3. Call \fBdmtxDecodeCreate()\fP
 
-Creates and initializes a new \fBDmtxDecode\fP struct, which designates the image to be scanned and initializes the grid pattern. This function must be called before any other scanning functions.
+Creates and initializes a new \fBDmtxDecode\fP struct, which designates the image to be scanned and initializes the scan grid pattern. This function must be called before any other scanning functions.
 
 4. Call \fBdmtxDecodeSetProp()\fP [optional]
 
@@ -68,7 +68,7 @@ Sets internal properties to control decoding behavior. This feature allows you t
 
 5. Call \fBdmtxRegionFindNext()\fP
 
-Searches every pixel location in a grid pattern looking for potential barcode regions. A \fBDmtxRegion\fP is returned whenever A) a potential barcode region is found, or B) the final pixel has been scanned. Subsequent calls to this function will resume the search where the previous call left off.
+Searches every pixel location in a grid pattern looking for potential barcode regions. A \fBDmtxRegion\fP is returned whenever a potential barcode region is found, or if the final pixel location has been scanned. Subsequent calls to this function will resume the search where the previous call left off.
 
 6. Call either \fBdmtxDecodeMatrixRegion()\fP or \fBdmtxDecodeMosaicRegion()\fP
 
@@ -76,19 +76,19 @@ Extracts raw data from the barcode region and decodes the underlying message.
 
 7. Call \fBdmtxMessageDestroy()\fP
 
-Releases the memory held by a \fBDmtxMessage\fP struct. The complementary function, \fBdmtxMessageCreate()\fP, is automatically called by \fBdmtxDecodeMatrixRegion()\fP and therefore is not normally used by the calling program.
+Releases memory held by a \fBDmtxMessage\fP struct. The complementary function, \fBdmtxMessageCreate()\fP, is automatically called by \fBdmtxDecodeMatrixRegion()\fP and therefore is not normally used by the calling program.
 
 8. Call \fBdmtxRegionDestroy()\fP
 
-Releases the memory held by a \fBDmtxRegion\fP struct. The complementary function, \fBdmtxRegionCreate()\fP, is automatically called by \fBdmtxRegionFindNext()\fP (actually \fBdmtxRegionScanPixel()\fP) and therefore is not normally used by the calling program.
+Releases memory held by a \fBDmtxRegion\fP struct. The complementary function, \fBdmtxRegionCreate()\fP, is automatically called by \fBdmtxRegionFindNext()\fP (actually \fBdmtxRegionScanPixel()\fP) and therefore is not normally used by the calling program.
 
 9. Call \fBdmtxDecodeDestroy()\fP
 
-Releases the memory held by a \fBDmtxDecode\fP struct. This is the complementary function to \fBdmtxDecodeCreate()\fP.
+Releases memory held by a \fBDmtxDecode\fP struct. This is the complementary function to \fBdmtxDecodeCreate()\fP.
 
 10. Call \fBdmtxImageDestroy()\fP
 
-Releases the memory held by a \fBDmtxImage\fP struct.
+Releases memory held by a \fBDmtxImage\fP struct, excluding the pixel array passed to \fBdmtxImageCreate()\fP. The calling program is responsible for releasing the pixel array memory, if required.
 
 .SH EXAMPLE PROGRAM
 
@@ -137,7 +137,7 @@ This example program (available as simple_test.c in the source package) demonstr
      img = dmtxImageCreate(pxl, width, height, DmtxPack24bppRGB);
      assert(img != NULL);
 
-     dec = dmtxDecodeCreate(img);
+     dec = dmtxDecodeCreate(img, 1);
      assert(dec != NULL);
 
      reg = dmtxRegionFindNext(dec, NULL);
