@@ -584,19 +584,21 @@ PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value)
 static unsigned char *
 DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
-   int digits;
+   int codeword, digits;
 
-   if(*ptr <= 128) {
-      PushOutputWord(msg, *ptr - 1);
+   codeword = (int)(*ptr);
+
+   if(codeword <= 128) {
+      PushOutputWord(msg, codeword - 1);
    }
-   else if(*ptr == 129) {
+   else if(codeword == 129) {
       assert(dataEnd >= ptr);
       assert(dataEnd - ptr <= INT_MAX);
       msg->padCount = (int)(dataEnd - ptr);
       return dataEnd;
    }
-   else if(*ptr <= 229) {
-      digits = *ptr - 130;
+   else if(codeword <= 229) {
+      digits = codeword - 130;
       PushOutputWord(msg, digits/10 + '0');
       PushOutputWord(msg, digits - (digits/10)*10 + '0');
    }
@@ -614,7 +616,10 @@ DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEn
 static unsigned char *
 DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr)
 {
-   PushOutputWord(msg, *ptr + 128);
+   int codeword;
+
+   codeword = (int)(*ptr);
+   PushOutputWord(msg, codeword + 128);
 
    return ptr + 1;
 }
