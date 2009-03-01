@@ -1,6 +1,25 @@
 Changes for libdmtx
 -----------------------------------------------------------------
 
+version 0.7.0 [March 2009]
+  Added solution and project files for MS Visual Studio 9.0
+  New Java wrapper (thanks Pete and Dikran!)
+  New .NET wrapper (thanks Vali and Joe!)
+  Reader support for FNC1 and upper shift in C40/Text [Robin]
+  Support for byte-padded rows through dmtxImageSetProp()
+  New no-copy image handling with configurable pixel packing
+  Moved image scaling factors to DmtxDecode
+  Moved scan cache from DmtxImage to DmtxDecode
+  Eliminate types DmtxRgb, DmtxColor3, and DmtxGradient
+  API updates for consistent naming and conventions
+  Added dmtxEncodeSetProp() and dmtxEncodeGetProp()
+  Option to print extended ASCII as UTF-8 [Robin]
+  Fixed diagnostic image output
+  Fixed misrepresented capacity in verbose mode
+  True vector SVG output bypassing ImageMagick (thanks Richard!)
+  Use ImageMagick to write images in major raster formats
+  Fixed several bugs and compiler warnings
+
 version 0.6.0 [November 2008]
   dmtxread now scans all major image formats [Olivier]
   New encoding/decoding Ruby wrapper [Romain]
