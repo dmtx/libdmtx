@@ -7,7 +7,7 @@
 .\"
 .TH LIBDMTX 3 "November 23, 2008"
 .SH NAME
-libdmtx \- Data Matrix Encoding & Decoding Library 0.6.1
+libdmtx \- Data Matrix Encoding & Decoding Library 0.7.0
 .SH SYNOPSIS
 \fB#include <dmtx.h>\fP
 
@@ -38,7 +38,7 @@ Call one of these functions to generate an image of the desired barcode type. Yo
 Releases memory allocated during the encoding process.
 
 .SH DECODING - Reading Data Matrix Barcodes
-Barcode reading takes more steps than barcode generation, mainly because libdmtx must find a barcode region before it can be decoded. However, it remains a straightforward process that uses 4 main structures:
+Barcode reading takes more steps than barcode generation, mainly because libdmtx must find a barcode region before it can decode the message. However, this too is a relatively simple process that uses 4 main structures:
 
 \fBDmtxImage\fP holds image properties and a pointer to pixel data held by the calling program.
 

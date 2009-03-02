@@ -23,7 +23,7 @@ for additional details that might benefit users on this platform.
 
 Debian users are the big winners because libdmtx is available in
 the main testing and unstable repositories (although not in
-stable yet). The Debian package is named libdmtx-utils.
+stable yet). The Debian package is named "libdmtx-utils".
 
 
 3. This Document

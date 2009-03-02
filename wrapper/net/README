@@ -1,9 +1,10 @@
-README for libdmtx-net version 0.6.1 - January 30, 2009
+README for libdmtx-net version 0.7.0 - January 30, 2009
 -----------------------------------------------------------------
 
-libdmtx-net a .NET wrapper for libdmtx that was originally
-written by Tomas Valenta, currently maintained by Joseph Ferner 
+libdmtx-net is a .NET wrapper for libdmtx that was originally
+written by Tomas Valenta, currently maintained by Joseph Ferner
 and is distributed as part of the libdmtx package.
+
 
 1. libdmtx-net Installation
 -----------------------------------------------------------------
@@ -15,6 +16,7 @@ b) Compile the libdmtx.net solution.
 c) Add a reference to Libdmtx.Net.dll in you're project.
    (Make sure you copy libdmtx.dll into the same directory
    as you're binaries).
+
 
 2. Dependencies
 -----------------------------------------------------------------
@@ -51,6 +53,7 @@ pictureBox1.Image = en.bitmap;
 3.3. More Information
 -----------------------------------------------------------------
 See the source or the unit tests.
+
 
 4. Known issues
 -----------------------------------------------------------------

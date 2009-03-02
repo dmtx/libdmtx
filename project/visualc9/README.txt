@@ -4,6 +4,7 @@
 
                libdmtx README file (Win32 Binaries)
 
+
 1. Introduction
 -----------------------------------------------------------------
 

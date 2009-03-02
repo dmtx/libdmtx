@@ -52,9 +52,7 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
 
 version 0.7.0: (planned XX-Mar-2009)
-  x libdmtx:   Test with 1 channel, 2 channel, 4 channel images
   x libdmtx:   Fix 64b->32b int assignment warnings
-  x libdmtx:   dmtxEncodeDataMatrix needs to account for rowPadBytes
   x libdmtx:   FNC1 and correct upper shift (thanks Robin!)
   x libdmtx:   Support byte-padded row sizes via dmtxImageSetProp()
   x libdmtx:   Move image scaling factors to DmtxDecode
@@ -64,11 +62,10 @@ version 0.7.0: (planned XX-Mar-2009)
   x libdmtx:   Add dmtxEncodeSetProp() and dmtxEncodeGetProp()
   x libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
   x libdmtx:   Remove status from DmtxPixelLoc
-  x libdmtx:   Custom pixel packing; Eliminate need for DmtxImageMalloc
-  x libdmtx:   Removed dmtxcolor.c, DmtxColor3, and DmtxGradient
-  x libdmtx:   Eliminate DmtxRgb type
-  x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE everywhere
-  x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE everywhere
+  x libdmtx:   Configurable pixel packing
+  x libdmtx:   Removed DmtxRgb, dmtxcolor.c, DmtxColor3, and DmtxGradient
+  x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE
+  x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE
   x libdmtx:   Change all major types to use Create() and Destroy() convention
   x dmtxread:  Option to print extended ASCII as UTF-8 (thanks Robin!)
   x dmtxread:  Fix diagnostic image output
@@ -80,11 +77,9 @@ version 0.7.0: (planned XX-Mar-2009)
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
   x wrapper:   New Java wrapper (thanks Pete and Dikran!)
   x wrapper:   New .NET wrapper (thanks Vali and Joe!)
-  x project:   Make 0.6-to-0.7 porting doc by porting old dmtxread and dmtxwrite
   x project:   Update documentation to reflect API changes
   x project:   Add comment to wiki pages that points to source README
   x project:   Figure out earliest usable Magick version for configure.ac
-  x project:   Clean up test utils use of "dmtx.h" vs <dmtx.h> and dmtx.c
   x project:   Add simple_test project to libdmtx.sln
   x project:   Rename wiki page to "Windows (VisualC)"
   x project:   Introduce "project" directory for non-autotools platforms

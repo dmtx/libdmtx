@@ -21,39 +21,14 @@ additional details that might benefit users on this platform.
 2. Installing MinGW and MSYS
 -----------------------------------------------------------------
 
-If you haven't done so already, you need to install MinGW, MSYS,
-and all recommended updates to your Windows system. Instructions
-for doing this are provided here:
+If you haven't done so already, first install MinGW, MSYS, and
+all recommended updates to your Windows system. Instructions for
+doing this are provided here:
 
   http://www.mingw.org/wiki/msys
 
 
-3. External Dependencies
------------------------------------------------------------------
-
-The dmtxread and dmtxwrite command line utilities require
-ImageMagick to be installed on your system. To satisfy this
-requirement you can download and install the current stable
-branch of ImageMagick from:
-
-   https://sourceforge.net/projects/imagemagick/
-
-After downloading, unpack the ImageMagick sources and run:
-
-  $ ./configure
-  $ make
-  $ make install
-
-Alternatively, if you only want the core library and don't care
-about the command line utilities, you can just disable them and
-avoid messing with ImageMagick entirely. This is accomplished by
-passing "--disable-dmtxread --disable-dmtxwrite" to ./configure
-when installing libdmtx.
-
-  $ ./configure --disable-dmtxread --disable-dmtxwrite
-
-
-4. Building and installing libdmtx
+3. Building and installing the core library
 -----------------------------------------------------------------
 
 To install libdmtx, download and unpack the libdmtx source to
@@ -62,9 +37,9 @@ will be C:\msys\1.0.
 
 Open the MSYS shell and run the following:
 
-  $ ./configure
+  $ ./configure --disable-dmtxread --disable-dmtxwrite --disable-dmtxquery
   $ make
-  $ make install
+  $ sudo make install
 
 Go to folder .libs:
 
@@ -80,6 +55,30 @@ Finally run:
   $ gcc -shared -o dmtx.dll libdmtx_la-dmtx.o -Wl,--out-implib,libdmtx.a
 
 Now you should have working dmtx.dll in the folder .libs.
+
+
+4. External Dependencies
+-----------------------------------------------------------------
+
+The dmtxread and dmtxwrite command line utilities require
+ImageMagick to be installed on your system. To satisfy this
+requirement you can download and install the current stable
+branch of ImageMagick from:
+
+   https://sourceforge.net/projects/imagemagick/
+
+After downloading, unpack the ImageMagick sources and run:
+
+  $ ./configure
+  $ make
+  $ sudo make install
+
+Once ImageMagick is installed, change into the libdmtx directory
+and perform a full install:
+
+  $ ./configure
+  $ make
+  $ sudo make install
 
 
 5. This Document

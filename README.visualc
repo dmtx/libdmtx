@@ -36,7 +36,7 @@ hold the files libdmtx.dll and libdmtx.lib.
 The solution file mentioned above also includes projects for the
 libdmtx command line utilities. The most significant utilities,
 dmtxread.exe and dmtxwrite.exe, require ImageMagick to be
-installed on your computer. To build the utilities:
+installed on your system. To build the utilities:
 
   * Download and run the ImageMagick installer program:
 

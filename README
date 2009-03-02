@@ -45,9 +45,7 @@ Users who only want the core library can disable the command line
 utilities by passing the following parameters to "configure"
 during installation:
 
-  --disable-dmtxread
-  --disable-dmtxwrite
-  --disable-dmtxquery
+  --disable-dmtxread --disable-dmtxwrite --disable-dmtxquery
 
 This eliminates most software dependencies and helps to reduce
 compile times. However, these utilities provide a convenient way
@@ -65,8 +63,7 @@ libdmtx uses GNU Autotools so installation should be familiar to
 veterans of free software. If your platform cannot easily run the
 Autotools scripts (e.g., MS Visual Studio) then refer to the
 appropriate platform-specific README.xxx located in this
-directory for alternate instructions. *** also mention "project"
-directory here ***
+directory for alternate instructions.
 
 In theory the following 3 steps will compile and install libdmtx
 on your system:

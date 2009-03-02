@@ -1,7 +1,7 @@
-README for libdmtx-php version 0.6.1 - November 23, 2008
+README for libdmtx-php version 0.7.0 - November 23, 2008
 -----------------------------------------------------------------
 
-libdmtx-php a PHP wrapper for libdmtx that was written by
+libdmtx-php is a PHP wrapper for libdmtx that was written by
 Christian Hentschel and is distributed as part of the libdmtx
 package.
 

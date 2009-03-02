@@ -109,7 +109,7 @@ timeAddTest(void)
  *
  *
  */
-/*
+/**
 static void
 TestRGB(void)
 {

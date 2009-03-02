@@ -31,6 +31,7 @@ The follow options are considered experimental:
 
 The follow options are considered experimental:
   -eb, --encodation=b        best encodation (beta only)
+  -M,  --mosaic              create Data Mosaic (non-standard)
 
 The follow options are not implemented yet:
   -ef, --encodation=f        fast encodation
@@ -59,6 +60,12 @@ unit_test:
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 cocoa wrapper:
+  * No known issues
+
+java wrapper:
+  * No known issues
+
+net wrapper:
   * No known issues
 
 php wrapper:

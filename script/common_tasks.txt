@@ -62,7 +62,6 @@ Release Checklist
    o configure.ac
    o dmtx.h
    o man/libdmtx.3
-   o README.visualc
    o wrapper/cocoa/README
    o wrapper/java/README
    o wrapper/net/README
