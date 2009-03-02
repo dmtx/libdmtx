@@ -64,7 +64,6 @@ typedef struct dmtx_decode_options_t {
 	dmtx_int16_t correctionsMax;
 	dmtx_uint16_t mosaic;
 	dmtx_int16_t shrink;
-	char* diagnoseOutputFileName;
 } dmtx_decode_options_t;
 
 typedef struct dmtx_encode_options_t {
@@ -126,6 +125,8 @@ dmtx_decode(const void *rgb_image,
 			const dmtx_uint32_t height,
 			const dmtx_uint32_t bitmapStride,
 			const dmtx_decode_options_t *options,
+			void(*diagnoseFunc)(unsigned char *data, dmtx_uint32_t totalBytes, dmtx_uint32_t headerBytes),
+			const dmtx_uint32_t diagnosticStyle,
 			int(*callbackFunc)(dmtx_decoded_t *decode_result));
 
 DMTX_EXTERN unsigned char

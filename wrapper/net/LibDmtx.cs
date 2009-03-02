@@ -73,13 +73,56 @@ namespace Libdmtx {
             return results.ToArray();
         }
 
+        public static DmtxDecoded[] Decode(
+            Bitmap b,
+            DecodeOptions options,
+            DiagnosticImageStyles diagnosticImageStyle, out Bitmap diagnosticImage) {
+            List<DmtxDecoded> results = new List<DmtxDecoded>();
+            Bitmap diagnosticImageTemp = null;
+            Decode(
+                b,
+                options,
+                delegate(DmtxDecoded d) { results.Add(d); },
+                diagnosticImageStyle,
+                delegate(Bitmap di) { diagnosticImageTemp = di; });
+            diagnosticImage = diagnosticImageTemp;
+            return results.ToArray();
+        }
+
         public delegate void DecodeCallback(DmtxDecoded decoded);
+
+        public delegate void DecodeDiagnosticImageCallback(Bitmap diagnosticImage);
+
         public static void Decode(Bitmap b, DecodeOptions options, DecodeCallback Callback) {
+            Decode(b, options, Callback, 0, null);
+        }
+
+        public static void Decode(
+            Bitmap b,
+            DecodeOptions options,
+            DecodeCallback Callback,
+            DiagnosticImageStyles diagnosticImageStyle, DecodeDiagnosticImageCallback DiagnosticImageCallback) {
             Exception decodeException = null;
             byte status;
             try {
                 int bitmapStride;
                 byte[] pxl = BitmapToByteArray(b, out bitmapStride);
+
+                DmtxDiagnosticImageCallback diagnosticImageCallbackParam = null;
+                if (DiagnosticImageCallback != null) {
+                    diagnosticImageCallbackParam = delegate(IntPtr data, uint totalBytes, uint headerBytes) {
+                        try {
+                            byte[] pnmData = new byte[totalBytes];
+                            Marshal.Copy(data, pnmData, 0, pnmData.Length);
+                            using (MemoryStream pnmInputStream = new MemoryStream(pnmData)) {
+                                Bitmap bm = PnmToBitmap(pnmInputStream);
+                                DiagnosticImageCallback(bm);
+                            }
+                        } catch (Exception ex) {
+                            decodeException = ex;
+                        }
+                    };
+                }
 
                 status = DmtxDecode(
                     pxl,
@@ -87,6 +130,7 @@ namespace Libdmtx {
                     (UInt32)b.Height,
                     (UInt32)bitmapStride,
                     options,
+                    diagnosticImageCallbackParam, diagnosticImageStyle,
                     delegate(DecodedInternal dmtxDecodeResult) {
                         DmtxDecoded result;
                         try {
@@ -236,6 +280,9 @@ namespace Libdmtx {
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate bool DmtxDecodeCallback(DecodedInternal dmtxDecodeResult);
 
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        private delegate void DmtxDiagnosticImageCallback(IntPtr data, uint totalBytes, uint headerSize);
+
         [DllImport("libdmtx.dll", EntryPoint = "dmtx_decode")]
         private static extern byte
         DmtxDecode(
@@ -244,7 +291,9 @@ namespace Libdmtx {
             [In] UInt32 height,
             [In] UInt32 bitmapStride,
             [In] DecodeOptions options,
-            [In] DmtxDecodeCallback callback);
+            [In] DmtxDiagnosticImageCallback diagnosticImageCallback,
+            [In] DiagnosticImageStyles diagnosticImageStyle,
+            [In] DmtxDecodeCallback decodeCallback);
 
         [DllImport("libdmtx.dll", EntryPoint = "dmtx_encode")]
         private static extern byte
@@ -268,6 +317,10 @@ namespace Libdmtx {
         [DllImport("libdmtx.dll", EntryPoint = "dmtx_version", CharSet = CharSet.Ansi)]
         private static extern string
         DmtxVersion();
+    }
+
+    public enum DiagnosticImageStyles : uint {
+        Default = 0
     }
 
     /// <summary>
@@ -378,7 +431,6 @@ namespace Libdmtx {
         public Int16 CorrectionsMax = Dmtx.DmtxUndefined;
         public CodeType CodeType = CodeType.DataMatrix;
         public Int16 Shrink = 1;
-        public string DiagnoseOutputFileName = null;
     }
 
     /// <summary>

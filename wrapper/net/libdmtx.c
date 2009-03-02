@@ -29,14 +29,14 @@ Contact: libdmtx@fernsroth.com
 #include <math.h>
 #include <stdio.h>
 
-static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);
-
 DMTX_EXTERN unsigned char
 dmtx_decode(const unsigned char *rgb_image,
 			const dmtx_uint32_t width,
 			const dmtx_uint32_t height,
 			const dmtx_uint32_t bitmapStride,
 			const dmtx_decode_options_t *options,
+			void(*diagnoseFunc)(unsigned char *data, int totalBytes, int headerBytes),
+			const dmtx_uint32_t diagnosticStyle,
 			int(*callbackFunc)(dmtx_decoded_t *decode_result))
 {
 	DmtxImage *img = NULL;
@@ -100,8 +100,13 @@ dmtx_decode(const unsigned char *rgb_image,
 		return DMTX_RETURN_INVALID_ARGUMENT;
 	}
 
-	if (options->diagnoseOutputFileName) {
-		WriteDiagnosticImage(decode, options->diagnoseOutputFileName);
+	if (diagnoseFunc) {
+		int totalBytes, headerBytes;
+		unsigned char *diagnosticData;
+		diagnosticData = dmtxDecodeCreateDiagnostic(
+			decode, &totalBytes, &headerBytes, diagnosticStyle);
+		diagnoseFunc(diagnosticData, totalBytes, headerBytes);
+		free(diagnosticData);
 	}
 
 	// Find and decode matrices in the image
@@ -270,56 +275,4 @@ DMTX_EXTERN char *
 dmtx_version(void)
 {
 	return dmtxVersion();
-}
-
-static void
-WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
-{
-   int row, col;
-   int width, height;
-   int rgb[3];
-   double shade;
-   unsigned char *cache;
-   FILE *fp;
-
-   fp = fopen(imagePath, "wb");
-
-   width = dmtxDecodeGetProp(dec, DmtxPropWidth);
-   height = dmtxDecodeGetProp(dec, DmtxPropHeight);
-
-   /* Test each pixel of input image to see if it lies in region */
-   fprintf(fp, "P6\n%d %d\n255\n", width, height);
-   for(row = height - 1; row >= 0; row--) {
-      for(col = 0; col < width; col++) {
-
-         cache = dmtxDecodeGetCache(dec, col, row);
-         if(cache == NULL) {
-            rgb[0] = 0;
-            rgb[1] = 0;
-            rgb[2] = 128;
-         }
-         else {
-            dmtxDecodeGetPixelValue(dec, col, row, 0, &rgb[0]);
-            dmtxDecodeGetPixelValue(dec, col, row, 1, &rgb[1]);
-            dmtxDecodeGetPixelValue(dec, col, row, 2, &rgb[2]);
-
-            if(*cache & 0x40) {
-               rgb[0] = 255;
-               rgb[1] = 0;
-               rgb[2] = 0;
-            }
-            else {
-               shade = (*cache & 0x80) ? 0.0 : 0.7;
-               rgb[0] += (int)(shade * (255 - rgb[0]));
-               rgb[1] += (int)(shade * (255 - rgb[1]));
-               rgb[2] += (int)(shade * (255 - rgb[2]));
-            }
-         }
-         fputc(rgb[0], fp);
-         fputc(rgb[1], fp);
-         fputc(rgb[2], fp);
-      }
-   }
-
-   fclose(fp);
 }

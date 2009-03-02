@@ -122,17 +122,10 @@ namespace Libdmtx {
             }
             Assert.AreNotEqual(0, stride % 3, "Stride was divisable by 3 which doesn't make a very good test");
 
-            string tempFileName = Path.GetTempFileName();
-            DecodeOptions opt = new DecodeOptions {
-                DiagnoseOutputFileName = tempFileName
-            };
-            DmtxDecoded[] decodedImages = Dmtx.Decode(bm, opt);
-
-            // ensure the image looks correct
+            DecodeOptions opt = new DecodeOptions();
             Bitmap diagnoseImage;
-            using (Stream stream = File.OpenRead(tempFileName)) {
-                diagnoseImage = Dmtx.PnmToBitmap(stream);
-            }
+            DmtxDecoded[] decodedImages = Dmtx.Decode(bm, opt, DiagnosticImageStyles.Default, out diagnoseImage);
+
             //diagnoseImage.Save("c:/temp/diagnose.bmp", ImageFormat.Bmp);
 
             Assert.AreEqual(24.0, diagnoseImage.Width, 1.0);
