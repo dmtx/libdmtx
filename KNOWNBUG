@@ -37,7 +37,6 @@ The follow options are not implemented yet:
   -c,  --color=COLOR         barcode color
   -b,  --bgcolor=COLOR       background color
   -r,  --rotate=DEGREES      rotation angle
-  -M,  --mosaic              create Data Mosaic barcode
 
 
 4. Test Programs
@@ -60,7 +59,7 @@ unit_test:
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 cocoa wrapper:
-  * Does not compile with recent libdmtx versions (needs update)
+  * No known issues
 
 php wrapper:
   * No known issues

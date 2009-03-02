@@ -44,24 +44,22 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o libdmtx:   Implement structured append symbols
   o dmtxread:  Flatten deeply nested loops in main()
   o dmtxread:  Add true scan timings that factor in linking, startup, image load
-  o dmtxwrite: Use Magick to write images of major vector formats
+  o dmtxwrite: Add support for setting foreground and background colors
   o dmtxquery: Write XML for dmtxquery consumption
   o dmtxquery: Initial working version (parses XML)
-  o project:   Any way to ask Magick to filter out GS warnings?
+  o project:   Any way to ask Magick to filter out GS (and other) warnings?
   o project:   Conditional use of local getopt.c
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
 
-version 0.7.0: (planned XX-Feb-2009)
-FOCUS: API cleanup, custom pixel packing, cross platform support
+version 0.7.0: (planned XX-Mar-2009)
   x libdmtx:   Test with 1 channel, 2 channel, 4 channel images
   x libdmtx:   Fix 64b->32b int assignment warnings
   x libdmtx:   dmtxEncodeDataMatrix needs to account for rowPadBytes
   x libdmtx:   FNC1 and correct upper shift (thanks Robin!)
   x libdmtx:   Support byte-padded row sizes via dmtxImageSetProp()
   x libdmtx:   Move image scaling factors to DmtxDecode
-  x libdmtx:   Experiment with dmtxImageCreate() that takes fewer parameters
   x libdmtx:   Add DmtxUndefined to replace "-1" for undefined fixes, offset, etc...
-  x libdmtx:   Take DmtxFlip parameter out of dmtxImageCreate()
+  x libdmtx:   Update dmtxImageCreate() parameter options
   x libdmtx:   Switch DmtxFlipNone represent top-down row order
   x libdmtx:   Add dmtxEncodeSetProp() and dmtxEncodeGetProp()
   x libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
@@ -75,15 +73,14 @@ FOCUS: API cleanup, custom pixel packing, cross platform support
   x dmtxread:  Option to print extended ASCII as UTF-8 (thanks Robin!)
   x dmtxread:  Fix diagnostic image output
   x dmtxread:  Fix misrepresented capacity in verbose mode
-  / dmtxwrite: True vector SVG output bypassing ImageMagick (thanks Richard!)
-  x dmtxwrite: "-f pdf -o test" should produce a PDF
-  x dmtxwrite: Use Magick to write images of major raster formats
+  x dmtxwrite: True vector SVG output bypassing ImageMagick (thanks Richard!)
+  x dmtxwrite: Use Magick to write images of major image formats
   x dmtxwrite: Bad option should give short "invalid option -- N; --help for more"
   x dmtxwrite: Use HandleArgs() to capture requests, and process afterward
   x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
   x wrapper:   New Java wrapper (thanks Pete and Dikran!)
   x wrapper:   New .NET wrapper (thanks Vali and Joe!)
-  / project:   Make 0.6-to-0.7 porting doc by porting old dmtxread and dmtxwrite
+  x project:   Make 0.6-to-0.7 porting doc by porting old dmtxread and dmtxwrite
   x project:   Update documentation to reflect API changes
   x project:   Add comment to wiki pages that points to source README
   x project:   Figure out earliest usable Magick version for configure.ac

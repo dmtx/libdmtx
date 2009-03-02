@@ -1,6 +1,4 @@
-This file is more of a checklist than a script. Maybe think of it
-as a manual script.
-
+#!/make/me/a/sandwich
 
 Common Tasks
 -----------------------------------------------------------------
