@@ -1,7 +1,7 @@
 TODO Items
 -----------------------------------------------------------------
 
-version 1.0.0: (planned XX-Aug-2009)
+version 1.0.0: (planned XX-Oct-2009)
 FOCUS: remaining gaps, testing, documentation
   o testsuite: Generate metrics in reproducible format to enable historical tracking
   o testsuite: Investigate option of embedding decoded text into PNG test image comments
@@ -9,7 +9,7 @@ FOCUS: remaining gaps, testing, documentation
   o testsuite: 'make test' writes metrics file
   o testsuite: 'make test' confirms performance
 
-version 0.9.0: (planned XX-Jun-2009)
+version 0.9.0: (planned XX-Jul-2009)
 FOCUS: refactor encoding engine, FNC1, macros
   o libdmtx:   Implement --auto-fast option using algorithm from spec (lighter & faster?)
   o libdmtx:   Structured append reading and writing
@@ -31,7 +31,7 @@ FOCUS: refactor encoding engine, FNC1, macros
   o dmtxwrite: Verbose messages describing encoding process
   o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
 
-version 0.8.0: (planned XX-Apr-2009)
+version 0.8.0: (planned XX-May-2009)
 FOCUS: region detection refinement, multiple barcode scanning, structured append
   o libdmtx:   Consider making "*ProdScaled" default, and unscaled as "Unscaled"
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
@@ -51,7 +51,7 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o project:   Conditional use of local getopt.c
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
 
-version 0.7.0: (planned XX-Mar-2009)
+version 0.7.0: (02-Mar-2009)
   x libdmtx:   Fix 64b->32b int assignment warnings
   x libdmtx:   FNC1 and correct upper shift (thanks Robin!)
   x libdmtx:   Support byte-padded row sizes via dmtxImageSetProp()

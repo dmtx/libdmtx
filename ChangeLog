@@ -2,10 +2,10 @@ Changes for libdmtx
 -----------------------------------------------------------------
 
 version 0.7.0 [March 2009]
-  Added solution and project files for MS Visual Studio 9.0
   New Java wrapper (thanks Pete and Dikran!)
   New .NET wrapper (thanks Vali and Joe!)
-  Reader support for FNC1 and upper shift in C40/Text [Robin]
+  Added solution and project files for MS Visual Studio 9.0
+  Reader support for FNC1 and upper shift (thanks Robin!)
   Support for byte-padded rows through dmtxImageSetProp()
   New no-copy image handling with configurable pixel packing
   Moved image scaling factors to DmtxDecode
@@ -13,7 +13,7 @@ version 0.7.0 [March 2009]
   Eliminate types DmtxRgb, DmtxColor3, and DmtxGradient
   API updates for consistent naming and conventions
   Added dmtxEncodeSetProp() and dmtxEncodeGetProp()
-  Option to print extended ASCII as UTF-8 [Robin]
+  Option to print extended ASCII as UTF-8 (thanks Robin!)
   Fixed diagnostic image output
   Fixed misrepresented capacity in verbose mode
   True vector SVG output bypassing ImageMagick (thanks Richard!)
