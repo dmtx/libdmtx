@@ -25,6 +25,7 @@ EXTRA_DIST = KNOWNBUG \
 	README.osx \
 	README.unix \
 	README.visualc \
+	project \
 	script/check_all.sh \
 	script/check_comments.sh \
 	script/check_copyright.sh \
