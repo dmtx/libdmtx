@@ -1,4 +1,4 @@
-AC_INIT([libdmtx], [0.7.0], [mike@dragonflylogic.com])
+AC_INIT([libdmtx], [0.7.1], [mike@dragonflylogic.com])
 AM_INIT_AUTOMAKE([-Wall -Werror gnu])
 
 AC_PROG_CC

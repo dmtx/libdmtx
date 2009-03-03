@@ -110,7 +110,7 @@ Release Checklist
 
 10) o Upload release to SourceForge
 
-    o $ scp libdmtx-x.x.x.tar.* user@frs.sourceforge.net:uploads
+    o $ scp libdmtx-0.8.0.tar.* user@frs.sourceforge.net:uploads
 
 11) o SourceForge release administration
 
@@ -122,10 +122,10 @@ Release Checklist
       SourceForge in case something changes at the last minute)
 
     o $ svn copy https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk \
-                 https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/tags/release-0.7.0 \
-           -m "Tagged libdmtx 0.7.0 release"
+                 https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/tags/release-0.8.0 \
+           -m "Tagged libdmtx 0.8.0 release"
 
-13) o Update minor number in unstable trunk (e.g., 0.7.0 -> 0.7.1)
+13) o Update minor number in unstable trunk (e.g., 0.8.0 -> 0.8.1)
 
     o Use file list from step 6 above
     o ./autogen.sh
