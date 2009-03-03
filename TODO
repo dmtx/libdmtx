@@ -47,6 +47,7 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o dmtxwrite: Add support for setting foreground and background colors
   o dmtxquery: Write XML for dmtxquery consumption
   o dmtxquery: Initial working version (parses XML)
+  o project:   Add "project" directory to EXTRA_DIST in Makefile.am (also compare_test?)
   o project:   Any way to ask Magick to filter out GS (and other) warnings?
   o project:   Conditional use of local getopt.c
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
