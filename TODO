@@ -33,7 +33,6 @@ FOCUS: refactor encoding engine, FNC1, macros
 
 version 0.8.0: (planned XX-May-2009)
 FOCUS: region detection refinement, multiple barcode scanning, structured append
-  o libdmtx:   Consider making "*ProdScaled" default, and unscaled as "Unscaled"
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Fast Hough fit followed by precision handle fit
   o libdmtx:   Optimizations need to perform multi-barcode scans
@@ -269,35 +268,6 @@ Make finder bar detection pluggable so a separate future version can be
 made for dot peen pattern detection (remaining steps would be unchanged).
 
 
-Proposed Change: Image Scaling
------------------------------------------------------------------
-/**
- * still on the fence whether image scaling factors should be maintained in
- * DmtxDecode ... but right now leaning that way. Thinking goes that any
- * caching will be tied to scale, and scale change should not affect image
- * object. Basically, load the image once and then don't touch it anymore.
- *
- * However, I also want to be able to say:
- *
- *    offset = dmtxImageGetOffset(img, x, y)
- *
- * ... and have the result take scaling into account. This statement really
- * has nothing to do with the decoding process (and therefore decode struct).
- * hmmm ...
- */
-typedef struct DmtxDecode_struct {
-   int scale;
-   int xMin;
-   int xMax;
-   int yMin;
-   int yMax;
-   int xMinScaled;
-   int xMaxScaled;
-   int yMinScaled;
-   int yMaxScaled;
-} DmtxDecode;
-
-
 Proposed Change: Region Detection
 -----------------------------------------------------------------
 The first edge is currently detected using fixed-offset Hough
@@ -465,7 +435,7 @@ Release 0.7
    - Boundary Hough needs to use color polarity
    - Boundary Hough needs to use interior direction
 
-6) Confirm that vanishping point detection works
+6) Confirm that vanishing point detection works
    - use Boundary Hough
    - test for vanishing points
    - test for dot peen
@@ -518,6 +488,10 @@ for each color channel:
 
 *** in a river, you know you are in the center of the stream when your ***
 *** neighbor on each side is moving slower than you                    ***
+
+*** another way of saying this: in a 3x3 grid, connect the 3 strongest ***
+*** flows. if this makes a continuous line running through the center  ***
+*** square then we have an edge                                        ***
 
    - follow outward, leave upstream trail
    - pick next loc by choosing strongest of 5 neighbors that do not reverse
