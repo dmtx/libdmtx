@@ -34,14 +34,14 @@ struct UserOptions {
 };
 
 struct AppState {
-   int windowWidth;
-   int windowHeight;
-   int imageLocX;
-   int imageLocY;
-   int leftButton;
-   int rightButton;
-   int pointerX;
-   int pointerY;
+   int         windowWidth;
+   int         windowHeight;
+   Sint16      imageLocX;
+   Sint16      imageLocY;
+   Uint8       leftButton;
+   Uint8       rightButton;
+   Uint16      pointerX;
+   Uint16      pointerY;
    DmtxBoolean quit;
 };
 
@@ -51,7 +51,7 @@ static struct AppState InitAppState(void);
 static SDL_Surface *SetWindowSize(int windowWidth, int windowHeight);
 static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
       SDL_Surface *picture, SDL_Surface **screen);
-static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, int *imageLoc);
+static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);
 
 int main(int argc, char *argv[])
@@ -100,6 +100,8 @@ int main(int argc, char *argv[])
    }
 
    screen = SetWindowSize(state.windowWidth, state.windowHeight);
+   NudgeImage(state.windowWidth, picture->w, &state.imageLocX);
+   NudgeImage(state.windowHeight, picture->h, &state.imageLocY);
 
    for(;;) {
       SDL_Delay(10);
@@ -260,6 +262,10 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
          }
          break;
 
+      case SDL_QUIT:
+         state->quit = DmtxTrue;
+         break;
+
       case SDL_VIDEORESIZE:
          state->windowWidth = event->resize.w;
          state->windowHeight = event->resize.h;
@@ -284,23 +290,23 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
  * ---> --->
  */
 static DmtxPassFail
-NudgeImage(int windowExtent, int pictureExtent, int *imageLoc)
+NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc)
 {
    int marginA, marginB;
 
    marginA = *imageLoc;
    marginB = *imageLoc + pictureExtent - windowExtent;
 
+   /* Image falls completely within window */
+   if(pictureExtent <= windowExtent) {
+      *imageLoc = (marginA - marginB)/2;
+   }
    /* One edge inside and one edge outside window */
-   if(marginA * marginB > 0) {
+   else if(marginA * marginB > 0) {
       if((pictureExtent - windowExtent) * marginA < 0)
          *imageLoc -= marginB;
       else
          *imageLoc -= marginA;
-   }
-   /* Image falls within window */
-   else if(marginA >= 0 && marginB <= 0) {
-      *imageLoc = (marginA - marginB)/2;
    }
 
    return DmtxPass;
