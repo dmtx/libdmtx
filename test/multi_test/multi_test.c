@@ -315,7 +315,7 @@ NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc)
 /**
  *
  *
- **/
+ */
 static void
 WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 {
@@ -339,3 +339,90 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
    free(pnm);
    fclose(fp);
 }
+
+/**
+ *
+ *
+ */
+/*
+PopulateCache()
+{
+   DmtxTime ta, tb;
+   int x, xBeg, xEnd;
+   int y, yBeg, yEnd;
+   static const int coefficient[] = {  0,  1,  2,  1,  0, -1, -2, -1 };
+   static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };
+   static const int dmtxPatternY[] = { -1, -1, -1,  0,  1,  1,  1,  0 };
+   int err;
+   int bytesPerPixel, rowSizeBytes;
+   int patternIdx, coefficientIdx;
+   int compass, compassMax;
+   int mag[4] = { 0 };
+   int xAdjust, yAdjust;
+   int color, colorPattern[8];
+   DmtxPointFlow flow;
+   int offset;
+
+   xBeg = 1;
+   xEnd = width - 2;
+   yBeg = 1;
+   rolEng = height - 2;
+
+   rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
+   bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
+
+   ta = dmtxTimeNow();
+   for(y = yBeg; y <= yMax; y++) {
+      for(x = xBeg; x <= xEnd; x++) {
+
+         offset = y * rowSizeBytes + x * bytesPerPixel + colorPlane;
+         colorPattern[0] = img->pxl[(offset - rowSizeBytes - bytesPerPixel)];
+         colorPattern[1] = img->pxl[(offset - rowSizeBytes                )];
+         colorPattern[2] = img->pxl[(offset - rowSizeBytes + bytesPerPixel)];
+         colorPattern[3] = img->pxl[(offset                + bytesPerPixel)];
+         colorPattern[4] = img->pxl[(offset + rowSizeBytes + bytesPerPixel)];
+         colorPattern[5] = img->pxl[(offset + rowSizeBytes                )];
+         colorPattern[6] = img->pxl[(offset + rowSizeBytes - bytesPerPixel)];
+         colorPattern[7] = img->pxl[(offset                - bytesPerPixel)];
+
+         // Calculate this pixel's horizontal and vertical flow
+         compassMax = 0;
+         for(compass = 0; compass < 2; compass++) {
+
+            // Add portion from each position in the convolution matrix pattern
+            for(patternIdx = 0; patternIdx < 8; patternIdx++) {
+
+               coefficientIdx = (patternIdx - compass + 8) % 8; <-- fix match for 2 directions
+               if(coefficient[coefficientIdx] == 0)
+                  continue;
+
+               color = colorPattern[patternIdx];
+
+               switch(coefficient[coefficientIdx]) {
+                  case 2:
+                     mag[compass] += (color << 1);
+                     break;
+                  case 1:
+                     mag[compass] += color;
+                     break;
+                  case -2:
+                     mag[compass] -= (color << 1);
+                     break;
+                  case -1:
+                     mag[compass] -= color;
+                     break;
+               }
+            }
+
+            // Identify strongest compass flow
+            if(compass != 0 && abs(mag[compass]) > abs(mag[compassMax]))
+               compassMax = compass;
+         }
+      }
+   }
+   tb = dmtxTimeNow();
+   fprintf(stdout, "before %ld.%06ld\n", ta.sec, ta.usec);
+   fprintf(stdout, "after  %ld.%06ld\n", tb.sec, tb.usec);
+   fprintf(stdout, "delta  %ld\n", (1000000 * (tb.sec - ta.sec) + (tb.usec - ta.usec))/10);
+}
+*/

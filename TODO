@@ -536,145 +536,20 @@ Note: Initial implementation may use regular Hough if much simpler
 
 Connecting Edges
 -----------------------------------------------------------------
-Take 3 strongest points in any direction. If point strength does
-not exceed minimum threshold then consider empty. Not sure if we
-need a final pass to fill in small gaps yet.
+Use the same 0.6 stream-following approach, because guarantees
+the best edges; both continuous and following the strongest
+"centerflow". This occurs because the edge follower uses self-
+correcting logic that constantly tries to center itself within
+the flow. It differs from 0.6 stream-following approach in that
+every pixel is checked, and marked as such. All future steps
+operate on the output from this step, and don't need to follow
+anything.
 
-Below code produces: (problem)
-
- 10 20 20      -- XX XX
- 10 20 20  =>  -- XX --
- 10 20 20      -- -- --
-
-... what about marking up tied ranks like this:
-
- 10 20 20      02 01 01
- 10 20 20  =>  02 01 01
- 10 20 20      02 01 01
-
-... and then passing to connection rules below?
-
-+-+-+-+   +-+-+-+   +-+-+-+
-| |V|V|   |  V V|   |  V x| <-- removed because it doesn't pass through center
-+-+-+-+   +  | |+   +  | x+     (left off here)
-| |V|V|   |  V V|   |  V x|
-+-+-+-+   +  | |+   +  | x+
-| |V|V|   |  V V|   |  V x|
-+-+-+-+   +-+-+-+   +-+-+-+
-
-*** try working connection rules based on center square:
-    1) center points directly at someone
-    2) someone points directly forward toward center
-    2) someone points directly backward from center
-    3) center points diagonally at someone
-    4) someone points diagonally at center
-
-/* Unordered index of 3 strongest positions (0-8) */
-int place[3] = { DmtxUndefined, DmtxUndefined, DmtxUndefined };
-placeCount = 0;
-
-/* Index of weakest place (0-2) */
-lastPlace = DmtxUndefined;
-
-for(i = 0; i < 9; i++) {
-   if(elem[i] < minThresh)
-      continue;
-
-   if(placeCount < 3)
-      place[placeCount++] = i;
-   else if(elem[i] > elem[place[lastPlace]])
-      place[lastPlace] = i;
-   else
-      continue;
-
-   /* Determine new last place */
-   for(lastPlace = 0, j = 1; j < placeCount; j++) {
-      if(elem[place[j]] < elem[place[lastPlace]])
-         lastPlace = j;
-   }
-}
-
-/* If <3 strong edges are found, skip */
-if(placeCount < 3)
-   continue;
-
-/* If center position does not contain a strong edge, skip */
-if(place[0] != 4 && place[1] != 4 && place[2] != 4)
-   continue;
-
-Where: < == left
-       > == right
-       A == up
-       V == down
-
-Good edges:
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-| | |V|   |A|V| |   | | | |   |<| | |   | |<| |   |A| | |   | |V| |   | | | |
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-| |V| |   | |<| |   |<|V|<|   | |<| |   | |A| |   | |>| |   | |>|A|   |A|>| |
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-| |V| |   | | | |   | | | |   | | |<|   | |<| |   |A| | |   | | | |   | | |V|
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-
-Good connections
-Pass 1: A points at B in A's 1 straight forward direction
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-|    V|   |A V  |   |     |   |<    |   |  <  |   |A    |   |  V  |   |     |
-+     +   +  |  +   +     +   +     +   +  |  +   |     |   |  |  |   |     |
-|  V  |   |  <  |   |< V-<|   |  <  |   |  A  |   |  >  |   |  >-A|   |A >  |
-+  |  +   +     +   +     +   +     +   +     +   |     |   |     |   |     |
-|  V  |   |     |   |     |   |    <|   |  <  |   |A    |   |     |   |    V|
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-
-if 2 connections exist, break
-
-Pass 2: A points at B in A's 2 diagonal forward directions
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-|    V|   |A V  |   |     |   |<    |   |  <  |   |A    |   |  V  |   |     |
-+   / +   + \|  +   +     +   + \   +   +  |  +   |     |   |  |  |   |     |
-|  V  |   |  <  |   |< V-<|   |  <  |   |  A  |   |  >  |   |  >-A|   |A >  |
-+  |  +   +     +   +     +   +   \ +   +     +   | /   |   |     |   |   \ |
-|  V  |   |     |   |     |   |    <|   |  <  |   |A    |   |     |   |    V|
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-
-if 2 connections exist, break
-
-Pass 3: A points at B in B's 1 straight backward direction
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-|    V|   |A V  |   |     |   |<    |   |  <  |   |A    |   |  V  |   |     |
-+   / +   + \|  +   +     +   + \   +   +  |  +   |     |   |  |  |   |     |
-|  V  |   |  <  |   |<-V-<|   |  <  |   |  A  |   |  >  |   |  >-A|   |A->  |
-+  |  +   +     +   +     +   +   \ +   +  |  +   | /   |   |     |   |   \ |
-|  V  |   |     |   |     |   |    <|   |  <  |   |A    |   |     |   |    V|
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-
-if 2 connections exist, break
-
-Pass 4: A points at B in B's 2 diagonal backward directions
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-|    V|   |A V  |   |     |   |<    |   |  <  |   |A    |   |  V  |   |     |
-+   / +   + \|  +   +     +   + \   +   +  |  +   | \   |   |  |  |   |     |
-|  V  |   |  <  |   |<-V-<|   |  <  |   |  A  |   |  >  |   |  >-A|   |A->  |
-+  |  +   +     +   +     +   +   \ +   +  |  +   | /   |   |     |   |   \ |
-|  V  |   |     |   |     |   |    <|   |  <  |   |A    |   |     |   |    V|
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-
-done. if <2 connections exist, skip
-
-Bad edges:
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-|>|<| |   |>| |V|   |<|V|<|   |A| | |
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-| | | |   | | | |   | | | |   | |<| |
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-| |A| |   | | |>|   | | | |   |V| | |
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-
-Bad connections:
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
-|>-<  |   |> - V|   |<-V-<|   |A    |
-+     +   +     +   +     +   + \   +
-|  X  |   |  X ||   |  X  |   |  <  |
-+     +   +     +   +     +   +     +
-|  A  |   |    >|   |     |   |V    |
-+-+-+-+   +-+-+-+   +-+-+-+   +-+-+-+
+The logic should probably mark both downstream and upstream
+neighbors, because future steps will need to walk the entire
+trail which is possibly a closed circuit. The 0.6 approach used a
+magic jump to close open circuits, but this won't be possible now
+unless we want to store this within cache elements (read: lots-o-
+memory). Instead we might just guaranty there are no closed
+circuits by throughing in an arbitrary break if necessary via the
+connected bit. This shouldn't affect any of the Hough math.
