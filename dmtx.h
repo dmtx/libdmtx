@@ -447,6 +447,7 @@ typedef struct DmtxDecode_struct {
    int             scale;
 
    /* Internals */
+/* int             cacheComplete; */
    unsigned char   *cache;
    DmtxImage       *image;
    DmtxScanGrid    grid;

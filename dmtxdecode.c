@@ -47,17 +47,16 @@ dmtxDecodeCreate(DmtxImage *img, int scale)
 
    dec->edgeMin = DmtxUndefined;
    dec->edgeMax = DmtxUndefined;
+   dec->scanGap = 1;
    dec->squareDevn = cos(50 * (M_PI/180));
    dec->sizeIdxExpected = DmtxSymbolShapeAuto;
    dec->edgeThresh = 10;
-   dec->scale = scale;
 
-   /* Unscaled values */
-   dec->scanGap = 1;
    dec->xMin = 0;
    dec->xMax = width - 1;
    dec->yMin = 0;
    dec->yMax = height - 1;
+   dec->scale = scale;
 
    dec->cache = (unsigned char *)calloc(width * height, sizeof(unsigned char));
    if(dec->cache == NULL) {
@@ -110,7 +109,7 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
          dec->edgeMax = value;
          break;
       case DmtxPropScanGap:
-         dec->scanGap = value;
+         dec->scanGap = value; /* XXX Should this be scaled? */
          break;
       case DmtxPropSquareDevn:
          dec->squareDevn = cos(value * (M_PI/180.0));
@@ -209,6 +208,9 @@ dmtxDecodeGetCache(DmtxDecode *dec, int x, int y)
    int width, height;
 
    assert(dec != NULL);
+
+/* if(dec.cacheComplete == DmtxFalse)
+      CacheImage(); */
 
    width = dmtxDecodeGetProp(dec, DmtxPropWidth);
    height = dmtxDecodeGetProp(dec, DmtxPropHeight);

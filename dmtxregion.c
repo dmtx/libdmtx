@@ -132,27 +132,27 @@ dmtxRegionScanPixel(DmtxDecode *dec, int x, int y)
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
    /* Determine barcode orientation */
-   if(MatrixRegionOrientation(dec, &reg, flowBegin) != DmtxPass)
+   if(MatrixRegionOrientation(dec, &reg, flowBegin) == DmtxFail)
       return NULL;
-   if(dmtxRegionUpdateXfrms(dec, &reg) != DmtxPass)
+   if(dmtxRegionUpdateXfrms(dec, &reg) == DmtxFail)
       return NULL;
 
    /* Define top edge */
-   if(MatrixRegionAlignCalibEdge(dec, &reg, DmtxEdgeTop) != DmtxPass)
+   if(MatrixRegionAlignCalibEdge(dec, &reg, DmtxEdgeTop) == DmtxFail)
       return NULL;
-   if(dmtxRegionUpdateXfrms(dec, &reg) != DmtxPass)
+   if(dmtxRegionUpdateXfrms(dec, &reg) == DmtxFail)
       return NULL;
 
    /* Define right edge */
-   if(MatrixRegionAlignCalibEdge(dec, &reg, DmtxEdgeRight) != DmtxPass)
+   if(MatrixRegionAlignCalibEdge(dec, &reg, DmtxEdgeRight) == DmtxFail)
       return NULL;
-   if(dmtxRegionUpdateXfrms(dec, &reg) != DmtxPass)
+   if(dmtxRegionUpdateXfrms(dec, &reg) == DmtxFail)
       return NULL;
 
    CALLBACK_MATRIX(&reg);
 
    /* Calculate the best fitting symbol size */
-   if(MatrixRegionFindSize(dec, &reg) != DmtxPass)
+   if(MatrixRegionFindSize(dec, &reg) == DmtxFail)
       return NULL;
 
    /* Found a valid matrix region */

@@ -42,28 +42,29 @@ struct AppState {
    int rightButton;
    int pointerX;
    int pointerY;
+   DmtxBoolean quit;
 };
 
 static struct UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
 static struct AppState InitAppState(void);
 static SDL_Surface *SetWindowSize(int windowWidth, int windowHeight);
-static int HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface **screen);
-static int NudgeImage(int windowExtent, int pictureExtent, int imageLoc);
+static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
+      SDL_Surface *picture, SDL_Surface **screen);
+static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, int *imageLoc);
 static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);
 
 int main(int argc, char *argv[])
 {
-   int done;
    struct UserOptions opt;
    struct AppState state;
    SDL_Surface *screen;
    SDL_Surface *picture;
-   SDL_Event event;
-   SDL_Rect imageLoc;
-   DmtxImage *img;
-   DmtxDecode *dec;
-   DmtxRegion *reg;
+   SDL_Event    event;
+   SDL_Rect     imageLoc;
+   DmtxImage   *img;
+   DmtxDecode  *dec;
+   DmtxRegion  *reg;
    DmtxMessage *msg;
 
    opt = GetDefaultOptions();
@@ -82,12 +83,13 @@ int main(int argc, char *argv[])
       exit(1);
    }
 
-   /* fprintf(stdout, "pitch:%d\n", picture->pitch); assert? */
    img = dmtxImageCreate(picture->pixels, picture->w, picture->h, DmtxPack32bppXRGB);
-   if(img == NULL) {
-      fprintf(stderr, "Unable to create image\n");
-      exit(1);
-   }
+   assert(img != NULL);
+
+   dec = dmtxDecodeCreate(img, 1);
+   assert(dec != NULL);
+
+/* here we can populate a fake cache to test the new approach */
 
    atexit(SDL_Quit);
 
@@ -99,22 +101,20 @@ int main(int argc, char *argv[])
 
    screen = SetWindowSize(state.windowWidth, state.windowHeight);
 
-   for(done = 0; !done;) {
+   for(;;) {
       SDL_Delay(10);
 
       while(SDL_PollEvent(&event))
-         done = HandleEvent(&event, &state, &screen);
+         HandleEvent(&event, &state, picture, &screen);
 
-      state.imageLocX = NudgeImage(state.windowWidth, picture->w, state.imageLocX);
-      state.imageLocY = NudgeImage(state.windowHeight, picture->h, state.imageLocY);
+      if(state.quit == DmtxTrue)
+         break;
 
       imageLoc.x = state.imageLocX;
       imageLoc.y = state.imageLocY;
 
       SDL_FillRect(screen, NULL, 0xff000050);
       SDL_BlitSurface(picture, NULL, screen, &imageLoc);
-
-      dec = dmtxDecodeCreate(img, 1);
 
       if(state.rightButton == SDL_PRESSED) {
 
@@ -136,11 +136,10 @@ int main(int argc, char *argv[])
          }
       }
 
-      dmtxDecodeDestroy(&dec);
-
       SDL_Flip(screen);
    }
 
+   dmtxDecodeDestroy(&dec);
    dmtxImageDestroy(&img);
 
    exit(0);
@@ -197,6 +196,7 @@ InitAppState(void)
    state.rightButton = SDL_RELEASED;
    state.pointerX = 0;
    state.pointerY = 0;
+   state.quit = DmtxFalse;
 
    return state;
 }
@@ -226,14 +226,16 @@ SetWindowSize(int windowWidth, int windowHeight)
  *
  *
  */
-static int
-HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface **screen)
+static DmtxPassFail
+HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_Surface **screen)
 {
+   int nudgeRequired = DmtxFalse;
+
    switch(event->type) {
       case SDL_KEYDOWN:
          switch(event->key.keysym.sym) {
             case SDLK_ESCAPE:
-               return 1;
+               state->quit = DmtxTrue;
             default:
                break;
          }
@@ -254,6 +256,7 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface **screen)
          if(state->leftButton == SDL_PRESSED) {
             state->imageLocX += event->motion.xrel;
             state->imageLocY += event->motion.yrel;
+            nudgeRequired = DmtxTrue;
          }
          break;
 
@@ -261,40 +264,46 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface **screen)
          state->windowWidth = event->resize.w;
          state->windowHeight = event->resize.h;
          *screen = SetWindowSize(state->windowWidth, state->windowHeight);
+         nudgeRequired = DmtxTrue;
          break;
 
       default:
          break;
    }
 
-   return 0;
+   if(nudgeRequired == DmtxTrue) {
+      NudgeImage(state->windowWidth, picture->w, &(state->imageLocX));
+      NudgeImage(state->windowHeight, picture->h, &(state->imageLocY));
+   }
+
+   return DmtxPass;
 }
 
 /**
  *   +   +
  * ---> --->
  */
-static int
-NudgeImage(int windowExtent, int pictureExtent, int imageLoc)
+static DmtxPassFail
+NudgeImage(int windowExtent, int pictureExtent, int *imageLoc)
 {
    int marginA, marginB;
 
-   marginA = imageLoc;
-   marginB = imageLoc + pictureExtent - windowExtent;
+   marginA = *imageLoc;
+   marginB = *imageLoc + pictureExtent - windowExtent;
 
    /* One edge inside and one edge outside window */
    if(marginA * marginB > 0) {
       if((pictureExtent - windowExtent) * marginA < 0)
-         return (imageLoc - marginB);
+         *imageLoc -= marginB;
       else
-         return (imageLoc - marginA);
+         *imageLoc -= marginA;
    }
    /* Image falls within window */
    else if(marginA >= 0 && marginB <= 0) {
-      return (marginA - marginB)/2;
+      *imageLoc = (marginA - marginB)/2;
    }
 
-   return imageLoc;
+   return DmtxPass;
 }
 
 /**
