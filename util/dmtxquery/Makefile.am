@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -Wshadow -Wall -pedantic -ansi
+AM_CPPFLAGS = -Wshadow -Wall -pedantic
 
 bin_PROGRAMS = dmtxquery
 noinst_PROGRAMS = dmtxquery.debug

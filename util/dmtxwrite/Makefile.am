@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -Wshadow -Wall -pedantic -ansi
+AM_CPPFLAGS = -Wshadow -Wall -pedantic
 
 bin_PROGRAMS = dmtxwrite
 noinst_PROGRAMS = dmtxwrite.debug
