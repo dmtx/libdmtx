@@ -53,19 +53,21 @@ static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
       SDL_Surface *picture, SDL_Surface **screen);
 static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);
+static void PopulateCache(DmtxDecode *dec);
 
 int main(int argc, char *argv[])
 {
    struct UserOptions opt;
-   struct AppState state;
-   SDL_Surface *screen;
-   SDL_Surface *picture;
-   SDL_Event    event;
-   SDL_Rect     imageLoc;
-   DmtxImage   *img;
-   DmtxDecode  *dec;
-   DmtxRegion  *reg;
-   DmtxMessage *msg;
+   struct AppState    state;
+   int                scanX, scanY;
+   SDL_Surface       *screen;
+   SDL_Surface       *picture;
+   SDL_Event          event;
+   SDL_Rect           imageLoc;
+   DmtxImage         *img;
+   DmtxDecode        *dec;
+/* DmtxRegion        *reg; */
+/* DmtxMessage       *msg; */
 
    opt = GetDefaultOptions();
 
@@ -83,13 +85,27 @@ int main(int argc, char *argv[])
       exit(1);
    }
 
-   img = dmtxImageCreate(picture->pixels, picture->w, picture->h, DmtxPack32bppXRGB);
+   switch(picture->pitch / picture->w) {
+      case 1:
+         img = dmtxImageCreate(picture->pixels, picture->w, picture->h, DmtxPack8bppK);
+         break;
+      case 3:
+         img = dmtxImageCreate(picture->pixels, picture->w, picture->h, DmtxPack24bppRGB);
+         break;
+      case 4:
+         img = dmtxImageCreate(picture->pixels, picture->w, picture->h, DmtxPack32bppXRGB);
+         break;
+      default:
+         exit(1);
+   }
    assert(img != NULL);
 
    dec = dmtxDecodeCreate(img, 1);
    assert(dec != NULL);
 
-/* here we can populate a fake cache to test the new approach */
+   SDL_LockSurface(picture);
+   PopulateCache(dec);
+   SDL_UnlockSurface(picture);
 
    atexit(SDL_Quit);
 
@@ -120,12 +136,15 @@ int main(int argc, char *argv[])
 
       if(state.rightButton == SDL_PRESSED) {
 
+         scanX = state.pointerX - state.imageLocX;
+         scanY = picture->h - (state.pointerY - state.imageLocY) - 1;
+/*
          SDL_LockSurface(picture);
-         reg = dmtxRegionScanPixel(dec, state.pointerX, state.pointerY);
+         reg = dmtxRegionScanPixel(dec, scanX, scanY);
          SDL_UnlockSurface(picture);
 
          if(reg != NULL) {
-/*          WriteDiagnosticImage(dec, reg, "debug.pnm"); */
+            WriteDiagnosticImage(dec, "debug.pnm");
 
             msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
             if(msg != NULL) {
@@ -136,6 +155,7 @@ int main(int argc, char *argv[])
 
             dmtxRegionDestroy(&reg);
          }
+*/
       }
 
       SDL_Flip(screen);
@@ -344,85 +364,75 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
  *
  *
  */
-/*
-PopulateCache()
+static void
+PopulateCache(DmtxDecode *dec)
 {
-   DmtxTime ta, tb;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
-   static const int coefficient[] = {  0,  1,  2,  1,  0, -1, -2, -1 };
-   static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };
-   static const int dmtxPatternY[] = { -1, -1, -1,  0,  1,  1,  1,  0 };
-   int err;
-   int bytesPerPixel, rowSizeBytes;
-   int patternIdx, coefficientIdx;
-   int compass, compassMax;
-   int mag[4] = { 0 };
-   int xAdjust, yAdjust;
-   int color, colorPattern[8];
-   DmtxPointFlow flow;
+   int width, height, bytesPerPixel, rowSizeBytes;
    int offset;
+   int colorPlane;
+/* int color; */
+   int color0, color1, color2, color3;
+   int color4, color5, color6, color7;
+   int compassMax;
+   int vMag, hMag;
+   DmtxImage *img;
+   DmtxTime ta, tb;
+/* DmtxPointFlow flow; */
+
+   img = dec->image;
+
+   width = dmtxImageGetProp(img, DmtxPropWidth);
+   height = dmtxImageGetProp(img, DmtxPropHeight);
+   rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
+   bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
+   colorPlane = 0; /* XXX need to make some decisions here */
 
    xBeg = 1;
    xEnd = width - 2;
    yBeg = 1;
-   rolEng = height - 2;
-
-   rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
-   bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
+   yEnd = height - 2;
 
    ta = dmtxTimeNow();
-   for(y = yBeg; y <= yMax; y++) {
+
+   for(y = yBeg; y <= yEnd; y++) {
       for(x = xBeg; x <= xEnd; x++) {
+         offset = (y * rowSizeBytes) + (x * bytesPerPixel) + colorPlane;
 
-         offset = y * rowSizeBytes + x * bytesPerPixel + colorPlane;
-         colorPattern[0] = img->pxl[(offset - rowSizeBytes - bytesPerPixel)];
-         colorPattern[1] = img->pxl[(offset - rowSizeBytes                )];
-         colorPattern[2] = img->pxl[(offset - rowSizeBytes + bytesPerPixel)];
-         colorPattern[3] = img->pxl[(offset                + bytesPerPixel)];
-         colorPattern[4] = img->pxl[(offset + rowSizeBytes + bytesPerPixel)];
-         colorPattern[5] = img->pxl[(offset + rowSizeBytes                )];
-         colorPattern[6] = img->pxl[(offset + rowSizeBytes - bytesPerPixel)];
-         colorPattern[7] = img->pxl[(offset                - bytesPerPixel)];
+         color0 = img->pxl[(offset - rowSizeBytes - bytesPerPixel)];
+         color1 = img->pxl[(offset - rowSizeBytes                )];
+         color2 = img->pxl[(offset - rowSizeBytes + bytesPerPixel)];
+         color3 = img->pxl[(offset                + bytesPerPixel)];
+         color4 = img->pxl[(offset + rowSizeBytes + bytesPerPixel)];
+         color5 = img->pxl[(offset + rowSizeBytes                )];
+         color6 = img->pxl[(offset + rowSizeBytes - bytesPerPixel)];
+         color7 = img->pxl[(offset                - bytesPerPixel)];
 
-         // Calculate this pixel's horizontal and vertical flow
-         compassMax = 0;
-         for(compass = 0; compass < 2; compass++) {
+         /* Calculate vertical edge flow */
+         vMag = 0;
+         vMag -= color0;
+         vMag += color2;
+         vMag += (color3 << 1);
+         vMag += color4;
+         vMag -= color6;
+         vMag -= (color7 << 1);
 
-            // Add portion from each position in the convolution matrix pattern
-            for(patternIdx = 0; patternIdx < 8; patternIdx++) {
+         /* Calculate horizontal edge flow */
+         hMag = 0;
+         hMag -= color0;
+         hMag -= (color1 << 1);
+         hMag -= color2;
+         hMag += color4;
+         hMag += (color5 << 1);
+         hMag += color6;
 
-               coefficientIdx = (patternIdx - compass + 8) % 8; <-- fix match for 2 directions
-               if(coefficient[coefficientIdx] == 0)
-                  continue;
-
-               color = colorPattern[patternIdx];
-
-               switch(coefficient[coefficientIdx]) {
-                  case 2:
-                     mag[compass] += (color << 1);
-                     break;
-                  case 1:
-                     mag[compass] += color;
-                     break;
-                  case -2:
-                     mag[compass] -= (color << 1);
-                     break;
-                  case -1:
-                     mag[compass] -= color;
-                     break;
-               }
-            }
-
-            // Identify strongest compass flow
-            if(compass != 0 && abs(mag[compass]) > abs(mag[compassMax]))
-               compassMax = compass;
-         }
+         /* Identify strongest compass flow */
+         compassMax = (abs(vMag) > abs(hMag)) ? vMag : hMag;
       }
    }
+
    tb = dmtxTimeNow();
-   fprintf(stdout, "before %ld.%06ld\n", ta.sec, ta.usec);
-   fprintf(stdout, "after  %ld.%06ld\n", tb.sec, tb.usec);
-   fprintf(stdout, "delta  %ld\n", (1000000 * (tb.sec - ta.sec) + (tb.usec - ta.usec))/10);
+   fprintf(stdout, "PopulateCache time: %ldms (%d)\n", (1000000 *
+         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000, compassMax);
 }
-*/
