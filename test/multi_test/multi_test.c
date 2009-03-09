@@ -53,6 +53,7 @@ static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
       SDL_Surface *picture, SDL_Surface **screen);
 static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);
+static void WriteCacheImage(DmtxDecode *dec, char *imagePath);
 static void PopulateCache(DmtxDecode *dec);
 
 int main(int argc, char *argv[])
@@ -365,18 +366,60 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
  *
  */
 static void
+WriteCacheImage(DmtxDecode *dec, char *imagePath)
+{
+   int row, col;
+   int width, height;
+   int rgb[3];
+   unsigned char *cache;
+   FILE *fp;
+
+   width = dmtxDecodeGetProp(dec, DmtxPropWidth);
+   height = dmtxDecodeGetProp(dec, DmtxPropHeight);
+
+   fp = fopen(imagePath, "wb");
+   if(fp == NULL)
+      exit(1);
+
+   fprintf(fp, "P6\n%d %d\n255\n", width, height);
+
+   for(row = height - 1; row >= 0; row--) {
+      for(col = 0; col < width; col++) {
+         cache = dmtxDecodeGetCache(dec, col, row);
+         if(cache != NULL) {
+            rgb[0] = *cache;
+            rgb[1] = *cache;
+            rgb[2] = *cache;
+         }
+         else {
+            rgb[0] = 0;
+            rgb[1] = 0;
+            rgb[2] = 0;
+         }
+         fputc(rgb[0], fp);
+         fputc(rgb[1], fp);
+         fputc(rgb[2], fp);
+      }
+   }
+
+   fclose(fp);
+}
+
+/**
+ *
+ *
+ */
+static void
 PopulateCache(DmtxDecode *dec)
 {
+   int width, height, bytesPerPixel, rowSizeBytes, colorPlane;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
-   int width, height, bytesPerPixel, rowSizeBytes;
-   int offset;
-   int colorPlane;
-/* int color; */
-   int color0, color1, color2, color3;
-   int color4, color5, color6, color7;
-   int compassMax;
-   int vMag, hMag;
+   int vMag, hMag, compassMax;
+   int colorLoLf, colorLoMd, colorLoRt;
+   int colorMdRt, colorHiRt, colorHiMd;
+   int colorHiLf, colorMdLf, colorMdMd;
+   int offset, offsetLo, offsetMd, offsetHi;
    DmtxImage *img;
    DmtxTime ta, tb;
 /* DmtxPointFlow flow; */
@@ -397,42 +440,71 @@ PopulateCache(DmtxDecode *dec)
    ta = dmtxTimeNow();
 
    for(y = yBeg; y <= yEnd; y++) {
-      for(x = xBeg; x <= xEnd; x++) {
-         offset = (y * rowSizeBytes) + (x * bytesPerPixel) + colorPlane;
 
-         color0 = img->pxl[(offset - rowSizeBytes - bytesPerPixel)];
-         color1 = img->pxl[(offset - rowSizeBytes                )];
-         color2 = img->pxl[(offset - rowSizeBytes + bytesPerPixel)];
-         color3 = img->pxl[(offset                + bytesPerPixel)];
-         color4 = img->pxl[(offset + rowSizeBytes + bytesPerPixel)];
-         color5 = img->pxl[(offset + rowSizeBytes                )];
-         color6 = img->pxl[(offset + rowSizeBytes - bytesPerPixel)];
-         color7 = img->pxl[(offset                - bytesPerPixel)];
+      offsetMd = (y * rowSizeBytes) + bytesPerPixel + colorPlane;
+      offsetHi = offsetMd + rowSizeBytes;
+      offsetLo = offsetMd - rowSizeBytes;
+
+      colorHiLf = img->pxl[offsetHi];
+      colorMdLf = img->pxl[offsetMd];
+      colorLoLf = img->pxl[offsetLo];
+
+      offset = bytesPerPixel;
+
+      colorHiMd = img->pxl[offsetHi + offset];
+      colorMdMd = img->pxl[offsetMd + offset];
+      colorLoMd = img->pxl[offsetLo + offset];
+
+      offset += bytesPerPixel;
+
+      colorHiRt = img->pxl[offsetHi + offset];
+      colorMdRt = img->pxl[offsetMd + offset];
+      colorLoRt = img->pxl[offsetLo + offset];
+
+      for(x = xBeg; x <= xEnd; x++) {
 
          /* Calculate vertical edge flow */
-         vMag = 0;
-         vMag -= color0;
-         vMag += color2;
-         vMag += (color3 << 1);
-         vMag += color4;
-         vMag -= color6;
-         vMag -= (color7 << 1);
+         vMag  =  colorLoRt;
+         vMag += (colorMdRt << 1);
+         vMag +=  colorHiRt;
+         vMag -=  colorLoLf;
+         vMag -= (colorMdLf << 1);
+         vMag -=  colorHiLf;
 
          /* Calculate horizontal edge flow */
-         hMag = 0;
-         hMag -= color0;
-         hMag -= (color1 << 1);
-         hMag -= color2;
-         hMag += color4;
-         hMag += (color5 << 1);
-         hMag += color6;
+         hMag  =  colorHiLf;
+         hMag += (colorHiMd << 1);
+         hMag +=  colorHiRt;
+         hMag -=  colorLoLf;
+         hMag -= (colorLoMd << 1);
+         hMag -=  colorLoRt;
 
          /* Identify strongest compass flow */
-         compassMax = (abs(vMag) > abs(hMag)) ? vMag : hMag;
+         compassMax = (abs(vMag) > abs(hMag)) ? abs(vMag) : abs(hMag);
+         if(compassMax > 255)
+            compassMax = 255;
+
+         colorHiLf = colorHiMd;
+         colorMdLf = colorMdMd;
+         colorLoLf = colorLoMd;
+
+         colorHiMd = colorHiRt;
+         colorMdMd = colorMdRt;
+         colorLoMd = colorLoRt;
+
+         offset += bytesPerPixel;
+
+         colorHiRt = img->pxl[offsetHi + offset];
+         colorMdRt = img->pxl[offsetMd + offset];
+         colorLoRt = img->pxl[offsetLo + offset];
+
+         dec->cache[y * width + x] = compassMax;
       }
    }
 
    tb = dmtxTimeNow();
-   fprintf(stdout, "PopulateCache time: %ldms (%d)\n", (1000000 *
-         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000, compassMax);
+   fprintf(stdout, "PopulateCache time: %ldms\n", (1000000 *
+         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
+
+   WriteCacheImage(dec, "cache.pnm");
 }
