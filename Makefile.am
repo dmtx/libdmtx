@@ -4,6 +4,8 @@
 # $ make dist-gzip
 # $ script/dist-image.sh
 
+AM_CPPFLAGS = -Wshadow -Wall -pedantic -ansi
+
 lib_LTLIBRARIES = libdmtx.la
 libdmtx_la_SOURCES = dmtx.c
 EXTRA_libdmtx_la_SOURCES = dmtxdecode.c dmtxencode.c dmtxfec.c dmtximage.c \

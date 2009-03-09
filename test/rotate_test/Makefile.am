@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -Wshadow -Wall -pedantic -ansi
+
 check_PROGRAMS = rotate_test
 
 rotate_test_SOURCES = rotate_test.c callback.c display.c image.c dmtx.c

@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -Wshadow -Wall -pedantic -ansi
+
 check_PROGRAMS = multi_test
 
 multi_test_SOURCES = multi_test.c dmtx.c

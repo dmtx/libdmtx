@@ -1,3 +1,5 @@
+AM_CPPFLAGS = -Wshadow -Wall -pedantic -ansi
+
 bin_PROGRAMS = dmtxread
 noinst_PROGRAMS = dmtxread.debug
 
