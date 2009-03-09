@@ -262,10 +262,10 @@ void PlotPointCallback(DmtxPixelLoc loc, int colorInt, int paneNbr, int dispType
       }
 
       plotPoint(image, point.Y, point.X, color);
-//    plotPoint(image, point.Y + 1, point.X - 1, color);
-//    plotPoint(image, point.Y + 1, point.X + 1, color);
-//    plotPoint(image, point.Y - 1, point.X - 1, color);
-//    plotPoint(image, point.Y - 1, point.X + 1, color);
+/*    plotPoint(image, point.Y + 1, point.X - 1, color);
+      plotPoint(image, point.Y + 1, point.X + 1, color);
+      plotPoint(image, point.Y - 1, point.X - 1, color);
+      plotPoint(image, point.Y - 1, point.X + 1, color); */
    }
    else {
       glMatrixMode(GL_PROJECTION);
@@ -346,26 +346,26 @@ void XfrmPlotPointCallback(DmtxVector2 point, DmtxMatrix3 xfrm, int paneNbr, int
 void PlotModuleCallback(DmtxDecode *info, DmtxRegion *region, int row, int col, int color)
 {
    int modSize, halfModsize, padSize;
-// float t;
+/* float t; */
 
-   // Adjust for addition of finder bar
+   /* Adjust for addition of finder bar */
    row++;
    col++;
 
-   halfModsize = (int)(100.0 / (region->mappingCols + 2) + 0.5); // Because 100 == 200/2
+   halfModsize = (int)(100.0 / (region->mappingCols + 2) + 0.5); /* Because 100 == 200/2 */
    modSize = 2 * halfModsize;
    padSize = (320 - ((region->mappingCols + 2) * modSize))/2;
 
-   // Set for 6th pane
+   /* Set for 6th pane */
    DrawPaneBorder(645, 1, 322, 322);
    glRasterPos2i(1, 1);
 
    glPolygonMode(GL_FRONT, GL_FILL);
 
-   // Clamp color to extreme foreground or background color
-// t = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
-// t = (t < region->gradient.tMid) ? region->gradient.tMin : region->gradient.tMax;
-// dmtxPointAlongRay3(&color, &(region->gradient.ray), t);
+   /* Clamp color to extreme foreground or background color */
+/* t = dmtxDistanceAlongRay3(&(region->gradient.ray), &color);
+   t = (t < region->gradient.tMid) ? region->gradient.tMin : region->gradient.tMax;
+   dmtxPointAlongRay3(&color, &(region->gradient.ray), t); */
 
    if(color == 1) {
       glColor3f(0.0, 0.0, 0.0);

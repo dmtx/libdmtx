@@ -140,8 +140,8 @@ int main(int argc, char *argv[])
       dmtxImageDestroy(&gImage);
 
       DrawBorders(screen);
-//    DrawPane2(screen, passOnePxl);
-//    DrawPane4(screen, passTwoPxl);
+/*    DrawPane2(screen, passOnePxl); */
+/*    DrawPane4(screen, passTwoPxl); */
 
       SDL_GL_SwapBuffers();
    }
