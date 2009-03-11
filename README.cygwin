@@ -24,9 +24,16 @@ for additional details that might benefit users on this platform.
 The following packages must be installed to compile libdmtx on
 Cygwin:
 
+  * gcc
+  * make
+  * automake
   * pkg-config
-  * ImageMagick     (only if compiling dmtxread or dmtxwrite)
-  * libMagick-devel (only if compiling dmtxread or dmtxwrite)
+  * autoconf        (if libdmtx was obtained from Subversion)
+  * libtool         (if libdmtx was obtained from Subversion)
+  * libSM-devel     (if compiling dmtxread or dmtxwrite)
+  * libXt-devel     (if compiling dmtxread or dmtxwrite)
+  * ImageMagick     (if compiling dmtxread or dmtxwrite)
+  * libMagick-devel (if compiling dmtxread or dmtxwrite)
 
 If you only want the core library and don't care about command
 line utilities, you can disable dmtxread and dmtxwrite to avoid

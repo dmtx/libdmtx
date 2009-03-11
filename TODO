@@ -46,11 +46,14 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o dmtxwrite: Add support for setting foreground and background colors
   o dmtxquery: Write XML for dmtxquery consumption
   o dmtxquery: Initial working version (parses XML)
+  o project:   Add libdmtx-0.8.0.zip as source package option
+  o project:   Add libdmtx-win32-0.8.0.zip as binary package option
+  o project:   Consider --disable-magick, while providing native PNM support to utils
   o project:   Clean up source file permissions (write script to detect outliers?)
-  x project:   Add "project" directory to EXTRA_DIST in Makefile.am
   o project:   Any way to ask Magick to filter out GS (and other) warnings?
   o project:   Conditional use of local getopt.c
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
+  x project:   Add "project" directory to EXTRA_DIST in Makefile.am
 
 version 0.7.0: (02-Mar-2009)
   x libdmtx:   Fix 64b->32b int assignment warnings
