@@ -43,7 +43,7 @@ Java_org_libdmtx_DMTXImage_createTag(JNIEnv *aEnv, jclass aClass, jstring aID)
    jmethodID   lConstructor;
    jobject     lResult;
    jintArray   lJavaData;
-   int         lW, lH, lBPP, lI, lJ;
+   int         lW, lH, lBPP;
    jint       *lPixels;
 
    /* Convert ID into string */
@@ -51,13 +51,14 @@ Java_org_libdmtx_DMTXImage_createTag(JNIEnv *aEnv, jclass aClass, jstring aID)
 
    /* Create Data Matrix */
    lEncoded = dmtxEncodeCreate();
+
+   dmtxEncodeSetProp(lEncoded, DmtxPropPixelPacking, DmtxPack32bppRGBX);
+   dmtxEncodeSetProp(lEncoded, DmtxPropImageFlip, DmtxFlipNone);
+
    dmtxEncodeDataMatrix(lEncoded, strlen(sStrID), (unsigned char *)sStrID);
 
    /* Finished with ID, so release it */
    (*aEnv)->ReleaseStringUTFChars(aEnv, aID, sStrID);
-
-   dmtxEncodeSetProp(lEncoded, DmtxPropPixelPacking, DmtxPack32bppRGBX);
-   dmtxEncodeSetProp(lEncoded, DmtxPropImageFlip, DmtxFlipNone);
 
    /* Find DMTXImage class */
    lImageClass = (*aEnv)->FindClass(aEnv, "org/libdmtx/DMTXImage");
@@ -74,26 +75,15 @@ Java_org_libdmtx_DMTXImage_createTag(JNIEnv *aEnv, jclass aClass, jstring aID)
    lH = dmtxImageGetProp(lEncoded->image, DmtxPropHeight);
    lBPP = dmtxImageGetProp(lEncoded->image, DmtxPropBytesPerPixel);
 
-   if(lBPP != 3)
+   if(lBPP != 4)
       return NULL;
 
-   /* Copy Pixel Data (converting to RGB as we go and also doing Y flip) */
+   /* Copy Pixel Data */
    lJavaData = (*aEnv)->NewIntArray(aEnv, lW * lH);
    lPixels = (*aEnv)->GetIntArrayElements(aEnv, lJavaData, NULL);
 
-   for(lI = 0; lI < lH; lI++) {
-      for(lJ = 0; lJ < lW; lJ++) {
-         int lOldIndex = 3 * ((lI * lW) + lJ);
-         int lNewIndex = ((lH - lI - 1) * lW) + lJ;
-         lPixels[lNewIndex] = (lEncoded->image->pxl[lOldIndex + 2] << 16)
-                                     | (lEncoded->image->pxl[lOldIndex + 1] <<   8)
-                                     | (lEncoded->image->pxl[lOldIndex + 0]         );
-      }
-   }
-
-/* new version that I haven't actually tried yet:
    memcpy(lPixels, lEncoded->image->pxl, lW * lH * 4);
-*/
+
    (*aEnv)->ReleaseIntArrayElements(aEnv, lJavaData, lPixels, 0);
 
    /* Create Image instance */
