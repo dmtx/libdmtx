@@ -16,7 +16,7 @@ INCLUDE=-I ../.. \
 	-I /usr/lib/jvm/java-1.6.0-openjdk/include \
 	-I /usr/lib/jvm/java-1.6.0-openjdk/include/linux
 
-GENERATED=$(IMAGE_CLASS) $(TAG_CLASS) $(NATIVE_H) $(NATIVE_SO) $(DMTX_JAR)
+GENERATED=$(IMAGE_CLASS) $(TAG_CLASS) $(NATIVE_SO) $(DMTX_JAR)
 
 all: $(GENERATED)
 
@@ -30,9 +30,6 @@ clean:
 
 $(LIBDMTX_LA):
 	make libdmtx.la -C ../..
-
-$(NATIVE_H):
-	javah -jni -d native org.libdmtx.DMTXImage
 
 $(NATIVE_SO): $(NATIVE_C) $(NATIVE_H) $(LIBDMTX_LA)
 	gcc $(NATIVE_C) $(CFLAGS) -o $(NATIVE_SO) $(INCLUDE) $(LIBDMTX_LA)
