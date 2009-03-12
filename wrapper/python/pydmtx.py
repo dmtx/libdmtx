@@ -135,18 +135,18 @@ class DataMatrix (object):
                 # return only the first message
 		return self.message(1)
 
-        def quantity( self ):
+        def count( self ):
 		return len(self.results)
 
         def message( self, ref ):
-		if (ref <= self.quantity() and ref > 0):
+		if (ref <= self.count() and ref > 0):
                    barcode = self.results[ref-1]
 		   return barcode[0]
                 else:
                    return
 
         def stats( self, ref ):
-		if (ref <= self.quantity() and ref > 0):
+		if (ref <= self.count() and ref > 0):
                    return self.results[ref-1]
                 else:
                    return
