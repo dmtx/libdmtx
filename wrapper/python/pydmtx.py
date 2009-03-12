@@ -3,6 +3,7 @@
 # Copyright (C) 2006 Dan Watson
 # Copyright (C) 2007, 2008, 2009 Mike Laughton
 # Copyright (C) 2008 Jonathan Lung
+# Copyright (C) 2009 Simon Mungewell
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -27,21 +28,52 @@ try:
 except ImportError:
 	_hasPIL = False
 
-class DataMatrix (object):
-	# scheme: values must be consistent with enum DmtxSchemeEncode
-	ASCII     = 1
-	C40       = 2
-	TEXT      = 3
-	X12       = 4
-	EDIFACT   = 5
-	BASE256   = 6
-	BEST_AUTO = 7
-	FAST_AUTO = 8
 
-	# shape: values must be consistent with DmtxSymbol[Square|Rect]Auto
-	RECT_AUTO   = -3
-	SQUARE_AUTO = -2
-	# revisit this to enable other (non auto) sizes ...
+class DataMatrix (object):
+	# Scheme: values must be consistent with enum DmtxSchemeEncode
+	DmtxSchemeEncodeAscii = 1
+	DmtxSchemeEncodeC40 = 2
+	DmtxSchemeEncodeText = 3
+	DmtxSchemeEncodeX12 = 4
+	DmtxSchemeEncodeEdifact = 5
+	DmtxSchemeEncodeBase256 = 6
+	DmtxSchemeEncodeAutoBest = 7
+	DmtxSchemeEncodeAutoFast = 8
+
+	# Shape: values must be consistent with DmtxSymbol[Square|Rect]Auto
+	DmtxSymbolRectAuto   = -3
+	DmtxSymbolSquareAuto = -2
+	DmtxSymbolShapeAuto  = -1
+	DmtxSymbol10x10      =  0
+	DmtxSymbol12x12      =  1
+	DmtxSymbol14x14      =  2
+	DmtxSymbol16x16      =  3
+	DmtxSymbol18x18      =  4
+	DmtxSymbol20x20      =  5
+	DmtxSymbol22x22      =  6
+	DmtxSymbol24x24      =  7
+	DmtxSymbol26x26      =  8
+	DmtxSymbol32x32      =  9
+	DmtxSymbol36x36      =  10
+	DmtxSymbol40x40      =  11
+	DmtxSymbol44x44      =  12
+	DmtxSymbol48x48      =  13
+	DmtxSymbol52x52      =  14
+	DmtxSymbol64x64      =  15
+	DmtxSymbol72x72      =  16
+	DmtxSymbol80x80      =  17
+	DmtxSymbol88x88      =  18
+	DmtxSymbol96x96      =  19
+	DmtxSymbol104x104    =  20
+	DmtxSymbol120x120    =  21
+	DmtxSymbol132x132    =  22
+	DmtxSymbol144x144    =  23
+	DmtxSymbol8x18       =  24
+	DmtxSymbol8x32       =  25
+	DmtxSymbol12x26      =  26
+	DmtxSymbol12x36      =  27
+	DmtxSymbol16x36      =  28
+	DmtxSymbol16x48      =  29
 
 	def __init__( self, **kwargs ):
 		self._data = None
@@ -50,27 +82,33 @@ class DataMatrix (object):
 
 		self.width, self.height = 0, 0
 
-		# defaults
-		#self.symbol_color = # how best to specify 3-component color?
-		#self.bg_color =     # how best to specify 3-component color?
-		self.module_size = 5
-		self.margin_size = 10
-		self.scheme = self.ASCII
-		self.shape = self.SQUARE_AUTO
+		self.results = ""
 
-		self.__dict__.update(kwargs)
+		# defaults (only set mandatory values)
+                self.options = {
+		   'module_size': 5,
+		   'margin_size' : 10,
+		   'gap_size' : 10,
+		   'scheme' : self.DmtxSchemeEncodeAscii,
+		   'shape' : self.DmtxSymbolSquareAuto
+                }
+
+		self.options.update(kwargs)
 
 	# make these read-only
 	data = property( lambda self: self._data )
 	image = property( lambda self: self._image )
 
 	# encoding methods
-	def encode( self, data ):
+	def encode( self, data, **kwargs ):
+		all_kwargs = self.options
+		all_kwargs.update(kwargs)
+
 		self._data = str(data)
-		_pydmtx.encode( self._data, len(self._data), self.module_size,
-			self.margin_size, self.scheme, self.shape,
+		_pydmtx.encode( self._data, len(self._data),
 			plotter=self._plot, start=self._start,
-			finish=self._finish )
+			finish=self._finish,
+                        **all_kwargs );
 
 	def save( self, path, fmt ):
 		if self._image is not None:
@@ -88,6 +126,27 @@ class DataMatrix (object):
 		del self._draw
 		self._draw = None
 
-	# decoding method
 	def decode( self, width, height, data, **kwargs):
-		return _pydmtx.decode( width, height, self.gap_size, data, **kwargs)
+		all_kwargs = self.options
+		all_kwargs.update(kwargs)
+
+		self.results =  _pydmtx.decode( width, height, data, **all_kwargs)
+
+                # return only the first message
+		return self.message(1)
+
+        def quantity( self ):
+		return len(self.results)
+
+        def message( self, ref ):
+		if (ref <= self.quantity() and ref > 0):
+                   barcode = self.results[ref-1]
+		   return barcode[0]
+                else:
+                   return
+
+        def stats( self, ref ):
+		if (ref <= self.quantity() and ref > 0):
+                   return self.results[ref-1]
+                else:
+                   return

@@ -5,6 +5,7 @@ Copyright (C) 2006 Dan Watson
 Copyright (C) 2008, 2009 Mike Laughton
 Copyright (C) 2008 Jonathan Lung
 Copyright (C) 2009 David Turner
+Copyright (C) 2009 Simon Mungewell
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -54,19 +55,23 @@ static PyMethodDef dmtxMethods[] = {
      NULL }
 };
 
-static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs)
+static PyObject *
+dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs)
 {
    const unsigned char *data;
+   int count=0;
    int data_size;
    int module_size;
    int margin_size;
    int scheme;
    int shape;
+
    PyObject *plotter = NULL;
    PyObject *start_cb = NULL;
    PyObject *finish_cb = NULL;
    PyObject *context = Py_None;
    PyObject *args;
+
    DmtxEncode *enc;
    int row, col;
    int rgb[3];
@@ -74,7 +79,18 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
                              "scheme", "shape", "plotter", "start", "finish",
                              "context", NULL };
 
-   if(!PyArg_ParseTupleAndKeywords(arglist, kwargs, "siiiii|OOOO", kwlist,
+   /* Parse out the options which are applicable */
+   PyObject *filtered_kwargs;
+   filtered_kwargs = PyDict_New();
+   count = 2; /* Skip the first 2 keywords as they are sent in arglist */
+   while(kwlist[count]){
+      if(PyDict_GetItemString(kwargs, kwlist[count])) {
+         PyDict_SetItemString(filtered_kwargs, kwlist[count],PyDict_GetItemString(kwargs, kwlist[count]));
+      }
+      count++;
+   }
+
+   if(!PyArg_ParseTupleAndKeywords(arglist, filtered_kwargs, "siiiii|OOOO", kwlist,
          &data, &data_size, &module_size, &margin_size, &scheme, &shape,
          &plotter, &start_cb, &finish_cb, &context))
       return NULL;
@@ -130,39 +146,61 @@ static PyObject *dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs
    return Py_None;
 }
 
-static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
+static PyObject *
+dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
 {
+   int count=0;
    int width;
    int height;
    int gap_size;
+   int max_count = DmtxUndefined;
+   int timeout = DmtxUndefined;
 
-   PyObject *dataBuffer = NULL;
+   PyObject *dataBuf = NULL;
    Py_ssize_t dataLen;
    PyObject *context = Py_None;
-   PyObject *output = NULL;
+   PyObject *output = PyList_New(0);
+
+   DmtxTime dmtx_timeout;
    DmtxImage *img;
    DmtxDecode *dec;
    DmtxRegion *reg;
    DmtxMessage *msg;
-   const char *pxl;  /* Input image buffer */
+   DmtxVector2 p00, p10, p11, p01;
+   const char *pxl; /* Input image buffer */
 
-   static char *kwlist[] = { "width", "height", "gap_size", "data", "context", NULL };
+   static char *kwlist[] = { "width", "height", "data", "gap_size", "max_count", "context", "timeout", NULL };
+
+   /* Parse out the options which are applicable */
+   PyObject *filtered_kwargs;
+   filtered_kwargs = PyDict_New();
+   count = 3; /* Skip the first 3 keywords as they are sent in arglist */
+   while(kwlist[count]){
+      if(PyDict_GetItemString(kwargs, kwlist[count])) {
+         PyDict_SetItemString(filtered_kwargs, kwlist[count],PyDict_GetItemString(kwargs, kwlist[count]));
+      }
+      count++;
+   }
 
    /* Get parameters from Python for libdmtx */
-   if(!PyArg_ParseTupleAndKeywords(arglist, kwargs, "iii|OO", kwlist,
-         &width, &height, &gap_size, &dataBuffer, &context)) {
+   if(!PyArg_ParseTupleAndKeywords(arglist, filtered_kwargs, "iiOi|iOi", kwlist,
+         &width, &height, &dataBuf, &gap_size, &max_count, &context, &timeout)) {
       PyErr_SetString(PyExc_TypeError, "decode takes at least 3 arguments");
       return NULL;
    }
 
    Py_INCREF(context);
 
-   if(dataBuffer == NULL) {
+   /* Reset timeout for each new page */
+   if(timeout != DmtxUndefined)
+      dmtx_timeout = dmtxTimeAdd(dmtxTimeNow(), timeout);
+
+   if(dataBuf == NULL) {
       PyErr_SetString(PyExc_TypeError, "Interleaved bitmapped data in buffer missing");
       return NULL;
    }
 
-   PyObject_AsCharBuffer(dataBuffer, &pxl, &dataLen);
+   PyObject_AsCharBuffer(dataBuf, &pxl, &dataLen);
 
    img = dmtxImageCreate((unsigned char *)pxl, width, height, DmtxPack24bppRGB);
    if(img == NULL)
@@ -176,18 +214,40 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
 
    dmtxDecodeSetProp(dec, DmtxPropScanGap, gap_size);
 
-   for(;;) {
-      reg = dmtxRegionFindNext(dec, NULL);
-      if(reg != NULL) {
-         msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
-         if(msg != NULL) {
-            output = Py_BuildValue("s", msg->output);
-            Py_INCREF(output);
-            dmtxMessageDestroy(&msg);
-         }
-         dmtxRegionDestroy(&reg);
+   for(count=1; ;count++) {
+      if(timeout == DmtxUndefined)
+         reg = dmtxRegionFindNext(dec, NULL);
+      else
+         reg = dmtxRegionFindNext(dec, &dmtx_timeout);
+
+      /* Finished file or ran out of time before finding another region */
+      if(reg == NULL)
+         break;
+
+      msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
+      if(msg != NULL) {
+         p00.X = p00.Y = p10.Y = p01.X = 0.0;
+         p10.X = p01.Y = p11.X = p11.Y = 1.0;
+         dmtxMatrix3VMultiplyBy(&p00, reg->fit2raw);
+         dmtxMatrix3VMultiplyBy(&p10, reg->fit2raw);
+         dmtxMatrix3VMultiplyBy(&p11, reg->fit2raw);
+         dmtxMatrix3VMultiplyBy(&p01, reg->fit2raw);
+
+         PyList_Append(output, Py_BuildValue("s((ii)(ii)(ii)(ii))", msg->output,
+               (int)(p00.X + 0.5), height - 1 - (int)(p00.Y + 0.5),
+               (int)(p10.X + 0.5), height - 1 - (int)(p10.Y + 0.5),
+               (int)(p11.X + 0.5), height - 1 - (int)(p11.Y + 0.5),
+               (int)(p01.X + 0.5), height - 1 - (int)(p01.Y + 0.5)));
+
+         Py_INCREF(output);
+         dmtxMessageDestroy(&msg);
       }
-      break; /* XXX for now, break after first barcode is found in image */
+
+      dmtxRegionDestroy(&reg);
+
+      /* Stop if we've reached maximium count */
+      if(max_count != DmtxUndefined)
+         if(count >= max_count) break;
    }
 
    dmtxDecodeDestroy(&dec);
@@ -201,12 +261,14 @@ static PyObject *dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs
    return output;
 }
 
-PyMODINIT_FUNC init_pydmtx(void)
+PyMODINIT_FUNC
+init_pydmtx(void)
 {
    (void)Py_InitModule("_pydmtx", dmtxMethods);
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
    Py_SetProgramName(argv[0]);
    Py_Initialize();
