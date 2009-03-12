@@ -104,13 +104,14 @@ Release Checklist
    o $ ./autogen.sh && ./configure # don't build though
    o $ make dist-gzip
    o $ make dist-bzip2
+   o $ make dist-zip
    o Verify no extraneous files made their way into the
      distribution (especially in the wrapper directories)
-   o $ md5sum libdmtx*.tar.* > MD5SUM.txt
+   o $ md5sum libdmtx-0.8.0.* > MD5SUM.txt
 
 10) o Upload release to SourceForge
 
-    o $ scp libdmtx-0.8.0.tar.* user@frs.sourceforge.net:uploads
+    o $ scp libdmtx-0.8.0.* user@frs.sourceforge.net:uploads
 
 11) o SourceForge release administration
 
