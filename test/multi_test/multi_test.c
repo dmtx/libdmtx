@@ -52,7 +52,7 @@ static SDL_Surface *SetWindowSize(int windowWidth, int windowHeight);
 static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
       SDL_Surface *picture, SDL_Surface **screen);
 static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
-static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);
+/*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 static void WriteCacheImage(DmtxDecode *dec, char *imagePath);
 static void PopulateCache(DmtxDecode *dec);
 
@@ -107,6 +107,8 @@ int main(int argc, char *argv[])
    SDL_LockSurface(picture);
    PopulateCache(dec);
    SDL_UnlockSurface(picture);
+
+   WriteCacheImage(dec, "cache.pnm");
 
    atexit(SDL_Quit);
 
@@ -337,6 +339,7 @@ NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc)
  *
  *
  */
+/*
 static void
 WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 {
@@ -360,6 +363,7 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
    free(pnm);
    fclose(fp);
 }
+*/
 
 /**
  *
@@ -505,6 +509,4 @@ PopulateCache(DmtxDecode *dec)
    tb = dmtxTimeNow();
    fprintf(stdout, "PopulateCache time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
-
-   WriteCacheImage(dec, "cache.pnm");
 }
