@@ -1,25 +1,30 @@
 /*
- * libdmtx - Data Matrix Encoding/Decoding Library
- * Copyright (C) 2009 Mike Laughton
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
- *
- * Contact: mblaughton@users.sourceforge.net
- */
+libdmtx - Data Matrix Encoding/Decoding Library
+
+Copyright (C) 2009 Mike Laughton
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+
+Contact: mblaughton@users.sourceforge.net
+*/
 
 /* $Id: multi_test.c 561 2008-12-28 16:28:58Z mblaughton $ */
+
+/*
+ *
+ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -45,6 +50,15 @@ struct AppState {
    DmtxBoolean quit;
 };
 
+struct Flow {
+   unsigned char dir;
+   Uint16        mag;
+};
+
+struct Edge {
+   unsigned char dir;
+};
+
 static struct UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
 static struct AppState InitAppState(void);
@@ -53,14 +67,17 @@ static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
       SDL_Surface *picture, SDL_Surface **screen);
 static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
-static void WriteCacheImage(DmtxDecode *dec, char *imagePath);
-static void PopulateCache(DmtxDecode *dec);
+static void PopulateCache1(struct Flow *flowCache, DmtxImage *img, int width, int height);
+static void PopulateCache2(struct Edge *edgeCache, struct Flow *flowCache, int width, int height);
+static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
+static void WriteEdgeCacheImage(struct Edge *edge, int width, int height, char *imagePath);
 
 int main(int argc, char *argv[])
 {
    struct UserOptions opt;
    struct AppState    state;
    int                scanX, scanY;
+   int                width, height;
    SDL_Surface       *screen;
    SDL_Surface       *picture;
    SDL_Event          event;
@@ -69,6 +86,8 @@ int main(int argc, char *argv[])
    DmtxDecode        *dec;
 /* DmtxRegion        *reg; */
 /* DmtxMessage       *msg; */
+   struct Flow       *flowCache;
+   struct Edge       *edgeCache;
 
    opt = GetDefaultOptions();
 
@@ -104,11 +123,21 @@ int main(int argc, char *argv[])
    dec = dmtxDecodeCreate(img, 1);
    assert(dec != NULL);
 
+   width = dmtxImageGetProp(img, DmtxPropWidth);
+   height = dmtxImageGetProp(img, DmtxPropHeight);
+
+   flowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
+   assert(flowCache != NULL);
+   edgeCache = (struct Edge *)calloc(width * height, sizeof(struct Edge));
+   assert(edgeCache != NULL);
+
    SDL_LockSurface(picture);
-   PopulateCache(dec);
+   PopulateCache1(flowCache, dec->image, width, height);
+   PopulateCache2(edgeCache, flowCache, width, height);
    SDL_UnlockSurface(picture);
 
-   WriteCacheImage(dec, "cache.pnm");
+   WriteFlowCacheImage(flowCache, width, height, "flowCache.pnm");
+   WriteEdgeCacheImage(edgeCache, width, height, "edgeCache.pnm");
 
    atexit(SDL_Quit);
 
@@ -370,53 +399,9 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
  *
  */
 static void
-WriteCacheImage(DmtxDecode *dec, char *imagePath)
+PopulateCache1(struct Flow *flowCache, DmtxImage *img, int width, int height)
 {
-   int row, col;
-   int width, height;
-   int rgb[3];
-   unsigned char *cache;
-   FILE *fp;
-
-   width = dmtxDecodeGetProp(dec, DmtxPropWidth);
-   height = dmtxDecodeGetProp(dec, DmtxPropHeight);
-
-   fp = fopen(imagePath, "wb");
-   if(fp == NULL)
-      exit(1);
-
-   fprintf(fp, "P6\n%d %d\n255\n", width, height);
-
-   for(row = height - 1; row >= 0; row--) {
-      for(col = 0; col < width; col++) {
-         cache = dmtxDecodeGetCache(dec, col, row);
-         if(cache != NULL) {
-            rgb[0] = *cache;
-            rgb[1] = *cache;
-            rgb[2] = *cache;
-         }
-         else {
-            rgb[0] = 0;
-            rgb[1] = 0;
-            rgb[2] = 0;
-         }
-         fputc(rgb[0], fp);
-         fputc(rgb[1], fp);
-         fputc(rgb[2], fp);
-      }
-   }
-
-   fclose(fp);
-}
-
-/**
- *
- *
- */
-static void
-PopulateCache(DmtxDecode *dec)
-{
-   int width, height, bytesPerPixel, rowSizeBytes, colorPlane;
+   int bytesPerPixel, rowSizeBytes, colorPlane;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
    int vMag, hMag, compassMax;
@@ -424,14 +409,9 @@ PopulateCache(DmtxDecode *dec)
    int colorMdRt, colorHiRt, colorHiMd;
    int colorHiLf, colorMdLf, colorMdMd;
    int offset, offsetLo, offsetMd, offsetHi;
-   DmtxImage *img;
    DmtxTime ta, tb;
 /* DmtxPointFlow flow; */
 
-   img = dec->image;
-
-   width = dmtxImageGetProp(img, DmtxPropWidth);
-   height = dmtxImageGetProp(img, DmtxPropHeight);
    rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
    bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
    colorPlane = 0; /* XXX need to make some decisions here */
@@ -484,9 +464,15 @@ PopulateCache(DmtxDecode *dec)
          hMag -=  colorLoRt;
 
          /* Identify strongest compass flow */
-         compassMax = (abs(vMag) > abs(hMag)) ? abs(vMag) : abs(hMag);
-         if(compassMax > 255)
-            compassMax = 255;
+         if(abs(vMag) > abs(hMag)) {
+            flowCache[y * width + x].dir = DmtxDirVertical;
+            compassMax = abs(vMag);
+         }
+         else {
+            flowCache[y * width + x].dir = DmtxDirHorizontal;
+            compassMax = abs(hMag);
+         }
+         flowCache[y * width + x].mag = (compassMax > 255) ? 255 : compassMax;
 
          colorHiLf = colorHiMd;
          colorMdLf = colorMdMd;
@@ -501,12 +487,140 @@ PopulateCache(DmtxDecode *dec)
          colorHiRt = img->pxl[offsetHi + offset];
          colorMdRt = img->pxl[offsetMd + offset];
          colorLoRt = img->pxl[offsetLo + offset];
-
-         dec->cache[y * width + x] = compassMax;
       }
    }
 
    tb = dmtxTimeNow();
-   fprintf(stdout, "PopulateCache time: %ldms\n", (1000000 *
+   fprintf(stdout, "PopulateCache1 time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
+}
+
+/**
+ *
+ *
+ */
+static void
+PopulateCache2(struct Edge *edgeCache, struct Flow *flowCache, int width, int height)
+{
+   int x, xBeg, xEnd;
+   int y, yBeg, yEnd;
+   int offset, offsetPrev, offsetNext;
+   DmtxTime ta, tb;
+
+   xBeg = 2;
+   xEnd = width - 3;
+   yBeg = 2;
+   yEnd = height - 3;
+
+   ta = dmtxTimeNow();
+
+   for(y = yBeg; y <= yEnd; y++) {
+      for(x = xBeg; x <= xEnd; x++) {
+         offset = y * width + x;
+         if(flowCache[offset].dir == DmtxDirVertical) {
+            offsetPrev = offset - 1;
+            offsetNext = offset + 1;
+         }
+         else {
+            offsetPrev = offset - width;
+            offsetNext = offset + width;
+         }
+
+         if(flowCache[offset].mag < 20 ||
+               flowCache[offsetPrev].mag > flowCache[offset].mag ||
+               flowCache[offsetNext].mag > flowCache[offset].mag) {
+            edgeCache[offset].dir = 0;
+         }
+         else {
+            edgeCache[offset].dir = flowCache[offset].dir;
+         }
+      }
+   }
+
+   tb = dmtxTimeNow();
+   fprintf(stdout, "PopulateCache2 time: %ldms\n", (1000000 *
+         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
+}
+
+/**
+ *
+ *
+ */
+static void
+WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePath)
+{
+   int row, col;
+   int rgb[3];
+   unsigned char cache;
+   FILE *fp;
+
+   fp = fopen(imagePath, "wb");
+   if(fp == NULL)
+      exit(1);
+
+   fprintf(fp, "P6\n%d %d\n255\n", width, height);
+
+   for(row = height - 1; row >= 0; row--) {
+      for(col = 0; col < width; col++) {
+         cache = flowCache[row * width + col].mag;
+
+         rgb[0] = cache;
+         rgb[1] = cache;
+         rgb[2] = cache;
+
+         fputc(rgb[0], fp);
+         fputc(rgb[1], fp);
+         fputc(rgb[2], fp);
+      }
+   }
+
+   fclose(fp);
+}
+
+/**
+ *
+ *
+ */
+static void
+WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePath)
+{
+   int row, col;
+   int rgb[3];
+   unsigned char cache;
+   FILE *fp;
+
+   fp = fopen(imagePath, "wb");
+   if(fp == NULL)
+      exit(1);
+
+   fprintf(fp, "P6\n%d %d\n255\n", width, height);
+
+   for(row = height - 1; row >= 0; row--) {
+      for(col = 0; col < width; col++) {
+         cache = edgeCache[row * width + col].dir;
+         switch(cache) {
+            case 0:
+               rgb[0] = 0;
+               rgb[1] = 0;
+               rgb[2] = 0;
+               break;
+            case DmtxDirVertical:
+               rgb[0] = 255;
+               rgb[1] = 0;
+               rgb[2] = 0;
+               break;
+            case DmtxDirHorizontal:
+               rgb[0] = 0;
+               rgb[1] = 255;
+               rgb[2] = 0;
+               break;
+         }
+
+         fputc(rgb[0], fp);
+         fputc(rgb[1], fp);
+         fputc(rgb[2], fp);
+      }
+   }
+
+   fclose(fp);
 }
