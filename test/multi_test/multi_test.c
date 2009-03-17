@@ -487,7 +487,14 @@ PopulateFlowCache(struct Flow *flowCache, DmtxImage *img, int width, int height)
             flowCache[y * width + x].dir = (hMag > 0) ? DmtxDirRight : DmtxDirLeft;
             compassMax = abs(hMag);
          }
-         flowCache[y * width + x].mag = (compassMax > 255) ? 255 : compassMax;
+
+         if(compassMax < 20) {
+            flowCache[y * width + x].dir = DmtxDirNone;
+            flowCache[y * width + x].mag = 0;
+         }
+         else {
+            flowCache[y * width + x].mag = (compassMax > 255) ? 255 : compassMax;
+         }
 
          colorHiLf = colorHiMd;
          colorMdLf = colorMdMd;
@@ -511,8 +518,12 @@ PopulateFlowCache(struct Flow *flowCache, DmtxImage *img, int width, int height)
 }
 
 /**
- *
- *
+ * Consider flow measured at location X
+ * If flow points upward, then find strongest flow of FwMd, FwLf, FwRt
+ * (FwMd takes precedence is there is a tie)
+ * Verify that winner is stronger than both of its neighbors ... e.g., if FwRt wins, then it must also be
+ * stronger than MdRt ... if so...
+ * Record edge at location X pointing in FwRt direction, also mark connection bit
  */
 static void
 PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int height)
@@ -520,9 +531,8 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
    int offset, offsets[9];
-   int indexFwLf, indexFwMd, indexFwRt;
-   int indexBwLf, indexBwMd, indexBwRt;
-   int offsetMdMd, offsetFwLf, offsetFwMd, offsetFwRt, offsetBwLf, offsetBwMd, offsetBwRt;
+   int shiftMdLf, shiftMdRt, shiftFwLf, shiftFwMd, shiftFwRt;
+   int offsetMdLf, offsetMdRt, offsetFwLf, offsetFwMd, offsetFwRt;
    DmtxTime ta, tb;
 
    xBeg = 2;
@@ -532,86 +542,92 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
 
    ta = dmtxTimeNow();
 
-/**
- * 6 5 4
- * 7   3
- * 0 1 2
- */
-
-   offsets[0] = 0 + width - 1;
-   offsets[1] = 0 + width;
-   offsets[2] = 0 + width + 1;
-   offsets[3] = 0 + 1;
-   offsets[4] = 0 - width + 1;
-   offsets[5] = 0 - width;
-   offsets[6] = 0 - width - 1;
-   offsets[7] = 0 - 1;
-
    for(y = yBeg; y <= yEnd; y++) {
       for(x = xBeg; x <= xEnd; x++) {
+
+         /* XXX later play with option of offset++ as part of for loop */
          offset = y * width + x;
+
+         /* XXX later try setting 5,7,1,3 in flowCache directly */
          switch(flowCache[offset].dir) {
             case DmtxDirUp:
-               indexFwLf = 6;
-               indexFwMd = 5;
-               indexFwRt = 4;
-               indexBwLf = 0;
-               indexBwMd = 1;
-               indexBwRt = 2;
-               break;
-            case DmtxDirDown:
-               indexFwLf = 2;
-               indexFwMd = 1;
-               indexFwRt = 0;
-               indexBwLf = 4;
-               indexBwMd = 5;
-               indexBwRt = 6;
+               shiftFwMd = 5;
                break;
             case DmtxDirLeft:
-               indexFwLf = 0;
-               indexFwMd = 7;
-               indexFwRt = 6;
-               indexBwLf = 2;
-               indexBwMd = 3;
-               indexBwRt = 4;
+               shiftFwMd = 7;
+               break;
+            case DmtxDirDown:
+               shiftFwMd = 1;
                break;
             case DmtxDirRight:
-               indexFwLf = 4;
-               indexFwMd = 3;
-               indexFwRt = 2;
-               indexBwLf = 6;
-               indexBwMd = 7;
-               indexBwRt = 0;
+               shiftFwMd = 3;
                break;
             default:
-               exit(1);
-               break;
+               edgeCache[offset].dir = 0;
+               continue;
          }
 
-         if(flowCache[offset].mag < 20) {
-            edgeCache[offset].dir = DmtxDirNone;
-         }
-         else {
-            offsetMdMd = offset;
-            offsetFwLf = offset + offsets[indexFwLf];
-            offsetFwMd = offset + offsets[indexFwMd];
-            offsetFwRt = offset + offsets[indexFwRt];
-            offsetBwLf = offset + offsets[indexBwLf];
-            offsetBwMd = offset + offsets[indexBwMd];
-            offsetBwRt = offset + offsets[indexBwRt];
+         offsets[0] = offset + width - 1;
+         offsets[1] = offset + width;
+         offsets[2] = offset + width + 1;
+         offsets[3] = offset + 1;
+         offsets[4] = offset - width + 1;
+         offsets[5] = offset - width;
+         offsets[6] = offset - width - 1;
+         offsets[7] = offset - 1;
 
-            if(flowCache[offsetFwMd].dir != flowCache[offsetMdMd].dir ||
-                  flowCache[offsetBwMd].dir != flowCache[offsetMdMd].dir) {
-               edgeCache[offset].dir = DmtxDirNone;
-            }
-            else if(flowCache[offsetFwLf].mag >= flowCache[offsetFwMd].mag ||
-                  flowCache[offsetFwRt].mag >= flowCache[offsetFwMd].mag ||
-                  flowCache[offsetBwLf].mag >= flowCache[offsetBwMd].mag ||
-                  flowCache[offsetBwRt].mag >= flowCache[offsetBwMd].mag) {
-               edgeCache[offset].dir = DmtxDirNone;
+         /* If either side neighbor is stronger than middle, no direction */
+         shiftMdLf = (shiftFwMd + 2) & 0x07;
+         shiftMdRt = (shiftFwMd + 6) & 0x07;
+         offsetMdLf = offsets[shiftMdLf];
+         offsetMdRt = offsets[shiftMdRt];
+         if(flowCache[offsetMdLf].mag > flowCache[offset].mag ||
+               flowCache[offsetMdLf].mag > flowCache[offset].mag) {
+            edgeCache[offset].dir = 0;
+            continue;
+         }
+
+         /* Test strength of FwLf, FwMd, FwRt neighbors (can be diagonal) */
+         shiftFwLf = (shiftFwMd + 1) & 0x07;
+         shiftFwRt = (shiftFwMd + 7) & 0x07;
+         offsetFwLf = offsets[shiftFwLf];
+         offsetFwMd = offsets[shiftFwMd];
+         offsetFwRt = offsets[shiftFwRt];
+
+         /* If none of them are stronger than min threshold, no direction */
+         /* Use dir instead of mag so threshold is only used once (above) */
+         if(flowCache[offsetFwLf].dir == DmtxDirNone &&
+               flowCache[offsetFwMd].dir == DmtxDirNone &&
+               flowCache[offsetFwRt].dir == DmtxDirNone) {
+            edgeCache[offset].dir = 0;
+            continue;
+         }
+
+         /* Point to strongest neighbor (FwLf, FwMd, FwRt) */
+         if(flowCache[offsetFwMd].mag >= flowCache[offsetFwLf].mag &&
+               flowCache[offsetFwMd].mag >= flowCache[offsetFwRt].mag) {
+            edgeCache[offset].dir |= shiftFwMd;
+            edgeCache[offset].dir |= 0x08;
+         }
+         else if(flowCache[offsetFwLf].mag == flowCache[offsetFwRt].mag) {
+            edgeCache[offset].dir = 0;
+         }
+         else if(flowCache[offsetFwLf].mag > flowCache[offsetFwRt].mag) {
+            if(flowCache[offsetFwLf].mag >= flowCache[offsetMdLf].mag) {
+               edgeCache[offset].dir |= shiftFwLf;
+               edgeCache[offset].dir |= 0x08;
             }
             else {
-               edgeCache[offset].dir = flowCache[offset].dir;
+               edgeCache[offset].dir = 0;
+            }
+         }
+         else {
+            if(flowCache[offsetFwRt].mag >= flowCache[offsetMdRt].mag) {
+               edgeCache[offset].dir |= shiftFwRt;
+               edgeCache[offset].dir |= 0x08;
+            }
+            else {
+               edgeCache[offset].dir = 0;
             }
          }
       }
@@ -731,32 +747,14 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
          cache = edgeCache[row * width + col].dir;
-         switch(cache) {
-            case DmtxDirUp:
+         rgb[0] = rgb[1] = rgb[2] = 0;
+         if(cache & 0x08) {
+            if(cache & 0x01)
                rgb[0] = 255;
-               rgb[1] = 0;
-               rgb[2] = 0;
-               break;
-            case DmtxDirDown:
-               rgb[0] = 0;
+            if(cache & 0x02)
                rgb[1] = 255;
-               rgb[2] = 0;
-               break;
-            case DmtxDirRight:
-               rgb[0] = 0;
-               rgb[1] = 0;
+            if(cache & 0x04)
                rgb[2] = 255;
-               break;
-            case DmtxDirLeft:
-               rgb[0] = 255;
-               rgb[1] = 255;
-               rgb[2] = 0;
-               break;
-            default:
-               rgb[0] = 0;
-               rgb[1] = 0;
-               rgb[2] = 0;
-               break;
          }
 
          fputc(rgb[0], fp);
