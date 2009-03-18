@@ -686,7 +686,7 @@ WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePa
 
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
 
-   for(row = height - 1; row >= 0; row--) {
+   for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
          flow = flowCache[row * width + col];
          switch(flow.dir) {
@@ -744,7 +744,7 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
 
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
 
-   for(row = height - 1; row >= 0; row--) {
+   for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
          cache = edgeCache[row * width + col].dir;
          rgb[0] = rgb[1] = rgb[2] = 0;
