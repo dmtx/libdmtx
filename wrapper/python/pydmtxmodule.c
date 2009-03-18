@@ -155,6 +155,9 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    int gap_size;
    int max_count = DmtxUndefined;
    int timeout = DmtxUndefined;
+   int shape = DmtxUndefined;
+   int deviation = DmtxUndefined;
+   int threshold = DmtxUndefined;
 
    PyObject *dataBuf = NULL;
    Py_ssize_t dataLen;
@@ -169,7 +172,7 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    DmtxVector2 p00, p10, p11, p01;
    const char *pxl; /* Input image buffer */
 
-   static char *kwlist[] = { "width", "height", "data", "gap_size", "max_count", "context", "timeout", NULL };
+   static char *kwlist[] = { "width", "height", "data", "gap_size", "max_count", "context", "timeout", "shape", "deviation", "threshold", NULL };
 
    /* Parse out the options which are applicable */
    PyObject *filtered_kwargs;
@@ -183,8 +186,8 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    }
 
    /* Get parameters from Python for libdmtx */
-   if(!PyArg_ParseTupleAndKeywords(arglist, filtered_kwargs, "iiOi|iOi", kwlist,
-         &width, &height, &dataBuf, &gap_size, &max_count, &context, &timeout)) {
+   if(!PyArg_ParseTupleAndKeywords(arglist, filtered_kwargs, "iiOi|iOiiii", kwlist,
+         &width, &height, &dataBuf, &gap_size, &max_count, &context, &timeout, &shape, &deviation, &threshold)) {
       PyErr_SetString(PyExc_TypeError, "decode takes at least 3 arguments");
       return NULL;
    }
@@ -213,6 +216,15 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    }
 
    dmtxDecodeSetProp(dec, DmtxPropScanGap, gap_size);
+
+   if(shape != DmtxUndefined)
+      dmtxDecodeSetProp(dec, DmtxPropSymbolSize, shape);
+
+   if(deviation != DmtxUndefined)
+      dmtxDecodeSetProp(dec, DmtxPropSquareDevn, deviation);
+
+   if(threshold != DmtxUndefined)
+      dmtxDecodeSetProp(dec, DmtxPropEdgeThresh, threshold);
 
    for(count=1; ;count++) {
       if(timeout == DmtxUndefined)
