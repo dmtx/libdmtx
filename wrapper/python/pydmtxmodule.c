@@ -227,10 +227,12 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
       dmtxDecodeSetProp(dec, DmtxPropEdgeThresh, threshold);
 
    for(count=1; ;count++) {
+      Py_BEGIN_ALLOW_THREADS
       if(timeout == DmtxUndefined)
          reg = dmtxRegionFindNext(dec, NULL);
       else
          reg = dmtxRegionFindNext(dec, &dmtx_timeout);
+      Py_END_ALLOW_THREADS
 
       /* Finished file or ran out of time before finding another region */
       if(reg == NULL)
