@@ -36,35 +36,6 @@ Contact: mike@dragonflylogic.com
    in EncodeAsciiCodeword().
 */
 
-#define DMTX_CHAR_ASCII_PAD            129
-#define DMTX_CHAR_ASCII_UPPER_SHIFT    235
-
-#define DMTX_CHAR_C40_LATCH            230
-#define DMTX_CHAR_TEXT_LATCH           239
-#define DMTX_CHAR_X12_LATCH            238
-#define DMTX_CHAR_TRIPLET_UNLATCH      254
-#define DMTX_CHAR_TRIPLET_SHIFT_1        0
-#define DMTX_CHAR_TRIPLET_SHIFT_2        1
-#define DMTX_CHAR_TRIPLET_SHIFT_3        2
-
-#define DMTX_CHAR_EDIFACT_LATCH        240
-#define DMTX_CHAR_EDIFACT_UNLATCH       31
-
-#define DMTX_CHAR_BASE256_LATCH        231
-
-#define DMTX_CHAR_FNC1                 232
-#define DMTX_CHAR_STRUCTURED_APPEND    233
-#define DMTX_CHAR_ECI                  241
-#define DMTX_CHAR_05MACRO              236
-#define DMTX_CHAR_06MACRO              237
-
-#define DMTX_CHANNEL_VALID            0x00
-#define DMTX_CHANNEL_UNSUPPORTED_CHAR 0x01 << 0
-#define DMTX_CHANNEL_CANNOT_UNLATCH   0x01 << 1
-
-#define DMTX_UNLATCH_EXPLICIT            0
-#define DMTX_UNLATCH_IMPLICIT            1
-
 /**
  * @brief  Initialize encode struct with default values
  * @return Initialized DmtxEncode struct
