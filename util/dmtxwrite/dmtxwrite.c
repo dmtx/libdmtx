@@ -361,7 +361,8 @@ OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
   -c, --codewords             print codeword listing\n\
   -d, --module=NUM            module size (in pixels)\n\
-  -m, --margin=NUM            margin size (in pixels)\n\
+  -m, --margin=NUM            margin size (in pixels)\n"));
+      fprintf(stdout, _("\
   -e, --encoding=[abcet8x]    primary encodation scheme\n\
             a = ASCII [default]   b = Best optimized [beta]\n\
             c = C40               e = EDIFACT\n\
@@ -376,18 +377,21 @@ OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
   -s, --symbol-size=[sr|RxC]  symbol size (default \"s\")\n\
         Automatic size options:\n\
-            s = Auto square         r = Auto rectangle\n\
+            s = Auto square         r = Auto rectangle\n"));
+      fprintf(stdout, _("\
         Manual size options for square symbols:\n\
             10x10   12x12   14x14   16x16   18x18   20x20\n\
             22x22   24x24   26x26   32x32   36x36   40x40\n\
             44x44   48x48   52x52   64x64   72x72   80x80\n\
-            88x88   96x96 104x104 120x120 132x132 144x144\n\
+            88x88   96x96 104x104 120x120 132x132 144x144\n"));
+      fprintf(stdout, _("\
         Manual size options for rectangle symbols:\n\
              8x18    8x32   12x26   12x36   16x36   16x48\n"));
       fprintf(stdout, _("\
   -C, --color=COLOR           barcode color (not implemented)\n\
   -B, --bg-color=COLOR        background color (not implemented)\n\
-  -M, --mosaic                create Data Mosaic (non-standard)\n\
+  -M, --mosaic                create Data Mosaic (non-standard)\n"));
+      fprintf(stdout, _("\
   -R, --resolution=NUM        set image print resolution (dpi)\n\
   -v, --verbose               use verbose messages\n\
   -V, --version               print version information\n\
@@ -427,7 +431,7 @@ CleanupMagick(MagickWand **wand, int magickError)
 static void
 ListImageFormats(void)
 {
-   int i, index;
+   int i, idx;
    int row, rowCount;
    int col, colCount;
    unsigned long totalCount;
@@ -441,16 +445,16 @@ ListImageFormats(void)
    fprintf(stdout, "\n");
 
    colCount = 7;
-   rowCount = totalCount/colCount;
+   rowCount = totalCount / colCount;
    if(totalCount % colCount)
       rowCount++;
 
    for(i = 0; i < colCount * rowCount; i++) {
-      col = i%colCount;
-      row = i/colCount;
-      index = col*rowCount + row;
-      fprintf(stdout, "%10s", (index < totalCount) ? list[col*rowCount+row] : " ");
-      fprintf(stdout, "%s", (col+1 < colCount) ? " " : "\n");
+      col = i % colCount;
+      row = i / colCount;
+      idx = col * rowCount + row;
+      fprintf(stdout, "%10s", (idx < totalCount) ? list[col * rowCount + row] : " ");
+      fprintf(stdout, "%s", (col + 1 < colCount) ? " " : "\n");
    }
    fprintf(stdout, "\n");
 
