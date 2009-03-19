@@ -92,31 +92,15 @@ typedef enum {
 } DmtxDirection;
 
 typedef enum {
-   DmtxEncodeAutoBest,
-   DmtxEncodeAutoFast,
-   DmtxEncodeSingleScheme
-} DmtxEncodeMethod;
-
-typedef enum {
-   DmtxSchemeEncodeAscii,
-   DmtxSchemeEncodeC40,
-   DmtxSchemeEncodeText,
-   DmtxSchemeEncodeX12,
-   DmtxSchemeEncodeEdifact,
-   DmtxSchemeEncodeBase256,
-   DmtxSchemeEncodeAutoBest,
-   DmtxSchemeEncodeAutoFast
-} DmtxSchemeEncode;
-
-typedef enum {
-   DmtxSchemeDecodeAsciiStd,
-   DmtxSchemeDecodeAsciiExt,
-   DmtxSchemeDecodeC40,
-   DmtxSchemeDecodeText,
-   DmtxSchemeDecodeX12,
-   DmtxSchemeDecodeEdifact,
-   DmtxSchemeDecodeBase256
-} DmtxSchemeDecode;
+   DmtxSchemeAutoFast        = -2,
+   DmtxSchemeAutoBest        = -1,
+   DmtxSchemeAscii           =  0,
+   DmtxSchemeC40,
+   DmtxSchemeText,
+   DmtxSchemeX12,
+   DmtxSchemeEdifact,
+   DmtxSchemeBase256
+} DmtxScheme;
 
 typedef enum {
    DmtxSymAttribSymbolRows,
@@ -136,10 +120,10 @@ typedef enum {
 } DmtxSymAttribute;
 
 typedef enum {
-   DmtxCorner00 = 0x01 << 0,
-   DmtxCorner10 = 0x01 << 1,
-   DmtxCorner11 = 0x01 << 2,
-   DmtxCorner01 = 0x01 << 3
+   DmtxCorner00              = 0x01 << 0,
+   DmtxCorner10              = 0x01 << 1,
+   DmtxCorner11              = 0x01 << 2,
+   DmtxCorner01              = 0x01 << 3
 } DmtxCornerLoc;
 
 typedef enum {
@@ -174,10 +158,10 @@ typedef enum {
 } DmtxProperty;
 
 typedef enum {
-   DmtxSymbolRectAuto   = -3,
-   DmtxSymbolSquareAuto = -2,
-   DmtxSymbolShapeAuto  = -1,
-   DmtxSymbol10x10      =  0,
+   DmtxSymbolRectAuto        = -3,
+   DmtxSymbolSquareAuto      = -2,
+   DmtxSymbolShapeAuto       = -1,
+   DmtxSymbol10x10           =  0,
    DmtxSymbol12x12,
    DmtxSymbol14x14,
    DmtxSymbol16x16,
@@ -478,7 +462,7 @@ typedef struct DmtxEncode_struct {
  * @brief DmtxChannel
  */
 typedef struct DmtxChannel_struct {
-   DmtxSchemeEncode  encScheme;          /* current encodation scheme */
+   int               encScheme;          /* current encodation scheme */
    int               invalid;            /* channel status (invalid if non-zero) */
    unsigned char     *inputPtr;          /* pointer to current input character */
    unsigned char     *inputStop;         /* pointer to position after final input character */

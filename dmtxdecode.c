@@ -464,7 +464,7 @@ dmtxDecodeCreateDiagnostic(DmtxDecode *dec, int *totalBytes, int *headerBytes, i
 static void
 DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
 {
-   DmtxSchemeDecode encScheme;
+   DmtxScheme encScheme;
    unsigned char *ptr, *dataEnd;
 
    msg->output = (outputStart == NULL) ? msg->output : outputStart;
@@ -478,29 +478,24 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
       ptr = NextEncodationScheme(&encScheme, ptr);
 
       switch(encScheme) {
-         case DmtxSchemeDecodeAsciiStd:
-            ptr = DecodeSchemeAsciiStd(msg, ptr, dataEnd);
+         case DmtxSchemeAscii:
+            ptr = DecodeSchemeAscii(msg, ptr, dataEnd);
             break;
-
-         case DmtxSchemeDecodeAsciiExt:
-            ptr = DecodeSchemeAsciiExt(msg, ptr);
-            break;
-
-         case DmtxSchemeDecodeC40:
-         case DmtxSchemeDecodeText:
+         case DmtxSchemeC40:
+         case DmtxSchemeText:
             ptr = DecodeSchemeC40Text(msg, ptr, dataEnd, encScheme);
             break;
-
-         case DmtxSchemeDecodeX12:
+         case DmtxSchemeX12:
             ptr = DecodeSchemeX12(msg, ptr, dataEnd);
             break;
-
-         case DmtxSchemeDecodeEdifact:
+         case DmtxSchemeEdifact:
             ptr = DecodeSchemeEdifact(msg, ptr, dataEnd);
             break;
-
-         case DmtxSchemeDecodeBase256:
+         case DmtxSchemeBase256:
             ptr = DecodeSchemeBase256(msg, ptr, dataEnd);
+            break;
+         default:
+            /* error */
             break;
       }
    }
@@ -513,29 +508,26 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
  * @return Pointer to next undecoded codeword
  */
 static unsigned char *
-NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr)
+NextEncodationScheme(DmtxScheme *encScheme, unsigned char *ptr)
 {
    switch(*ptr) {
       case DMTX_CHAR_C40_LATCH:
-         *encScheme = DmtxSchemeDecodeC40;
+         *encScheme = DmtxSchemeC40;
          break;
       case DMTX_CHAR_BASE256_LATCH:
-         *encScheme = DmtxSchemeDecodeBase256;
-         break;
-      case DMTX_CHAR_ASCII_UPPER_SHIFT:
-         *encScheme = DmtxSchemeDecodeAsciiExt;
+         *encScheme = DmtxSchemeBase256;
          break;
       case DMTX_CHAR_X12_LATCH:
-         *encScheme = DmtxSchemeDecodeX12;
+         *encScheme = DmtxSchemeX12;
          break;
       case DMTX_CHAR_TEXT_LATCH:
-         *encScheme = DmtxSchemeDecodeText;
+         *encScheme = DmtxSchemeText;
          break;
       case DMTX_CHAR_EDIFACT_LATCH:
-         *encScheme = DmtxSchemeDecodeEdifact;
+         *encScheme = DmtxSchemeEdifact;
          break;
       default:
-         *encScheme = DmtxSchemeDecodeAsciiStd;
+         *encScheme = DmtxSchemeAscii;
          return ptr;
    }
 
@@ -584,46 +576,41 @@ PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value)
  * @return Pointer to next undecoded codeword
  */
 static unsigned char *
-DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
+DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
+   int upperShift;
    int codeword, digits;
 
-   codeword = (int)(*ptr);
+   upperShift = DmtxFalse;
 
-   if(codeword <= 128) {
-      PushOutputWord(msg, codeword - 1);
+   while(ptr < dataEnd) {
+
+      codeword = (int)(*(ptr++));
+
+      if(upperShift == DmtxTrue) {
+         PushOutputWord(msg, codeword + 128);
+         upperShift = DmtxFalse;
+      }
+      else if(codeword == DMTX_CHAR_ASCII_UPPER_SHIFT) {
+         upperShift = DmtxTrue;
+      }
+      else if(codeword == DMTX_CHAR_ASCII_PAD) {
+         assert(dataEnd >= ptr);
+         assert(dataEnd - ptr <= INT_MAX);
+         msg->padCount = (int)(dataEnd - ptr);
+         return dataEnd;
+      }
+      else if(codeword <= 128) {
+         PushOutputWord(msg, codeword - 1);
+      }
+      else if(codeword <= 229) {
+         digits = codeword - 130;
+         PushOutputWord(msg, digits/10 + '0');
+         PushOutputWord(msg, digits - (digits/10)*10 + '0');
+      }
    }
-   else if(codeword == DMTX_CHAR_ASCII_PAD) {
-      assert(dataEnd >= ptr);
-      assert(dataEnd - ptr <= INT_MAX);
-      msg->padCount = (int)(dataEnd - ptr);
-      return dataEnd;
-   }
-   else if(codeword <= 229) {
-      digits = codeword - 130;
-      PushOutputWord(msg, digits/10 + '0');
-      PushOutputWord(msg, digits - (digits/10)*10 + '0');
-   }
 
-   return ptr + 1;
-}
-
-/**
- * @brief  Decode stream assuming extended ASCII encodation
- * @param  msg
- * @param  ptr
- * @param  dataEnd
- * @return Pointer to next undecoded codeword
- */
-static unsigned char *
-DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr)
-{
-   int codeword;
-
-   codeword = (int)(*ptr);
-   PushOutputWord(msg, codeword + 128);
-
-   return ptr + 1;
+   return ptr;
 }
 
 /**
@@ -635,7 +622,7 @@ DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr)
  * @return Pointer to next undecoded codeword
  */
 static unsigned char *
-DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme)
+DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd, DmtxScheme encScheme)
 {
    int i;
    int packed;
@@ -645,7 +632,7 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
    state.shift = DmtxC40TextBasicSet;
    state.upperShift = DmtxFalse;
 
-   assert(encScheme == DmtxSchemeDecodeC40 || encScheme == DmtxSchemeDecodeText);
+   assert(encScheme == DmtxSchemeC40 || encScheme == DmtxSchemeText);
 
    while(ptr < dataEnd) {
 
@@ -668,10 +655,10 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
                PushOutputC40TextWord(msg, &state, c40Values[i] - 13 + '9'); /* 0-9 */
             }
             else if(c40Values[i] <= 39) {
-               if(encScheme == DmtxSchemeDecodeC40) {
+               if(encScheme == DmtxSchemeC40) {
                   PushOutputC40TextWord(msg, &state, c40Values[i] - 39 + 'Z'); /* A-Z */
                }
-               else if(encScheme == DmtxSchemeDecodeText) {
+               else if(encScheme == DmtxSchemeText) {
                   PushOutputC40TextWord(msg, &state, c40Values[i] - 39 + 'z'); /* a-z */
                }
             }
@@ -698,10 +685,10 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
             }
          }
          else if(state.shift == DmtxC40TextShift3) { /* Shift 3 set */
-            if(encScheme == DmtxSchemeDecodeC40) {
+            if(encScheme == DmtxSchemeC40) {
                PushOutputC40TextWord(msg, &state, c40Values[i] + 96);
             }
-            else if(encScheme == DmtxSchemeDecodeText) {
+            else if(encScheme == DmtxSchemeText) {
                if(c40Values[i] == 0)
                   PushOutputC40TextWord(msg, &state, c40Values[i] + 96);
                else if(c40Values[i] <= 26)

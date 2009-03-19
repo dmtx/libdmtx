@@ -158,12 +158,12 @@ static DmtxPassFail BresLineStep(DmtxBresLine *line, int travel, int outward);
 
 /* dmtxdecode.c */
 static void DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart);
-static unsigned char *NextEncodationScheme(DmtxSchemeDecode *encScheme, unsigned char *ptr);
+static unsigned char *NextEncodationScheme(DmtxScheme *encScheme, unsigned char *ptr);
 static void PushOutputWord(DmtxMessage *msg, int value);
 static void PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value);
-static unsigned char *DecodeSchemeAsciiStd(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
-static unsigned char *DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr);
-static unsigned char *DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd, DmtxSchemeDecode encScheme);
+static unsigned char *DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
+/*static unsigned char *DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr);*/
+static unsigned char *DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd, DmtxScheme encScheme);
 static unsigned char *DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
@@ -179,22 +179,22 @@ static unsigned char Randomize255State(unsigned char codewordValue, int codeword
 static void PrintPattern(DmtxEncode *encode);
 static void InitChannel(DmtxChannel *channel, unsigned char *codewords, int length);
 static int EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputString, int inputSize, int *sizeIdx);
-static int EncodeSingleScheme(DmtxEncode *enc, unsigned char *buf, unsigned char *codewords, int length, DmtxSchemeEncode scheme);
+static int EncodeSingleScheme(DmtxEncode *enc, unsigned char *buf, unsigned char *codewords, int length, DmtxScheme scheme);
 static int EncodeAutoBest(DmtxEncode *enc, unsigned char *buf, unsigned char *codewords, int length);
 /*static int EncodeAutoFast(unsigned char *buf, unsigned char *codewords, int length); */
-static DmtxChannel FindBestChannel(DmtxEncode *enc, DmtxChannelGroup group, DmtxSchemeEncode targetScheme);
-static DmtxPassFail EncodeNextWord(DmtxEncode *enc, DmtxChannel *channel, DmtxSchemeEncode targetScheme);
+static DmtxChannel FindBestChannel(DmtxEncode *enc, DmtxChannelGroup group, DmtxScheme targetScheme);
+static DmtxPassFail EncodeNextWord(DmtxEncode *enc, DmtxChannel *channel, DmtxScheme targetScheme);
 static DmtxPassFail EncodeAsciiCodeword(DmtxChannel *channel);
 static DmtxPassFail EncodeTripletCodeword(DmtxEncode *enc, DmtxChannel *channel);
 static DmtxPassFail EncodeEdifactCodeword(DmtxEncode *enc, DmtxChannel *channel);
 static DmtxPassFail EncodeBase256Codeword(DmtxChannel *channel);
-static void ChangeEncScheme(DmtxChannel *channel, DmtxSchemeEncode targetScheme, int unlatchType);
+static void ChangeEncScheme(DmtxChannel *channel, DmtxScheme targetScheme, int unlatchType);
 static void PushInputWord(DmtxChannel *channel, unsigned char codeword);
 static void PushTriplet(DmtxChannel *channel, DmtxTriplet *triplet);
 static void IncrementProgress(DmtxChannel *channel, int encodedUnits);
 static DmtxPassFail ProcessEndOfSymbolTriplet(DmtxEncode *enc, DmtxChannel *channel, DmtxTriplet *triplet, int tripletCount, int inputCount);
 static DmtxPassFail TestForEndOfSymbolEdifact(DmtxEncode *enc, DmtxChannel *channel);
-static int GetC40TextX12Words(int *outputWords, int inputWord, DmtxSchemeEncode encScheme);
+static int GetC40TextX12Words(int *outputWords, int inputWord, DmtxScheme encScheme);
 static DmtxTriplet GetTripletValues(unsigned char cw1, unsigned char cw2);
 static DmtxQuadruplet GetQuadrupletValues(unsigned char cw1, unsigned char cw2, unsigned char cw3);
 /*static void DumpChannel(DmtxChannel *channel);*/

@@ -121,7 +121,7 @@ GetDefaultOptions(void)
    opt.codewords = DmtxFalse;
    opt.marginSize = 10;
    opt.moduleSize = 5;
-   opt.scheme = DmtxSchemeEncodeAscii;
+   opt.scheme = DmtxSchemeAscii;
    opt.preview = DmtxFalse;
    opt.rotate = 0;
    opt.sizeIdx = DmtxSymbolSquareAuto;
@@ -202,29 +202,29 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
             }
             switch(*optarg) {
                case 'b':
-                  opt->scheme = DmtxSchemeEncodeAutoBest;
+                  opt->scheme = DmtxSchemeAutoBest;
                   break;
                case 'f':
-                  opt->scheme = DmtxSchemeEncodeAutoFast;
+                  opt->scheme = DmtxSchemeAutoFast;
                   fprintf(stdout, "\"Fast optimized\" not implemented\n");
                   return DmtxFail;
                case 'a':
-                  opt->scheme = DmtxSchemeEncodeAscii;
+                  opt->scheme = DmtxSchemeAscii;
                   break;
                case 'c':
-                  opt->scheme = DmtxSchemeEncodeC40;
+                  opt->scheme = DmtxSchemeC40;
                   break;
                case 't':
-                  opt->scheme = DmtxSchemeEncodeText;
+                  opt->scheme = DmtxSchemeText;
                   break;
                case 'x':
-                  opt->scheme = DmtxSchemeEncodeX12;
+                  opt->scheme = DmtxSchemeX12;
                   break;
                case 'e':
-                  opt->scheme = DmtxSchemeEncodeEdifact;
+                  opt->scheme = DmtxSchemeEdifact;
                   break;
                case '8':
-                  opt->scheme = DmtxSchemeEncodeBase256;
+                  opt->scheme = DmtxSchemeBase256;
                   break;
                default:
                   fprintf(stdout, "Invalid encodation scheme \"%s\"\n", optarg);

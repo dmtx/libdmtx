@@ -30,15 +30,15 @@ except ImportError:
 
 
 class DataMatrix (object):
-	# Scheme: values must be consistent with enum DmtxSchemeEncode
-	DmtxSchemeEncodeAscii = 1
-	DmtxSchemeEncodeC40 = 2
-	DmtxSchemeEncodeText = 3
-	DmtxSchemeEncodeX12 = 4
-	DmtxSchemeEncodeEdifact = 5
-	DmtxSchemeEncodeBase256 = 6
-	DmtxSchemeEncodeAutoBest = 7
-	DmtxSchemeEncodeAutoFast = 8
+	# Scheme: values must be consistent with enum DmtxScheme
+	DmtxSchemeAutoFast = -2
+	DmtxSchemeAutoBest = -1
+	DmtxSchemeAscii    =  0
+	DmtxSchemeC40      =  1
+	DmtxSchemeText     =  2
+	DmtxSchemeX12      =  3
+	DmtxSchemeEdifact  =  4
+	DmtxSchemeBase256  =  5
 
 	# Shape: values must be consistent with DmtxSymbol[Square|Rect]Auto
 	DmtxSymbolRectAuto   = -3
@@ -89,7 +89,7 @@ class DataMatrix (object):
 		   'module_size': 5,
 		   'margin_size' : 10,
 		   'gap_size' : 10,
-		   'scheme' : self.DmtxSchemeEncodeAscii,
+		   'scheme' : self.DmtxSchemeAscii,
 		   'shape' : self.DmtxSymbolSquareAuto
                 }
 
