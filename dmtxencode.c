@@ -440,13 +440,13 @@ AddPadChars(unsigned char *buf,  int *bufSize, int paddedSize)
    /* First pad character is not randomized */
    if(*bufSize < paddedSize) {
       padCount++;
-      buf[(*bufSize)++] = DMTX_CHAR_ASCII_PAD;
+      buf[(*bufSize)++] = DmtxCharAsciiPad;
    }
 
    /* All remaining pad characters are randomized based on character position */
    while(*bufSize < paddedSize) {
       padCount++;
-      buf[*bufSize] = Randomize253State(DMTX_CHAR_ASCII_PAD, *bufSize + 1);
+      buf[*bufSize] = Randomize253State(DmtxCharAsciiPad, *bufSize + 1);
       (*bufSize)++;
    }
 
@@ -569,7 +569,7 @@ InitChannel(DmtxChannel *channel, unsigned char *codewords, int length)
 {
    memset(channel, 0x00, sizeof(DmtxChannel));
    channel->encScheme = DmtxSchemeAscii;
-   channel->invalid = DMTX_CHANNEL_VALID;
+   channel->invalid = DmtxChannelValid;
    channel->inputPtr = codewords;
    channel->inputStop = codewords + length;
 }
@@ -705,13 +705,13 @@ FindBestChannel(DmtxEncode *enc, DmtxChannelGroup group, DmtxScheme targetScheme
          ; /* XXX fix this */
 
       /* If channel scheme can't represent next word then stop for this channel */
-      if((channel->invalid & DMTX_CHANNEL_UNSUPPORTED_CHAR) != 0) {
+      if((channel->invalid & DmtxChannelUnsupportedChar) != 0) {
          winner = channel;
          break;
       }
 
       /* If channel scheme was unable to unlatch here then skip */
-      if((channel->invalid & DMTX_CHANNEL_CANNOT_UNLATCH) != 0)
+      if((channel->invalid & DmtxChannelCannotUnlatch) != 0)
          continue;
 
       if(winner == NULL || channel->currentLength < winner->currentLength)
@@ -736,7 +736,7 @@ EncodeNextWord(DmtxEncode *enc, DmtxChannel *channel, DmtxScheme targetScheme)
 
    /* Change to new encodation scheme if necessary */
    if(channel->encScheme != targetScheme) {
-      ChangeEncScheme(channel, targetScheme, DMTX_UNLATCH_EXPLICIT);
+      ChangeEncScheme(channel, targetScheme, DmtxUnlatchExplicit);
       if(channel->invalid != 0)
          return DmtxFail;
    }
@@ -840,7 +840,7 @@ EncodeAsciiCodeword(DmtxChannel *channel)
 
    /* Extended ASCII char */
    if(inputValue >= 128) {
-      PushInputWord(channel, DMTX_CHAR_ASCII_UPPER_SHIFT);
+      PushInputWord(channel, DmtxCharAsciiUpperShift);
       IncrementProgress(channel, 12);
       inputValue -= 128;
    }
@@ -908,7 +908,7 @@ EncodeTripletCodeword(DmtxEncode *enc, DmtxChannel *channel)
             count = GetC40TextX12Words(outputWords, inputWord, channel->encScheme);
 
             if(count == 0) {
-               channel->invalid = DMTX_CHANNEL_UNSUPPORTED_CHAR;
+               channel->invalid = DmtxChannelUnsupportedChar;
                return DmtxFail;
             }
 
@@ -993,7 +993,7 @@ EncodeEdifactCodeword(DmtxEncode *enc, DmtxChannel *channel)
    inputValue = *(channel->inputPtr);
 
    if(inputValue < 32 || inputValue > 94) {
-      channel->invalid = DMTX_CHANNEL_UNSUPPORTED_CHAR;
+      channel->invalid = DmtxChannelUnsupportedChar;
       return DmtxFail;
    }
 
@@ -1104,19 +1104,19 @@ ChangeEncScheme(DmtxChannel *channel, DmtxScheme targetScheme, int unlatchType)
 
          /* Can't unlatch unless currently at a byte boundary */
          if((channel->currentLength % 12) != 0) {
-            channel->invalid = DMTX_CHANNEL_CANNOT_UNLATCH;
+            channel->invalid = DmtxChannelCannotUnlatch;
             return;
          }
 
          /* Can't unlatch if last word in previous triplet is a shift */
          if(channel->currentLength != channel->encodedLength) {
-            channel->invalid = DMTX_CHANNEL_CANNOT_UNLATCH;
+            channel->invalid = DmtxChannelCannotUnlatch;
             return;
          }
 
          /* Unlatch to ASCII and increment progress */
-         if(unlatchType == DMTX_UNLATCH_EXPLICIT) {
-            PushInputWord(channel, DMTX_CHAR_TRIPLET_UNLATCH);
+         if(unlatchType == DmtxUnlatchExplicit) {
+            PushInputWord(channel, DmtxCharTripletUnlatch);
             IncrementProgress(channel, 12);
          }
          break;
@@ -1131,8 +1131,8 @@ ChangeEncScheme(DmtxChannel *channel, DmtxScheme targetScheme, int unlatchType)
             increment current and encoded length */
 
          assert(channel->currentLength % 3 == 0);
-         if(unlatchType == DMTX_UNLATCH_EXPLICIT) {
-            PushInputWord(channel, DMTX_CHAR_EDIFACT_UNLATCH);
+         if(unlatchType == DmtxUnlatchExplicit) {
+            PushInputWord(channel, DmtxCharEdifactUnlatch);
             IncrementProgress(channel, 9);
          }
 
@@ -1167,23 +1167,23 @@ ChangeEncScheme(DmtxChannel *channel, DmtxScheme targetScheme, int unlatchType)
          /* Nothing to do */
          break;
       case DmtxSchemeC40:
-         PushInputWord(channel, DMTX_CHAR_C40_LATCH);
+         PushInputWord(channel, DmtxCharC40Latch);
          IncrementProgress(channel, 12);
          break;
       case DmtxSchemeText:
-         PushInputWord(channel, DMTX_CHAR_TEXT_LATCH);
+         PushInputWord(channel, DmtxCharTextLatch);
          IncrementProgress(channel, 12);
          break;
       case DmtxSchemeX12:
-         PushInputWord(channel, DMTX_CHAR_X12_LATCH);
+         PushInputWord(channel, DmtxCharX12Latch);
          IncrementProgress(channel, 12);
          break;
       case DmtxSchemeEdifact:
-         PushInputWord(channel, DMTX_CHAR_EDIFACT_LATCH);
+         PushInputWord(channel, DmtxCharEdifactLatch);
          IncrementProgress(channel, 12);
          break;
       case DmtxSchemeBase256:
-         PushInputWord(channel, DMTX_CHAR_BASE256_LATCH);
+         PushInputWord(channel, DmtxCharBase256Latch);
          IncrementProgress(channel, 12);
 
          /* Write temporary field length (0 indicates remainder of symbol) */
@@ -1408,7 +1408,7 @@ ProcessEndOfSymbolTriplet(DmtxEncode *enc, DmtxChannel *channel,
 
    /* Special case (d): Unlatch is implied (switch manually) */
    if(inputCount == 1 && remainingCodewords == 1) {
-      ChangeEncScheme(channel, DmtxSchemeAscii, DMTX_UNLATCH_IMPLICIT);
+      ChangeEncScheme(channel, DmtxSchemeAscii, DmtxUnlatchImplicit);
       err = EncodeNextWord(enc, channel, DmtxSchemeAscii);
       if(err == DmtxFail)
          return DmtxFail;
@@ -1436,7 +1436,7 @@ ProcessEndOfSymbolTriplet(DmtxEncode *enc, DmtxChannel *channel,
       }
       /* Special case (c) */
       else if(tripletCount == 1) {
-         ChangeEncScheme(channel, DmtxSchemeAscii, DMTX_UNLATCH_EXPLICIT);
+         ChangeEncScheme(channel, DmtxSchemeAscii, DmtxUnlatchExplicit);
          err = EncodeNextWord(enc, channel, DmtxSchemeAscii);
          if(err == DmtxFail)
             return DmtxFail;
@@ -1454,7 +1454,7 @@ ProcessEndOfSymbolTriplet(DmtxEncode *enc, DmtxChannel *channel,
       remainingCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 
       if(remainingCodewords > 0) {
-         ChangeEncScheme(channel, DmtxSchemeAscii, DMTX_UNLATCH_EXPLICIT);
+         ChangeEncScheme(channel, DmtxSchemeAscii, DmtxUnlatchExplicit);
 
          while(channel->inputPtr < channel->inputStop) {
             err = EncodeNextWord(enc, channel, DmtxSchemeAscii);
@@ -1535,7 +1535,7 @@ TestForEndOfSymbolEdifact(DmtxEncode *enc, DmtxChannel *channel)
       asciiCodewords = edifactValues;
 
       if(asciiCodewords <= symbolCodewords) { /* (a,b,d,e,f) */
-         ChangeEncScheme(channel, DmtxSchemeAscii, DMTX_UNLATCH_IMPLICIT);
+         ChangeEncScheme(channel, DmtxSchemeAscii, DmtxUnlatchImplicit);
 
          /* XXX this loop should produce exactly asciiWords codewords ... assert somehow? */
          for(i = 0; i < edifactValues; i++) {
@@ -1548,7 +1548,7 @@ TestForEndOfSymbolEdifact(DmtxEncode *enc, DmtxChannel *channel)
       /* else (c,g) -- do nothing */
    }
    else if(edifactValues == 0) { /* (h) */
-      ChangeEncScheme(channel, DmtxSchemeAscii, DMTX_UNLATCH_EXPLICIT);
+      ChangeEncScheme(channel, DmtxSchemeAscii, DmtxUnlatchExplicit);
    }
    /* else (i) -- do nothing */
 
@@ -1602,43 +1602,43 @@ GetC40TextX12Words(int *outputWords, int inputWord, DmtxScheme encScheme)
    }
    else { /* encScheme is C40 or Text */
       if(inputWord <= 31) {
-         outputWords[count++] = DMTX_CHAR_TRIPLET_SHIFT_1;
+         outputWords[count++] = DmtxCharTripletShift1;
          outputWords[count++] = inputWord;
       }
       else if(inputWord == 32) {
          outputWords[count++] = 3;
       }
       else if(inputWord <= 47) {
-         outputWords[count++] = DMTX_CHAR_TRIPLET_SHIFT_2;
+         outputWords[count++] = DmtxCharTripletShift2;
          outputWords[count++] = inputWord - 33;
       }
       else if(inputWord <= 57) {
          outputWords[count++] = inputWord - 44;
       }
       else if(inputWord <= 64) {
-         outputWords[count++] = DMTX_CHAR_TRIPLET_SHIFT_2;
+         outputWords[count++] = DmtxCharTripletShift2;
          outputWords[count++] = inputWord - 43;
       }
       else if(inputWord <= 90 && encScheme == DmtxSchemeC40) {
          outputWords[count++] = inputWord - 51;
       }
       else if(inputWord <= 90 && encScheme == DmtxSchemeText) {
-         outputWords[count++] = DMTX_CHAR_TRIPLET_SHIFT_3;
+         outputWords[count++] = DmtxCharTripletShift3;
          outputWords[count++] = inputWord - 64;
       }
       else if(inputWord <= 95) {
-         outputWords[count++] = DMTX_CHAR_TRIPLET_SHIFT_2;
+         outputWords[count++] = DmtxCharTripletShift2;
          outputWords[count++] = inputWord - 69;
       }
       else if(inputWord == 96 && encScheme == DmtxSchemeText) {
-         outputWords[count++] = DMTX_CHAR_TRIPLET_SHIFT_3;
+         outputWords[count++] = DmtxCharTripletShift3;
          outputWords[count++] = 0;
       }
       else if(inputWord <= 122 && encScheme == DmtxSchemeText) {
          outputWords[count++] = inputWord - 83;
       }
       else if(inputWord <= 127) {
-         outputWords[count++] = DMTX_CHAR_TRIPLET_SHIFT_3;
+         outputWords[count++] = DmtxCharTripletShift3;
          outputWords[count++] = inputWord - 96;
       }
    }
@@ -1707,9 +1707,9 @@ DumpChannel(DmtxChannel *channel)
    if(channel->currentLength % 12)
       fprintf(stdout, "%3d-", channel->encodedWords[j]);
 
-   if(channel->invalid & DMTX_CHANNEL_CANNOT_UNLATCH)
+   if(channel->invalid & DmtxChannelCannotUnlatch)
       fprintf(stdout, "(can't unlatch right now)");
-   else if(channel->invalid & DMTX_CHANNEL_UNSUPPORTED_CHAR)
+   else if(channel->invalid & DmtxChannelUnsupportedChar)
       fprintf(stdout, "(unsupported character)");
 
    fprintf(stdout, "\n");

@@ -511,20 +511,20 @@ static unsigned char *
 NextEncodationScheme(DmtxScheme *encScheme, unsigned char *ptr)
 {
    switch(*ptr) {
-      case DMTX_CHAR_C40_LATCH:
+      case DmtxCharC40Latch:
          *encScheme = DmtxSchemeC40;
          break;
-      case DMTX_CHAR_BASE256_LATCH:
-         *encScheme = DmtxSchemeBase256;
-         break;
-      case DMTX_CHAR_X12_LATCH:
-         *encScheme = DmtxSchemeX12;
-         break;
-      case DMTX_CHAR_TEXT_LATCH:
+      case DmtxCharTextLatch:
          *encScheme = DmtxSchemeText;
          break;
-      case DMTX_CHAR_EDIFACT_LATCH:
+      case DmtxCharX12Latch:
+         *encScheme = DmtxSchemeX12;
+         break;
+      case DmtxCharEdifactLatch:
          *encScheme = DmtxSchemeEdifact;
+         break;
+      case DmtxCharBase256Latch:
+         *encScheme = DmtxSchemeBase256;
          break;
       default:
          *encScheme = DmtxSchemeAscii;
@@ -591,10 +591,10 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
          PushOutputWord(msg, codeword + 128);
          upperShift = DmtxFalse;
       }
-      else if(codeword == DMTX_CHAR_ASCII_UPPER_SHIFT) {
+      else if(codeword == DmtxCharAsciiUpperShift) {
          upperShift = DmtxTrue;
       }
-      else if(codeword == DMTX_CHAR_ASCII_PAD) {
+      else if(codeword == DmtxCharAsciiPad) {
          assert(dataEnd >= ptr);
          assert(dataEnd - ptr <= INT_MAX);
          msg->padCount = (int)(dataEnd - ptr);
@@ -700,7 +700,7 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
       }
 
       /* Unlatch if codeword 254 follows 2 codewords in C40/Text encodation */
-      if(*ptr == DMTX_CHAR_TRIPLET_UNLATCH)
+      if(*ptr == DmtxCharTripletUnlatch)
          return ptr + 1;
 
       /* Unlatch is implied if only one codeword remains */
@@ -750,7 +750,7 @@ DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
       }
 
       /* Unlatch if codeword 254 follows 2 codewords in C40/Text encodation */
-      if(*ptr == DMTX_CHAR_TRIPLET_UNLATCH)
+      if(*ptr == DmtxCharTripletUnlatch)
          return ptr + 1;
 
       /* Unlatch is implied if only one codeword remains */
@@ -791,7 +791,7 @@ DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
             ptr++;
 
          /* Test for unlatch condition */
-         if(unpacked[i] == DMTX_CHAR_EDIFACT_UNLATCH) {
+         if(unpacked[i] == DmtxCharEdifactUnlatch) {
             assert(msg->output[msg->outputIdx] == 0); /* XXX dirty why? */
             return ptr;
          }

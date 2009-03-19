@@ -33,6 +33,7 @@ FOCUS: refactor encoding engine, FNC1, macros
 
 version 0.8.0: (planned XX-May-2009)
 FOCUS: region detection refinement, multiple barcode scanning, structured append
+  o libdmtx:   Replace DmtxDirection (e.g., DmtxDirUp) with index range 0-7 (?)
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Fast Hough fit followed by precision handle fit
   o libdmtx:   Optimizations need to perform multi-barcode scans

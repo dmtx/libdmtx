@@ -30,38 +30,40 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTXSTATIC_H__
 #define __DMTXSTATIC_H__
 
-#define DmtxAlmostZero                 0.000001
+#define DmtxAlmostZero          0.000001
 #define DmtxAlmostInfinity            -1
+
+#define DmtxCharC40Latch             230
+#define DmtxCharTextLatch            239
+#define DmtxCharX12Latch             238
+#define DmtxCharEdifactLatch         240
+#define DmtxCharBase256Latch         231
+
+#define DmtxCharTripletUnlatch       254
+#define DmtxCharEdifactUnlatch        31
+
+#define DmtxCharAsciiPad             129
+#define DmtxCharAsciiUpperShift      235
+#define DmtxCharTripletShift1          0
+#define DmtxCharTripletShift2          1
+#define DmtxCharTripletShift3          2
+#define DmtxCharFNC1                 232
+#define DmtxCharStructuredAppend     233
+#define DmtxChar05Macro              236
+#define DmtxChar06Macro              237
+#define DmtxCharECI                  241
 
 #define DmtxC40TextBasicSet            0
 #define DmtxC40TextShift1              1
 #define DmtxC40TextShift2              2
 #define DmtxC40TextShift3              3
 
-#define DMTX_CHAR_ASCII_PAD            129
-#define DMTX_CHAR_ASCII_UPPER_SHIFT    235
-#define DMTX_CHAR_C40_LATCH            230
-#define DMTX_CHAR_TEXT_LATCH           239
-#define DMTX_CHAR_X12_LATCH            238
-#define DMTX_CHAR_TRIPLET_UNLATCH      254
-#define DMTX_CHAR_TRIPLET_SHIFT_1        0
-#define DMTX_CHAR_TRIPLET_SHIFT_2        1
-#define DMTX_CHAR_TRIPLET_SHIFT_3        2
-#define DMTX_CHAR_EDIFACT_LATCH        240
-#define DMTX_CHAR_EDIFACT_UNLATCH       31
-#define DMTX_CHAR_BASE256_LATCH        231
-#define DMTX_CHAR_FNC1                 232
-#define DMTX_CHAR_STRUCTURED_APPEND    233
-#define DMTX_CHAR_ECI                  241
-#define DMTX_CHAR_05MACRO              236
-#define DMTX_CHAR_06MACRO              237
+#define DmtxUnlatchExplicit            0
+#define DmtxUnlatchImplicit            1
 
-#define DMTX_CHANNEL_VALID            0x00
-#define DMTX_CHANNEL_UNSUPPORTED_CHAR 0x01 << 0
-#define DMTX_CHANNEL_CANNOT_UNLATCH   0x01 << 1
-
-#define DMTX_UNLATCH_EXPLICIT            0
-#define DMTX_UNLATCH_IMPLICIT            1
+#define DmtxChannelValid            0x00
+#define DmtxChannelUnsupportedChar  0x01 << 0
+#define DmtxChannelCannotUnlatch    0x01 << 1
 
 #undef min
 #define min(X,Y) (((X) < (Y)) ? (X) : (Y))
@@ -76,21 +78,21 @@ typedef enum {
 } DmtxRange;
 
 typedef enum {
-   DmtxEdgeTop    = 0x01 << 0,
-   DmtxEdgeBottom = 0x01 << 1,
-   DmtxEdgeLeft   = 0x01 << 2,
-   DmtxEdgeRight  = 0x01 << 3
+   DmtxEdgeTop               = 0x01 << 0,
+   DmtxEdgeBottom            = 0x01 << 1,
+   DmtxEdgeLeft              = 0x01 << 2,
+   DmtxEdgeRight             = 0x01 << 3
 } DmtxEdge;
 
 typedef enum {
-   DmtxMaskBit1 = 0x01 << 7,
-   DmtxMaskBit2 = 0x01 << 6,
-   DmtxMaskBit3 = 0x01 << 5,
-   DmtxMaskBit4 = 0x01 << 4,
-   DmtxMaskBit5 = 0x01 << 3,
-   DmtxMaskBit6 = 0x01 << 2,
-   DmtxMaskBit7 = 0x01 << 1,
-   DmtxMaskBit8 = 0x01 << 0
+   DmtxMaskBit8              = 0x01 << 0,
+   DmtxMaskBit7              = 0x01 << 1,
+   DmtxMaskBit6              = 0x01 << 2,
+   DmtxMaskBit5              = 0x01 << 3,
+   DmtxMaskBit4              = 0x01 << 4,
+   DmtxMaskBit3              = 0x01 << 5,
+   DmtxMaskBit2              = 0x01 << 6,
+   DmtxMaskBit1              = 0x01 << 7
 } DmtxMaskBit;
 
 /**
@@ -98,10 +100,10 @@ typedef enum {
  * @brief DmtxFollow
  */
 typedef struct DmtxFollow_struct {
-   unsigned char *ptr;
-   unsigned char neighbor;
-   int step;
-   DmtxPixelLoc loc;
+   unsigned char  *ptr;
+   unsigned char   neighbor;
+   int             step;
+   DmtxPixelLoc    loc;
 } DmtxFollow;
 
 /**
@@ -109,24 +111,24 @@ typedef struct DmtxFollow_struct {
  * @brief DmtxBresLine
  */
 typedef struct DmtxBresLine_struct {
-   int xStep;
-   int yStep;
-   int xDelta;
-   int yDelta;
-   int steep;
-   int xOut;
-   int yOut;
-   int travel;
-   int outward;
-   int error;
-   DmtxPixelLoc loc;
-   DmtxPixelLoc loc0;
-   DmtxPixelLoc loc1;
+   int             xStep;
+   int             yStep;
+   int             xDelta;
+   int             yDelta;
+   int             steep;
+   int             xOut;
+   int             yOut;
+   int             travel;
+   int             outward;
+   int             error;
+   DmtxPixelLoc    loc;
+   DmtxPixelLoc    loc0;
+   DmtxPixelLoc    loc1;
 } DmtxBresLine;
 
 typedef struct C40TextState_struct {
-   int shift;
-   DmtxBoolean upperShift;
+   int             shift;
+   DmtxBoolean     upperShift;
 } C40TextState;
 
 /* dmtxregion.c */

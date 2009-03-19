@@ -30,29 +30,41 @@ Contact: mike@dragonflylogic.com
 #ifndef __DMTX_H__
 #define __DMTX_H__
 
-/* Time headers are required for DmtxTime struct below */
-
-#include <time.h>
-
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/* Time headers required for DmtxTime struct below */
+#include <time.h>
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
 #ifndef M_PI
-#define M_PI       3.14159265358979323846
+#define M_PI      3.14159265358979323846
 #endif
 
 #ifndef M_PI_2
-#define M_PI_2     1.57079632679489661923
+#define M_PI_2    1.57079632679489661923
 #endif
 
 #define DmtxVersion              "0.7.1"
 
 #define DmtxUndefined                 -1
+
+#define DmtxPassFail        unsigned int
+#define DmtxPass                       1
+#define DmtxFail                       0
+
+#define DmtxBoolean         unsigned int
+#define DmtxTrue                       1
+#define DmtxFalse                      0
+
+#define DmtxFormatMatrix               0
+#define DmtxFormatMosaic               1
+
+#define DmtxSymbolSquareCount         24
+#define DmtxSymbolRectCount            6
 
 #define DmtxModuleOff               0x00
 #define DmtxModuleOnRed             0x01
@@ -65,32 +77,6 @@ extern "C" {
 #define DmtxModuleVisited           0x20
 #define DmtxModuleData              0x40
 
-#define DmtxFormatMatrix               0
-#define DmtxFormatMosaic               1
-
-#define DmtxSymbolSquareCount         24
-#define DmtxSymbolRectCount            6
-
-#define DmtxPassFail unsigned int
-#define DmtxPass     1
-#define DmtxFail     0
-
-#define DmtxBoolean  unsigned int
-#define DmtxTrue     1
-#define DmtxFalse    0
-
-typedef enum {
-   DmtxDirNone       = 0x00,
-   DmtxDirUp         = 0x01 << 0,
-   DmtxDirLeft       = 0x01 << 1,
-   DmtxDirDown       = 0x01 << 2,
-   DmtxDirRight      = 0x01 << 3,
-   DmtxDirHorizontal = DmtxDirLeft  | DmtxDirRight,
-   DmtxDirVertical   = DmtxDirUp    | DmtxDirDown,
-   DmtxDirRightUp    = DmtxDirRight | DmtxDirUp,
-   DmtxDirLeftDown   = DmtxDirLeft  | DmtxDirDown
-} DmtxDirection;
-
 typedef enum {
    DmtxSchemeAutoFast        = -2,
    DmtxSchemeAutoBest        = -1,
@@ -101,6 +87,54 @@ typedef enum {
    DmtxSchemeEdifact,
    DmtxSchemeBase256
 } DmtxScheme;
+
+typedef enum {
+   DmtxSymbolRectAuto        = -3,
+   DmtxSymbolSquareAuto      = -2,
+   DmtxSymbolShapeAuto       = -1,
+   DmtxSymbol10x10           =  0,
+   DmtxSymbol12x12,
+   DmtxSymbol14x14,
+   DmtxSymbol16x16,
+   DmtxSymbol18x18,
+   DmtxSymbol20x20,
+   DmtxSymbol22x22,
+   DmtxSymbol24x24,
+   DmtxSymbol26x26,
+   DmtxSymbol32x32,
+   DmtxSymbol36x36,
+   DmtxSymbol40x40,
+   DmtxSymbol44x44,
+   DmtxSymbol48x48,
+   DmtxSymbol52x52,
+   DmtxSymbol64x64,
+   DmtxSymbol72x72,
+   DmtxSymbol80x80,
+   DmtxSymbol88x88,
+   DmtxSymbol96x96,
+   DmtxSymbol104x104,
+   DmtxSymbol120x120,
+   DmtxSymbol132x132,
+   DmtxSymbol144x144,
+   DmtxSymbol8x18,
+   DmtxSymbol8x32,
+   DmtxSymbol12x26,
+   DmtxSymbol12x36,
+   DmtxSymbol16x36,
+   DmtxSymbol16x48
+} DmtxSymbolSize;
+
+typedef enum {
+   DmtxDirNone               = 0x00,
+   DmtxDirUp                 = 0x01 << 0,
+   DmtxDirLeft               = 0x01 << 1,
+   DmtxDirDown               = 0x01 << 2,
+   DmtxDirRight              = 0x01 << 3,
+   DmtxDirHorizontal         = DmtxDirLeft  | DmtxDirRight,
+   DmtxDirVertical           = DmtxDirUp    | DmtxDirDown,
+   DmtxDirRightUp            = DmtxDirRight | DmtxDirUp,
+   DmtxDirLeftDown           = DmtxDirLeft  | DmtxDirDown
+} DmtxDirection;
 
 typedef enum {
    DmtxSymAttribSymbolRows,
@@ -158,42 +192,6 @@ typedef enum {
 } DmtxProperty;
 
 typedef enum {
-   DmtxSymbolRectAuto        = -3,
-   DmtxSymbolSquareAuto      = -2,
-   DmtxSymbolShapeAuto       = -1,
-   DmtxSymbol10x10           =  0,
-   DmtxSymbol12x12,
-   DmtxSymbol14x14,
-   DmtxSymbol16x16,
-   DmtxSymbol18x18,
-   DmtxSymbol20x20,
-   DmtxSymbol22x22,
-   DmtxSymbol24x24,
-   DmtxSymbol26x26,
-   DmtxSymbol32x32,
-   DmtxSymbol36x36,
-   DmtxSymbol40x40,
-   DmtxSymbol44x44,
-   DmtxSymbol48x48,
-   DmtxSymbol52x52,
-   DmtxSymbol64x64,
-   DmtxSymbol72x72,
-   DmtxSymbol80x80,
-   DmtxSymbol88x88,
-   DmtxSymbol96x96,
-   DmtxSymbol104x104,
-   DmtxSymbol120x120,
-   DmtxSymbol132x132,
-   DmtxSymbol144x144,
-   DmtxSymbol8x18,
-   DmtxSymbol8x32,
-   DmtxSymbol12x26,
-   DmtxSymbol12x36,
-   DmtxSymbol16x36,
-   DmtxSymbol16x48
-} DmtxSymbolSize;
-
-typedef enum {
    /* Custom format */
    DmtxPackCustom            = 100,
    /* 1 bpp */
@@ -221,9 +219,9 @@ typedef enum {
 } DmtxPackOrder;
 
 typedef enum {
-  DmtxFlipNone = 0x00,
-  DmtxFlipX    = 0x01 << 0,
-  DmtxFlipY    = 0x01 << 1
+  DmtxFlipNone               = 0x00,
+  DmtxFlipX                  = 0x01 << 0,
+  DmtxFlipY                  = 0x01 << 1
 } DmtxFlip;
 
 typedef double DmtxMatrix3[3][3];
@@ -242,8 +240,8 @@ typedef struct DmtxPixelLoc_struct {
  * @brief DmtxVector2
  */
 typedef struct DmtxVector2_struct {
-   double X;
-   double Y;
+   double          X;
+   double          Y;
 } DmtxVector2;
 
 /**
@@ -251,9 +249,10 @@ typedef struct DmtxVector2_struct {
  * @brief DmtxRay2
  */
 typedef struct DmtxRay2_struct {
-   double      tMin, tMax;
-   DmtxVector2 p;
-   DmtxVector2 v;
+   double          tMin;
+   double          tMax;
+   DmtxVector2     p;
+   DmtxVector2     v;
 } DmtxRay2;
 
 /**
@@ -272,7 +271,7 @@ typedef struct DmtxImage_struct {
    int             channelCount;
    int             channelStart[4];
    int             bitsPerChannel[4];
-   unsigned char   *pxl;
+   unsigned char  *pxl;
 } DmtxImage;
 
 /**
@@ -280,11 +279,11 @@ typedef struct DmtxImage_struct {
  * @brief DmtxPointFlow
  */
 typedef struct DmtxPointFlow_struct {
-   int plane;
-   int arrive;
-   int depart;
-   int mag;
-   DmtxPixelLoc loc;
+   int             plane;
+   int             arrive;
+   int             depart;
+   int             mag;
+   DmtxPixelLoc    loc;
 } DmtxPointFlow;
 
 /**
@@ -292,17 +291,17 @@ typedef struct DmtxPointFlow_struct {
  * @brief DmtxBestLine
  */
 typedef struct DmtxBestLine_struct {
-   int angle;
-   int hOffset;
-   int mag;
-   int stepBeg;
-   int stepPos;
-   int stepNeg;
-   int distSq;
-   double devn;
-   DmtxPixelLoc locBeg;
-   DmtxPixelLoc locPos;
-   DmtxPixelLoc locNeg;
+   int             angle;
+   int             hOffset;
+   int             mag;
+   int             stepBeg;
+   int             stepPos;
+   int             stepNeg;
+   int             distSq;
+   double          devn;
+   DmtxPixelLoc    locBeg;
+   DmtxPixelLoc    locPos;
+   DmtxPixelLoc    locNeg;
 } DmtxBestLine;
 
 /**
@@ -368,9 +367,9 @@ typedef struct DmtxMessage_struct {
    size_t          outputSize;    /* Size of buffer used to hold decoded data */
    int             outputIdx;     /* Internal index used to store output progress */
    int             padCount;
-   unsigned char   *array;        /* Pointer to internal representation of scanned Data Matrix modules */
-   unsigned char   *code;         /* Pointer to internal storage of code words (data and error) */
-   unsigned char   *output;       /* Pointer to internal storage of decoded output */
+   unsigned char  *array;         /* Pointer to internal representation of Data Matrix modules */
+   unsigned char  *code;          /* Pointer to internal storage of code words (data and error) */
+   unsigned char  *output;        /* Pointer to internal storage of decoded output */
 } DmtxMessage;
 
 /**
@@ -379,26 +378,26 @@ typedef struct DmtxMessage_struct {
  */
 typedef struct DmtxScanGrid_struct {
    /* set once */
-   int minExtent;  /* Smallest cross size used in scan */
-   int maxExtent;  /* Size of bounding grid region (2^N - 1) */
-   int xOffset;    /* Offset to obtain image X coordinate */
-   int yOffset;    /* Offset to obtain image Y coordinate */
-   int xMin;       /* Minimum X in image coordinate system */
-   int xMax;       /* Maximum X in image coordinate system */
-   int yMin;       /* Minimum Y in image coordinate system */
-   int yMax;       /* Maximum Y in image coordinate system */
+   int             minExtent;     /* Smallest cross size used in scan */
+   int             maxExtent;     /* Size of bounding grid region (2^N - 1) */
+   int             xOffset;       /* Offset to obtain image X coordinate */
+   int             yOffset;       /* Offset to obtain image Y coordinate */
+   int             xMin;          /* Minimum X in image coordinate system */
+   int             xMax;          /* Maximum X in image coordinate system */
+   int             yMin;          /* Minimum Y in image coordinate system */
+   int             yMax;          /* Maximum Y in image coordinate system */
 
    /* reset for each level */
-   int total;      /* Total number of crosses at this size */
-   int extent;     /* Length/width of cross in pixels */
-   int jumpSize;   /* Distance in pixels between cross centers */
-   int pixelTotal; /* Total pixel count within an individual cross path */
-   int startPos;   /* X and Y coordinate of first cross center in pattern */
+   int             total;         /* Total number of crosses at this size */
+   int             extent;        /* Length/width of cross in pixels */
+   int             jumpSize;      /* Distance in pixels between cross centers */
+   int             pixelTotal;    /* Total pixel count within an individual cross path */
+   int             startPos;      /* X and Y coordinate of first cross center in pattern */
 
    /* reset for each cross */
-   int pixelCount; /* Progress (pixel count) within current cross pattern */
-   int xCenter;    /* X center of current cross pattern */
-   int yCenter;    /* Y center of current cross pattern */
+   int             pixelCount;    /* Progress (pixel count) within current cross pattern */
+   int             xCenter;       /* X center of current cross pattern */
+   int             yCenter;       /* Y center of current cross pattern */
 } DmtxScanGrid;
 
 /**
@@ -406,8 +405,8 @@ typedef struct DmtxScanGrid_struct {
  * @brief DmtxTime
  */
 typedef struct DmtxTime_struct {
-   time_t sec;
-   unsigned long usec;
+   time_t          sec;
+   unsigned long   usec;
 } DmtxTime;
 
 /**
@@ -432,8 +431,8 @@ typedef struct DmtxDecode_struct {
 
    /* Internals */
 /* int             cacheComplete; */
-   unsigned char   *cache;
-   DmtxImage       *image;
+   unsigned char  *cache;
+   DmtxImage      *image;
    DmtxScanGrid    grid;
 } DmtxDecode;
 
@@ -450,8 +449,8 @@ typedef struct DmtxEncode_struct {
    int             pixelPacking;
    int             imageFlip;
    int             rowPadBytes;
-   DmtxMessage     *message;
-   DmtxImage       *image;
+   DmtxMessage    *message;
+   DmtxImage      *image;
    DmtxRegion      region;
    DmtxMatrix3     xfrm;  /* XXX still necessary? */
    DmtxMatrix3     rxfrm; /* XXX still necessary? */
@@ -462,14 +461,14 @@ typedef struct DmtxEncode_struct {
  * @brief DmtxChannel
  */
 typedef struct DmtxChannel_struct {
-   int               encScheme;          /* current encodation scheme */
-   int               invalid;            /* channel status (invalid if non-zero) */
-   unsigned char     *inputPtr;          /* pointer to current input character */
-   unsigned char     *inputStop;         /* pointer to position after final input character */
-   int               encodedLength;      /* encoded length (units of 2/3 bits) */
-   int               currentLength;      /* current length (units of 2/3 bits) */
-   int               firstCodeWord;      /* */
-   unsigned char     encodedWords[1558]; /* array of encoded codewords */
+   int             encScheme;     /* current encodation scheme */
+   int             invalid;       /* channel status (invalid if non-zero) */
+   unsigned char  *inputPtr;      /* pointer to current input character */
+   unsigned char  *inputStop;     /* pointer to position after final input character */
+   int             encodedLength; /* encoded length (units of 2/3 bits) */
+   int             currentLength; /* current length (units of 2/3 bits) */
+   int             firstCodeWord; /* */
+   unsigned char   encodedWords[1558];
 } DmtxChannel;
 
 /* Wrap in a struct for fast copies */
@@ -486,7 +485,7 @@ typedef struct DmtxChannelGroup_struct {
  * @brief DmtxTriplet
  */
 typedef struct DmtxTriplet_struct {
-   unsigned char value[3];
+   unsigned char   value[3];
 } DmtxTriplet;
 
 /**
@@ -494,7 +493,7 @@ typedef struct DmtxTriplet_struct {
  * @brief DmtxQuadruplet
  */
 typedef struct DmtxQuadruplet_struct {
-   unsigned char value[4];
+   unsigned char   value[4];
 } DmtxQuadruplet;
 
 /* dmtxtime.c */
