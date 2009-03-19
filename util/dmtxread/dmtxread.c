@@ -459,30 +459,32 @@ OPTIONS:\n"), programName, programName);
   -e, --minimum-edge=N        pixel length of smallest expected edge in image\n\
   -E, --maximum-edge=N        pixel length of largest expected edge in image\n\
   -g, --gap=NUM               use scan grid with gap of NUM pixels between lines\n\
-  -l, --list-formats          list supported image formats\n\
+  -l, --list-formats          list supported image formats\n"));
+      fprintf(stdout, _("\
   -m, --milliseconds=N        stop scan after N milliseconds (per image)\n\
   -n, --newline               print newline character at the end of decoded data\n\
   -p, --page=N                only scan Nth page of images\n\
-  -q, --square-deviation=N    allow non-squareness of corners in degrees (0-90)\n"));
+  -q, --square-deviation=N    allow non-squareness of corners in degrees (0-90)\n\
+  -r, --resolution=N          resolution for vector images (PDF, SVG, etc...)\n"));
       fprintf(stdout, _("\
-  -r, --resolution=N          resolution for vector images (PDF, SVG, etc...)\n\
   -s, --symbol-size=[asr|RxC] only consider barcodes of specific size or shape\n\
         a = All sizes         [default]\n\
         s = Only squares\n\
         r = Only rectangles\n\
-      RxC = Exactly this many rows and columns (10x10, 8x18, etc...)\n\
-  -t, --threshold=N           ignore weak edges below threshold N (1-100)\n"));
+      RxC = Exactly this many rows and columns (10x10, 8x18, etc...)\n"));
       fprintf(stdout, _("\
+  -t, --threshold=N           ignore weak edges below threshold N (1-100)\n\
   -x, --x-range-min=N[%%]      do not scan pixels to the left of N (or N%%)\n\
   -X, --x-range-max=N[%%]      do not scan pixels to the right of N (or N%%)\n\
   -y, --y-range-min=N[%%]      do not scan pixels above N (or N%%)\n\
-  -Y, --y-range-max=N[%%]      do not scan pixels below N (or N%%)\n\
+  -Y, --y-range-max=N[%%]      do not scan pixels below N (or N%%)\n"));
+      fprintf(stdout, _("\
   -C, --corrections-max=N     correct at most N errors (0 = correction disabled)\n\
   -D, --diagnose              make copy of image with additional diagnostic data\n\
-  -M, --mosaic                interpret detected regions as Data Mosaic barcodes\n"));
-      fprintf(stdout, _("\
+  -M, --mosaic                interpret detected regions as Data Mosaic barcodes\n\
   -N, --stop-after=N          stop scanning after Nth barcode is returned\n\
-  -P, --page-numbers          prefix decoded message with fax/tiff page number\n\
+  -P, --page-numbers          prefix decoded message with fax/tiff page number\n"));
+      fprintf(stdout, _("\
   -R, --corners               prefix decoded message with corner locations\n\
   -S, --shrink=N              internally shrink image by a factor of N\n\
   -U, --unicode               print Extended ASCII in Unicode (UTF-8)\n\
@@ -703,7 +705,7 @@ CleanupMagick(MagickWand **wand, int magickError)
 static void
 ListImageFormats(void)
 {
-   int i, index;
+   int i, idx;
    int row, rowCount;
    int col, colCount;
    unsigned long totalCount;
@@ -717,16 +719,16 @@ ListImageFormats(void)
    fprintf(stdout, "\n");
 
    colCount = 7;
-   rowCount = totalCount/colCount;
+   rowCount = totalCount / colCount;
    if(totalCount % colCount)
       rowCount++;
 
    for(i = 0; i < colCount * rowCount; i++) {
-      col = i%colCount;
-      row = i/colCount;
-      index = col*rowCount + row;
-      fprintf(stdout, "%10s", (index < totalCount) ? list[col*rowCount+row] : " ");
-      fprintf(stdout, "%s", (col+1 < colCount) ? " " : "\n");
+      col = i % colCount;
+      row = i / colCount;
+      idx = col * rowCount + row;
+      fprintf(stdout, "%10s", (idx < totalCount) ? list[col * rowCount + row] : " ");
+      fprintf(stdout, "%s", (col + 1 < colCount) ? " " : "\n");
    }
    fprintf(stdout, "\n");
 
