@@ -475,7 +475,9 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
 
    while(ptr < dataEnd) {
 
-      ptr = NextEncodationScheme(&encScheme, ptr);
+      encScheme = GetEncodationScheme(ptr);
+      if(encScheme != DmtxSchemeAscii)
+         ptr++;
 
       switch(encScheme) {
          case DmtxSchemeAscii:
@@ -507,31 +509,33 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
  * @param  ptr
  * @return Pointer to next undecoded codeword
  */
-static unsigned char *
-NextEncodationScheme(DmtxScheme *encScheme, unsigned char *ptr)
+static int
+GetEncodationScheme(unsigned char *ptr)
 {
+   DmtxScheme encScheme;
+
    switch(*ptr) {
       case DmtxCharC40Latch:
-         *encScheme = DmtxSchemeC40;
+         encScheme = DmtxSchemeC40;
          break;
       case DmtxCharTextLatch:
-         *encScheme = DmtxSchemeText;
+         encScheme = DmtxSchemeText;
          break;
       case DmtxCharX12Latch:
-         *encScheme = DmtxSchemeX12;
+         encScheme = DmtxSchemeX12;
          break;
       case DmtxCharEdifactLatch:
-         *encScheme = DmtxSchemeEdifact;
+         encScheme = DmtxSchemeEdifact;
          break;
       case DmtxCharBase256Latch:
-         *encScheme = DmtxSchemeBase256;
+         encScheme = DmtxSchemeBase256;
          break;
       default:
-         *encScheme = DmtxSchemeAscii;
-         return ptr;
+         encScheme = DmtxSchemeAscii;
+         break;
    }
 
-   return ptr + 1;
+   return encScheme;
 }
 
 /**
@@ -585,7 +589,12 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 
    while(ptr < dataEnd) {
 
-      codeword = (int)(*(ptr++));
+      codeword = (int)(*ptr);
+
+      if(GetEncodationScheme(ptr) != DmtxSchemeAscii)
+         return ptr;
+      else
+         ptr++;
 
       if(upperShift == DmtxTrue) {
          PushOutputWord(msg, codeword + 128);

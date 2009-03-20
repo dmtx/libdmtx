@@ -160,7 +160,7 @@ static DmtxPassFail BresLineStep(DmtxBresLine *line, int travel, int outward);
 
 /* dmtxdecode.c */
 static void DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart);
-static unsigned char *NextEncodationScheme(DmtxScheme *encScheme, unsigned char *ptr);
+static int GetEncodationScheme(unsigned char *ptr);
 static void PushOutputWord(DmtxMessage *msg, int value);
 static void PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value);
 static unsigned char *DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
