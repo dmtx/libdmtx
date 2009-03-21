@@ -69,7 +69,7 @@ typedef struct dmtx_decode_options_t {
 typedef struct dmtx_encode_options_t {
 	dmtx_uint16_t marginSize;
 	dmtx_uint16_t moduleSize;
-	dmtx_uint16_t scheme;
+	dmtx_int16_t scheme;
 	dmtx_uint16_t rotate;
 	dmtx_int16_t sizeIdx;
 	dmtx_uint16_t mosaic;
