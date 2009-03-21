@@ -377,7 +377,7 @@ namespace Libdmtx {
     /// <summary>
     /// Encodings applied to the data.
     /// </summary>
-    public enum Scheme : ushort {
+    public enum Scheme : short {
         /// <summary>
         /// ASCII character 0 to 127. 1 byte per CW.
         /// </summary>
@@ -391,24 +391,25 @@ namespace Libdmtx {
         /// <summary>
         /// Lower-case alphanumeric. 1.5 byte per CW.
         /// </summary>
-        Text,
+        Text = 2,
 
         /// <summary>
         /// ANSI X12. 1.5 byte per CW.
         /// </summary>
-        X12,
+        X12 = 3,
 
         /// <summary>
         /// ASCII character 32 to 94. 1.33 bytes per CW.
         /// </summary>
-        Edifact,
+        Edifact = 4,
 
         /// <summary>
         /// ASCII character 0 to 255. 1 byte per CW.
         /// </summary>
-        Base256,
-        AutoBest,
-        AutoFast
+        Base256 = 5,
+
+        AutoBest = -1,
+        AutoFast = -2
     }
 
     /// <summary>
