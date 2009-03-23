@@ -354,8 +354,8 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
 }
 
 /**
- *   +   +
- * ---> --->
+ *
+ *
  */
 static DmtxPassFail
 NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc)
@@ -517,30 +517,45 @@ PopulateFlowCache(struct Flow *flowCache, DmtxImage *img, int width, int height)
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
 }
 
+#define ArriveConnected 0x80
+#define ArriveDirection 0x70
+#define DepartConnected 0x08
+#define DepartDirection 0x07
+
 /**
- * Consider flow measured at location X
- * If flow points upward, then find strongest flow of FwMd, FwLf, FwRt
- * (FwMd takes precedence is there is a tie)
- * Verify that winner is stronger than both of its neighbors ... e.g., if FwRt wins, then it must also be
- * stronger than MdRt ... if so...
- * Record edge at location X pointing in FwRt direction, also mark connection bit
+ * AaaaDddd
+ * --------
+ *   A = arrive connected (0x80)
+ * aaa = arrive direction (0x70)
+ *   D = depart connected (0x08)
+ * ddd = depart direction (0x07)
  */
 static void
 PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int height)
 {
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
-   int offset, offsets[9];
-   int shiftMdLf, shiftMdRt, shiftFwLf, shiftFwMd, shiftFwRt;
-   int offsetMdLf, offsetMdRt, offsetFwLf, offsetFwMd, offsetFwRt;
+   int offset, offsets[8];
+   int ab, bc, neighbor, compare;
+   int offsetFwLf, offsetFwMd, offsetFwRt;
+   int shiftFwLf, shiftFwMd, shiftFwRt;
    DmtxTime ta, tb;
 
-   xBeg = 2;
-   xEnd = width - 3;
-   yBeg = 2;
-   yEnd = height - 3;
-
    ta = dmtxTimeNow();
+
+   offsets[0] = width - 1;
+   offsets[1] = width;
+   offsets[2] = width + 1;
+   offsets[3] = 1;
+   offsets[4] = -width + 1;
+   offsets[5] = -width;
+   offsets[6] = -width - 1;
+   offsets[7] = -1;
+
+   xBeg = 1;
+   xEnd = width - 2;
+   yBeg = 1;
+   yEnd = height - 2;
 
    for(y = yBeg; y <= yEnd; y++) {
       for(x = xBeg; x <= xEnd; x++) {
@@ -548,7 +563,15 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
          /* XXX later play with option of offset++ as part of for loop */
          offset = y * width + x;
 
-         /* XXX later try setting 5,7,1,3 in flowCache directly */
+         /* Does edge meet min strength threshold */
+         if(flowCache[offset].dir == DmtxDirNone)
+            continue;
+
+         /* Is departure connection already set? */
+         if(edgeCache[offset].dir & DepartConnected)
+            continue;
+
+         /* Start with basic pointFlow direction */
          switch(flowCache[offset].dir) {
             case DmtxDirUp:
                shiftFwMd = 5;
@@ -563,73 +586,35 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
                shiftFwMd = 3;
                break;
             default:
-               edgeCache[offset].dir = 0;
+               exit(10);
+         }
+         shiftFwLf = (shiftFwMd + 1) & 0x07;
+         shiftFwRt = (shiftFwMd + 7) & 0x07;
+
+         /* Capture edge strength of 3 forward neighbors */
+         offsetFwLf = offset + offsets[shiftFwLf];
+         offsetFwMd = offset + offsets[shiftFwMd];
+         offsetFwRt = offset + offsets[shiftFwRt];
+
+         ab = (flowCache[offsetFwLf].mag > flowCache[offsetFwMd].mag) ? offsetFwLf : offsetFwMd;
+         bc = (flowCache[offsetFwRt].mag > flowCache[offsetFwMd].mag) ? offsetFwRt : offsetFwMd;
+         neighbor = (flowCache[ab].mag > flowCache[bc].mag) ? ab : bc;
+
+         /* Best candidate is strongest of 3 forward, or straight if tied */
+         if(flowCache[neighbor].mag < 20)
+            continue;
+
+         /* If someone already flows into that neighbor */
+         if(edgeCache[neighbor].dir & ArriveConnected) {
+            compare = (((edgeCache[neighbor].dir & ArriveDirection) >> 4) + 4) % 8;
+            /* verify that neighbor + offsets[compare] is inbounds */
+            if(flowCache[neighbor + offsets[compare]].mag > flowCache[neighbor].mag)
                continue;
          }
 
-         offsets[0] = offset + width - 1;
-         offsets[1] = offset + width;
-         offsets[2] = offset + width + 1;
-         offsets[3] = offset + 1;
-         offsets[4] = offset - width + 1;
-         offsets[5] = offset - width;
-         offsets[6] = offset - width - 1;
-         offsets[7] = offset - 1;
-
-         /* If either side neighbor is stronger than middle, no direction */
-         shiftMdLf = (shiftFwMd + 2) & 0x07;
-         shiftMdRt = (shiftFwMd + 6) & 0x07;
-         offsetMdLf = offsets[shiftMdLf];
-         offsetMdRt = offsets[shiftMdRt];
-         if(flowCache[offsetMdLf].mag > flowCache[offset].mag ||
-               flowCache[offsetMdLf].mag > flowCache[offset].mag) {
-            edgeCache[offset].dir = 0;
-            continue;
-         }
-
-         /* Test strength of FwLf, FwMd, FwRt neighbors (can be diagonal) */
-         shiftFwLf = (shiftFwMd + 1) & 0x07;
-         shiftFwRt = (shiftFwMd + 7) & 0x07;
-         offsetFwLf = offsets[shiftFwLf];
-         offsetFwMd = offsets[shiftFwMd];
-         offsetFwRt = offsets[shiftFwRt];
-
-         /* If none of them are stronger than min threshold, no direction */
-         /* Use dir instead of mag so threshold is only used once (above) */
-         if(flowCache[offsetFwLf].dir == DmtxDirNone &&
-               flowCache[offsetFwMd].dir == DmtxDirNone &&
-               flowCache[offsetFwRt].dir == DmtxDirNone) {
-            edgeCache[offset].dir = 0;
-            continue;
-         }
-
-         /* Point to strongest neighbor (FwLf, FwMd, FwRt) */
-         if(flowCache[offsetFwMd].mag >= flowCache[offsetFwLf].mag &&
-               flowCache[offsetFwMd].mag >= flowCache[offsetFwRt].mag) {
-            edgeCache[offset].dir |= shiftFwMd;
-            edgeCache[offset].dir |= 0x08;
-         }
-         else if(flowCache[offsetFwLf].mag == flowCache[offsetFwRt].mag) {
-            edgeCache[offset].dir = 0;
-         }
-         else if(flowCache[offsetFwLf].mag > flowCache[offsetFwRt].mag) {
-            if(flowCache[offsetFwLf].mag >= flowCache[offsetMdLf].mag) {
-               edgeCache[offset].dir |= shiftFwLf;
-               edgeCache[offset].dir |= 0x08;
-            }
-            else {
-               edgeCache[offset].dir = 0;
-            }
-         }
-         else {
-            if(flowCache[offsetFwRt].mag >= flowCache[offsetMdRt].mag) {
-               edgeCache[offset].dir |= shiftFwRt;
-               edgeCache[offset].dir |= 0x08;
-            }
-            else {
-               edgeCache[offset].dir = 0;
-            }
-         }
+         /* Mark departure for this location */
+         edgeCache[offset].dir |= (DepartConnected | neighbor);
+         edgeCache[neighbor].dir |= (ArriveConnected | (neighbor << 4));
       }
    }
 
@@ -748,14 +733,8 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
       for(col = 0; col < width; col++) {
          cache = edgeCache[row * width + col].dir;
          rgb[0] = rgb[1] = rgb[2] = 0;
-         if(cache & 0x08) {
-            if(cache & 0x01)
-               rgb[0] = 255;
-            if(cache & 0x02)
-               rgb[1] = 255;
-            if(cache & 0x04)
-               rgb[2] = 255;
-         }
+         if(cache & ArriveConnected && cache & DepartConnected)
+            rgb[0] = 255;
 
          fputc(rgb[0], fp);
          fputc(rgb[1], fp);
