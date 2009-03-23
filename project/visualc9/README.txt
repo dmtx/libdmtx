@@ -31,7 +31,7 @@ Both dmtxread.exe and dmtxwrite.exe also require the ImageMagick
 to be installed on your computer. This package can be downloaded
 from either sourceforge.net or imagemagick.org:
 
-  http://downloads.sourceforge.net/imagemagick/ImageMagick-6.4.8-10-Q8-windows-dll.exe
+  http://downloads.sourceforge.net/imagemagick/ImageMagick-6.X.X-X-Q8-windows-dll.exe
 
 
 3. libdmtx-win32 Installation
@@ -42,9 +42,9 @@ contents into the ImageMagick directory created above. If you
 used the default options in the ImageMagick installer this
 location will be:
 
-  C:\Program Files\ImageMagick-6.4.8-Q8
+  C:\Program Files\ImageMagick-6.X.X-Q8
 
-The libdmtx-win32 package contains 8 files:
+The libdmtx-win32 package contains 7 files:
 
   * dmtxread.exe     dmtxread executable
   * dmtxwrite.exe    dmtxwrite executable

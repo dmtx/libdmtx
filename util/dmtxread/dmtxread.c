@@ -80,14 +80,14 @@ main(int argc, char *argv[])
          success = MagickSetResolution(wand, (double)opt.dpi, (double)opt.dpi);
          if(success == MagickFalse) {
             CleanupMagick(&wand, DmtxTrue);
-            FatalError(EX_OSERR, "Magick error");
+            FatalError(EX_OSERR, "Unable to set image resolution");
          }
       }
 
       success = MagickReadImage(wand, filePath);
       if(success == MagickFalse) {
          CleanupMagick(&wand, DmtxTrue);
-         FatalError(EX_OSERR, "Magick error");
+         FatalError(EX_OSERR, "Unable to open file \"%s\" for reading", filePath);
       }
 
       width = MagickGetImageWidth(wand);
@@ -688,7 +688,7 @@ CleanupMagick(MagickWand **wand, int magickError)
 
    if(magickError == DmtxTrue) {
       excMessage = MagickGetException(*wand, &excSeverity);
-      fprintf(stderr, "%s %s %lu %s\n", GetMagickModule(), excMessage);
+/*    fprintf(stderr, "%s %s %lu %s\n", GetMagickModule(), excMessage); */
       MagickRelinquishMemory(excMessage);
    }
 
