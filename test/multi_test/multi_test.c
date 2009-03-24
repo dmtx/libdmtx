@@ -34,6 +34,9 @@ Contact: mblaughton@users.sourceforge.net
 #include <SDL/SDL_image.h>
 #include "../../dmtx.h"
 
+static int xPattern[] = { -1,  0,  1,  1,  1,  0, -1, -1 };
+static int yPattern[] = { -1, -1, -1,  0,  1,  1,  1,  0 };
+
 struct UserOptions {
    const char *imagePath;
 };
@@ -73,6 +76,7 @@ static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imag
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 static void PopulateFlowCache(struct Flow *flowCache, DmtxImage *img, int width, int height);
 static void PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int height);
+static DmtxPassFail PoisonFlowUpstream(struct Edge *edgeCache, int width, int x, int y);
 static void PopulateHoughCache(struct Hough *houghCache, struct Flow *flowCache, int width, int height);
 static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
 static void WriteEdgeCacheImage(struct Edge *edge, int width, int height, char *imagePath);
@@ -518,10 +522,14 @@ PopulateFlowCache(struct Flow *flowCache, DmtxImage *img, int width, int height)
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
 }
 
+#define ArriveMask      0xf0
 #define ArriveConnected 0x80
 #define ArriveDirection 0x70
+#define DepartMask      0x0f
 #define DepartConnected 0x08
 #define DepartDirection 0x07
+#define Unvisited       0x00
+#define Poisoned        0x11
 
 /**
  * AaaaDddd
@@ -530,6 +538,27 @@ PopulateFlowCache(struct Flow *flowCache, DmtxImage *img, int width, int height)
  * aaa = arrive direction (0x70)
  *   D = depart connected (0x08)
  * ddd = depart direction (0x07)
+ *
+ * Since it is not possible for a flow to both arrive from and
+ * depart to the same neighbor, locations on a valid edge will
+ * never hold a cache value that satisfies the condition:
+ *
+ *   ((N & ArriveDirection) >> 4) == (N & DepartDirection)
+ *
+ * Therefore, the resulting list of impossible values can be
+ * assigned predefined meanings for use as restricted constants:
+ *
+ *   Unconnected values    Connected values
+ *   ------------------    ------------------
+ *   0x00  Unvisited       0x88  [unassigned]
+ *   0x11  Poisoned        0x99  [unassigned]
+ *   0x22  [unassigned]    0xaa  [unassigned]
+ *   0x33  [unassigned]    0xbb  [unassigned]
+ *   0x44  [unassigned]    0xcc  [unassigned]
+ *   0x55  [unassigned]    0xdd  [unassigned]
+ *   0x66  [unassigned]    0xee  [unassigned]
+ *   0x77  [unassigned]    0xff  [unassinged]
+ *
  */
 static void
 PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int height)
@@ -610,27 +639,96 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
          if(flowCache[neighborOffset].mag < 20)
             continue;
 
+         /* This flow has been intentially poisoned */
+         if(edgeCache[neighborOffset].dir == Poisoned) {
+            edgeCache[offset].dir &= ArriveMask;
+            edgeCache[offset].dir |= (DepartConnected | shiftNeighbor);
+            continue;
+         }
+
          /* If someone already flows into that neighbor */
          if(edgeCache[neighborOffset].dir & ArriveConnected) {
-            compare = (((edgeCache[neighborOffset].dir & ArriveDirection) >> 4) + 4) % 8;
+            compare = ((edgeCache[neighborOffset].dir & ArriveDirection) >> 4);
             /* verify that neighbor + offsets[compare] is inbounds */
-            if(flowCache[neighborOffset].mag > flowCache[neighborOffset + offsets[compare]].mag)
-               edgeCache[neighborOffset + offsets[compare]].dir = 0x00;
-            else
+            if(flowCache[offset].mag > flowCache[neighborOffset + offsets[compare]].mag) {
+               /* Trail is dead: Mark for later */
+               edgeCache[neighborOffset + offsets[compare]].dir = Poisoned;
+            }
+            else {
+               edgeCache[offset].dir = Poisoned;
                continue;
+            }
          }
 
          /* Mark departure for this location */
          assert((edgeCache[offset].dir & 0x0f) == 0x00);
          edgeCache[offset].dir |= (DepartConnected | shiftNeighbor);
-         edgeCache[neighborOffset].dir &= 0x0f;
-         edgeCache[neighborOffset].dir |= (ArriveConnected | (shiftNeighbor << 4));
+         edgeCache[neighborOffset].dir &= DepartMask;
+         edgeCache[neighborOffset].dir |= (ArriveConnected | (((shiftNeighbor + 4) % 8) << 4));
+      }
+   }
+
+   for(y = yBeg; y <= yEnd; y++) {
+      for(x = xBeg; x <= xEnd; x++) {
+         offset = y * width + x;
+         if(edgeCache[offset] == Poisoned)
+            PoisonFlowUpstream(edgeCache, width, x, y);
       }
    }
 
    tb = dmtxTimeNow();
    fprintf(stdout, "PopulateEdgeCache time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
+}
+
+/**
+ *
+ *
+ */
+static DmtxPassFail
+PoisonFlowUpstream(struct Edge *edgeCache, int width, int x, int y)
+{
+   int offset, offsets[8], upstream;
+
+   offsets[0] = width - 1;
+   offsets[1] = width;
+   offsets[2] = width + 1;
+   offsets[3] = 1;
+   offsets[4] = -width + 1;
+   offsets[5] = -width;
+   offsets[6] = -width - 1;
+   offsets[7] = -1;
+
+   offset = y * width + x;
+
+   for(i = 0; i < 8; i++) {
+
+      neighbor = edgeCache[offset + offsets[i]].dir;
+
+      /* If neighbor doesn't flow downstream then nevermind */
+      if(!(neighbor.dir & DepartConnected))
+         continue;
+
+      /* If neighbor doesn't point to me then nevermind */
+      if((neighbor.dir & DepartDirection) != (i + 4) % 8)
+         continue;
+
+      /* Otherwise poison him and everyone that came before him */
+XXX left off here
+      upstream = i;
+      x += xPattern[upstream];
+      y += yPattern[upstream];
+      do {
+         x += xPattern[upstream];
+         y += yPattern[upstream];
+         offset = y * width + x;
+
+         upstream = (edgeCache[offset].dir & ArriveDirection) >> 4;
+         edgeCache[offset].dir = Poisoned;
+      } while(edgeCache[offset].dir & ArriveConnected) {
+   }
+
+   return DmtxPass;
 }
 
 /**
@@ -743,8 +841,12 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
       for(col = 0; col < width; col++) {
          cache = edgeCache[row * width + col].dir;
          rgb[0] = rgb[1] = rgb[2] = 0;
-         if(cache & ArriveConnected && cache & DepartConnected)
+         if(cache == Poisoned) {
+            rgb[2] = 255;
+         }
+         else if((cache & ArriveConnected) && (cache & DepartConnected)) {
             rgb[0] = 255;
+         }
 
          fputc(rgb[0], fp);
          fputc(rgb[1], fp);
