@@ -151,6 +151,7 @@ int main(int argc, char *argv[])
    WriteEdgeCacheImage(edgeCache, width, height, "edgeCache.pnm");
    WriteHoughCacheImage(houghCache, width, height, "houghCache.pnm");
 
+exit(1);
    atexit(SDL_Quit);
 
    /* Initialize SDL library */
@@ -536,8 +537,8 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
    int offset, offsets[8];
-   int ab, bc, neighbor, compare;
-   int offsetFwLf, offsetFwMd, offsetFwRt;
+   int shiftAB, shiftBC, shiftNeighbor, compare;
+   int offsetFwLf, offsetFwMd, offsetFwRt, neighborOffset;
    int shiftFwLf, shiftFwMd, shiftFwRt;
    DmtxTime ta, tb;
 
@@ -568,8 +569,7 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
             continue;
 
          /* Is departure connection already set? */
-         if(edgeCache[offset].dir & DepartConnected)
-            continue;
+         assert(!(edgeCache[offset].dir & DepartConnected));
 
          /* Start with basic pointFlow direction */
          switch(flowCache[offset].dir) {
@@ -596,25 +596,35 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
          offsetFwMd = offset + offsets[shiftFwMd];
          offsetFwRt = offset + offsets[shiftFwRt];
 
-         ab = (flowCache[offsetFwLf].mag > flowCache[offsetFwMd].mag) ? offsetFwLf : offsetFwMd;
-         bc = (flowCache[offsetFwRt].mag > flowCache[offsetFwMd].mag) ? offsetFwRt : offsetFwMd;
-         neighbor = (flowCache[ab].mag > flowCache[bc].mag) ? ab : bc;
+         shiftAB = (flowCache[offsetFwLf].mag >= flowCache[offsetFwMd].mag) ? shiftFwLf : shiftFwMd;
+         shiftBC = (flowCache[offsetFwRt].mag >= flowCache[offsetFwMd].mag) ? shiftFwRt : shiftFwMd;
 
-         /* Best candidate is strongest of 3 forward, or straight if tied */
-         if(flowCache[neighbor].mag < 20)
+         /* Best candidate is strongest of 3 forward */
+         if(flowCache[offset + offsets[shiftAB]].mag > flowCache[offset + offsets[shiftBC]].mag)
+            shiftNeighbor = shiftAB;
+         else
+            shiftNeighbor = shiftBC;
+
+         neighborOffset = offset + offsets[shiftNeighbor];
+
+         if(flowCache[neighborOffset].mag < 20)
             continue;
 
          /* If someone already flows into that neighbor */
-         if(edgeCache[neighbor].dir & ArriveConnected) {
-            compare = (((edgeCache[neighbor].dir & ArriveDirection) >> 4) + 4) % 8;
+         if(edgeCache[neighborOffset].dir & ArriveConnected) {
+            compare = (((edgeCache[neighborOffset].dir & ArriveDirection) >> 4) + 4) % 8;
             /* verify that neighbor + offsets[compare] is inbounds */
-            if(flowCache[neighbor + offsets[compare]].mag > flowCache[neighbor].mag)
+            if(flowCache[neighborOffset].mag > flowCache[neighborOffset + offsets[compare]].mag)
+               edgeCache[neighborOffset + offsets[compare]].dir = 0x00;
+            else
                continue;
          }
 
          /* Mark departure for this location */
-         edgeCache[offset].dir |= (DepartConnected | neighbor);
-         edgeCache[neighbor].dir |= (ArriveConnected | (neighbor << 4));
+         assert((edgeCache[offset].dir & 0x0f) == 0x00);
+         edgeCache[offset].dir |= (DepartConnected | shiftNeighbor);
+         edgeCache[neighborOffset].dir &= 0x0f;
+         edgeCache[neighborOffset].dir |= (ArriveConnected | (shiftNeighbor << 4));
       }
    }
 
