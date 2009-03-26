@@ -45,3 +45,6 @@ EXTRA_DIST = KNOWNBUG \
 	wrapper/php/* \
 	wrapper/python/* \
 	wrapper/ruby/*
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libdmtx.pc

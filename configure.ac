@@ -109,4 +109,6 @@ if test x$dmtxwrite = xtrue; then
    AC_CONFIG_FILES([util/dmtxwrite/Makefile])
 fi
 
+AC_CONFIG_FILES([libdmtx.pc])
+
 AC_OUTPUT
