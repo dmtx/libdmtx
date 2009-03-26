@@ -34,8 +34,18 @@ Contact: mblaughton@users.sourceforge.net
 #include <SDL/SDL_image.h>
 #include "../../dmtx.h"
 
+#define ArriveMask      0xf0
+#define ArriveConnected 0x80
+#define ArriveDirection 0x70
+#define DepartMask      0x0f
+#define DepartConnected 0x08
+#define DepartDirection 0x07
+#define Unvisited       0x00
+#define Poisoned        0x11
+
 static int xPattern[] = { -1,  0,  1,  1,  1,  0, -1, -1 };
 static int yPattern[] = { -1, -1, -1,  0,  1,  1,  1,  0 };
+static int yPatternFlip[] = {  1,  1,  1,  0, -1, -1, -1,  0 };
 
 struct UserOptions {
    const char *imagePath;
@@ -82,6 +92,7 @@ static void PopulateHoughCache(struct Hough *houghCache, struct Flow *flowCache,
 static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
 static void WriteEdgeCacheImage(struct Edge *edge, int width, int height, char *imagePath);
 static void WriteHoughCacheImage(struct Hough *hough, int width, int height, char *imagePath);
+static void PlotPixel(SDL_Surface *surface, int x, int y);
 
 int main(int argc, char *argv[])
 {
@@ -89,6 +100,8 @@ int main(int argc, char *argv[])
    struct AppState    state;
    int                scanX, scanY;
    int                width, height;
+   int                x, y;
+   int                i;
    SDL_Surface       *screen;
    SDL_Surface       *picture;
    SDL_Event          event;
@@ -98,7 +111,7 @@ int main(int argc, char *argv[])
 /* DmtxRegion        *reg; */
 /* DmtxMessage       *msg; */
    struct Flow       *flowCache;
-   struct Edge       *edgeCache;
+   struct Edge       *edgeCache, edge;
    struct Hough      *houghCache;
 
    opt = GetDefaultOptions();
@@ -156,7 +169,6 @@ int main(int argc, char *argv[])
    WriteEdgeCacheImage(edgeCache, width, height, "edgeCache.pnm");
    WriteHoughCacheImage(houghCache, width, height, "houghCache.pnm");
 
-exit(1);
    atexit(SDL_Quit);
 
    /* Initialize SDL library */
@@ -187,25 +199,42 @@ exit(1);
       if(state.rightButton == SDL_PRESSED) {
 
          scanX = state.pointerX - state.imageLocX;
-         scanY = picture->h - (state.pointerY - state.imageLocY) - 1;
+         scanY = state.pointerY - state.imageLocY;
+
+         /* Highlight a small box of edges */
 /*
-         SDL_LockSurface(picture);
-         reg = dmtxRegionScanPixel(dec, scanX, scanY);
-         SDL_UnlockSurface(picture);
+         SDL_LockSurface(screen);
+         for(y = -10; y <= 10; y++) {
+            for(x = -10; x <= 10; x++) {
+               if(scanY + y < 1 || scanY + y > height - 2)
+                  continue;
+               if(scanX + x < 1 || scanX + x > width - 2)
+                  continue;
+               if(!(edgeCache[(scanY + y) * width + (scanX + x)].dir & ArriveConnected))
+                  continue;
+               if(!(edgeCache[(scanY + y) * width + (scanX + x)].dir & DepartConnected))
+                  continue;
 
-         if(reg != NULL) {
-            WriteDiagnosticImage(dec, "debug.pnm");
-
-            msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
-            if(msg != NULL) {
-               fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
-               fputc('\n', stdout);
-               dmtxMessageDestroy(&msg);
+               PlotPixel(screen, state.imageLocX + scanX + x, state.imageLocY + scanY + y);
             }
-
-            dmtxRegionDestroy(&reg);
          }
+         SDL_UnlockSurface(screen);
 */
+
+         /* Trace the path a few steps downstream */
+         SDL_LockSurface(screen);
+         for(;;) {
+            edge = edgeCache[scanY * width + scanX];
+
+            if(!(edge.dir & ArriveConnected))
+               break;
+
+            PlotPixel(screen, state.imageLocX + scanX, state.imageLocY + scanY);
+
+            scanX += xPattern[(edge.dir & ArriveDirection)>>4];
+            scanY += yPatternFlip[(edge.dir & ArriveDirection)>>4];
+         }
+         SDL_UnlockSurface(screen);
       }
 
       SDL_Flip(screen);
@@ -523,15 +552,6 @@ PopulateFlowCache(struct Flow *flowCache, DmtxImage *img, int width, int height)
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
 }
 
-#define ArriveMask      0xf0
-#define ArriveConnected 0x80
-#define ArriveDirection 0x70
-#define DepartMask      0x0f
-#define DepartConnected 0x08
-#define DepartDirection 0x07
-#define Unvisited       0x00
-#define Poisoned        0x11
-
 /**
  * AaaaDddd
  * --------
@@ -569,8 +589,10 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
    int offset, offsets[8];
    int shiftAB, shiftBC, shiftNeighbor;
    int offsetFwLf, offsetFwMd, offsetFwRt, neighborOffset;
+   int offsetMdLf, offsetMdRt;
    int shiftFwLf, shiftFwMd, shiftFwRt;
-   int magLf, magMd, magRt;
+   int shiftMdLf, shiftMdRt;
+   int mag[8];
    int i, maxDir, maxCount;
    struct Edge edge;
    DmtxTime ta, tb;
@@ -618,27 +640,47 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
             default:
                exit(10);
          }
+         shiftMdLf = (shiftFwMd + 2) & 0x07;
          shiftFwLf = (shiftFwMd + 1) & 0x07;
          shiftFwRt = (shiftFwMd + 7) & 0x07;
+         shiftMdRt = (shiftFwMd + 6) & 0x07;
 
          /* Find 3 forward neighbors */
+         offsetMdLf = offset + offsets[shiftFwLf];
          offsetFwLf = offset + offsets[shiftFwLf];
          offsetFwMd = offset + offsets[shiftFwMd];
          offsetFwRt = offset + offsets[shiftFwRt];
+         offsetMdRt = offset + offsets[shiftFwRt];
 
-         magLf = (edgeCache[offsetFwLf].dir == ((shiftFwLf + 4) % 8)) ? 0 : flowCache[offsetFwLf].mag;
-         magMd = (edgeCache[offsetFwMd].dir == ((shiftFwMd + 4) % 8)) ? 0 : flowCache[offsetFwMd].mag;
-         magRt = (edgeCache[offsetFwRt].dir == ((shiftFwRt + 4) % 8)) ? 0 : flowCache[offsetFwRt].mag;
+         mag[shiftMdLf] = (edgeCache[offsetMdLf].dir == ((shiftMdLf + 4) % 8)) ?
+               0 : flowCache[offsetMdLf].mag;
+         mag[shiftFwLf] = (edgeCache[offsetFwLf].dir == ((shiftFwLf + 4) % 8)) ?
+               0 : flowCache[offsetFwLf].mag;
+         mag[shiftFwMd] = (edgeCache[offsetFwMd].dir == ((shiftFwMd + 4) % 8)) ?
+               0 : flowCache[offsetFwMd].mag;
+         mag[shiftFwRt] = (edgeCache[offsetFwRt].dir == ((shiftFwRt + 4) % 8)) ?
+               0 : flowCache[offsetFwRt].mag;
+         mag[shiftMdRt] = (edgeCache[offsetMdRt].dir == ((shiftMdRt + 4) % 8)) ?
+               0 : flowCache[offsetMdRt].mag;
 
-         shiftAB = (magLf >= magMd) ? shiftFwLf : shiftFwMd;
-         shiftBC = (magRt >= magMd) ? shiftFwRt : shiftFwMd;
+         shiftNeighbor = mag[shiftFwMd];
+         for(i = 0; i < 8; i++) {
+            if(i != shiftMdLf && i != shiftFwLf && i != shiftMdRt && i != shiftFwRt)
+               continue;
 
-         /* Best candidate is strongest of 3 forward */
+            if(mag[i] > mag[shiftNeighbor])
+               shiftNeighbor = i;
+         }
+/*
+         shiftAB = (magFwLf >= magFwMd) ? shiftFwLf : shiftFwMd;
+         shiftBC = (magFwRt >= magFwMd) ? shiftFwRt : shiftFwMd;
+
+         // Best candidate is strongest of 3 forward
          if(flowCache[offset + offsets[shiftAB]].mag > flowCache[offset + offsets[shiftBC]].mag)
             shiftNeighbor = shiftAB;
          else
             shiftNeighbor = shiftBC;
-
+*/
          neighborOffset = offset + offsets[shiftNeighbor];
 
          if(flowCache[neighborOffset].mag < 20)
@@ -650,6 +692,7 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
       }
    }
 
+   /* Connect all edges */
    for(y = yBeg; y <= yEnd; y++) {
       for(x = xBeg; x <= xEnd; x++) {
          offset = y * width + x;
@@ -922,4 +965,21 @@ WriteHoughCacheImage(struct Hough *houghCache, int width, int height, char *imag
    }
 
    fclose(fp);
+}
+
+/**
+ *
+ *
+ */
+static void
+PlotPixel(SDL_Surface *surface, int x, int y)
+{
+   char *ptr;
+   Uint32 col;
+
+   ptr = (char *)surface->pixels;
+   col = SDL_MapRGB(surface->format, 255, 0, 0);
+
+   memcpy(ptr + surface->pitch * y + surface->format->BytesPerPixel * x,
+         &col, surface->format->BytesPerPixel);
 }
