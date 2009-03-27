@@ -100,8 +100,8 @@ int main(int argc, char *argv[])
    struct AppState    state;
    int                scanX, scanY;
    int                width, height;
-   int                x, y;
-   int                i;
+/* int                x, y; */
+/* int                i; */
    SDL_Surface       *screen;
    SDL_Surface       *picture;
    SDL_Event          event;
@@ -587,7 +587,8 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
    int offset, offsets[8];
-   int shiftAB, shiftBC, shiftNeighbor;
+/* int shiftAB, shiftBC; */
+   int shiftNeighbor;
    int offsetFwLf, offsetFwMd, offsetFwRt, neighborOffset;
    int offsetMdLf, offsetMdRt;
    int shiftFwLf, shiftFwMd, shiftFwRt;
@@ -663,14 +664,15 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *flowCache, int width, int
          mag[shiftMdRt] = (edgeCache[offsetMdRt].dir == ((shiftMdRt + 4) % 8)) ?
                0 : flowCache[offsetMdRt].mag;
 
-         shiftNeighbor = mag[shiftFwMd];
-         for(i = 0; i < 8; i++) {
-            if(i != shiftMdLf && i != shiftFwLf && i != shiftMdRt && i != shiftFwRt)
-               continue;
-
-            if(mag[i] > mag[shiftNeighbor])
-               shiftNeighbor = i;
-         }
+         shiftNeighbor = shiftFwMd;
+         if(mag[shiftFwLf] >= mag[shiftNeighbor])
+               shiftNeighbor = shiftFwLf;
+         if(mag[shiftFwRt] >= mag[shiftNeighbor])
+               shiftNeighbor = shiftFwRt;
+         if(mag[shiftMdLf] >= mag[shiftNeighbor])
+               shiftNeighbor = shiftMdLf;
+         if(mag[shiftMdRt] >= mag[shiftNeighbor])
+               shiftNeighbor = shiftMdRt;
 /*
          shiftAB = (magFwLf >= magFwMd) ? shiftFwLf : shiftFwMd;
          shiftBC = (magFwRt >= magFwMd) ? shiftFwRt : shiftFwMd;
