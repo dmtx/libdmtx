@@ -21,6 +21,7 @@
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
 			CharacterSet="0"
+			BuildLogFile="$(IntDir)\libdmtxBuildLog.htm"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -95,6 +96,7 @@
 			ConfigurationType="2"
 			CharacterSet="0"
 			WholeProgramOptimization="1"
+			BuildLogFile="$(IntDir)\libdmtxBuildLog.htm"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"

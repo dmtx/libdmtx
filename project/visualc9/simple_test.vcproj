@@ -21,6 +21,7 @@
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
 			CharacterSet="2"
+			BuildLogFile="$(IntDir)\simple_testBuildLog.htm"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -91,6 +92,7 @@
 			ConfigurationType="1"
 			CharacterSet="2"
 			WholeProgramOptimization="1"
+			BuildLogFile="$(IntDir)\simple_testBuildLog.htm"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"

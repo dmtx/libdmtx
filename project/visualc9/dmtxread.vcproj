@@ -20,7 +20,9 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
+			InheritedPropertySheets=".\magick.vsprops"
 			CharacterSet="2"
+			BuildLogFile="$(IntDir)\dmtxreadBuildLog.htm"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -40,7 +42,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..;..\..\util\common;&quot;C:\Program Files\ImageMagick-6.4.8-Q8\include&quot;"
+				AdditionalIncludeDirectories="..\..;..\..\util\common"
 				PreprocessorDefinitions="WIN32;_VISUALC_"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -60,7 +62,6 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="CORE_RL_wand_.lib"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\ImageMagick-6.4.8-Q8\lib&quot;"
 				GenerateDebugInformation="true"
 				TargetMachine="1"
 			/>
@@ -91,8 +92,10 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
+			InheritedPropertySheets=".\magick.vsprops"
 			CharacterSet="2"
 			WholeProgramOptimization="1"
+			BuildLogFile="$(IntDir)\dmtxreadBuildLog.htm"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -113,7 +116,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\..;..\..\util\common;&quot;C:\Program Files\ImageMagick-6.4.8-Q8\include&quot;"
+				AdditionalIncludeDirectories="..\..;..\..\util\common"
 				PreprocessorDefinitions="WIN32;_VISUALC_"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -132,7 +135,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="CORE_RL_wand_.lib"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\ImageMagick-6.4.8-Q8\lib&quot;"
+				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"

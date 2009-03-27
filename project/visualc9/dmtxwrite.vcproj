@@ -20,7 +20,9 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
+			InheritedPropertySheets=".\magick.vsprops"
 			CharacterSet="2"
+			BuildLogFile="$(IntDir)\dmtxwriteBuildLog.htm"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -40,7 +42,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..;..\..\util\common;&quot;C:\Program Files\ImageMagick-6.4.8-Q8\include&quot;"
+				AdditionalIncludeDirectories="..\..;..\..\util\common"
 				PreprocessorDefinitions="WIN32;_VISUALC_"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -60,7 +62,6 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="CORE_RL_wand_.lib"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\ImageMagick-6.4.8-Q8\lib&quot;"
 				GenerateDebugInformation="true"
 				TargetMachine="1"
 			/>
@@ -91,8 +92,10 @@
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
+			InheritedPropertySheets=".\magick.vsprops"
 			CharacterSet="2"
 			WholeProgramOptimization="1"
+			BuildLogFile="$(IntDir)\dmtxwriteBuildLog.htm"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -113,7 +116,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\..;..\..\util\common;&quot;C:\Program Files\ImageMagick-6.4.8-Q8\include&quot;"
+				AdditionalIncludeDirectories="..\..;..\..\util\common"
 				PreprocessorDefinitions="WIN32;_VISUALC_"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -132,7 +135,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="CORE_RL_wand_.lib"
-				AdditionalLibraryDirectories="&quot;C:\Program Files\ImageMagick-6.4.8-Q8\lib&quot;"
+				AdditionalLibraryDirectories=""
 				GenerateDebugInformation="true"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
@@ -170,11 +173,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\util\dmtxwrite\dmtxwrite.c"
+				RelativePath="..\..\util\common\dmtxutil.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\util\common\dmtxutil.c"
+				RelativePath="..\..\util\dmtxwrite\dmtxwrite.c"
 				>
 			</File>
 			<File
@@ -192,11 +195,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\..\util\dmtxwrite\dmtxwrite.h"
+				RelativePath="..\..\util\common\dmtxutil.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\util\common\dmtxutil.h"
+				RelativePath="..\..\util\dmtxwrite\dmtxwrite.h"
 				>
 			</File>
 			<File
