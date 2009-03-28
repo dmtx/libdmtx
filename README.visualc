@@ -10,24 +10,25 @@ found in this directory, contains a high level summary of libdmtx
 and its components.
 
 
-1. Compiling libdmtx DLL and Import Library
+1. Compiling the libdmtx DLL and Import Library
 -----------------------------------------------------------------
 
 The libdmtx source package provides solution and project files
 for Visual Studio 9.0 in the project\visualc9 directory. Use the
 following steps if you wish to compile only the core library:
 
-  * File > Open > File > C:\[libdmtx]\project\visualc9\libdmtx.sln
+   1. File > Open > File >
+        C:\[libdmtx]\project\visualc9\libdmtx.sln
 
-  * Select/Highlight "libdmtx" in the Solution Explorer
+   2. Select/Highlight "libdmtx" in the Solution Explorer
 
-  * Build > Configuration Manager > Active solution configuration
-      Select "Debug" or "Release"
+   3. Build > Configuration Manager > Active solution
+        configuration > Select "Debug" or "Release"
 
-  * Build > Build libdmtx
+   4. Build > Build libdmtx
 
-The Debug or Release directory in project\visualc9 will now
-hold the files libdmtx.dll and libdmtx.lib.
+The Debug or Release directory in project\visualc9 will now hold
+the files libdmtx.dll and libdmtx.lib.
 
 
 2. Compiling the libdmtx Command Line Utilities
@@ -38,41 +39,40 @@ libdmtx command line utilities. The most significant utilities,
 dmtxread.exe and dmtxwrite.exe, require ImageMagick to be
 installed on your system. To build the utilities:
 
-  * Download and run the ImageMagick installer program:
+2.1. Install ImageMagick
 
-    http://downloads.sourceforge.net/imagemagick/ImageMagick-X.X.X-XX-Q8-windows-dll.exe
+Download and run the newest ImageMagick installer program that
+ends in "Q8-windows-dll.exe" from:
 
-    When the installer prompts you with options, make sure the
-    following checkboxes are selected:
+  https://sourceforge.net/project/showfiles.php?group_id=24099
 
-      x Update executable search path
-      x Install development headers and libraries for C and C++
+When the installer prompts you with options, make sure the
+following checkboxes are selected:
 
-  * File > Open > File > C:\[libdmtx]\project\visualc9\libdmtx.sln
+  x Update executable search path
+  x Install development headers and libraries for C and C++
 
-  * Right-click on dmtxread in the Solution Explorer:
+2.2. Compile libdmtx
 
-    Properties > Configuration Properties > Linker > General >
-    Additional Library Directories > C:\[ImageMagick]
+Download and unpack the libdmtx source package into the directory
+of your choice. Next, open Visual Studio and perform the
+following steps:
 
-    Update the [ImageMagick] path to match the installation path
-    you installed above.
+  1. File > Open > File >
+       C:\[libdmtx]\project\visualc9\libdmtx.sln
 
-  * Right-click on dmtxwrite in the Solution Explorer:
+  2. Edit the file C:\[libdmtx]\project\visualc9\magick.vsprops
+     to reflect the path where you installed ImageMagick above.
+     This edit can be done either through the Visual Studio
+     "Property Manager" or using a regular text editor.
 
-    Properties > Configuration Properties > Linker > General >
-    Additional Library Directories > C:\[ImageMagick]
+  3. Build > Configuration Manager > Active solution
+     configuration > Select "Debug" or "Release"
 
-    Update the [ImageMagick] path to match the installation path
-    you installed above.
+  4. Build > Build Solution (or press F7)
 
-  * Build > Configuration Manager > Active solution configuration
-      Select "Debug" or "Release"
-
-  * Build > Build Solution (or press F7)
-
-The Debug or Release directory in project\visualc9 will now
-hold the compiled files.
+The Debug or Release directory in project\visualc9 will now hold
+the compiled files.
 
 
 3. This Document
