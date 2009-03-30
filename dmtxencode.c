@@ -842,7 +842,7 @@ EncodeAsciiCodeword(DmtxChannel *channel)
    if(inputValue >= 128) {
       PushInputWord(channel, DmtxCharAsciiUpperShift);
       IncrementProgress(channel, 12);
-      inputValue -= 128;
+      inputValue -= 127;
    }
    /* Normal ASCII char */
    else {

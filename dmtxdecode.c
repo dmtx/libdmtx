@@ -597,7 +597,7 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
          ptr++;
 
       if(upperShift == DmtxTrue) {
-         PushOutputWord(msg, codeword + 128);
+         PushOutputWord(msg, codeword + 127);
          upperShift = DmtxFalse;
       }
       else if(codeword == DmtxCharAsciiUpperShift) {
