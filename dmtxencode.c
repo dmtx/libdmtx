@@ -842,14 +842,10 @@ EncodeAsciiCodeword(DmtxChannel *channel)
    if(inputValue >= 128) {
       PushInputWord(channel, DmtxCharAsciiUpperShift);
       IncrementProgress(channel, 12);
-      inputValue -= 127;
-   }
-   /* Normal ASCII char */
-   else {
-      inputValue++;
+      inputValue -= 128;
    }
 
-   PushInputWord(channel, inputValue);
+   PushInputWord(channel, inputValue + 1);
    IncrementProgress(channel, 12);
    channel->inputPtr++;
 
@@ -1579,7 +1575,7 @@ GetC40TextX12Words(int *outputWords, int inputWord, DmtxScheme encScheme)
          return 0;
       }
       else {
-         outputWords[count++] = 1;
+         outputWords[count++] = DmtxCharTripletShift2;
          outputWords[count++] = 30;
          inputWord -= 128;
       }
