@@ -11,8 +11,26 @@ libdmtx_la_SOURCES = dmtx.c
 libdmtx_la_CFLAGS = -Wall -pedantic
 
 libdmtx_la_LIBADD =
-if CUSTOM_IMAGESETPROP
-libdmtx_la_LIBADD += customImageSetProp.lo
+if CUSTOM_ENCODEDATAMATRIX
+libdmtx_la_LIBADD += customEncodeDataMatrix.lo
+endif
+if CUSTOM_ENCODEDATAMOSAIC
+libdmtx_la_LIBADD += customEncodeDataMosaic.lo
+endif
+if CUSTOM_DECODEMATRIXREGION
+libdmtx_la_LIBADD += customDecodeMatrixRegion.lo
+endif
+if CUSTOM_DECODEMOSAICREGION
+libdmtx_la_LIBADD += customDecodeMosaicRegion.lo
+endif
+if CUSTOM_DECODECREATEDIAGNOSTIC
+libdmtx_la_LIBADD += customDecodeCreateDiagnostic.lo
+endif
+if CUSTOM_REGIONFINDNEXT
+libdmtx_la_LIBADD += customRegionFindNext.lo
+endif
+if CUSTOM_REGIONSCANPIXEL
+libdmtx_la_LIBADD += customRegionScanPixel.lo
 endif
 
 EXTRA_libdmtx_la_SOURCES = dmtxdecode.c dmtxencode.c dmtxfec.c dmtximage.c \
