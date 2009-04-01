@@ -23,8 +23,18 @@ AC_SEARCH_LIBS([atan2], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_FUNCS([gettimeofday])
 
-#AC_CHECK_FILE([dmtxImageSetProp.c],
-#   [AC_LIBOBJ([dmtxImageSetProp]) AC_DEFINE([HAVE_DMTXIMAGESETPROP], [1], [Description])])
+AC_ARG_ENABLE(
+   customImageSetProp,
+   [],
+   [case "$enableval" in
+      yes) customImageSetProp=true ;;
+       no) customImageSetProp=false ;;
+    esac],
+   [customImageSetProp=false])
+AM_CONDITIONAL([CUSTOM_IMAGESETPROP], [test x$customImageSetProp = xtrue])
+if test x$customImageSetProp = xtrue; then
+   AC_DEFINE([CUSTOM_IMAGESETPROP], [1], [Description])
+fi
 
 case $host_os in
    cygwin*)

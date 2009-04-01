@@ -199,7 +199,7 @@ dmtxImageSetChannel(DmtxImage *img, int channelStart, int bitsPerChannel)
  * @param  img pointer to image
  * @return image width
  */
-/*#ifndef HAVE_DMTXIMAGESETPROP*/
+#ifndef CUSTOM_IMAGESETPROP
 extern DmtxPassFail
 dmtxImageSetProp(DmtxImage *img, int prop, int value)
 {
@@ -220,7 +220,7 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
 
    return DmtxPass;
 }
-/*#endif*/
+#endif
 
 /**
  * @brief  Get image width
