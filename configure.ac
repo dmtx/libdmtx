@@ -109,103 +109,59 @@ if test x$dmtxwrite = xtrue; then
    AC_CONFIG_FILES([util/dmtxwrite/Makefile])
 fi
 
-# Create option to override certain functions with custom versions
+# Create options to override certain functions
 
 # --enable-customEncodeDataMatrix
-AC_ARG_ENABLE(
-   [customEncodeDataMatrix],
-   [],
-   [case "$enableval" in
-      yes) customEncodeDataMatrix=true ;;
-       no) customEncodeDataMatrix=false ;;
-    esac],
-   [customEncodeDataMatrix=false])
-AM_CONDITIONAL([CUSTOM_ENCODEDATAMATRIX], [test x$customEncodeDataMatrix = xtrue])
-if test x$customEncodeDataMatrix = xtrue; then
+AC_ARG_ENABLE([customEncodeDataMatrix], [],
+              [customEncodeDataMatrix="$enableval"],
+              [customEncodeDataMatrix="no"])
+AM_CONDITIONAL([CUSTOM_ENCODEDATAMATRIX], [test x$customEncodeDataMatrix = xyes])
+if test x$customEncodeDataMatrix = xyes; then
    AC_DEFINE([CUSTOM_ENCODEDATAMATRIX], [1], [Override dmtxEncodeDataMatrix function])
 fi
 
 # --enable-customEncodeDataMosaic
-AC_ARG_ENABLE(
-   [customEncodeDataMosaic],
-   [],
-   [case "$enableval" in
-      yes) customEncodeDataMosaic=true ;;
-       no) customEncodeDataMosaic=false ;;
-    esac],
-   [customEncodeDataMosaic=false])
-AM_CONDITIONAL([CUSTOM_ENCODEDATAMOSAIC], [test x$customEncodeDataMosaic = xtrue])
-if test x$customEncodeDataMosaic = xtrue; then
+AC_ARG_ENABLE([customEncodeDataMosaic], [],
+              [customEncodeDataMosaic="$enableval"],
+              [customEncodeDataMosaic="no"])
+AM_CONDITIONAL([CUSTOM_ENCODEDATAMOSAIC], [test x$customEncodeDataMosaic = xyes])
+if test x$customEncodeDataMosaic = xyes; then
    AC_DEFINE([CUSTOM_ENCODEDATAMOSAIC], [1], [Override customEncodeDataMosaic function])
 fi
 
 # --enable-customDecodeMatrixRegion
-AC_ARG_ENABLE(
-   [customDecodeMatrixRegion],
-   [],
-   [case "$enableval" in
-      yes) customDecodeMatrixRegion=true ;;
-       no) customDecodeMatrixRegion=false ;;
-    esac],
-   [customDecodeMatrixRegion=false])
-AM_CONDITIONAL([CUSTOM_DECODEMATRIXREGION], [test x$customDecodeMatrixRegion = xtrue])
-if test x$customDecodeMatrixRegion = xtrue; then
+AC_ARG_ENABLE([customDecodeMatrixRegion], [],
+              [customDecodeMatrixRegion="$enableval"],
+              [customDecodeMatrixRegion="no"])
+AM_CONDITIONAL([CUSTOM_DECODEMATRIXREGION], [test x$customDecodeMatrixRegion = xyes])
+if test x$customDecodeMatrixRegion = xyes; then
    AC_DEFINE([CUSTOM_DECODEMATRIXREGION], [1], [Override customDecodeMatrixRegion function])
 fi
 
 # --enable-customDecodeMosaicRegion
-AC_ARG_ENABLE(
-   [customDecodeMosaicRegion],
-   [],
-   [case "$enableval" in
-      yes) customDecodeMosaicRegion=true ;;
-       no) customDecodeMosaicRegion=false ;;
-    esac],
-   [customDecodeMosaicRegion=false])
-AM_CONDITIONAL([CUSTOM_DECODEMOSAICREGION], [test x$customDecodeMosaicRegion = xtrue])
-if test x$customDecodeMosaicRegion = xtrue; then
+AC_ARG_ENABLE([customDecodeMosaicRegion], [],
+              [customDecodeMosaicRegion="$enableval"],
+              [customDecodeMosaicRegion="no"])
+AM_CONDITIONAL([CUSTOM_DECODEMOSAICREGION], [test x$customDecodeMosaicRegion = xyes])
+if test x$customDecodeMosaicRegion = xyes; then
    AC_DEFINE([CUSTOM_DECODEMOSAICREGION], [1], [Override customDecodeMosaicRegion function])
 fi
 
-# --enable-customDecodeCreateDiagnostic
-AC_ARG_ENABLE(
-   [customDecodeCreateDiagnostic],
-   [],
-   [case "$enableval" in
-      yes) customDecodeCreateDiagnostic=true ;;
-       no) customDecodeCreateDiagnostic=false ;;
-    esac],
-   [customDecodeCreateDiagnostic=false])
-AM_CONDITIONAL([CUSTOM_DECODECREATEDIAGNOSTIC], [test x$customDecodeCreateDiagnostic = xtrue])
-if test x$customDecodeCreateDiagnostic = xtrue; then
-   AC_DEFINE([CUSTOM_DECODECREATEDIAGNOSTIC], [1], [Override customDecodeCreateDiagnostic function])
-fi
-
 # --enable-customRegionFindNext
-AC_ARG_ENABLE(
-   [customRegionFindNext],
-   [],
-   [case "$enableval" in
-      yes) customRegionFindNext=true ;;
-       no) customRegionFindNext=false ;;
-    esac],
-   [customRegionFindNext=false])
-AM_CONDITIONAL([CUSTOM_REGIONFINDNEXT], [test x$customRegionFindNext = xtrue])
-if test x$customRegionFindNext = xtrue; then
+AC_ARG_ENABLE([customRegionFindNext], [],
+              [customRegionFindNext="$enableval"],
+              [customRegionFindNext="no"])
+AM_CONDITIONAL([CUSTOM_REGIONFINDNEXT], [test x$customRegionFindNext = xyes])
+if test x$customRegionFindNext = xyes; then
    AC_DEFINE([CUSTOM_REGIONFINDNEXT], [1], [Override customRegionFindNext function])
 fi
 
 # --enable-customRegionScanPixel
-AC_ARG_ENABLE(
-   [customRegionScanPixel],
-   [],
-   [case "$enableval" in
-      yes) customRegionScanPixel=true ;;
-       no) customRegionScanPixel=false ;;
-    esac],
-   [customRegionScanPixel=false])
-AM_CONDITIONAL([CUSTOM_REGIONSCANPIXEL], [test x$customRegionScanPixel = xtrue])
-if test x$customRegionScanPixel = xtrue; then
+AC_ARG_ENABLE([customRegionScanPixel], [],
+              [customRegionScanPixel="$enableval"],
+              [customRegionScanPixel="no"])
+AM_CONDITIONAL([CUSTOM_REGIONSCANPIXEL], [test x$customRegionScanPixel = xyes])
+if test x$customRegionScanPixel = xyes; then
    AC_DEFINE([CUSTOM_REGIONSCANPIXEL], [1], [Override customRegionScanPixel function])
 fi
 

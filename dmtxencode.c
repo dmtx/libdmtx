@@ -167,6 +167,7 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
  * @param  sizeIdxRequest
  * @return DmtxPass | DmtxFail
  */
+#ifndef CUSTOM_ENCODEDATAMATRIX
 extern DmtxPassFail
 dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 {
@@ -237,6 +238,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
    return DmtxPass;
 }
+#endif
 
 /**
  * @brief  Convert message into Data Mosaic image
@@ -246,6 +248,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
  * @param  sizeIdxRequest
  * @return DmtxPass | DmtxFail
  */
+#ifndef CUSTOM_ENCODEDATAMOSAIC
 extern DmtxPassFail
 dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 {
@@ -378,6 +381,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
    return DmtxPass;
 }
+#endif
 
 /**
  * @brief  Convert input into message using specific encodation scheme

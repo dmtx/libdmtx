@@ -269,6 +269,7 @@ dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, int *value)
  * @param  fix
  * @return Decoded message
  */
+#ifndef CUSTOM_DECODEMATRIXREGION
 extern DmtxMessage *
 dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 {
@@ -315,6 +316,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 
    return msg;
 }
+#endif
 
 /**
  * @brief  Convert fitted Data Mosaic region into a decoded message
@@ -323,6 +325,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
  * @param  fix
  * @return Decoded message
  */
+#ifndef CUSTOM_DECODEMOSAICREGION
 extern DmtxMessage *
 dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 {
@@ -369,6 +372,7 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 
    return oMsg;
 }
+#endif
 
 /**
  *

@@ -23,9 +23,6 @@ endif
 if CUSTOM_DECODEMOSAICREGION
 libdmtx_la_LIBADD += customDecodeMosaicRegion.lo
 endif
-if CUSTOM_DECODECREATEDIAGNOSTIC
-libdmtx_la_LIBADD += customDecodeCreateDiagnostic.lo
-endif
 if CUSTOM_REGIONFINDNEXT
 libdmtx_la_LIBADD += customRegionFindNext.lo
 endif
