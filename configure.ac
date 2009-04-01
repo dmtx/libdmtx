@@ -23,6 +23,9 @@ AC_SEARCH_LIBS([atan2], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_FUNCS([gettimeofday])
 
+#AC_CHECK_FILE([dmtxImageSetProp.c],
+#   [AC_LIBOBJ([dmtxImageSetProp]) AC_DEFINE([HAVE_DMTXIMAGESETPROP], [1], [Description])])
+
 case $host_os in
    cygwin*)
       ARCH=cygwin ;;
