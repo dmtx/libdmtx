@@ -76,6 +76,9 @@ main(int argc, char *argv[])
          FatalError(EX_OSERR, "Magick error");
       }
 
+      /* XXX note this is not the same as MagickSetImageResolution() ...
+       * need to research what this is setting. Could be dots per inch, dots
+       * per centimeter, or even dots per "image width" */
       if(opt.dpi != DmtxUndefined) {
          success = MagickSetResolution(wand, (double)opt.dpi, (double)opt.dpi);
          if(success == MagickFalse) {
