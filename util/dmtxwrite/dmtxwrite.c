@@ -128,7 +128,7 @@ GetDefaultOptions(void)
    memcpy(opt.color, black, sizeof(int) * 3);
    memcpy(opt.bgColor, white, sizeof(int) * 3);
    opt.mosaic = DmtxFalse;
-   opt.dpi = 0; /* default to native resolution of requested image format */
+   opt.dpi = DmtxUndefined;
    opt.verbose = DmtxFalse;
 
    return opt;
@@ -496,7 +496,7 @@ GetImageFormat(UserOptions *opt)
 static DmtxPassFail
 WriteImageFile(UserOptions *opt, DmtxEncode *enc, char *format)
 {
-   MagickBooleanType success;
+   MagickBooleanType successA, successB;
    MagickWand *wand;
    char *outputPath;
 
@@ -506,23 +506,32 @@ WriteImageFile(UserOptions *opt, DmtxEncode *enc, char *format)
    if(wand == NULL)
       FatalError(EX_OSERR, "Undefined error");
 
-   success = MagickConstituteImage(wand, enc->image->width, enc->image->height,
+   successA = MagickConstituteImage(wand, enc->image->width, enc->image->height,
          "RGB", CharPixel, enc->image->pxl);
-   if(success == MagickFalse) {
+   if(successA == MagickFalse) {
       CleanupMagick(&wand, DmtxTrue);
       FatalError(EX_OSERR, "Undefined error");
    }
 
-   success = MagickSetImageFormat(wand, format);
-   if(success == MagickFalse) {
+   if(opt->dpi != DmtxUndefined) {
+      successA = MagickSetImageResolution(wand, (double)opt->dpi, (double)opt->dpi);
+      successB = MagickSetImageUnits(wand, PixelsPerInchResolution);
+      if(successA == MagickFalse || successB == MagickFalse) {
+         CleanupMagick(&wand, DmtxFalse);
+         FatalError(EX_OSERR, "Illegal resolution \"%d\"", opt->dpi);
+      }
+   }
+
+   successA = MagickSetImageFormat(wand, format);
+   if(successA == MagickFalse) {
       CleanupMagick(&wand, DmtxFalse);
       FatalError(EX_OSERR, "Illegal format \"%s\"", format);
    }
 
    outputPath = (opt->outputPath == NULL) ? "-" : opt->outputPath;
 
-   success = MagickWriteImage(wand, outputPath);
-   if(success == MagickFalse) {
+   successA = MagickWriteImage(wand, outputPath);
+   if(successA == MagickFalse) {
       CleanupMagick(&wand, DmtxTrue);
       FatalError(EX_OSERR, "Undefined error");
    }
