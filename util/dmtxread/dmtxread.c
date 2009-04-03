@@ -461,7 +461,7 @@ OPTIONS:\n"), programName, programName);
   -c, --codewords             print codewords extracted from barcode pattern\n\
   -e, --minimum-edge=N        pixel length of smallest expected edge in image\n\
   -E, --maximum-edge=N        pixel length of largest expected edge in image\n\
-  -g, --gap=NUM               use scan grid with gap of NUM pixels between lines\n\
+  -g, --gap=N                 use scan grid with gap of N pixels between lines\n\
   -l, --list-formats          list supported image formats\n"));
       fprintf(stdout, _("\
   -m, --milliseconds=N        stop scan after N milliseconds (per image)\n\

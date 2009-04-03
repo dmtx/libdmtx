@@ -159,12 +159,12 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
          {"list-formats",     no_argument,       NULL, 'l'},
          {"output",           required_argument, NULL, 'o'},
          {"preview",          no_argument,       NULL, 'p'},
-         {"rotate",           required_argument, NULL, 'r'},
+         {"resolution",       required_argument, NULL, 'r'},
          {"symbol-size",      required_argument, NULL, 's'},
          {"color",            required_argument, NULL, 'C'},
          {"bg-color",         required_argument, NULL, 'B'},
          {"mosaic",           no_argument,       NULL, 'M'},
-         {"resolution",       required_argument, NULL, 'R'},
+         {"rotate",           required_argument, NULL, 'R'},
          {"verbose",          no_argument,       NULL, 'v'},
          {"version",          no_argument,       NULL, 'V'},
          {"help",             no_argument,       NULL,  0 },
@@ -248,9 +248,9 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
             opt->preview = DmtxTrue;
             break;
          case 'r':
-            err = StringToInt(&(opt->rotate), optarg, &ptr);
-            if(err != DmtxPass || *ptr != '\0')
-               FatalError(EX_USAGE, _("Invalid rotation angle specified \"%s\""), optarg);
+            err = StringToInt(&(opt->dpi), optarg, &ptr);
+            if(err != DmtxPass || opt->dpi <= 0 || *ptr != '\0')
+               FatalError(EX_USAGE, _("Invalid dpi specified \"%s\""), optarg);
             break;
          case 's':
             /* Determine correct barcode size and/or shape */
@@ -287,9 +287,9 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
             opt->mosaic = DmtxTrue;
             break;
          case 'R':
-            err = StringToInt(&(opt->dpi), optarg, &ptr);
-            if(err != DmtxPass || opt->dpi <= 0 || *ptr != '\0')
-               FatalError(EX_USAGE, _("Invalid dpi specified \"%s\""), optarg);
+            err = StringToInt(&(opt->rotate), optarg, &ptr);
+            if(err != DmtxPass || *ptr != '\0')
+               FatalError(EX_USAGE, _("Invalid rotation angle specified \"%s\""), optarg);
             break;
          case 'v':
             opt->verbose = DmtxTrue;
@@ -360,8 +360,8 @@ Example: echo -n 123456 | %s -o message.png\n\
 OPTIONS:\n"), programName, programName);
       fprintf(stdout, _("\
   -c, --codewords             print codeword listing\n\
-  -d, --module=NUM            module size (in pixels)\n\
-  -m, --margin=NUM            margin size (in pixels)\n"));
+  -d, --module=N              module size (in pixels)\n\
+  -m, --margin=N              margin size (in pixels)\n"));
       fprintf(stdout, _("\
   -e, --encoding=[abcet8x]    primary encodation scheme\n\
             a = ASCII [default]   b = Best optimized [beta]\n\
@@ -373,7 +373,7 @@ OPTIONS:\n"), programName, programName);
   -l, --list-formats          list supported image formats\n\
   -o, --output=FILE           output filename\n\
   -p, --preview               print ASCII art preview\n\
-  -r, --rotate=DEGREES        rotation angle (degrees)\n"));
+  -r, --resolution=N          set image print resolution (dpi)\n"));
       fprintf(stdout, _("\
   -s, --symbol-size=[sr|RxC]  symbol size (default \"s\")\n\
         Automatic size options:\n\
@@ -392,7 +392,7 @@ OPTIONS:\n"), programName, programName);
   -B, --bg-color=COLOR        background color (not implemented)\n\
   -M, --mosaic                create Data Mosaic (non-standard)\n"));
       fprintf(stdout, _("\
-  -R, --resolution=NUM        set image print resolution (dpi)\n\
+  -R, --rotate=DEGREES        rotation angle (degrees)\n\
   -v, --verbose               use verbose messages\n\
   -V, --version               print version information\n\
       --help                  display this help and exit\n"));

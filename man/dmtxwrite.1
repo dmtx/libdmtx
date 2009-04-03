@@ -18,10 +18,10 @@ dmtxwrite \- create Data Matrix barcodes
 \fB\-c\fP, \fB\-\-codewords\fP
 Print codeword listing instead of creating barcode.
 .TP
-\fB\-d\fP, \fB\-\-module\fP=\fINUM\fP
+\fB\-d\fP, \fB\-\-module\fP=\fIN\fP
 Module size in pixels.
 .TP
-\fB\-m\fP, \fB\-\-margin\fP=\fINUM\fP
+\fB\-m\fP, \fB\-\-margin\fP=\fIN\fP
 Margin size in pixels.
 .TP
 \fB\-e\fP, \fB\-\-encoding\fP=[bfactxe8]
@@ -47,8 +47,8 @@ Barcode output filename. Default is standard output.
 \fB\-p\fP, \fB\-\-preview\fP
 Print ASCII art preview to standard output.
 .TP
-\fB\-r\fP, \fB\-\-rotate\fP=\fIDEGREES\fP
-Rotation angle in degrees (not implemented).
+\fB\-r\fP, \fB\-\-resolution\fP=\fIN\fP
+Set image print resolution (dpi).
 .TP
 \fB\-s\fP, \fB\-\-symbol-size\fP=[sr|RxC] (default "s")
   Automatic symbol size options:
@@ -70,8 +70,8 @@ Background color (not implemented).
 \fB\-M\fP, \fB\-\-mosaic\fP
 Create non-standard Data Mosaic barcode.
 .TP
-\fB\-R\fP, \fB\-\-resolution\fP=\fINUM\fP
-Set image print resolution (dpi).
+\fB\-R\fP, \fB\-\-rotate\fP=\fIDEGREES\fP
+Rotation angle in degrees (not implemented).
 .TP
 \fB\-v\fP, \fB\-\-verbose\fP
 Use verbose messages.
