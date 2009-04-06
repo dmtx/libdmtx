@@ -90,6 +90,7 @@ static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imag
 static void PopulateFlowCache(struct Flow *vFlowCache, struct Flow *hFlowCache,
       DmtxImage *img, int width, int height);
 static void PopulateEdgeCache(struct Edge *edgeCache, struct Flow *vFlowCache, struct Flow *hFlowCache, int width, int height);
+static void ConnectEdges(struct Edge *edgeCache, int width, int height);
 static void PopulateHoughCache(struct Hough *houghCache, struct Flow *flowCache, int width, int height);
 static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
 static void WriteEdgeCacheImage(struct Edge *edge, int width, int height, char *imagePath);
@@ -166,6 +167,7 @@ int main(int argc, char *argv[])
    SDL_UnlockSurface(picture);
 
    PopulateEdgeCache(edgeCache, vFlowCache, hFlowCache, width, height);
+   ConnectEdges(edgeCache, width, height);
 
    WriteFlowCacheImage(vFlowCache, width, height, "vFlowCache.pnm");
    WriteFlowCacheImage(hFlowCache, width, height, "hFlowCache.pnm");
@@ -560,32 +562,7 @@ PopulateFlowCache(struct Flow *vFlowCache, struct Flow  *hFlowCache,
 }
 
 /**
- * AaaaDddd
- * --------
- *   A = arrive connected (0x80)
- * aaa = arrive direction (0x70)
- *   D = depart connected (0x08)
- * ddd = depart direction (0x07)
  *
- * Since it is not possible for a flow to both arrive from and
- * depart to the same neighbor, locations on a valid edge will
- * never hold a cache value that satisfies the condition:
- *
- *   ((N & ArriveDirection) >> 4) == (N & DepartDirection)
- *
- * Therefore, the resulting list of impossible values can be
- * assigned predefined meanings for use as restricted constants:
- *
- * Directional values    Unconnected values    Connected values
- * ------------------    ------------------    ------------------
- *                       0x00  Unvisited       0x88  [unassigned]
- *                       0x11  [unassigned]    0x99  [unassigned]
- *                       0x22  [unassigned]    0xaa  [unassigned]
- *                       0x33  [unassigned]    0xbb  [unassigned]
- *                       0x44  [unassigned]    0xcc  [unassigned]
- *                       0x55  [unassigned]    0xdd  [unassigned]
- *                       0x66  [unassigned]    0xee  [unassigned]
- *                       0x77  [unassigned]    0xff  [unassinged]
  *
  */
 static void
@@ -733,33 +710,23 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *vFlowCache,
          /* XXX later play with option of offset++ as part of for loop */
          offset = y * width + x;
 
-         strongDir = DmtxDirLeft;
+         strongDir = 7; /* left */
          strongMag = edgeCache[offset].left;
          if(edgeCache[offset].up > strongMag) {
-            strongDir = DmtxDirUp;
+            strongDir = 5; /* up */
             strongMag = edgeCache[offset].up;
          }
          if(edgeCache[offset].right > strongMag) {
-            strongDir = DmtxDirRight;
+            strongDir = 3; /* right */
             strongMag = edgeCache[offset].right;
          }
          if(edgeCache[offset].down > strongMag) {
-            strongDir = DmtxDirDown;
+            strongDir = 1; /* down */
             strongMag = edgeCache[offset].down;
          }
-         if(edgeCache[offset].left > strongMag) {
-            strongDir = DmtxDirLeft;
-            strongMag = edgeCache[offset].left;
-         }
 
-         if(strongMag < 10) {
-           edgeCache[offset].dir = DmtxDirNone;
-           edgeCache[offset].mag = 0;
-         }
-         else {
-           edgeCache[offset].dir = strongDir;
-           edgeCache[offset].mag = strongMag;
-         }
+         edgeCache[offset].dir = strongDir;
+         edgeCache[offset].mag = strongMag;
       }
    }
 
@@ -767,6 +734,92 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *vFlowCache,
    fprintf(stdout, "PopulateEdgeCache time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
 }
+
+/**
+ * AaaaDddd
+ * --------
+ *   A = arrive connected (0x80)
+ * aaa = arrive direction (0x70)
+ *   D = depart connected (0x08)
+ * ddd = depart direction (0x07)
+ *
+ * Since it is not possible for a flow to both arrive from and
+ * depart to the same neighbor, locations on a valid edge will
+ * never hold a cache value that satisfies the condition:
+ *
+ *   ((N & ArriveDirection) >> 4) == (N & DepartDirection)
+ *
+ * Therefore, the resulting list of impossible values can be
+ * assigned predefined meanings for use as restricted constants:
+ *
+ * Directional values    Unconnected values    Connected values
+ * ------------------    ------------------    ------------------
+ *                       0x00  Unvisited       0x88  [unassigned]
+ *                       0x11  [unassigned]    0x99  [unassigned]
+ *                       0x22  [unassigned]    0xaa  [unassigned]
+ *                       0x33  [unassigned]    0xbb  [unassigned]
+ *                       0x44  [unassigned]    0xcc  [unassigned]
+ *                       0x55  [unassigned]    0xdd  [unassigned]
+ *                       0x66  [unassigned]    0xee  [unassigned]
+ *                       0x77  [unassigned]    0xff  [unassinged]
+ *
+ */
+static void
+ConnectEdges(struct Edge *edgeCache, int width, int height)
+{
+   int x, xBeg, xEnd;
+   int y, yBeg, yEnd;
+   int i, maxIdx;
+   int dir, badDir1, badDir2, badDir3;
+   int offset, offsets[8];
+   DmtxTime ta, tb;
+
+   ta = dmtxTimeNow();
+
+   offsets[0] = -width - 1;
+   offsets[1] = -width;
+   offsets[2] = -width + 1;
+   offsets[3] = 1;
+   offsets[4] = width + 1;
+   offsets[5] = width;
+   offsets[6] = width - 1;
+   offsets[7] = -1;
+
+   xBeg = 1;
+   xEnd = width - 2;
+   yBeg = 1;
+   yEnd = height - 2;
+
+   for(y = yBeg; y <= yEnd; y++) {
+      for(x = xBeg; x <= xEnd; x++) {
+
+         /* XXX later play with option of offset++ as part of for loop */
+         offset = y * width + x;
+
+         dir = (edgeCache[offset].dir & DepartDirection);
+         badDir1 = (dir + 3)%8;
+         badDir2 = (dir + 4)%8;
+         badDir3 = (dir + 5)%8;
+
+         /* Test all non-backwards locations for strongest neighbor */
+         maxIdx = DmtxUndefined;
+         for(i = 0; i < 8; i++) {
+            if(i == badDir1 || i == badDir2 || i == badDir3)
+               continue;
+            else if(maxIdx == DmtxUndefined ||
+                  edgeCache[offset + offsets[i]].mag > edgeCache[offset + offsets[maxIdx]].mag)
+               maxIdx = i;
+         }
+         assert((edgeCache[offset].dir & ArriveDirection) == 0x00);
+         edgeCache[offset].dir |= (ArriveConnected | (maxIdx << 4));
+      }
+   }
+
+   tb = dmtxTimeNow();
+   fprintf(stdout, "ConnectEdges time: %ldms\n", (1000000 *
+         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
+}
+
 
 /**
  *
@@ -879,25 +932,31 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
          edge = edgeCache[row * width + col];
 
          rgb[0] = rgb[1] = rgb[2] = 0;
-         switch(edge.dir) {
-            case DmtxDirUp:
-               rgb[0] = 1;
-               break;
-            case DmtxDirDown:
-               rgb[1] = 1;
-               break;
-            case DmtxDirLeft:
-               rgb[2] = 1;
-               break;
-            case DmtxDirRight:
-               rgb[0] = 1;
-               rgb[1] = 1;
-               break;
+         if(edge.dir & ArriveConnected) {
+            switch((edge.dir & ArriveDirection) >> 4) {
+               case 0:
+               case 1:
+                  rgb[0] = 1;
+                  break;
+               case 2:
+               case 3:
+                  rgb[1] = 1;
+                  break;
+               case 4:
+               case 5:
+                  rgb[2] = 1;
+                  break;
+               case 6:
+               case 7:
+                  rgb[0] = 1;
+                  rgb[1] = 1;
+                  break;
+            }
          }
 
-         rgb[0] *= (edge.mag/3);
-         rgb[1] *= (edge.mag/3);
-         rgb[2] *= (edge.mag/3);
+         rgb[0] *= (edge.mag/2);
+         rgb[1] *= (edge.mag/2);
+         rgb[2] *= (edge.mag/2);
 
          fputc(rgb[0], fp);
          fputc(rgb[1], fp);
