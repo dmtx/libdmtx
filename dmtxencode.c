@@ -109,6 +109,8 @@ dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value)
          enc->scheme = value;
          break;
       case DmtxPropSizeRequest:
+         if(value == DmtxSymbolShapeAuto)
+            return DmtxFail;
          enc->sizeIdxRequest = value;
          break;
 
