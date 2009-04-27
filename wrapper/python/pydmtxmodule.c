@@ -61,10 +61,10 @@ dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    const unsigned char *data;
    int count=0;
    int data_size;
-   int module_size;
-   int margin_size;
-   int scheme;
-   int shape;
+   int module_size = DmtxUndefined;
+   int margin_size = DmtxUndefined;
+   int scheme = DmtxUndefined;
+   int shape = DmtxUndefined;
 
    PyObject *plotter = NULL;
    PyObject *start_cb = NULL;
@@ -110,10 +110,17 @@ dmtx_encode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    dmtxEncodeSetProp(enc, DmtxPropPixelPacking, DmtxPack24bppRGB);
    dmtxEncodeSetProp(enc, DmtxPropImageFlip, DmtxFlipNone);
 
-   dmtxEncodeSetProp(enc, DmtxPropScheme, scheme);
-   dmtxEncodeSetProp(enc, DmtxPropSizeRequest, shape);
-   dmtxEncodeSetProp(enc, DmtxPropMarginSize, margin_size);
-   dmtxEncodeSetProp(enc, DmtxPropModuleSize, module_size);
+   if(scheme != DmtxUndefined)
+      dmtxEncodeSetProp(enc, DmtxPropScheme, scheme);
+
+   if(shape != DmtxUndefined)
+      dmtxEncodeSetProp(enc, DmtxPropSizeRequest, shape);
+
+   if(margin_size != DmtxUndefined)
+      dmtxEncodeSetProp(enc, DmtxPropMarginSize, margin_size);
+
+   if(module_size != DmtxUndefined)
+      dmtxEncodeSetProp(enc, DmtxPropModuleSize, module_size);
 
    dmtxEncodeDataMatrix(enc, data_size, (unsigned char *)data);
 
@@ -152,7 +159,7 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    int count=0;
    int width;
    int height;
-   int gap_size;
+   int gap_size = DmtxUndefined;
    int max_count = DmtxUndefined;
    int timeout = DmtxUndefined;
    int shape = DmtxUndefined;
@@ -215,7 +222,8 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
       return NULL;
    }
 
-   dmtxDecodeSetProp(dec, DmtxPropScanGap, gap_size);
+   if(gap_size != DmtxUndefined)
+      dmtxDecodeSetProp(dec, DmtxPropScanGap, gap_size);
 
    if(shape != DmtxUndefined)
       dmtxDecodeSetProp(dec, DmtxPropSymbolSize, shape);
@@ -226,7 +234,7 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    if(threshold != DmtxUndefined)
       dmtxDecodeSetProp(dec, DmtxPropEdgeThresh, threshold);
 
-   for(count=1; ;count++) {
+   for(count = 1; ; count++) {
       Py_BEGIN_ALLOW_THREADS
       if(timeout == DmtxUndefined)
          reg = dmtxRegionFindNext(dec, NULL);

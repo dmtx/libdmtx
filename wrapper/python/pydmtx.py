@@ -30,6 +30,8 @@ except ImportError:
 
 
 class DataMatrix (object):
+	DmtxUndefined = -1
+
 	# Scheme: values must be consistent with enum DmtxScheme
 	DmtxSchemeAutoFast = -2
 	DmtxSchemeAutoBest = -1
@@ -85,13 +87,13 @@ class DataMatrix (object):
 		self.results = ""
 
 		# defaults (only set mandatory values)
-                self.options = {
-		   'module_size': 5,
-		   'margin_size' : 10,
-		   'gap_size' : 10,
-		   'scheme' : self.DmtxSchemeAscii,
-		   'shape' : self.DmtxSymbolSquareAuto
-                }
+		self.options = {
+			'module_size' : self.DmtxUndefined,
+			'margin_size' : self.DmtxUndefined,
+			'gap_size' : self.DmtxUndefined,
+			'scheme' : self.DmtxUndefined,
+			'shape' : self.DmtxUndefined
+		}
 
 		self.options.update(kwargs)
 
@@ -108,7 +110,7 @@ class DataMatrix (object):
 		_pydmtx.encode( self._data, len(self._data),
 			plotter=self._plot, start=self._start,
 			finish=self._finish,
-                        **all_kwargs );
+			**all_kwargs );
 
 	def save( self, path, fmt ):
 		if self._image is not None:
@@ -132,21 +134,21 @@ class DataMatrix (object):
 
 		self.results =  _pydmtx.decode( width, height, data, **all_kwargs)
 
-                # return only the first message
+		# return only the first message
 		return self.message(1)
 
-        def count( self ):
+	def count( self ):
 		return len(self.results)
 
-        def message( self, ref ):
+	def message( self, ref ):
 		if (ref <= self.count() and ref > 0):
-                   barcode = self.results[ref-1]
-		   return barcode[0]
-                else:
-                   return
+			barcode = self.results[ref-1]
+			return barcode[0]
+		else:
+			return
 
-        def stats( self, ref ):
+	def stats( self, ref ):
 		if (ref <= self.count() and ref > 0):
-                   return self.results[ref-1]
-                else:
-                   return
+			return self.results[ref-1]
+		else:
+			return
