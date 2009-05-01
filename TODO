@@ -560,3 +560,26 @@ unless we want to store this within cache elements (read: lots-o-
 memory). Instead we might just guaranty there are no closed
 circuits by throughing in an arbitrary break if necessary via the
 connected bit. This shouldn't affect any of the Hough math.
+
+
+Bahamas Approach
+-----------------------------------------------------------------
+1) Calculate point flows, store in cache (maybe?)
+
+2) Calculate localized region hough, store in overlapping N^2xN^2
+   grid (probably 16x16 or 32x32). Maybe capture ratio of how
+   many pixels fall on determined "vertical" and "horizontal"
+   access in an effort to ignore noise and measure strength
+
+3) For each local region that meets minimum activity threshold,
+   calculate regional chunk of global line hough, also accumulate
+   maxima counts
+
+4) For each local region that meets minimum maxima count, find
+   vanishing point and module size
+
+5) Increment to next larger region size by combining small local
+   regions and repeat #4. Continue until all sizes are considered
+
+6) If vanishing point and module sizes are known, test for
+   barcode presence and decode
