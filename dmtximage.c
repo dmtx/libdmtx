@@ -104,7 +104,8 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
          break;
       case DmtxPack1bppK:
          err = dmtxImageSetChannel(img, 0, 1);
-         break;
+         return NULL; /* unsupported packing order */
+/*       break; */
       case DmtxPack8bppK:
          err = dmtxImageSetChannel(img, 0, 8);
          break;
