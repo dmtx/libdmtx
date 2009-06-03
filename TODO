@@ -1,7 +1,7 @@
 TODO Items
 -----------------------------------------------------------------
 
-version 1.0.0: (planned XX-Oct-2009)
+version 1.0.0: (planned TBD)
 FOCUS: remaining gaps, testing, documentation
   o testsuite: Generate metrics in reproducible format to enable historical tracking
   o testsuite: Investigate option of embedding decoded text into PNG test image comments
@@ -9,7 +9,7 @@ FOCUS: remaining gaps, testing, documentation
   o testsuite: 'make test' writes metrics file
   o testsuite: 'make test' confirms performance
 
-version 0.9.0: (planned XX-Jul-2009)
+version 0.9.0: (planned TBD)
 FOCUS: refactor encoding engine, FNC1, macros
   o libdmtx:   Implement --auto-fast option using algorithm from spec (lighter & faster?)
   o libdmtx:   Structured append reading and writing
@@ -31,7 +31,7 @@ FOCUS: refactor encoding engine, FNC1, macros
   o dmtxwrite: Verbose messages describing encoding process
   o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
 
-version 0.8.0: (planned XX-May-2009)
+version 0.8.0: (planned TBD)
 FOCUS: region detection refinement, multiple barcode scanning, structured append
   o libdmtx:   Replace DmtxDirection (e.g., DmtxDirUp) with index range 0-7 (?)
   o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
@@ -271,39 +271,9 @@ Website:
 
 Proposed Change: Modularity
 -----------------------------------------------------------------
-Make finder bar detection pluggable so a separate future version can be
-made for dot peen pattern detection (remaining steps would be unchanged).
-
-
-Proposed Change: Region Detection
------------------------------------------------------------------
-The first edge is currently detected using fixed-offset Hough
-transform. This is very efficient for the first edge, but forces
-all remaining traces to perform additional Hough transforms for
-unsuccessful region candidates because we can't say with
-certainty: "This previously-tested pixel location does not belong
-to a barcode region." This is because it may have been part of a
-barcode region but the trail was blazed starting from a non-
-finder-bar location so it was ditched when the fixed-offset Hough
-transform did not produce a good line.
-
-A better approach might be:
-
-  1) Blaze trail in both directions
-  2) Walk entire trail to size the Hough bounding box
-  3) Walk entire trail to accumulate Hough lines
-     - Can be fast/low-res search since we will tighten later if
-       it continues to be a promising candidate
-     - Consider overlapping Hough regions to avoid near-border
-       confusion and complexity later
-  4) Extract 2 best Hough lines (use right angle + convex hull)
-  5) Determine region polarity and orientation
-  6) etc... (see "Region Calibration" below)
-
-Although more costly for the first detected region, this approach
-allows future scans to skip all pixels that have been traversed
-previously. This should translate to significant time savings,
-especially for noisy and complex images.
+Make finder bar detection pluggable so a separate future version
+can be made for dot peen pattern detection (remaining steps would
+be unchanged).
 
 
 Proposed Change: Region Calibration
@@ -318,211 +288,14 @@ edges will contain a precise anchor point instead of relying on a
 potentially fuzzy edge measurement. This will also help with
 barcodes created using undersized/oversized printing process.
 
-Continuing from above:
-
-  6) Blaze gapped trail for both calibration bars
-     - After this, the basic region shape is known
-     - Final trail should be a contiguous trail that is easy to
-       follow in either direction, although gapped lines may be
-       stored differently as to leave original trail intact
-     - Future version might try one at a time for improved
-       handling of damaged regions)
-  7) Detect symbol size using jump tally approach
-  8) Find exact edge locations using Bresenham/Hough approach to
-     measure offset and scaling? (super accurate because cosine
-     of small angles approaches zero)
-  9) Execute final high-res Hough transform on each edge, using
-     known points as anchors
-     - After this, the precise region shape is known
-     - Must use multiple offsets. Best Hough line may not run
-       through anchor because we can't assume that our edge-
-       finding algorithm necessarily runs along the perfect edge,
-       just that it follows the edge consistently. This process
-       will simply provide the ideal angle to use.
-
-Step 8 details: While stepping along pixels on Bresenham line we
-always know whether we are sitting on the primary or secondary
-color. The Hough transform will store a 2D array of bracketed
-scalings and offsets, which we will increment if our actual color
-matches the predicted array element color. After traversing the
-line once, we will know the exact scaling and offset.
-
-This approach uses a fast-and-rough fit followed by a high
-precision fit. While it would be convenient if we could capture
-everything in one pass, this approach offers some significant
-advantages:
-
-  * Regions that turn out to be bad are filtered out early in the
-    process before spending much time on them
-  * Fast-and-rough fit requires less memory
-  * Allows for simpler logic; Not trying to do too much at once
-  * Programs that do their own rough region detection can still
-    use libdmtx high precision fit
-  * High precision fit should apply equally well to contiguous-
-    edge and dot peen symbols
-
-
-Proposed Change: Latest thoughts on region detection
------------------------------------------------------------------
-
-* Allocate memory cache, one byte per pixel
-
-  bits: cuuutddd
-        --------
-        12345678
-
-  c = connected edge flag
-  u = upstream direction
-  t = meets min threshold flag
-  d = downstream direction
-
-* Step through entire image and assign best downstream neighbor if above certain
-  threshold. (sets t and d bits)
-
-* Step through grid locations looking for edge candidates:
-
-* If below threshold (t == 0) OR
-  if edge was connected in a previous step (c == 1)
-  then skip to next
-
-* Follow the edge upstream and downstream, leaving connected trails both upstream
-  and downstream. This should follow the existing downstream directions, but may
-  involve assigning new downstream directions to unpopulated locations in order
-  to bridge any small gaps. At each location, mark c = 1 and u = upstream direction.
-  If necessary, u == d can indicate special case (trail end?) since this can't
-  occur naturally otherwise.
-
-* If connected trail is short then skip to next
-
-* Step along connected trail and form bounding box limits
-
-* If bounding box is small then skip to next
-
-* Step along connected trail to measure finder bars using Hough Transform
-
-* If Hough lines look stupid then skip to next
-
-* Align/Transform region based on finder bars
-
-* Run Boundary Hough on entire interior "L" region. Use Hough orientation based
-  on direction being scanned. For example, when looking for horizontal vanishing
-  point, optimize for horizontal lines, and take into account the region polarity.
-  This might make it clean enough for dot peen detection using the same approach.
-
-* Extract horizontal and vertical vanishing points
-
-* Align/Transform region based on vanishing points
-
-* Find limits in orthagonal region
-
------------------------------------------------------------------
-
-Implementation strategy:
-
-1) Confirm that "L" extraction works using Ordinary Hough
-   - Use Ordinary Hough because edge is not jagged and interior is unknown
-
-2) Change trunk to use above cache storage layout, but not changing
-   approach yet. Also move cache to DmtxDecode. Prepopulate downstream
-   neighbors?
-
-3) Change trunk to use "L" extraction above
-   - emphasis on angle instead of offset
-   - overlap offsets to avoid split condition
-   - use convex hull
-   - use right angles
-   - determine polarity
-
-4) Implement fast multi-scanning (skip previously-visited locs)
-
-Release 0.7
-
-5) Confirm that Boundary Hough concept works
-   - test on all conditions
-   - Boundary Hough needs to use color polarity
-   - Boundary Hough needs to use interior direction
-
-6) Confirm that vanishing point detection works
-   - use Boundary Hough
-   - test for vanishing points
-   - test for dot peen
-
-7) Change trunk to detect vanishing point with Boundary Hough
-   - can pattern also be detected with this approach?
-
-8) Align/transform based on vanishing point
-
-9) Detect solid black and solid white bars
-
-10) Tight fit based on repeating calibration pattern
-
-
-For Release 0.8
------------------------------------------------------------------
-
-  byte 1:  pntflow
-          --------
-             0-255
-
-  byte 2: xcuuuddd
-          --------
-          12345678
-
-  c = connected edge flag
-  u = upstream direction (is upstream direction still required?)
-  d = downstream direction
-
-Ordinary Hough test:
-
-for each color channel:
-   allocate image and image cache (2 bytes per pixel)
-   assign point flow for each pixel (byte 1), and 3 bits for direction
-
-   offset = y * img->width + x;
-   colorPattern[0] = img->pxl[(offset - img->width - 1) * 3];
-   colorPattern[1] = img->pxl[(offset - img->width    ) * 3];
-   colorPattern[2] = img->pxl[(offset - img->width + 1) * 3];
-   colorPattern[3] = img->pxl[(offset              + 1) * 3];
-   colorPattern[4] = img->pxl[(offset + img->width + 1) * 3];
-   colorPattern[5] = img->pxl[(offset + img->width    ) * 3];
-   colorPattern[6] = img->pxl[(offset + img->width - 1) * 3];
-   colorPattern[7] = img->pxl[(offset              - 1) * 3];
-
-   write out pnm dump 1
-   connect edges downstream, leaving trail
-
-   - pick starting loc where downstream points back (how to measure this?)
-
-*** in a river, you know you are in the center of the stream when your ***
-*** neighbor on each side is moving slower than you                    ***
-
-*** Another way of saying this: in a 3x3 grid, connect the 3 strongest ***
-*** flows. if this makes a continuous line running through the center  ***
-*** square then we have an edge. See "Connecting Edges" for details.   ***
-*** Probably still need to track upstream and downstream connections   ***
-
-   - follow outward, leave upstream trail
-   - pick next loc by choosing strongest of 5 neighbors that do not reverse
-     course
-   - follow outward, leave upstream trail
-   - repeat
-   connect edges upstream, leaving trail
-   - do reverse of above
-   - store the final upstream jump, to be used as starting point for walks
-   write out pnm dump 2
-   step along trail to build bounding box
-   step along trail to accumulate Hough sums
-   write out pnm dump 3 representing Hough sums
-   write out pnm dump 4 with Bresenham lines drawn along all winning edges
-
 
 Boundary Hough test
 -----------------------------------------------------------------
-increment line
-decrement interior line
+Increment line
+Decrement interior line
 
 
-Vanishing Point detection
+Vanishing Point detection (high-res Hough)
 -----------------------------------------------------------------
 Known:
   "L" alignment edge location
@@ -541,45 +314,24 @@ Approach:
 Note: Initial implementation may use regular Hough if much simpler
 
 
-Connecting Edges
------------------------------------------------------------------
-Use the same 0.6 stream-following approach, because guarantees
-the best edges; both continuous and following the strongest
-"centerflow". This occurs because the edge follower uses self-
-correcting logic that constantly tries to center itself within
-the flow. It differs from 0.6 stream-following approach in that
-every pixel is checked, and marked as such. All future steps
-operate on the output from this step, and don't need to follow
-anything.
-
-The logic should probably mark both downstream and upstream
-neighbors, because future steps will need to walk the entire
-trail which is possibly a closed circuit. The 0.6 approach used a
-magic jump to close open circuits, but this won't be possible now
-unless we want to store this within cache elements (read: lots-o-
-memory). Instead we might just guaranty there are no closed
-circuits by throughing in an arbitrary break if necessary via the
-connected bit. This shouldn't affect any of the Hough math.
-
-
 Bahamas Approach
 -----------------------------------------------------------------
 1) Calculate point flows, store in cache (maybe?)
 
-2) Calculate localized region hough, store in overlapping N^2xN^2
-   grid (probably 16x16 or 32x32). Maybe capture ratio of how
-   many pixels fall on determined "vertical" and "horizontal"
-   access in an effort to ignore noise and measure strength
+2) Calculate local low-res Hough, store in overlapping N^2xN^2
+   grid (probably 16x16 or 32x32). Store 4 values, (H+ H- V+ V-),
+   which can be compared later to detect alternating module
+   patterns. Values are determined by compass direction.
 
-3) For each local region that meets minimum activity threshold,
-   calculate regional chunk of global line hough, also accumulate
-   maxima counts
+   This step should respect pixel skipping (i.e., shrinking)
+   option. Also consider adding ability to grow instead of
+   shrink, causing single pixel modules to appear larger.
 
-4) For each local region that meets minimum maxima count, find
-   vanishing point and module size
+3) For each local region, find vanishing point and module size
+   (high-res Hough with known limits). Attempt decode if barcode
+   presence is detected. If both vanishing point and module size
+   are known, can be confident about scan results (either success
+   or failure).
 
-5) Increment to next larger region size by combining small local
-   regions and repeat #4. Continue until all sizes are considered
-
-6) If vanishing point and module sizes are known, test for
-   barcode presence and decode
+4) Increment to next larger region size by combining small local
+   regions and repeat #3. Continue until all sizes are considered
