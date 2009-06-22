@@ -287,6 +287,9 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
       return NULL;
    }
 
+   /* maybe place remaining logic into new dmtxDecodePopulatedArray()
+      function so other people can pass in their own arrays */
+
    ModulePlacementEcc200(msg->array, msg->code,
          reg->sizeIdx, DmtxModuleOnRed | DmtxModuleOnGreen | DmtxModuleOnBlue);
 
