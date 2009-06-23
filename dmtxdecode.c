@@ -2,6 +2,7 @@
 libdmtx - Data Matrix Encoding/Decoding Library
 
 Copyright (C) 2008, 2009 Mike Laughton
+Copyright (C) 2009 Mackenzie Straight
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -263,6 +264,63 @@ dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, int *value)
 }
 
 /**
+ * @brief  Fill the region covered by the quadrilateral given by (p0,p1,p2,p3) in the cache.
+ *
+ */
+static void
+CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2, DmtxPixelLoc p3)
+{
+   DmtxBresLine lines[4];
+   DmtxPixelLoc pEmpty = { 0, 0 };
+   unsigned char *cache;
+   int *scanlineCover, *currentScanlineCover;
+   int minY = dec->yMax, maxY = 0, posY, posX;
+   int i;
+
+   minY = min(minY, p0.Y); maxY = max(maxY, p0.Y);
+   minY = min(minY, p1.Y); maxY = max(maxY, p1.Y);
+   minY = min(minY, p2.Y); maxY = max(maxY, p2.Y);
+   minY = min(minY, p3.Y); maxY = max(maxY, p3.Y);
+
+   scanlineCover = calloc(maxY - minY, sizeof(int) * 2);
+
+   lines[0] = BresLineInit(p0, p1, pEmpty);
+   lines[1] = BresLineInit(p1, p2, pEmpty);
+   lines[2] = BresLineInit(p2, p3, pEmpty);
+   lines[3] = BresLineInit(p3, p0, pEmpty);
+
+/* for(i = 0; i < maxY - minY; i++) {
+      scanlineCover[2 * i] = dec->xMax;
+      scanlineCover[2 * i + 1] = 0;
+   } */
+
+   for(i = 0; i < maxY - minY; i++) {
+      scanlineCover[2 * i] = dec->xMax;
+      scanlineCover[2 * i + 1] = 0;
+   }
+
+   for(i = 0; i < 4; i++) {
+      while (lines[i].loc.X != lines[i].loc1.X || lines[i].loc.Y != lines[i].loc1.Y) {
+         currentScanlineCover = scanlineCover + 2 * (lines[i].loc.Y - minY);
+         currentScanlineCover[0] = min(currentScanlineCover[0], lines[i].loc.X);
+         currentScanlineCover[1] = max(currentScanlineCover[1], lines[i].loc.X);
+         BresLineStep(lines + i, 1, 0);
+      }
+   }
+
+   for(posY = minY; posY < maxY && posY < dec->yMax; posY++) {
+      currentScanlineCover = scanlineCover + 2 * (posY - minY);
+      for(posX = currentScanlineCover[0]; posX < currentScanlineCover[1] && posX < dec->xMax; posX++) {
+         cache = dmtxDecodeGetCache(dec, posX, posY);
+         if(cache)
+            *cache |= 0x80;
+      }
+   }
+
+   free(scanlineCover);
+}
+
+/**
  * @brief  Convert fitted Data Matrix region into a decoded message
  * @param  dec
  * @param  reg
@@ -273,10 +331,9 @@ dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, int *value)
 extern DmtxMessage *
 dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 {
-   int row, col;
-   unsigned char *cache;
    DmtxMessage *msg;
-   DmtxVector2 p;
+   DmtxVector2 topLeft, topRight, bottomLeft, bottomRight;
+   DmtxPixelLoc pxTopLeft, pxTopRight, pxBottomLeft, pxBottomRight;
 
    msg = dmtxMessageCreate(reg->sizeIdx, DmtxFormatMatrix);
    if(msg == NULL)
@@ -298,22 +355,24 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
       return NULL;
    }
 
-   for(row = dec->yMin; row < dec->yMax; row++) {
-      for(col = dec->xMin; col < dec->xMax; col++) {
-         p.X = col;
-         p.Y = row;
-         dmtxMatrix3VMultiplyBy(&p, reg->raw2fit);
-         /* XXX tighten these boundaries can by accounting for barcode size */
-         if(p.X >= -0.1 && p.X <= 1.1 && p.Y >= -0.1 && p.Y <= 1.1) {
+   topLeft.X = bottomLeft.X = topLeft.Y = topRight.Y = -0.05;
+   topRight.X = bottomRight.X = bottomLeft.Y = bottomRight.Y = 1.05;
 
-            cache = dmtxDecodeGetCache(dec, col, row);
-            if(cache == NULL)
-               continue;
-            else
-               *cache |= 0x80; /* Mark as visited */
-         }
-      }
-   }
+   dmtxMatrix3VMultiplyBy(&topLeft, reg->fit2raw);
+   dmtxMatrix3VMultiplyBy(&topRight, reg->fit2raw);
+   dmtxMatrix3VMultiplyBy(&bottomLeft, reg->fit2raw);
+   dmtxMatrix3VMultiplyBy(&bottomRight, reg->fit2raw);
+
+   pxTopLeft.X = (int)(0.5 + topLeft.X);
+   pxTopLeft.Y = (int)(0.5 + topLeft.Y);
+   pxBottomLeft.X = (int)(0.5 + bottomLeft.X);
+   pxBottomLeft.Y = (int)(0.5 + bottomLeft.Y);
+   pxTopRight.X = (int)(0.5 + topRight.X);
+   pxTopRight.Y = (int)(0.5 + topRight.Y);
+   pxBottomRight.X = (int)(0.5 + bottomRight.X);
+   pxBottomRight.Y = (int)(0.5 + bottomRight.Y);
+
+   CacheFillQuad(dec, pxTopLeft, pxTopRight, pxBottomRight, pxBottomLeft);
 
    DecodeDataStream(msg, reg->sizeIdx, NULL);
 

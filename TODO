@@ -43,6 +43,7 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
   o libdmtx:   Implement structured append symbols
   o libdmtx:   Image quality metric
+  x libdmtx:   Fast quad fill for dmtxDecodeMatrixRegion() (thanks Mackenzie!)
   x libdmtx:   Fixed capacity bug with rectangle requests
   o dmtxread:  Flatten deeply nested loops in main()
   o dmtxread:  Add true scan timings that factor in linking, startup, image load
