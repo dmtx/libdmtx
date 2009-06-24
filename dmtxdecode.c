@@ -274,22 +274,26 @@ CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2
    DmtxPixelLoc pEmpty = { 0, 0 };
    unsigned char *cache;
    int *scanlineCover, *currentScanlineCover;
-   int minY = dec->yMax, maxY = 0, posY, posX;
+   int minY, maxY, sizeY, posY, posX;
    int i;
-
-   minY = min(minY, p0.Y); maxY = max(maxY, p0.Y);
-   minY = min(minY, p1.Y); maxY = max(maxY, p1.Y);
-   minY = min(minY, p2.Y); maxY = max(maxY, p2.Y);
-   minY = min(minY, p3.Y); maxY = max(maxY, p3.Y);
-
-   scanlineCover = calloc(maxY - minY, sizeof(int) * 2);
 
    lines[0] = BresLineInit(p0, p1, pEmpty);
    lines[1] = BresLineInit(p1, p2, pEmpty);
    lines[2] = BresLineInit(p2, p3, pEmpty);
    lines[3] = BresLineInit(p3, p0, pEmpty);
 
-   for(i = 0; i < maxY - minY; i++) {
+   minY = dec->yMax;
+   maxY = 0;
+
+   minY = min(minY, p0.Y); maxY = max(maxY, p0.Y);
+   minY = min(minY, p1.Y); maxY = max(maxY, p1.Y);
+   minY = min(minY, p2.Y); maxY = max(maxY, p2.Y);
+   minY = min(minY, p3.Y); maxY = max(maxY, p3.Y);
+
+   sizeY = maxY - minY;
+   scanlineCover = (int *)malloc(2 * sizeY * sizeof(int));
+
+   for(i = 0; i < sizeY; i++) {
       scanlineCover[(i << 1)] = dec->xMax;
       scanlineCover[(i << 1) + 1] = 0;
    }
@@ -307,7 +311,7 @@ CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2
       currentScanlineCover = scanlineCover + ((posY - minY) << 1);
       for(posX = currentScanlineCover[0]; posX < currentScanlineCover[1] && posX < dec->xMax; posX++) {
          cache = dmtxDecodeGetCache(dec, posX, posY);
-         if(cache)
+         if(cache != NULL)
             *cache |= 0x80;
       }
    }
