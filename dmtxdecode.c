@@ -529,6 +529,7 @@ dmtxDecodeCreateDiagnostic(DmtxDecode *dec, int *totalBytes, int *headerBytes, i
 static void
 DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
 {
+   DmtxBoolean macro = DmtxFalse;
    DmtxScheme encScheme;
    unsigned char *ptr, *dataEnd;
 
@@ -537,6 +538,12 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
 
    ptr = msg->code;
    dataEnd = ptr + dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
+
+   /* Print macro header if first codeword triggers it */
+   if(*ptr == DmtxChar05Macro || *ptr == DmtxChar06Macro) {
+      PushOutputMacroHeader(msg, *ptr);
+      macro = DmtxTrue;
+   }
 
    while(ptr < dataEnd) {
 
@@ -566,6 +573,10 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
             break;
       }
    }
+
+   /* Print macro trailer if required */
+   if(macro == DmtxTrue)
+      PushOutputMacroTrailer(msg);
 }
 
 /**
@@ -635,6 +646,39 @@ PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value)
 
    state->shift = DmtxC40TextBasicSet;
    state->upperShift = DmtxFalse;
+}
+
+/**
+ *
+ *
+ */
+static void
+PushOutputMacroHeader(DmtxMessage *msg, int macroType)
+{
+   PushOutputWord(msg, '[');
+   PushOutputWord(msg, ')');
+   PushOutputWord(msg, '>');
+   PushOutputWord(msg, 30); /* ASCII RS */
+   PushOutputWord(msg, '0');
+
+   assert(macroType == DmtxChar05Macro || macroType == DmtxChar06Macro);
+   if(macroType == DmtxChar05Macro)
+      PushOutputWord(msg, '5');
+   else
+      PushOutputWord(msg, '6');
+
+   PushOutputWord(msg, 29); /* ASCII GS */
+}
+
+/**
+ *
+ *
+ */
+static void
+PushOutputMacroTrailer(DmtxMessage *msg)
+{
+   PushOutputWord(msg, 30); /* ASCII RS */
+   PushOutputWord(msg, 4);  /* ASCII EOT */
 }
 
 /**

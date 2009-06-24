@@ -163,8 +163,9 @@ static void DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outpu
 static int GetEncodationScheme(unsigned char *ptr);
 static void PushOutputWord(DmtxMessage *msg, int value);
 static void PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value);
+static void PushOutputMacroHeader(DmtxMessage *msg, int macroType);
+static void PushOutputMacroTrailer(DmtxMessage *msg);
 static unsigned char *DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
-/*static unsigned char *DecodeSchemeAsciiExt(DmtxMessage *msg, unsigned char *ptr);*/
 static unsigned char *DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd, DmtxScheme encScheme);
 static unsigned char *DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
