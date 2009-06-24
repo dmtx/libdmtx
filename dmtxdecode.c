@@ -289,19 +289,14 @@ CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2
    lines[2] = BresLineInit(p2, p3, pEmpty);
    lines[3] = BresLineInit(p3, p0, pEmpty);
 
-/* for(i = 0; i < maxY - minY; i++) {
-      scanlineCover[2 * i] = dec->xMax;
-      scanlineCover[2 * i + 1] = 0;
-   } */
-
    for(i = 0; i < maxY - minY; i++) {
-      scanlineCover[2 * i] = dec->xMax;
-      scanlineCover[2 * i + 1] = 0;
+      scanlineCover[(i << 1)] = dec->xMax;
+      scanlineCover[(i << 1) + 1] = 0;
    }
 
    for(i = 0; i < 4; i++) {
-      while (lines[i].loc.X != lines[i].loc1.X || lines[i].loc.Y != lines[i].loc1.Y) {
-         currentScanlineCover = scanlineCover + 2 * (lines[i].loc.Y - minY);
+      while(lines[i].loc.X != lines[i].loc1.X || lines[i].loc.Y != lines[i].loc1.Y) {
+         currentScanlineCover = scanlineCover + ((lines[i].loc.Y - minY) << 1);
          currentScanlineCover[0] = min(currentScanlineCover[0], lines[i].loc.X);
          currentScanlineCover[1] = max(currentScanlineCover[1], lines[i].loc.X);
          BresLineStep(lines + i, 1, 0);
@@ -309,7 +304,7 @@ CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2
    }
 
    for(posY = minY; posY < maxY && posY < dec->yMax; posY++) {
-      currentScanlineCover = scanlineCover + 2 * (posY - minY);
+      currentScanlineCover = scanlineCover + ((posY - minY) << 1);
       for(posX = currentScanlineCover[0]; posX < currentScanlineCover[1] && posX < dec->xMax; posX++) {
          cache = dmtxDecodeGetCache(dec, posX, posY);
          if(cache)
@@ -355,8 +350,8 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
       return NULL;
    }
 
-   topLeft.X = bottomLeft.X = topLeft.Y = topRight.Y = -0.05;
-   topRight.X = bottomRight.X = bottomLeft.Y = bottomRight.Y = 1.05;
+   topLeft.X = bottomLeft.X = topLeft.Y = topRight.Y = -0.1;
+   topRight.X = bottomRight.X = bottomLeft.Y = bottomRight.Y = 1.1;
 
    dmtxMatrix3VMultiplyBy(&topLeft, reg->fit2raw);
    dmtxMatrix3VMultiplyBy(&topRight, reg->fit2raw);
