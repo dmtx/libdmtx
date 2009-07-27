@@ -82,6 +82,12 @@ dmtxEncodeDestroy(DmtxEncode **enc)
    if(enc == NULL || *enc == NULL)
       return DmtxFail;
 
+   /* Free pixel array allocated in dmtxEncodeDataMatrix() */
+   if((*enc)->image != NULL && (*enc)->image->pxl != NULL) {
+      free((*enc)->image->pxl);
+      (*enc)->image->pxl = NULL;
+   }
+
    dmtxImageDestroy(&((*enc)->image));
    dmtxMessageDestroy(&((*enc)->message));
 
