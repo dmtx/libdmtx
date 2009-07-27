@@ -515,7 +515,7 @@ extern DmtxPassFail dmtxDecodeDestroy(DmtxDecode **dec);
 extern DmtxPassFail dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value);
 extern int dmtxDecodeGetProp(DmtxDecode *dec, int prop);
 extern /*@exposed@*/ unsigned char *dmtxDecodeGetCache(DmtxDecode *dec, int x, int y);
-extern DmtxPassFail dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, int *value);
+extern DmtxPassFail dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, /*@out@*/ int *value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern unsigned char *dmtxDecodeCreateDiagnostic(DmtxDecode *dec, /*@out@*/ int *totalBytes, /*@out@*/ int *headerBytes, int style);
@@ -540,7 +540,7 @@ extern DmtxPassFail dmtxImageSetChannel(DmtxImage *img, int channelStart, int bi
 extern DmtxPassFail dmtxImageSetProp(DmtxImage *img, int prop, int value);
 extern int dmtxImageGetProp(DmtxImage *img, int prop);
 extern int dmtxImageGetByteOffset(DmtxImage *img, int x, int y);
-extern DmtxPassFail dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value);
+extern DmtxPassFail dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, /*@out@*/ int *value);
 extern DmtxPassFail dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value);
 extern DmtxBoolean dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y);
 extern DmtxBoolean dmtxImageContainsFloat(DmtxImage *img, double x, double y);
