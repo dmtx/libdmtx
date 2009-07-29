@@ -294,13 +294,13 @@ CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2
    scanlineCover = (int *)malloc(2 * sizeY * sizeof(int));
 
    for(i = 0; i < sizeY; i++) {
-      scanlineCover[(i << 1)] = dec->xMax;
-      scanlineCover[(i << 1) + 1] = 0;
+      scanlineCover[2 * i] = dec->xMax;
+      scanlineCover[2 * i + 1] = 0;
    }
 
    for(i = 0; i < 4; i++) {
       while(lines[i].loc.X != lines[i].loc1.X || lines[i].loc.Y != lines[i].loc1.Y) {
-         currentScanlineCover = scanlineCover + ((lines[i].loc.Y - minY) << 1);
+         currentScanlineCover = scanlineCover + 2 * (lines[i].loc.Y - minY);
          currentScanlineCover[0] = min(currentScanlineCover[0], lines[i].loc.X);
          currentScanlineCover[1] = max(currentScanlineCover[1], lines[i].loc.X);
          BresLineStep(lines + i, 1, 0);
@@ -308,7 +308,7 @@ CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2
    }
 
    for(posY = minY; posY < maxY && posY < dec->yMax; posY++) {
-      currentScanlineCover = scanlineCover + ((posY - minY) << 1);
+      currentScanlineCover = scanlineCover + 2 * (posY - minY);
       for(posX = currentScanlineCover[0]; posX < currentScanlineCover[1] && posX < dec->xMax; posX++) {
          cache = dmtxDecodeGetCache(dec, posX, posY);
          if(cache != NULL)
