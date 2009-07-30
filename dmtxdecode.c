@@ -273,9 +273,9 @@ CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2
    DmtxBresLine lines[4];
    DmtxPixelLoc pEmpty = { 0, 0 };
    unsigned char *cache;
-   int *scanlineCover, *currentScanlineCover;
+   int *scanlineMin, *scanlineMax;
    int minY, maxY, sizeY, posY, posX;
-   int i;
+   int i, idx;
 
    lines[0] = BresLineInit(p0, p1, pEmpty);
    lines[1] = BresLineInit(p1, p2, pEmpty);
@@ -291,32 +291,36 @@ CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2
    minY = min(minY, p3.Y); maxY = max(maxY, p3.Y);
 
    sizeY = maxY - minY + 1;
-   scanlineCover = (int *)malloc(2 * sizeY * sizeof(int));
 
-   for(i = 0; i < sizeY; i++) {
-      scanlineCover[2 * i] = dec->xMax;
-      scanlineCover[2 * i + 1] = 0;
-   }
+   scanlineMin = (int *)malloc(sizeY * sizeof(int));
+   scanlineMax = (int *)calloc(sizeY, sizeof(int));
+
+   assert(scanlineMin); /* XXX handle this better */
+   assert(scanlineMax); /* XXX handle this better */
+
+   for(i = 0; i < sizeY; i++)
+      scanlineMin[i] = dec->xMax;
 
    for(i = 0; i < 4; i++) {
       while(lines[i].loc.X != lines[i].loc1.X || lines[i].loc.Y != lines[i].loc1.Y) {
-         currentScanlineCover = scanlineCover + 2 * (lines[i].loc.Y - minY);
-         currentScanlineCover[0] = min(currentScanlineCover[0], lines[i].loc.X);
-         currentScanlineCover[1] = max(currentScanlineCover[1], lines[i].loc.X);
+         idx = lines[i].loc.Y - minY;
+         scanlineMin[idx] = min(scanlineMin[idx], lines[i].loc.X);
+         scanlineMax[idx] = max(scanlineMax[idx], lines[i].loc.X);
          BresLineStep(lines + i, 1, 0);
       }
    }
 
    for(posY = minY; posY < maxY && posY < dec->yMax; posY++) {
-      currentScanlineCover = scanlineCover + 2 * (posY - minY);
-      for(posX = currentScanlineCover[0]; posX < currentScanlineCover[1] && posX < dec->xMax; posX++) {
+      idx = posY - minY;
+      for(posX = scanlineMin[idx]; posX < scanlineMax[idx] && posX < dec->xMax; posX++) {
          cache = dmtxDecodeGetCache(dec, posX, posY);
          if(cache != NULL)
             *cache |= 0x80;
       }
    }
 
-   free(scanlineCover);
+   free(scanlineMin);
+   free(scanlineMax);
 }
 
 /**
