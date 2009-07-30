@@ -588,8 +588,9 @@ PrintStats(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg,
    dataWordLength = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, reg->sizeIdx);
    if(opt->verbose == DmtxTrue) {
 
-      rotate = (2 * M_PI) + (atan2(reg->fit2raw[0][1], reg->fit2raw[1][1]) -
-            atan2(reg->fit2raw[1][0], reg->fit2raw[0][0])) / 2.0;
+/*    rotate = (2 * M_PI) + (atan2(reg->fit2raw[0][1], reg->fit2raw[1][1]) -
+            atan2(reg->fit2raw[1][0], reg->fit2raw[0][0])) / 2.0; */
+      rotate = (2 * M_PI) + atan2(p10.Y - p00.Y, p10.X - p00.X);
 
       rotateInt = (int)(rotate * 180/M_PI + 0.5);
       if(rotateInt >= 360)
