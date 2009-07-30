@@ -290,7 +290,7 @@ CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2
    minY = min(minY, p2.Y); maxY = max(maxY, p2.Y);
    minY = min(minY, p3.Y); maxY = max(maxY, p3.Y);
 
-   sizeY = maxY - minY;
+   sizeY = maxY - minY + 1;
    scanlineCover = (int *)malloc(2 * sizeY * sizeof(int));
 
    for(i = 0; i < sizeY; i++) {
