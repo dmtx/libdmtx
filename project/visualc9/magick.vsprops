@@ -6,10 +6,10 @@
 	>
 	<Tool
 		Name="VCCLCompilerTool"
-		AdditionalIncludeDirectories="&quot;C:\Program Files\ImageMagick-6.5.0-Q8\include&quot;"
+		AdditionalIncludeDirectories="&quot;C:\Program Files\ImageMagick-6.5.4-Q8\include&quot;"
 	/>
 	<Tool
 		Name="VCLinkerTool"
-		AdditionalLibraryDirectories="&quot;C:\Program Files\ImageMagick-6.5.0-Q8\lib&quot;"
+		AdditionalLibraryDirectories="&quot;C:\Program Files\ImageMagick-6.5.4-Q8\lib&quot;"
 	/>
 </VisualStudioPropertySheet>
