@@ -36,7 +36,7 @@ EXTRA_libdmtx_la_SOURCES = dmtxdecode.c dmtxencode.c dmtxfec.c dmtximage.c \
 
 include_HEADERS = dmtx.h
 
-SUBDIRS = . util test
+SUBDIRS = . util test wrapper
 
 dist_man_MANS = man/libdmtx.3 man/dmtxread.1 man/dmtxwrite.1 man/dmtxquery.1
 

@@ -14,6 +14,7 @@ AC_CONFIG_FILES([
    test/rotate_test/Makefile
    test/simple_test/Makefile
    test/unit_test/Makefile
+   wrapper/Makefile
 ])
 
 AC_SEARCH_LIBS([sin], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
@@ -164,6 +165,88 @@ AM_CONDITIONAL([CUSTOM_REGIONSCANPIXEL], [test x$customRegionScanPixel = xyes])
 if test x$customRegionScanPixel = xyes; then
    AC_DEFINE([CUSTOM_REGIONSCANPIXEL], [1], [Override customRegionScanPixel function])
 fi
+
+AC_ARG_ENABLE([cocoa],
+              AS_HELP_STRING([--enable-cocoa], [enable Cocoa bindings]),
+              [enable_cocoa="$enableval"],
+              [enable_cocoa="no"])
+if test x$enable_cocoa = xyes; then
+   AC_WARN([Building the Cocoa wrapper though the libdmtx build system is not yet supported])
+fi
+
+AM_CONDITIONAL(ENABLE_COCOA, [test x$enable_cocoa = xyes])
+
+AC_ARG_ENABLE([java],
+              AS_HELP_STRING([--enable-java], [enable Java bindings]),
+              [enable_java="$enableval"],
+              [enable_java="no"])
+if test x$enable_java = xyes; then
+   AC_WARN([Building the Java wrapper though the libdmtx build system is not yet supported])
+fi
+
+AM_CONDITIONAL(ENABLE_JAVA, [test x$enable_java = xyes])
+
+AC_ARG_ENABLE([net],
+              AS_HELP_STRING([--enable-net], [enable .Net bindings]),
+              [enable_net="$enableval"],
+              [enable_net="no"])
+if test x$enable_net = xyes; then
+   AC_WARN([Building the .Net wrapper though the libdmtx build system is not yet supported])
+fi
+
+AM_CONDITIONAL(ENABLE_NET, [test x$enable_net = xyes])
+
+AC_ARG_ENABLE([php],
+              AS_HELP_STRING([--enable-php], [enable PHP bindings]),
+              [enable_php="$enableval"],
+              [enable_php="no"])
+if test x$enable_php = xyes; then
+   AC_PATH_PROG([PHPIZE], [phpize])
+   if test ! -e "$PHPIZE"; then
+     AC_ERROR([phpize is required to generate the PHP bindings.])
+   fi
+
+   AC_WARN([Building the PHP wrapper will break make uninstall])
+
+   dmtx_dir=`pwd`
+   cd wrapper/php && \
+   $PHPIZE && \
+   ./configure --prefix=${prefix} && \
+   cd $dmtx_dir
+fi
+
+AM_CONDITIONAL([ENABLE_PHP], [test x$enable_php = xyes])
+
+AC_ARG_ENABLE([python],
+              AS_HELP_STRING([--enable-python], [enable Python bindings]),
+              [enable_python="$enableval"],
+              [enable_python="no"])
+if test x$enable_python = xyes; then
+   AM_PATH_PYTHON
+   AC_WARN([Building the Ruby wrapper will break make uninstall])
+fi
+
+AM_CONDITIONAL(ENABLE_PYTHON, [test x$enable_python = xyes])
+
+AC_ARG_ENABLE([ruby],
+              AS_HELP_STRING([--enable-ruby], [enable Ruby bindings]),
+              [enable_ruby="$enableval"],
+              [enable_ruby="no"])
+if test x$enable_ruby = xyes; then
+   AC_PATH_PROG([RUBY], [ruby])
+   if test ! -e "$RUBY"; then
+     AC_ERROR([ruby is required to generate the Ruby bindings.])
+   fi
+
+   AC_WARN([Building the Ruby wrapper will break make uninstall])
+
+   dmtx_dir=`pwd`
+   cd wrapper/ruby && \
+   $RUBY extconf.rb --with-dmtx-dir=${prefix}
+   cd $dmtx_dir
+fi
+
+AM_CONDITIONAL(ENABLE_RUBY, [test x$enable_ruby = xyes])
 
 AC_CONFIG_FILES([libdmtx.pc])
 
