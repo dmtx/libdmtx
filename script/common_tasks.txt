@@ -135,3 +135,5 @@ Release Checklist
 
 14) o Update libdmtx.org with news item, download entry, and new
       project status
+
+15) o Create win32 build ("Release") and upload to SourceForge
