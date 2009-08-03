@@ -59,16 +59,16 @@ AC_ARG_ENABLE(
    [dmtxwrite="yes"])
 AM_CONDITIONAL([ENABLE_DMTXWRITE], [test x$dmtxwrite = xyes])
 
-if test x$dmtxread = xtrue \
-      -o x$dmtxwrite = xtrue \
-      -o x$dmtxquery = xtrue; then
+if test x$dmtxread = xyes \
+      -o x$dmtxwrite = xyes \
+      -o x$dmtxquery = xyes; then
    AC_CHECK_HEADERS([sysexits.h])
    AC_CHECK_HEADERS([getopt.h])
    AC_CHECK_FUNCS([getopt_long])
 fi
 
-if test x$dmtxread = xtrue \
-      -o x$dmtxwrite = xtrue; then
+if test x$dmtxread = xyes \
+      -o x$dmtxwrite = xyes; then
    ifdef([PKG_CHECK_MODULES],
          [PKG_CHECK_MODULES(
             MAGICK,
@@ -80,15 +80,15 @@ if test x$dmtxread = xtrue \
    AC_SUBST(MAGICK_LIBS)
 fi
 
-if test x$dmtxquery = xtrue; then
+if test x$dmtxquery = xyes; then
    AC_CONFIG_FILES([util/dmtxquery/Makefile])
 fi
 
-if test x$dmtxread = xtrue; then
+if test x$dmtxread = xyes; then
    AC_CONFIG_FILES([util/dmtxread/Makefile])
 fi
 
-if test x$dmtxwrite = xtrue; then
+if test x$dmtxwrite = xyes; then
    AC_CONFIG_FILES([util/dmtxwrite/Makefile])
 fi
 
