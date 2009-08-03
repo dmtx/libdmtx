@@ -1,12 +1,12 @@
-if BUILD_DMTXQUERY
+if ENABLE_DMTXQUERY
    DMTXQUERY_DIR = dmtxquery
 endif
 
-if BUILD_DMTXREAD
+if ENABLE_DMTXREAD
    DMTXREAD_DIR = dmtxread
 endif
 
-if BUILD_DMTXWRITE
+if ENABLE_DMTXWRITE
    DMTXWRITE_DIR = dmtxwrite
 endif
 
