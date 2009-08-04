@@ -5,20 +5,15 @@ The libdmtx Java wrapper was written by Pete Calvert and is
 distributed as part of the libdmtx package.
 
 
-1. Installing libdmtx Java wrapper on GNU/Linux
+1. Installing libdmtx-java on GNU/Linux
 -----------------------------------------------------------------
 
-libdmtx need not be installed system-wide to build the Java
-wrapper, but it does need to be compiled in the grandparent
-directory. If using the make command, this and other
+libdmtx does not need to be installed system-wide to build the
+Java wrapper, but it does need to be compiled in the grandparent
+directory. If using the "make" command, this and other
 prerequisites will be met simply by running:
 
   $ make
-
-XXX: The openjdk #include path is currently hardcoded in the
-     Makefile. Find a portable way to address this
-     (openjdk-config equivalent?). In the meantime, users may
-     need to modify this line by hand in the Makefile.
 
 To build and run the test programs:
 
@@ -28,16 +23,75 @@ To build and run the test programs:
   $ javac GUIExample.java
   $ java GUIExample
 
-If you system uses SELinux then you may need to either switch to
+If your system runs SELinux then you may need to either switch to
 Permissive mode, disable it entirely, or assign a security
 context that allows Java to load the native/libdmtx.so library.
-If any SELinux gurus are reading this, please edit the
-documentation wiki (link provided at the bottom of this document)
-with the proper method for handling this situation in various
-distributions (e.g., Install program? chcon command?)
 
 
-2. This Document
+2. Installing libdmtx-java on Windows
+-----------------------------------------------------------------
+
+Assuming that you have followed all of the instructions for
+compiling the main code in Windows (using MinGW and MSYS), you
+need to alter the Makefile so that it generates windows/java
+friendly DLLs. Change the CFLAGS line to read:
+
+  CFLAGS=-shared -fpic -Wl,--add-stdcall-alias
+
+Also change the output name, "NATIVE_SO", to be the windows name
+of the file the provided java code will look for:
+
+  NATIVE_SO=native/dmtx.dll
+
+Then navigate into the /wrapper/java folder in msys and execute
+
+  $ make check
+
+MinGW needs to be java enabled to complete this properly
+(I think) - you can do this most easily by simply running the
+install file for MinGW again and checking the box for java, if
+you didn't do so on original installation. You can also edit the
+fstab file to point /java to your windows copy of java, though if
+you go this route you'll need to edit the Makefile to point to
+the appropriate include directories. Once you've generated the
+dll, copy it (from the /wrapper/java/native folder) to wherever
+in Windows you're actually running the dmtx code from (i.e.
+netbeans project root directory) and viola! you now have access
+to the DMTXImage and DMTXTag classes.
+
+
+3. Installing libdmtx-java on OS X
+-----------------------------------------------------------------
+
+OS X is Darwin based, and doesn't use standard malloc.h. You need
+to change
+
+  #include <malloc.h>
+
+to
+
+  #include <stdlib.h>
+
+in native/org_libdmtx_DMTXImage.c
+
+Also, the option for building a library is -dynlib, not -shared,
+and the include files are in a funny place, so the relevant lines
+in my makefile are now:
+
+  CFLAGS=-dynamiclib -fPIC
+  INCLUDE=-I ../.. \
+     -I /System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers/
+
+(This was on 10.5, Intel)
+
+Also, it didn't like looking in LD_LIBRARY_PATH for the native libs, so to test it I ran:
+
+  $ java -Djava.library.path=native GUIExample ../../test/rotate_test/images/test_image07.png
+
+(I believe the -D stye is more modern and portable)
+
+
+4. This Document
 -----------------------------------------------------------------
 
 This document is derived from the wiki page located at:

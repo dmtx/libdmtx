@@ -1,36 +1,50 @@
 README for libdmtx-vala
 -----------------------------------------------------------------
 
-  libdmtx-vala is a Vala binding for libdmtx that was written by Evan
-  Nemerson and is distributed as part of the libdmtx package.
+libdmtx-vala is a Vala binding for libdmtx that was written by
+Evan Nemerson and is distributed as part of the libdmtx package.
 
 
-1. libdmtx-php Installation
+1. libdmtx-vala Installation
 -----------------------------------------------------------------
 
-  Simply copy libdmtx.vapi into the directory where valac looks for
-  vapis. This is ususally /usr/share/vala/vapi, but if you are unsure
-  and vala is installed, you can use pkg-config to obtain the location
-  by running `pkg-config --variable=vapidir vala-1.0`.
+Simply copy libdmtx.vapi into the directory where valac looks for
+vapis. This is usually /usr/share/vala/vapi, but if you are
+unsure and vala is installed, you can use pkg-config to obtain
+the location by running:
 
-  If you do not wish to install the bindings globally, you can use
-  valac's --vapidir argument instead.
+  $ pkg-config --variable=vapidir vala-1.0
+
+If you do not wish to install the bindings globally, you can use
+valac's --vapidir argument instead.
 
 
 2. Dependencies
 -----------------------------------------------------------------
 
-  To use these bindings, you will need valac-0.7.6 or greater, and
-  libdmtx-0.7.1 or greater.
+To use these bindings, you will need valac-0.7.6 or greater, and
+libdmtx-0.7.1 or greater.
+
 
 3. Usage
 -----------------------------------------------------------------
 
-  An example program, test.vala, is included with these bindings. This
-  program will user Cairo to generate a PDF containing a data matrix
-  barcode. To compile it, simply run:
+An example program, test.vala, is included with these bindings.
+This program will user Cairo to generate a PDF containing a data
+matrix barcode. To compile it, simply run:
 
-    valac -o test --pkg libdmtx --pkg cairo test.vala
+  $ valac -o test --pkg libdmtx --pkg cairo test.vala
 
-  Compiling any other libdmtx vala code is just as simple. Simply add
-  --pkg libdmtx, and valac will handle the rest.
+Compiling any other libdmtx vala code is just as simple. Simply
+add --pkg libdmtx, and valac will handle the rest.
+
+
+4. This Document
+-----------------------------------------------------------------
+
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wikidot.com/libdmtx-vala-wrapper
+
+If you find an error or have additional helpful information,
+please edit the wiki directly with your updates.

@@ -10,4 +10,8 @@ if ENABLE_RUBY
    RUBY_DIR = ruby
 endif
 
-SUBDIRS = $(PHP_DIR) $(PYTHON_DIR) $(RUBY_DIR)
+if ENABLE_VALA
+   VALA_DIR = vala
+endif
+
+SUBDIRS = $(PHP_DIR) $(PYTHON_DIR) $(RUBY_DIR) $(VALA_DIR)

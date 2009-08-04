@@ -403,7 +403,7 @@ namespace Dmtx {
 		[CCode (cname = "channelCount")]
 		public int channel_count;
 		[CCode (cname = "channelStart")]
-		public int[4] channel_start;
+		public int channel_start[4];
 		[CCode (cname = "bitsPerChannel")]
 		public int bits_per_channel;
 		[CCode (array_length = false)]
@@ -717,19 +717,19 @@ namespace Dmtx {
 		[CCode (cname = "firstCodeWord")]
 		public int first_code_word;
 		[CCode (cname = "encodedWords")]
-		public uchar[1558] encoded_words;
+		public uchar encoded_words[1558];
 	}
 
 	public struct ChannelGroup {
-		public Channel[6] channel;
+		public Channel channel[6];
 	}
 
 	public struct Triplet {
-		public uchar[3] value;
+		public uchar value[3];
 	}
 
 	public struct Quadruplet {
-		public uchar[4] value;
+		public uchar value[4];
 	}
 
 	public static int get_symbol_attribute (int attribute, int size_idx);
