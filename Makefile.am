@@ -4,6 +4,7 @@
 # $ make dist-gzip
 # $ script/dist-image.sh
 
+ACLOCAL_AMFLAGS = -I m4
 AM_CPPFLAGS = -Wshadow -Wall -pedantic -ansi
 
 lib_LTLIBRARIES = libdmtx.la

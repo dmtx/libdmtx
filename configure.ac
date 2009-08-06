@@ -1,10 +1,7 @@
 AC_INIT([libdmtx], [0.7.1], [mike@dragonflylogic.com])
 AM_INIT_AUTOMAKE([-Wall -Werror gnu])
 
-AC_PROG_CC
-AC_PROG_LIBTOOL
-AM_PROG_CC_C_O
-
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
    Makefile
@@ -16,6 +13,10 @@ AC_CONFIG_FILES([
    test/unit_test/Makefile
    wrapper/Makefile
 ])
+
+AC_PROG_CC
+AC_PROG_LIBTOOL
+AM_PROG_CC_C_O
 
 AC_SEARCH_LIBS([sin], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
 AC_SEARCH_LIBS([cos], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
