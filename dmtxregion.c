@@ -129,7 +129,7 @@ dmtxRegionScanPixel(DmtxDecode *dec, int x, int y)
 
    /* Test for presence of any reasonable edge at this location */
    flowBegin = MatrixRegionSeekEdge(dec, loc);
-   if(flowBegin.mag < 10)
+   if(flowBegin.mag < (int)(dec->edgeThresh * 7.65 + 0.5))
       return NULL;
 
    memset(&reg, 0x00, sizeof(DmtxRegion));
