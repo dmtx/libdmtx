@@ -34,10 +34,11 @@ the files libdmtx.dll and libdmtx.lib.
 2. Compiling the libdmtx Command Line Utilities
 -----------------------------------------------------------------
 
-The solution file mentioned above also includes projects for the
-libdmtx command line utilities. The most significant utilities,
-dmtxread.exe and dmtxwrite.exe, require ImageMagick to be
-installed on your system. To build the utilities:
+The solution file mentioned above also includes project files for
+the libdmtx command line utilities, dmtxread and dmtxwrite. These
+programs require ImageMagick to be present on your system.
+
+To build the utilities:
 
 2.1. Install ImageMagick
 
