@@ -165,6 +165,10 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    int shape = DmtxUndefined;
    int deviation = DmtxUndefined;
    int threshold = DmtxUndefined;
+   int shrink = 1;
+   int corrections = DmtxUndefined;
+   int min_edge = DmtxUndefined;
+   int max_edge = DmtxUndefined;
 
    PyObject *dataBuf = NULL;
    Py_ssize_t dataLen;
@@ -179,7 +183,7 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    DmtxVector2 p00, p10, p11, p01;
    const char *pxl; /* Input image buffer */
 
-   static char *kwlist[] = { "width", "height", "data", "gap_size", "max_count", "context", "timeout", "shape", "deviation", "threshold", NULL };
+   static char *kwlist[] = { "width", "height", "data", "gap_size", "max_count", "context", "timeout", "shape", "deviation", "threshold", "shrink", "corrections", "min_edge", "max_edge", NULL };
 
    /* Parse out the options which are applicable */
    PyObject *filtered_kwargs;
@@ -193,8 +197,8 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    }
 
    /* Get parameters from Python for libdmtx */
-   if(!PyArg_ParseTupleAndKeywords(arglist, filtered_kwargs, "iiOi|iOiiii", kwlist,
-         &width, &height, &dataBuf, &gap_size, &max_count, &context, &timeout, &shape, &deviation, &threshold)) {
+   if(!PyArg_ParseTupleAndKeywords(arglist, filtered_kwargs, "iiOi|iOiiiiiiii", kwlist,
+         &width, &height, &dataBuf, &gap_size, &max_count, &context, &timeout, &shape, &deviation, &threshold, &shrink, &corrections, &min_edge, &max_edge)) {
       PyErr_SetString(PyExc_TypeError, "decode takes at least 3 arguments");
       return NULL;
    }
@@ -216,7 +220,7 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    if(img == NULL)
       return NULL;
 
-   dec = dmtxDecodeCreate(img, 1);
+   dec = dmtxDecodeCreate(img, shrink);
    if(dec == NULL) {
       dmtxImageDestroy(&img);
       return NULL;
@@ -234,7 +238,13 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
    if(threshold != DmtxUndefined)
       dmtxDecodeSetProp(dec, DmtxPropEdgeThresh, threshold);
 
-   for(count = 1; ; count++) {
+   if(min_edge != DmtxUndefined)
+      dmtxDecodeSetProp(dec, DmtxPropEdgeMin, min_edge);
+
+   if(max_edge != DmtxUndefined)
+      dmtxDecodeSetProp(dec, DmtxPropEdgeMax, max_edge);
+
+   for(count=1; ;count++) {
       Py_BEGIN_ALLOW_THREADS
       if(timeout == DmtxUndefined)
          reg = dmtxRegionFindNext(dec, NULL);
