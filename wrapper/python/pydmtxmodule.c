@@ -157,6 +157,7 @@ static PyObject *
 dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
 {
    int count=0;
+   int found=0;
    int width;
    int height;
    int gap_size = DmtxUndefined;
@@ -256,7 +257,7 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
       if(reg == NULL)
          break;
 
-      msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
+      msg = dmtxDecodeMatrixRegion(dec, reg, corrections);
       if(msg != NULL) {
          p00.X = p00.Y = p10.Y = p01.X = 0.0;
          p10.X = p01.Y = p11.X = p11.Y = 1.0;
@@ -266,20 +267,21 @@ dmtx_decode(PyObject *self, PyObject *arglist, PyObject *kwargs)
          dmtxMatrix3VMultiplyBy(&p01, reg->fit2raw);
 
          PyList_Append(output, Py_BuildValue("s((ii)(ii)(ii)(ii))", msg->output,
-               (int)(p00.X + 0.5), height - 1 - (int)(p00.Y + 0.5),
-               (int)(p10.X + 0.5), height - 1 - (int)(p10.Y + 0.5),
-               (int)(p11.X + 0.5), height - 1 - (int)(p11.Y + 0.5),
-               (int)(p01.X + 0.5), height - 1 - (int)(p01.Y + 0.5)));
+               (int)((shrink * p00.X) + 0.5), height - 1 - (int)((shrink * p00.Y) + 0.5),
+               (int)((shrink * p10.X) + 0.5), height - 1 - (int)((shrink * p10.Y) + 0.5),
+               (int)((shrink * p11.X) + 0.5), height - 1 - (int)((shrink * p11.Y) + 0.5),
+               (int)((shrink * p01.X) + 0.5), height - 1 - (int)((shrink * p01.Y) + 0.5)));
 
          Py_INCREF(output);
          dmtxMessageDestroy(&msg);
+         found++;
       }
 
       dmtxRegionDestroy(&reg);
 
       /* Stop if we've reached maximium count */
       if(max_count != DmtxUndefined)
-         if(count >= max_count) break;
+         if(found >= max_count) break;
    }
 
    dmtxDecodeDestroy(&dec);
