@@ -60,6 +60,7 @@ version 0.7.2: (04-Sep-2009)
   x libdmtx:   Fast quad fill for dmtxDecodeMatrixRegion() (thanks Mackenzie!)
   x libdmtx:   Fixed capacity bug with rectangle requests
   x wrapper:   New Vala wrapper (thanks Evan!)
+  x wrapper:   Wrapper integration in build system (thanks Evan!)
   x project:   Add libdmtx-X.X.X.zip as source package option
   x project:   Add libdmtx-win32-X.X.X.zip as binary package option
   x project:   Add "project" directory to EXTRA_DIST in Makefile.am
