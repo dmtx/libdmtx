@@ -1,4 +1,4 @@
-README for pydmtx version 0.7.1 - March 2, 2009
+README for pydmtx version 0.7.2 - September 4, 2009
 -----------------------------------------------------------------
 
 pydmtx is a thin wrapper around libdmtx that reads and writes
@@ -27,13 +27,15 @@ Once installed, you can verify it works by running as yourself:
 
   $ python test.py
 
-If it throws an error like this:
 
-  ImportError: libdmtx.so.0: cannot open shared object file
+3. Troubleshooting
+-----------------------------------------------------------------
 
-this indicates it is not able to find the libdmtx library.
-There are a few ways to fix this. You can make a temporary
-local session fix:
+3.1. ImportError: libdmtx.so.0: cannot open shared object file
+
+This error indicates it is not able to find the libdmtx library.
+There are a few ways to fix this. You can make a temporary local
+session fix:
 
   $ export LD_LIBRARY_PATH=/usr/local/lib
 
@@ -47,6 +49,17 @@ Alternatively, you could edit /etc/ld.so.conf to include
 When it is working properly the test.py script should create an
 image named 'hello.png' in the current directory. The image
 should be a Data Matrix barcode that scans to "hello, world".
+
+
+3.2. SystemError: NULL result without error in PyObject_Call
+
+Could mean that you're passing in a 1 bit b/w image instead of a
+RGB image. This is a good guard against that:
+
+   img = Image.open( f )
+   if img.mode != 'RGB':
+      img = img.convert('RGB')
+   print dm_read.decode( img.size[0], img.size[1], buffer(img.tostring()) )
 
 
 3. Dependencies

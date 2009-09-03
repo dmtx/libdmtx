@@ -1,6 +1,15 @@
 Changes for libdmtx
 -----------------------------------------------------------------
 
+version 0.7.2 [September 2009]
+  Added initial macro decoding support (thanks Marlon!)
+  Fast quad fill for dmtxDecodeMatrixRegion() (thanks Mackenzie!)
+  Fixed capacity bug with rectangle requests
+  New Vala wrapper (thanks Evan!)
+  Add libdmtx-X.X.X.zip as source package option
+  Add libdmtx-win32-X.X.X.zip as binary package option
+  Add "project" directory to EXTRA_DIST in Makefile.am
+
 version 0.7.0 [March 2009]
   New Java wrapper (thanks Pete and Dikran!)
   New .NET wrapper (thanks Vali and Joe!)

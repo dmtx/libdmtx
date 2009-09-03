@@ -1,3 +1,9 @@
+06-Aug-2009: Simon Wood released pyDataMatrixScanner at SourceForge
+03-Aug-2009: Evan Nemerson added Vala support with a new wrapper
+31-Jul-2009: libdmtx Documentation wiki moved to libdmtx.wikidot.com
+19-May-2009: libdmtx project discussed in Linux Journal (March 2009)
+12-Mar-2009: Python wrapper supports multi-barcode scans (thanks Simon!)
+02-Mar-2009: New release: libdmtx-0.7.0 (Release Notes)
 31-Jan-2009: Experimental libdmtx Windows binaries now available
 23-Nov-2008: New release: libdmtx-0.6.0 (Release Notes)
 08-Oct-2008: Olivier Guilyardi added support for all major image formats! (SVN)

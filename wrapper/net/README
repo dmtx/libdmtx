@@ -1,4 +1,4 @@
-README for libdmtx-net version 0.7.1 - March 2, 2009
+README for libdmtx-net version 0.7.2 - September 4, 2009
 -----------------------------------------------------------------
 
 libdmtx-net is a .NET wrapper for libdmtx that was originally
@@ -9,13 +9,11 @@ and is distributed as part of the libdmtx package.
 1. libdmtx-net Installation
 -----------------------------------------------------------------
 
-a) Compile the libdmtx solution.
-
-b) Compile the libdmtx.net solution.
-
-c) Add a reference to Libdmtx.Net.dll in you're project.
-   (Make sure you copy libdmtx.dll into the same directory
-   as you're binaries).
+1. Compile the libdmtx solution.
+2. Compile the libdmtx.net solution.
+3. Add a reference to Libdmtx.Net.dll in you're project. (Make
+   sure you copy libdmtx.dll into the same directory as your
+   binaries).
 
 
 2. Dependencies
@@ -34,7 +32,7 @@ with C API, but saves unmanaged calls from .NET which cost
 some overhead.
 
 3.1. Decoding
------------------------------------------------------------------
+
 LibDmtx.DecodeOptions o = new LibDmtx.DecodeOptions();
 Bitmap b = new Bitmap(@"bitmap.png");
 LibDmtx.DmtxDecoded[] res = LibDmtx.Decode(b, o);
@@ -44,18 +42,51 @@ for (uint i = 0; i < res.Length; i++) {
 }
 
 3.2. Encoding
------------------------------------------------------------------
+
 LibDmtx.EncodeOptions o = new LibDmtx.EncodeOptions();
 byte[] dataToEncode = Encoding.ASCII.GetBytes("Hello World!");
 LibDmtx.DmtxEncoded en = LibDmtx.Encode(dataToEncode, o);
 pictureBox1.Image = en.bitmap;
 
 3.3. More Information
------------------------------------------------------------------
+
 See the source or the unit tests.
 
 
-4. Known issues
+4. VB.NET example for use in ASP.NET page.
 -----------------------------------------------------------------
 
-a) Probably some minor bugs.
+If FileUpload1.HasFile Then
+   Dim fExtension As String
+   Dim fFileName As String = FileUpload1.PostedFile.FileName
+   fExtension = Path.GetExtension(FileUpload1.PostedFile.FileName)
+   Dim fileBytes(FileUpload1.PostedFile.InputStream.Length) As Byte
+   FileUpload1.PostedFile.InputStream.Read(fileBytes, 0, fileBytes.Length)
+   Dim collector As New MemoryStream(fileBytes)
+   Dim gImage As Bitmap
+   gImage = Bitmap.FromStream(collector)
+
+   Dim bDecode As New Libdmtx.DecodeOptions
+   bDecode.CodeType = Libdmtx.CodeType.DataMatrix
+   bDecode.MaxCodes = 1
+   Dim pDecode As Libdmtx.DmtxDecoded() = Libdmtx.Dmtx.Decode(gImage, bDecode)
+
+   Dim cString As String
+   cString = String.Empty
+   For Each thing In pDecode
+      cString = cString & Encoding.ASCII.GetString(thing.Data)
+   Next
+   Label1.Text = cString
+   Label2.Text = pDecode.Length.ToString
+End If
+
+
+5. This Document
+-----------------------------------------------------------------
+
+This document is derived from the wiki page located at:
+
+  http://libdmtx.wikidot.com/libdmtx-net-wrapper
+
+If you find an error or have additional helpful information,
+please edit the wiki directly with your updates.

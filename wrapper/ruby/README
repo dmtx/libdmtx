@@ -1,37 +1,53 @@
-README for libdmtx-ruby version 0.7.1 - March 2, 2009
+README for libdmtx-ruby version 0.7.2 - September 4, 2009
 -----------------------------------------------------------------
 
 libdmtx-ruby is a Ruby wrapper for libdmtx that was written by
 Romain Goyet and is distributed as part of the libdmtx package.
 
 
-1. Setup
+1. libdmtx Installation
 -----------------------------------------------------------------
 
-This Ruby wrapper relies on RMagick, and of course on libdmtx.
-
-  1) Install RMagick : http://rmagick.rubyforge.org/
-
-  2) Build libdmtx (./configure --prefix=/a/given/path )
-
-  3) ruby extconf.rb --with-dmtx-dir=/a/given/path (same as step 2)
-
-  4) make clean
-
-  5) make
+libdmtx must be installed on your system before installing and
+running the Ruby wrapper. Refer to the General Instructions for
+this.
 
 
-2. Usage
+2. RMagick Installation
+-----------------------------------------------------------------
+
+In addition to libdmtx, the libdmtx Ruby wrapper also relies on
+RMagick, available at:
+
+  http://rmagick.rubyforge.org/
+
+
+3. libdmtx-ruby Installation
+-----------------------------------------------------------------
+
+  $ ruby extconf.rb --with-dmtx-dir=/same/path/as/libdmtx
+  $ make clean
+  $ make
+
+
+4. Usage
 -----------------------------------------------------------------
 
 Once the plug-in is built, you can toy around with the "test.rb"
 sample script. It demonstrates both reading and writing.
 
-Reading : ruby test.rb /path/to/an/image.file
-Writing : ruby test.rb (It'll write something to "output.png")
+Reading:
+
+  $ ruby test.rb /path/to/an/image.file
+
+Writing:
+
+  $ ruby test.rb
+
+It will write something to "output.png".
 
 
-3. This Document
+5. This Document
 -----------------------------------------------------------------
 
 This document is derived from the wiki page located at:

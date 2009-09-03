@@ -25,6 +25,12 @@ Debian users are the big winners because libdmtx is available in
 the main testing and unstable repositories (although not in
 stable yet). The Debian package is named "libdmtx-utils".
 
+On Ubuntu Server, ImageMagick may install incorrectly but without
+errors since the server version does not come with installed
+image libraries and no GUI (GTK or KDE) so it doesn't correctly
+define the needed functions. Installing under Ubuntu Desktop
+edition works with no special modifications.
+
 
 3. This Document
 -----------------------------------------------------------------

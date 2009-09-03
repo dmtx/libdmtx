@@ -1,4 +1,4 @@
-README for libdmtx-vala
+README for libdmtx-vala version 0.7.2 - September 4, 2009
 -----------------------------------------------------------------
 
 libdmtx-vala is a Vala binding for libdmtx that was written by
@@ -23,7 +23,7 @@ valac's --vapidir argument instead.
 -----------------------------------------------------------------
 
 To use these bindings, you will need valac-0.7.6 or greater, and
-libdmtx-0.7.1 or greater.
+libdmtx-0.7.2 or greater.
 
 
 3. Usage

@@ -43,9 +43,6 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
   o libdmtx:   Implement structured append symbols
   o libdmtx:   Image quality metric
-  x libdmtx:   Added initial macro decoding support (thanks Marlon!)
-  x libdmtx:   Fast quad fill for dmtxDecodeMatrixRegion() (thanks Mackenzie!)
-  x libdmtx:   Fixed capacity bug with rectangle requests
   o dmtxread:  Flatten deeply nested loops in main()
   o dmtxread:  Add true scan timings that factor in linking, startup, image load
   o dmtxwrite: Add support for setting foreground and background colors
@@ -57,8 +54,14 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o project:   Any way to ask Magick to filter out GS (and other) warnings?
   o project:   Conditional use of local getopt.c
   o project:   Devise approach for recurring tasks (enabling $Id$, checking SVN commits)
-  x project:   Add libdmtx-0.8.0.zip as source package option
-  x project:   Add libdmtx-win32-0.8.0.zip as binary package option
+
+version 0.7.2: (04-Sep-2009)
+  x libdmtx:   Added initial macro decoding support (thanks Marlon!)
+  x libdmtx:   Fast quad fill for dmtxDecodeMatrixRegion() (thanks Mackenzie!)
+  x libdmtx:   Fixed capacity bug with rectangle requests
+  x wrapper:   New Vala wrapper (thanks Evan!)
+  x project:   Add libdmtx-X.X.X.zip as source package option
+  x project:   Add libdmtx-win32-X.X.X.zip as binary package option
   x project:   Add "project" directory to EXTRA_DIST in Makefile.am
 
 version 0.7.0: (02-Mar-2009)

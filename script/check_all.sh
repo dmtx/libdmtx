@@ -34,7 +34,7 @@ function RunTest()
          fi
 
          if [[ $(cat $file | wc -l) -le 10 ]]; then
-            echo "      skipping \"$file\" (trivial file)"
+            #echo "      skipping \"$file\" (trivial file)"
             continue
          fi
 

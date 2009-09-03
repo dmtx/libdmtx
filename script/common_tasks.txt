@@ -53,6 +53,7 @@ Release Checklist
    o wrapper/cocoa/README    o wrapper/java/README
    o wrapper/net/README      o wrapper/php/README
    o wrapper/python/README   o wrapper/ruby/README
+   o wrapper/vala/README
 
    o man/dmtxread.1          o man/dmtxwrite.1
    o man/dmtxquery.1         o man/libdmtx.3
@@ -68,6 +69,7 @@ Release Checklist
    o wrapper/php/README
    o wrapper/python/README
    o wrapper/ruby/README
+   o wrapper/vala/README
 
 7) o Update release date in appropriate files
 
@@ -84,6 +86,7 @@ Release Checklist
    o wrapper/php/README
    o wrapper/python/README
    o wrapper/ruby/README
+   o wrapper/vala/README
 
 8) o Perform final test build
 
@@ -107,11 +110,9 @@ Release Checklist
    o $ make dist-zip
    o Verify no extraneous files made their way into the
      distribution (especially in the wrapper directories)
-   o $ md5sum libdmtx-0.8.0.* > MD5SUM.txt
+   o $ md5sum libdmtx-0.7.2.* > MD5SUM.txt
 
 10) o Upload release to SourceForge
-
-    o $ scp libdmtx-0.8.0.* user@frs.sourceforge.net:uploads
 
 11) o SourceForge release administration
 
@@ -123,10 +124,10 @@ Release Checklist
       SourceForge in case something changes at the last minute)
 
     o $ svn copy https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk \
-                 https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/tags/release-0.8.0 \
-           -m "Tagged libdmtx 0.8.0 release"
+                 https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/tags/release-0.7.2 \
+           -m "Tagged libdmtx 0.7.2 release"
 
-13) o Update minor number in unstable trunk (e.g., 0.8.0 -> 0.8.1)
+13) o Update minor number in unstable trunk (e.g., 0.7.2 -> 0.7.3)
 
     o Use file list from step 6 above
     o ./autogen.sh
