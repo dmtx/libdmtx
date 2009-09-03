@@ -66,7 +66,8 @@ EXTRA_DIST = KNOWNBUG \
 	wrapper/net/* \
 	wrapper/php/* \
 	wrapper/python/* \
-	wrapper/ruby/*
+	wrapper/ruby/* \
+	wrapper/vala/*
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libdmtx.pc
