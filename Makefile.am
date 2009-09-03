@@ -49,6 +49,7 @@ EXTRA_DIST = KNOWNBUG \
 	README.osx \
 	README.unix \
 	README.visualc \
+	m4 \
 	project \
 	script/check_all.sh \
 	script/check_comments.sh \
