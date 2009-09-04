@@ -90,10 +90,10 @@ Release Checklist
 
 8) o Perform final test build
 
-   o svn update # get any pending updates
+   o $ svn update # get any pending updates
    o # final commit
-   o svn diff # confirm no diffs, code is final
-   o sudo make uninstall && make clean && make distclean
+   o $ svn diff # confirm no diffs, code is final
+   o $ sudo make uninstall && make clean && make distclean
    o $ ./autogen.sh && ./configure && make && make check && sudo make install
    o # Run tests and confirm it works. Start step over if changes are needed.
 
@@ -130,9 +130,9 @@ Release Checklist
 13) o Update minor number in unstable trunk (e.g., 0.7.2 -> 0.7.3)
 
     o Use file list from step 6 above
-    o ./autogen.sh
-    o ./configure
-    o svn commit
+    o $ ./autogen.sh
+    o $ ./configure
+    o $ svn commit
 
 14) o Update libdmtx.org with news item, download entry, and new
       project status
