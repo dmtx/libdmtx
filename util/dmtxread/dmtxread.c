@@ -479,8 +479,8 @@ OPTIONS:\n"), programName, programName);
   -t, --threshold=N           ignore weak edges below threshold N (1-100)\n\
   -x, --x-range-min=N[%%]      do not scan pixels to the left of N (or N%%)\n\
   -X, --x-range-max=N[%%]      do not scan pixels to the right of N (or N%%)\n\
-  -y, --y-range-min=N[%%]      do not scan pixels above N (or N%%)\n\
-  -Y, --y-range-max=N[%%]      do not scan pixels below N (or N%%)\n"));
+  -y, --y-range-min=N[%%]      do not scan pixels below N (or N%%)\n\
+  -Y, --y-range-max=N[%%]      do not scan pixels above N (or N%%)\n"));
       fprintf(stdout, _("\
   -C, --corrections-max=N     correct at most N errors (0 = correction disabled)\n\
   -D, --diagnose              make copy of image with additional diagnostic data\n\
