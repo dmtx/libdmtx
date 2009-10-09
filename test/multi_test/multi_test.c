@@ -29,6 +29,7 @@ Contact: mblaughton@users.sourceforge.net
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 #include <assert.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
@@ -551,7 +552,7 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
    int y, yBeg, yEnd;
    int offset, offsets[8];
    int diffTop, diffBtm, diffMag;
-   double pcntTop, pcntBtm;
+   double pcntTop;
    struct Flow flowTop, flowMid, flowBtm;
    DmtxTime ta, tb;
 
@@ -633,10 +634,12 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
             continue;
 
          pcntTop = abs(diffBtm)/(double)diffMag;
-         pcntBtm = abs(diffTop)/(double)diffMag;
-
-         edgeCache[offset + offsets[5]].sCount += (int)(abs(flowMid.mag) * pcntTop + 0.5);
-         edgeCache[offset + offsets[3]].sCount += (int)(abs(flowMid.mag) * pcntBtm + 0.5);
+         if(pcntTop > 0.67)
+            edgeCache[offset + offsets[5]].sCount += abs(flowMid.mag);
+         else if(pcntTop < 0.33)
+            edgeCache[offset + offsets[3]].sCount += abs(flowMid.mag);
+         else
+            edgeCache[offset + offsets[4]].sCount += abs(flowMid.mag);
       }
    }
 
