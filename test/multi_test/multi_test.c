@@ -51,13 +51,16 @@ struct AppState {
 };
 
 struct Flow {
+/*
    unsigned char dir;
    Uint16        mag;
+*/
+   int mag;
 };
 
 struct Edge {
 /* unsigned char dir; */
-   int vCount, hCount;
+   int sCount, bCount;
 /* int up, down, left, right;
    int mag; */
 };
@@ -74,9 +77,9 @@ static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
       SDL_Surface *picture, SDL_Surface **screen);
 static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
-static void PopulateFlowCache(struct Flow *vFlowCache, struct Flow *hFlowCache,
+static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       DmtxImage *img, int width, int height);
-static void PopulateEdgeCache(struct Edge *edgeCache, struct Flow *vFlowCache, struct Flow *hFlowCache, int width, int height);
+static void PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache, struct Flow *bFlowCache, int width, int height);
 /*static void PopulateHoughCache(struct Hough *houghCache, struct Flow *flowCache, int width, int height);*/
 static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
 static void WriteEdgeCacheImage(struct Edge *edge, int width, int height, char *imagePath);
@@ -95,7 +98,7 @@ int main(int argc, char *argv[])
    SDL_Rect           imageLoc;
    DmtxImage         *img;
    DmtxDecode        *dec;
-   struct Flow       *vFlowCache, *hFlowCache;
+   struct Flow       *sFlowCache, *bFlowCache;
    struct Edge       *edgeCache;
    struct Hough      *houghCache;
 
@@ -136,10 +139,10 @@ int main(int argc, char *argv[])
    width = dmtxImageGetProp(img, DmtxPropWidth);
    height = dmtxImageGetProp(img, DmtxPropHeight);
 
-   vFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
-   assert(vFlowCache != NULL);
-   hFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
-   assert(hFlowCache != NULL);
+   sFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
+   assert(sFlowCache != NULL);
+   bFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
+   assert(bFlowCache != NULL);
 
    /* XXX Edge caches will actually have one fewer locations in height and width */
    edgeCache = (struct Edge *)calloc(width * height, sizeof(struct Edge));
@@ -149,13 +152,13 @@ int main(int argc, char *argv[])
    assert(houghCache != NULL);
 
    SDL_LockSurface(picture);
-   PopulateFlowCache(vFlowCache, hFlowCache, dec->image, width, height);
+   PopulateFlowCache(sFlowCache, bFlowCache, dec->image, width, height);
    SDL_UnlockSurface(picture);
 
-   PopulateEdgeCache(edgeCache, vFlowCache, hFlowCache, width, height);
+   PopulateEdgeCache(edgeCache, sFlowCache, bFlowCache, width, height);
 
-   WriteFlowCacheImage(vFlowCache, width, height, "vFlowCache.pnm");
-   WriteFlowCacheImage(hFlowCache, width, height, "hFlowCache.pnm");
+   WriteFlowCacheImage(sFlowCache, width, height, "sFlowCache.pnm");
+   WriteFlowCacheImage(bFlowCache, width, height, "bFlowCache.pnm");
    WriteEdgeCacheImage(edgeCache, width, height, "edgeCache.pnm");
    WriteHoughCacheImage(houghCache, width, height, "houghCache.pnm");
 
@@ -217,8 +220,8 @@ int main(int argc, char *argv[])
 
    free(houghCache);
    free(edgeCache);
-   free(hFlowCache);
-   free(vFlowCache);
+   free(bFlowCache);
+   free(sFlowCache);
 
    dmtxDecodeDestroy(&dec);
    dmtxImageDestroy(&img);
@@ -426,13 +429,14 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
  *
  */
 static void
-PopulateFlowCache(struct Flow *vFlowCache, struct Flow  *hFlowCache,
+PopulateFlowCache(struct Flow *sFlowCache, struct Flow  *bFlowCache,
       DmtxImage *img, int width, int height)
 {
    int bytesPerPixel, rowSizeBytes, colorPlane;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
-   int vMag, hMag; /*, compassMax;*/
+/* int vMag, hMag; */
+   int sMag, bMag;
    int colorLoLf, colorLoMd, colorLoRt;
    int colorMdRt, colorHiRt, colorHiMd;
    int colorHiLf, colorMdLf, colorMdMd;
@@ -478,37 +482,41 @@ PopulateFlowCache(struct Flow *vFlowCache, struct Flow  *hFlowCache,
 
          idx = y * width + x;
 
-         /* Calculate vertical edge flow */
-         vMag  =  colorLoRt;
-         vMag += (colorMdRt << 1);
-         vMag +=  colorHiRt;
-         vMag -=  colorLoLf;
-         vMag -= (colorMdLf << 1);
-         vMag -=  colorHiLf;
-
-         /* Calculate horizontal edge flow */
-         hMag  =  colorHiLf;
-         hMag += (colorHiMd << 1);
-         hMag +=  colorHiRt;
-         hMag -=  colorLoLf;
-         hMag -= (colorLoMd << 1);
-         hMag -=  colorLoRt;
+         /**
+          * Calculate "slash" edge flow
+          *  -2 -1  0
+          *  -1  0  1
+          *   0  1  2
+          */
+         sMag  =  colorLoMd;
+         sMag += (colorLoRt << 1);
+         sMag +=  colorMdRt;
+         sMag -=  colorHiMd;
+         sMag -= (colorHiLf << 1);
+         sMag -=  colorMdLf;
 
          /**
-          *   vertical pos = up =  left side dark
-          *   vertical neg = dn = right side dark
-          * horizontal pos = lf =   low side dark
-          * horizontal neg = rt =  high side dark
+          * Calculate "backslash" edge flow
+          *   0  1  2
+          *  -1  0  1
+          *  -2 -1  0
+          */
+         bMag  =  colorMdLf;
+         bMag += (colorLoLf << 1);
+         bMag +=  colorLoMd;
+         bMag -=  colorMdRt;
+         bMag -= (colorHiRt << 1);
+         bMag -=  colorHiMd;
+
+         /**
+          *     slash positive = ...
+          *     slash negative = ...
+          * backslash positive = ...
+          * backslash negative = ...
           */
 
-         /* XXX consider adding DmtxDirNone, or possible just handle with sign? */
-         vFlowCache[idx].dir = (vMag > 0) ? DmtxDirUp : DmtxDirDown;
-         vMag = abs(vMag);
-         vFlowCache[idx].mag = (vMag > 255) ? 255 : vMag;
-
-         hFlowCache[idx].dir = (hMag > 0) ? DmtxDirLeft : DmtxDirRight;
-         hMag = abs(hMag);
-         hFlowCache[idx].mag = (hMag > 255) ? 255 : hMag;
+         sFlowCache[idx].mag = sMag;
+         bFlowCache[idx].mag = bMag;
 
          colorHiLf = colorHiMd;
          colorMdLf = colorMdMd;
@@ -536,14 +544,15 @@ PopulateFlowCache(struct Flow *vFlowCache, struct Flow  *hFlowCache,
  *
  */
 static void
-PopulateEdgeCache(struct Edge *edgeCache, struct Flow *vFlowCache,
-      struct Flow *hFlowCache, int width, int height)
+PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
+      struct Flow *bFlowCache, int width, int height)
 {
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
    int offset, offsets[8];
-   int shiftFwLf, shiftFwMd, shiftFwRt;
-   int offsetFwLf, offsetFwRt;
+   int diffTop, diffBtm, diffMag;
+   double pcntTop, pcntBtm;
+   struct Flow flowTop, flowMid, flowBtm;
    DmtxTime ta, tb;
 
    ta = dmtxTimeNow();
@@ -565,95 +574,69 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *vFlowCache,
    for(y = yBeg; y <= yEnd; y++) {
       for(x = xBeg; x <= xEnd; x++) {
 
-         /* XXX later play with option of offset++ as part of for loop */
+         /**
+          * Coordinate convention using "Slash" example:
+          *
+          *  a---b        a---b
+          *  |top|        |top|         +---+
+          *  c---d---e    c---d---e     | d |
+          *      |mid|        |mid|     +---+---+
+          *      f---g---h    f---g---h     | g |
+          *          |btm|        |btm|     +---+
+          *          i---j        i---j
+          *
+          *      Pixel        First        Second
+          *      Value      Derivative   Derivative
+          *     top = c      top = c       top = d
+          *     mid = f      mid = f       btm = g
+          *     btm = i      btm = i
+          */
+
          offset = y * width + x;
+         flowTop = sFlowCache[offset + offsets[6]];
+         flowMid = sFlowCache[offset];
+         flowBtm = sFlowCache[offset + offsets[2]];
 
-         /* Does edge meet min strength threshold */
-         if(vFlowCache[offset].mag > 20) {
-            switch(vFlowCache[offset].dir) {
-               case DmtxDirUp:
-                  shiftFwMd = 5;
-                  break;
-               case DmtxDirDown:
-                  shiftFwMd = 1;
-                  break;
-               default:
-                  exit(10);
-            }
-            shiftFwLf = (shiftFwMd + 1) & 0x07;
-            shiftFwRt = (shiftFwMd + 7) & 0x07;
-
-            /* Find forward diagonal neighbors */
-            offsetFwLf = offset + offsets[shiftFwLf];
-            offsetFwRt = offset + offsets[shiftFwRt];
-
-            if(vFlowCache[offset].dir == DmtxDirUp) {
-               if(vFlowCache[offsetFwLf].mag > vFlowCache[offsetFwRt].mag) {
-                  /* up left */
-                  edgeCache[offset-1].vCount++;
-               }
-               else {
-                  /* up right */
-                  edgeCache[offset].vCount++;
-               }
-            }
-            else if(vFlowCache[offset].dir == DmtxDirDown) {
-               if(vFlowCache[offsetFwLf].mag > vFlowCache[offsetFwRt].mag) {
-                  /* down right */
-                  edgeCache[offset-width].vCount++;
-               }
-               else {
-                  /* down left */
-                  edgeCache[offset-width-1].vCount++;
-               }
-            }
-            else {
-               exit(11);
-            }
+         /* Middle flow must meet minimum threshold */
+         if(abs(flowMid.mag) < 20) {
+            continue;
          }
 
-         if(hFlowCache[offset].mag > 20) {
-            switch(hFlowCache[offset].dir) {
-               case DmtxDirLeft:
-                  shiftFwMd = 7;
-                  break;
-               case DmtxDirRight:
-                  shiftFwMd = 3;
-                  break;
-               default:
-                  exit(10);
-            }
-            shiftFwLf = (shiftFwMd + 1) & 0x07;
-            shiftFwRt = (shiftFwMd + 7) & 0x07;
-
-            /* Find forward diagonal neighbors */
-            offsetFwLf = offset + offsets[shiftFwLf];
-            offsetFwRt = offset + offsets[shiftFwRt];
-
-            if(hFlowCache[offset].dir == DmtxDirLeft) {
-               if(hFlowCache[offsetFwLf].mag > hFlowCache[offsetFwRt].mag) {
-                  /* down left */
-                  edgeCache[offset-width-1].hCount++;
-               }
-               else {
-                  /* up left */
-                  edgeCache[offset-1].hCount++;
-               }
-            }
-            else if(hFlowCache[offset].dir == DmtxDirRight) {
-               if(hFlowCache[offsetFwLf].mag > hFlowCache[offsetFwRt].mag) {
-                  /* up right */
-                  edgeCache[offset].hCount++;
-               }
-               else {
-                  /* down right */
-                  edgeCache[offset-width].hCount++;
-               }
-            }
-            else {
-               exit(11);
-            }
+         if(flowTop.mag == 0 && flowBtm.mag == 0) {
+            continue;
          }
+         /* All non-zero flows must have same sign */
+         else if(flowTop.mag == 0) {
+            if(flowMid.mag * flowBtm.mag < 0)
+               continue;
+         }
+         /* All non-zero flows must have same sign */
+         else if(flowBtm.mag == 0) {
+            if(flowMid.mag * flowTop.mag < 0)
+               continue;
+         }
+         /* All non-zero flows must have same sign */
+         else {
+            if(flowMid.mag * flowTop.mag < 0 || flowMid.mag * flowBtm.mag < 0)
+               continue;
+         }
+
+         diffTop = flowTop.mag - flowMid.mag;
+         diffBtm = flowMid.mag - flowBtm.mag;
+
+         /* 2nd derivative has same sign -- no zero crossing */
+         if(diffTop * diffBtm > 0)
+            continue;
+
+         diffMag = abs(diffTop) + abs(diffBtm);
+         if(diffMag == 0)
+            continue;
+
+         pcntTop = abs(diffBtm)/(double)diffMag;
+         pcntBtm = abs(diffTop)/(double)diffMag;
+
+         edgeCache[offset + offsets[5]].sCount += (int)(abs(flowMid.mag) * pcntTop + 0.5);
+         edgeCache[offset + offsets[3]].sCount += (int)(abs(flowMid.mag) * pcntBtm + 0.5);
       }
    }
 
@@ -714,32 +697,15 @@ WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePa
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
          flow = flowCache[row * width + col];
-         switch(flow.dir) {
-            case DmtxDirUp:
-               rgb[0] = flow.mag;
-               rgb[1] = 0;
-               rgb[2] = 0;
-               break;
-            case DmtxDirDown:
-               rgb[0] = 0;
-               rgb[1] = flow.mag;
-               rgb[2] = 0;
-               break;
-            case DmtxDirLeft:
-               rgb[0] = 0;
-               rgb[1] = 0;
-               rgb[2] = flow.mag;
-               break;
-            case DmtxDirRight:
-               rgb[0] = flow.mag;
-               rgb[1] = flow.mag;
-               rgb[2] = 0;
-               break;
-            default:
-               rgb[0] = 0;
-               rgb[1] = 0;
-               rgb[2] = 0;
-               break;
+         if(flow.mag > 0) {
+            rgb[0] = 0;
+            rgb[1] = abs(flow.mag)/4;
+            rgb[2] = 0;
+         }
+         else {
+            rgb[0] = abs(flow.mag)/4;
+            rgb[1] = 0;
+            rgb[2] = 0;
          }
 
          fputc(rgb[0], fp);
@@ -758,7 +724,7 @@ WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePa
 static void
 WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePath)
 {
-   int row, col;
+   int row, col, maxVal;
    int rgb[3];
    struct Edge edge;
    FILE *fp;
@@ -769,13 +735,30 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
 
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
 
+   maxVal = 0;
+   for(row = height - 1; row >= 0; row--) {
+      for(col = 0; col < width; col++) {
+         if(edgeCache[row * width + col].sCount > maxVal)
+            maxVal = edgeCache[row * width + col].sCount;
+      }
+   }
+
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
          edge = edgeCache[row * width + col];
 
-         rgb[0] = rgb[1] = rgb[2] = 0;
-         if(edge.vCount == 2 || edge.hCount == 2)
-            rgb[0] = rgb[1] = rgb[2] = 255;
+/*       if(edge.sCount > 0 && edge.bCount > 0) {
+            rgb[0] = 255;
+            rgb[1] = 255;
+            rgb[2] = 255;
+         }
+         else if(edge.sCount == 0 && edge.bCount == 0) {
+            rgb[0] = rgb[1] = rgb[2] = 0;
+         }
+         else {
+            rgb[0] = rgb[1] = rgb[2] = 128;
+         } */
+         rgb[0] = rgb[1] = rgb[2] = (int)((edge.sCount * 254.0)/maxVal + 0.5);
 
          fputc(rgb[0], fp);
          fputc(rgb[1], fp);
