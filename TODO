@@ -3,6 +3,8 @@ TODO Items
 
 version 1.0.0: (planned TBD)
 FOCUS: remaining gaps, testing, documentation
+  o libdmtx:   Investigate using MMX to optimize inner loops
+  o libdmtx:   Investigate using threads to split up image processing
   o testsuite: Generate metrics in reproducible format to enable historical tracking
   o testsuite: Investigate option of embedding decoded text into PNG test image comments
   o testsuite: Tests should compare scanned results to embedded PNG comments
