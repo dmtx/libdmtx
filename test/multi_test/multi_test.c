@@ -653,11 +653,11 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
             flowBtm = sFlowCache[offset + offsets[2]];
             if(IsEdge(flowTop, flowMid, flowBtm, &pcntTop) == DmtxTrue) {
                if(pcntTop > 0.67)
-                  edgeCache[offset + offsets[5]].sCount += abs(flowMid.mag);
+                  edgeCache[offset + offsets[5]].sCount += flowMid.mag;
                else if(pcntTop < 0.33)
-                  edgeCache[offset + offsets[3]].sCount += abs(flowMid.mag);
+                  edgeCache[offset + offsets[3]].sCount += flowMid.mag;
                else
-                  edgeCache[offset + offsets[4]].sCount += abs(flowMid.mag);
+                  edgeCache[offset + offsets[4]].sCount += flowMid.mag;
             }
          }
 
@@ -684,11 +684,11 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
             flowBtm = bFlowCache[offset + offsets[0]];
             if(IsEdge(flowTop, flowMid, flowBtm, &pcntTop) == DmtxTrue) {
                if(pcntTop > 0.67)
-                  edgeCache[offset + offsets[4]].bCount += abs(flowMid.mag);
+                  edgeCache[offset + offsets[4]].bCount += flowMid.mag;
                else if(pcntTop < 0.33)
-                  edgeCache[offset].bCount += abs(flowMid.mag);
+                  edgeCache[offset].bCount += flowMid.mag;
                else
-                  edgeCache[offset + offsets[5]].bCount += abs(flowMid.mag);
+                  edgeCache[offset + offsets[5]].bCount += flowMid.mag;
             }
          }
       }
@@ -788,8 +788,10 @@ WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePa
 static void
 WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePath)
 {
-   int row, col, maxS, maxB;
+   int row, col;
+   int minS, maxS, minB, maxB;
    int rgb[3];
+   int sColor, bColor;
    struct Edge edge;
    FILE *fp;
 
@@ -799,12 +801,18 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
 
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
 
+   minS = minB = 0;
    maxS = maxB = 0;
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
-         if(edgeCache[row * width + col].sCount > maxS)
+         if(edgeCache[row * width + col].sCount < minS)
+            minS = edgeCache[row * width + col].sCount;
+         else if(edgeCache[row * width + col].sCount > maxS)
             maxS = edgeCache[row * width + col].sCount;
-         if(edgeCache[row * width + col].bCount > maxB)
+
+         if(edgeCache[row * width + col].bCount < minB)
+            minB = edgeCache[row * width + col].bCount;
+         else if(edgeCache[row * width + col].bCount > maxB)
             maxB = edgeCache[row * width + col].bCount;
       }
    }
@@ -813,11 +821,25 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
       for(col = 0; col < width; col++) {
          edge = edgeCache[row * width + col];
 
+         sColor = (int)((abs(edge.sCount) * 254.0)/maxS + 0.5);
+         bColor = (int)((abs(edge.bCount) * 254.0)/maxS + 0.5);
+
          rgb[0] = rgb[1] = rgb[2] = 0;
-         if(edge.sCount > 0)
-            rgb[0] = (int)((edge.sCount * 254.0)/maxS + 0.5);
-         if(edge.bCount > 0)
-            rgb[1] = (int)((edge.bCount * 254.0)/maxB + 0.5);
+
+         if(edge.sCount > 0) {
+            rgb[0] = sColor;
+         }
+         else if(edge.sCount < 0) {
+            rgb[1] = sColor;
+         }
+
+         if(edge.bCount > 0) {
+            rgb[2] = bColor;
+         }
+         else if(edge.bCount < 0) {
+            rgb[1] = bColor;
+            rgb[2] = bColor;
+         }
 
          fputc(rgb[0], fp);
          fputc(rgb[1], fp);
