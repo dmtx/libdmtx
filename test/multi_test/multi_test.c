@@ -78,6 +78,7 @@ static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
       SDL_Surface *picture, SDL_Surface **screen);
 static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
+static DmtxBoolean IsEdge(struct Flow flowTop, struct Flow flowMid, struct Flow flowBtm, double *pcntTop);
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       DmtxImage *img, int width, int height);
 static void PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache, struct Flow *bFlowCache, int width, int height);
@@ -510,6 +511,11 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow  *bFlowCache,
          bMag -=  colorHiMd;
 
          /**
+          * If implementing these operations using MMX, can load 2
+          * registers with 4 doubleword values and subtract (PSUBD).
+          */
+
+         /**
           *     slash positive = ...
           *     slash negative = ...
           * backslash positive = ...
@@ -544,6 +550,50 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow  *bFlowCache,
  *
  *
  */
+static DmtxBoolean
+IsEdge(struct Flow flowTop, struct Flow flowMid, struct Flow flowBtm, double *pcntTop)
+{
+   int diffTop, diffBtm, diffMag;
+
+   if(flowTop.mag == 0 && flowBtm.mag == 0) {
+      return DmtxFalse;
+   }
+   /* All non-zero flows must have same sign */
+   else if(flowTop.mag == 0) {
+      if(flowMid.mag * flowBtm.mag < 0)
+         return DmtxFalse;
+   }
+   /* All non-zero flows must have same sign */
+   else if(flowBtm.mag == 0) {
+      if(flowMid.mag * flowTop.mag < 0)
+         return DmtxFalse;
+   }
+   /* All non-zero flows must have same sign */
+   else {
+      if(flowMid.mag * flowTop.mag < 0 || flowMid.mag * flowBtm.mag < 0)
+         return DmtxFalse;
+   }
+
+   diffTop = flowTop.mag - flowMid.mag;
+   diffBtm = flowMid.mag - flowBtm.mag;
+
+   /* 2nd derivative has same sign -- no zero crossing */
+   if(diffTop * diffBtm > 0)
+      return DmtxFalse;
+
+   diffMag = abs(diffTop) + abs(diffBtm);
+   if(diffMag == 0)
+      return DmtxFalse;
+
+   *pcntTop = abs(diffBtm)/(double)diffMag;
+
+   return DmtxTrue;
+}
+
+/**
+ *
+ *
+ */
 static void
 PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
       struct Flow *bFlowCache, int width, int height)
@@ -551,7 +601,6 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
    int offset, offsets[8];
-   int diffTop, diffBtm, diffMag;
    double pcntTop;
    struct Flow flowTop, flowMid, flowBtm;
    DmtxTime ta, tb;
@@ -575,71 +624,73 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
    for(y = yBeg; y <= yEnd; y++) {
       for(x = xBeg; x <= xEnd; x++) {
 
+         offset = y * width + x;
+
+         /* Middle flow must meet minimum threshold */
+/*       if(abs(flowMid.mag) < 20)
+            continue; */
+
          /**
-          * Coordinate convention using "Slash" example:
+          * "Slash" edge:
           *
-          *  a---b        a---b
+          *  i---h        i---h
           *  |top|        |top|         +---+
-          *  c---d---e    c---d---e     | d |
+          *  j---d---c    j---d---c     | d |
           *      |mid|        |mid|     +---+---+
-          *      f---g---h    f---g---h     | g |
+          *      a---b---g    a---b---g     | b |
           *          |btm|        |btm|     +---+
-          *          i---j        i---j
+          *          e---f        e---f
           *
           *      Pixel        First        Second
           *      Value      Derivative   Derivative
-          *     top = c      top = c       top = d
-          *     mid = f      mid = f       btm = g
-          *     btm = i      btm = i
+          *     top = j      top = j       top = d
+          *     mid = a      mid = a       btm = b
+          *     btm = e      btm = e
           */
-
-         offset = y * width + x;
-         flowTop = sFlowCache[offset + offsets[6]];
          flowMid = sFlowCache[offset];
-         flowBtm = sFlowCache[offset + offsets[2]];
-
-         /* Middle flow must meet minimum threshold */
-         if(abs(flowMid.mag) < 20) {
-            continue;
+         if(abs(flowMid.mag) > 20) {
+            flowTop = sFlowCache[offset + offsets[6]];
+            flowBtm = sFlowCache[offset + offsets[2]];
+            if(IsEdge(flowTop, flowMid, flowBtm, &pcntTop) == DmtxTrue) {
+               if(pcntTop > 0.67)
+                  edgeCache[offset + offsets[5]].sCount += abs(flowMid.mag);
+               else if(pcntTop < 0.33)
+                  edgeCache[offset + offsets[3]].sCount += abs(flowMid.mag);
+               else
+                  edgeCache[offset + offsets[4]].sCount += abs(flowMid.mag);
+            }
          }
 
-         if(flowTop.mag == 0 && flowBtm.mag == 0) {
-            continue;
+         /**
+          * "Backslash" edge:
+          *
+          *          j---i        j---i
+          *          |top|        |top|     +---+
+          *      d---c---h    d---c---h     | c |
+          *      |mid|        |mid|     +---+---+
+          *  e---a---b    e---a---b     | a |
+          *  |btm|        |btm|         +---+
+          *  f---g        f---g
+          *
+          *      Pixel        First        Second
+          *      Value      Derivative   Derivative
+          *     top = c      top = c       top = c
+          *     mid = a      mid = a       btm = a
+          *     btm = f      btm = f
+          */
+         flowMid = bFlowCache[offset];
+         if(abs(flowMid.mag) > 20) {
+            flowTop = bFlowCache[offset + offsets[4]];
+            flowBtm = bFlowCache[offset + offsets[0]];
+            if(IsEdge(flowTop, flowMid, flowBtm, &pcntTop) == DmtxTrue) {
+               if(pcntTop > 0.67)
+                  edgeCache[offset + offsets[4]].bCount += abs(flowMid.mag);
+               else if(pcntTop < 0.33)
+                  edgeCache[offset].bCount += abs(flowMid.mag);
+               else
+                  edgeCache[offset + offsets[5]].bCount += abs(flowMid.mag);
+            }
          }
-         /* All non-zero flows must have same sign */
-         else if(flowTop.mag == 0) {
-            if(flowMid.mag * flowBtm.mag < 0)
-               continue;
-         }
-         /* All non-zero flows must have same sign */
-         else if(flowBtm.mag == 0) {
-            if(flowMid.mag * flowTop.mag < 0)
-               continue;
-         }
-         /* All non-zero flows must have same sign */
-         else {
-            if(flowMid.mag * flowTop.mag < 0 || flowMid.mag * flowBtm.mag < 0)
-               continue;
-         }
-
-         diffTop = flowTop.mag - flowMid.mag;
-         diffBtm = flowMid.mag - flowBtm.mag;
-
-         /* 2nd derivative has same sign -- no zero crossing */
-         if(diffTop * diffBtm > 0)
-            continue;
-
-         diffMag = abs(diffTop) + abs(diffBtm);
-         if(diffMag == 0)
-            continue;
-
-         pcntTop = abs(diffBtm)/(double)diffMag;
-         if(pcntTop > 0.67)
-            edgeCache[offset + offsets[5]].sCount += abs(flowMid.mag);
-         else if(pcntTop < 0.33)
-            edgeCache[offset + offsets[3]].sCount += abs(flowMid.mag);
-         else
-            edgeCache[offset + offsets[4]].sCount += abs(flowMid.mag);
       }
    }
 
@@ -688,6 +739,7 @@ WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePa
 {
    int row, col;
    int rgb[3];
+   int flowVal, maxVal;
    struct Flow flow;
    FILE *fp;
 
@@ -697,16 +749,25 @@ WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePa
 
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
 
+   maxVal = 0;
+   for(row = height - 1; row >= 0; row--) {
+      for(col = 0; col < width; col++) {
+         flowVal = abs(flowCache[row * width + col].mag);
+         if(flowVal > maxVal)
+            maxVal = flowVal;
+      }
+   }
+
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
          flow = flowCache[row * width + col];
          if(flow.mag > 0) {
             rgb[0] = 0;
-            rgb[1] = abs(flow.mag)/4;
+            rgb[1] = (int)((abs(flow.mag) * 254.0)/maxVal + 0.5);
             rgb[2] = 0;
          }
          else {
-            rgb[0] = abs(flow.mag)/4;
+            rgb[0] = (int)((abs(flow.mag) * 254.0)/maxVal + 0.5);
             rgb[1] = 0;
             rgb[2] = 0;
          }
@@ -727,7 +788,7 @@ WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePa
 static void
 WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePath)
 {
-   int row, col, maxVal;
+   int row, col, maxS, maxB;
    int rgb[3];
    struct Edge edge;
    FILE *fp;
@@ -738,11 +799,13 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
 
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
 
-   maxVal = 0;
+   maxS = maxB = 0;
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
-         if(edgeCache[row * width + col].sCount > maxVal)
-            maxVal = edgeCache[row * width + col].sCount;
+         if(edgeCache[row * width + col].sCount > maxS)
+            maxS = edgeCache[row * width + col].sCount;
+         if(edgeCache[row * width + col].bCount > maxB)
+            maxB = edgeCache[row * width + col].bCount;
       }
    }
 
@@ -750,18 +813,11 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
       for(col = 0; col < width; col++) {
          edge = edgeCache[row * width + col];
 
-/*       if(edge.sCount > 0 && edge.bCount > 0) {
-            rgb[0] = 255;
-            rgb[1] = 255;
-            rgb[2] = 255;
-         }
-         else if(edge.sCount == 0 && edge.bCount == 0) {
-            rgb[0] = rgb[1] = rgb[2] = 0;
-         }
-         else {
-            rgb[0] = rgb[1] = rgb[2] = 128;
-         } */
-         rgb[0] = rgb[1] = rgb[2] = (int)((edge.sCount * 254.0)/maxVal + 0.5);
+         rgb[0] = rgb[1] = rgb[2] = 0;
+         if(edge.sCount > 0)
+            rgb[0] = (int)((edge.sCount * 254.0)/maxS + 0.5);
+         if(edge.bCount > 0)
+            rgb[1] = (int)((edge.bCount * 254.0)/maxB + 0.5);
 
          fputc(rgb[0], fp);
          fputc(rgb[1], fp);
