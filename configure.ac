@@ -25,7 +25,7 @@ AC_SEARCH_LIBS([atan2], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
 AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_FUNCS([gettimeofday])
 
-case $host_os in
+case $target_os in
    cygwin*)
       ARCH=cygwin ;;
    darwin*)
