@@ -61,7 +61,7 @@ struct Flow {
 
 struct Edge {
 /* unsigned char dir; */
-   int sCount, bCount;
+   int count;
 /* int up, down, left, right;
    int mag; */
 };
@@ -69,6 +69,25 @@ struct Edge {
 struct Hough {
    unsigned int mag;
 };
+
+/* Later replace these with integers for fixed point math */
+static double unitSin32[] = {  0.000000,  0.098017,  0.195090,  0.290285,
+                               0.382683,  0.471397,  0.555570,  0.634393,
+                               0.707107,  0.773010,  0.831470,  0.881921,
+                               0.923880,  0.956940,  0.980785,  0.995185,
+                               1.000000,  0.995185,  0.980785,  0.956940,
+                               0.923880,  0.881921,  0.831470,  0.773010,
+                               0.707107,  0.634393,  0.555570,  0.471397,
+                               0.382683,  0.290285,  0.195090,  0.098017 };
+
+static double unitCos32[] = {  1.000000,  0.995185,  0.980785,  0.956940,
+                               0.923880,  0.881921,  0.831470,  0.773010,
+                               0.707107,  0.634393,  0.555570,  0.471397,
+                               0.382683,  0.290285,  0.195090,  0.098017,
+                               0.000000, -0.098017, -0.195090, -0.290285,
+                              -0.382683, -0.471397, -0.555570, -0.634393,
+                              -0.707107, -0.773010, -0.831470, -0.881921,
+                              -0.923880, -0.956940, -0.980785, -0.995185 };
 
 static struct UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
@@ -81,8 +100,8 @@ static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imag
 static DmtxBoolean IsEdge(struct Flow flowTop, struct Flow flowMid, struct Flow flowBtm, double *pcntTop);
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       DmtxImage *img, int width, int height);
-static void PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache, struct Flow *bFlowCache, int width, int height);
-/*static void PopulateHoughCache(struct Hough *houghCache, struct Flow *flowCache, int width, int height);*/
+static void PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow *sFlowCache, struct Flow *bFlowCache, int width, int height);
+static void PopulateHoughCache(struct Hough *houghCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height);
 static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
 static void WriteEdgeCacheImage(struct Edge *edge, int width, int height, char *imagePath);
 static void WriteHoughCacheImage(struct Hough *hough, int width, int height, char *imagePath);
@@ -101,7 +120,7 @@ int main(int argc, char *argv[])
    DmtxImage         *img;
    DmtxDecode        *dec;
    struct Flow       *sFlowCache, *bFlowCache;
-   struct Edge       *edgeCache;
+   struct Edge       *sEdgeCache, *bEdgeCache;
    struct Hough      *houghCache;
 
    opt = GetDefaultOptions();
@@ -147,8 +166,11 @@ int main(int argc, char *argv[])
    assert(bFlowCache != NULL);
 
    /* XXX Edge caches will actually have one fewer locations in height and width */
-   edgeCache = (struct Edge *)calloc(width * height, sizeof(struct Edge));
-   assert(edgeCache != NULL);
+   sEdgeCache = (struct Edge *)calloc(width * height, sizeof(struct Edge));
+   assert(sEdgeCache != NULL);
+
+   bEdgeCache = (struct Edge *)calloc(width * height, sizeof(struct Edge));
+   assert(bEdgeCache != NULL);
 
    houghCache = (struct Hough *)calloc(width * height, sizeof(struct Hough));
    assert(houghCache != NULL);
@@ -157,11 +179,14 @@ int main(int argc, char *argv[])
    PopulateFlowCache(sFlowCache, bFlowCache, dec->image, width, height);
    SDL_UnlockSurface(picture);
 
-   PopulateEdgeCache(edgeCache, sFlowCache, bFlowCache, width, height);
+   PopulateEdgeCache(sEdgeCache, bEdgeCache, sFlowCache, bFlowCache, width, height);
+
+   PopulateHoughCache(houghCache, sEdgeCache, bEdgeCache, width, height);
 
    WriteFlowCacheImage(sFlowCache, width, height, "sFlowCache.pnm");
    WriteFlowCacheImage(bFlowCache, width, height, "bFlowCache.pnm");
-   WriteEdgeCacheImage(edgeCache, width, height, "edgeCache.pnm");
+   WriteEdgeCacheImage(sEdgeCache, width, height, "sEdgeCache.pnm");
+   WriteEdgeCacheImage(bEdgeCache, width, height, "bEdgeCache.pnm");
    WriteHoughCacheImage(houghCache, width, height, "houghCache.pnm");
 
    atexit(SDL_Quit);
@@ -221,7 +246,8 @@ int main(int argc, char *argv[])
    }
 
    free(houghCache);
-   free(edgeCache);
+   free(bEdgeCache);
+   free(sEdgeCache);
    free(bFlowCache);
    free(sFlowCache);
 
@@ -595,7 +621,7 @@ IsEdge(struct Flow flowTop, struct Flow flowMid, struct Flow flowBtm, double *pc
  *
  */
 static void
-PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
+PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow *sFlowCache,
       struct Flow *bFlowCache, int width, int height)
 {
    int x, xBeg, xEnd;
@@ -653,11 +679,11 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
             flowBtm = sFlowCache[offset + offsets[2]];
             if(IsEdge(flowTop, flowMid, flowBtm, &pcntTop) == DmtxTrue) {
                if(pcntTop > 0.67)
-                  edgeCache[offset + offsets[5]].sCount += flowMid.mag;
+                  sEdgeCache[offset + offsets[5]].count += flowMid.mag;
                else if(pcntTop < 0.33)
-                  edgeCache[offset + offsets[3]].sCount += flowMid.mag;
+                  sEdgeCache[offset + offsets[3]].count += flowMid.mag;
                else
-                  edgeCache[offset + offsets[4]].sCount += flowMid.mag;
+                  sEdgeCache[offset + offsets[4]].count += flowMid.mag;
             }
          }
 
@@ -684,11 +710,11 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
             flowBtm = bFlowCache[offset + offsets[0]];
             if(IsEdge(flowTop, flowMid, flowBtm, &pcntTop) == DmtxTrue) {
                if(pcntTop > 0.67)
-                  edgeCache[offset + offsets[4]].bCount += flowMid.mag;
+                  bEdgeCache[offset + offsets[4]].count += flowMid.mag;
                else if(pcntTop < 0.33)
-                  edgeCache[offset].bCount += flowMid.mag;
+                  bEdgeCache[offset].count += flowMid.mag;
                else
-                  edgeCache[offset + offsets[5]].bCount += flowMid.mag;
+                  bEdgeCache[offset + offsets[5]].count += flowMid.mag;
             }
          }
       }
@@ -699,14 +725,14 @@ PopulateEdgeCache(struct Edge *edgeCache, struct Flow *sFlowCache,
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
 }
 
-#ifdef NOTDEFINED
 /**
  *
  *
  */
 static void
-PopulateHoughCache(struct Hough *houghCache, struct Flow *flowCache, int width, int height)
+PopulateHoughCache(struct Hough *houghCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height)
 {
+   int idx, phi, d;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
    DmtxTime ta, tb;
@@ -720,7 +746,24 @@ PopulateHoughCache(struct Hough *houghCache, struct Flow *flowCache, int width, 
 
    for(y = yBeg; y <= yEnd; y++) {
       for(x = xBeg; x <= xEnd; x++) {
-         ;
+
+         idx = y * width + x;
+
+         /* 0-90 degrees for "Slash" edges */
+         if(abs(sEdgeCache[d].count) > 5) {
+            for(phi = 0; phi < 17; phi++) {
+               d = (int)(x * unitCos32[phi] + y * unitSin32[phi] + 0.5);
+/*             houghCache[phi][d] += sEdgeCache[d].count; */
+            }
+         }
+
+         /* 90-180 degrees for "Backslash" edges */
+         if(abs(bEdgeCache[d].count) > 5) {
+            for(phi = 16; phi < 32; phi++) {
+               d = (int)(x * unitCos32[phi] + y * unitSin32[phi] + 0.5);
+/*             houghCache[phi][d] += bEdgeCache[d].count; */
+            }
+         }
       }
    }
 
@@ -728,7 +771,6 @@ PopulateHoughCache(struct Hough *houghCache, struct Flow *flowCache, int width, 
    fprintf(stdout, "PopulateHough time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
 }
-#endif
 
 /**
  *
@@ -789,9 +831,9 @@ static void
 WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePath)
 {
    int row, col;
-   int maxS, maxB;
+   int maxVal;
    int rgb[3];
-   int sColor, bColor;
+   int color;
    struct Edge edge;
    FILE *fp;
 
@@ -801,14 +843,11 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
 
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
 
-   maxS = maxB = 0;
+   maxVal = 0;
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
-         if(abs(edgeCache[row * width + col].sCount) > maxS)
-            maxS = abs(edgeCache[row * width + col].sCount);
-
-         if(abs(edgeCache[row * width + col].bCount) > maxB)
-            maxB = abs(edgeCache[row * width + col].bCount);
+         if(abs(edgeCache[row * width + col].count) > maxVal)
+            maxVal = abs(edgeCache[row * width + col].count);
       }
    }
 
@@ -816,20 +855,14 @@ WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePa
       for(col = 0; col < width; col++) {
          edge = edgeCache[row * width + col];
 
-         sColor = (int)((abs(edge.sCount) * 254.0)/maxS + 0.5);
-         bColor = (int)((abs(edge.bCount) * 254.0)/maxB + 0.5);
+         color = (int)((abs(edge.count) * 254.0)/maxVal + 0.5);
 
          rgb[0] = rgb[1] = rgb[2] = 0;
 
-         if(edge.sCount > 0)
-            rgb[0] = sColor;
-         else if(edge.sCount < 0)
-            rgb[1] = sColor;
-
-         if(edge.bCount > 0)
-            rgb[2] = bColor;
-         else if(edge.bCount < 0)
-            rgb[1] = rgb[2] = bColor;
+         if(edge.count > 0)
+            rgb[0] = color;
+         else if(edge.count < 0)
+            rgb[1] = color;
 
          fputc(rgb[0], fp);
          fputc(rgb[1], fp);
