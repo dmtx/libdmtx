@@ -30,6 +30,7 @@ Contact: mblaughton@users.sourceforge.net
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <math.h>
 #include <assert.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
@@ -101,7 +102,7 @@ static DmtxBoolean IsEdge(struct Flow flowTop, struct Flow flowMid, struct Flow 
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       DmtxImage *img, int width, int height);
 static void PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow *sFlowCache, struct Flow *bFlowCache, int width, int height);
-static void PopulateHoughCache(struct Hough *houghCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height);
+static void PopulateHoughCache(struct Hough *sHoughCache, struct Hough *bHoughCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height, int diag);
 static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
 static void WriteEdgeCacheImage(struct Edge *edge, int width, int height, char *imagePath);
 static void WriteHoughCacheImage(struct Hough *hough, int width, int height, char *imagePath);
@@ -113,6 +114,7 @@ int main(int argc, char *argv[])
    struct AppState    state;
    int                scanX, scanY;
    int                width, height;
+   int                diag;
    SDL_Surface       *screen;
    SDL_Surface       *picture;
    SDL_Event          event;
@@ -121,7 +123,7 @@ int main(int argc, char *argv[])
    DmtxDecode        *dec;
    struct Flow       *sFlowCache, *bFlowCache;
    struct Edge       *sEdgeCache, *bEdgeCache;
-   struct Hough      *houghCache;
+   struct Hough      *sHoughCache, *bHoughCache;
 
    opt = GetDefaultOptions();
 
@@ -172,8 +174,13 @@ int main(int argc, char *argv[])
    bEdgeCache = (struct Edge *)calloc(width * height, sizeof(struct Edge));
    assert(bEdgeCache != NULL);
 
-   houghCache = (struct Hough *)calloc(width * height, sizeof(struct Hough));
-   assert(houghCache != NULL);
+   diag = (int)(sqrt(width * width + height * height) + 0.5);
+
+   sHoughCache = (struct Hough *)calloc(32 * 2 * diag, sizeof(struct Hough));
+   assert(sHoughCache != NULL);
+
+   bHoughCache = (struct Hough *)calloc(32 * 2 * diag, sizeof(struct Hough));
+   assert(bHoughCache != NULL);
 
    SDL_LockSurface(picture);
    PopulateFlowCache(sFlowCache, bFlowCache, dec->image, width, height);
@@ -181,13 +188,14 @@ int main(int argc, char *argv[])
 
    PopulateEdgeCache(sEdgeCache, bEdgeCache, sFlowCache, bFlowCache, width, height);
 
-   PopulateHoughCache(houghCache, sEdgeCache, bEdgeCache, width, height);
+   PopulateHoughCache(sHoughCache, bHoughCache, sEdgeCache, bEdgeCache, width, height, diag);
 
    WriteFlowCacheImage(sFlowCache, width, height, "sFlowCache.pnm");
    WriteFlowCacheImage(bFlowCache, width, height, "bFlowCache.pnm");
    WriteEdgeCacheImage(sEdgeCache, width, height, "sEdgeCache.pnm");
    WriteEdgeCacheImage(bEdgeCache, width, height, "bEdgeCache.pnm");
-   WriteHoughCacheImage(houghCache, width, height, "houghCache.pnm");
+   WriteHoughCacheImage(sHoughCache, 32, 2 * diag, "sHoughCache.pnm");
+   WriteHoughCacheImage(bHoughCache, 32, 2 * diag, "bHoughCache.pnm");
 
    atexit(SDL_Quit);
 
@@ -245,7 +253,8 @@ int main(int argc, char *argv[])
       SDL_Flip(screen);
    }
 
-   free(houghCache);
+   free(bHoughCache);
+   free(sHoughCache);
    free(bEdgeCache);
    free(sEdgeCache);
    free(bFlowCache);
@@ -652,10 +661,6 @@ PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow 
 
          offset = y * width + x;
 
-         /* Middle flow must meet minimum threshold */
-/*       if(abs(flowMid.mag) < 20)
-            continue; */
-
          /**
           * "Slash" edge:
           *
@@ -730,7 +735,7 @@ PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow 
  *
  */
 static void
-PopulateHoughCache(struct Hough *houghCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height)
+PopulateHoughCache(struct Hough *sHoughCache, struct Hough *bHoughCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height, int diag)
 {
    int idx, phi, d;
    int x, xBeg, xEnd;
@@ -749,19 +754,23 @@ PopulateHoughCache(struct Hough *houghCache, struct Edge *sEdgeCache, struct Edg
 
          idx = y * width + x;
 
-         /* 0-90 degrees for "Slash" edges */
-         if(abs(sEdgeCache[d].count) > 5) {
-            for(phi = 0; phi < 17; phi++) {
-               d = (int)(x * unitCos32[phi] + y * unitSin32[phi] + 0.5);
-/*             houghCache[phi][d] += sEdgeCache[d].count; */
+         /* 0-90 deg. Hough for 90-180 deg. "Backslash" edges */
+         if(bEdgeCache[idx].count != 0) {
+            for(phi = 0; phi < 16; phi++) {
+               d = diag + (int)(x * unitCos32[phi] + y * unitSin32[phi] + 0.5);
+               assert(abs(d) < diag * 2);
+               /* for now accumulate abs() */
+               bHoughCache[d * 32 + phi].mag += abs(bEdgeCache[idx].count);
             }
          }
 
-         /* 90-180 degrees for "Backslash" edges */
-         if(abs(bEdgeCache[d].count) > 5) {
+         /* 90-180 deg. Hough for 0-90 deg. "Slash" edges */
+         if(sEdgeCache[idx].count != 0) {
             for(phi = 16; phi < 32; phi++) {
-               d = (int)(x * unitCos32[phi] + y * unitSin32[phi] + 0.5);
-/*             houghCache[phi][d] += bEdgeCache[d].count; */
+               d = diag + (int)(x * unitCos32[phi] + y * unitSin32[phi] + 0.5);
+               assert(abs(d) < diag * 2);
+               /* for now accumulate abs() */
+               sHoughCache[d * 32 + phi].mag += abs(sEdgeCache[idx].count);
             }
          }
       }
@@ -881,6 +890,7 @@ static void
 WriteHoughCacheImage(struct Hough *houghCache, int width, int height, char *imagePath)
 {
    int row, col;
+   int maxVal;
    int rgb[3];
    unsigned int cache;
    FILE *fp;
@@ -889,29 +899,23 @@ WriteHoughCacheImage(struct Hough *houghCache, int width, int height, char *imag
    if(fp == NULL)
       exit(1);
 
+   assert(width == 32);
+
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
+
+   maxVal = 0;
+   for(row = height - 1; row >= 0; row--) {
+      for(col = 0; col < width; col++) {
+         if(houghCache[row * width + col].mag > maxVal)
+            maxVal = houghCache[row * width + col].mag;
+      }
+   }
 
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
          cache = houghCache[row * width + col].mag;
-         switch(cache) {
-            case DmtxDirVertical:
-               rgb[0] = 255;
-               rgb[1] = 0;
-               rgb[2] = 0;
-               break;
-            case DmtxDirHorizontal:
-               rgb[0] = 0;
-               rgb[1] = 255;
-               rgb[2] = 0;
-               break;
-            default:
-               rgb[0] = 0;
-               rgb[1] = 0;
-               rgb[2] = 0;
-               break;
-         }
 
+         rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
          fputc(rgb[0], fp);
          fputc(rgb[1], fp);
          fputc(rgb[2], fp);
