@@ -53,18 +53,11 @@ struct AppState {
 };
 
 struct Flow {
-/*
-   unsigned char dir;
-   Uint16        mag;
-*/
    int mag;
 };
 
 struct Edge {
-/* unsigned char dir; */
    int count;
-/* int up, down, left, right;
-   int mag; */
 };
 
 struct Hough {
@@ -102,7 +95,7 @@ static DmtxBoolean IsEdge(struct Flow flowTop, struct Flow flowMid, struct Flow 
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       DmtxImage *img, int width, int height);
 static void PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow *sFlowCache, struct Flow *bFlowCache, int width, int height);
-static void PopulateHoughCache(struct Hough *sHoughCache, struct Hough *bHoughCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height, int diag);
+static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height, int diag);
 static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
 static void WriteEdgeCacheImage(struct Edge *edge, int width, int height, char *imagePath);
 static void WriteHoughCacheImage(struct Hough *hough, int width, int height, char *imagePath);
@@ -123,7 +116,7 @@ int main(int argc, char *argv[])
    DmtxDecode        *dec;
    struct Flow       *sFlowCache, *bFlowCache;
    struct Edge       *sEdgeCache, *bEdgeCache;
-   struct Hough      *sHoughCache, *bHoughCache;
+   struct Hough      *pHoughCache, *nHoughCache;
 
    opt = GetDefaultOptions();
 
@@ -176,11 +169,11 @@ int main(int argc, char *argv[])
 
    diag = (int)(sqrt(width * width + height * height) + 0.5);
 
-   sHoughCache = (struct Hough *)calloc(32 * 2 * diag, sizeof(struct Hough));
-   assert(sHoughCache != NULL);
+   pHoughCache = (struct Hough *)calloc(32 * 2 * diag, sizeof(struct Hough));
+   assert(pHoughCache != NULL);
 
-   bHoughCache = (struct Hough *)calloc(32 * 2 * diag, sizeof(struct Hough));
-   assert(bHoughCache != NULL);
+   nHoughCache = (struct Hough *)calloc(32 * 2 * diag, sizeof(struct Hough));
+   assert(nHoughCache != NULL);
 
    SDL_LockSurface(picture);
    PopulateFlowCache(sFlowCache, bFlowCache, dec->image, width, height);
@@ -188,14 +181,14 @@ int main(int argc, char *argv[])
 
    PopulateEdgeCache(sEdgeCache, bEdgeCache, sFlowCache, bFlowCache, width, height);
 
-   PopulateHoughCache(sHoughCache, bHoughCache, sEdgeCache, bEdgeCache, width, height, diag);
+   PopulateHoughCache(pHoughCache, nHoughCache, sEdgeCache, bEdgeCache, width, height, diag);
 
    WriteFlowCacheImage(sFlowCache, width, height, "sFlowCache.pnm");
    WriteFlowCacheImage(bFlowCache, width, height, "bFlowCache.pnm");
    WriteEdgeCacheImage(sEdgeCache, width, height, "sEdgeCache.pnm");
    WriteEdgeCacheImage(bEdgeCache, width, height, "bEdgeCache.pnm");
-   WriteHoughCacheImage(sHoughCache, 32, 2 * diag, "sHoughCache.pnm");
-   WriteHoughCacheImage(bHoughCache, 32, 2 * diag, "bHoughCache.pnm");
+   WriteHoughCacheImage(pHoughCache, 32, 2 * diag, "pHoughCache.pnm");
+   WriteHoughCacheImage(nHoughCache, 32, 2 * diag, "nHoughCache.pnm");
 
    atexit(SDL_Quit);
 
@@ -253,8 +246,8 @@ int main(int argc, char *argv[])
       SDL_Flip(screen);
    }
 
-   free(bHoughCache);
-   free(sHoughCache);
+   free(nHoughCache);
+   free(pHoughCache);
    free(bEdgeCache);
    free(sEdgeCache);
    free(bFlowCache);
@@ -735,7 +728,7 @@ PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow 
  *
  */
 static void
-PopulateHoughCache(struct Hough *sHoughCache, struct Hough *bHoughCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height, int diag)
+PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height, int diag)
 {
    int idx, phi, d;
    int x, xBeg, xEnd;
@@ -760,7 +753,10 @@ PopulateHoughCache(struct Hough *sHoughCache, struct Hough *bHoughCache, struct 
                d = diag + (int)(x * unitCos32[phi] + y * unitSin32[phi] + 0.5);
                assert(abs(d) < diag * 2);
                /* for now accumulate abs() */
-               bHoughCache[d * 32 + phi].mag += abs(bEdgeCache[idx].count);
+               if(bEdgeCache[idx].count > 0)
+                  pHoughCache[d * 32 + phi].mag += bEdgeCache[idx].count;
+               else
+                  nHoughCache[d * 32 + phi].mag -= bEdgeCache[idx].count;
             }
          }
 
@@ -770,7 +766,10 @@ PopulateHoughCache(struct Hough *sHoughCache, struct Hough *bHoughCache, struct 
                d = diag + (int)(x * unitCos32[phi] + y * unitSin32[phi] + 0.5);
                assert(abs(d) < diag * 2);
                /* for now accumulate abs() */
-               sHoughCache[d * 32 + phi].mag += abs(sEdgeCache[idx].count);
+               if(sEdgeCache[idx].count > 0)
+                  pHoughCache[d * 32 + phi].mag += sEdgeCache[idx].count;
+               else
+                  nHoughCache[d * 32 + phi].mag -= sEdgeCache[idx].count;
             }
          }
       }
