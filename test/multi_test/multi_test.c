@@ -65,23 +65,53 @@ struct Hough {
 };
 
 /* Later replace these with integers for fixed point math */
-static double unitSin32[] = {  0.000000,  0.098017,  0.195090,  0.290285,
-                               0.382683,  0.471397,  0.555570,  0.634393,
-                               0.707107,  0.773010,  0.831470,  0.881921,
-                               0.923880,  0.956940,  0.980785,  0.995185,
-                               1.000000,  0.995185,  0.980785,  0.956940,
-                               0.923880,  0.881921,  0.831470,  0.773010,
-                               0.707107,  0.634393,  0.555570,  0.471397,
-                               0.382683,  0.290285,  0.195090,  0.098017 };
+static double unitSin32[] = {
+   0.000000,  0.098017,  0.195090,  0.290285, 0.382683,  0.471397,  0.555570,  0.634393,
+   0.707107,  0.773010,  0.831470,  0.881921, 0.923880,  0.956940,  0.980785,  0.995185,
+   1.000000,  0.995185,  0.980785,  0.956940, 0.923880,  0.881921,  0.831470,  0.773010,
+   0.707107,  0.634393,  0.555570,  0.471397, 0.382683,  0.290285,  0.195090,  0.098017 };
 
-static double unitCos32[] = {  1.000000,  0.995185,  0.980785,  0.956940,
-                               0.923880,  0.881921,  0.831470,  0.773010,
-                               0.707107,  0.634393,  0.555570,  0.471397,
-                               0.382683,  0.290285,  0.195090,  0.098017,
-                               0.000000, -0.098017, -0.195090, -0.290285,
-                              -0.382683, -0.471397, -0.555570, -0.634393,
-                              -0.707107, -0.773010, -0.831470, -0.881921,
-                              -0.923880, -0.956940, -0.980785, -0.995185 };
+static double unitCos32[] = {
+   1.000000,  0.995185,  0.980785,  0.956940,  0.923880,  0.881921,  0.831470,  0.773010,
+   0.707107,  0.634393,  0.555570,  0.471397,  0.382683,  0.290285,  0.195090,  0.098017,
+   0.000000, -0.098017, -0.195090, -0.290285, -0.382683, -0.471397, -0.555570, -0.634393,
+  -0.707107, -0.773010, -0.831470, -0.881921, -0.923880, -0.956940, -0.980785, -0.995185 };
+
+static double unitSin128[] = {
+   0.000000,  0.024541,  0.049068,  0.073565,  0.098017,  0.122411,  0.146730,  0.170962,
+   0.195090,  0.219101,  0.242980,  0.266713,  0.290285,  0.313682,  0.336890,  0.359895,
+   0.382683,  0.405241,  0.427555,  0.449611,  0.471397,  0.492898,  0.514103,  0.534998,
+   0.555570,  0.575808,  0.595699,  0.615232,  0.634393,  0.653173,  0.671559,  0.689541,
+   0.707107,  0.724247,  0.740951,  0.757209,  0.773010,  0.788346,  0.803208,  0.817585,
+   0.831470,  0.844854,  0.857729,  0.870087,  0.881921,  0.893224,  0.903989,  0.914210,
+   0.923880,  0.932993,  0.941544,  0.949528,  0.956940,  0.963776,  0.970031,  0.975702,
+   0.980785,  0.985278,  0.989177,  0.992480,  0.995185,  0.997290,  0.998795,  0.999699,
+   1.000000,  0.999699,  0.998795,  0.997290,  0.995185,  0.992480,  0.989177,  0.985278,
+   0.980785,  0.975702,  0.970031,  0.963776,  0.956940,  0.949528,  0.941544,  0.932993,
+   0.923880,  0.914210,  0.903989,  0.893224,  0.881921,  0.870087,  0.857729,  0.844854,
+   0.831470,  0.817585,  0.803208,  0.788346,  0.773010,  0.757209,  0.740951,  0.724247,
+   0.707107,  0.689541,  0.671559,  0.653173,  0.634393,  0.615232,  0.595699,  0.575808,
+   0.555570,  0.534998,  0.514103,  0.492898,  0.471397,  0.449611,  0.427555,  0.405241,
+   0.382683,  0.359895,  0.336890,  0.313682,  0.290285,  0.266713,  0.242980,  0.219101,
+   0.195090,  0.170962,  0.146730,  0.122411,  0.098017,  0.073565,  0.049068,  0.024541 };
+
+static double unitCos128[] = {
+   1.000000,  0.999699,  0.998795,  0.997290,  0.995185,  0.992480,  0.989177,  0.985278,
+   0.980785,  0.975702,  0.970031,  0.963776,  0.956940,  0.949528,  0.941544,  0.932993,
+   0.923880,  0.914210,  0.903989,  0.893224,  0.881921,  0.870087,  0.857729,  0.844854,
+   0.831470,  0.817585,  0.803208,  0.788346,  0.773010,  0.757209,  0.740951,  0.724247,
+   0.707107,  0.689541,  0.671559,  0.653173,  0.634393,  0.615232,  0.595699,  0.575808,
+   0.555570,  0.534998,  0.514103,  0.492898,  0.471397,  0.449611,  0.427555,  0.405241,
+   0.382683,  0.359895,  0.336890,  0.313682,  0.290285,  0.266713,  0.242980,  0.219101,
+   0.195090,  0.170962,  0.146730,  0.122411,  0.098017,  0.073565,  0.049068,  0.024541,
+   0.000000, -0.024541, -0.049068, -0.073565, -0.098017, -0.122411, -0.146730, -0.170962,
+  -0.195090, -0.219101, -0.242980, -0.266713, -0.290285, -0.313682, -0.336890, -0.359895,
+  -0.382683, -0.405241, -0.427555, -0.449611, -0.471397, -0.492898, -0.514103, -0.534998,
+  -0.555570, -0.575808, -0.595699, -0.615232, -0.634393, -0.653173, -0.671559, -0.689541,
+  -0.707107, -0.724247, -0.740951, -0.757209, -0.773010, -0.788346, -0.803208, -0.817585,
+  -0.831470, -0.844854, -0.857729, -0.870087, -0.881921, -0.893224, -0.903989, -0.914210,
+  -0.923880, -0.932993, -0.941544, -0.949528, -0.956940, -0.963776, -0.970031, -0.975702,
+  -0.980785, -0.985278, -0.989177, -0.992480, -0.995185, -0.997290, -0.998795, -0.999699 };
 
 static struct UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
@@ -169,10 +199,10 @@ int main(int argc, char *argv[])
 
    diag = (int)(sqrt(width * width + height * height) + 0.5);
 
-   pHoughCache = (struct Hough *)calloc(32 * 2 * diag, sizeof(struct Hough));
+   pHoughCache = (struct Hough *)calloc(128 * 2 * diag, sizeof(struct Hough));
    assert(pHoughCache != NULL);
 
-   nHoughCache = (struct Hough *)calloc(32 * 2 * diag, sizeof(struct Hough));
+   nHoughCache = (struct Hough *)calloc(128 * 2 * diag, sizeof(struct Hough));
    assert(nHoughCache != NULL);
 
    SDL_LockSurface(picture);
@@ -187,8 +217,8 @@ int main(int argc, char *argv[])
    WriteFlowCacheImage(bFlowCache, width, height, "bFlowCache.pnm");
    WriteEdgeCacheImage(sEdgeCache, width, height, "sEdgeCache.pnm");
    WriteEdgeCacheImage(bEdgeCache, width, height, "bEdgeCache.pnm");
-   WriteHoughCacheImage(pHoughCache, 32, 2 * diag, "pHoughCache.pnm");
-   WriteHoughCacheImage(nHoughCache, 32, 2 * diag, "nHoughCache.pnm");
+   WriteHoughCacheImage(pHoughCache, 128, 2 * diag, "pHoughCache.pnm");
+   WriteHoughCacheImage(nHoughCache, 128, 2 * diag, "nHoughCache.pnm");
 
    atexit(SDL_Quit);
 
@@ -724,8 +754,22 @@ PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow 
 }
 
 /**
+ * 12.0 -----    6
+ * 10.0   -----  5
+ *  8.0 -----    4
+ *  6.0   -----  3
+ *  5.0 -----    2
+ *  4.0 -----    2
+ *  2.0   -----  1
+ *  0.0 -----    0
+ * -2.0   ----- -3
+ * -4.0 -----   -3
+ * -5.0 -----   -3
+ * -6.0   ----- -4
  *
- *
+ * algorithm for ranking contrast
+ * is fabs() faster than x * -1 ?
+ * is there a fast math way to flip sign?
  */
 static void
 PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height, int diag)
@@ -733,6 +777,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
    int idx, phi, d;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
+   double dFloat;
    DmtxTime ta, tb;
 
    xBeg = 2;
@@ -749,27 +794,30 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          /* 0-90 deg. Hough for 90-180 deg. "Backslash" edges */
          if(bEdgeCache[idx].count != 0) {
-            for(phi = 0; phi < 16; phi++) {
-               d = diag + (int)(x * unitCos32[phi] + y * unitSin32[phi] + 0.5);
+            for(phi = 0; phi < 64; phi++) {
+               /* close enough approximation of floor() function */
+               dFloat = (x * unitCos128[phi] + y * unitSin128[phi]);
+               d = diag + ((dFloat < 0) ? (int)dFloat - 1 : (int)dFloat)/2;
                assert(abs(d) < diag * 2);
                /* for now accumulate abs() */
                if(bEdgeCache[idx].count > 0)
-                  pHoughCache[d * 32 + phi].mag += bEdgeCache[idx].count;
+                  pHoughCache[d * 128 + phi].mag += bEdgeCache[idx].count;
                else
-                  nHoughCache[d * 32 + phi].mag -= bEdgeCache[idx].count;
+                  nHoughCache[d * 128 + phi].mag -= bEdgeCache[idx].count;
             }
          }
 
          /* 90-180 deg. Hough for 0-90 deg. "Slash" edges */
          if(sEdgeCache[idx].count != 0) {
-            for(phi = 16; phi < 32; phi++) {
-               d = diag + (int)(x * unitCos32[phi] + y * unitSin32[phi] + 0.5);
+            for(phi = 64; phi < 128; phi++) {
+               dFloat = (x * unitCos128[phi] + y * unitSin128[phi]);
+               d = diag + ((dFloat < 0) ? (int)dFloat - 1 : (int)dFloat)/2;
                assert(abs(d) < diag * 2);
                /* for now accumulate abs() */
                if(sEdgeCache[idx].count > 0)
-                  pHoughCache[d * 32 + phi].mag += sEdgeCache[idx].count;
+                  pHoughCache[d * 128 + phi].mag += sEdgeCache[idx].count;
                else
-                  nHoughCache[d * 32 + phi].mag -= sEdgeCache[idx].count;
+                  nHoughCache[d * 128 + phi].mag -= sEdgeCache[idx].count;
             }
          }
       }
@@ -898,7 +946,7 @@ WriteHoughCacheImage(struct Hough *houghCache, int width, int height, char *imag
    if(fp == NULL)
       exit(1);
 
-   assert(width == 32);
+   assert(width == 128);
 
    fprintf(fp, "P6\n%d %d\n255\n", width, height);
 
