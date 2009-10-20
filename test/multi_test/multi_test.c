@@ -113,6 +113,26 @@ static double unitCos128[] = {
   -0.923880, -0.932993, -0.941544, -0.949528, -0.956940, -0.963776, -0.970031, -0.975702,
   -0.980785, -0.985278, -0.989177, -0.992480, -0.995185, -0.997290, -0.998795, -0.999699 };
 
+static int unitSin127[] = {
+     0,    3,    6,    9,   12,   16,   19,   22,   25,   28,   31,   34,   37,   40,   43,   46,
+    49,   51,   54,   57,   60,   63,   65,   68,   71,   73,   76,   78,   81,   83,   85,   88,
+    90,   92,   94,   96,   98,  100,  102,  104,  106,  107,  109,  111,  112,  113,  115,  116,
+   117,  118,  120,  121,  122,  122,  123,  124,  125,  125,  126,  126,  126,  127,  127,  127,
+   127,  127,  127,  127,  126,  126,  126,  125,  125,  124,  123,  122,  122,  121,  120,  118,
+   117,  116,  115,  113,  112,  111,  109,  107,  106,  104,  102,  100,   98,   96,   94,   92,
+    90,   88,   85,   83,   81,   78,   76,   73,   71,   68,   65,   63,   60,   57,   54,   51,
+    49,   46,   43,   40,   37,   34,   31,   28,   25,   22,   19,   16,   12,    9,    6,    3 };
+
+static int unitCos127[] = {
+  +127, +127, +127, +127, +126, +126, +126, +125, +125, +124, +123, +122, +122, +121, +120, +118,
+  +117, +116, +115, +113, +112, +111, +109, +107, +106, +104, +102, +100,  +98,  +96,  +94,  +92,
+   +90,  +88,  +85,  +83,  +81,  +78,  +76,  +73,  +71,  +68,  +65,  +63,  +60,  +57,  +54,  +51,
+   +49,  +46,  +43,  +40,  +37,  +34,  +31,  +28,  +25,  +22,  +19,  +16,  +12,   +9,   +6,   +3,
+    +0,   -3,   -6,   -9,  -12,  -16,  -19,  -22,  -25,  -28,  -31,  -34,  -37,  -40,  -43,  -46,
+   -49,  -51,  -54,  -57,  -60,  -63,  -65,  -68,  -71,  -73,  -76,  -78,  -81,  -83,  -85,  -88,
+   -90,  -92,  -94,  -96,  -98, -100, -102, -104, -106, -107, -109, -111, -112, -113, -115, -116,
+  -117, -118, -120, -121, -122, -122, -123, -124, -125, -125, -126, -126, -126, -127, -127, -127 };
+
 static struct UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
 static struct AppState InitAppState(void);
@@ -795,9 +815,10 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
          /* 0-90 deg. Hough for 90-180 deg. "Backslash" edges */
          if(bEdgeCache[idx].count != 0) {
             for(phi = 0; phi < 64; phi++) {
-               /* close enough approximation of floor() function */
-               dFloat = (x * unitCos128[phi] + y * unitSin128[phi]);
-               d = diag + ((dFloat < 0) ? (int)dFloat - 1 : (int)dFloat)/2;
+               /* shift works, divide doesn't ... watch endianess */
+               d = diag + ((x * unitCos127[phi] + y * unitSin127[phi]) >> 8);
+/*             dFloat = (x * unitCos128[phi] + y * unitSin128[phi]);
+               d = diag + ((dFloat < 0) ? (int)dFloat - 1 : (int)dFloat)/2; */
                assert(abs(d) < diag * 2);
                /* for now accumulate abs() */
                if(bEdgeCache[idx].count > 0)
@@ -810,8 +831,9 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
          /* 90-180 deg. Hough for 0-90 deg. "Slash" edges */
          if(sEdgeCache[idx].count != 0) {
             for(phi = 64; phi < 128; phi++) {
-               dFloat = (x * unitCos128[phi] + y * unitSin128[phi]);
-               d = diag + ((dFloat < 0) ? (int)dFloat - 1 : (int)dFloat)/2;
+               d = diag + ((x * unitCos127[phi] + y * unitSin127[phi]) >> 8);
+/*             dFloat = (x * unitCos128[phi] + y * unitSin128[phi]);
+               d = diag + ((dFloat < 0) ? (int)dFloat - 1 : (int)dFloat)/2; */
                assert(abs(d) < diag * 2);
                /* for now accumulate abs() */
                if(sEdgeCache[idx].count > 0)
