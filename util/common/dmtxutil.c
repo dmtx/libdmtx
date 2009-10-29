@@ -8,6 +8,9 @@
 #include "../../dmtx.h"
 #include "dmtxutil.h"
 
+#undef ISDIGIT
+#define ISDIGIT(n) (n > 47 && n < 58)
+
 extern char *programName;
 
 /**
@@ -43,7 +46,7 @@ StringToInt(int *numberInt, char *numberString, char **terminate)
 {
    long numberLong;
 
-   if(!isdigit(*numberString)) {
+   if(!ISDIGIT(*numberString)) {
       *numberInt = DmtxUndefined;
       return DmtxFail;
    }
