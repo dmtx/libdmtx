@@ -113,6 +113,7 @@ static double unitCos128[] = {
   -0.923880, -0.932993, -0.941544, -0.949528, -0.956940, -0.963776, -0.970031, -0.975702,
   -0.980785, -0.985278, -0.989177, -0.992480, -0.995185, -0.997290, -0.998795, -0.999699 };
 
+/* XXX change this to -256 < x <= 256 but still call it unitSin128[] */
 static int unitSin127[] = {
      0,    3,    6,    9,   12,   16,   19,   22,   25,   28,   31,   34,   37,   40,   43,   46,
     49,   51,   54,   57,   60,   63,   65,   68,   71,   73,   76,   78,   81,   83,   85,   88,
@@ -722,7 +723,7 @@ PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow 
           *     btm = e      btm = e
           */
          flowMid = sFlowCache[offset];
-         if(abs(flowMid.mag) > 20) {
+         if(abs(flowMid.mag) > 10) {
             flowTop = sFlowCache[offset + offsets[6]];
             flowBtm = sFlowCache[offset + offsets[2]];
             if(IsEdge(flowTop, flowMid, flowBtm, &pcntTop) == DmtxTrue) {
@@ -753,7 +754,7 @@ PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow 
           *     btm = f      btm = f
           */
          flowMid = bFlowCache[offset];
-         if(abs(flowMid.mag) > 20) {
+         if(abs(flowMid.mag) > 10) {
             flowTop = bFlowCache[offset + offsets[4]];
             flowBtm = bFlowCache[offset + offsets[0]];
             if(IsEdge(flowTop, flowMid, flowBtm, &pcntTop) == DmtxTrue) {
@@ -821,10 +822,12 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
                d = diag + ((dFloat < 0) ? (int)dFloat - 1 : (int)dFloat)/2; */
                assert(abs(d) < diag * 2);
                /* for now accumulate abs() */
-               if(bEdgeCache[idx].count > 0)
+               if(bEdgeCache[idx].count > 0) {
                   pHoughCache[d * 128 + phi].mag += bEdgeCache[idx].count;
-               else
+               }
+               else {
                   nHoughCache[d * 128 + phi].mag -= bEdgeCache[idx].count;
+               }
             }
          }
 
@@ -836,10 +839,12 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
                d = diag + ((dFloat < 0) ? (int)dFloat - 1 : (int)dFloat)/2; */
                assert(abs(d) < diag * 2);
                /* for now accumulate abs() */
-               if(sEdgeCache[idx].count > 0)
+               if(sEdgeCache[idx].count > 0) {
                   pHoughCache[d * 128 + phi].mag += sEdgeCache[idx].count;
-               else
+               }
+               else {
                   nHoughCache[d * 128 + phi].mag -= sEdgeCache[idx].count;
+               }
             }
          }
       }
