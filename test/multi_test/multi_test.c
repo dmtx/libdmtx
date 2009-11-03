@@ -64,75 +64,41 @@ struct Hough {
    unsigned int mag;
 };
 
-/* Later replace these with integers for fixed point math */
-static double unitSin32[] = {
-   0.000000,  0.098017,  0.195090,  0.290285, 0.382683,  0.471397,  0.555570,  0.634393,
-   0.707107,  0.773010,  0.831470,  0.881921, 0.923880,  0.956940,  0.980785,  0.995185,
-   1.000000,  0.995185,  0.980785,  0.956940, 0.923880,  0.881921,  0.831470,  0.773010,
-   0.707107,  0.634393,  0.555570,  0.471397, 0.382683,  0.290285,  0.195090,  0.098017 };
+static int uSin128[] = {
+       0,    25,    50,    75,   100,   125,   150,   175,
+     200,   224,   249,   273,   297,   321,   345,   369,
+     392,   415,   438,   460,   483,   505,   526,   548,
+     569,   590,   610,   630,   650,   669,   688,   706,
+     724,   742,   759,   775,   792,   807,   822,   837,
+     851,   865,   878,   891,   903,   915,   926,   936,
+     946,   955,   964,   972,   980,   987,   993,   999,
+    1004,  1009,  1013,  1016,  1019,  1021,  1023,  1024,
+    1024,  1024,  1023,  1021,  1019,  1016,  1013,  1009,
+    1004,   999,   993,   987,   980,   972,   964,   955,
+     946,   936,   926,   915,   903,   891,   878,   865,
+     851,   837,   822,   807,   792,   775,   759,   742,
+     724,   706,   688,   669,   650,   630,   610,   590,
+     569,   548,   526,   505,   483,   460,   438,   415,
+     392,   369,   345,   321,   297,   273,   249,   224,
+     200,   175,   150,   125,   100,    75,    50,    25 };
 
-static double unitCos32[] = {
-   1.000000,  0.995185,  0.980785,  0.956940,  0.923880,  0.881921,  0.831470,  0.773010,
-   0.707107,  0.634393,  0.555570,  0.471397,  0.382683,  0.290285,  0.195090,  0.098017,
-   0.000000, -0.098017, -0.195090, -0.290285, -0.382683, -0.471397, -0.555570, -0.634393,
-  -0.707107, -0.773010, -0.831470, -0.881921, -0.923880, -0.956940, -0.980785, -0.995185 };
-
-static double unitSin128[] = {
-   0.000000,  0.024541,  0.049068,  0.073565,  0.098017,  0.122411,  0.146730,  0.170962,
-   0.195090,  0.219101,  0.242980,  0.266713,  0.290285,  0.313682,  0.336890,  0.359895,
-   0.382683,  0.405241,  0.427555,  0.449611,  0.471397,  0.492898,  0.514103,  0.534998,
-   0.555570,  0.575808,  0.595699,  0.615232,  0.634393,  0.653173,  0.671559,  0.689541,
-   0.707107,  0.724247,  0.740951,  0.757209,  0.773010,  0.788346,  0.803208,  0.817585,
-   0.831470,  0.844854,  0.857729,  0.870087,  0.881921,  0.893224,  0.903989,  0.914210,
-   0.923880,  0.932993,  0.941544,  0.949528,  0.956940,  0.963776,  0.970031,  0.975702,
-   0.980785,  0.985278,  0.989177,  0.992480,  0.995185,  0.997290,  0.998795,  0.999699,
-   1.000000,  0.999699,  0.998795,  0.997290,  0.995185,  0.992480,  0.989177,  0.985278,
-   0.980785,  0.975702,  0.970031,  0.963776,  0.956940,  0.949528,  0.941544,  0.932993,
-   0.923880,  0.914210,  0.903989,  0.893224,  0.881921,  0.870087,  0.857729,  0.844854,
-   0.831470,  0.817585,  0.803208,  0.788346,  0.773010,  0.757209,  0.740951,  0.724247,
-   0.707107,  0.689541,  0.671559,  0.653173,  0.634393,  0.615232,  0.595699,  0.575808,
-   0.555570,  0.534998,  0.514103,  0.492898,  0.471397,  0.449611,  0.427555,  0.405241,
-   0.382683,  0.359895,  0.336890,  0.313682,  0.290285,  0.266713,  0.242980,  0.219101,
-   0.195090,  0.170962,  0.146730,  0.122411,  0.098017,  0.073565,  0.049068,  0.024541 };
-
-static double unitCos128[] = {
-   1.000000,  0.999699,  0.998795,  0.997290,  0.995185,  0.992480,  0.989177,  0.985278,
-   0.980785,  0.975702,  0.970031,  0.963776,  0.956940,  0.949528,  0.941544,  0.932993,
-   0.923880,  0.914210,  0.903989,  0.893224,  0.881921,  0.870087,  0.857729,  0.844854,
-   0.831470,  0.817585,  0.803208,  0.788346,  0.773010,  0.757209,  0.740951,  0.724247,
-   0.707107,  0.689541,  0.671559,  0.653173,  0.634393,  0.615232,  0.595699,  0.575808,
-   0.555570,  0.534998,  0.514103,  0.492898,  0.471397,  0.449611,  0.427555,  0.405241,
-   0.382683,  0.359895,  0.336890,  0.313682,  0.290285,  0.266713,  0.242980,  0.219101,
-   0.195090,  0.170962,  0.146730,  0.122411,  0.098017,  0.073565,  0.049068,  0.024541,
-   0.000000, -0.024541, -0.049068, -0.073565, -0.098017, -0.122411, -0.146730, -0.170962,
-  -0.195090, -0.219101, -0.242980, -0.266713, -0.290285, -0.313682, -0.336890, -0.359895,
-  -0.382683, -0.405241, -0.427555, -0.449611, -0.471397, -0.492898, -0.514103, -0.534998,
-  -0.555570, -0.575808, -0.595699, -0.615232, -0.634393, -0.653173, -0.671559, -0.689541,
-  -0.707107, -0.724247, -0.740951, -0.757209, -0.773010, -0.788346, -0.803208, -0.817585,
-  -0.831470, -0.844854, -0.857729, -0.870087, -0.881921, -0.893224, -0.903989, -0.914210,
-  -0.923880, -0.932993, -0.941544, -0.949528, -0.956940, -0.963776, -0.970031, -0.975702,
-  -0.980785, -0.985278, -0.989177, -0.992480, -0.995185, -0.997290, -0.998795, -0.999699 };
-
-/* XXX change this to -256 < x <= 256 but still call it unitSin128[] */
-static int unitSin127[] = {
-     0,    3,    6,    9,   12,   16,   19,   22,   25,   28,   31,   34,   37,   40,   43,   46,
-    49,   51,   54,   57,   60,   63,   65,   68,   71,   73,   76,   78,   81,   83,   85,   88,
-    90,   92,   94,   96,   98,  100,  102,  104,  106,  107,  109,  111,  112,  113,  115,  116,
-   117,  118,  120,  121,  122,  122,  123,  124,  125,  125,  126,  126,  126,  127,  127,  127,
-   127,  127,  127,  127,  126,  126,  126,  125,  125,  124,  123,  122,  122,  121,  120,  118,
-   117,  116,  115,  113,  112,  111,  109,  107,  106,  104,  102,  100,   98,   96,   94,   92,
-    90,   88,   85,   83,   81,   78,   76,   73,   71,   68,   65,   63,   60,   57,   54,   51,
-    49,   46,   43,   40,   37,   34,   31,   28,   25,   22,   19,   16,   12,    9,    6,    3 };
-
-static int unitCos127[] = {
-  +127, +127, +127, +127, +126, +126, +126, +125, +125, +124, +123, +122, +122, +121, +120, +118,
-  +117, +116, +115, +113, +112, +111, +109, +107, +106, +104, +102, +100,  +98,  +96,  +94,  +92,
-   +90,  +88,  +85,  +83,  +81,  +78,  +76,  +73,  +71,  +68,  +65,  +63,  +60,  +57,  +54,  +51,
-   +49,  +46,  +43,  +40,  +37,  +34,  +31,  +28,  +25,  +22,  +19,  +16,  +12,   +9,   +6,   +3,
-    +0,   -3,   -6,   -9,  -12,  -16,  -19,  -22,  -25,  -28,  -31,  -34,  -37,  -40,  -43,  -46,
-   -49,  -51,  -54,  -57,  -60,  -63,  -65,  -68,  -71,  -73,  -76,  -78,  -81,  -83,  -85,  -88,
-   -90,  -92,  -94,  -96,  -98, -100, -102, -104, -106, -107, -109, -111, -112, -113, -115, -116,
-  -117, -118, -120, -121, -122, -122, -123, -124, -125, -125, -126, -126, -126, -127, -127, -127 };
+static int uCos128[] = {
+    1024,  1024,  1023,  1021,  1019,  1016,  1013,  1009,
+    1004,   999,   993,   987,   980,   972,   964,   955,
+     946,   936,   926,   915,   903,   891,   878,   865,
+     851,   837,   822,   807,   792,   775,   759,   742,
+     724,   706,   688,   669,   650,   630,   610,   590,
+     569,   548,   526,   505,   483,   460,   438,   415,
+     392,   369,   345,   321,   297,   273,   249,   224,
+     200,   175,   150,   125,   100,    75,    50,    25,
+       0,   -25,   -50,   -75,  -100,  -125,  -150,  -175,
+    -200,  -224,  -249,  -273,  -297,  -321,  -345,  -369,
+    -392,  -415,  -438,  -460,  -483,  -505,  -526,  -548,
+    -569,  -590,  -610,  -630,  -650,  -669,  -688,  -706,
+    -724,  -742,  -759,  -775,  -792,  -807,  -822,  -837,
+    -851,  -865,  -878,  -891,  -903,  -915,  -926,  -936,
+    -946,  -955,  -964,  -972,  -980,  -987,  -993,  -999,
+   -1004, -1009, -1013, -1016, -1019, -1021, -1023, -1024 };
 
 static struct UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
@@ -142,11 +108,9 @@ static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
       SDL_Surface *picture, SDL_Surface **screen);
 static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
-static DmtxBoolean IsEdge(struct Flow flowTop, struct Flow flowMid, struct Flow flowBtm, double *pcntTop);
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       DmtxImage *img, int width, int height);
-static void PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow *sFlowCache, struct Flow *bFlowCache, int width, int height);
-static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height, int diag);
+static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, int width, int height, int diag);
 static void PopulateTightCache(struct Hough *tight, struct Hough *pHoughCache, struct Hough *nHoughCache, int width, int height);
 static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
 static void WriteEdgeCacheImage(struct Edge *edge, int width, int height, char *imagePath);
@@ -234,10 +198,7 @@ int main(int argc, char *argv[])
    PopulateFlowCache(sFlowCache, bFlowCache, dec->image, width, height);
    SDL_UnlockSurface(picture);
 
-   PopulateEdgeCache(sEdgeCache, bEdgeCache, sFlowCache, bFlowCache, width, height);
-
-   PopulateHoughCache(pHoughCache, nHoughCache, sEdgeCache, bEdgeCache, width, height, diag);
-
+   PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache, width, height, diag);
    PopulateTightCache(tight, pHoughCache, nHoughCache, 128, 2 * diag);
 
    WriteFlowCacheImage(sFlowCache, width, height, "sFlowCache.pnm");
@@ -524,7 +485,6 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow  *bFlowCache,
    int bytesPerPixel, rowSizeBytes, colorPlane;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
-/* int vMag, hMag; */
    int sMag, bMag;
    int colorLoLf, colorLoMd, colorLoRt;
    int colorMdRt, colorHiRt, colorHiMd;
@@ -634,155 +594,6 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow  *bFlowCache,
 }
 
 /**
- *
- *
- */
-static DmtxBoolean
-IsEdge(struct Flow flowTop, struct Flow flowMid, struct Flow flowBtm, double *pcntTop)
-{
-   int diffTop, diffBtm, diffMag;
-
-   if(flowTop.mag == 0 && flowBtm.mag == 0) {
-      return DmtxFalse;
-   }
-   /* All non-zero flows must have same sign */
-   else if(flowTop.mag == 0) {
-      if(flowMid.mag * flowBtm.mag < 0)
-         return DmtxFalse;
-   }
-   /* All non-zero flows must have same sign */
-   else if(flowBtm.mag == 0) {
-      if(flowMid.mag * flowTop.mag < 0)
-         return DmtxFalse;
-   }
-   /* All non-zero flows must have same sign */
-   else {
-      if(flowMid.mag * flowTop.mag < 0 || flowMid.mag * flowBtm.mag < 0)
-         return DmtxFalse;
-   }
-
-   diffTop = flowTop.mag - flowMid.mag;
-   diffBtm = flowMid.mag - flowBtm.mag;
-
-   /* 2nd derivative has same sign -- no zero crossing */
-   if(diffTop * diffBtm > 0)
-      return DmtxFalse;
-
-   diffMag = abs(diffTop) + abs(diffBtm);
-   if(diffMag == 0)
-      return DmtxFalse;
-
-   *pcntTop = abs(diffBtm)/(double)diffMag;
-
-   return DmtxTrue;
-}
-
-/**
- *
- *
- */
-static void
-PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow *sFlowCache,
-      struct Flow *bFlowCache, int width, int height)
-{
-   int x, xBeg, xEnd;
-   int y, yBeg, yEnd;
-   int offset, offsets[8];
-   double pcntTop;
-   struct Flow flowTop, flowMid, flowBtm;
-   DmtxTime ta, tb;
-
-   ta = dmtxTimeNow();
-
-   offsets[0] = -width - 1;
-   offsets[1] = -width;
-   offsets[2] = -width + 1;
-   offsets[3] = 1;
-   offsets[4] = width + 1;
-   offsets[5] = width;
-   offsets[6] = width - 1;
-   offsets[7] = -1;
-
-   xBeg = 1;
-   xEnd = width - 2;
-   yBeg = 1;
-   yEnd = height - 2;
-
-   for(y = yBeg; y <= yEnd; y++) {
-      for(x = xBeg; x <= xEnd; x++) {
-
-         offset = y * width + x;
-
-         /**
-          * "Slash" edge:
-          *
-          *  i---h        i---h
-          *  |top|        |top|         +---+
-          *  j---d---c    j---d---c     | d |
-          *      |mid|        |mid|     +---+---+
-          *      a---b---g    a---b---g     | b |
-          *          |btm|        |btm|     +---+
-          *          e---f        e---f
-          *
-          *      Pixel        First        Second
-          *      Value      Derivative   Derivative
-          *     top = j      top = j       top = d
-          *     mid = a      mid = a       btm = b
-          *     btm = e      btm = e
-          */
-         flowMid = sFlowCache[offset];
-         if(abs(flowMid.mag) > 10) {
-            flowTop = sFlowCache[offset + offsets[6]];
-            flowBtm = sFlowCache[offset + offsets[2]];
-            if(IsEdge(flowTop, flowMid, flowBtm, &pcntTop) == DmtxTrue) {
-               if(pcntTop > 0.67)
-                  sEdgeCache[offset + offsets[5]].count += flowMid.mag;
-               else if(pcntTop < 0.33)
-                  sEdgeCache[offset + offsets[3]].count += flowMid.mag;
-               else
-                  sEdgeCache[offset + offsets[4]].count += flowMid.mag;
-            }
-         }
-
-         /**
-          * "Backslash" edge:
-          *
-          *          j---i        j---i
-          *          |top|        |top|     +---+
-          *      d---c---h    d---c---h     | c |
-          *      |mid|        |mid|     +---+---+
-          *  e---a---b    e---a---b     | a |
-          *  |btm|        |btm|         +---+
-          *  f---g        f---g
-          *
-          *      Pixel        First        Second
-          *      Value      Derivative   Derivative
-          *     top = c      top = c       top = c
-          *     mid = a      mid = a       btm = a
-          *     btm = f      btm = f
-          */
-         flowMid = bFlowCache[offset];
-         if(abs(flowMid.mag) > 10) {
-            flowTop = bFlowCache[offset + offsets[4]];
-            flowBtm = bFlowCache[offset + offsets[0]];
-            if(IsEdge(flowTop, flowMid, flowBtm, &pcntTop) == DmtxTrue) {
-               if(pcntTop > 0.67)
-                  bEdgeCache[offset + offsets[4]].count += flowMid.mag;
-               else if(pcntTop < 0.33)
-                  bEdgeCache[offset].count += flowMid.mag;
-               else
-                  bEdgeCache[offset + offsets[5]].count += flowMid.mag;
-            }
-         }
-      }
-   }
-
-   tb = dmtxTimeNow();
-   fprintf(stdout, "PopulateEdgeCache time: %ldms\n", (1000000 *
-         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
-}
-
-/**
  * 12.0 -----    6
  * 10.0   -----  5
  *  8.0 -----    4
@@ -801,12 +612,11 @@ PopulateEdgeCache(struct Edge *sEdgeCache, struct Edge *bEdgeCache, struct Flow 
  * is there a fast math way to flip sign?
  */
 static void
-PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Edge *sEdgeCache, struct Edge *bEdgeCache, int width, int height, int diag)
+PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, int width, int height, int diag)
 {
    int idx, phi, d;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
-/* double dFloat; */
    DmtxTime ta, tb;
 
    xBeg = 2;
@@ -821,44 +631,34 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          idx = y * width + x;
 
-         /* 0-90 deg. Hough for 90-180 deg. "Backslash" edges */
-         if(bEdgeCache[idx].count != 0) {
-            for(phi = 0; phi < 128; phi++) {
-/*          for(phi = 0; phi < 64; phi++) { */
-               /* shift works, divide doesn't ... watch endianess */
-               d = diag + ((x * unitCos127[phi] + y * unitSin127[phi]) >> 8);
-/*             dFloat = (x * unitCos128[phi] + y * unitSin128[phi]);
-               d = diag + ((dFloat < 0) ? (int)dFloat - 1 : (int)dFloat)/2; */
-               assert(abs(d) < diag * 2);
-               /* for now accumulate abs() */
-               if(bEdgeCache[idx].count > 0) {
-/*                pHoughCache[d * 128 + phi].mag += 1; */
-                  pHoughCache[d * 128 + phi].mag += bEdgeCache[idx].count;
-               }
-               else {
-/*                nHoughCache[d * 128 + phi].mag += 1; */
-                  nHoughCache[d * 128 + phi].mag -= bEdgeCache[idx].count;
-               }
+         /* After finalizing algorithm, precalculate for 32x32 square:
+          *   each product (x*uCos[phi]) and (y*uSin[phi]) (FAST) (8kB)
+          *   or, map each (x,y,phi) to its (d,phi) location (FASTER) (262kB)
+          *
+          * This should provide a huge speedup.
+          */
+
+         if(abs(bFlowCache[idx].mag) > 5) {
+            for(phi = 0; phi < 64; phi++) {
+               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 11);
+/*             d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0))/2; */
+/*             assert(d < 2 * diag); */
+               if(bFlowCache[idx].mag > 0)
+                  pHoughCache[d * 128 + phi].mag += bFlowCache[idx].mag;
+               else
+                  nHoughCache[d * 128 + phi].mag -= bFlowCache[idx].mag;
             }
          }
 
-         /* 90-180 deg. Hough for 0-90 deg. "Slash" edges */
-         if(sEdgeCache[idx].count != 0) {
-            for(phi = 0; phi < 128; phi++) {
-/*          for(phi = 64; phi < 128; phi++) { */
-               d = diag + ((x * unitCos127[phi] + y * unitSin127[phi]) >> 8);
-/*             dFloat = (x * unitCos128[phi] + y * unitSin128[phi]);
-               d = diag + ((dFloat < 0) ? (int)dFloat - 1 : (int)dFloat)/2; */
-               assert(abs(d) < diag * 2);
-               /* for now accumulate abs() */
-               if(sEdgeCache[idx].count > 0) {
-/*                pHoughCache[d * 128 + phi].mag += 1; */
-                  pHoughCache[d * 128 + phi].mag += sEdgeCache[idx].count;
-               }
-               else {
-/*                nHoughCache[d * 128 + phi].mag += 1; */
-                  nHoughCache[d * 128 + phi].mag -= sEdgeCache[idx].count;
-               }
+         if(abs(sFlowCache[idx].mag) > 5) {
+            for(phi = 64; phi < 128; phi++) {
+               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 11);
+/*             d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0))/2; */
+/*             assert(d < 2 * diag); */
+               if(sFlowCache[idx].mag > 0)
+                  pHoughCache[d * 128 + phi].mag += sFlowCache[idx].mag;
+               else
+                  nHoughCache[d * 128 + phi].mag -= sFlowCache[idx].mag;
             }
          }
       }
