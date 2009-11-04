@@ -500,7 +500,11 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
 
          idx = y * width + x;
 
-         sEdge = img->pxl[offsetBR] - img->pxl[offsetTL];
+         /**
+          * VV B+ +H  +S
+          * -+ -B -H  S-
+          */
+         sEdge = img->pxl[offsetTL] - img->pxl[offsetBR];
          bEdge = img->pxl[offsetTR] - img->pxl[offsetBL];
          hEdge = img->pxl[offsetTL] - img->pxl[offsetBL];
          vEdge = img->pxl[offsetBR] - img->pxl[offsetBL];
@@ -699,9 +703,9 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             for(phi = 112; phi < 128; phi++) {
                d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
                if(vFlowCache[idx].mag > 0)
-                  pHoughCache[d * 128 + phi].mag += vFlowCache[idx].mag;
+                  nHoughCache[d * 128 + phi].mag += vFlowCache[idx].mag;
                else
-                  nHoughCache[d * 128 + phi].mag -= vFlowCache[idx].mag;
+                  pHoughCache[d * 128 + phi].mag -= vFlowCache[idx].mag;
             }
          }
 
@@ -890,6 +894,10 @@ WriteHoughCacheImage(struct Hough *houghCache, int width, int height, char *imag
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
          cache = houghCache[row * width + col].mag;
+
+         if((col >= 16 && col < 48) || (col >= 80 && col < 112)) {
+            cache = (int)(cache * 0.7071 + 0.5);
+         }
 
          rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
          fputc(rgb[0], fp);
