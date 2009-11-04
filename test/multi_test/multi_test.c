@@ -56,10 +56,6 @@ struct Flow {
    int mag;
 };
 
-struct Edge {
-   int count;
-};
-
 struct Hough {
    unsigned int mag;
 };
@@ -109,11 +105,10 @@ static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
 static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
-      DmtxImage *img, int width, int height);
-static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, int width, int height, int diag);
+      struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img, int width, int height);
+static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int width, int height, int diag);
 static void PopulateTightCache(struct Hough *tight, struct Hough *pHoughCache, struct Hough *nHoughCache, int width, int height);
 static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
-static void WriteEdgeCacheImage(struct Edge *edge, int width, int height, char *imagePath);
 static void WriteHoughCacheImage(struct Hough *hough, int width, int height, char *imagePath);
 /*static void PlotPixel(SDL_Surface *surface, int x, int y);*/
 
@@ -130,8 +125,7 @@ int main(int argc, char *argv[])
    SDL_Rect           imageLoc;
    DmtxImage         *img;
    DmtxDecode        *dec;
-   struct Flow       *sFlowCache, *bFlowCache;
-   struct Edge       *sEdgeCache, *bEdgeCache;
+   struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
    struct Hough      *pHoughCache, *nHoughCache, *tight;
 
    opt = GetDefaultOptions();
@@ -175,13 +169,10 @@ int main(int argc, char *argv[])
    assert(sFlowCache != NULL);
    bFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
    assert(bFlowCache != NULL);
-
-   /* XXX Edge caches will actually have one fewer locations in height and width */
-   sEdgeCache = (struct Edge *)calloc(width * height, sizeof(struct Edge));
-   assert(sEdgeCache != NULL);
-
-   bEdgeCache = (struct Edge *)calloc(width * height, sizeof(struct Edge));
-   assert(bEdgeCache != NULL);
+   hFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
+   assert(hFlowCache != NULL);
+   vFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
+   assert(vFlowCache != NULL);
 
    diag = (int)(sqrt(width * width + height * height) + 0.5);
 
@@ -195,16 +186,17 @@ int main(int argc, char *argv[])
    assert(tight != NULL);
 
    SDL_LockSurface(picture);
-   PopulateFlowCache(sFlowCache, bFlowCache, dec->image, width, height);
+   PopulateFlowCache(sFlowCache, bFlowCache, hFlowCache, vFlowCache, dec->image, width, height);
    SDL_UnlockSurface(picture);
 
-   PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache, width, height, diag);
+   PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
+         hFlowCache, vFlowCache, width, height, diag);
    PopulateTightCache(tight, pHoughCache, nHoughCache, 128, 2 * diag);
 
    WriteFlowCacheImage(sFlowCache, width, height, "sFlowCache.pnm");
    WriteFlowCacheImage(bFlowCache, width, height, "bFlowCache.pnm");
-   WriteEdgeCacheImage(sEdgeCache, width, height, "sEdgeCache.pnm");
-   WriteEdgeCacheImage(bEdgeCache, width, height, "bEdgeCache.pnm");
+   WriteFlowCacheImage(hFlowCache, width, height, "hFlowCache.pnm");
+   WriteFlowCacheImage(vFlowCache, width, height, "vFlowCache.pnm");
    WriteHoughCacheImage(pHoughCache, 128, 2 * diag, "pHoughCache.pnm");
    WriteHoughCacheImage(nHoughCache, 128, 2 * diag, "nHoughCache.pnm");
    WriteHoughCacheImage(tight, 128, 2 * diag, "tHoughCache.pnm");
@@ -268,8 +260,6 @@ int main(int argc, char *argv[])
    free(tight);
    free(nHoughCache);
    free(pHoughCache);
-   free(bEdgeCache);
-   free(sEdgeCache);
    free(bFlowCache);
    free(sFlowCache);
 
@@ -474,10 +464,66 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 }
 */
 
+static void
+PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
+      struct Flow *hFlowCache, struct Flow *vFlowCache,
+      DmtxImage *img, int width, int height)
+{
+   int bytesPerPixel, rowSizeBytes, colorPlane;
+   int x, xBeg, xEnd;
+   int y, yBeg, yEnd;
+   int sEdge, bEdge, hEdge, vEdge;
+   int offsetBL, offsetTL, offsetBR, offsetTR;
+   int idx;
+   DmtxTime ta, tb;
+
+   rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
+   bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
+   colorPlane = 0; /* XXX need to make some decisions here */
+
+   xBeg = 1;
+   xEnd = width - 2;
+   yBeg = 1;
+   yEnd = height - 2;
+
+   ta = dmtxTimeNow();
+
+   for(y = yBeg; y <= yEnd; y++) {
+      offsetBL = ((height - y - 1) * rowSizeBytes) + bytesPerPixel + colorPlane;
+
+      for(x = xBeg; x <= xEnd; x++) {
+
+         /* Pixel data first pixel = top-left; everything else bottom-left */
+         offsetTL = offsetBL - rowSizeBytes;
+         offsetBR = offsetBL + bytesPerPixel;
+         offsetTR = offsetTL + bytesPerPixel;
+
+         idx = y * width + x;
+
+         sEdge = img->pxl[offsetBR] - img->pxl[offsetTL];
+         bEdge = img->pxl[offsetTR] - img->pxl[offsetBL];
+         hEdge = img->pxl[offsetTL] - img->pxl[offsetBL];
+         vEdge = img->pxl[offsetBR] - img->pxl[offsetBL];
+
+         sFlowCache[idx].mag = sEdge;
+         bFlowCache[idx].mag = bEdge;
+         hFlowCache[idx].mag = hEdge;
+         vFlowCache[idx].mag = vEdge;
+
+         offsetBL += bytesPerPixel;
+      }
+   }
+
+   tb = dmtxTimeNow();
+   fprintf(stdout, "PopulateFlowCache time: %ldms\n", (1000000 *
+         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
+}
+
 /**
  *
  *
  */
+#ifdef IGNOREME
 static void
 PopulateFlowCache(struct Flow *sFlowCache, struct Flow  *bFlowCache,
       DmtxImage *img, int width, int height)
@@ -592,6 +638,7 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow  *bFlowCache,
    fprintf(stdout, "PopulateFlowCache time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
 }
+#endif
 
 /**
  * 12.0 -----    6
@@ -612,7 +659,7 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow  *bFlowCache,
  * is there a fast math way to flip sign?
  */
 static void
-PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, int width, int height, int diag)
+PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int width, int height, int diag)
 {
    int idx, phi, d;
    int x, xBeg, xEnd;
@@ -638,11 +685,29 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
           * This should provide a huge speedup.
           */
 
-         if(abs(bFlowCache[idx].mag) > 5) {
-            for(phi = 0; phi < 64; phi++) {
-               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 11);
 /*             d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0))/2; */
 /*             assert(d < 2 * diag); */
+
+         if(abs(vFlowCache[idx].mag) > 5) {
+            for(phi = 0; phi < 16; phi++) {
+               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+               if(vFlowCache[idx].mag > 0)
+                  pHoughCache[d * 128 + phi].mag += vFlowCache[idx].mag;
+               else
+                  nHoughCache[d * 128 + phi].mag -= vFlowCache[idx].mag;
+            }
+            for(phi = 112; phi < 128; phi++) {
+               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+               if(vFlowCache[idx].mag > 0)
+                  pHoughCache[d * 128 + phi].mag += vFlowCache[idx].mag;
+               else
+                  nHoughCache[d * 128 + phi].mag -= vFlowCache[idx].mag;
+            }
+         }
+
+         if(abs(bFlowCache[idx].mag) > 5) {
+            for(phi = 16; phi < 48; phi++) {
+               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
                if(bFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += bFlowCache[idx].mag;
                else
@@ -650,11 +715,19 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             }
          }
 
+         if(abs(hFlowCache[idx].mag) > 5) {
+            for(phi = 48; phi < 80; phi++) {
+               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+               if(hFlowCache[idx].mag > 0)
+                  pHoughCache[d * 128 + phi].mag += hFlowCache[idx].mag;
+               else
+                  nHoughCache[d * 128 + phi].mag -= hFlowCache[idx].mag;
+            }
+         }
+
          if(abs(sFlowCache[idx].mag) > 5) {
-            for(phi = 64; phi < 128; phi++) {
-               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 11);
-/*             d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0))/2; */
-/*             assert(d < 2 * diag); */
+            for(phi = 80; phi < 112; phi++) {
+               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
                if(sFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += sFlowCache[idx].mag;
                else
@@ -775,56 +848,6 @@ WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePa
             rgb[1] = 0;
             rgb[2] = 0;
          }
-
-         fputc(rgb[0], fp);
-         fputc(rgb[1], fp);
-         fputc(rgb[2], fp);
-      }
-   }
-
-   fclose(fp);
-}
-
-/**
- *
- *
- */
-static void
-WriteEdgeCacheImage(struct Edge *edgeCache, int width, int height, char *imagePath)
-{
-   int row, col;
-   int maxVal;
-   int rgb[3];
-   int color;
-   struct Edge edge;
-   FILE *fp;
-
-   fp = fopen(imagePath, "wb");
-   if(fp == NULL)
-      exit(1);
-
-   fprintf(fp, "P6\n%d %d\n255\n", width, height);
-
-   maxVal = 0;
-   for(row = height - 1; row >= 0; row--) {
-      for(col = 0; col < width; col++) {
-         if(abs(edgeCache[row * width + col].count) > maxVal)
-            maxVal = abs(edgeCache[row * width + col].count);
-      }
-   }
-
-   for(row = height - 1; row >= 0; row--) {
-      for(col = 0; col < width; col++) {
-         edge = edgeCache[row * width + col];
-
-         color = (int)((abs(edge.count) * 254.0)/maxVal + 0.5);
-
-         rgb[0] = rgb[1] = rgb[2] = 0;
-
-         if(edge.count > 0)
-            rgb[0] = color;
-         else if(edge.count < 0)
-            rgb[1] = color;
 
          fputc(rgb[0], fp);
          fputc(rgb[1], fp);
