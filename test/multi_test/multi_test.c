@@ -60,6 +60,8 @@ struct Hough {
    unsigned int mag;
 };
 
+/* Unscaled unit sin */
+/*
 static int uSin128[] = {
        0,    25,    50,    75,   100,   125,   150,   175,
      200,   224,   249,   273,   297,   321,   345,   369,
@@ -77,7 +79,10 @@ static int uSin128[] = {
      569,   548,   526,   505,   483,   460,   438,   415,
      392,   369,   345,   321,   297,   273,   249,   224,
      200,   175,   150,   125,   100,    75,    50,    25 };
+*/
 
+/* Unscaled unit cos */
+/*
 static int uCos128[] = {
     1024,  1024,  1023,  1021,  1019,  1016,  1013,  1009,
     1004,   999,   993,   987,   980,   972,   964,   955,
@@ -95,6 +100,45 @@ static int uCos128[] = {
     -851,  -865,  -878,  -891,  -903,  -915,  -926,  -936,
     -946,  -955,  -964,  -972,  -980,  -987,  -993,  -999,
    -1004, -1009, -1013, -1016, -1019, -1021, -1023, -1024 };
+*/
+
+/* Scaled unit sin */
+static int uSin128[] = {
+       0,    25,    50,    75,    99,   123,   147,   169,
+     191,   212,   233,   252,   270,   288,   304,   320,
+     334,   348,   361,   373,   385,   396,   407,   417,
+     427,   437,   446,   456,   467,   477,   488,   500,
+     512,   525,   539,   553,   569,   585,   602,   620,
+     639,   658,   678,   699,   720,   742,   764,   786,
+     808,   829,   850,   871,   891,   911,   929,   946,
+     961,   975,   988,   999,  1008,  1015,  1020,  1023,
+    1024,  1023,  1020,  1015,  1008,   999,   988,   975,
+     961,   946,   929,   911,   891,   871,   850,   829,
+     808,   786,   764,   742,   720,   699,   678,   658,
+     639,   620,   602,   585,   569,   553,   539,   525,
+     512,   500,   488,   477,   467,   456,   446,   437,
+     427,   417,   407,   396,   385,   373,   361,   348,
+     334,   320,   304,   288,   270,   252,   233,   212,
+     191,   169,   147,   123,    99,    75,    50,    25 };
+
+/* Scaled unit cos */
+static int uCos128[] = {
+    1024,  1023,  1020,  1015,  1008,   999,   988,   975,
+     961,   946,   929,   911,   891,   871,   850,   829,
+     808,   786,   764,   742,   720,   699,   678,   658,
+     639,   620,   602,   585,   569,   553,   539,   525,
+     512,   500,   488,   477,   467,   456,   446,   437,
+     427,   417,   407,   396,   385,   373,   361,   348,
+     334,   320,   304,   288,   270,   252,   233,   212,
+     191,   169,   147,   123,    99,    75,    50,    25,
+       0,   -25,   -50,   -75,   -99,  -123,  -147,  -169,
+    -191,  -212,  -233,  -252,  -270,  -288,  -304,  -320,
+    -334,  -348,  -361,  -373,  -385,  -396,  -407,  -417,
+    -427,  -437,  -446,  -456,  -467,  -477,  -488,  -500,
+    -512,  -525,  -539,  -553,  -569,  -585,  -602,  -620,
+    -639,  -658,  -678,  -699,  -720,  -742,  -764,  -786,
+    -808,  -829,  -850,  -871,  -891,  -911,  -929,  -946,
+    -961,  -975,  -988,  -999, -1008, -1015, -1020, -1023 };
 
 static struct UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
@@ -644,6 +688,44 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow  *bFlowCache,
 }
 #endif
 
+#define TRANS 0.146446609406726
+
+static int
+GetOffset(int x, int y, int phiIdx, int width, int height)
+{
+   double phiRad;
+   double scale;
+   double posMax, negMax, extMax;
+
+   phiRad = M_PI * phiIdx / 128.0;
+
+   extMax = (height > width) ? height : width;
+
+   if(phiIdx < 64) {
+      posMax = width * cos(phiRad) + height * sin(phiRad);
+      negMax = 0.0;
+   }
+   else {
+      posMax = height * sin(phiRad);
+      negMax = width * cos(phiRad);
+   }
+
+   assert(fabs(posMax - negMax) > 0.00001);
+   scale = extMax / (posMax - negMax);
+
+   return (int)((x * cos(phiRad) + y * sin(phiRad) - negMax) * scale + 0.5);
+
+/* d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10); */
+/*
+   scale = cos(4 * phiRad) * TRANS + 1 - TRANS;
+
+   negMax = (phiIdx < 64) ? 0 : (int)(32 * cos(phiRad) + 0.5);
+
+   return (int)((x * cos(phiRad) + y * sin(phiRad)) * scale + 0.5) - negMax;
+*/
+}
+#undef TRANS
+
 /**
  * 12.0 -----    6
  * 10.0   -----  5
@@ -668,6 +750,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
    int idx, phi, d;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
+/* double scale; */
    DmtxTime ta, tb;
 
    xBeg = 2;
@@ -694,14 +777,19 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(vFlowCache[idx].mag) > 5) {
             for(phi = 0; phi < 16; phi++) {
-               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+/*             d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+               d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
+               d = diag + GetOffset(x, y, phi, width, height);
                if(vFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += vFlowCache[idx].mag;
                else
                   nHoughCache[d * 128 + phi].mag -= vFlowCache[idx].mag;
             }
             for(phi = 112; phi < 128; phi++) {
-               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+/*             d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+               scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
+               d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
+               d = diag + GetOffset(x, y, phi, width, height);
                if(vFlowCache[idx].mag > 0)
                   nHoughCache[d * 128 + phi].mag += vFlowCache[idx].mag;
                else
@@ -711,7 +799,10 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(bFlowCache[idx].mag) > 5) {
             for(phi = 16; phi < 48; phi++) {
-               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+/*             d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+               scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
+               d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
+               d = diag + GetOffset(x, y, phi, width, height);
                if(bFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += bFlowCache[idx].mag;
                else
@@ -721,7 +812,10 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(hFlowCache[idx].mag) > 5) {
             for(phi = 48; phi < 80; phi++) {
-               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+/*             d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+               scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
+               d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
+               d = diag + GetOffset(x, y, phi, width, height);
                if(hFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += hFlowCache[idx].mag;
                else
@@ -731,7 +825,10 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(sFlowCache[idx].mag) > 5) {
             for(phi = 80; phi < 112; phi++) {
-               d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+/*             d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+               scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
+               d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
+               d = diag + GetOffset(x, y, phi, width, height);
                if(sFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += sFlowCache[idx].mag;
                else
