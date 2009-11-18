@@ -1,6 +1,18 @@
 README for libdmtx-php version 0.7.3 - September 4, 2009
 -----------------------------------------------------------------
 
+*****************************************************************
+
+IMPORTANT: A new set of PHP bindings for libdmtx named php-dmtx
+has been released by Mikko Koppanen. Mikko's bindings perform
+both encoding and decoding of Data Matrix barcodes, and the old
+PHP bindings bundled with libdmtx (libdmtx-php) will likely be
+deprecated soon. Please try out Mikko's package, available at:
+
+  http://github.com/mkoppanen/php-dmtx
+
+*****************************************************************
+
 libdmtx-php is a PHP wrapper for libdmtx that was written by
 Christian Hentschel and is distributed as part of the libdmtx
 package.
