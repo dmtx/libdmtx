@@ -107,10 +107,8 @@ class DataMatrix (object):
 		all_kwargs.update(kwargs)
 
 		self._data = str(data)
-		_pydmtx.encode( self._data, len(self._data),
-			plotter=self._plot, start=self._start,
-			finish=self._finish,
-			**all_kwargs );
+		_pydmtx.encode( self._data, plotter=self._plot,
+			start=self._start, finish=self._finish, **all_kwargs );
 
 	def save( self, path, fmt ):
 		if self._image is not None:
