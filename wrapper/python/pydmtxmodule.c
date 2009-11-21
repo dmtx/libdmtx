@@ -6,6 +6,7 @@ Copyright (C) 2008, 2009 Mike Laughton
 Copyright (C) 2008 Jonathan Lung
 Copyright (C) 2009 David Turner
 Copyright (C) 2009 Simon Wood
+Copyright (C) 2009 Alastair Turner
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
