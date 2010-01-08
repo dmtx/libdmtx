@@ -60,48 +60,6 @@ struct Hough {
    unsigned int mag;
 };
 
-/* Unscaled unit sin */
-/*
-static int uSin128[] = {
-       0,    25,    50,    75,   100,   125,   150,   175,
-     200,   224,   249,   273,   297,   321,   345,   369,
-     392,   415,   438,   460,   483,   505,   526,   548,
-     569,   590,   610,   630,   650,   669,   688,   706,
-     724,   742,   759,   775,   792,   807,   822,   837,
-     851,   865,   878,   891,   903,   915,   926,   936,
-     946,   955,   964,   972,   980,   987,   993,   999,
-    1004,  1009,  1013,  1016,  1019,  1021,  1023,  1024,
-    1024,  1024,  1023,  1021,  1019,  1016,  1013,  1009,
-    1004,   999,   993,   987,   980,   972,   964,   955,
-     946,   936,   926,   915,   903,   891,   878,   865,
-     851,   837,   822,   807,   792,   775,   759,   742,
-     724,   706,   688,   669,   650,   630,   610,   590,
-     569,   548,   526,   505,   483,   460,   438,   415,
-     392,   369,   345,   321,   297,   273,   249,   224,
-     200,   175,   150,   125,   100,    75,    50,    25 };
-*/
-
-/* Unscaled unit cos */
-/*
-static int uCos128[] = {
-    1024,  1024,  1023,  1021,  1019,  1016,  1013,  1009,
-    1004,   999,   993,   987,   980,   972,   964,   955,
-     946,   936,   926,   915,   903,   891,   878,   865,
-     851,   837,   822,   807,   792,   775,   759,   742,
-     724,   706,   688,   669,   650,   630,   610,   590,
-     569,   548,   526,   505,   483,   460,   438,   415,
-     392,   369,   345,   321,   297,   273,   249,   224,
-     200,   175,   150,   125,   100,    75,    50,    25,
-       0,   -25,   -50,   -75,  -100,  -125,  -150,  -175,
-    -200,  -224,  -249,  -273,  -297,  -321,  -345,  -369,
-    -392,  -415,  -438,  -460,  -483,  -505,  -526,  -548,
-    -569,  -590,  -610,  -630,  -650,  -669,  -688,  -706,
-    -724,  -742,  -759,  -775,  -792,  -807,  -822,  -837,
-    -851,  -865,  -878,  -891,  -903,  -915,  -926,  -936,
-    -946,  -955,  -964,  -972,  -980,  -987,  -993,  -999,
-   -1004, -1009, -1013, -1016, -1019, -1021, -1023, -1024 };
-*/
-
 /* Scaled unit sin */
 static int uSin128[] = {
        0,    25,    50,    75,    99,   123,   147,   169,
@@ -218,15 +176,17 @@ int main(int argc, char *argv[])
    vFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
    assert(vFlowCache != NULL);
 
+/* diag = (int)(sqrt(width * width + height * height) + 0.5); */
+/* diagIdx = (int)(atan2(height, width) * 180/M_PI + 0.5); */
    diag = (int)(sqrt(width * width + height * height) + 0.5);
 
-   pHoughCache = (struct Hough *)calloc(128 * 2 * diag, sizeof(struct Hough));
+   pHoughCache = (struct Hough *)calloc(128 * diag, sizeof(struct Hough));
    assert(pHoughCache != NULL);
 
-   nHoughCache = (struct Hough *)calloc(128 * 2 * diag, sizeof(struct Hough));
+   nHoughCache = (struct Hough *)calloc(128 * diag, sizeof(struct Hough));
    assert(nHoughCache != NULL);
 
-   tight = (struct Hough *)calloc(128 * 2 * diag, sizeof(struct Hough));
+   tight = (struct Hough *)calloc(128 * diag, sizeof(struct Hough));
    assert(tight != NULL);
 
    SDL_LockSurface(picture);
@@ -235,15 +195,15 @@ int main(int argc, char *argv[])
 
    PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
          hFlowCache, vFlowCache, width, height, diag);
-   PopulateTightCache(tight, pHoughCache, nHoughCache, 128, 2 * diag);
+/* PopulateTightCache(tight, pHoughCache, nHoughCache, 128, diag); */
 
    WriteFlowCacheImage(sFlowCache, width, height, "sFlowCache.pnm");
    WriteFlowCacheImage(bFlowCache, width, height, "bFlowCache.pnm");
    WriteFlowCacheImage(hFlowCache, width, height, "hFlowCache.pnm");
    WriteFlowCacheImage(vFlowCache, width, height, "vFlowCache.pnm");
-   WriteHoughCacheImage(pHoughCache, 128, 2 * diag, "pHoughCache.pnm");
-   WriteHoughCacheImage(nHoughCache, 128, 2 * diag, "nHoughCache.pnm");
-   WriteHoughCacheImage(tight, 128, 2 * diag, "tHoughCache.pnm");
+   WriteHoughCacheImage(pHoughCache, 128, diag, "pHoughCache.pnm");
+   WriteHoughCacheImage(nHoughCache, 128, diag, "nHoughCache.pnm");
+   WriteHoughCacheImage(tight, 128, diag, "tHoughCache.pnm");
 
    atexit(SDL_Quit);
 
@@ -567,127 +527,6 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
 }
 
-/**
- *
- *
- */
-#ifdef IGNOREME
-static void
-PopulateFlowCache(struct Flow *sFlowCache, struct Flow  *bFlowCache,
-      DmtxImage *img, int width, int height)
-{
-   int bytesPerPixel, rowSizeBytes, colorPlane;
-   int x, xBeg, xEnd;
-   int y, yBeg, yEnd;
-   int sMag, bMag;
-   int colorLoLf, colorLoMd, colorLoRt;
-   int colorMdRt, colorHiRt, colorHiMd;
-   int colorHiLf, colorMdLf, colorMdMd;
-   int offset, offsetLo, offsetMd, offsetHi;
-   int idx;
-   DmtxTime ta, tb;
-
-   rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
-   bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
-   colorPlane = 0; /* XXX need to make some decisions here */
-
-   xBeg = 1;
-   xEnd = width - 2;
-   yBeg = 1;
-   yEnd = height - 2;
-
-   ta = dmtxTimeNow();
-
-   for(y = yBeg; y <= yEnd; y++) {
-
-      /* Pixel data first pixel = top-left; everything else bottom-left */
-      offsetMd = ((height - y - 1) * rowSizeBytes) + bytesPerPixel + colorPlane;
-      offsetHi = offsetMd - rowSizeBytes;
-      offsetLo = offsetMd + rowSizeBytes;
-
-      colorHiLf = img->pxl[offsetHi];
-      colorMdLf = img->pxl[offsetMd];
-      colorLoLf = img->pxl[offsetLo];
-
-      offset = bytesPerPixel;
-
-      colorHiMd = img->pxl[offsetHi + offset];
-      colorMdMd = img->pxl[offsetMd + offset];
-      colorLoMd = img->pxl[offsetLo + offset];
-
-      offset += bytesPerPixel;
-
-      colorHiRt = img->pxl[offsetHi + offset];
-      colorMdRt = img->pxl[offsetMd + offset];
-      colorLoRt = img->pxl[offsetLo + offset];
-
-      for(x = xBeg; x <= xEnd; x++) {
-
-         idx = y * width + x;
-
-         /**
-          * Calculate "slash" edge flow
-          *  -2 -1  0
-          *  -1  0  1
-          *   0  1  2
-          */
-         sMag  =  colorLoMd;
-         sMag += (colorLoRt << 1);
-         sMag +=  colorMdRt;
-         sMag -=  colorHiMd;
-         sMag -= (colorHiLf << 1);
-         sMag -=  colorMdLf;
-
-         /**
-          * Calculate "backslash" edge flow
-          *   0  1  2
-          *  -1  0  1
-          *  -2 -1  0
-          */
-         bMag  =  colorMdLf;
-         bMag += (colorLoLf << 1);
-         bMag +=  colorLoMd;
-         bMag -=  colorMdRt;
-         bMag -= (colorHiRt << 1);
-         bMag -=  colorHiMd;
-
-         /**
-          * If implementing these operations using MMX, can load 2
-          * registers with 4 doubleword values and subtract (PSUBD).
-          */
-
-         /**
-          *     slash positive = ...
-          *     slash negative = ...
-          * backslash positive = ...
-          * backslash negative = ...
-          */
-
-         sFlowCache[idx].mag = sMag;
-         bFlowCache[idx].mag = bMag;
-
-         colorHiLf = colorHiMd;
-         colorMdLf = colorMdMd;
-         colorLoLf = colorLoMd;
-
-         colorHiMd = colorHiRt;
-         colorMdMd = colorMdRt;
-         colorLoMd = colorLoRt;
-
-         offset += bytesPerPixel;
-
-         colorHiRt = img->pxl[offsetHi + offset];
-         colorMdRt = img->pxl[offsetMd + offset];
-         colorLoRt = img->pxl[offsetLo + offset];
-      }
-   }
-
-   tb = dmtxTimeNow();
-   fprintf(stdout, "PopulateFlowCache time: %ldms\n", (1000000 *
-         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
-}
-#endif
-
 #define TRANS 0.146446609406726
 
 static int
@@ -715,7 +554,7 @@ GetOffset(int x, int y, int phiIdx, int width, int height)
 
    return (int)((x * cos(phiRad) + y * sin(phiRad) - negMax) * scale + 0.5);
 
-/* d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10); */
+/* d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10); */
 /*
    scale = cos(4 * phiRad) * TRANS + 1 - TRANS;
 
@@ -772,24 +611,24 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
           * This should provide a huge speedup.
           */
 
-/*             d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0))/2; */
+/*             d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0))/2; */
 /*             assert(d < 2 * diag); */
 
          if(abs(vFlowCache[idx].mag) > 5) {
             for(phi = 0; phi < 16; phi++) {
-/*             d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
-               d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
-               d = diag + GetOffset(x, y, phi, width, height);
+/*             d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+               d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
+               d = GetOffset(x, y, phi, width, height);
                if(vFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += vFlowCache[idx].mag;
                else
                   nHoughCache[d * 128 + phi].mag -= vFlowCache[idx].mag;
             }
             for(phi = 112; phi < 128; phi++) {
-/*             d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+/*             d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
                scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
-               d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
-               d = diag + GetOffset(x, y, phi, width, height);
+               d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
+               d = GetOffset(x, y, phi, width, height);
                if(vFlowCache[idx].mag > 0)
                   nHoughCache[d * 128 + phi].mag += vFlowCache[idx].mag;
                else
@@ -799,10 +638,10 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(bFlowCache[idx].mag) > 5) {
             for(phi = 16; phi < 48; phi++) {
-/*             d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+/*             d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
                scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
-               d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
-               d = diag + GetOffset(x, y, phi, width, height);
+               d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
+               d = GetOffset(x, y, phi, width, height);
                if(bFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += bFlowCache[idx].mag;
                else
@@ -812,10 +651,10 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(hFlowCache[idx].mag) > 5) {
             for(phi = 48; phi < 80; phi++) {
-/*             d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+/*             d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
                scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
-               d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
-               d = diag + GetOffset(x, y, phi, width, height);
+               d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
+               d = GetOffset(x, y, phi, width, height);
                if(hFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += hFlowCache[idx].mag;
                else
@@ -825,10 +664,10 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(sFlowCache[idx].mag) > 5) {
             for(phi = 80; phi < 112; phi++) {
-/*             d = diag + ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
+/*             d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
                scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
-               d = diag + (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
-               d = diag + GetOffset(x, y, phi, width, height);
+               d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
+               d = GetOffset(x, y, phi, width, height);
                if(sFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += sFlowCache[idx].mag;
                else
@@ -991,11 +830,12 @@ WriteHoughCacheImage(struct Hough *houghCache, int width, int height, char *imag
    for(row = height - 1; row >= 0; row--) {
       for(col = 0; col < width; col++) {
          cache = houghCache[row * width + col].mag;
-
+/*
          if((col >= 16 && col < 48) || (col >= 80 && col < 112)) {
             cache = (int)(cache * 0.7071 + 0.5);
+            cache = (int)(cache * 0.5 + 0.5);
          }
-
+*/
          rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
          fputc(rgb[0], fp);
          fputc(rgb[1], fp);
