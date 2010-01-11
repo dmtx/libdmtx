@@ -109,7 +109,8 @@ static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imag
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img, int width, int height);
 static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int width, int height, int diag);
-static void PopulateTightCache(struct Hough *tight, struct Hough *pHoughCache, struct Hough *nHoughCache, int width, int height);
+static void PopulateMaximaCache(struct Hough *maximaCache, struct Hough *houghCache, int width, int height);
+static void NarrowMaximaRange(struct Hough *maximaCache, int width, int height);
 static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
 static void WriteHoughCacheImage(struct Hough *hough, int width, int height, char *imagePath);
 /*static void PlotPixel(SDL_Surface *surface, int x, int y);*/
@@ -128,7 +129,8 @@ int main(int argc, char *argv[])
    DmtxImage         *img;
    DmtxDecode        *dec;
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
-   struct Hough      *pHoughCache, *nHoughCache, *tight;
+   struct Hough      *pHoughCache, *nHoughCache;
+   struct Hough      *pMaximaCache, *nMaximaCache;
 
    opt = GetDefaultOptions();
 
@@ -186,8 +188,11 @@ int main(int argc, char *argv[])
    nHoughCache = (struct Hough *)calloc(128 * diag, sizeof(struct Hough));
    assert(nHoughCache != NULL);
 
-   tight = (struct Hough *)calloc(128 * diag, sizeof(struct Hough));
-   assert(tight != NULL);
+   pMaximaCache = (struct Hough *)calloc(128 * diag, sizeof(struct Hough));
+   assert(pMaximaCache != NULL);
+
+   nMaximaCache = (struct Hough *)calloc(128 * diag, sizeof(struct Hough));
+   assert(nMaximaCache != NULL);
 
    SDL_LockSurface(picture);
    PopulateFlowCache(sFlowCache, bFlowCache, hFlowCache, vFlowCache, dec->image, width, height);
@@ -195,7 +200,12 @@ int main(int argc, char *argv[])
 
    PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
          hFlowCache, vFlowCache, width, height, diag);
-/* PopulateTightCache(tight, pHoughCache, nHoughCache, 128, diag); */
+
+   PopulateMaximaCache(pMaximaCache, pHoughCache, 128, diag);
+   PopulateMaximaCache(nMaximaCache, nHoughCache, 128, diag);
+
+   NarrowMaximaRange(pMaximaCache, 128, diag);
+   NarrowMaximaRange(nMaximaCache, 128, diag);
 
    WriteFlowCacheImage(sFlowCache, width, height, "sFlowCache.pnm");
    WriteFlowCacheImage(bFlowCache, width, height, "bFlowCache.pnm");
@@ -203,7 +213,8 @@ int main(int argc, char *argv[])
    WriteFlowCacheImage(vFlowCache, width, height, "vFlowCache.pnm");
    WriteHoughCacheImage(pHoughCache, 128, diag, "pHoughCache.pnm");
    WriteHoughCacheImage(nHoughCache, 128, diag, "nHoughCache.pnm");
-   WriteHoughCacheImage(tight, 128, diag, "tHoughCache.pnm");
+   WriteHoughCacheImage(pMaximaCache, 128, diag, "pMaximaCache.pnm");
+   WriteHoughCacheImage(nMaximaCache, 128, diag, "nMaximaCache.pnm");
 
    atexit(SDL_Quit);
 
@@ -261,7 +272,8 @@ int main(int argc, char *argv[])
       SDL_Flip(screen);
    }
 
-   free(tight);
+   free(nMaximaCache);
+   free(pMaximaCache);
    free(nHoughCache);
    free(pHoughCache);
    free(bFlowCache);
@@ -642,10 +654,11 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
                scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
                d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
                d = GetOffset(x, y, phi, width, height);
+               /* Intentional inversion to force discontinuity to 0/180 degrees boundary */
                if(bFlowCache[idx].mag > 0)
-                  pHoughCache[d * 128 + phi].mag += bFlowCache[idx].mag;
+                  pHoughCache[d * 128 + phi].mag += (int)(bFlowCache[idx].mag * 0.707 + 0.5);
                else
-                  nHoughCache[d * 128 + phi].mag -= bFlowCache[idx].mag;
+                  nHoughCache[d * 128 + phi].mag -= (int)(bFlowCache[idx].mag * 0.707 + 0.5);
             }
          }
 
@@ -669,9 +682,9 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
                d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
                d = GetOffset(x, y, phi, width, height);
                if(sFlowCache[idx].mag > 0)
-                  pHoughCache[d * 128 + phi].mag += sFlowCache[idx].mag;
+                  pHoughCache[d * 128 + phi].mag += (int)(sFlowCache[idx].mag * 0.707 + 0.5);
                else
-                  nHoughCache[d * 128 + phi].mag -= sFlowCache[idx].mag;
+                  nHoughCache[d * 128 + phi].mag -= (int)(sFlowCache[idx].mag * 0.707 + 0.5);
             }
          }
       }
@@ -687,18 +700,18 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
  *
  */
 static void
-PopulateTightCache(struct Hough *tight, struct Hough *pHoughCache, struct Hough *nHoughCache, int width, int height)
+PopulateMaximaCache(struct Hough *maximaCache, struct Hough *houghCache, int width, int height)
 {
-   int idxMid, idxTop, idxBtm;
-   int diffTop, diffBtm, yStrong;
+   int idxMid;
+   unsigned int magMid;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
    DmtxTime ta, tb;
 
    xBeg = 0;
    xEnd = width - 1;
-   yBeg = 1;
-   yEnd = height - 2;
+   yBeg = 0;
+   yEnd = height - 1;
 
    ta = dmtxTimeNow();
 
@@ -707,43 +720,165 @@ PopulateTightCache(struct Hough *tight, struct Hough *pHoughCache, struct Hough 
       for(y = yBeg; y <= yEnd; y++) {
 
          idxMid = y * width + x;
-         idxTop = idxMid + width;
-         idxBtm = idxMid - width;
+         magMid = houghCache[idxMid].mag;
 
-         if(pHoughCache[idxMid].mag > 0) {
-            diffTop = pHoughCache[idxMid].mag - pHoughCache[idxTop].mag;
-            diffBtm = pHoughCache[idxMid].mag - pHoughCache[idxBtm].mag;
-            if(diffTop >= 0 && diffBtm >= 0)
-               tight[idxMid].mag = (diffTop + diffBtm);
-/*             tight[idxMid].mag = pHoughCache[idxMid].mag; */
-         }
+         /* test all 8 neighbors, but do it one at a time so no more offest
+            calcs are required once a stronger neighbor is found */
 
-         if(nHoughCache[idxMid].mag > 0) {
-            diffTop = nHoughCache[idxMid].mag - nHoughCache[idxTop].mag;
-            diffBtm = nHoughCache[idxMid].mag - nHoughCache[idxBtm].mag;
-            if(diffTop >= 0 && diffBtm >= 0) {
-               tight[idxMid].mag += (diffTop + diffBtm);
-/*             tight[idxMid].mag += nHoughCache[idxMid].mag; */
-            }
-         }
+         maximaCache[idxMid].mag = 0; /* rework this so it only assigns if necessary */
+
+         /* Compare top */
+         if(y != yEnd &&
+               houghCache[idxMid + width].mag > magMid)
+            continue;
+
+         /* Compare bottom */
+         if(y != yBeg &&
+               houghCache[idxMid - width].mag > magMid)
+            continue;
+
+         /* Compare left */
+         if(x != xBeg &&
+               houghCache[idxMid - 1].mag > magMid)
+            continue;
+
+         /* Compare right */
+         if(x != xEnd &&
+               houghCache[idxMid + 1].mag > magMid)
+            continue;
+
+         /* Compare top left */
+         if(y != yEnd && x != xBeg &&
+               houghCache[idxMid + width - 1].mag > magMid)
+            continue;
+
+         /* Compare top right */
+         if(y != yEnd && x != xEnd &&
+               houghCache[idxMid + width + 1].mag > magMid)
+            continue;
+
+         /* Compare bottom left */
+         if(y != yBeg && x != xBeg &&
+               houghCache[idxMid - width - 1].mag > magMid)
+            continue;
+
+         /* Compare bottom right */
+         if(y != yBeg && x != xEnd &&
+               houghCache[idxMid - width + 1].mag > magMid)
+            continue;
+
+         /* If we made it here then we are sitting on a local maxima */
+         maximaCache[idxMid].mag = magMid;
       }
-   }
-
-   /* Find strongest maxima for each angle */
-   for(x = xBeg; x <= xEnd; x++) {
-      yStrong = yBeg;
-      for(y = yBeg; y <= yEnd; y++) {
-         idxMid = y * width + x;
-         if(tight[idxMid].mag > tight[yStrong].mag)
-            yStrong = idxMid;
-      }
-
-      if(yStrong != yBeg)
-         tight[yStrong].mag *= 2;
    }
 
    tb = dmtxTimeNow();
-   fprintf(stdout, "PopulateTight time: %ldms\n", (1000000 *
+   fprintf(stdout, "PopulateMaxima time: %ldms\n", (1000000 *
+         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
+}
+
+/**
+ *
+ *
+ */
+#ifndef min
+#define min(x,y) ((x < y) ? x : y)
+#endif
+static void
+NarrowMaximaRange(struct Hough *maximaCache, int width, int height)
+{
+   int xMid, xUse;
+   int x, xBeg, xEnd;
+   int y, yBeg, yEnd;
+   int i, magCompare;
+   int maximaCount, maximaTally;
+   int maxValueCap, currentMaxValue, currentMaxOccurrences;
+   int usableOccurrences;
+   int range[128] = { 0 };
+   DmtxTime ta, tb;
+
+   xBeg = 0;
+   xEnd = width - 1;
+   yBeg = 0;
+   yEnd = height - 1;
+
+   ta = dmtxTimeNow();
+
+   /* for each grouping of 3 angles */
+   for(xMid = xBeg; xMid <= xEnd; xMid++) {
+
+      maximaCount = 0;
+      maximaTally = 0;
+      maxValueCap = -1; /* unknown */
+      currentMaxValue = 1; /* start with lowest non-zero maxima */
+      currentMaxOccurrences = 0;
+
+      /* execute at most 8 times */
+      for(i = 0; i < 8; i++) {
+
+         /* find next largest value and count occurrences */
+         for(x = xMid - 1; x <= xMid + 1; x++) {
+            for(y = yBeg; y <= yEnd; y++) {
+
+               xUse = (x + 128) % 128;
+
+               magCompare = maximaCache[y * width + xUse].mag;
+
+               /* already lost, skip */
+               if(magCompare < currentMaxValue)
+                  continue;
+
+               /* already counted this location, skip */
+               if(maxValueCap != -1 && magCompare >= maxValueCap)
+                  continue;
+
+               if(magCompare > currentMaxValue) {
+                  /* found new max less than cap -- reset counters */
+                  currentMaxValue = magCompare;
+                  currentMaxOccurrences = 1;
+               }
+               else if(magCompare == currentMaxValue) {
+                  /* repeat occurrence -- increment */
+                  currentMaxOccurrences++;
+               }
+            }
+         }
+
+         usableOccurrences = min(8 - maximaCount, currentMaxOccurrences);
+         maximaCount += currentMaxOccurrences;
+         maximaTally += (usableOccurrences * currentMaxValue);
+         maxValueCap = currentMaxValue;
+
+         if(maximaCount >= 8 || currentMaxValue == 1)
+            break;
+      }
+      range[xUse] = maximaTally;
+   }
+
+   /* XXX next modify this to find index of maximum maxima tally so we can
+    *     show both this one and +90 deg (including immediately surrounding
+    *     index locations) */
+
+   /* Find maximum maxima tally */
+   currentMaxValue = range[0];
+   for(x = 0; x < 128; x++) {
+      if(range[x] > currentMaxValue) {
+         currentMaxValue = range[x];
+      }
+   }
+
+   /* Erase all values that are not in maximum */
+      xUse = (x + 1 + 128) % 128;
+   for(i = 0; i < 128; i++) {
+      if(range[i] < currentMaxValue) {
+         for(y = yBeg; y < yEnd; y++) {
+            maximaCache[y * width + i].mag = 0;
+         }
+      }
+   }
+
+   tb = dmtxTimeNow();
+   fprintf(stdout, "NarrowMaximaRange time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
 }
 
