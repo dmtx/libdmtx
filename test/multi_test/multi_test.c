@@ -788,6 +788,8 @@ static void
 NarrowMaximaRange(struct Hough *maximaCache, int width, int height)
 {
    int xMid, xUse;
+   int xPeak, xPeakPrev, xPeakNext;
+   int zPeak, zPeakPrev, zPeakNext;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
    int i, magCompare;
@@ -852,28 +854,32 @@ NarrowMaximaRange(struct Hough *maximaCache, int width, int height)
          if(maximaCount >= 8 || currentMaxValue == 1)
             break;
       }
-      range[xUse] = maximaTally;
+      range[xMid] = maximaTally;
    }
-
-   /* XXX next modify this to find index of maximum maxima tally so we can
-    *     show both this one and +90 deg (including immediately surrounding
-    *     index locations) */
 
    /* Find maximum maxima tally */
    currentMaxValue = range[0];
+   xPeak = 0;
    for(x = 0; x < 128; x++) {
       if(range[x] > currentMaxValue) {
          currentMaxValue = range[x];
+         xPeak = x;
       }
    }
 
+   xPeakPrev = (xPeak + 128 - 1)%128;
+   xPeakNext = (xPeak + 128 + 1)%128;
+
+   zPeak = (xPeak + 64) % 128;
+   zPeakPrev = (zPeak + 128 - 1) % 128;
+   zPeakNext = (zPeak + 128 + 1) % 128;
+
    /* Erase all values that are not in maximum */
-      xUse = (x + 1 + 128) % 128;
-   for(i = 0; i < 128; i++) {
-      if(range[i] < currentMaxValue) {
-         for(y = yBeg; y < yEnd; y++) {
-            maximaCache[y * width + i].mag = 0;
-         }
+   for(x = 0; x < 128; x++) {
+      if(x != xPeak && x != xPeakPrev && x != xPeakNext &&
+            x != zPeak && x != zPeakPrev && x != zPeakNext) {
+         for(y = yBeg; y < yEnd; y++)
+            maximaCache[y * width + x].mag = 0;
       }
    }
 
