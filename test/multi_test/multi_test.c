@@ -37,6 +37,8 @@ Contact: mblaughton@users.sourceforge.net
 #include <SDL/SDL_gfxPrimitives.h>
 #include "../../dmtx.h"
 
+#define LOCAL_SIZE 64
+
 struct UserOptions {
    const char *imagePath;
 };
@@ -119,6 +121,7 @@ static void WriteHoughCacheImage(struct Hough *hough, int width, int height, cha
 /*static void PlotPixel(SDL_Surface *surface, int x, int y);*/
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
+static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawGridLines(SDL_Surface *screen, SDL_Rect imageLoc, struct Hough *pMaximaCache, struct Hough *nMaximaCache, int angles, int diag);
 
 int
@@ -126,7 +129,6 @@ main(int argc, char *argv[])
 {
    struct UserOptions opt;
    struct AppState    state;
-/* int                scanX, scanY; */
    int                width, height;
    int                diag;
    SDL_Surface       *screen;
@@ -253,31 +255,10 @@ main(int argc, char *argv[])
       SDL_FillRect(screen, NULL, bgColor);
       SDL_BlitSurface(picture, NULL, screen, &imageLoc);
 
+      DrawActiveBorder(screen, LOCAL_SIZE);
+
       if(state.rightButton == SDL_PRESSED) {
          DrawGridLines(screen, imageLoc, pMaximaCache, nMaximaCache, 128, diag);
-/*
-         scanX = state.pointerX - state.imageLocX;
-         scanY = state.pointerY - state.imageLocY;
-
-         // Highlight a small box of edges
-         SDL_LockSurface(screen);
-         lineColor(screen, 0, 0, 30, 50, 0xff0000ff);
-         for(y = -10; y <= 10; y++) {
-            for(x = -10; x <= 10; x++) {
-               if(scanY + y < 1 || scanY + y > height - 2)
-                  continue;
-               if(scanX + x < 1 || scanX + x > width - 2)
-                  continue;
-               if(!(edgeCache[(scanY + y) * width + (scanX + x)].dir & ArriveConnected))
-                  continue;
-               if(!(edgeCache[(scanY + y) * width + (scanX + x)].dir & DepartConnected))
-                  continue;
-
-               PlotPixel(screen, state.imageLocX + scanX + x, state.imageLocY + scanY + y);
-            }
-         }
-
-         SDL_UnlockSurface(screen); */
       }
 
       SDL_Flip(screen);
@@ -441,22 +422,12 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
 static DmtxPassFail
 NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc)
 {
-   int marginA, marginB;
+   int minReveal = 16;
 
-   marginA = *imageLoc;
-   marginB = *imageLoc + pictureExtent - windowExtent;
-
-   /* Image falls completely within window */
-   if(pictureExtent <= windowExtent) {
-      *imageLoc = (marginA - marginB)/2;
-   }
-   /* One edge inside and one edge outside window */
-   else if(marginA * marginB > 0) {
-      if((pictureExtent - windowExtent) * marginA < 0)
-         *imageLoc -= marginB;
-      else
-         *imageLoc -= marginA;
-   }
+   if(*imageLoc < minReveal - pictureExtent)
+      *imageLoc = minReveal - pictureExtent;
+   else if(*imageLoc > windowExtent - minReveal)
+      *imageLoc = windowExtent - minReveal;
 
    return DmtxPass;
 }
@@ -702,7 +673,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
                scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
                d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
                d = GetOffset(x, y, phi, width, height);
-               /* Intentional inversion to force discontinuity to 0/180 degrees boundary */
+               /* Intentional sign inversion to force discontinuity to 0/180 degrees boundary */
                if(bFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += (int)(bFlowCache[idx].mag * 0.707 + 0.5);
                else
@@ -1162,6 +1133,32 @@ IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, Dm
    dmtxPointAlongRay2(p1, &ray, tMax[0]);
 
    return DmtxTrue;
+}
+
+static void
+DrawActiveBorder(SDL_Surface *screen, int activeExtent)
+{
+   Sint16 x00, y00;
+   Sint16 x10, y10;
+   Sint16 x11, y11;
+   Sint16 x01, y01;
+
+   x01 = (screen->w - activeExtent)/2 - 1;
+   y01 = (screen->h - activeExtent)/2 - 1;
+
+   x00 = x01;
+   y00 = y01 + activeExtent + 1;
+
+   x10 = x00 + activeExtent + 1;
+   y10 = y00;
+
+   x11 = x10;
+   y11 = y01;
+
+   lineColor(screen, x00, y00, x10, y10, 0xffff00ff);
+   lineColor(screen, x10, y10, x11, y11, 0xffff00ff);
+   lineColor(screen, x11, y11, x01, y01, 0xffff00ff);
+   lineColor(screen, x01, y01, x00, y00, 0xffff00ff);
 }
 
 static void
