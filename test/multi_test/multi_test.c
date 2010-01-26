@@ -34,6 +34,7 @@ Contact: mblaughton@users.sourceforge.net
 #include <assert.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
+#include <SDL/SDL_gfxPrimitives.h>
 #include "../../dmtx.h"
 
 struct UserOptions {
@@ -108,24 +109,31 @@ static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imag
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img, int width, int height);
+static double AdjustOffset(int d, int phiIdx, int width, int height);
+static int GetOffset(int x, int y, int phiIdx, int width, int height);
 static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int width, int height, int diag);
 static void PopulateMaximaCache(struct Hough *maximaCache, struct Hough *houghCache, int width, int height);
 static void NarrowMaximaRange(struct Hough *maximaCache, int width, int height);
 static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
 static void WriteHoughCacheImage(struct Hough *hough, int width, int height, char *imagePath);
 /*static void PlotPixel(SDL_Surface *surface, int x, int y);*/
+static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
+static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
+static void DrawGridLines(SDL_Surface *screen, SDL_Rect imageLoc, struct Hough *pMaximaCache, struct Hough *nMaximaCache, int angles, int diag);
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
    struct UserOptions opt;
    struct AppState    state;
-   int                scanX, scanY;
+/* int                scanX, scanY; */
    int                width, height;
    int                diag;
    SDL_Surface       *screen;
    SDL_Surface       *picture;
    SDL_Event          event;
    SDL_Rect           imageLoc;
+   Uint32             bgColor;
    DmtxImage         *img;
    DmtxDecode        *dec;
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
@@ -228,6 +236,8 @@ int main(int argc, char *argv[])
    NudgeImage(state.windowWidth, picture->w, &state.imageLocX);
    NudgeImage(state.windowHeight, picture->h, &state.imageLocY);
 
+   bgColor = SDL_MapRGBA(screen->format, 0, 0, 64, 255);
+
    for(;;) {
       SDL_Delay(10);
 
@@ -240,17 +250,18 @@ int main(int argc, char *argv[])
       imageLoc.x = state.imageLocX;
       imageLoc.y = state.imageLocY;
 
-      SDL_FillRect(screen, NULL, 0xff000050);
+      SDL_FillRect(screen, NULL, bgColor);
       SDL_BlitSurface(picture, NULL, screen, &imageLoc);
 
       if(state.rightButton == SDL_PRESSED) {
-
+         DrawGridLines(screen, imageLoc, pMaximaCache, nMaximaCache, 128, diag);
+/*
          scanX = state.pointerX - state.imageLocX;
          scanY = state.pointerY - state.imageLocY;
 
-         /* Highlight a small box of edges */
-/*
+         // Highlight a small box of edges
          SDL_LockSurface(screen);
+         lineColor(screen, 0, 0, 30, 50, 0xff0000ff);
          for(y = -10; y <= 10; y++) {
             for(x = -10; x <= 10; x++) {
                if(scanY + y < 1 || scanY + y > height - 2)
@@ -265,8 +276,8 @@ int main(int argc, char *argv[])
                PlotPixel(screen, state.imageLocX + scanX + x, state.imageLocY + scanY + y);
             }
          }
-         SDL_UnlockSurface(screen);
-*/
+
+         SDL_UnlockSurface(screen); */
       }
 
       SDL_Flip(screen);
@@ -540,6 +551,43 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
 }
 
 #define TRANS 0.146446609406726
+
+static double
+AdjustOffset(int d, int phiIdx, int width, int height)
+{
+   double phiRad;
+   double scale;
+   double posMax, negMax, extMax;
+
+   phiRad = M_PI * phiIdx / 128.0;
+
+   extMax = (height > width) ? height : width;
+
+   if(phiIdx < 64) {
+      posMax = width * cos(phiRad) + height * sin(phiRad);
+      negMax = 0.0;
+   }
+   else {
+      posMax = height * sin(phiRad);
+      negMax = width * cos(phiRad);
+   }
+
+   assert(fabs(posMax - negMax) > 0.00001);
+   scale = extMax / (posMax - negMax);
+
+   return d / scale + negMax;
+
+/* return (int)((x * cos(phiRad) + y * sin(phiRad) - negMax) * scale + 0.5); */
+
+/* d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10); */
+/*
+   scale = cos(4 * phiRad) * TRANS + 1 - TRANS;
+
+   negMax = (phiIdx < 64) ? 0 : (int)(32 * cos(phiRad) + 0.5);
+
+   return (int)((x * cos(phiRad) + y * sin(phiRad)) * scale + 0.5) - negMax;
+*/
+}
 
 static int
 GetOffset(int x, int y, int phiIdx, int width, int height)
@@ -1005,3 +1053,167 @@ PlotPixel(SDL_Surface *surface, int x, int y)
          &col, surface->format->BytesPerPixel);
 }
 #endif
+
+static int
+Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1)
+{
+   double numer, denom;
+   DmtxVector2 w;
+
+   denom = dmtxVector2Cross(&(p1.v), &(p0.v));
+   if(fabs(denom) <= 0.000001)
+      return DmtxFail;
+
+   dmtxVector2Sub(&w, &(p1.p), &(p0.p));
+   numer = dmtxVector2Cross(&(p1.v), &w);
+
+   *t = numer/denom;
+
+   return DmtxTrue;
+}
+
+static int
+IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1)
+{
+   double xMin, xMax, yMin, yMax;
+   double tTmp, t[4], tMin[2], tMax[2];
+   double tMinStart, tMaxStart;
+   int i;
+   int tCount = 0;
+   DmtxRay2 rBtm, rTop, rLft, rRgt;
+   DmtxVector2 unitX = { 1.0, 0.0 };
+   DmtxVector2 unitY = { 0.0, 1.0 };
+
+   if(bb0.X < bb1.X) {
+      xMin = bb0.X;
+      xMax = bb1.X;
+   }
+   else {
+      xMin = bb1.X;
+      xMax = bb0.X;
+   }
+
+   if(bb0.Y < bb1.Y) {
+      yMin = bb0.Y;
+      yMax = bb1.Y;
+   }
+   else {
+      yMin = bb1.Y;
+      yMax = bb0.Y;
+   }
+
+   rBtm.p.X = rTop.p.X = rLft.p.X = xMin;
+   rRgt.p.X = xMax;
+
+   rBtm.p.Y = rLft.p.Y = rRgt.p.Y = yMin;
+   rTop.p.Y = yMax;
+
+   rBtm.v = rTop.v = unitX;
+   rLft.v = rRgt.v = unitY;
+
+   if(Ray2Intersect(&tTmp, ray, rBtm) == DmtxPass)
+      t[tCount++] = tTmp;
+
+   if(Ray2Intersect(&tTmp, ray, rTop) == DmtxPass)
+      t[tCount++] = tTmp;
+
+   if(Ray2Intersect(&tTmp, ray, rLft) == DmtxPass)
+      t[tCount++] = tTmp;
+
+   if(Ray2Intersect(&tTmp, ray, rRgt) == DmtxPass)
+      t[tCount++] = tTmp;
+
+   if(tCount < 2)
+      return DmtxFail;
+
+   tMinStart = tMaxStart = t[0];
+   for(i = 1; i < tCount; i++) {
+      if(t[i] < tMinStart)
+         tMinStart = t[i];
+      if(t[i] > tMaxStart)
+         tMaxStart = t[i];
+   }
+
+   /* tMin[1] is the smallest and tMin[0] is second smallest */
+   tMin[0] = tMin[1] = tMaxStart;
+   for(i = 0; i < tCount; i++) {
+      if(t[i] < tMin[1]) {
+         tMin[0] = tMin[1];
+         tMin[1] = t[i];
+      }
+      else if(t[i] < tMin[0]) {
+         tMin[0] = t[i];
+      }
+   }
+
+   /* tMax[1] is the larget and tMax[0] is second largest */
+   tMax[0] = tMax[1] = tMinStart;
+   for(i = 0; i < tCount; i++) {
+      if(t[i] > tMax[1]) {
+         tMax[0] = tMax[1];
+         tMax[1] = t[i];
+      }
+      else if(t[i] > tMax[0]) {
+         tMax[0] = t[i];
+      }
+   }
+
+   dmtxPointAlongRay2(p0, &ray, tMin[0]);
+   dmtxPointAlongRay2(p1, &ray, tMax[0]);
+
+   return DmtxTrue;
+}
+
+static void
+DrawGridLines(SDL_Surface *screen, SDL_Rect loc,
+      struct Hough *pMaximaCache, struct Hough *nMaximaCache,
+      int angles, int diag)
+{
+   int phi, d;
+   double phiRad;
+   double dScaled;
+   DmtxVector2 bb0, bb1;
+   DmtxVector2 p0, p1;
+   DmtxRay2 rStart, rLine;
+   DmtxPixelLoc d0, d1;
+
+   bb0.X = bb0.Y = 0.0;
+   bb1.X = loc.w - 1;
+   bb1.Y = loc.h - 1;
+
+   rStart.p.X = rStart.p.Y = 0.0;
+
+   for(phi = 0; phi < angles; phi++) {
+
+      phiRad = phi * M_PI/128.0;
+
+      rStart.v.X = cos(phiRad);
+      rStart.v.Y = sin(phiRad);
+
+      rLine.v.X = -rStart.v.Y;
+      rLine.v.Y = rStart.v.X;
+
+      for(d = 0; d < diag; d++) {
+
+         if(pMaximaCache[d * angles + phi].mag > 0) {
+
+            dScaled = AdjustOffset(d, phi, loc.w, loc.h);
+
+            dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
+
+            p0.X = p0.Y = p1.X = p1.Y = 0.0;
+
+            if(IntersectBox(rLine, bb0, bb1, &p0, &p1) == DmtxFalse)
+               continue;
+
+            d0.X = (int)(p0.X + 0.5) + loc.x;
+            d1.X = (int)(p1.X + 0.5) + loc.x;
+
+            d0.Y = loc.y + (loc.h - (int)(p0.Y + 0.5) - 1);
+            d1.Y = loc.y + (loc.h - (int)(p1.Y + 0.5) - 1);
+
+            lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
+         }
+      }
+   }
+}
