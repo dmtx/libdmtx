@@ -558,7 +558,7 @@ extern double dmtxVector2Dot(const DmtxVector2 *v1, const DmtxVector2 *v2);
 extern double dmtxVector2Mag(const DmtxVector2 *v);
 extern double dmtxDistanceFromRay2(const DmtxRay2 *r, const DmtxVector2 *q);
 extern double dmtxDistanceAlongRay2(const DmtxRay2 *r, const DmtxVector2 *q);
-extern int dmtxRay2Intersect(/*@out@*/ DmtxVector2 *point, const DmtxRay2 *p0, const DmtxRay2 *p1);
+extern DmtxPassFail dmtxRay2Intersect(/*@out@*/ DmtxVector2 *point, const DmtxRay2 *p0, const DmtxRay2 *p1);
 extern DmtxPassFail dmtxPointAlongRay2(/*@out@*/ DmtxVector2 *point, const DmtxRay2 *r, double t);
 
 /* dmtxmatrix3.c */

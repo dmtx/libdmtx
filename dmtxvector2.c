@@ -189,7 +189,7 @@ dmtxDistanceAlongRay2(const DmtxRay2 *r, const DmtxVector2 *q)
  *
  *
  */
-extern int
+extern DmtxPassFail
 dmtxRay2Intersect(DmtxVector2 *point, const DmtxRay2 *p0, const DmtxRay2 *p1)
 {
    double numer, denom;
