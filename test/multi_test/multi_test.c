@@ -141,6 +141,8 @@ main(int argc, char *argv[])
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
    struct Hough      *pHoughCache, *nHoughCache;
    struct Hough      *pMaximaCache, *nMaximaCache;
+   SDL_Rect           clipRect;
+   SDL_Surface       *local;
 
    opt = GetDefaultOptions();
 
@@ -252,7 +254,27 @@ main(int argc, char *argv[])
       imageLoc.x = state.imageLocX;
       imageLoc.y = state.imageLocY;
 
+/*************************************************************************/
+/*XXX1 change this to:
+ * copy subset of image to small (LOCAL_SIZE x LOCAL_SIZE) pixel buffer
+ * dump preview image to unique name
+ * move into main app loop
+ * then change so preview images are only written on request (keystroke)
+ */
+
+   local = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
+
+   /* Set size of rectangle to copy from original image */
+   clipRect.x = (screen->w - LOCAL_SIZE)/2 - imageLoc.x;
+   clipRect.y = (screen->h - LOCAL_SIZE)/2 - imageLoc.y;
+   clipRect.w = LOCAL_SIZE;
+   clipRect.h = LOCAL_SIZE;
+
+   SDL_BlitSurface(picture, &clipRect, local, NULL);
+/*************************************************************************/
+
       SDL_FillRect(screen, NULL, bgColor);
+      SDL_BlitSurface(local, NULL, screen, NULL);
       SDL_BlitSurface(picture, NULL, screen, &imageLoc);
 
       DrawActiveBorder(screen, LOCAL_SIZE);
@@ -264,6 +286,7 @@ main(int argc, char *argv[])
       SDL_Flip(screen);
    }
 
+   SDL_FreeSurface(local);
    free(nMaximaCache);
    free(pMaximaCache);
    free(nHoughCache);
