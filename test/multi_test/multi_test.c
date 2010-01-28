@@ -110,13 +110,13 @@ static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
 static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
-      struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img, int width, int height);
+      struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img);
 static double AdjustOffset(int d, int phiIdx, int width, int height);
 static int GetOffset(int x, int y, int phiIdx, int width, int height);
 static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int width, int height, int diag);
 static void PopulateMaximaCache(struct Hough *maximaCache, struct Hough *houghCache, int width, int height);
 static void NarrowMaximaRange(struct Hough *maximaCache, int width, int height);
-static void WriteFlowCacheImage(struct Flow *flow, int width, int height, char *imagePath);
+static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY);
 static void WriteHoughCacheImage(struct Hough *hough, int width, int height, char *imagePath);
 /*static void PlotPixel(SDL_Surface *surface, int x, int y);*/
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
@@ -129,8 +129,8 @@ main(int argc, char *argv[])
 {
    struct UserOptions opt;
    struct AppState    state;
-   int                width, height;
-   int                diag;
+/* int                width, height;
+   int                diag; */
    SDL_Surface       *screen;
    SDL_Surface       *picture;
    SDL_Event          event;
@@ -139,8 +139,8 @@ main(int argc, char *argv[])
    DmtxImage         *img;
    DmtxDecode        *dec;
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
-   struct Hough      *pHoughCache, *nHoughCache;
-   struct Hough      *pMaximaCache, *nMaximaCache;
+/* struct Hough      *pHoughCache, *nHoughCache;
+   struct Hough      *pMaximaCache, *nMaximaCache; */
    SDL_Rect           clipRect;
    SDL_Surface       *local;
 
@@ -160,36 +160,17 @@ main(int argc, char *argv[])
       exit(1);
    }
 
-   switch(picture->pitch / picture->w) {
-      case 1:
-         img = dmtxImageCreate(picture->pixels, picture->w, picture->h, DmtxPack8bppK);
-         break;
-      case 3:
-         img = dmtxImageCreate(picture->pixels, picture->w, picture->h, DmtxPack24bppRGB);
-         break;
-      case 4:
-         img = dmtxImageCreate(picture->pixels, picture->w, picture->h, DmtxPack32bppXRGB);
-         break;
-      default:
-         exit(1);
-   }
-   assert(img != NULL);
-
-   dec = dmtxDecodeCreate(img, 1);
-   assert(dec != NULL);
-
-   width = dmtxImageGetProp(img, DmtxPropWidth);
-   height = dmtxImageGetProp(img, DmtxPropHeight);
-
-   sFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
+   /* Allocate memory for the flow caches */
+   sFlowCache = (struct Flow *)calloc(LOCAL_SIZE * LOCAL_SIZE, sizeof(struct Flow));
    assert(sFlowCache != NULL);
-   bFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
+   bFlowCache = (struct Flow *)calloc(LOCAL_SIZE * LOCAL_SIZE, sizeof(struct Flow));
    assert(bFlowCache != NULL);
-   hFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
+   hFlowCache = (struct Flow *)calloc(LOCAL_SIZE * LOCAL_SIZE, sizeof(struct Flow));
    assert(hFlowCache != NULL);
-   vFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
+   vFlowCache = (struct Flow *)calloc(LOCAL_SIZE * LOCAL_SIZE, sizeof(struct Flow));
    assert(vFlowCache != NULL);
 
+/*
    diag = (int)(sqrt(width * width + height * height) + 0.5);
 
    pHoughCache = (struct Hough *)calloc(128 * diag, sizeof(struct Hough));
@@ -217,15 +198,11 @@ main(int argc, char *argv[])
    NarrowMaximaRange(pMaximaCache, 128, diag);
    NarrowMaximaRange(nMaximaCache, 128, diag);
 
-   WriteFlowCacheImage(sFlowCache, width, height, "sFlowCache.pnm");
-   WriteFlowCacheImage(bFlowCache, width, height, "bFlowCache.pnm");
-   WriteFlowCacheImage(hFlowCache, width, height, "hFlowCache.pnm");
-   WriteFlowCacheImage(vFlowCache, width, height, "vFlowCache.pnm");
    WriteHoughCacheImage(pHoughCache, 128, diag, "pHoughCache.pnm");
    WriteHoughCacheImage(nHoughCache, 128, diag, "nHoughCache.pnm");
    WriteHoughCacheImage(pMaximaCache, 128, diag, "pMaximaCache.pnm");
    WriteHoughCacheImage(nMaximaCache, 128, diag, "nMaximaCache.pnm");
-
+*/
    atexit(SDL_Quit);
 
    /* Initialize SDL library */
@@ -243,6 +220,23 @@ main(int argc, char *argv[])
 
    /* Create surface to hold image pixels to be scanned */
    local = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
+   switch(local->pitch / local->w) {
+      case 1:
+         img = dmtxImageCreate(local->pixels, local->w, local->h, DmtxPack8bppK);
+         break;
+      case 3:
+         img = dmtxImageCreate(local->pixels, local->w, local->h, DmtxPack24bppRGB);
+         break;
+      case 4:
+         img = dmtxImageCreate(local->pixels, local->w, local->h, DmtxPack32bppXRGB);
+         break;
+      default:
+         exit(1);
+   }
+   assert(img != NULL);
+
+   dec = dmtxDecodeCreate(img, 1);
+   assert(dec != NULL);
 
    for(;;) {
       SDL_Delay(10);
@@ -264,40 +258,59 @@ main(int argc, char *argv[])
       SDL_FillRect(local, NULL, bgColorK);
       SDL_BlitSurface(picture, &clipRect, local, NULL);
 
+      /* Process image data */
+      SDL_LockSurface(local);
+      PopulateFlowCache(sFlowCache, bFlowCache, hFlowCache, vFlowCache, dec->image);
+      SDL_UnlockSurface(local);
+
+/*
+      PopulateHoughCache(sFlowCache, bFlowCache, hFlowCache, vFlowCache, dec->image);
+      PopulateMaximaCache(pMaximaCache, pHoughCache, 128, diag);
+*/
+
       /* Start with blank canvas */
       SDL_FillRect(screen, NULL, bgColorB);
 
-      /* Write local image to image feedback pane 1 */
-      clipRect.x = 0;
-      clipRect.y = 480;
-      SDL_BlitSurface(local, NULL, screen, &clipRect);
-
-      /* Write local image to image feedback pane 2 */
-      clipRect.x = 64;
-      clipRect.y = 480;
-      SDL_BlitSurface(local, NULL, screen, &clipRect);
-
-      /* Write local image to image feedback pane 2 */
+      /* Draw image to main canvas area */
       clipRect.w = 640;
       clipRect.h = 480;
       clipRect.x = 0;
       clipRect.y = 0;
+      SDL_SetClipRect(screen, &clipRect);
       SDL_BlitSurface(picture, NULL, screen, &imageLoc);
 
       DrawActiveBorder(screen, LOCAL_SIZE);
 
-      if(state.rightButton == SDL_PRESSED) {
+      /* Write local image to image feedback pane */
+      SDL_SetClipRect(screen, NULL);
+      clipRect.w = LOCAL_SIZE;
+      clipRect.h = LOCAL_SIZE;
+      clipRect.x = 0;
+      clipRect.y = 480;
+      SDL_BlitSurface(local, NULL, screen, &clipRect);
+
+      /* Write sFlowCache to image feedback pane */
+      BlitFlowCache(screen, sFlowCache,  64, 480);
+      BlitFlowCache(screen, bFlowCache, 128, 480);
+      BlitFlowCache(screen, hFlowCache,  64, 544);
+      BlitFlowCache(screen, vFlowCache, 128, 544);
+
+/*    if(state.rightButton == SDL_PRESSED) {
          DrawGridLines(screen, imageLoc, pMaximaCache, nMaximaCache, 128, diag);
-      }
+      } */
 
       SDL_Flip(screen);
    }
 
    SDL_FreeSurface(local);
+/*
    free(nMaximaCache);
    free(pMaximaCache);
    free(nHoughCache);
    free(pHoughCache);
+*/
+   free(vFlowCache);
+   free(hFlowCache);
    free(bFlowCache);
    free(sFlowCache);
 
@@ -351,7 +364,7 @@ InitAppState(void)
    struct AppState state;
 
    state.windowWidth = 640;
-   state.windowHeight = 480 + LOCAL_SIZE;
+   state.windowHeight = 480 + 2 * LOCAL_SIZE;
    state.imageLocX = 0;
    state.imageLocY = 0;
    state.leftButton = SDL_RELEASED;
@@ -495,8 +508,9 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 static void
 PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       struct Flow *hFlowCache, struct Flow *vFlowCache,
-      DmtxImage *img, int width, int height)
+      DmtxImage *img)
 {
+   int width, height;
    int bytesPerPixel, rowSizeBytes, colorPlane;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
@@ -505,6 +519,8 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
    int idx;
    DmtxTime ta, tb;
 
+   width = dmtxImageGetProp(img, DmtxPropWidth);
+   height = dmtxImageGetProp(img, DmtxPropHeight);
    rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
    bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
    colorPlane = 0; /* XXX need to make some decisions here */
@@ -547,8 +563,8 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
    }
 
    tb = dmtxTimeNow();
-   fprintf(stdout, "PopulateFlowCache time: %ldms\n", (1000000 *
-         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
+/* fprintf(stdout, "PopulateFlowCache time: %ldms\n", (1000000 *
+         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
 }
 
 #define TRANS 0.146446609406726
@@ -900,27 +916,24 @@ NarrowMaximaRange(struct Hough *maximaCache, int width, int height)
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000);
 }
 
-/**
- *
- *
- */
 static void
-WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePath)
+BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY)
 {
    int row, col;
-   int rgb[3];
+   unsigned char rgb[3];
    int flowVal, maxVal;
+   int width, height;
+   int offset;
    struct Flow flow;
-   FILE *fp;
+   unsigned char pixbuf[12288]; /* 64 * 64 * 3 */
+   SDL_Surface *surface;
+   SDL_Rect clipRect;
 
-   fp = fopen(imagePath, "wb");
-   if(fp == NULL)
-      exit(1);
-
-   fprintf(fp, "P6\n%d %d\n255\n", width, height);
+   width = LOCAL_SIZE;
+   height = LOCAL_SIZE;
 
    maxVal = 0;
-   for(row = height - 1; row >= 0; row--) {
+   for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
          flowVal = abs(flowCache[row * width + col].mag);
          if(flowVal > maxVal)
@@ -928,7 +941,7 @@ WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePa
       }
    }
 
-   for(row = height - 1; row >= 0; row--) {
+   for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
          flow = flowCache[row * width + col];
          if(flow.mag > 0) {
@@ -942,13 +955,23 @@ WriteFlowCacheImage(struct Flow *flowCache, int width, int height, char *imagePa
             rgb[2] = 0;
          }
 
-         fputc(rgb[0], fp);
-         fputc(rgb[1], fp);
-         fputc(rgb[2], fp);
+         offset = ((height - row - 1) * width + col) * 3;
+         pixbuf[offset] = rgb[0];
+         pixbuf[offset+1] = rgb[1];
+         pixbuf[offset+2] = rgb[2];
       }
    }
 
-   fclose(fp);
+   clipRect.w = LOCAL_SIZE;
+   clipRect.h = LOCAL_SIZE;
+   clipRect.x = screenX;
+   clipRect.y = screenY;
+
+   surface = SDL_CreateRGBSurfaceFrom(pixbuf, LOCAL_SIZE, LOCAL_SIZE, 24,
+         LOCAL_SIZE * 3, 0, 0, 0, 0);
+
+   SDL_BlitSurface(surface, NULL, screen, &clipRect);
+   SDL_FreeSurface(surface);
 }
 
 /**
