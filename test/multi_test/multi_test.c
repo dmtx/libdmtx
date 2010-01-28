@@ -1,7 +1,7 @@
 /*
 libdmtx - Data Matrix Encoding/Decoding Library
 
-Copyright (C) 2009 Mike Laughton
+Copyright (C) 2010 Mike Laughton
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
@@ -135,7 +135,7 @@ main(int argc, char *argv[])
    SDL_Surface       *picture;
    SDL_Event          event;
    SDL_Rect           imageLoc;
-   Uint32             bgColor;
+   Uint32             bgColorB, bgColorK;
    DmtxImage         *img;
    DmtxDecode        *dec;
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
@@ -190,8 +190,6 @@ main(int argc, char *argv[])
    vFlowCache = (struct Flow *)calloc(width * height, sizeof(struct Flow));
    assert(vFlowCache != NULL);
 
-/* diag = (int)(sqrt(width * width + height * height) + 0.5); */
-/* diagIdx = (int)(atan2(height, width) * 180/M_PI + 0.5); */
    diag = (int)(sqrt(width * width + height * height) + 0.5);
 
    pHoughCache = (struct Hough *)calloc(128 * diag, sizeof(struct Hough));
@@ -240,7 +238,11 @@ main(int argc, char *argv[])
    NudgeImage(state.windowWidth, picture->w, &state.imageLocX);
    NudgeImage(state.windowHeight, picture->h, &state.imageLocY);
 
-   bgColor = SDL_MapRGBA(screen->format, 0, 0, 64, 255);
+   bgColorB = SDL_MapRGBA(screen->format, 0, 0, 64, 255);
+   bgColorK = SDL_MapRGBA(screen->format, 0, 0, 0, 255);
+
+   /* Create surface to hold image pixels to be scanned */
+   local = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
 
    for(;;) {
       SDL_Delay(10);
@@ -254,27 +256,32 @@ main(int argc, char *argv[])
       imageLoc.x = state.imageLocX;
       imageLoc.y = state.imageLocY;
 
-/*************************************************************************/
-/*XXX1 change this to:
- * copy subset of image to small (LOCAL_SIZE x LOCAL_SIZE) pixel buffer
- * dump preview image to unique name
- * move into main app loop
- * then change so preview images are only written on request (keystroke)
- */
+      /* Capture portion of image that falls within highlighted region */
+      clipRect.x = (screen->w - LOCAL_SIZE)/2 - imageLoc.x;
+      clipRect.y = (screen->h - LOCAL_SIZE)/2 - imageLoc.y;
+      clipRect.w = LOCAL_SIZE;
+      clipRect.h = LOCAL_SIZE;
+      SDL_FillRect(local, NULL, bgColorK);
+      SDL_BlitSurface(picture, &clipRect, local, NULL);
 
-   local = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
+      /* Start with blank canvas */
+      SDL_FillRect(screen, NULL, bgColorB);
 
-   /* Set size of rectangle to copy from original image */
-   clipRect.x = (screen->w - LOCAL_SIZE)/2 - imageLoc.x;
-   clipRect.y = (screen->h - LOCAL_SIZE)/2 - imageLoc.y;
-   clipRect.w = LOCAL_SIZE;
-   clipRect.h = LOCAL_SIZE;
+      /* Write local image to image feedback pane 1 */
+      clipRect.x = 0;
+      clipRect.y = 480;
+      SDL_BlitSurface(local, NULL, screen, &clipRect);
 
-   SDL_BlitSurface(picture, &clipRect, local, NULL);
-/*************************************************************************/
+      /* Write local image to image feedback pane 2 */
+      clipRect.x = 64;
+      clipRect.y = 480;
+      SDL_BlitSurface(local, NULL, screen, &clipRect);
 
-      SDL_FillRect(screen, NULL, bgColor);
-      SDL_BlitSurface(local, NULL, screen, NULL);
+      /* Write local image to image feedback pane 2 */
+      clipRect.w = 640;
+      clipRect.h = 480;
+      clipRect.x = 0;
+      clipRect.y = 0;
       SDL_BlitSurface(picture, NULL, screen, &imageLoc);
 
       DrawActiveBorder(screen, LOCAL_SIZE);
@@ -344,7 +351,7 @@ InitAppState(void)
    struct AppState state;
 
    state.windowWidth = 640;
-   state.windowHeight = 480;
+   state.windowHeight = 480 + LOCAL_SIZE;
    state.imageLocX = 0;
    state.imageLocY = 0;
    state.leftButton = SDL_RELEASED;
@@ -570,17 +577,6 @@ AdjustOffset(int d, int phiIdx, int width, int height)
    scale = extMax / (posMax - negMax);
 
    return d / scale + negMax;
-
-/* return (int)((x * cos(phiRad) + y * sin(phiRad) - negMax) * scale + 0.5); */
-
-/* d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10); */
-/*
-   scale = cos(4 * phiRad) * TRANS + 1 - TRANS;
-
-   negMax = (phiIdx < 64) ? 0 : (int)(32 * cos(phiRad) + 0.5);
-
-   return (int)((x * cos(phiRad) + y * sin(phiRad)) * scale + 0.5) - negMax;
-*/
 }
 
 static int
@@ -607,15 +603,6 @@ GetOffset(int x, int y, int phiIdx, int width, int height)
    scale = extMax / (posMax - negMax);
 
    return (int)((x * cos(phiRad) + y * sin(phiRad) - negMax) * scale + 0.5);
-
-/* d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10); */
-/*
-   scale = cos(4 * phiRad) * TRANS + 1 - TRANS;
-
-   negMax = (phiIdx < 64) ? 0 : (int)(32 * cos(phiRad) + 0.5);
-
-   return (int)((x * cos(phiRad) + y * sin(phiRad)) * scale + 0.5) - negMax;
-*/
 }
 #undef TRANS
 
@@ -665,13 +652,8 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
           * This should provide a huge speedup.
           */
 
-/*             d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0))/2; */
-/*             assert(d < 2 * diag); */
-
          if(abs(vFlowCache[idx].mag) > 5) {
             for(phi = 0; phi < 16; phi++) {
-/*             d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
-               d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
                d = GetOffset(x, y, phi, width, height);
                if(vFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += vFlowCache[idx].mag;
@@ -679,9 +661,6 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
                   nHoughCache[d * 128 + phi].mag -= vFlowCache[idx].mag;
             }
             for(phi = 112; phi < 128; phi++) {
-/*             d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
-               scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
-               d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
                d = GetOffset(x, y, phi, width, height);
                if(vFlowCache[idx].mag > 0)
                   nHoughCache[d * 128 + phi].mag += vFlowCache[idx].mag;
@@ -692,9 +671,6 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(bFlowCache[idx].mag) > 5) {
             for(phi = 16; phi < 48; phi++) {
-/*             d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
-               scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
-               d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
                d = GetOffset(x, y, phi, width, height);
                /* Intentional sign inversion to force discontinuity to 0/180 degrees boundary */
                if(bFlowCache[idx].mag > 0)
@@ -706,9 +682,6 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(hFlowCache[idx].mag) > 5) {
             for(phi = 48; phi < 80; phi++) {
-/*             d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
-               scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
-               d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
                d = GetOffset(x, y, phi, width, height);
                if(hFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += hFlowCache[idx].mag;
@@ -719,9 +692,6 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(sFlowCache[idx].mag) > 5) {
             for(phi = 80; phi < 112; phi++) {
-/*             d = ((x * uCos128[phi] + y * uSin128[phi]) >> 10);
-               scale = (phi >= 32 && phi < 80) ? fabs(sin(M_PI*phi/128.0)) : fabs(cos(M_PI*phi/128.0));
-               d = (x * cos(M_PI*phi/128.0) + y * sin(M_PI*phi/128.0)) * scale; */
                d = GetOffset(x, y, phi, width, height);
                if(sFlowCache[idx].mag > 0)
                   pHoughCache[d * 128 + phi].mag += (int)(sFlowCache[idx].mag * 0.707 + 0.5);
