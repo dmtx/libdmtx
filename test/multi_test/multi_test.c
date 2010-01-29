@@ -124,7 +124,7 @@ static void WriteHoughCacheImage(struct Hough *hough, int width, int height, cha
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
-static void DrawGridLines(SDL_Surface *screen, SDL_Rect imageLoc, struct Hough *pMaximaCache, struct Hough *nMaximaCache, int angles, int diag);
+static void DrawGridLines(SDL_Surface *screen, struct Hough *maximaCache, int angles, int diag, int screenX, int screenY);
 
 int
 main(int argc, char *argv[])
@@ -286,28 +286,27 @@ main(int argc, char *argv[])
 
       DrawActiveBorder(screen, LOCAL_SIZE);
 
-      /* Write sFlowCache to image feedback pane */
+      /* Write flow cache images to feedback panes */
       BlitFlowCache(screen, sFlowCache,  0, 480);
       BlitFlowCache(screen, bFlowCache, 64, 480);
       BlitFlowCache(screen, hFlowCache,  0, 544);
       BlitFlowCache(screen, vFlowCache, 64, 544);
 
+      /* Write hough cache images to feedback panes */
       BlitHoughCache(screen, pHoughCache, 128, 480);
       BlitHoughCache(screen, nHoughCache, 128, 544);
 
+      /* Write maxima cache images to feedback panes */
       BlitHoughCache(screen, pMaximaCache, 256, 480);
       BlitHoughCache(screen, nMaximaCache, 256, 544);
 
+      /* Draw positive hough lines to feedback panes */
       BlitActiveRegion(screen, local, 384, 480);
-      BlitActiveRegion(screen, local, 384, 544);
+      DrawGridLines(screen, pMaximaCache, 128, LOCAL_SIZE, 384, 480);
 
-      if(state.rightButton == SDL_PRESSED) {
-         clipRect.w = LOCAL_SIZE;
-         clipRect.h = LOCAL_SIZE;
-         clipRect.x = (screen->w - LOCAL_SIZE)/2 - 1;
-         clipRect.y = (screen->h - LOCAL_SIZE)/2 - 1;
-         DrawGridLines(screen, clipRect, pMaximaCache, nMaximaCache, 128, LOCAL_SIZE);
-      }
+      /* Draw negative hough lines to feedback panes */
+      BlitActiveRegion(screen, local, 384, 544);
+      DrawGridLines(screen, nMaximaCache, 128, LOCAL_SIZE, 384, 544);
 
       SDL_Flip(screen);
    }
@@ -1243,9 +1242,7 @@ DrawActiveBorder(SDL_Surface *screen, int activeExtent)
 }
 
 static void
-DrawGridLines(SDL_Surface *screen, SDL_Rect loc,
-      struct Hough *pMaximaCache, struct Hough *nMaximaCache,
-      int angles, int diag)
+DrawGridLines(SDL_Surface *screen, struct Hough *maximaCache, int angles, int diag, int screenX, int screenY)
 {
    int phi, d;
    double phiRad;
@@ -1256,8 +1253,7 @@ DrawGridLines(SDL_Surface *screen, SDL_Rect loc,
    DmtxPixelLoc d0, d1;
 
    bb0.X = bb0.Y = 0.0;
-   bb1.X = loc.w - 1;
-   bb1.Y = loc.h - 1;
+   bb1.X = bb1.Y = LOCAL_SIZE;
 
    rStart.p.X = rStart.p.Y = 0.0;
 
@@ -1273,9 +1269,9 @@ DrawGridLines(SDL_Surface *screen, SDL_Rect loc,
 
       for(d = 0; d < diag; d++) {
 
-         if(pMaximaCache[d * angles + phi].mag > 0) {
+         if(maximaCache[d * angles + phi].mag > 0) {
 
-            dScaled = AdjustOffset(d, phi, loc.w, loc.h);
+            dScaled = AdjustOffset(d, phi, LOCAL_SIZE, LOCAL_SIZE);
 
             dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
 
@@ -1284,11 +1280,11 @@ DrawGridLines(SDL_Surface *screen, SDL_Rect loc,
             if(IntersectBox(rLine, bb0, bb1, &p0, &p1) == DmtxFalse)
                continue;
 
-            d0.X = (int)(p0.X + 0.5) + loc.x;
-            d1.X = (int)(p1.X + 0.5) + loc.x;
+            d0.X = (int)(p0.X + 0.5) + screenX;
+            d1.X = (int)(p1.X + 0.5) + screenX;
 
-            d0.Y = loc.y + (loc.h - (int)(p0.Y + 0.5) - 1);
-            d1.Y = loc.y + (loc.h - (int)(p1.Y + 0.5) - 1);
+            d0.Y = screenY + (LOCAL_SIZE - (int)(p0.Y + 0.5) - 1);
+            d1.Y = screenY + (LOCAL_SIZE - (int)(p1.Y + 0.5) - 1);
 
             lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
          }
