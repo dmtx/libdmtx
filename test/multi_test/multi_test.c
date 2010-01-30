@@ -39,13 +39,6 @@ Contact: mblaughton@users.sourceforge.net
 
 #define LOCAL_SIZE 64
 
-typedef enum {
-   vDir,
-   hDir,
-   sDir,
-   bDir
-} FlowDir;
-
 struct UserOptions {
    const char *imagePath;
 };
@@ -63,11 +56,11 @@ struct AppState {
 };
 
 struct Flow {
-   char isEdge; /* 0 or 1 */
    int mag;
 };
 
 struct Hough {
+   char isMax;
    unsigned int mag;
 };
 
@@ -119,12 +112,11 @@ static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imag
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img);
-static void TightenFlowEdge(struct Flow *flowCache, FlowDir dir, int extent);
 static double AdjustOffset(int d, int phiIdx, int width, int height);
 static int GetOffset(int x, int y, int phiIdx, int width, int height);
 static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int angleBase, int imgExtent);
-static void PopulateMaximaCache(struct Hough *maximaCache, struct Hough *houghCache, int width, int height);
-static void NarrowMaximaRange(struct Hough *maximaCache, int width, int height);
+static void PopulateMaximaCache(struct Hough *houghCache, int width, int height);
+static void NarrowMaximaRange(struct Hough *maximaCache, int phiExtent, int dExtent);
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY);
 static void BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int screenY);
 static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int screenY);
@@ -148,7 +140,6 @@ main(int argc, char *argv[])
    DmtxDecode        *dec;
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
    struct Hough      *pHoughCache, *nHoughCache;
-   struct Hough      *pMaximaCache, *nMaximaCache;
    SDL_Rect           clipRect;
    SDL_Surface       *local;
 
@@ -182,11 +173,6 @@ main(int argc, char *argv[])
    assert(pHoughCache != NULL);
    nHoughCache = (struct Hough *)calloc(128 * LOCAL_SIZE, sizeof(struct Hough));
    assert(nHoughCache != NULL);
-
-   pMaximaCache = (struct Hough *)calloc(128 * LOCAL_SIZE, sizeof(struct Hough));
-   assert(pMaximaCache != NULL);
-   nMaximaCache = (struct Hough *)calloc(128 * LOCAL_SIZE, sizeof(struct Hough));
-   assert(nMaximaCache != NULL);
 
    atexit(SDL_Quit);
 
@@ -268,16 +254,6 @@ main(int argc, char *argv[])
       BlitFlowCache(screen, sFlowCache, 128, 480);
       BlitFlowCache(screen, bFlowCache, 192, 480);
 
-      TightenFlowEdge(hFlowCache, hDir, LOCAL_SIZE);
-      TightenFlowEdge(vFlowCache, vDir, LOCAL_SIZE);
-      TightenFlowEdge(sFlowCache, sDir, LOCAL_SIZE);
-      TightenFlowEdge(bFlowCache, bDir, LOCAL_SIZE);
-
-      BlitFlowCache(screen, hFlowCache,   0, 544);
-      BlitFlowCache(screen, vFlowCache,  64, 544);
-      BlitFlowCache(screen, sFlowCache, 128, 544);
-      BlitFlowCache(screen, bFlowCache, 192, 544);
-
       PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
             hFlowCache, vFlowCache, 128, LOCAL_SIZE);
 
@@ -285,31 +261,29 @@ main(int argc, char *argv[])
       BlitHoughCache(screen, pHoughCache, 256, 480);
       BlitHoughCache(screen, nHoughCache, 256, 544);
 
-      PopulateMaximaCache(pMaximaCache, pHoughCache, 128, LOCAL_SIZE);
-      PopulateMaximaCache(nMaximaCache, nHoughCache, 128, LOCAL_SIZE);
+      PopulateMaximaCache(pHoughCache, 128, LOCAL_SIZE);
+      PopulateMaximaCache(nHoughCache, 128, LOCAL_SIZE);
+
+      NarrowMaximaRange(pHoughCache, 128, LOCAL_SIZE);
+      NarrowMaximaRange(nHoughCache, 128, LOCAL_SIZE);
 
       /* Write maxima cache images to feedback panes */
-      BlitHoughCache(screen, pMaximaCache, 384, 480);
-      BlitHoughCache(screen, nMaximaCache, 384, 544);
-
-      NarrowMaximaRange(pMaximaCache, 128, LOCAL_SIZE);
-      NarrowMaximaRange(nMaximaCache, 128, LOCAL_SIZE);
+      BlitHoughCache(screen, pHoughCache, 384, 480);
+      BlitHoughCache(screen, nHoughCache, 384, 544);
 
       /* Draw positive hough lines to feedback panes */
       BlitActiveRegion(screen, local, 512, 480);
-      DrawGridLines(screen, pMaximaCache, 128, LOCAL_SIZE, 512, 480);
+      DrawGridLines(screen, pHoughCache, 128, LOCAL_SIZE, 512, 480);
 
       /* Draw negative hough lines to feedback panes */
       BlitActiveRegion(screen, local, 512, 544);
-      DrawGridLines(screen, nMaximaCache, 128, LOCAL_SIZE, 512, 544);
+      DrawGridLines(screen, nHoughCache, 128, LOCAL_SIZE, 512, 544);
 
       SDL_Flip(screen);
    }
 
    SDL_FreeSurface(local);
 
-   free(nMaximaCache);
-   free(pMaximaCache);
    free(nHoughCache);
    free(pHoughCache);
    free(vFlowCache);
@@ -558,11 +532,6 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
          hEdge = img->pxl[offsetTL] - img->pxl[offsetBL];
          vEdge = img->pxl[offsetBR] - img->pxl[offsetBL];
 
-         sFlowCache[idx].isEdge = 1;
-         bFlowCache[idx].isEdge = 1;
-         hFlowCache[idx].isEdge = 1;
-         vFlowCache[idx].isEdge = 1;
-
          sFlowCache[idx].mag = sEdge;
          bFlowCache[idx].mag = bEdge;
          hFlowCache[idx].mag = hEdge;
@@ -574,58 +543,6 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
 
    tb = dmtxTimeNow();
 /* fprintf(stdout, "PopulateFlowCache time: %ldms\n", (1000000 *
-         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
-}
-
-static void
-TightenFlowEdge(struct Flow *flowCache, FlowDir dir, int extent)
-{
-   int width, height;
-   int x, y;
-   int idx0, idx1;
-   DmtxTime ta, tb;
-
-   width = extent;
-   height = extent;
-
-   ta = dmtxTimeNow();
-
-/* XXX should be accessing image with access methods or at least respecting stride */
-
-   /* these ranges can be extended depending on direction */
-   for(y = 1; y < height - 1; y++) {
-      for(x = 1; x < width - 1; x++) {
-         idx0 = y * width + x;
-
-         if(dir == vDir)
-            idx1 = idx0 + 1;
-         else if(dir == hDir)
-            idx1 = idx0 + width;
-         else if(dir == sDir)
-            idx1 = idx0 + width - 1;
-         else if(dir == bDir)
-            idx1 = idx0 + width + 1;
-         else
-            return;
-
-         /* if either is zero, or if they are of opposite signs */
-         if(flowCache[idx0].mag == 0) {
-            flowCache[idx0].isEdge = 0;
-            continue;
-         }
-
-         if(flowCache[idx0].mag * flowCache[idx1].mag <= 0)
-            continue;
-
-         if(abs(flowCache[idx0].mag) < abs(flowCache[idx1].mag))
-            flowCache[idx0].isEdge = 0;
-         else if(abs(flowCache[idx1].mag) < abs(flowCache[idx0].mag))
-            flowCache[idx1].isEdge = 0;
-      }
-   }
-
-   tb = dmtxTimeNow();
-/* fprintf(stdout, "TightenFlowEdge time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
 }
 
@@ -712,6 +629,13 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
    memset(pHoughCache, 0x00, sizeof(struct Hough) * angleBase * imgExtent);
    memset(nHoughCache, 0x00, sizeof(struct Hough) * angleBase * imgExtent);
 
+   for(phi = 0; phi < angleBase; phi++) {
+      for(d = 0; d < LOCAL_SIZE; d++) {
+         pHoughCache[d * angleBase + phi].isMax = 1;
+         nHoughCache[d * angleBase + phi].isMax = 1;
+      }
+   }
+
    for(y = yBeg; y <= yEnd; y++) {
       for(x = xBeg; x <= xEnd; x++) {
 
@@ -724,8 +648,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
           * This should provide a huge speedup.
           */
 
-/*       if(abs(vFlowCache[idx].mag) > 5) { */
-         if(vFlowCache[idx].isEdge) {
+         if(abs(vFlowCache[idx].mag) > 5) {
             for(phi = 0; phi < 16; phi++) {
                d = GetOffset(x, y, phi, width, height);
                if(vFlowCache[idx].mag > 0)
@@ -742,8 +665,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             }
          }
 
-/*       if(abs(bFlowCache[idx].mag) > 5) { */
-         if(bFlowCache[idx].isEdge) {
+         if(abs(bFlowCache[idx].mag) > 5) {
             for(phi = 16; phi < 48; phi++) {
                d = GetOffset(x, y, phi, width, height);
                /* Intentional sign inversion to force discontinuity to 0/180 degrees boundary */
@@ -754,8 +676,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             }
          }
 
-/*       if(abs(hFlowCache[idx].mag) > 5) { */
-         if(hFlowCache[idx].isEdge) {
+         if(abs(hFlowCache[idx].mag) > 5) {
             for(phi = 48; phi < 80; phi++) {
                d = GetOffset(x, y, phi, width, height);
                if(hFlowCache[idx].mag > 0)
@@ -765,8 +686,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             }
          }
 
-/*       if(abs(sFlowCache[idx].mag) > 5) { */
-         if(sFlowCache[idx].isEdge) {
+         if(abs(sFlowCache[idx].mag) > 5) {
             for(phi = 80; phi < 112; phi++) {
                d = GetOffset(x, y, phi, width, height);
                if(sFlowCache[idx].mag > 0)
@@ -788,81 +708,57 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
  *
  */
 static void
-PopulateMaximaCache(struct Hough *maximaCache, struct Hough *houghCache, int width, int height)
+PopulateMaximaCache(struct Hough *houghCache, int width, int height)
 {
-   int idxMid;
-   unsigned int magMid;
-   int x, xBeg, xEnd;
-   int y, yBeg, yEnd;
+   int x, y;
+   int idx0, idx1;
    DmtxTime ta, tb;
-
-   xBeg = 0;
-   xEnd = width - 1;
-   yBeg = 0;
-   yEnd = height - 1;
 
    ta = dmtxTimeNow();
 
    /* Find local maxima for each angle */
-   for(x = xBeg; x <= xEnd; x++) {
-      for(y = yBeg; y <= yEnd; y++) {
+   for(x = 0; x < width; x++) {
+      for(y = 0; y < height - 1; y++) {
 
-         idxMid = y * width + x;
-         magMid = houghCache[idxMid].mag;
+         idx0 = y * width + x;
+         idx1 = idx0 + width;
 
-         /* test all 8 neighbors, but do it one at a time so no more offest
-            calcs are required once a stronger neighbor is found */
-
-         maximaCache[idxMid].mag = 0; /* rework this so it only assigns if necessary */
-
-         /* Compare top */
-         if(y != yEnd &&
-               houghCache[idxMid + width].mag > magMid)
-            continue;
-
-         /* Compare bottom */
-         if(y != yBeg &&
-               houghCache[idxMid - width].mag > magMid)
-            continue;
-#ifdef IGNOREME
-         /* Compare left */
-         if(x != xBeg &&
-               houghCache[idxMid - 1].mag > magMid)
-            continue;
-
-         /* Compare right */
-         if(x != xEnd &&
-               houghCache[idxMid + 1].mag > magMid)
-            continue;
-
-         /* Compare top left */
-         if(y != yEnd && x != xBeg &&
-               houghCache[idxMid + width - 1].mag > magMid)
-            continue;
-
-         /* Compare top right */
-         if(y != yEnd && x != xEnd &&
-               houghCache[idxMid + width + 1].mag > magMid)
-            continue;
-
-         /* Compare bottom left */
-         if(y != yBeg && x != xBeg &&
-               houghCache[idxMid - width - 1].mag > magMid)
-            continue;
-
-         /* Compare bottom right */
-         if(y != yBeg && x != xEnd &&
-               houghCache[idxMid - width + 1].mag > magMid)
-            continue;
-#endif
-         /* If we made it here then we are sitting on a local maxima */
-         maximaCache[idxMid].mag = magMid;
+         if(houghCache[idx0].mag == 0)
+            houghCache[idx0].isMax = 0;
+         else if(houghCache[idx0].mag > houghCache[idx1].mag)
+            houghCache[idx1].isMax = 0;
+         else if(houghCache[idx1].mag > houghCache[idx0].mag)
+            houghCache[idx0].isMax = 0;
       }
    }
 
    tb = dmtxTimeNow();
 /* fprintf(stdout, "PopulateMaxima time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
+}
+
+static void
+NarrowMaximaRange(struct Hough *maximaCache, int phiExtent, int dExtent)
+{
+   int phi, d, idx;
+   int idxMax = -1;
+   int magMax = 0;
+
+   for(phi = 0; phi < phiExtent; phi++) {
+      for(d = 0; d < dExtent; d++) {
+         idx = d * phiExtent + phi;
+         if(maximaCache[idx].isMax == 0) {
+            continue;
+         }
+         else if(maximaCache[idx].mag > magMax) {
+            idxMax = idx;
+            magMax = maximaCache[idx].mag;
+         }
+      }
+   }
+
+   if(idxMax != -1)
+      maximaCache[idxMax].isMax = 2;
 }
 
 /**
@@ -872,6 +768,7 @@ PopulateMaximaCache(struct Hough *maximaCache, struct Hough *houghCache, int wid
 #ifndef min
 #define min(x,y) ((x < y) ? x : y)
 #endif
+#ifdef IGNOREME
 static void
 NarrowMaximaRange(struct Hough *maximaCache, int width, int height)
 {
@@ -975,6 +872,7 @@ NarrowMaximaRange(struct Hough *maximaCache, int width, int height)
 /* fprintf(stdout, "NarrowMaximaRange time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
 }
+#endif
 
 static void
 BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY)
@@ -1017,10 +915,7 @@ BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int scre
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
          flow = flowCache[row * width + col];
-         if(flow.isEdge == 0) {
-            rgb[0] = rgb[1] = rgb[2] = 0;
-         }
-         else if(flow.mag > 0) {
+         if(flow.mag > 0) {
             rgb[0] = 0;
             rgb[1] = (int)((abs(flow.mag) * 254.0)/maxVal + 0.5);
             rgb[2] = 0;
@@ -1082,6 +977,9 @@ BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int s
    maxVal = 0;
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
+         if(houghCache[row * width + col].isMax == 0)
+            continue;
+
          if(houghCache[row * width + col].mag > maxVal)
             maxVal = houghCache[row * width + col].mag;
       }
@@ -1089,8 +987,19 @@ BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int s
 
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
+
          cache = houghCache[row * width + col].mag;
-         rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
+
+         if(houghCache[row * width + col].isMax == 2) {
+            rgb[0] = 255;
+            rgb[1] = rgb[2] = 0;
+         }
+         else if(houghCache[row * width + col].isMax == 1) {
+            rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
+         }
+         else {
+            rgb[0] = rgb[1] = rgb[2] = 0;
+         }
 
          offset = ((height - row - 1) * width + col) * 3;
          pixbuf[offset] = rgb[0];
@@ -1280,7 +1189,8 @@ DrawActiveBorder(SDL_Surface *screen, int activeExtent)
 }
 
 static void
-DrawGridLines(SDL_Surface *screen, struct Hough *maximaCache, int angles, int diag, int screenX, int screenY)
+DrawGridLines(SDL_Surface *screen, struct Hough *maximaCache, int angles,
+      int diag, int screenX, int screenY)
 {
    int phi, d;
    double phiRad;
@@ -1307,7 +1217,8 @@ DrawGridLines(SDL_Surface *screen, struct Hough *maximaCache, int angles, int di
 
       for(d = 0; d < diag; d++) {
 
-         if(maximaCache[d * angles + phi].mag > 0) {
+/*       if(maximaCache[d * angles + phi].mag > 0) { */
+         if(maximaCache[d * angles + phi].isMax == 2) {
 
             dScaled = AdjustOffset(d, phi, LOCAL_SIZE, LOCAL_SIZE);
 
