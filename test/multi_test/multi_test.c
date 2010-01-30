@@ -56,6 +56,7 @@ struct AppState {
 };
 
 struct Flow {
+   char isEdge; /* 0 or 1 */
    int mag;
 };
 
@@ -111,6 +112,7 @@ static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imag
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img);
+static void TightenFlowEdge(struct Flow *flowCache, int extent);
 static double AdjustOffset(int d, int phiIdx, int width, int height);
 static int GetOffset(int x, int y, int phiIdx, int width, int height);
 static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int angleBase, int imgExtent);
@@ -119,7 +121,6 @@ static void NarrowMaximaRange(struct Hough *maximaCache, int width, int height);
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY);
 static void BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int screenY);
 static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int screenY);
-static void WriteHoughCacheImage(struct Hough *hough, int width, int height, char *imagePath);
 /*static void PlotPixel(SDL_Surface *surface, int x, int y);*/
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
@@ -131,8 +132,6 @@ main(int argc, char *argv[])
 {
    struct UserOptions opt;
    struct AppState    state;
-/* int                width, height;
-   int                diag; */
    SDL_Surface       *screen;
    SDL_Surface       *picture;
    SDL_Event          event;
@@ -172,8 +171,6 @@ main(int argc, char *argv[])
    vFlowCache = (struct Flow *)calloc(LOCAL_SIZE * LOCAL_SIZE, sizeof(struct Flow));
    assert(vFlowCache != NULL);
 
-/* diag = (int)(sqrt(width * width + height * height) + 0.5); */
-
    pHoughCache = (struct Hough *)calloc(128 * LOCAL_SIZE, sizeof(struct Hough));
    assert(pHoughCache != NULL);
    nHoughCache = (struct Hough *)calloc(128 * LOCAL_SIZE, sizeof(struct Hough));
@@ -184,25 +181,6 @@ main(int argc, char *argv[])
    nMaximaCache = (struct Hough *)calloc(128 * LOCAL_SIZE, sizeof(struct Hough));
    assert(nMaximaCache != NULL);
 
-/*
-   SDL_LockSurface(picture);
-   PopulateFlowCache(sFlowCache, bFlowCache, hFlowCache, vFlowCache, dec->image, width, height);
-   SDL_UnlockSurface(picture);
-
-   PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
-         hFlowCache, vFlowCache, width, height, diag);
-
-   PopulateMaximaCache(pMaximaCache, pHoughCache, 128, diag);
-   PopulateMaximaCache(nMaximaCache, nHoughCache, 128, diag);
-
-   NarrowMaximaRange(pMaximaCache, 128, diag);
-   NarrowMaximaRange(nMaximaCache, 128, diag);
-
-   WriteHoughCacheImage(pHoughCache, 128, diag, "pHoughCache.pnm");
-   WriteHoughCacheImage(nHoughCache, 128, diag, "nHoughCache.pnm");
-   WriteHoughCacheImage(pMaximaCache, 128, diag, "pMaximaCache.pnm");
-   WriteHoughCacheImage(nMaximaCache, 128, diag, "nMaximaCache.pnm");
-*/
    atexit(SDL_Quit);
 
    /* Initialize SDL library */
@@ -222,6 +200,7 @@ main(int argc, char *argv[])
    local = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
    switch(local->pitch / local->w) {
       case 1:
+/* XXX Should be creating image with stride/row padding */
          img = dmtxImageCreate(local->pixels, local->w, local->h, DmtxPack8bppK);
          break;
       case 3:
@@ -258,20 +237,6 @@ main(int argc, char *argv[])
       SDL_FillRect(local, NULL, bgColorK);
       SDL_BlitSurface(picture, &clipRect, local, NULL);
 
-      /* Process image data */
-      SDL_LockSurface(local);
-      PopulateFlowCache(sFlowCache, bFlowCache, hFlowCache, vFlowCache, dec->image);
-      SDL_UnlockSurface(local);
-
-      PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
-            hFlowCache, vFlowCache, 128, LOCAL_SIZE);
-
-      PopulateMaximaCache(pMaximaCache, pHoughCache, 128, LOCAL_SIZE);
-      PopulateMaximaCache(nMaximaCache, nHoughCache, 128, LOCAL_SIZE);
-
-      NarrowMaximaRange(pMaximaCache, 128, LOCAL_SIZE);
-      NarrowMaximaRange(nMaximaCache, 128, LOCAL_SIZE);
-
       /* Start with blank canvas */
       SDL_FillRect(screen, NULL, bgColorB);
 
@@ -286,27 +251,47 @@ main(int argc, char *argv[])
 
       DrawActiveBorder(screen, LOCAL_SIZE);
 
+      SDL_LockSurface(local);
+      PopulateFlowCache(sFlowCache, bFlowCache, hFlowCache, vFlowCache, dec->image);
+      SDL_UnlockSurface(local);
+
       /* Write flow cache images to feedback panes */
-      BlitFlowCache(screen, sFlowCache,  0, 480);
-      BlitFlowCache(screen, bFlowCache, 64, 480);
-      BlitFlowCache(screen, hFlowCache,  0, 544);
-      BlitFlowCache(screen, vFlowCache, 64, 544);
+      BlitFlowCache(screen, hFlowCache,   0, 480);
+      BlitFlowCache(screen, vFlowCache,  64, 480);
+      BlitFlowCache(screen, sFlowCache, 128, 480);
+      BlitFlowCache(screen, bFlowCache, 192, 480);
+
+      /* tighten edges */
+/*    TightenFlowEdge(bFlowCache, LOCAL_SIZE); */
+      BlitFlowCache(screen, hFlowCache,   0, 544);
+      BlitFlowCache(screen, vFlowCache,  64, 544);
+      BlitFlowCache(screen, sFlowCache, 128, 544);
+      BlitFlowCache(screen, bFlowCache, 192, 544);
+
+      PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
+            hFlowCache, vFlowCache, 128, LOCAL_SIZE);
 
       /* Write hough cache images to feedback panes */
-      BlitHoughCache(screen, pHoughCache, 128, 480);
-      BlitHoughCache(screen, nHoughCache, 128, 544);
+      BlitHoughCache(screen, pHoughCache, 256, 480);
+      BlitHoughCache(screen, nHoughCache, 256, 544);
+
+      PopulateMaximaCache(pMaximaCache, pHoughCache, 128, LOCAL_SIZE);
+      PopulateMaximaCache(nMaximaCache, nHoughCache, 128, LOCAL_SIZE);
 
       /* Write maxima cache images to feedback panes */
-      BlitHoughCache(screen, pMaximaCache, 256, 480);
-      BlitHoughCache(screen, nMaximaCache, 256, 544);
+      BlitHoughCache(screen, pMaximaCache, 384, 480);
+      BlitHoughCache(screen, nMaximaCache, 384, 544);
+
+      NarrowMaximaRange(pMaximaCache, 128, LOCAL_SIZE);
+      NarrowMaximaRange(nMaximaCache, 128, LOCAL_SIZE);
 
       /* Draw positive hough lines to feedback panes */
-      BlitActiveRegion(screen, local, 384, 480);
-      DrawGridLines(screen, pMaximaCache, 128, LOCAL_SIZE, 384, 480);
+      BlitActiveRegion(screen, local, 512, 480);
+      DrawGridLines(screen, pMaximaCache, 128, LOCAL_SIZE, 512, 480);
 
       /* Draw negative hough lines to feedback panes */
-      BlitActiveRegion(screen, local, 384, 544);
-      DrawGridLines(screen, nMaximaCache, 128, LOCAL_SIZE, 384, 544);
+      BlitActiveRegion(screen, local, 512, 544);
+      DrawGridLines(screen, nMaximaCache, 128, LOCAL_SIZE, 512, 544);
 
       SDL_Flip(screen);
    }
@@ -540,6 +525,8 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
 
    ta = dmtxTimeNow();
 
+/* XXX should be accessing image with access methods or at least respecting stride */
+
    for(y = yBeg; y <= yEnd; y++) {
       offsetBL = ((height - y - 1) * rowSizeBytes) + bytesPerPixel + colorPlane;
 
@@ -561,6 +548,11 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
          hEdge = img->pxl[offsetTL] - img->pxl[offsetBL];
          vEdge = img->pxl[offsetBR] - img->pxl[offsetBL];
 
+         sFlowCache[idx].isEdge = 1;
+         bFlowCache[idx].isEdge = 1;
+         hFlowCache[idx].isEdge = 1;
+         vFlowCache[idx].isEdge = 1;
+
          sFlowCache[idx].mag = sEdge;
          bFlowCache[idx].mag = bEdge;
          hFlowCache[idx].mag = hEdge;
@@ -572,6 +564,47 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
 
    tb = dmtxTimeNow();
 /* fprintf(stdout, "PopulateFlowCache time: %ldms\n", (1000000 *
+         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
+}
+
+static void
+TightenFlowEdge(struct Flow *flowCache, int extent)
+{
+   int width, height;
+   int x, y;
+   int idx0, idx1;
+   DmtxTime ta, tb;
+
+   width = extent;
+   height = extent;
+
+   ta = dmtxTimeNow();
+
+/* XXX should be accessing image with access methods or at least respecting stride */
+
+   for(y = 0; y < height - 1; y++) {
+      for(x = 0; x < width - 1; x++) {
+         idx0 = y * width + x;
+         idx1 = idx0 + width + 1;
+
+         /* if either is zero, or if they are of opposite signs */
+         if(flowCache[idx0].mag == 0) {
+            flowCache[idx0].isEdge = 0;
+            continue;
+         }
+
+         if(flowCache[idx0].mag * flowCache[idx1].mag <= 0)
+            continue;
+
+         if(abs(flowCache[idx0].mag) < abs(flowCache[idx1].mag))
+            flowCache[idx0].isEdge = 0;
+         else if(abs(flowCache[idx1].mag) < abs(flowCache[idx0].mag))
+            flowCache[idx1].isEdge = 0;
+      }
+   }
+
+   tb = dmtxTimeNow();
+/* fprintf(stdout, "TightenFlowEdge time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
 }
 
@@ -687,7 +720,8 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             }
          }
 
-         if(abs(bFlowCache[idx].mag) > 5) {
+/*       if(abs(bFlowCache[idx].mag) > 5) { */
+         if(bFlowCache[idx].isEdge) {
             for(phi = 16; phi < 48; phi++) {
                d = GetOffset(x, y, phi, width, height);
                /* Intentional sign inversion to force discontinuity to 0/180 degrees boundary */
@@ -930,6 +964,19 @@ BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int scre
    unsigned char pixbuf[12288]; /* 64 * 64 * 3 */
    SDL_Surface *surface;
    SDL_Rect clipRect;
+   Uint32 rmask, gmask, bmask, amask;
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+   rmask = 0xff000000;
+   gmask = 0x00ff0000;
+   bmask = 0x0000ff00;
+   amask = 0x000000ff;
+#else
+   rmask = 0x000000ff;
+   gmask = 0x0000ff00;
+   bmask = 0x00ff0000;
+   amask = 0xff000000;
+#endif
 
    width = LOCAL_SIZE;
    height = LOCAL_SIZE;
@@ -946,7 +993,10 @@ BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int scre
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
          flow = flowCache[row * width + col];
-         if(flow.mag > 0) {
+         if(flow.isEdge == 0) {
+            rgb[0] = rgb[1] = rgb[2] = 0;
+         }
+         else if(flow.mag > 0) {
             rgb[0] = 0;
             rgb[1] = (int)((abs(flow.mag) * 254.0)/maxVal + 0.5);
             rgb[2] = 0;
@@ -969,8 +1019,8 @@ BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int scre
    clipRect.x = screenX;
    clipRect.y = screenY;
 
-   surface = SDL_CreateRGBSurfaceFrom(pixbuf, width, height, 24,
-         width * 3, 0, 0, 0, 0);
+   surface = SDL_CreateRGBSurfaceFrom(pixbuf, width, height, 24, width * 3,
+         rmask, gmask, bmask, 0);
 
    SDL_BlitSurface(surface, NULL, screen, &clipRect);
    SDL_FreeSurface(surface);
@@ -988,6 +1038,19 @@ BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int s
    unsigned char pixbuf[24576]; /* 128 * 64 * 3 */
    SDL_Surface *surface;
    SDL_Rect clipRect;
+   Uint32 rmask, gmask, bmask, amask;
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+   rmask = 0xff000000;
+   gmask = 0x00ff0000;
+   bmask = 0x0000ff00;
+   amask = 0x000000ff;
+#else
+   rmask = 0x000000ff;
+   gmask = 0x0000ff00;
+   bmask = 0x00ff0000;
+   amask = 0xff000000;
+#endif
 
    width = 128;
    height = LOCAL_SIZE;
@@ -1017,8 +1080,8 @@ BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int s
    clipRect.x = screenX;
    clipRect.y = screenY;
 
-   surface = SDL_CreateRGBSurfaceFrom(pixbuf, width, height, 24,
-         width * 3, 0, 0, 0, 0);
+   surface = SDL_CreateRGBSurfaceFrom(pixbuf, width, height, 24, width * 3,
+         rmask, gmask, bmask, 0);
 
    SDL_BlitSurface(surface, NULL, screen, &clipRect);
    SDL_FreeSurface(surface);
@@ -1035,55 +1098,6 @@ BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int scre
    clipRect.y = screenY;
 
    SDL_BlitSurface(active, NULL, screen, &clipRect);
-}
-
-
-/**
- *
- *
- */
-static void
-WriteHoughCacheImage(struct Hough *houghCache, int width, int height, char *imagePath)
-{
-   int row, col;
-   int maxVal;
-   int rgb[3];
-   unsigned int cache;
-   FILE *fp;
-
-   fp = fopen(imagePath, "wb");
-   if(fp == NULL)
-      exit(1);
-
-   assert(width == 128);
-
-   fprintf(fp, "P6\n%d %d\n255\n", width, height);
-
-   maxVal = 0;
-   for(row = height - 1; row >= 0; row--) {
-      for(col = 0; col < width; col++) {
-         if(houghCache[row * width + col].mag > maxVal)
-            maxVal = houghCache[row * width + col].mag;
-      }
-   }
-
-   for(row = height - 1; row >= 0; row--) {
-      for(col = 0; col < width; col++) {
-         cache = houghCache[row * width + col].mag;
-/*
-         if((col >= 16 && col < 48) || (col >= 80 && col < 112)) {
-            cache = (int)(cache * 0.7071 + 0.5);
-            cache = (int)(cache * 0.5 + 0.5);
-         }
-*/
-         rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
-         fputc(rgb[0], fp);
-         fputc(rgb[1], fp);
-         fputc(rgb[2], fp);
-      }
-   }
-
-   fclose(fp);
 }
 
 #ifdef NOTDEFINED
