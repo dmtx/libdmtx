@@ -39,6 +39,13 @@ Contact: mblaughton@users.sourceforge.net
 
 #define LOCAL_SIZE 64
 
+typedef enum {
+   vDir,
+   hDir,
+   sDir,
+   bDir
+} FlowDir;
+
 struct UserOptions {
    const char *imagePath;
 };
@@ -112,7 +119,7 @@ static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imag
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img);
-static void TightenFlowEdge(struct Flow *flowCache, int extent);
+static void TightenFlowEdge(struct Flow *flowCache, FlowDir dir, int extent);
 static double AdjustOffset(int d, int phiIdx, int width, int height);
 static int GetOffset(int x, int y, int phiIdx, int width, int height);
 static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int angleBase, int imgExtent);
@@ -261,8 +268,11 @@ main(int argc, char *argv[])
       BlitFlowCache(screen, sFlowCache, 128, 480);
       BlitFlowCache(screen, bFlowCache, 192, 480);
 
-      /* tighten edges */
-/*    TightenFlowEdge(bFlowCache, LOCAL_SIZE); */
+      TightenFlowEdge(hFlowCache, hDir, LOCAL_SIZE);
+      TightenFlowEdge(vFlowCache, vDir, LOCAL_SIZE);
+      TightenFlowEdge(sFlowCache, sDir, LOCAL_SIZE);
+      TightenFlowEdge(bFlowCache, bDir, LOCAL_SIZE);
+
       BlitFlowCache(screen, hFlowCache,   0, 544);
       BlitFlowCache(screen, vFlowCache,  64, 544);
       BlitFlowCache(screen, sFlowCache, 128, 544);
@@ -568,7 +578,7 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
 }
 
 static void
-TightenFlowEdge(struct Flow *flowCache, int extent)
+TightenFlowEdge(struct Flow *flowCache, FlowDir dir, int extent)
 {
    int width, height;
    int x, y;
@@ -582,10 +592,21 @@ TightenFlowEdge(struct Flow *flowCache, int extent)
 
 /* XXX should be accessing image with access methods or at least respecting stride */
 
-   for(y = 0; y < height - 1; y++) {
-      for(x = 0; x < width - 1; x++) {
+   /* these ranges can be extended depending on direction */
+   for(y = 1; y < height - 1; y++) {
+      for(x = 1; x < width - 1; x++) {
          idx0 = y * width + x;
-         idx1 = idx0 + width + 1;
+
+         if(dir == vDir)
+            idx1 = idx0 + 1;
+         else if(dir == hDir)
+            idx1 = idx0 + width;
+         else if(dir == sDir)
+            idx1 = idx0 + width - 1;
+         else if(dir == bDir)
+            idx1 = idx0 + width + 1;
+         else
+            return;
 
          /* if either is zero, or if they are of opposite signs */
          if(flowCache[idx0].mag == 0) {
@@ -703,7 +724,8 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
           * This should provide a huge speedup.
           */
 
-         if(abs(vFlowCache[idx].mag) > 5) {
+/*       if(abs(vFlowCache[idx].mag) > 5) { */
+         if(vFlowCache[idx].isEdge) {
             for(phi = 0; phi < 16; phi++) {
                d = GetOffset(x, y, phi, width, height);
                if(vFlowCache[idx].mag > 0)
@@ -732,7 +754,8 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             }
          }
 
-         if(abs(hFlowCache[idx].mag) > 5) {
+/*       if(abs(hFlowCache[idx].mag) > 5) { */
+         if(hFlowCache[idx].isEdge) {
             for(phi = 48; phi < 80; phi++) {
                d = GetOffset(x, y, phi, width, height);
                if(hFlowCache[idx].mag > 0)
@@ -742,7 +765,8 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             }
          }
 
-         if(abs(sFlowCache[idx].mag) > 5) {
+/*       if(abs(sFlowCache[idx].mag) > 5) { */
+         if(sFlowCache[idx].isEdge) {
             for(phi = 80; phi < 112; phi++) {
                d = GetOffset(x, y, phi, width, height);
                if(sFlowCache[idx].mag > 0)
@@ -800,7 +824,7 @@ PopulateMaximaCache(struct Hough *maximaCache, struct Hough *houghCache, int wid
          if(y != yBeg &&
                houghCache[idxMid - width].mag > magMid)
             continue;
-
+#ifdef IGNOREME
          /* Compare left */
          if(x != xBeg &&
                houghCache[idxMid - 1].mag > magMid)
@@ -830,7 +854,7 @@ PopulateMaximaCache(struct Hough *maximaCache, struct Hough *houghCache, int wid
          if(y != yBeg && x != xEnd &&
                houghCache[idxMid - width + 1].mag > magMid)
             continue;
-
+#endif
          /* If we made it here then we are sitting on a local maxima */
          maximaCache[idxMid].mag = magMid;
       }
