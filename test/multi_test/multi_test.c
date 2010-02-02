@@ -23,28 +23,10 @@ Contact: mblaughton@users.sourceforge.net
 /* $Id: multi_test.c 561 2008-12-28 16:28:58Z mblaughton $ */
 
 /**
- * Try experimenting with specialized flow detection. For example, detected
- * edge is at center of this pattern:
- *
- *  +-+-+
- *  |a|b|
- *  +-o-+
- *  |c|d|
- *  +-+-+
- *
- *  vEdge = ((b-a)+(c-d))/2
- *  hEdge = ((a-c)+(b-d))/2
- *  sEdge is (a-d) reduced/increased toward zero by abs(b-c)
- *  bEdge is (b-c) reduced/increased toward zero by abs(a-d)
- *
- * Use bilinear (tri-?) when oversampling to fix vertical and horizonatal
- * diagonal problem
- *
- * For presentation purposes, scale flow panes with single scale factor
- * instead of individually
- *
- * Consider positive and negative hough peaks together for each angle when
- * determining strongest line
+ * This "multi_test" program is for experimental algorithms. Please
+ * consider this code to be untested, unoptimized, and somewhat unstable.
+ * If something works here it will make its way into libdmtx "proper"
+ * only after being properly written, tuned, and tested.
  */
 
 #include <stdlib.h>
@@ -160,7 +142,12 @@ main(int argc, char *argv[])
    int                i, pixelCount, maxFlowMag;
    DmtxImage         *img;
    DmtxDecode        *dec;
+   int                phi, d, idx;
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
+   int                spFlowSum, bpFlowSum, hpFlowSum, vpFlowSum, pFlowSumMax;
+   int                snFlowSum, bnFlowSum, hnFlowSum, vnFlowSum, nFlowSumMax;
+   double             spFlowScale, bpFlowScale, hpFlowScale, vpFlowScale;
+   double             snFlowScale, bnFlowScale, hnFlowScale, vnFlowScale;
    struct Hough      *pHoughCache, *nHoughCache;
    SDL_Rect           clipRect;
    SDL_Surface       *local;
@@ -292,8 +279,81 @@ main(int argc, char *argv[])
       BlitFlowCache(screen, sFlowCache, 128, 480, maxFlowMag);
       BlitFlowCache(screen, bFlowCache, 192, 480, maxFlowMag);
 
+      /* Find relative size of hough quadrants */
       PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
             hFlowCache, vFlowCache, 128, LOCAL_SIZE);
+
+      /* Normalize hough quadrants in a slow and inefficient way */
+      hpFlowSum = vpFlowSum = spFlowSum = bpFlowSum = 0;
+      hnFlowSum = vnFlowSum = snFlowSum = bnFlowSum = 0;
+      for(i = 0; i < LOCAL_SIZE * LOCAL_SIZE; i++) {
+         if(hFlowCache[i].mag > 0)
+            hpFlowSum += hFlowCache[i].mag;
+         else
+            hnFlowSum += hFlowCache[i].mag;
+
+         if(vFlowCache[i].mag > 0)
+            vpFlowSum += vFlowCache[i].mag;
+         else
+            vnFlowSum += vFlowCache[i].mag;
+
+         if(sFlowCache[i].mag > 0)
+            spFlowSum += sFlowCache[i].mag;
+         else
+            snFlowSum += sFlowCache[i].mag;
+
+         if(bFlowCache[i].mag > 0)
+            bpFlowSum += bFlowCache[i].mag;
+         else
+            bnFlowSum += bFlowCache[i].mag;
+      }
+      pFlowSumMax = hpFlowSum;
+      if(vpFlowSum > pFlowSumMax)
+         pFlowSumMax = vpFlowSum;
+      if(spFlowSum > pFlowSumMax)
+         pFlowSumMax = spFlowSum;
+      if(bpFlowSum > pFlowSumMax)
+         pFlowSumMax = bpFlowSum;
+
+      nFlowSumMax = hnFlowSum;
+      if(vnFlowSum > nFlowSumMax)
+         nFlowSumMax = vnFlowSum;
+      if(snFlowSum > nFlowSumMax)
+         nFlowSumMax = snFlowSum;
+      if(bnFlowSum > nFlowSumMax)
+         nFlowSumMax = bnFlowSum;
+
+      hpFlowScale = (double)pFlowSumMax/hpFlowSum;
+      vpFlowScale = (double)pFlowSumMax/vpFlowSum;
+      spFlowScale = (double)pFlowSumMax/spFlowSum;
+      bpFlowScale = (double)pFlowSumMax/bpFlowSum;
+
+      hnFlowScale = (double)nFlowSumMax/hnFlowSum;
+      vnFlowScale = (double)nFlowSumMax/vnFlowSum;
+      snFlowScale = (double)nFlowSumMax/snFlowSum;
+      bnFlowScale = (double)nFlowSumMax/bnFlowSum;
+
+      for(phi = 0; phi < 128; phi++) {
+         for(d = 0; d < LOCAL_SIZE; d++) {
+            idx = d * 128 + phi;
+            if(phi < 16 || phi >= 112) {
+               pHoughCache[idx].mag = (int)(pHoughCache[idx].mag * vpFlowScale + 0.5);
+               nHoughCache[idx].mag = (int)(nHoughCache[idx].mag * vnFlowScale + 0.5);
+            }
+            else if(phi < 48) {
+               pHoughCache[idx].mag = (int)(pHoughCache[idx].mag * bpFlowScale + 0.5);
+               nHoughCache[idx].mag = (int)(nHoughCache[idx].mag * bnFlowScale + 0.5);
+            }
+            else if(phi < 80) {
+               pHoughCache[idx].mag = (int)(pHoughCache[idx].mag * hpFlowScale + 0.5);
+               nHoughCache[idx].mag = (int)(nHoughCache[idx].mag * hnFlowScale + 0.5);
+            }
+            else if(phi < 112) {
+               pHoughCache[idx].mag = (int)(pHoughCache[idx].mag * spFlowScale + 0.5);
+               nHoughCache[idx].mag = (int)(nHoughCache[idx].mag * snFlowScale + 0.5);
+            }
+         }
+      }
 
       /* Write hough cache images to feedback panes */
       BlitHoughCache(screen, pHoughCache, 256, 480);
@@ -578,13 +638,6 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
 /*       sEdge = img->pxl[offsetTL] - img->pxl[offsetBR];
          bEdge = img->pxl[offsetTR] - img->pxl[offsetBL]; */
 
-/*
-the trick here is to use a basic kernel and then scale each accumulator quadrant appropriately
-1) Prove that all phi's within quadrant will have the same sum [confirmed]
-2) If so, adjust each sum using scaling factor taken from "ideal" phi for each quadrant
-3) Build hough caches using scaled edge magnitudes
-*/
-
          sFlowCache[idx].mag = sEdge;
          bFlowCache[idx].mag = bEdge;
          hFlowCache[idx].mag = hEdge;
@@ -732,14 +785,10 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             for(phi = 16; phi < 48; phi++) {
                d = GetOffset(x, y, phi, width, height);
                /* Intentional sign inversion to force discontinuity to 0/180 degrees boundary */
-               if(bFlowCache[idx].mag > 0) {
-                  pHoughCache[d * angleBase + phi].mag += (int)(bFlowCache[idx].mag * 1.41 + 0.5);
-/*                pHoughCache[d * angleBase + phi].mag += (int)(bFlowCache[idx].mag + 0.5);*/
-               }
-               else {
-                  nHoughCache[d * angleBase + phi].mag += (int)(abs(bFlowCache[idx].mag) * 1.41 + 0.5);
-/*                nHoughCache[d * angleBase + phi].mag -= (int)(bFlowCache[idx].mag + 0.5);*/
-               }
+               if(bFlowCache[idx].mag > 0)
+                  pHoughCache[d * angleBase + phi].mag += bFlowCache[idx].mag;
+               else
+                  nHoughCache[d * angleBase + phi].mag -= bFlowCache[idx].mag;
             }
          }
 
@@ -757,11 +806,9 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             for(phi = 80; phi < 112; phi++) {
                d = GetOffset(x, y, phi, width, height);
                if(sFlowCache[idx].mag > 0)
-                  pHoughCache[d * angleBase + phi].mag += (int)(sFlowCache[idx].mag * 1.41 + 0.5);
-/*                pHoughCache[d * angleBase + phi].mag += (int)(sFlowCache[idx].mag + 0.5);*/
+                  pHoughCache[d * angleBase + phi].mag += sFlowCache[idx].mag;
                else
-                  nHoughCache[d * angleBase + phi].mag += (int)(abs(sFlowCache[idx].mag) * 1.41 + 0.5);
-/*                nHoughCache[d * angleBase + phi].mag -= (int)(sFlowCache[idx].mag + 0.5);*/
+                  nHoughCache[d * angleBase + phi].mag -= sFlowCache[idx].mag;
             }
          }
       }
