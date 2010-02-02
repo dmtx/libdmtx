@@ -138,7 +138,7 @@ static int GetOffset(int x, int y, int phiIdx, int width, int height);
 static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int angleBase, int imgExtent);
 static void PopulateMaximaCache(struct Hough *houghCache, int width, int height);
 static void NarrowMaximaRange(struct Hough *pMaximaCache, struct Hough *nMaximaCache, int phiExtent, int dExtent);
-static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY);
+static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY, int maxFlowMag);
 static void BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int screenY);
 static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int screenY);
 /*static void PlotPixel(SDL_Surface *surface, int x, int y);*/
@@ -157,6 +157,7 @@ main(int argc, char *argv[])
    SDL_Event          event;
    SDL_Rect           imageLoc;
    Uint32             bgColorB, bgColorK;
+   int                i, pixelCount, maxFlowMag;
    DmtxImage         *img;
    DmtxDecode        *dec;
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
@@ -270,10 +271,26 @@ main(int argc, char *argv[])
       SDL_UnlockSurface(local);
 
       /* Write flow cache images to feedback panes */
-      BlitFlowCache(screen, hFlowCache,   0, 480);
-      BlitFlowCache(screen, vFlowCache,  64, 480);
-      BlitFlowCache(screen, sFlowCache, 128, 480);
-      BlitFlowCache(screen, bFlowCache, 192, 480);
+      pixelCount = LOCAL_SIZE * LOCAL_SIZE;
+      maxFlowMag = 0;
+      for(i = 0; i < pixelCount; i++) {
+         if(abs(hFlowCache[i].mag) > maxFlowMag)
+            maxFlowMag = abs(hFlowCache[i].mag);
+
+         if(abs(vFlowCache[i].mag) > maxFlowMag)
+            maxFlowMag = abs(vFlowCache[i].mag);
+
+         if(abs(sFlowCache[i].mag) > maxFlowMag)
+            maxFlowMag = abs(sFlowCache[i].mag);
+
+         if(abs(bFlowCache[i].mag) > maxFlowMag)
+            maxFlowMag = abs(bFlowCache[i].mag);
+      }
+
+      BlitFlowCache(screen, hFlowCache,   0, 480, maxFlowMag);
+      BlitFlowCache(screen, vFlowCache,  64, 480, maxFlowMag);
+      BlitFlowCache(screen, sFlowCache, 128, 480, maxFlowMag);
+      BlitFlowCache(screen, bFlowCache, 192, 480, maxFlowMag);
 
       PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
             hFlowCache, vFlowCache, 128, LOCAL_SIZE);
@@ -511,7 +528,7 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
    int bytesPerPixel, rowSizeBytes, colorPlane;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
-   int sTmp, bTmp, sEdge, bEdge, hEdge, vEdge;
+   int sEdge, bEdge, hEdge, vEdge;
    int hEdge2, vEdge2;
    int offsetBL, offsetTL, offsetBR, offsetTR;
    int idx;
@@ -531,6 +548,10 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
    ta = dmtxTimeNow();
 
 /* XXX should be accessing image with access methods or at least respecting stride */
+   memset(sFlowCache, 0x00, sizeof(struct Flow) * width * height);
+   memset(bFlowCache, 0x00, sizeof(struct Flow) * width * height);
+   memset(hFlowCache, 0x00, sizeof(struct Flow) * width * height);
+   memset(vFlowCache, 0x00, sizeof(struct Flow) * width * height);
 
    for(y = yBeg; y <= yEnd; y++) {
       offsetBL = ((height - y - 1) * rowSizeBytes) + bytesPerPixel + colorPlane;
@@ -552,32 +573,34 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
          hEdge2 = img->pxl[offsetTR] - img->pxl[offsetBR];
          vEdge = img->pxl[offsetBR] - img->pxl[offsetBL];
          vEdge2 = img->pxl[offsetTR] - img->pxl[offsetTL];
-/*       sEdge = ((img->pxl[offsetTR] - img->pxl[offsetBR]) - vEdge)/2;
-         bEdge = (hEdge + vEdge)/2; */
-         sTmp = img->pxl[offsetTL] - img->pxl[offsetBR];
-         bTmp = img->pxl[offsetTR] - img->pxl[offsetBL];
+         sEdge = (hEdge2 - vEdge)/2;
+         bEdge = (hEdge + vEdge)/2;
+/*       sEdge = img->pxl[offsetTL] - img->pxl[offsetBR];
+         bEdge = img->pxl[offsetTR] - img->pxl[offsetBL]; */
 
-         if(sTmp < 0) {
-            sEdge = (sTmp + abs(bTmp) > 0) ? 0 : sTmp + abs(bTmp);
-         }
-         else {
-            sEdge = (sTmp - abs(bTmp) < 0) ? 0 : sTmp - abs(bTmp);
-         }
-
-         if(bTmp < 0) {
-            bEdge = (bTmp + abs(sTmp) > 0) ? 0 : bTmp + abs(sTmp);
-         }
-         else {
-            bEdge = (bTmp - abs(sTmp) < 0) ? 0 : bTmp - abs(sTmp);
-         }
+/*
+the trick here is to use a basic kernel and then scale each accumulator quadrant appropriately
+1) Prove that all phi's within quadrant will have the same sum [confirmed]
+2) If so, adjust each sum using scaling factor taken from "ideal" phi for each quadrant
+3) Build hough caches using scaled edge magnitudes
+*/
 
          sFlowCache[idx].mag = sEdge;
          bFlowCache[idx].mag = bEdge;
-/*       hFlowCache[idx].mag = hEdge;
-         vFlowCache[idx].mag = vEdge; */
-         hFlowCache[idx].mag = (hEdge + hEdge2)/2;
-         vFlowCache[idx].mag = (vEdge + vEdge2)/2;
-
+         hFlowCache[idx].mag = hEdge;
+         vFlowCache[idx].mag = vEdge;
+/*
+         sFlowCache[idx].mag = (2 * abs(bEdge) > abs(sEdge)) ? sEdge/2 : sEdge;
+         bFlowCache[idx].mag = (2 * abs(sEdge) > abs(bEdge)) ? bEdge/2 : bEdge;
+         hFlowCache[idx].mag = (abs(vEdge) + abs(vEdge2) > abs(hEdge)) ? hEdge/2 : hEdge;
+         vFlowCache[idx].mag = (abs(hEdge) + abs(hEdge2) > abs(vEdge)) ? vEdge/2 : vEdge;
+*/
+/*
+         hFlowCache[idx].mag = (vEdge2 + vEdge)/2;
+         vFlowCache[idx].mag =
+         sFlowCache[idx].mag = (2 * abs(bEdge) > abs(sEdge)) ? sEdge/2 : sEdge;
+         bFlowCache[idx].mag = (2 * abs(sEdge) > abs(bEdge)) ? bEdge/2 : bEdge;
+*/
          offsetBL += bytesPerPixel;
       }
    }
@@ -688,8 +711,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
           *
           * This should provide a huge speedup.
           */
-
-         if(abs(vFlowCache[idx].mag) > 5) {
+         if(abs(vFlowCache[idx].mag) > 0) {
             for(phi = 0; phi < 16; phi++) {
                d = GetOffset(x, y, phi, width, height);
                if(vFlowCache[idx].mag > 0)
@@ -706,20 +728,22 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             }
          }
 
-         if(abs(bFlowCache[idx].mag) > 5) {
+         if(abs(bFlowCache[idx].mag) > 0) {
             for(phi = 16; phi < 48; phi++) {
                d = GetOffset(x, y, phi, width, height);
                /* Intentional sign inversion to force discontinuity to 0/180 degrees boundary */
-               if(bFlowCache[idx].mag > 0)
+               if(bFlowCache[idx].mag > 0) {
                   pHoughCache[d * angleBase + phi].mag += (int)(bFlowCache[idx].mag * 1.41 + 0.5);
 /*                pHoughCache[d * angleBase + phi].mag += (int)(bFlowCache[idx].mag + 0.5);*/
-               else
-                  nHoughCache[d * angleBase + phi].mag -= (int)(bFlowCache[idx].mag * 1.41 + 0.5);
+               }
+               else {
+                  nHoughCache[d * angleBase + phi].mag += (int)(abs(bFlowCache[idx].mag) * 1.41 + 0.5);
 /*                nHoughCache[d * angleBase + phi].mag -= (int)(bFlowCache[idx].mag + 0.5);*/
+               }
             }
          }
 
-         if(abs(hFlowCache[idx].mag) > 5) {
+         if(abs(hFlowCache[idx].mag) > 0) {
             for(phi = 48; phi < 80; phi++) {
                d = GetOffset(x, y, phi, width, height);
                if(hFlowCache[idx].mag > 0)
@@ -729,14 +753,14 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             }
          }
 
-         if(abs(sFlowCache[idx].mag) > 5) {
+         if(abs(sFlowCache[idx].mag) > 0) {
             for(phi = 80; phi < 112; phi++) {
                d = GetOffset(x, y, phi, width, height);
                if(sFlowCache[idx].mag > 0)
-                  pHoughCache[d * angleBase + phi].mag += (int)(sFlowCache[idx].mag * 0.71 + 0.5);
+                  pHoughCache[d * angleBase + phi].mag += (int)(sFlowCache[idx].mag * 1.41 + 0.5);
 /*                pHoughCache[d * angleBase + phi].mag += (int)(sFlowCache[idx].mag + 0.5);*/
                else
-                  nHoughCache[d * angleBase + phi].mag -= (int)(sFlowCache[idx].mag * 0.71 + 0.5);
+                  nHoughCache[d * angleBase + phi].mag += (int)(abs(sFlowCache[idx].mag) * 1.41 + 0.5);
 /*                nHoughCache[d * angleBase + phi].mag -= (int)(sFlowCache[idx].mag + 0.5);*/
             }
          }
@@ -940,11 +964,10 @@ NarrowMaximaRange(struct Hough *maximaCache, int width, int height)
 #endif
 
 static void
-BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY)
+BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY, int maxFlowMag)
 {
    int row, col;
    unsigned char rgb[3];
-   int flowVal, maxVal;
    int width, height;
    int offset;
    struct Flow flow;
@@ -968,25 +991,16 @@ BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int scre
    width = LOCAL_SIZE;
    height = LOCAL_SIZE;
 
-   maxVal = 0;
-   for(row = 0; row < height; row++) {
-      for(col = 0; col < width; col++) {
-         flowVal = abs(flowCache[row * width + col].mag);
-         if(flowVal > maxVal)
-            maxVal = flowVal;
-      }
-   }
-
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
          flow = flowCache[row * width + col];
          if(flow.mag > 0) {
             rgb[0] = 0;
-            rgb[1] = (int)((abs(flow.mag) * 254.0)/maxVal + 0.5);
+            rgb[1] = (int)((abs(flow.mag) * 254.0)/maxFlowMag + 0.5);
             rgb[2] = 0;
          }
          else {
-            rgb[0] = (int)((abs(flow.mag) * 254.0)/maxVal + 0.5);
+            rgb[0] = (int)((abs(flow.mag) * 254.0)/maxFlowMag + 0.5);
             rgb[1] = 0;
             rgb[2] = 0;
          }
