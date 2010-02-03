@@ -24,7 +24,7 @@ Contact: mblaughton@users.sourceforge.net
 
 /**
  * This "multi_test" program is for experimental algorithms. Please
- * consider this code to be untested, unoptimized, and somewhat unstable.
+ * consider this code to be untested, unoptimized, and even unstable.
  * If something works here it will make its way into libdmtx "proper"
  * only after being properly written, tuned, and tested.
  */
@@ -69,41 +69,41 @@ struct Hough {
 
 /* Scaled unit sin */
 static int uSin128[] = {
-       0,    25,    50,    75,    99,   123,   147,   169,
-     191,   212,   233,   252,   270,   288,   304,   320,
-     334,   348,   361,   373,   385,   396,   407,   417,
-     427,   437,   446,   456,   467,   477,   488,   500,
-     512,   525,   539,   553,   569,   585,   602,   620,
-     639,   658,   678,   699,   720,   742,   764,   786,
-     808,   829,   850,   871,   891,   911,   929,   946,
-     961,   975,   988,   999,  1008,  1015,  1020,  1023,
-    1024,  1023,  1020,  1015,  1008,   999,   988,   975,
-     961,   946,   929,   911,   891,   871,   850,   829,
-     808,   786,   764,   742,   720,   699,   678,   658,
-     639,   620,   602,   585,   569,   553,   539,   525,
-     512,   500,   488,   477,   467,   456,   446,   437,
-     427,   417,   407,   396,   385,   373,   361,   348,
-     334,   320,   304,   288,   270,   252,   233,   212,
-     191,   169,   147,   123,    99,    75,    50,    25 };
+       0,    25,    50,    75,   100,   125,   150,   175,
+     200,   224,   249,   273,   297,   321,   345,   369,
+     392,   415,   438,   460,   483,   505,   526,   548,
+     569,   590,   610,   630,   650,   669,   688,   706,
+     724,   742,   759,   775,   792,   807,   822,   837,
+     851,   865,   878,   891,   903,   915,   926,   936,
+     946,   955,   964,   972,   980,   987,   993,   999,
+    1004,  1009,  1013,  1016,  1019,  1021,  1023,  1024,
+    1024,  1024,  1023,  1021,  1019,  1016,  1013,  1009,
+    1004,   999,   993,   987,   980,   972,   964,   955,
+     946,   936,   926,   915,   903,   891,   878,   865,
+     851,   837,   822,   807,   792,   775,   759,   742,
+     724,   706,   688,   669,   650,   630,   610,   590,
+     569,   548,   526,   505,   483,   460,   438,   415,
+     392,   369,   345,   321,   297,   273,   249,   224,
+     200,   175,   150,   125,   100,    75,    50,    25 };
 
 /* Scaled unit cos */
 static int uCos128[] = {
-    1024,  1023,  1020,  1015,  1008,   999,   988,   975,
-     961,   946,   929,   911,   891,   871,   850,   829,
-     808,   786,   764,   742,   720,   699,   678,   658,
-     639,   620,   602,   585,   569,   553,   539,   525,
-     512,   500,   488,   477,   467,   456,   446,   437,
-     427,   417,   407,   396,   385,   373,   361,   348,
-     334,   320,   304,   288,   270,   252,   233,   212,
-     191,   169,   147,   123,    99,    75,    50,    25,
-       0,   -25,   -50,   -75,   -99,  -123,  -147,  -169,
-    -191,  -212,  -233,  -252,  -270,  -288,  -304,  -320,
-    -334,  -348,  -361,  -373,  -385,  -396,  -407,  -417,
-    -427,  -437,  -446,  -456,  -467,  -477,  -488,  -500,
-    -512,  -525,  -539,  -553,  -569,  -585,  -602,  -620,
-    -639,  -658,  -678,  -699,  -720,  -742,  -764,  -786,
-    -808,  -829,  -850,  -871,  -891,  -911,  -929,  -946,
-    -961,  -975,  -988,  -999, -1008, -1015, -1020, -1023 };
+    1024,  1024,  1023,  1021,  1019,  1016,  1013,  1009,
+    1004,   999,   993,   987,   980,   972,   964,   955,
+     946,   936,   926,   915,   903,   891,   878,   865,
+     851,   837,   822,   807,   792,   775,   759,   742,
+     724,   706,   688,   669,   650,   630,   610,   590,
+     569,   548,   526,   505,   483,   460,   438,   415,
+     392,   369,   345,   321,   297,   273,   249,   224,
+     200,   175,   150,   125,   100,    75,    50,    25,
+       0,   -25,   -50,   -75,  -100,  -125,  -150,  -175,
+    -200,  -224,  -249,  -273,  -297,  -321,  -345,  -369,
+    -392,  -415,  -438,  -460,  -483,  -505,  -526,  -548,
+    -569,  -590,  -610,  -630,  -650,  -669,  -688,  -706,
+    -724,  -742,  -759,  -775,  -792,  -807,  -822,  -837,
+    -851,  -865,  -878,  -891,  -903,  -915,  -926,  -936,
+    -946,  -955,  -964,  -972,  -980,  -987,  -993,  -999,
+   -1004, -1009, -1013, -1016, -1019, -1021, -1023, -1024 };
 
 static struct UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
@@ -115,8 +115,8 @@ static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imag
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img);
-static double AdjustOffset(int d, int phiIdx, int width, int height);
-static int GetOffset(int x, int y, int phiIdx, int width, int height);
+static double AdjustOffset(int d, int phiIdx, int extent);
+static int GetOffset(int x, int y, int phiIdx, int extent);
 static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int angleBase, int imgExtent);
 static void PopulateMaximaCache(struct Hough *houghCache, int width, int height);
 static void NarrowMaximaRange(struct Hough *pMaximaCache, struct Hough *nMaximaCache, int phiExtent, int dExtent);
@@ -663,62 +663,102 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
 }
 
-#define TRANS 0.146446609406726
-
 static double
-AdjustOffset(int d, int phiIdx, int width, int height)
+AdjustOffset(int d, int phiIdx, int extent)
 {
+   int posMax, negMax;
+   double scale;
+
+   if(phiIdx < 64) {
+      posMax = extent * (uCos128[phiIdx] + uSin128[phiIdx]);
+      negMax = 0;
+   }
+   else {
+      posMax = extent * uSin128[phiIdx];
+      negMax = extent * uCos128[phiIdx];
+   }
+
+   scale = (double)(posMax - negMax) / extent;
+
+   return (d * scale + negMax)/1024.0;
+
+/**
+ * original floating point version follows:
+ *
    double phiRad;
    double scale;
-   double posMax, negMax, extMax;
+   double posMax, negMax;
 
    phiRad = M_PI * phiIdx / 128.0;
 
-   extMax = (height > width) ? height : width;
-
    if(phiIdx < 64) {
-      posMax = width * cos(phiRad) + height * sin(phiRad);
+      posMax = extent * (cos(phiRad) + sin(phiRad));
       negMax = 0.0;
    }
    else {
-      posMax = height * sin(phiRad);
-      negMax = width * cos(phiRad);
+      posMax = extent * sin(phiRad);
+      negMax = extent * cos(phiRad);
    }
 
    assert(fabs(posMax - negMax) > 0.00001);
-   scale = extMax / (posMax - negMax);
+   scale = extent / (posMax - negMax);
 
    return d / scale + negMax;
+*/
 }
 
 static int
-GetOffset(int x, int y, int phiIdx, int width, int height)
+GetOffset(int x, int y, int phiIdx, int extent)
 {
+   int offset, posMax, negMax;
+   double scale;
+
+   if(phiIdx < 64) {
+      posMax = extent * (uCos128[phiIdx] + uSin128[phiIdx]);
+      negMax = 0;
+   }
+   else {
+      posMax = extent * uSin128[phiIdx];
+      negMax = extent * uCos128[phiIdx];
+   }
+
+   assert(abs(posMax - negMax) > 0);
+   scale = (double)extent / (posMax - negMax);
+
+   offset = (int)((x * uCos128[phiIdx] + y * uSin128[phiIdx] - negMax) * scale + 0.5);
+
+   assert(offset <= 64);
+
+   return offset;
+
+/**
+ * original floating point version follows:
+ *
+   int offset;
    double phiRad;
    double scale;
-   double posMax, negMax, extMax;
+   double posMax, negMax;
 
    phiRad = M_PI * phiIdx / 128.0;
 
-   extMax = (height > width) ? height : width;
-
    if(phiIdx < 64) {
-      posMax = width * cos(phiRad) + height * sin(phiRad);
+      posMax = extent * (cos(phiRad) + sin(phiRad));
       negMax = 0.0;
    }
    else {
-      posMax = height * sin(phiRad);
-      negMax = width * cos(phiRad);
+      posMax = extent * sin(phiRad);
+      negMax = extent * cos(phiRad);
    }
 
    assert(fabs(posMax - negMax) > 0.00001);
-   scale = extMax / (posMax - negMax);
+   scale = extent / (posMax - negMax);
 
-   assert((int)((x * cos(phiRad) + y * sin(phiRad) - negMax) * scale + 0.5) <= 64);
+   offset = (int)((x * cos(phiRad) + y * sin(phiRad) - negMax) * scale + 0.5);
+   assert(offset <= 64);
 
-   return (int)((x * cos(phiRad) + y * sin(phiRad) - negMax) * scale + 0.5);
+   return offset;
+*/
 }
-#undef TRANS
 
 /**
  *
@@ -766,14 +806,14 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
           */
          if(abs(vFlowCache[idx].mag) > 0) {
             for(phi = 0; phi < 16; phi++) {
-               d = GetOffset(x, y, phi, width, height);
+               d = GetOffset(x, y, phi, imgExtent);
                if(vFlowCache[idx].mag > 0)
                   pHoughCache[d * angleBase + phi].mag += vFlowCache[idx].mag;
                else
                   nHoughCache[d * angleBase + phi].mag -= vFlowCache[idx].mag;
             }
             for(phi = 112; phi < angleBase; phi++) {
-               d = GetOffset(x, y, phi, width, height);
+               d = GetOffset(x, y, phi, imgExtent);
                if(vFlowCache[idx].mag > 0)
                   nHoughCache[d * angleBase + phi].mag += vFlowCache[idx].mag;
                else
@@ -783,7 +823,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(bFlowCache[idx].mag) > 0) {
             for(phi = 16; phi < 48; phi++) {
-               d = GetOffset(x, y, phi, width, height);
+               d = GetOffset(x, y, phi, imgExtent);
                /* Intentional sign inversion to force discontinuity to 0/180 degrees boundary */
                if(bFlowCache[idx].mag > 0)
                   pHoughCache[d * angleBase + phi].mag += bFlowCache[idx].mag;
@@ -794,7 +834,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(hFlowCache[idx].mag) > 0) {
             for(phi = 48; phi < 80; phi++) {
-               d = GetOffset(x, y, phi, width, height);
+               d = GetOffset(x, y, phi, imgExtent);
                if(hFlowCache[idx].mag > 0)
                   pHoughCache[d * angleBase + phi].mag += hFlowCache[idx].mag;
                else
@@ -804,7 +844,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
 
          if(abs(sFlowCache[idx].mag) > 0) {
             for(phi = 80; phi < 112; phi++) {
-               d = GetOffset(x, y, phi, width, height);
+               d = GetOffset(x, y, phi, imgExtent);
                if(sFlowCache[idx].mag > 0)
                   pHoughCache[d * angleBase + phi].mag += sFlowCache[idx].mag;
                else
@@ -1342,27 +1382,25 @@ DrawGridLines(SDL_Surface *screen, struct Hough *maximaCache, int angles,
       rLine.v.Y = rStart.v.X;
 
       for(d = 0; d < diag; d++) {
+         if(maximaCache[d * angles + phi].isMax != 2)
+            continue;
 
-/*       if(maximaCache[d * angles + phi].mag > 0) { */
-         if(maximaCache[d * angles + phi].isMax == 2) {
+         dScaled = AdjustOffset(d, phi, LOCAL_SIZE);
 
-            dScaled = AdjustOffset(d, phi, LOCAL_SIZE, LOCAL_SIZE);
+         dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
 
-            dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
+         p0.X = p0.Y = p1.X = p1.Y = 0.0;
 
-            p0.X = p0.Y = p1.X = p1.Y = 0.0;
+         if(IntersectBox(rLine, bb0, bb1, &p0, &p1) == DmtxFalse)
+            continue;
 
-            if(IntersectBox(rLine, bb0, bb1, &p0, &p1) == DmtxFalse)
-               continue;
+         d0.X = (int)(p0.X + 0.5) + screenX;
+         d1.X = (int)(p1.X + 0.5) + screenX;
 
-            d0.X = (int)(p0.X + 0.5) + screenX;
-            d1.X = (int)(p1.X + 0.5) + screenX;
+         d0.Y = screenY + (LOCAL_SIZE - (int)(p0.Y + 0.5) - 1);
+         d1.Y = screenY + (LOCAL_SIZE - (int)(p1.Y + 0.5) - 1);
 
-            d0.Y = screenY + (LOCAL_SIZE - (int)(p0.Y + 0.5) - 1);
-            d1.Y = screenY + (LOCAL_SIZE - (int)(p1.Y + 0.5) - 1);
-
-            lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
-         }
+         lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
       }
    }
 }
