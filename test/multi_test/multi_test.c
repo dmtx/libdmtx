@@ -105,6 +105,7 @@ static int uCos128[] = {
     -946,  -955,  -964,  -972,  -980,  -987,  -993,  -999,
    -1004, -1009, -1013, -1016, -1019, -1021, -1023, -1024 };
 
+/* Application level functions */
 static struct UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
 static struct AppState InitAppState(void);
@@ -113,13 +114,17 @@ static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
       SDL_Surface *picture, SDL_Surface **screen);
 static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
+
+/* Image processing functions */
 static void PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
       struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img);
 static double AdjustOffset(int d, int phiIdx, int extent);
 static int GetOffset(int x, int y, int phiIdx, int extent);
 static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int angleBase, int imgExtent);
-static void PopulateMaximaCache(struct Hough *houghCache, int width, int height);
-static void NarrowMaximaRange(struct Hough *pMaximaCache, struct Hough *nMaximaCache, int phiExtent, int dExtent);
+static void FindHoughMaxima(struct Hough *houghCache, int width, int height);
+static void FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent);
+
+/* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY, int maxFlowMag);
 static void BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int screenY);
 static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int screenY);
@@ -359,10 +364,10 @@ main(int argc, char *argv[])
       BlitHoughCache(screen, pHoughCache, 256, 480);
       BlitHoughCache(screen, nHoughCache, 256, 544);
 
-      PopulateMaximaCache(pHoughCache, 128, LOCAL_SIZE);
-      PopulateMaximaCache(nHoughCache, 128, LOCAL_SIZE);
+      FindHoughMaxima(pHoughCache, 128, LOCAL_SIZE);
+      FindHoughMaxima(nHoughCache, 128, LOCAL_SIZE);
 
-      NarrowMaximaRange(pHoughCache, nHoughCache, 128, LOCAL_SIZE);
+      FindBestAngles(pHoughCache, nHoughCache, 128, LOCAL_SIZE);
 
       /* Write maxima cache images to feedback panes */
       BlitHoughCache(screen, pHoughCache, 384, 480);
@@ -588,8 +593,6 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
    int bytesPerPixel, rowSizeBytes, colorPlane;
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
-   int sEdge, bEdge, hEdge, vEdge;
-   int hEdge2, vEdge2;
    int offsetBL, offsetTL, offsetBR, offsetTR;
    int idx;
    DmtxTime ta, tb;
@@ -629,31 +632,11 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
           * VV B+ +H  +S
           * -+ -B -H  S-
           */
-         hEdge = img->pxl[offsetTL] - img->pxl[offsetBL];
-         hEdge2 = img->pxl[offsetTR] - img->pxl[offsetBR];
-         vEdge = img->pxl[offsetBR] - img->pxl[offsetBL];
-         vEdge2 = img->pxl[offsetTR] - img->pxl[offsetTL];
-         sEdge = (hEdge2 - vEdge)/2;
-         bEdge = (hEdge + vEdge)/2;
-/*       sEdge = img->pxl[offsetTL] - img->pxl[offsetBR];
-         bEdge = img->pxl[offsetTR] - img->pxl[offsetBL]; */
+         hFlowCache[idx].mag = img->pxl[offsetTL] - img->pxl[offsetBL];
+         vFlowCache[idx].mag = img->pxl[offsetBR] - img->pxl[offsetBL];
+         sFlowCache[idx].mag = img->pxl[offsetTL] - img->pxl[offsetBR];
+         bFlowCache[idx].mag = img->pxl[offsetTR] - img->pxl[offsetBL];
 
-         sFlowCache[idx].mag = sEdge;
-         bFlowCache[idx].mag = bEdge;
-         hFlowCache[idx].mag = hEdge;
-         vFlowCache[idx].mag = vEdge;
-/*
-         sFlowCache[idx].mag = (2 * abs(bEdge) > abs(sEdge)) ? sEdge/2 : sEdge;
-         bFlowCache[idx].mag = (2 * abs(sEdge) > abs(bEdge)) ? bEdge/2 : bEdge;
-         hFlowCache[idx].mag = (abs(vEdge) + abs(vEdge2) > abs(hEdge)) ? hEdge/2 : hEdge;
-         vFlowCache[idx].mag = (abs(hEdge) + abs(hEdge2) > abs(vEdge)) ? vEdge/2 : vEdge;
-*/
-/*
-         hFlowCache[idx].mag = (vEdge2 + vEdge)/2;
-         vFlowCache[idx].mag =
-         sFlowCache[idx].mag = (2 * abs(bEdge) > abs(sEdge)) ? sEdge/2 : sEdge;
-         bFlowCache[idx].mag = (2 * abs(sEdge) > abs(bEdge)) ? bEdge/2 : bEdge;
-*/
          offsetBL += bytesPerPixel;
       }
    }
@@ -864,7 +847,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
  *
  */
 static void
-PopulateMaximaCache(struct Hough *houghCache, int width, int height)
+FindHoughMaxima(struct Hough *houghCache, int width, int height)
 {
    int x, y;
    int idx0, idx1;
@@ -894,7 +877,7 @@ PopulateMaximaCache(struct Hough *houghCache, int width, int height)
 }
 
 static void
-NarrowMaximaRange(struct Hough *pMaximaCache, struct Hough *nMaximaCache, int phiExtent, int dExtent)
+FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent)
 {
    int phi, d, idx;
    int pIdxMax, nIdxMax;
@@ -913,13 +896,13 @@ NarrowMaximaRange(struct Hough *pMaximaCache, struct Hough *nMaximaCache, int ph
       for(d = 0; d < dExtent; d++) {
          idx = d * phiExtent + phi;
 
-         if(pMaximaCache[idx].isMax && pMaximaCache[idx].mag > pMagMax) {
-            pMagMax = pMaximaCache[idx].mag;
+         if(pHoughCache[idx].isMax && pHoughCache[idx].mag > pMagMax) {
+            pMagMax = pHoughCache[idx].mag;
             pIdxMax = idx;
          }
 
-         if(nMaximaCache[idx].isMax && nMaximaCache[idx].mag > nMagMax) {
-            nMagMax = nMaximaCache[idx].mag;
+         if(nHoughCache[idx].isMax && nHoughCache[idx].mag > nMagMax) {
+            nMagMax = nHoughCache[idx].mag;
             nIdxMax = idx;
          }
       }
@@ -932,8 +915,8 @@ NarrowMaximaRange(struct Hough *pMaximaCache, struct Hough *nMaximaCache, int ph
    }
 
    if(pIdxMax != -1 && nIdxMax != -1) {
-      pMaximaCache[pIdxBest].isMax = 2;
-      nMaximaCache[nIdxBest].isMax = 2;
+      pHoughCache[pIdxBest].isMax = 2;
+      nHoughCache[nIdxBest].isMax = 2;
    }
 }
 
@@ -946,7 +929,7 @@ NarrowMaximaRange(struct Hough *pMaximaCache, struct Hough *nMaximaCache, int ph
 #endif
 #ifdef IGNOREME
 static void
-NarrowMaximaRange(struct Hough *maximaCache, int width, int height)
+FindBestAngles(struct Hough *maximaCache, int width, int height)
 {
    int xMid, xUse;
    int xPeak, xPeakPrev, xPeakNext;
@@ -1045,7 +1028,7 @@ NarrowMaximaRange(struct Hough *maximaCache, int width, int height)
    }
 
    tb = dmtxTimeNow();
-/* fprintf(stdout, "NarrowMaximaRange time: %ldms\n", (1000000 *
+/* fprintf(stdout, "FindBestAngles time: %ldms\n", (1000000 *
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
 }
 #endif
