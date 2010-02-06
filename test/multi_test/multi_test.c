@@ -880,43 +880,58 @@ static void
 FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent)
 {
    int phi, d, idx;
-   int pIdxMax, nIdxMax;
-   int pIdxBest, nIdxBest;
-   int sumMagMax, pMagMax, nMagMax;
+   int pIdxBest[128], nIdxBest[128];
+   int pMagBest[128], nMagBest[128];
+   int magSum;
+   int magBest[2] = { 0, 0 };
+   int phiBest[2] = { -1, -1 };
 
-   pIdxMax = nIdxMax = -1;
-   pIdxBest = nIdxBest = -1;
-   sumMagMax = 0;
 
-   /* For each phi */
+   /* Find greatest maximum in p and n caches for each value of phi */
    for(phi = 0; phi < phiExtent; phi++) {
 
-      /* For each offset, find greatest maximum in p and n caches */
-      pMagMax = nMagMax = 0;
-      for(d = 0; d < dExtent; d++) {
+      pIdxBest[phi] = nIdxBest[phi] = phi; /* i.e., (0 * phiExtent + phi) */
+      pMagBest[phi] = pHoughCache[phi].mag;
+      nMagBest[phi] = nHoughCache[phi].mag;
+
+      for(d = 1; d < dExtent; d++) {
+
          idx = d * phiExtent + phi;
 
-         if(pHoughCache[idx].isMax && pHoughCache[idx].mag > pMagMax) {
-            pMagMax = pHoughCache[idx].mag;
-            pIdxMax = idx;
+         if(pHoughCache[idx].isMax && pHoughCache[idx].mag > pMagBest[phi]) {
+            pMagBest[phi] = pHoughCache[idx].mag;
+            pIdxBest[phi] = idx;
          }
-
-         if(nHoughCache[idx].isMax && nHoughCache[idx].mag > nMagMax) {
-            nMagMax = nHoughCache[idx].mag;
-            nIdxMax = idx;
+         if(nHoughCache[idx].isMax && nHoughCache[idx].mag > nMagBest[phi]) {
+            nMagBest[phi] = nHoughCache[idx].mag;
+            nIdxBest[phi] = idx;
          }
-      }
-
-      if(pMagMax + nMagMax > sumMagMax) {
-         pIdxBest = pIdxMax;
-         nIdxBest = nIdxMax;
-         sumMagMax = pMagMax + nMagMax;
       }
    }
 
-   if(pIdxMax != -1 && nIdxMax != -1) {
-      pHoughCache[pIdxBest].isMax = 2;
-      nHoughCache[nIdxBest].isMax = 2;
+   magBest[0] = pHoughCache[0].mag + nHoughCache[0].mag;
+   phiBest[0] = 0;
+   for(phi = 1; phi < 128; phi++) {
+      magSum = pMagBest[phi] + nMagBest[phi];
+      if(magSum > magBest[0]) {
+         magBest[1] = magBest[0];
+         phiBest[1] = phiBest[0];
+         magBest[0] = magSum;
+         phiBest[0] = phi;
+      }
+      else if(magSum > magBest[1]) {
+         magBest[1] = magSum;
+         phiBest[1] = phi;
+      }
+   }
+
+   if(phiBest[0] != -1) {
+      pHoughCache[pIdxBest[phiBest[0]]].isMax = 2;
+      nHoughCache[nIdxBest[phiBest[0]]].isMax = 2;
+   }
+   if(phiBest[1] != -1) {
+      pHoughCache[pIdxBest[phiBest[1]]].isMax = 2;
+      nHoughCache[nIdxBest[phiBest[1]]].isMax = 2;
    }
 }
 
