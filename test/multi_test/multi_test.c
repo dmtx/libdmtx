@@ -882,10 +882,8 @@ FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExte
    int phi, d, idx;
    int pIdxBest[128], nIdxBest[128];
    int pMagBest[128], nMagBest[128];
-   int magSum;
-   int magBest[2] = { 0, 0 };
-   int phiBest[2] = { -1, -1 };
-
+   int magSum, magBest[2] = { 0, 0 };
+   int phiDiff, phiBest[2] = { -1, -1 };
 
    /* Find greatest maximum in p and n caches for each value of phi */
    for(phi = 0; phi < phiExtent; phi++) {
@@ -912,16 +910,31 @@ FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExte
    magBest[0] = pHoughCache[0].mag + nHoughCache[0].mag;
    phiBest[0] = 0;
    for(phi = 1; phi < 128; phi++) {
+
       magSum = pMagBest[phi] + nMagBest[phi];
+
       if(magSum > magBest[0]) {
-         magBest[1] = magBest[0];
-         phiBest[1] = phiBest[0];
-         magBest[0] = magSum;
-         phiBest[0] = phi;
+         /* If angles are sufficiently different then push down */
+         phiDiff = (phi - phiBest[0] + 128) % 128;
+         if(phiDiff >= 8 && phiDiff <= 118) {
+            magBest[1] = magBest[0];
+            phiBest[1] = phiBest[0];
+            magBest[0] = magSum;
+            phiBest[0] = phi;
+         }
+         /* Otherwise simply replace */
+         else {
+            magBest[0] = magSum;
+            phiBest[0] = phi;
+         }
       }
       else if(magSum > magBest[1]) {
-         magBest[1] = magSum;
-         phiBest[1] = phi;
+         /* Only update [1] if not in same angle range as [0] */
+         phiDiff = (phi - phiBest[0] + 128) % 128;
+         if(phiDiff >= 8 && phiDiff <= 118) {
+            magBest[1] = magSum;
+            phiBest[1] = phi;
+         }
       }
    }
 
