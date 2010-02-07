@@ -149,10 +149,11 @@ main(int argc, char *argv[])
    DmtxDecode        *dec;
    int                phi, d, idx;
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
-   int                spFlowSum, bpFlowSum, hpFlowSum, vpFlowSum, pFlowSumMax;
-   int                snFlowSum, bnFlowSum, hnFlowSum, vnFlowSum, nFlowSumMax;
+   unsigned int       spFlowSum, bpFlowSum, hpFlowSum, vpFlowSum;
+   unsigned int       snFlowSum, bnFlowSum, hnFlowSum, vnFlowSum;
    double             spFlowScale, bpFlowScale, hpFlowScale, vpFlowScale;
    double             snFlowScale, bnFlowScale, hnFlowScale, vnFlowScale;
+   double             pNormScale, nNormScale, phiScale;
    struct Hough      *pHoughCache, *nHoughCache;
    SDL_Rect           clipRect;
    SDL_Surface       *local;
@@ -288,75 +289,68 @@ main(int argc, char *argv[])
       PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
             hFlowCache, vFlowCache, 128, LOCAL_SIZE);
 
-      /* Normalize hough quadrants in a slow and inefficient way */
+      /* Normalize hough quadrants in a very slow and inefficient way */
       hpFlowSum = vpFlowSum = spFlowSum = bpFlowSum = 0;
       hnFlowSum = vnFlowSum = snFlowSum = bnFlowSum = 0;
       for(i = 0; i < LOCAL_SIZE * LOCAL_SIZE; i++) {
          if(hFlowCache[i].mag > 0)
             hpFlowSum += hFlowCache[i].mag;
          else
-            hnFlowSum += hFlowCache[i].mag;
+            hnFlowSum -= hFlowCache[i].mag;
 
          if(vFlowCache[i].mag > 0)
             vpFlowSum += vFlowCache[i].mag;
          else
-            vnFlowSum += vFlowCache[i].mag;
+            vnFlowSum -= vFlowCache[i].mag;
 
          if(sFlowCache[i].mag > 0)
             spFlowSum += sFlowCache[i].mag;
          else
-            snFlowSum += sFlowCache[i].mag;
+            snFlowSum -= sFlowCache[i].mag;
 
          if(bFlowCache[i].mag > 0)
             bpFlowSum += bFlowCache[i].mag;
          else
-            bnFlowSum += bFlowCache[i].mag;
+            bnFlowSum -= bFlowCache[i].mag;
       }
-      pFlowSumMax = hpFlowSum;
-      if(vpFlowSum > pFlowSumMax)
-         pFlowSumMax = vpFlowSum;
-      if(spFlowSum > pFlowSumMax)
-         pFlowSumMax = spFlowSum;
-      if(bpFlowSum > pFlowSumMax)
-         pFlowSumMax = bpFlowSum;
 
-      nFlowSumMax = hnFlowSum;
-      if(vnFlowSum > nFlowSumMax)
-         nFlowSumMax = vnFlowSum;
-      if(snFlowSum > nFlowSumMax)
-         nFlowSumMax = snFlowSum;
-      if(bnFlowSum > nFlowSumMax)
-         nFlowSumMax = bnFlowSum;
+      hpFlowScale = (double)65536/hpFlowSum;
+      vpFlowScale = (double)65536/vpFlowSum;
+      spFlowScale = (double)65536/spFlowSum;
+      bpFlowScale = (double)65536/bpFlowSum;
 
-      hpFlowScale = (double)pFlowSumMax/hpFlowSum;
-      vpFlowScale = (double)pFlowSumMax/vpFlowSum;
-      spFlowScale = (double)pFlowSumMax/spFlowSum;
-      bpFlowScale = (double)pFlowSumMax/bpFlowSum;
-
-      hnFlowScale = (double)nFlowSumMax/hnFlowSum;
-      vnFlowScale = (double)nFlowSumMax/vnFlowSum;
-      snFlowScale = (double)nFlowSumMax/snFlowSum;
-      bnFlowScale = (double)nFlowSumMax/bnFlowSum;
+      hnFlowScale = (double)65536/hnFlowSum;
+      vnFlowScale = (double)65536/vnFlowSum;
+      snFlowScale = (double)65536/snFlowSum;
+      bnFlowScale = (double)65536/bnFlowSum;
 
       for(phi = 0; phi < 128; phi++) {
          for(d = 0; d < LOCAL_SIZE; d++) {
             idx = d * 128 + phi;
             if(phi < 16 || phi >= 112) {
-               pHoughCache[idx].mag = (int)(pHoughCache[idx].mag * vpFlowScale + 0.5);
-               nHoughCache[idx].mag = (int)(nHoughCache[idx].mag * vnFlowScale + 0.5);
+               pNormScale = vpFlowScale;
+               nNormScale = vnFlowScale;
             }
             else if(phi < 48) {
-               pHoughCache[idx].mag = (int)(pHoughCache[idx].mag * bpFlowScale + 0.5);
-               nHoughCache[idx].mag = (int)(nHoughCache[idx].mag * bnFlowScale + 0.5);
+               pNormScale = bpFlowScale;
+               nNormScale = bnFlowScale;
             }
             else if(phi < 80) {
-               pHoughCache[idx].mag = (int)(pHoughCache[idx].mag * hpFlowScale + 0.5);
-               nHoughCache[idx].mag = (int)(nHoughCache[idx].mag * hnFlowScale + 0.5);
+               pNormScale = hpFlowScale;
+               nNormScale = hnFlowScale;
             }
             else if(phi < 112) {
-               pHoughCache[idx].mag = (int)(pHoughCache[idx].mag * spFlowScale + 0.5);
-               nHoughCache[idx].mag = (int)(nHoughCache[idx].mag * snFlowScale + 0.5);
+               pNormScale = spFlowScale;
+               nNormScale = snFlowScale;
             }
+            else {
+               pNormScale = nNormScale = 1;
+            }
+
+            phiScale = ((phi < 32 || phi >= 96) ? abs(uCos128[phi]) : uSin128[phi])/1024.0;
+
+            pHoughCache[idx].mag = (int)(pHoughCache[idx].mag * pNormScale * phiScale + 0.5);
+            nHoughCache[idx].mag = (int)(nHoughCache[idx].mag * nNormScale * phiScale + 0.5);
          }
       }
 
