@@ -132,7 +132,9 @@ static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int scree
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
-static void DrawGridLines(SDL_Surface *screen, struct Hough *maximaCache, int angles, int diag, int screenX, int screenY);
+static void DrawGridLines(SDL_Surface *screen, struct Hough *pMaximaCache,
+      struct Hough *nMaximaCache, int angles, int diag, int screenX,
+      int screenY, int drawSelection);
 
 int
 main(int argc, char *argv[])
@@ -280,10 +282,10 @@ main(int argc, char *argv[])
             maxFlowMag = abs(bFlowCache[i].mag);
       }
 
-      BlitFlowCache(screen, hFlowCache,   0, 480, maxFlowMag);
-      BlitFlowCache(screen, vFlowCache,  64, 480, maxFlowMag);
-      BlitFlowCache(screen, sFlowCache, 128, 480, maxFlowMag);
-      BlitFlowCache(screen, bFlowCache, 192, 480, maxFlowMag);
+      BlitFlowCache(screen, hFlowCache,  0, 480, maxFlowMag);
+      BlitFlowCache(screen, vFlowCache, 64, 480, maxFlowMag);
+      BlitFlowCache(screen, sFlowCache,  0, 544, maxFlowMag);
+      BlitFlowCache(screen, bFlowCache, 64, 544, maxFlowMag);
 
       /* Find relative size of hough quadrants */
       PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
@@ -355,8 +357,8 @@ main(int argc, char *argv[])
       }
 
       /* Write hough cache images to feedback panes */
-      BlitHoughCache(screen, pHoughCache, 256, 480);
-      BlitHoughCache(screen, nHoughCache, 256, 544);
+      BlitHoughCache(screen, pHoughCache, 128, 480);
+      BlitHoughCache(screen, nHoughCache, 128, 544);
 
       FindHoughMaxima(pHoughCache, 128, LOCAL_SIZE);
       FindHoughMaxima(nHoughCache, 128, LOCAL_SIZE);
@@ -364,16 +366,24 @@ main(int argc, char *argv[])
       FindBestAngles(pHoughCache, nHoughCache, 128, LOCAL_SIZE);
 
       /* Write maxima cache images to feedback panes */
-      BlitHoughCache(screen, pHoughCache, 384, 480);
-      BlitHoughCache(screen, nHoughCache, 384, 544);
+      BlitHoughCache(screen, pHoughCache, 256, 480);
+      BlitHoughCache(screen, nHoughCache, 256, 544);
 
       /* Draw positive hough lines to feedback panes */
-      BlitActiveRegion(screen, local, 512, 480);
-      DrawGridLines(screen, pHoughCache, 128, LOCAL_SIZE, 512, 480);
+      BlitActiveRegion(screen, local, 384, 480);
+      DrawGridLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, 384, 480, 2);
 
       /* Draw negative hough lines to feedback panes */
-      BlitActiveRegion(screen, local, 512, 544);
-      DrawGridLines(screen, nHoughCache, 128, LOCAL_SIZE, 512, 544);
+      BlitActiveRegion(screen, local, 384, 544);
+      DrawGridLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, 384, 544, 3);
+
+      /* XXX detect grid at suspected phi */
+
+      /* Draw grid */
+      BlitActiveRegion(screen, local, 448, 480);
+
+      /* Draw grid */
+      BlitActiveRegion(screen, local, 448, 544);
 
       SDL_Flip(screen);
    }
@@ -937,8 +947,8 @@ FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExte
       nHoughCache[nIdxBest[phiBest[0]]].isMax = 2;
    }
    if(phiBest[1] != -1) {
-      pHoughCache[pIdxBest[phiBest[1]]].isMax = 2;
-      nHoughCache[nIdxBest[phiBest[1]]].isMax = 2;
+      pHoughCache[pIdxBest[phiBest[1]]].isMax = 3;
+      nHoughCache[nIdxBest[phiBest[1]]].isMax = 3;
    }
 }
 
@@ -1161,7 +1171,7 @@ BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int s
 
          cache = houghCache[row * width + col].mag;
 
-         if(houghCache[row * width + col].isMax == 2) {
+         if(houghCache[row * width + col].isMax > 2) {
             rgb[0] = 255;
             rgb[1] = rgb[2] = 0;
          }
@@ -1360,10 +1370,11 @@ DrawActiveBorder(SDL_Surface *screen, int activeExtent)
 }
 
 static void
-DrawGridLines(SDL_Surface *screen, struct Hough *maximaCache, int angles,
-      int diag, int screenX, int screenY)
+DrawGridLines(SDL_Surface *screen, struct Hough *pMaximaCache,
+      struct Hough *nMaximaCache, int angles, int diag, int screenX,
+      int screenY, int drawSelection)
 {
-   int phi, d;
+   int phi, d, idx;
    double phiRad;
    double dScaled;
    DmtxVector2 bb0, bb1;
@@ -1387,7 +1398,9 @@ DrawGridLines(SDL_Surface *screen, struct Hough *maximaCache, int angles,
       rLine.v.Y = rStart.v.X;
 
       for(d = 0; d < diag; d++) {
-         if(maximaCache[d * angles + phi].isMax != 2)
+         idx = d * angles + phi;
+         if(pMaximaCache[idx].isMax != drawSelection &&
+               nMaximaCache[idx].isMax != drawSelection)
             continue;
 
          dScaled = AdjustOffset(d, phi, LOCAL_SIZE);
