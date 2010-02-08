@@ -41,6 +41,7 @@ Contact: mblaughton@users.sourceforge.net
 #include "../../dmtx.h"
 
 #define LOCAL_SIZE 64
+#define TIMING_SIZE 16
 
 struct UserOptions {
    const char *imagePath;
@@ -64,6 +65,10 @@ struct Flow {
 
 struct Hough {
    char isMax;
+   unsigned int mag;
+};
+
+struct Timing {
    unsigned int mag;
 };
 
@@ -122,7 +127,9 @@ static double AdjustOffset(int d, int phiIdx, int extent);
 static int GetOffset(int x, int y, int phiIdx, int extent);
 static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache, int angleBase, int imgExtent);
 static void FindHoughMaxima(struct Hough *houghCache, int width, int height);
-static void FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent);
+static void FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent, int *phi0, int *phi1);
+static int HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi);
+static int FindGridTiming(struct Timing *timingCache, struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY, int maxFlowMag);
@@ -132,9 +139,11 @@ static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int scree
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
-static void DrawGridLines(SDL_Surface *screen, struct Hough *pMaximaCache,
+static void DrawLine(SDL_Surface *screen, int screenX, int screenY, int phi, int d);
+static void DrawStrongLines(SDL_Surface *screen, struct Hough *pMaximaCache,
       struct Hough *nMaximaCache, int angles, int diag, int screenX,
-      int screenY, int drawSelection);
+      int screenY, int phiBest);
+static void DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, int phi, int d, int stride);
 
 int
 main(int argc, char *argv[])
@@ -150,6 +159,7 @@ main(int argc, char *argv[])
    DmtxImage         *img;
    DmtxDecode        *dec;
    int                phi, d, idx;
+   int                off0, /*off1,*/ phi0, phi1;
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
    unsigned int       spFlowSum, bpFlowSum, hpFlowSum, vpFlowSum;
    unsigned int       snFlowSum, bnFlowSum, hnFlowSum, vnFlowSum;
@@ -157,6 +167,8 @@ main(int argc, char *argv[])
    double             snFlowScale, bnFlowScale, hnFlowScale, vnFlowScale;
    double             pNormScale, nNormScale, phiScale;
    struct Hough      *pHoughCache, *nHoughCache;
+   struct Timing     *pTimingCache, *nTimingCache;
+   int                pStride;
    SDL_Rect           clipRect;
    SDL_Surface       *local;
 
@@ -190,6 +202,11 @@ main(int argc, char *argv[])
    assert(pHoughCache != NULL);
    nHoughCache = (struct Hough *)calloc(128 * LOCAL_SIZE, sizeof(struct Hough));
    assert(nHoughCache != NULL);
+
+   pTimingCache = (struct Timing *)calloc(TIMING_SIZE, sizeof(struct Timing));
+   assert(pTimingCache != NULL);
+   nTimingCache = (struct Timing *)calloc(TIMING_SIZE, sizeof(struct Timing));
+   assert(nTimingCache != NULL);
 
    atexit(SDL_Quit);
 
@@ -363,7 +380,8 @@ main(int argc, char *argv[])
       FindHoughMaxima(pHoughCache, 128, LOCAL_SIZE);
       FindHoughMaxima(nHoughCache, 128, LOCAL_SIZE);
 
-      FindBestAngles(pHoughCache, nHoughCache, 128, LOCAL_SIZE);
+      FindBestAngles(pHoughCache, nHoughCache, 128, LOCAL_SIZE, &phi0, &phi1);
+      off0 = HackFindBestOffset(pHoughCache, 128, LOCAL_SIZE, phi0);
 
       /* Write maxima cache images to feedback panes */
       BlitHoughCache(screen, pHoughCache, 256, 480);
@@ -371,25 +389,28 @@ main(int argc, char *argv[])
 
       /* Draw positive hough lines to feedback panes */
       BlitActiveRegion(screen, local, 384, 480);
-      DrawGridLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, 384, 480, 2);
+      DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, 384, 480, phi0);
 
       /* Draw negative hough lines to feedback panes */
       BlitActiveRegion(screen, local, 384, 544);
-      DrawGridLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, 384, 544, 3);
+      DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, 384, 544, phi1);
 
-      /* XXX detect grid at suspected phi */
-
-      /* Draw grid */
+      /* Draw timing lines */
+      pStride = FindGridTiming(pTimingCache, pHoughCache, 128, LOCAL_SIZE, phi0, off0);
       BlitActiveRegion(screen, local, 448, 480);
+      DrawTimingLines(screen, 448, 480, phi0, off0, pStride);
 
-      /* Draw grid */
+      /* Draw timing lines */
       BlitActiveRegion(screen, local, 448, 544);
+      /* DrawTimingLines() */
 
       SDL_Flip(screen);
    }
 
    SDL_FreeSurface(local);
 
+   free(nTimingCache);
+   free(pTimingCache);
    free(nHoughCache);
    free(pHoughCache);
    free(vFlowCache);
@@ -881,7 +902,8 @@ FindHoughMaxima(struct Hough *houghCache, int width, int height)
 }
 
 static void
-FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent)
+FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache,
+      int phiExtent, int dExtent, int *phi0, int *phi1)
 {
    int phi, d, idx;
    int pIdxBest[128], nIdxBest[128];
@@ -947,9 +969,12 @@ FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExte
       nHoughCache[nIdxBest[phiBest[0]]].isMax = 2;
    }
    if(phiBest[1] != -1) {
-      pHoughCache[pIdxBest[phiBest[1]]].isMax = 3;
-      nHoughCache[nIdxBest[phiBest[1]]].isMax = 3;
+      pHoughCache[pIdxBest[phiBest[1]]].isMax = 2;
+      nHoughCache[nIdxBest[phiBest[1]]].isMax = 2;
    }
+
+   *phi0 = phiBest[0];
+   *phi1 = phiBest[1];
 }
 
 /**
@@ -1064,6 +1089,65 @@ FindBestAngles(struct Hough *maximaCache, int width, int height)
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
 }
 #endif
+
+static int
+HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi)
+{
+   int d;
+
+   for(d = 0; d < dExtent; d++) {
+      if(houghCache[d * phiExtent + phi].isMax == 2) {
+         return d;
+      }
+   }
+
+   return DmtxUndefined;
+}
+
+static int
+FindGridTiming(struct Timing *timingCache, struct Hough *houghCache,
+      int phiExtent, int dExtent, int phiBest, int dBest)
+{
+   int i;
+   int d, d0;
+   int diff;
+   int bestIdx, bestMag;
+   struct Hough hough;
+
+   memset(timingCache, 0x00, sizeof(struct Timing) * TIMING_SIZE);
+   for(d = 0; d < dExtent; d++) {
+
+      hough = houghCache[d * phiExtent + phiBest];
+      diff = abs(d - d0);
+
+      for(i = 2; i < TIMING_SIZE; i++) {
+         if(diff % i == 0) {
+            /* Should be maxima */
+            timingCache[i].mag += (hough.isMax) ? 1 : -1;
+         }
+         else {
+            /* Should NOT be maxima */
+            timingCache[i].mag += (hough.isMax) ? -1 : 1;
+         }
+      }
+   }
+
+/* fprintf(stdout, "\n");
+   for(i = 2; i < TIMING_SIZE; i++) {
+      fprintf(stdout, "%d: %d\n", i, timingCache[i].mag);
+   } */
+
+   bestIdx = 2;
+   bestMag = timingCache[bestIdx].mag;
+   for(i = 3; i < TIMING_SIZE; i++) {
+      if(timingCache[i].mag > bestMag) {
+         bestIdx = i;
+         bestMag = timingCache[bestIdx].mag;
+      }
+   }
+
+   return bestIdx;
+}
 
 static void
 BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY, int maxFlowMag)
@@ -1370,11 +1454,8 @@ DrawActiveBorder(SDL_Surface *screen, int activeExtent)
 }
 
 static void
-DrawGridLines(SDL_Surface *screen, struct Hough *pMaximaCache,
-      struct Hough *nMaximaCache, int angles, int diag, int screenX,
-      int screenY, int drawSelection)
+DrawLine(SDL_Surface *screen, int screenX, int screenY, int phi, int d)
 {
-   int phi, d, idx;
    double phiRad;
    double dScaled;
    DmtxVector2 bb0, bb1;
@@ -1387,38 +1468,53 @@ DrawGridLines(SDL_Surface *screen, struct Hough *pMaximaCache,
 
    rStart.p.X = rStart.p.Y = 0.0;
 
-   for(phi = 0; phi < angles; phi++) {
+   phiRad = phi * M_PI/128.0;
 
-      phiRad = phi * M_PI/128.0;
+   rStart.v.X = cos(phiRad);
+   rStart.v.Y = sin(phiRad);
 
-      rStart.v.X = cos(phiRad);
-      rStart.v.Y = sin(phiRad);
+   rLine.v.X = -rStart.v.Y;
+   rLine.v.Y = rStart.v.X;
 
-      rLine.v.X = -rStart.v.Y;
-      rLine.v.Y = rStart.v.X;
+   dScaled = AdjustOffset(d, phi, LOCAL_SIZE);
 
-      for(d = 0; d < diag; d++) {
-         idx = d * angles + phi;
-         if(pMaximaCache[idx].isMax != drawSelection &&
-               nMaximaCache[idx].isMax != drawSelection)
-            continue;
+   dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
 
-         dScaled = AdjustOffset(d, phi, LOCAL_SIZE);
+   p0.X = p0.Y = p1.X = p1.Y = 0.0;
 
-         dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
+   if(IntersectBox(rLine, bb0, bb1, &p0, &p1) == DmtxFalse)
+      return;
 
-         p0.X = p0.Y = p1.X = p1.Y = 0.0;
+   d0.X = (int)(p0.X + 0.5) + screenX;
+   d1.X = (int)(p1.X + 0.5) + screenX;
 
-         if(IntersectBox(rLine, bb0, bb1, &p0, &p1) == DmtxFalse)
-            continue;
+   d0.Y = screenY + (LOCAL_SIZE - (int)(p0.Y + 0.5) - 1);
+   d1.Y = screenY + (LOCAL_SIZE - (int)(p1.Y + 0.5) - 1);
 
-         d0.X = (int)(p0.X + 0.5) + screenX;
-         d1.X = (int)(p1.X + 0.5) + screenX;
+   lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
+}
 
-         d0.Y = screenY + (LOCAL_SIZE - (int)(p0.Y + 0.5) - 1);
-         d1.Y = screenY + (LOCAL_SIZE - (int)(p1.Y + 0.5) - 1);
+static void
+DrawStrongLines(SDL_Surface *screen, struct Hough *pMaximaCache,
+      struct Hough *nMaximaCache, int angles, int diag, int screenX,
+      int screenY, int phiBest)
+{
+   int d, idx;
 
-         lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
-      }
+   for(d = 0; d < diag; d++) {
+      idx = d * angles + phiBest;
+
+      if(pMaximaCache[idx].isMax == 2 || nMaximaCache[idx].isMax == 2)
+         DrawLine(screen, screenX, screenY, phiBest, d);
+   }
+}
+
+static void
+DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, int phi, int d, int stride)
+{
+   int i;
+
+   for(i = -5; i <= 5; i++) {
+      DrawLine(screen, screenX, screenY, phi, d + stride * i);
    }
 }
