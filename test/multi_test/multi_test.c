@@ -69,7 +69,7 @@ struct Hough {
 };
 
 struct Timing {
-   unsigned int mag;
+   int mag; /* comparisons can break if unsigned */
 };
 
 /* Scaled unit sin */
@@ -129,7 +129,7 @@ static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCa
 static void FindHoughMaxima(struct Hough *houghCache, int width, int height);
 static void FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent, int *phi0, int *phi1);
 static int HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi);
-static int FindGridTiming(struct Timing *timingCache, struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
+static int FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY, int maxFlowMag);
@@ -167,7 +167,6 @@ main(int argc, char *argv[])
    double             snFlowScale, bnFlowScale, hnFlowScale, vnFlowScale;
    double             pNormScale, nNormScale, phiScale;
    struct Hough      *pHoughCache, *nHoughCache;
-   struct Timing     *pTimingCache, *nTimingCache;
    int                pStride;
    SDL_Rect           clipRect;
    SDL_Surface       *local;
@@ -202,11 +201,6 @@ main(int argc, char *argv[])
    assert(pHoughCache != NULL);
    nHoughCache = (struct Hough *)calloc(128 * LOCAL_SIZE, sizeof(struct Hough));
    assert(nHoughCache != NULL);
-
-   pTimingCache = (struct Timing *)calloc(TIMING_SIZE, sizeof(struct Timing));
-   assert(pTimingCache != NULL);
-   nTimingCache = (struct Timing *)calloc(TIMING_SIZE, sizeof(struct Timing));
-   assert(nTimingCache != NULL);
 
    atexit(SDL_Quit);
 
@@ -396,7 +390,7 @@ main(int argc, char *argv[])
       DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, 384, 544, phi1);
 
       /* Draw timing lines */
-      pStride = FindGridTiming(pTimingCache, pHoughCache, 128, LOCAL_SIZE, phi0, off0);
+      pStride = FindGridTiming(pHoughCache, 128, LOCAL_SIZE, phi0, off0);
       BlitActiveRegion(screen, local, 448, 480);
       DrawTimingLines(screen, 448, 480, phi0, off0, pStride);
 
@@ -409,8 +403,6 @@ main(int argc, char *argv[])
 
    SDL_FreeSurface(local);
 
-   free(nTimingCache);
-   free(pTimingCache);
    free(nHoughCache);
    free(pHoughCache);
    free(vFlowCache);
@@ -1105,44 +1097,41 @@ HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi
 }
 
 static int
-FindGridTiming(struct Timing *timingCache, struct Hough *houghCache,
-      int phiExtent, int dExtent, int phiBest, int dBest)
+FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest)
 {
-   int i;
-   int d, d0;
-   int diff;
+   int i, d, diff;
    int bestIdx, bestMag;
    struct Hough hough;
+   struct Timing timingCache[TIMING_SIZE];
 
    memset(timingCache, 0x00, sizeof(struct Timing) * TIMING_SIZE);
+
    for(d = 0; d < dExtent; d++) {
 
       hough = houghCache[d * phiExtent + phiBest];
-      diff = abs(d - d0);
+      diff = abs(d - dBest);
 
+      /* add 1 when expected hit is hit
+       * subtract 1 when expected hit is missed */
+/*xxx next try it with fractional sizes and see if that makes it better*/
       for(i = 2; i < TIMING_SIZE; i++) {
          if(diff % i == 0) {
-            /* Should be maxima */
             timingCache[i].mag += (hough.isMax) ? 1 : -1;
-         }
-         else {
-            /* Should NOT be maxima */
-            timingCache[i].mag += (hough.isMax) ? -1 : 1;
          }
       }
    }
 
-/* fprintf(stdout, "\n");
+   fprintf(stdout, "\n");
    for(i = 2; i < TIMING_SIZE; i++) {
       fprintf(stdout, "%d: %d\n", i, timingCache[i].mag);
-   } */
+   }
 
    bestIdx = 2;
-   bestMag = timingCache[bestIdx].mag;
+   bestMag = timingCache[2].mag;
    for(i = 3; i < TIMING_SIZE; i++) {
       if(timingCache[i].mag > bestMag) {
          bestIdx = i;
-         bestMag = timingCache[bestIdx].mag;
+         bestMag = timingCache[i].mag;
       }
    }
 
