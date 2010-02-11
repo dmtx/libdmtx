@@ -68,10 +68,6 @@ struct Hough {
    unsigned int mag;
 };
 
-struct Timing {
-   int mag; /* comparisons can break if unsigned */
-};
-
 /* Scaled unit sin */
 static int uSin128[] = {
        0,    25,    50,    75,   100,   125,   150,   175,
@@ -129,6 +125,7 @@ static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCa
 static void FindHoughMaxima(struct Hough *houghCache, int width, int height);
 static void FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent, int *phi0, int *phi1);
 static int HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi);
+static void SetTimingPattern(int stride, int center, char pattern[], int patternSize);
 static int FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
 
 /* Process visualization functions */
@@ -1096,42 +1093,69 @@ HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi
    return DmtxUndefined;
 }
 
+static void
+SetTimingPattern(int stride, int center, char pattern[], int patternSize)
+{
+   int strideX2;
+   int major;
+   int minor;
+   int start;               /* centered starting point of the pattern */
+   int stop1, stop2, stop3; /* boundaries between pattern steps */
+   int shift;
+   int adjust;
+   int i;
+
+   /* center is the strongest offset around which to center this pattern */
+
+   strideX2 = stride*2;
+   major = stride/2;
+   minor = stride - major;
+   start = (major & 0x01) ? major/2 : (major/2) * 5;
+   shift = start - (center % strideX2) + strideX2;
+
+   stop1 = major;
+   stop2 = stop1 + major;
+   stop3 = stop2 + minor;
+
+   for(i = 0; i < patternSize; i++) {
+      adjust = (i + shift) % strideX2;
+      if(adjust < stop1)
+         pattern[i] = 1;
+      else if(adjust < stop2)
+         pattern[i] = 0;
+      else if(adjust < stop3)
+         pattern[i] = 1;
+      else
+         pattern[i] = 0;
+   }
+}
+
 static int
 FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest)
 {
-   int i, d, diff;
+   int stride, d, i;
    int bestIdx, bestMag;
-   struct Hough hough;
-   struct Timing timingCache[TIMING_SIZE];
+   int timingOn[TIMING_SIZE];
+   char pattern[LOCAL_SIZE];
 
-   memset(timingCache, 0x00, sizeof(struct Timing) * TIMING_SIZE);
+   for(stride = 2; stride < TIMING_SIZE; stride++) {
 
-   for(d = 0; d < dExtent; d++) {
+      SetTimingPattern(stride, dBest, pattern, LOCAL_SIZE);
 
-      hough = houghCache[d * phiExtent + phiBest];
-      diff = abs(d - dBest);
-
-      /* add 1 when expected hit is hit
-       * subtract 1 when expected hit is missed */
-/*xxx next try it with fractional sizes and see if that makes it better*/
-      for(i = 2; i < TIMING_SIZE; i++) {
-         if(diff % i == 0) {
-            timingCache[i].mag += (hough.isMax) ? 1 : -1;
-         }
+      for(d = 0; d < dExtent; d++) {
+         if(pattern[d])
+            timingOn[stride] += houghCache[d * phiExtent + phiBest].mag;
+         else
+            timingOn[stride] -= houghCache[d * phiExtent + phiBest].mag;
       }
    }
 
-   fprintf(stdout, "\n");
-   for(i = 2; i < TIMING_SIZE; i++) {
-      fprintf(stdout, "%d: %d\n", i, timingCache[i].mag);
-   }
-
    bestIdx = 2;
-   bestMag = timingCache[2].mag;
+   bestMag = timingOn[2];
    for(i = 3; i < TIMING_SIZE; i++) {
-      if(timingCache[i].mag > bestMag) {
+      if(timingOn[i] > bestMag) {
          bestIdx = i;
-         bestMag = timingCache[i].mag;
+         bestMag = timingOn[i];
       }
    }
 
