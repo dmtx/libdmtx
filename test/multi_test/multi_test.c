@@ -390,6 +390,7 @@ main(int argc, char *argv[])
       pStride = FindGridTiming(pHoughCache, 128, LOCAL_SIZE, phi0, off0);
       BlitActiveRegion(screen, local, 448, 480);
       DrawTimingLines(screen, 448, 480, phi0, off0, pStride);
+/* XXX next step is to call FindGridTiming for +-phi0 and +-off0 */
 
       /* Draw timing lines */
       BlitActiveRegion(screen, local, 448, 544);
@@ -1137,6 +1138,8 @@ FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest
    int bestIdx, bestMag;
    int timingOn[TIMING_SIZE];
    char pattern[LOCAL_SIZE];
+
+   memset(timingOn, 0x00, sizeof(int) * TIMING_SIZE);
 
    for(stride = 2; stride < TIMING_SIZE; stride++) {
 
