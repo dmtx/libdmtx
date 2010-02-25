@@ -125,7 +125,8 @@ static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCa
 static void FindHoughMaxima(struct Hough *houghCache, int width, int height);
 static void FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent, int *phi0, int *phi1);
 static int HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi);
-static void SetTimingPattern(int stride, int center, char pattern[], int patternSize);
+static void SetTimingPattern(int strideScaled, int scale, int center, char pattern[], int patternSize);
+/*static void SetTimingPattern(int stride, int center, char pattern[], int patternSize);*/
 static int FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
 
 /* Process visualization functions */
@@ -390,7 +391,6 @@ main(int argc, char *argv[])
       pStride = FindGridTiming(pHoughCache, 128, LOCAL_SIZE, phi0, off0);
       BlitActiveRegion(screen, local, 448, 480);
       DrawTimingLines(screen, 448, 480, phi0, off0, pStride);
-/* XXX next step is to call FindGridTiming for +-phi0 and +-off0 */
 
       /* Draw timing lines */
       BlitActiveRegion(screen, local, 448, 544);
@@ -1094,6 +1094,74 @@ HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi
    return DmtxUndefined;
 }
 
+/**
+ * stride of 2.25 would pass strideScaled = 9, scale = 4 (9/4 == 2.25)
+ */
+static void
+SetTimingPattern(int strideScaled, int scale, int center, char pattern[], int patternSize)
+{
+   int xLoc, yLoc, error;
+   int rise = scale * 2;
+   int repeats[8] = { 0 }; /* need 8 elements for .25 precision */
+   int *repeatsPtr, *repeatsEnd;
+   int patternIdx;
+   int i, start;
+
+   for(xLoc = 0, yLoc = -1, error = 0; xLoc < patternSize; xLoc++) {
+      error -= rise;
+      if(error < 0) {
+         yLoc++;
+         error += strideScaled;
+      }
+
+      assert(yLoc < 8);
+      repeats[yLoc]++;
+
+      if(error == 0) {
+         xLoc++;
+         break;
+      }
+   }
+   yLoc++;
+
+   /**
+    * xLoc now holds exactly half the number of steps in the expanded pattern
+    * yLoc now holds the number of ON/OFF pairs in the basic repeating unit
+    *
+    * Example: repeats[] = { 2 2 2 3 2 2 2 3 }
+    *   xLoc == 9 // 2 + 2 + 2 + 3
+    *   yLoc == 4 // 4 jumps in the basic repeating pattern
+    *   pattern |XX__XX__XX__XXX___|XX__XX__XX__XXX___|...
+    */
+
+   /* Adjust pattern to start at middle of the first ON section */
+   start = repeats[0]/2;
+
+   repeatsPtr = repeats;
+   repeatsEnd = repeats + yLoc;
+   patternIdx = (center - start);
+   while(patternIdx > 0)
+      patternIdx -= (2*xLoc);
+
+   while(patternIdx < patternSize) {
+
+      for(i = 0; i < *repeatsPtr && patternIdx < patternSize; i++) {
+         if(patternIdx >= 0)
+            pattern[patternIdx] = 1;
+         patternIdx++;
+      }
+      for(i = 0; i < *repeatsPtr && patternIdx < patternSize; i++) {
+         if(patternIdx >= 0)
+            pattern[patternIdx] = 0;
+         patternIdx++;
+      }
+
+      if(++repeatsPtr == repeatsEnd)
+         repeatsPtr = repeats;
+   }
+}
+
+#ifdef IGNOREME
 static void
 SetTimingPattern(int stride, int center, char pattern[], int patternSize)
 {
@@ -1130,20 +1198,23 @@ SetTimingPattern(int stride, int center, char pattern[], int patternSize)
          pattern[i] = 0;
    }
 }
+#endif
 
 static int
 FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest)
 {
-   int stride, d, i;
+   int scale, stride, d, i;
    int bestIdx, bestMag;
    int timingOn[TIMING_SIZE];
    char pattern[LOCAL_SIZE];
 
    memset(timingOn, 0x00, sizeof(int) * TIMING_SIZE);
 
+   scale = 2;
+
    for(stride = 2; stride < TIMING_SIZE; stride++) {
 
-      SetTimingPattern(stride, dBest, pattern, LOCAL_SIZE);
+      SetTimingPattern(stride * scale, scale, dBest, pattern, LOCAL_SIZE);
 
       for(d = 0; d < dExtent; d++) {
          if(pattern[d])
