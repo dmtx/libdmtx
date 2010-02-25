@@ -148,7 +148,7 @@ static void DrawLine(SDL_Surface *screen, int screenX, int screenY, int phi, int
 static void DrawStrongLines(SDL_Surface *screen, struct Hough *pMaximaCache,
       struct Hough *nMaximaCache, int angles, int diag, int screenX,
       int screenY, int phiBest);
-static void DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, int phi, int d, int stride);
+static void DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, int phi, int d, double stride);
 
 int
 main(int argc, char *argv[])
@@ -399,7 +399,7 @@ main(int argc, char *argv[])
       timing = FindGridTiming(pHoughCache, 128, LOCAL_SIZE, phi0, off0);
       pStride = (int)((double)timing.strideScaled / timing.scale + 0.5);
       BlitActiveRegion(screen, local, 448, 480);
-      DrawTimingLines(screen, 448, 480, phi0, off0, pStride); /* next change last arg to double */
+      DrawTimingLines(screen, 448, 480, phi0, off0, (double)timing.strideScaled/timing.scale);
 
       /* Draw timing lines */
       BlitActiveRegion(screen, local, 448, 544);
@@ -1425,10 +1425,8 @@ Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1)
 static int
 IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1)
 {
-   double xMin, xMax, yMin, yMax;
-   double tTmp, t[4], tMin[2], tMax[2];
-   double tMinStart, tMaxStart;
-   int i;
+   double tTmp, xMin, xMax, yMin, yMax;
+   DmtxVector2 p[2];
    int tCount = 0;
    DmtxRay2 rBtm, rTop, rLft, rRgt;
    DmtxVector2 unitX = { 1.0, 0.0 };
@@ -1461,55 +1459,23 @@ IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, Dm
    rBtm.v = rTop.v = unitX;
    rLft.v = rRgt.v = unitY;
 
-   if(Ray2Intersect(&tTmp, ray, rBtm) == DmtxPass)
-      t[tCount++] = tTmp;
+   if(Ray2Intersect(&tTmp, rBtm, ray) == DmtxPass && tTmp >= 0.0 && tTmp < 64.0)
+      dmtxPointAlongRay2(&(p[tCount++]), &rBtm, tTmp);
 
-   if(Ray2Intersect(&tTmp, ray, rTop) == DmtxPass)
-      t[tCount++] = tTmp;
+   if(Ray2Intersect(&tTmp, rTop, ray) == DmtxPass && tTmp >= 0.0 && tTmp < 64.0)
+      dmtxPointAlongRay2(&(p[tCount++]), &rTop, tTmp);
 
-   if(Ray2Intersect(&tTmp, ray, rLft) == DmtxPass)
-      t[tCount++] = tTmp;
+   if(Ray2Intersect(&tTmp, rLft, ray) == DmtxPass && tTmp >= 0.0 && tTmp < 64.0)
+      dmtxPointAlongRay2(&(p[tCount++]), &rLft, tTmp);
 
-   if(Ray2Intersect(&tTmp, ray, rRgt) == DmtxPass)
-      t[tCount++] = tTmp;
+   if(Ray2Intersect(&tTmp, rRgt, ray) == DmtxPass && tTmp >= 0.0 && tTmp < 64.0)
+      dmtxPointAlongRay2(&(p[tCount++]), &rRgt, tTmp);
 
-   if(tCount < 2)
+   if(tCount != 2)
       return DmtxFail;
 
-   tMinStart = tMaxStart = t[0];
-   for(i = 1; i < tCount; i++) {
-      if(t[i] < tMinStart)
-         tMinStart = t[i];
-      if(t[i] > tMaxStart)
-         tMaxStart = t[i];
-   }
-
-   /* tMin[1] is the smallest and tMin[0] is second smallest */
-   tMin[0] = tMin[1] = tMaxStart;
-   for(i = 0; i < tCount; i++) {
-      if(t[i] < tMin[1]) {
-         tMin[0] = tMin[1];
-         tMin[1] = t[i];
-      }
-      else if(t[i] < tMin[0]) {
-         tMin[0] = t[i];
-      }
-   }
-
-   /* tMax[1] is the larget and tMax[0] is second largest */
-   tMax[0] = tMax[1] = tMinStart;
-   for(i = 0; i < tCount; i++) {
-      if(t[i] > tMax[1]) {
-         tMax[0] = tMax[1];
-         tMax[1] = t[i];
-      }
-      else if(t[i] > tMax[0]) {
-         tMax[0] = t[i];
-      }
-   }
-
-   dmtxPointAlongRay2(p0, &ray, tMin[0]);
-   dmtxPointAlongRay2(p1, &ray, tMax[0]);
+   *p0 = p[0];
+   *p1 = p[1];
 
    return DmtxTrue;
 }
@@ -1597,11 +1563,11 @@ DrawStrongLines(SDL_Surface *screen, struct Hough *pMaximaCache,
 }
 
 static void
-DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, int phi, int d, int stride)
+DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, int phi, int d, double stride)
 {
    int i;
 
    for(i = -5; i <= 5; i++) {
-      DrawLine(screen, screenX, screenY, phi, d + stride * i);
+      DrawLine(screen, screenX, screenY, phi, (int)(d + stride * i + 0.5));
    }
 }
