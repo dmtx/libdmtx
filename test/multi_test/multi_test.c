@@ -133,7 +133,7 @@ static void MarkHoughMaxima(struct Hough *houghCache, int width, int height);
 static void FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent, int *phi0, int *phi1);
 static int HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi);
 static void SetTimingPattern(int strideScaled, int scale, int center, char pattern[], int patternSize);
-static struct Timing FindGridTiming(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent, int phiBest, int dBest);
+static struct Timing FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
 static struct Timing FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
 
 /* Process visualization functions */
@@ -171,7 +171,7 @@ main(int argc, char *argv[])
    double             spFlowScale, bpFlowScale, hpFlowScale, vpFlowScale;
    double             snFlowScale, bnFlowScale, hnFlowScale, vnFlowScale;
    double             pNormScale, nNormScale, phiScale;
-   struct Hough      *pHoughCache, *nHoughCache;
+   struct Hough      *pHoughCache, *nHoughCache, *houghCache;
    int                pStride;
    struct Timing      timing;
    SDL_Rect           clipRect;
@@ -207,6 +207,8 @@ main(int argc, char *argv[])
    assert(pHoughCache != NULL);
    nHoughCache = (struct Hough *)calloc(128 * LOCAL_SIZE, sizeof(struct Hough));
    assert(nHoughCache != NULL);
+   houghCache = (struct Hough *)calloc(128 * LOCAL_SIZE, sizeof(struct Hough));
+   assert(houghCache != NULL);
 
    atexit(SDL_Quit);
 
@@ -383,9 +385,19 @@ main(int argc, char *argv[])
       FindBestAngles(pHoughCache, nHoughCache, 128, LOCAL_SIZE, &phi0, &phi1);
       off0 = HackFindBestOffset(pHoughCache, 128, LOCAL_SIZE, phi0);
 
+      /* Combine pos and neg hough cache into one */
+      for(phi = 0; phi < 128; phi++) {
+         for(d = 0; d < LOCAL_SIZE; d++) {
+            idx = d * 128 + phi;
+            houghCache[idx].mag = pHoughCache[idx].mag + nHoughCache[idx].mag;
+            houghCache[idx].isMax = 1;
+         }
+      }
+      BlitHoughCache(screen, houghCache, 256, 480);
+
       /* Write maxima cache images to feedback panes */
-      BlitHoughCache(screen, pHoughCache, 256, 480);
-      BlitHoughCache(screen, nHoughCache, 256, 544);
+/*    BlitHoughCache(screen, pHoughCache, 256, 480);
+      BlitHoughCache(screen, nHoughCache, 256, 544); */
 
       /* Draw positive hough lines to feedback panes */
       BlitActiveRegion(screen, local, 384, 480);
@@ -396,7 +408,7 @@ main(int argc, char *argv[])
       DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, 384, 544, phi1);
 
       /* Draw timing lines */
-      timing = FindGridTiming(pHoughCache, nHoughCache, 128, LOCAL_SIZE, phi0, off0);
+      timing = FindGridTiming(houghCache, 128, LOCAL_SIZE, phi0, off0);
       pStride = (int)((double)timing.strideScaled / timing.scale + 0.5);
       BlitActiveRegion(screen, local, 448, 480);
       DrawTimingLines(screen, 448, 480, phi0, off0, (double)timing.strideScaled/timing.scale);
@@ -410,6 +422,7 @@ main(int argc, char *argv[])
 
    SDL_FreeSurface(local);
 
+   free(houghCache);
    free(nHoughCache);
    free(pHoughCache);
    free(vFlowCache);
@@ -1174,31 +1187,23 @@ SetTimingPattern(int strideScaled, int scale, int center, char pattern[], int pa
  *
  */
 static struct Timing
-FindGridTiming(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent, int phiBest, int dBest)
+FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest)
 {
    int i, d[3];
-   struct Timing timingPos[3], timingNeg[3];
-   struct Timing *bestPos, *bestNeg;
+   struct Timing t[3], best;
 
    d[0] = (dBest + dExtent - 1)%dExtent;
    d[1] = dBest;
    d[2] = (dBest + 1);
 
    for(i = 0; i < 3; i++) {
-      timingPos[i] = FindGridTimingInner(pHoughCache, phiExtent, dExtent, phiBest, d[i]);
-      timingNeg[i] = FindGridTimingInner(nHoughCache, phiExtent, dExtent, phiBest, d[i]);
+      t[i] = FindGridTimingInner(houghCache, phiExtent, dExtent, phiBest, d[i]);
+
+      if(i == 0 || t[i].mag > best.mag)
+         best = t[i];
    }
 
-   bestPos = &(timingPos[0]);
-   bestNeg = &(timingNeg[0]);
-   for(i = 1; i < 3; i++) {
-      if(timingPos[i].mag > bestPos->mag)
-         bestPos = &(timingPos[i]);
-      if(timingNeg[i].mag > bestNeg->mag)
-         bestNeg = &(timingNeg[i]);
-   }
-
-   return *bestPos;
+   return best;
 }
 
 /**
@@ -1217,11 +1222,6 @@ FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int ph
 
    scale = 2;
    for(stride = 2 * scale; stride < TIMING_SIZE; stride++) {
-/*
-insert loop here to test for multiple values of dBest ...
-(basically find best stride for pos and neg with potentially different d)
-(then best pos stride + neg stride wins)
-*/
       SetTimingPattern(stride, scale, dBest, pattern, LOCAL_SIZE);
 
       for(d = 0; d < dExtent; d++) {
