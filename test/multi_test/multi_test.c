@@ -69,6 +69,7 @@ struct Hough {
 };
 
 struct Timing {
+   int angle;
    int offset;
    int strideScaled;
    int scale;
@@ -148,7 +149,7 @@ static void DrawLine(SDL_Surface *screen, int screenX, int screenY, int phi, int
 static void DrawStrongLines(SDL_Surface *screen, struct Hough *pMaximaCache,
       struct Hough *nMaximaCache, int angles, int diag, int screenX,
       int screenY, int phiBest);
-static void DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, int phi, int d, double stride);
+static void DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, struct Timing timing);
 
 int
 main(int argc, char *argv[])
@@ -172,7 +173,6 @@ main(int argc, char *argv[])
    double             snFlowScale, bnFlowScale, hnFlowScale, vnFlowScale;
    double             pNormScale, nNormScale, phiScale;
    struct Hough      *pHoughCache, *nHoughCache, *houghCache;
-   int                pStride;
    struct Timing      timing;
    SDL_Rect           clipRect;
    SDL_Surface       *local;
@@ -409,9 +409,8 @@ main(int argc, char *argv[])
 
       /* Draw timing lines */
       timing = FindGridTiming(houghCache, 128, LOCAL_SIZE, phi0, off0);
-      pStride = (int)((double)timing.strideScaled / timing.scale + 0.5);
       BlitActiveRegion(screen, local, 448, 480);
-      DrawTimingLines(screen, 448, 480, phi0, off0, (double)timing.strideScaled/timing.scale);
+      DrawTimingLines(screen, 448, 480, timing); /* phi0, off0, (double)timing.strideScaled/timing.scale); */
 
       /* Draw timing lines */
       BlitActiveRegion(screen, local, 448, 544);
@@ -743,6 +742,31 @@ GetOffset(int x, int y, int phiIdx, int extent)
    }
 
    assert(abs(posMax - negMax) > 0);
+/* scale = (double)extent / (posMax - negMax); */
+   scale = (2.0 * extent) / (posMax - negMax);
+
+   offset = (int)((x * uCos128[phiIdx] + y * uSin128[phiIdx] - negMax) * scale + 0.5);
+   if(offset > 63)
+      offset = -1;
+
+   assert(offset <= 64);
+
+   return offset;
+
+/* real version:
+   int offset, posMax, negMax;
+   double scale;
+
+   if(phiIdx < 64) {
+      posMax = extent * (uCos128[phiIdx] + uSin128[phiIdx]);
+      negMax = 0;
+   }
+   else {
+      posMax = extent * uSin128[phiIdx];
+      negMax = extent * uCos128[phiIdx];
+   }
+
+   assert(abs(posMax - negMax) > 0);
    scale = (double)extent / (posMax - negMax);
 
    offset = (int)((x * uCos128[phiIdx] + y * uSin128[phiIdx] - negMax) * scale + 0.5);
@@ -750,7 +774,7 @@ GetOffset(int x, int y, int phiIdx, int extent)
    assert(offset <= 64);
 
    return offset;
-
+*/
 /**
  * original floating point version follows:
  *
@@ -827,6 +851,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
          if(abs(vFlowCache[idx].mag) > 0) {
             for(phi = 0; phi < 16; phi++) {
                d = GetOffset(x, y, phi, imgExtent);
+if(d == -1) continue;
                if(vFlowCache[idx].mag > 0)
                   pHoughCache[d * angleBase + phi].mag += vFlowCache[idx].mag;
                else
@@ -834,6 +859,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
             }
             for(phi = 112; phi < angleBase; phi++) {
                d = GetOffset(x, y, phi, imgExtent);
+if(d == -1) continue;
                if(vFlowCache[idx].mag > 0)
                   nHoughCache[d * angleBase + phi].mag += vFlowCache[idx].mag;
                else
@@ -844,6 +870,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
          if(abs(bFlowCache[idx].mag) > 0) {
             for(phi = 16; phi < 48; phi++) {
                d = GetOffset(x, y, phi, imgExtent);
+if(d == -1) continue;
                /* Intentional sign inversion to force discontinuity to 0/180 degrees boundary */
                if(bFlowCache[idx].mag > 0)
                   pHoughCache[d * angleBase + phi].mag += bFlowCache[idx].mag;
@@ -855,6 +882,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
          if(abs(hFlowCache[idx].mag) > 0) {
             for(phi = 48; phi < 80; phi++) {
                d = GetOffset(x, y, phi, imgExtent);
+if(d == -1) continue;
                if(hFlowCache[idx].mag > 0)
                   pHoughCache[d * angleBase + phi].mag += hFlowCache[idx].mag;
                else
@@ -865,6 +893,7 @@ PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCache, struct 
          if(abs(sFlowCache[idx].mag) > 0) {
             for(phi = 80; phi < 112; phi++) {
                d = GetOffset(x, y, phi, imgExtent);
+if(d == -1) continue;
                if(sFlowCache[idx].mag > 0)
                   pHoughCache[d * angleBase + phi].mag += sFlowCache[idx].mag;
                else
@@ -993,115 +1022,6 @@ FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache,
  *
  *
  */
-#ifndef min
-#define min(x,y) ((x < y) ? x : y)
-#endif
-#ifdef IGNOREME
-static void
-FindBestAngles(struct Hough *maximaCache, int width, int height)
-{
-   int xMid, xUse;
-   int xPeak, xPeakPrev, xPeakNext;
-   int zPeak, zPeakPrev, zPeakNext;
-   int x, xBeg, xEnd;
-   int y, yBeg, yEnd;
-   int i, magCompare;
-   int maximaCount, maximaTally;
-   int maxValueCap, currentMaxValue, currentMaxOccurrences;
-   int usableOccurrences;
-   int range[128] = { 0 };
-   DmtxTime ta, tb;
-
-   xBeg = 0;
-   xEnd = width - 1;
-   yBeg = 0;
-   yEnd = height - 1;
-
-   ta = dmtxTimeNow();
-
-   /* for each grouping of 3 angles */
-   for(xMid = xBeg; xMid <= xEnd; xMid++) {
-
-      maximaCount = 0;
-      maximaTally = 0;
-      maxValueCap = -1; /* unknown */
-      currentMaxValue = 1; /* start with lowest non-zero maxima */
-      currentMaxOccurrences = 0;
-
-      /* execute at most 8 times */
-      for(i = 0; i < 8; i++) {
-
-         /* find next largest value and count occurrences */
-         for(x = xMid - 1; x <= xMid + 1; x++) {
-            for(y = yBeg; y <= yEnd; y++) {
-
-               xUse = (x + 128) % 128;
-
-               magCompare = maximaCache[y * width + xUse].mag;
-
-               /* already lost, skip */
-               if(magCompare < currentMaxValue)
-                  continue;
-
-               /* already counted this location, skip */
-               if(maxValueCap != -1 && magCompare >= maxValueCap)
-                  continue;
-
-               if(magCompare > currentMaxValue) {
-                  /* found new max less than cap -- reset counters */
-                  currentMaxValue = magCompare;
-                  currentMaxOccurrences = 1;
-               }
-               else if(magCompare == currentMaxValue) {
-                  /* repeat occurrence -- increment */
-                  currentMaxOccurrences++;
-               }
-            }
-         }
-
-         usableOccurrences = min(8 - maximaCount, currentMaxOccurrences);
-         maximaCount += currentMaxOccurrences;
-         maximaTally += (usableOccurrences * currentMaxValue);
-         maxValueCap = currentMaxValue;
-
-         if(maximaCount >= 8 || currentMaxValue == 1)
-            break;
-      }
-      range[xMid] = maximaTally;
-   }
-
-   /* Find maximum maxima tally */
-   currentMaxValue = range[0];
-   xPeak = 0;
-   for(x = 0; x < 128; x++) {
-      if(range[x] > currentMaxValue) {
-         currentMaxValue = range[x];
-         xPeak = x;
-      }
-   }
-
-   xPeakPrev = (xPeak + 128 - 1)%128;
-   xPeakNext = (xPeak + 128 + 1)%128;
-
-   zPeak = (xPeak + 64) % 128;
-   zPeakPrev = (zPeak + 128 - 1) % 128;
-   zPeakNext = (zPeak + 128 + 1) % 128;
-
-   /* Erase all values that are not in maximum */
-   for(x = 0; x < 128; x++) {
-      if(x != xPeak && x != xPeakPrev && x != xPeakNext &&
-            x != zPeak && x != zPeakPrev && x != zPeakNext) {
-         for(y = yBeg; y < yEnd; y++)
-            maximaCache[y * width + x].mag = 0;
-      }
-   }
-
-   tb = dmtxTimeNow();
-/* fprintf(stdout, "FindBestAngles time: %ldms\n", (1000000 *
-         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
-}
-#endif
-
 static int
 HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi)
 {
@@ -1189,21 +1109,26 @@ SetTimingPattern(int strideScaled, int scale, int center, char pattern[], int pa
 static struct Timing
 FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest)
 {
-   int i, d[3];
-   struct Timing t[3], best;
+   int phi, d, idx;
+   struct Timing t, tBest;
 
-   d[0] = (dBest + dExtent - 1)%dExtent;
-   d[1] = dBest;
-   d[2] = (dBest + 1);
+   /* Find greatest maximum in p and n caches for each value of phi */
+   for(phi = 0; phi < phiExtent; phi++) {
 
-   for(i = 0; i < 3; i++) {
-      t[i] = FindGridTimingInner(houghCache, phiExtent, dExtent, phiBest, d[i]);
+      if(phi == 0 || phi == 64)
+         continue; /* hacky experiment */
 
-      if(i == 0 || t[i].mag > best.mag)
-         best = t[i];
+      for(d = 0; d < dExtent; d++) {
+         idx = d * phiExtent + phi;
+
+         t = FindGridTimingInner(houghCache, phiExtent, dExtent, phi, d);
+
+         if((phi == 1 && d == 0) || t.mag > tBest.mag)
+            tBest = t;
+      }
    }
 
-   return best;
+   return tBest;
 }
 
 /**
@@ -1244,6 +1169,7 @@ FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int ph
       }
    }
 
+   timing.angle = phiBest;
    timing.offset = dBest;
    timing.strideScaled = bestIdx;
    timing.scale = scale;
@@ -1579,11 +1505,16 @@ DrawStrongLines(SDL_Surface *screen, struct Hough *pMaximaCache,
 }
 
 static void
-DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, int phi, int d, double stride)
+DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, struct Timing timing)
 {
    int i;
+   double stride;
 
-   for(i = -5; i <= 5; i++) {
-      DrawLine(screen, screenX, screenY, phi, (int)(d + stride * i + 0.5));
+   stride = (double)timing.strideScaled/timing.scale;
+
+   for(i = -64; i <= 64; i++) {
+      DrawLine(screen, screenX, screenY, timing.angle, (int)(timing.offset + stride * i + 0.5));
    }
+
+   /* draw timing back to hough display too */
 }
