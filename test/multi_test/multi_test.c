@@ -50,6 +50,7 @@ struct UserOptions {
 struct AppState {
    int         windowWidth;
    int         windowHeight;
+   int         activeExtent;
    Sint16      imageLocX;
    Sint16      imageLocY;
    Uint8       leftButton;
@@ -161,7 +162,8 @@ main(int argc, char *argv[])
    SDL_Event          event;
    SDL_Rect           imageLoc;
    Uint32             bgColorB, bgColorK;
-   int                i, pixelCount, maxFlowMag;
+   int                i, j;
+   int                pixelCount, maxFlowMag;
    DmtxImage         *img;
    DmtxDecode        *dec;
    int                phi, d, idx;
@@ -259,12 +261,42 @@ main(int argc, char *argv[])
       imageLoc.y = state.imageLocY;
 
       /* Capture portion of image that falls within highlighted region */
-      clipRect.x = (screen->w - LOCAL_SIZE)/2 - imageLoc.x;
-      clipRect.y = (screen->h - LOCAL_SIZE)/2 - imageLoc.y;
-      clipRect.w = LOCAL_SIZE;
-      clipRect.h = LOCAL_SIZE;
+      /* Use blitsurface if 1:1, otherwise scale */
       SDL_FillRect(local, NULL, bgColorK);
-      SDL_BlitSurface(picture, &clipRect, local, NULL);
+      if(state.activeExtent == 64) {
+         clipRect.x = (screen->w - state.activeExtent)/2 - imageLoc.x;
+         clipRect.y = (screen->h - state.activeExtent)/2 - imageLoc.y;
+         clipRect.w = LOCAL_SIZE;
+         clipRect.h = LOCAL_SIZE;
+         SDL_BlitSurface(picture, &clipRect, local, NULL);
+      }
+      else if(state.activeExtent == 32) {
+         Uint8 localBpp;
+         Uint8 *writePixel, *readPixel;
+
+         /* first blit, then expand */
+         clipRect.x = (screen->w - state.activeExtent)/2 - imageLoc.x;
+         clipRect.y = (screen->h - state.activeExtent)/2 - imageLoc.y;
+         clipRect.w = LOCAL_SIZE;
+         clipRect.h = LOCAL_SIZE;
+         SDL_BlitSurface(picture, &clipRect, local, NULL);
+
+         localBpp = local->format->BytesPerPixel;
+         SDL_LockSurface(local);
+         for(i = 63; i >= 0; i--) {
+            for(j = 63; j >= 0; j--) {
+               writePixel = (Uint8 *)local->pixels + ((i * 64 + j) * localBpp);
+               readPixel = (Uint8 *)local->pixels + (((i/2) * 64 + (j/2)) * localBpp);
+
+               /* XXX crude expansion ... add filtering next */
+               writePixel[0] = readPixel[0];
+               writePixel[1] = readPixel[1];
+               writePixel[2] = readPixel[2];
+               writePixel[3] = readPixel[3];
+            }
+         }
+         SDL_UnlockSurface(local);
+      }
 
       /* Start with blank canvas */
       SDL_FillRect(screen, NULL, bgColorB);
@@ -278,7 +310,16 @@ main(int argc, char *argv[])
       SDL_BlitSurface(picture, NULL, screen, &imageLoc);
       SDL_SetClipRect(screen, NULL);
 
-      DrawActiveBorder(screen, LOCAL_SIZE);
+      /* Draw copy of active region */
+      clipRect.w = 64;
+      clipRect.h = 64;
+      clipRect.x = 0;
+      clipRect.y = 0;
+      SDL_SetClipRect(screen, &clipRect);
+      SDL_BlitSurface(local, NULL, screen, NULL);
+      SDL_SetClipRect(screen, NULL);
+
+      DrawActiveBorder(screen, state.activeExtent);
 
       SDL_LockSurface(local);
       PopulateFlowCache(sFlowCache, bFlowCache, hFlowCache, vFlowCache, dec->image);
@@ -480,6 +521,7 @@ InitAppState(void)
 
    state.windowWidth = 640;
    state.windowHeight = 480 + 2 * LOCAL_SIZE;
+   state.activeExtent = 64;
    state.imageLocX = 0;
    state.imageLocY = 0;
    state.leftButton = SDL_RELEASED;
@@ -526,6 +568,15 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
          switch(event->key.keysym.sym) {
             case SDLK_ESCAPE:
                state->quit = DmtxTrue;
+               break;
+            case SDLK_UP:
+               if(state->activeExtent == 32)
+                  state->activeExtent = 64;
+               break;
+            case SDLK_DOWN:
+               if(state->activeExtent == 64)
+                  state->activeExtent = 32;
+               break;
             default:
                break;
          }
@@ -742,31 +793,6 @@ GetOffset(int x, int y, int phiIdx, int extent)
    }
 
    assert(abs(posMax - negMax) > 0);
-/* scale = (double)extent / (posMax - negMax); */
-   scale = (2.0 * extent) / (posMax - negMax);
-
-   offset = (int)((x * uCos128[phiIdx] + y * uSin128[phiIdx] - negMax) * scale + 0.5);
-   if(offset > 63)
-      offset = -1;
-
-   assert(offset <= 64);
-
-   return offset;
-
-/* real version:
-   int offset, posMax, negMax;
-   double scale;
-
-   if(phiIdx < 64) {
-      posMax = extent * (uCos128[phiIdx] + uSin128[phiIdx]);
-      negMax = 0;
-   }
-   else {
-      posMax = extent * uSin128[phiIdx];
-      negMax = extent * uCos128[phiIdx];
-   }
-
-   assert(abs(posMax - negMax) > 0);
    scale = (double)extent / (posMax - negMax);
 
    offset = (int)((x * uCos128[phiIdx] + y * uSin128[phiIdx] - negMax) * scale + 0.5);
@@ -774,7 +800,7 @@ GetOffset(int x, int y, int phiIdx, int extent)
    assert(offset <= 64);
 
    return offset;
-*/
+
 /**
  * original floating point version follows:
  *
@@ -1114,9 +1140,6 @@ FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest
 
    /* Find greatest maximum in p and n caches for each value of phi */
    for(phi = 0; phi < phiExtent; phi++) {
-
-      if(phi == 0 || phi == 64)
-         continue; /* hacky experiment */
 
       for(d = 0; d < dExtent; d++) {
          idx = d * phiExtent + phi;
