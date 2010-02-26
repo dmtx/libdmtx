@@ -177,7 +177,7 @@ main(int argc, char *argv[])
    struct Hough      *pHoughCache, *nHoughCache, *houghCache;
    struct Timing      timing;
    SDL_Rect           clipRect;
-   SDL_Surface       *local;
+   SDL_Surface       *local, *localTmp;
 
    opt = GetDefaultOptions();
 
@@ -229,6 +229,10 @@ main(int argc, char *argv[])
 
    /* Create surface to hold image pixels to be scanned */
    local = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
+
+   /* Create another surface for scaling purposes */
+   localTmp = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
+
    switch(local->pitch / local->w) {
       case 1:
 /* XXX Should be creating image with stride/row padding */
@@ -272,31 +276,82 @@ main(int argc, char *argv[])
       }
       else if(state.activeExtent == 32) {
          Uint8 localBpp;
-         Uint8 *writePixel, *readPixel;
+         Uint8 *writePixel, *readTL, *readTR, *readBL, *readBR;
 
          /* first blit, then expand */
          clipRect.x = (screen->w - state.activeExtent)/2 - imageLoc.x;
          clipRect.y = (screen->h - state.activeExtent)/2 - imageLoc.y;
          clipRect.w = LOCAL_SIZE;
          clipRect.h = LOCAL_SIZE;
-         SDL_BlitSurface(picture, &clipRect, local, NULL);
+         SDL_BlitSurface(picture, &clipRect, localTmp, NULL);
 
          localBpp = local->format->BytesPerPixel;
          SDL_LockSurface(local);
-         for(i = 63; i >= 0; i--) {
-            for(j = 63; j >= 0; j--) {
+         SDL_LockSurface(localTmp);
+         for(i = 0; i < 64; i++) {
+            for(j = 0; j < 64; j++) {
+               readTL = (Uint8 *)localTmp->pixels + ((i/2) * 64 + (j/2)) * localBpp;
+               readTR = readTL + localBpp;
+               readBL = readTL + (64 * localBpp);
+               readBR = readBL + localBpp;
                writePixel = (Uint8 *)local->pixels + ((i * 64 + j) * localBpp);
-               readPixel = (Uint8 *)local->pixels + (((i/2) * 64 + (j/2)) * localBpp);
 
-               /* XXX crude expansion ... add filtering next */
-               writePixel[0] = readPixel[0];
-               writePixel[1] = readPixel[1];
-               writePixel[2] = readPixel[2];
-               writePixel[3] = readPixel[3];
+               /* memcpy(writePixel, readTL, localBpp); nearest neighbor */
+               if(!(i & 0x01) && !(j & 0x01)) {
+                  memcpy(writePixel, readTL, localBpp);
+               }
+               else if((i & 0x01) && !(j & 0x01)) {
+                  writePixel[0] = ((Uint16)readTL[0] + (Uint16)readBL[0])/2;
+                  writePixel[1] = ((Uint16)readTL[1] + (Uint16)readBL[1])/2;
+                  writePixel[2] = ((Uint16)readTL[2] + (Uint16)readBL[2])/2;
+                  writePixel[3] = ((Uint16)readTL[3] + (Uint16)readBL[3])/2;
+               }
+               else if(!(i & 0x01) && (j & 0x01)) {
+                  writePixel[0] = ((Uint16)readTL[0] + (Uint16)readTR[0])/2;
+                  writePixel[1] = ((Uint16)readTL[1] + (Uint16)readTR[1])/2;
+                  writePixel[2] = ((Uint16)readTL[2] + (Uint16)readTR[2])/2;
+                  writePixel[3] = ((Uint16)readTL[3] + (Uint16)readTR[3])/2;
+               }
+               else {
+                  writePixel[0] = ((Uint16)readTL[0] + (Uint16)readTR[0] +
+                        (Uint16)readBL[0] + (Uint16)readBR[0])/4;
+                  writePixel[1] = ((Uint16)readTL[1] + (Uint16)readTR[1] +
+                        (Uint16)readBL[1] + (Uint16)readBR[1])/4;
+                  writePixel[2] = ((Uint16)readTL[2] + (Uint16)readTR[2] +
+                        (Uint16)readBL[2] + (Uint16)readBR[2])/4;
+                  writePixel[3] = ((Uint16)readTL[3] + (Uint16)readTR[3] +
+                        (Uint16)readBL[3] + (Uint16)readBR[3])/4;
+               }
             }
          }
+         SDL_UnlockSurface(localTmp);
          SDL_UnlockSurface(local);
       }
+      else if(state.activeExtent == 16) {
+         Uint8 localBpp;
+         Uint8 *writePixel, *readTL;
+
+         /* first blit, then expand */
+         clipRect.x = (screen->w - state.activeExtent)/2 - imageLoc.x;
+         clipRect.y = (screen->h - state.activeExtent)/2 - imageLoc.y;
+         clipRect.w = LOCAL_SIZE;
+         clipRect.h = LOCAL_SIZE;
+         SDL_BlitSurface(picture, &clipRect, localTmp, NULL);
+
+         localBpp = local->format->BytesPerPixel;
+         SDL_LockSurface(local);
+         SDL_LockSurface(localTmp);
+         for(i = 0; i < 64; i++) {
+            for(j = 0; j < 64; j++) {
+               readTL = (Uint8 *)localTmp->pixels + ((i/4) * 64 + (j/4)) * localBpp;
+               writePixel = (Uint8 *)local->pixels + ((i * 64 + j) * localBpp);
+               memcpy(writePixel, readTL, localBpp);
+            }
+         }
+         SDL_UnlockSurface(localTmp);
+         SDL_UnlockSurface(local);
+      }
+
 
       /* Start with blank canvas */
       SDL_FillRect(screen, NULL, bgColorB);
@@ -460,6 +515,7 @@ main(int argc, char *argv[])
       SDL_Flip(screen);
    }
 
+   SDL_FreeSurface(localTmp);
    SDL_FreeSurface(local);
 
    free(houghCache);
@@ -570,12 +626,12 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
                state->quit = DmtxTrue;
                break;
             case SDLK_UP:
-               if(state->activeExtent == 32)
-                  state->activeExtent = 64;
+               if(state->activeExtent < 64)
+                  state->activeExtent *= 2;
                break;
             case SDLK_DOWN:
-               if(state->activeExtent == 64)
-                  state->activeExtent = 32;
+               if(state->activeExtent > 16)
+                  state->activeExtent /= 2;
                break;
             default:
                break;
@@ -1465,10 +1521,10 @@ DrawActiveBorder(SDL_Surface *screen, int activeExtent)
    x11 = x10;
    y11 = y01;
 
-   lineColor(screen, x00, y00, x10, y10, 0xffff00ff);
-   lineColor(screen, x10, y10, x11, y11, 0xffff00ff);
-   lineColor(screen, x11, y11, x01, y01, 0xffff00ff);
-   lineColor(screen, x01, y01, x00, y00, 0xffff00ff);
+   lineColor(screen, x00, y00, x10, y10, 0x0000ffff);
+   lineColor(screen, x10, y10, x11, y11, 0x0000ffff);
+   lineColor(screen, x11, y11, x01, y01, 0x0000ffff);
+   lineColor(screen, x01, y01, x00, y00, 0x0000ffff);
 }
 
 static void
