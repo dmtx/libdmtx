@@ -621,29 +621,39 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
 
    switch(event->type) {
       case SDL_KEYDOWN:
-         switch(event->key.keysym.sym) {
-            case SDLK_ESCAPE:
-               state->quit = DmtxTrue;
-               break;
-            case SDLK_UP:
-               if(state->activeExtent < 64)
-                  state->activeExtent *= 2;
-               break;
-            case SDLK_DOWN:
-               if(state->activeExtent > 16)
-                  state->activeExtent /= 2;
-               break;
-            default:
-               break;
+         if(event->key.keysym.sym == SDLK_ESCAPE) {
+            state->quit = DmtxTrue;
          }
          break;
 
       case SDL_MOUSEBUTTONDOWN:
+         switch(event->button.button) {
+            case SDL_BUTTON_LEFT:
+               state->leftButton = event->button.state;
+               break;
+            case SDL_BUTTON_RIGHT:
+               state->rightButton = event->button.state;
+               break;
+            case SDL_BUTTON_WHEELDOWN:
+               if(state->activeExtent < 64)
+                  state->activeExtent *= 2;
+               break;
+            case SDL_BUTTON_WHEELUP:
+               if(state->activeExtent > 16)
+                  state->activeExtent /= 2;
+               break;
+         }
+         break;
+
       case SDL_MOUSEBUTTONUP:
-         if(event->button.button == SDL_BUTTON_LEFT)
-            state->leftButton = event->button.state;
-         else if(event->button.button == SDL_BUTTON_RIGHT)
-            state->rightButton = event->button.state;
+         switch(event->button.button) {
+            case SDL_BUTTON_LEFT:
+               state->leftButton = event->button.state;
+               break;
+            case SDL_BUTTON_RIGHT:
+               state->rightButton = event->button.state;
+               break;
+         }
          break;
 
       case SDL_MOUSEMOTION:
