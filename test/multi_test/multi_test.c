@@ -43,6 +43,19 @@ Contact: mblaughton@users.sourceforge.net
 #define LOCAL_SIZE 64
 #define TIMING_SIZE 16
 
+#define CTRL_COL1_X 512
+#define CTRL_COL2_X 576
+
+#define CTRL_ROW1_Y   0
+#define CTRL_ROW2_Y  64
+#define CTRL_ROW3_Y 128
+#define CTRL_ROW4_Y 192
+#define CTRL_ROW5_Y 256
+#define CTRL_ROW6_Y 320
+#define CTRL_ROW7_Y 384
+#define CTRL_ROW8_Y 448
+#define CTRL_ROW9_Y 512
+
 struct UserOptions {
    const char *imagePath;
 };
@@ -357,7 +370,7 @@ main(int argc, char *argv[])
       SDL_FillRect(screen, NULL, bgColorB);
 
       /* Draw image to main canvas area */
-      clipRect.w = 640;
+      clipRect.w = 510;
       clipRect.h = 480;
       clipRect.x = 0;
       clipRect.y = 0;
@@ -368,11 +381,11 @@ main(int argc, char *argv[])
       /* Draw copy of active region */
       clipRect.w = 64;
       clipRect.h = 64;
-      clipRect.x = 0;
-      clipRect.y = 0;
-      SDL_SetClipRect(screen, &clipRect);
-      SDL_BlitSurface(local, NULL, screen, NULL);
-      SDL_SetClipRect(screen, NULL);
+      clipRect.x = CTRL_COL1_X;
+      clipRect.y = CTRL_ROW1_Y;
+      SDL_BlitSurface(local, NULL, screen, &clipRect);
+      clipRect.x = CTRL_COL2_X;
+      SDL_BlitSurface(local, NULL, screen, &clipRect);
 
       DrawActiveBorder(screen, state.activeExtent);
 
@@ -397,10 +410,10 @@ main(int argc, char *argv[])
             maxFlowMag = abs(bFlowCache[i].mag);
       }
 
-      BlitFlowCache(screen, hFlowCache,  0, 480, maxFlowMag);
-      BlitFlowCache(screen, vFlowCache, 64, 480, maxFlowMag);
-      BlitFlowCache(screen, sFlowCache,  0, 544, maxFlowMag);
-      BlitFlowCache(screen, bFlowCache, 64, 544, maxFlowMag);
+      BlitFlowCache(screen, hFlowCache, CTRL_COL1_X, CTRL_ROW2_Y, maxFlowMag);
+      BlitFlowCache(screen, vFlowCache, CTRL_COL2_X, CTRL_ROW2_Y, maxFlowMag);
+      BlitFlowCache(screen, sFlowCache, CTRL_COL1_X, CTRL_ROW3_Y, maxFlowMag);
+      BlitFlowCache(screen, bFlowCache, CTRL_COL2_X, CTRL_ROW3_Y, maxFlowMag);
 
       /* Find relative size of hough quadrants */
       PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
@@ -472,8 +485,8 @@ main(int argc, char *argv[])
       }
 
       /* Write hough cache images to feedback panes */
-      BlitHoughCache(screen, pHoughCache, 128, 480);
-      BlitHoughCache(screen, nHoughCache, 128, 544);
+      BlitHoughCache(screen, pHoughCache, CTRL_COL1_X, CTRL_ROW4_Y);
+      BlitHoughCache(screen, nHoughCache, CTRL_COL1_X, CTRL_ROW5_Y);
 
       MarkHoughMaxima(pHoughCache, 128, LOCAL_SIZE);
       MarkHoughMaxima(nHoughCache, 128, LOCAL_SIZE);
@@ -489,27 +502,29 @@ main(int argc, char *argv[])
             houghCache[idx].isMax = 1;
          }
       }
-      BlitHoughCache(screen, houghCache, 256, 480);
+      BlitHoughCache(screen, houghCache, CTRL_COL1_X, CTRL_ROW6_Y);
 
       /* Write maxima cache images to feedback panes */
 /*    BlitHoughCache(screen, pHoughCache, 256, 480);
       BlitHoughCache(screen, nHoughCache, 256, 544); */
 
       /* Draw positive hough lines to feedback panes */
-      BlitActiveRegion(screen, local, 384, 480);
-      DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, 384, 480, phi0);
+      BlitActiveRegion(screen, local, CTRL_COL1_X, CTRL_ROW7_Y);
+      DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE,
+            CTRL_COL1_X, CTRL_ROW7_Y, phi0);
 
       /* Draw negative hough lines to feedback panes */
-      BlitActiveRegion(screen, local, 384, 544);
-      DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, 384, 544, phi1);
+      BlitActiveRegion(screen, local, CTRL_COL2_X, CTRL_ROW7_Y);
+      DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE,
+            CTRL_COL2_X, CTRL_ROW7_Y, phi1);
 
       /* Draw timing lines */
       timing = FindGridTiming(houghCache, 128, LOCAL_SIZE, phi0, off0);
-      BlitActiveRegion(screen, local, 448, 480);
-      DrawTimingLines(screen, 448, 480, timing); /* phi0, off0, (double)timing.strideScaled/timing.scale); */
+/*    BlitActiveRegion(screen, local, CTRL_COL1_X, CTRL_ROW9_Y); */
+      DrawTimingLines(screen, CTRL_COL1_X, CTRL_ROW7_Y, timing); /* phi0, off0, (double)timing.strideScaled/timing.scale); */
 
       /* Draw timing lines */
-      BlitActiveRegion(screen, local, 448, 544);
+/*    BlitActiveRegion(screen, local, 448, 544); */
       /* DrawTimingLines() */
 
       SDL_Flip(screen);
@@ -576,7 +591,7 @@ InitAppState(void)
    struct AppState state;
 
    state.windowWidth = 640;
-   state.windowHeight = 480 + 2 * LOCAL_SIZE;
+   state.windowHeight = 480;
    state.activeExtent = 64;
    state.imageLocX = 0;
    state.imageLocY = 0;
