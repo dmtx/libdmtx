@@ -38,6 +38,7 @@ Contact: mblaughton@users.sourceforge.net
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 #include <SDL/SDL_gfxPrimitives.h>
+#include <SDL/SDL_rotozoom.h>
 #include "../../dmtx.h"
 
 #define LOCAL_SIZE 64
@@ -47,14 +48,11 @@ Contact: mblaughton@users.sourceforge.net
 #define CTRL_COL2_X 576
 
 #define CTRL_ROW1_Y   0
-#define CTRL_ROW2_Y  64
-#define CTRL_ROW3_Y 128
-#define CTRL_ROW4_Y 192
-#define CTRL_ROW5_Y 256
-#define CTRL_ROW6_Y 320
-#define CTRL_ROW7_Y 384
-#define CTRL_ROW8_Y 448
-#define CTRL_ROW9_Y 512
+#define CTRL_ROW2_Y  65
+#define CTRL_ROW3_Y 130
+#define CTRL_ROW4_Y 195
+#define CTRL_ROW5_Y 260
+#define CTRL_ROW6_Y 325
 
 struct UserOptions {
    const char *imagePath;
@@ -154,16 +152,16 @@ static struct Timing FindGridTimingInner(struct Hough *houghCache, int phiExtent
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY, int maxFlowMag);
 static void BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int screenY);
-static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int screenY);
+static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int screenY, int zoom);
 /*static void PlotPixel(SDL_Surface *surface, int x, int y);*/
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
-static void DrawLine(SDL_Surface *screen, int screenX, int screenY, int phi, int d);
+static void DrawLine(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, int d);
 static void DrawStrongLines(SDL_Surface *screen, struct Hough *pMaximaCache,
       struct Hough *nMaximaCache, int angles, int diag, int screenX,
       int screenY, int phiBest);
-static void DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, struct Timing timing);
+static void DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, struct Timing timing, int scale);
 
 int
 main(int argc, char *argv[])
@@ -237,7 +235,7 @@ main(int argc, char *argv[])
    NudgeImage(state.windowWidth, picture->w, &state.imageLocX);
    NudgeImage(state.windowHeight, picture->h, &state.imageLocY);
 
-   bgColorB = SDL_MapRGBA(screen->format, 0, 0, 64, 255);
+   bgColorB = SDL_MapRGBA(screen->format, 32, 32, 32, 255);
    bgColorK = SDL_MapRGBA(screen->format, 0, 0, 0, 255);
 
    /* Create surface to hold image pixels to be scanned */
@@ -370,8 +368,8 @@ main(int argc, char *argv[])
       SDL_FillRect(screen, NULL, bgColorB);
 
       /* Draw image to main canvas area */
-      clipRect.w = 510;
-      clipRect.h = 480;
+      clipRect.w = 511;
+      clipRect.h = 453;
       clipRect.x = 0;
       clipRect.y = 0;
       SDL_SetClipRect(screen, &clipRect);
@@ -485,8 +483,8 @@ main(int argc, char *argv[])
       }
 
       /* Write hough cache images to feedback panes */
-      BlitHoughCache(screen, pHoughCache, CTRL_COL1_X, CTRL_ROW4_Y);
-      BlitHoughCache(screen, nHoughCache, CTRL_COL1_X, CTRL_ROW5_Y);
+/*    BlitHoughCache(screen, pHoughCache, CTRL_COL1_X, CTRL_ROW4_Y);
+      BlitHoughCache(screen, nHoughCache, CTRL_COL1_X, CTRL_ROW5_Y); */
 
       MarkHoughMaxima(pHoughCache, 128, LOCAL_SIZE);
       MarkHoughMaxima(nHoughCache, 128, LOCAL_SIZE);
@@ -502,30 +500,26 @@ main(int argc, char *argv[])
             houghCache[idx].isMax = 1;
          }
       }
-      BlitHoughCache(screen, houghCache, CTRL_COL1_X, CTRL_ROW6_Y);
+      BlitHoughCache(screen, houghCache, CTRL_COL1_X, CTRL_ROW4_Y);
 
       /* Write maxima cache images to feedback panes */
 /*    BlitHoughCache(screen, pHoughCache, 256, 480);
       BlitHoughCache(screen, nHoughCache, 256, 544); */
 
       /* Draw positive hough lines to feedback panes */
-      BlitActiveRegion(screen, local, CTRL_COL1_X, CTRL_ROW7_Y);
+      BlitActiveRegion(screen, local, CTRL_COL1_X, CTRL_ROW5_Y, 1);
       DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE,
-            CTRL_COL1_X, CTRL_ROW7_Y, phi0);
+            CTRL_COL1_X, CTRL_ROW5_Y, phi0);
 
       /* Draw negative hough lines to feedback panes */
-      BlitActiveRegion(screen, local, CTRL_COL2_X, CTRL_ROW7_Y);
+      BlitActiveRegion(screen, local, CTRL_COL2_X, CTRL_ROW5_Y, 1);
       DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE,
-            CTRL_COL2_X, CTRL_ROW7_Y, phi1);
+            CTRL_COL2_X, CTRL_ROW5_Y, phi1);
 
       /* Draw timing lines */
       timing = FindGridTiming(houghCache, 128, LOCAL_SIZE, phi0, off0);
-/*    BlitActiveRegion(screen, local, CTRL_COL1_X, CTRL_ROW9_Y); */
-      DrawTimingLines(screen, CTRL_COL1_X, CTRL_ROW7_Y, timing); /* phi0, off0, (double)timing.strideScaled/timing.scale); */
-
-      /* Draw timing lines */
-/*    BlitActiveRegion(screen, local, 448, 544); */
-      /* DrawTimingLines() */
+      BlitActiveRegion(screen, local, CTRL_COL1_X, CTRL_ROW6_Y, 2);
+      DrawTimingLines(screen, CTRL_COL1_X, CTRL_ROW6_Y, timing, 2);
 
       SDL_Flip(screen);
    }
@@ -591,7 +585,7 @@ InitAppState(void)
    struct AppState state;
 
    state.windowWidth = 640;
-   state.windowHeight = 480;
+   state.windowHeight = 453;
    state.activeExtent = 64;
    state.imageLocX = 0;
    state.imageLocY = 0;
@@ -1419,8 +1413,9 @@ BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int s
 }
 
 static void
-BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int screenY)
+BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int screenY, int zoom)
 {
+   SDL_Surface *src;
    SDL_Rect clipRect;
 
    clipRect.w = LOCAL_SIZE;
@@ -1428,7 +1423,14 @@ BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int scre
    clipRect.x = screenX;
    clipRect.y = screenY;
 
-   SDL_BlitSurface(active, NULL, screen, &clipRect);
+   if(zoom == 1) {
+      SDL_BlitSurface(active, NULL, screen, &clipRect);
+   }
+   else {
+      src = zoomSurface(active, 2.0, 2.0, 1 /* smoothing on */);
+      SDL_BlitSurface(src, NULL, screen, &clipRect);
+      SDL_FreeSurface(src);
+   }
 }
 
 #ifdef NOTDEFINED
@@ -1474,6 +1476,7 @@ IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, Dm
    double tTmp, xMin, xMax, yMin, yMax;
    DmtxVector2 p[2];
    int tCount = 0;
+   double extent;
    DmtxRay2 rBtm, rTop, rLft, rRgt;
    DmtxVector2 unitX = { 1.0, 0.0 };
    DmtxVector2 unitY = { 0.0, 1.0 };
@@ -1496,6 +1499,8 @@ IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, Dm
       yMax = bb0.Y;
    }
 
+   extent = xMax - xMin;
+
    rBtm.p.X = rTop.p.X = rLft.p.X = xMin;
    rRgt.p.X = xMax;
 
@@ -1505,16 +1510,16 @@ IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, Dm
    rBtm.v = rTop.v = unitX;
    rLft.v = rRgt.v = unitY;
 
-   if(Ray2Intersect(&tTmp, rBtm, ray) == DmtxPass && tTmp >= 0.0 && tTmp < 64.0)
+   if(Ray2Intersect(&tTmp, rBtm, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
       dmtxPointAlongRay2(&(p[tCount++]), &rBtm, tTmp);
 
-   if(Ray2Intersect(&tTmp, rTop, ray) == DmtxPass && tTmp >= 0.0 && tTmp < 64.0)
+   if(Ray2Intersect(&tTmp, rTop, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
       dmtxPointAlongRay2(&(p[tCount++]), &rTop, tTmp);
 
-   if(Ray2Intersect(&tTmp, rLft, ray) == DmtxPass && tTmp >= 0.0 && tTmp < 64.0)
+   if(Ray2Intersect(&tTmp, rLft, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
       dmtxPointAlongRay2(&(p[tCount++]), &rLft, tTmp);
 
-   if(Ray2Intersect(&tTmp, rRgt, ray) == DmtxPass && tTmp >= 0.0 && tTmp < 64.0)
+   if(Ray2Intersect(&tTmp, rRgt, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
       dmtxPointAlongRay2(&(p[tCount++]), &rRgt, tTmp);
 
    if(tCount != 2)
@@ -1553,7 +1558,7 @@ DrawActiveBorder(SDL_Surface *screen, int activeExtent)
 }
 
 static void
-DrawLine(SDL_Surface *screen, int screenX, int screenY, int phi, int d)
+DrawLine(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, int d)
 {
    double phiRad;
    double dScaled;
@@ -1563,7 +1568,7 @@ DrawLine(SDL_Surface *screen, int screenX, int screenY, int phi, int d)
    DmtxPixelLoc d0, d1;
 
    bb0.X = bb0.Y = 0.0;
-   bb1.X = bb1.Y = LOCAL_SIZE;
+   bb1.X = bb1.Y = extent;
 
    rStart.p.X = rStart.p.Y = 0.0;
 
@@ -1587,8 +1592,8 @@ DrawLine(SDL_Surface *screen, int screenX, int screenY, int phi, int d)
    d0.X = (int)(p0.X + 0.5) + screenX;
    d1.X = (int)(p1.X + 0.5) + screenX;
 
-   d0.Y = screenY + (LOCAL_SIZE - (int)(p0.Y + 0.5) - 1);
-   d1.Y = screenY + (LOCAL_SIZE - (int)(p1.Y + 0.5) - 1);
+   d0.Y = screenY + (extent - (int)(p0.Y + 0.5) - 1);
+   d1.Y = screenY + (extent - (int)(p1.Y + 0.5) - 1);
 
    lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
 }
@@ -1604,20 +1609,21 @@ DrawStrongLines(SDL_Surface *screen, struct Hough *pMaximaCache,
       idx = d * angles + phiBest;
 
       if(pMaximaCache[idx].isMax == 2 || nMaximaCache[idx].isMax == 2)
-         DrawLine(screen, screenX, screenY, phiBest, d);
+         DrawLine(screen, 64, screenX, screenY, phiBest, d);
    }
 }
 
 static void
-DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, struct Timing timing)
+DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, struct Timing timing, int scale)
 {
    int i;
    double stride;
 
    stride = (double)timing.strideScaled/timing.scale;
 
-   for(i = -64; i <= 64; i++) {
-      DrawLine(screen, screenX, screenY, timing.angle, (int)(timing.offset + stride * i + 0.5));
+   for(i = -64 * scale; i <= 64 * scale; i++) {
+      DrawLine(screen, 64 * scale, screenX, screenY, timing.angle,
+            (int)((timing.offset + stride * i) * scale + 0.5));
    }
 
    /* draw timing back to hough display too */
