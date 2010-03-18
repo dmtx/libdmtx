@@ -42,7 +42,7 @@ Contact: mblaughton@users.sourceforge.net
 #include "../../dmtx.h"
 
 #define LOCAL_SIZE 64
-#define TIMING_SIZE 16
+#define TIMING_SIZE 32 /* 16 * 2 */
 
 #define CTRL_COL1_X 512
 #define CTRL_COL2_X 576
@@ -145,23 +145,23 @@ static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCa
 static void MarkHoughMaxima(struct Hough *houghCache, int width, int height);
 static void FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent, int *phi0, int *phi1);
 static int HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi);
-static void SetTimingPattern(int strideScaled, int scale, int center, char pattern[], int patternSize);
+static int SetTimingPattern(int strideScaled, int scale, int center, char pattern[], int patternSize);
 static struct Timing FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
 static struct Timing FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
 
 /* Process visualization functions */
-static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY, int maxFlowMag);
+static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY);
 static void BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int screenY);
-static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int screenY, int zoom);
-/*static void PlotPixel(SDL_Surface *surface, int x, int y);*/
+static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenX, int screenY);
+static void PlotPixel(SDL_Surface *surface, int x, int y);
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, int d);
 static void DrawStrongLines(SDL_Surface *screen, struct Hough *pMaximaCache,
-      struct Hough *nMaximaCache, int angles, int diag, int screenX,
-      int screenY, int phiBest);
-static void DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, struct Timing timing, int scale);
+      struct Hough *nMaximaCache, int angles, int diag, int phiBest, int screenX, int screenY);
+static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int scale, int screenX, int screenY);
+static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY);
 
 int
 main(int argc, char *argv[])
@@ -408,10 +408,10 @@ main(int argc, char *argv[])
             maxFlowMag = abs(bFlowCache[i].mag);
       }
 
-      BlitFlowCache(screen, hFlowCache, CTRL_COL1_X, CTRL_ROW2_Y, maxFlowMag);
-      BlitFlowCache(screen, vFlowCache, CTRL_COL2_X, CTRL_ROW2_Y, maxFlowMag);
-      BlitFlowCache(screen, sFlowCache, CTRL_COL1_X, CTRL_ROW3_Y, maxFlowMag);
-      BlitFlowCache(screen, bFlowCache, CTRL_COL2_X, CTRL_ROW3_Y, maxFlowMag);
+      BlitFlowCache(screen, hFlowCache, maxFlowMag, CTRL_COL1_X, CTRL_ROW2_Y);
+      BlitFlowCache(screen, vFlowCache, maxFlowMag, CTRL_COL2_X, CTRL_ROW2_Y);
+      BlitFlowCache(screen, sFlowCache, maxFlowMag, CTRL_COL1_X, CTRL_ROW3_Y);
+      BlitFlowCache(screen, bFlowCache, maxFlowMag, CTRL_COL2_X, CTRL_ROW3_Y);
 
       /* Find relative size of hough quadrants */
       PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
@@ -507,19 +507,20 @@ main(int argc, char *argv[])
       BlitHoughCache(screen, nHoughCache, 256, 544); */
 
       /* Draw positive hough lines to feedback panes */
-      BlitActiveRegion(screen, local, CTRL_COL1_X, CTRL_ROW5_Y, 1);
-      DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE,
-            CTRL_COL1_X, CTRL_ROW5_Y, phi0);
+      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW5_Y);
+      DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, phi0,
+            CTRL_COL1_X, CTRL_ROW5_Y);
 
       /* Draw negative hough lines to feedback panes */
-      BlitActiveRegion(screen, local, CTRL_COL2_X, CTRL_ROW5_Y, 1);
-      DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE,
-            CTRL_COL2_X, CTRL_ROW5_Y, phi1);
+      BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW5_Y);
+      DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, phi1,
+            CTRL_COL2_X, CTRL_ROW5_Y);
 
       /* Draw timing lines */
       timing = FindGridTiming(houghCache, 128, LOCAL_SIZE, phi0, off0);
-      BlitActiveRegion(screen, local, CTRL_COL1_X, CTRL_ROW6_Y, 2);
-      DrawTimingLines(screen, CTRL_COL1_X, CTRL_ROW6_Y, timing, 2);
+      BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW6_Y);
+      DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW6_Y);
+      DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW4_Y);
 
       SDL_Flip(screen);
    }
@@ -1140,15 +1141,16 @@ HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi
 /**
  * stride of 2.25 would pass strideScaled = 9, scale = 4 (9/4 == 2.25)
  */
-static void
+static int
 SetTimingPattern(int strideScaled, int scale, int center, char pattern[], int patternSize)
 {
    int xLoc, yLoc, error;
    int rise = scale * 2;
    int repeats[8] = { 0 }; /* need 8 elements for .25 precision */
-   int *repeatsPtr, *repeatsEnd;
+   int *repeatsPtr, *repeatsEnd, repeatsHalf;
    int patternIdx;
-   int i, start;
+   int i, start, weight;
+   int area = 0;
 
    for(xLoc = 0, yLoc = -1, error = 0; xLoc < patternSize; xLoc++) {
       error -= rise;
@@ -1188,20 +1190,37 @@ SetTimingPattern(int strideScaled, int scale, int center, char pattern[], int pa
 
    while(patternIdx < patternSize) {
 
+      repeatsHalf = (*repeatsPtr)/2;
+
+      weight = 1;
       for(i = 0; i < *repeatsPtr && patternIdx < patternSize; i++) {
-         if(patternIdx >= 0)
-            pattern[patternIdx] = 1;
+         if(i == repeatsHalf && !((*repeatsPtr) & 0x01))
+            weight--;
+         if(patternIdx >= 0) {
+            pattern[patternIdx] = weight;
+            area += weight;
+         }
+         weight += (i < repeatsHalf) ? +1 : -1;
          patternIdx++;
       }
+
+      weight = -1;
       for(i = 0; i < *repeatsPtr && patternIdx < patternSize; i++) {
-         if(patternIdx >= 0)
-            pattern[patternIdx] = 0;
+         if(i == repeatsHalf && !((*repeatsPtr) & 0x01))
+            weight++;
+         if(patternIdx >= 0) {
+            pattern[patternIdx] = weight;
+            area -= weight;
+         }
+         weight += (i < repeatsHalf) ? -1 : +1;
          patternIdx++;
       }
 
       if(++repeatsPtr == repeatsEnd)
          repeatsPtr = repeats;
    }
+
+   return area;
 }
 
 /**
@@ -1240,22 +1259,24 @@ FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int ph
    int timingFit[TIMING_SIZE];
    char pattern[LOCAL_SIZE];
    struct Timing timing;
+   int area;
 
    memset(timingFit, 0x00, sizeof(int) * TIMING_SIZE);
 
+   /* For each possible stride */
    scale = 2;
    for(stride = 2 * scale; stride < TIMING_SIZE; stride++) {
-      SetTimingPattern(stride, scale, dBest, pattern, LOCAL_SIZE);
+      area = SetTimingPattern(stride, scale, dBest, pattern, LOCAL_SIZE);
 
+      /* For each possible offset at phiBest */
       for(d = 0; d < dExtent; d++) {
          idx = d * phiExtent + phiBest;
-         if(pattern[d]) {
-            timingFit[stride] += houghCache[idx].mag;
-         }
-         else {
-            timingFit[stride] -= houghCache[idx].mag;
-         }
+         timingFit[stride] += (pattern[d] * houghCache[idx].mag);
       }
+
+      /* Normalize accumulated fit area for fair comparison, where fit area
+         (best fit (32) minus worst fit (-32) should equal 64) */
+      timingFit[stride] = (int)(timingFit[stride] * 64.0/area + 0.5);
    }
 
    bestIdx = 2;
@@ -1277,7 +1298,7 @@ FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int ph
 }
 
 static void
-BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int screenX, int screenY, int maxFlowMag)
+BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY)
 {
    int row, col;
    unsigned char rgb[3];
@@ -1413,7 +1434,7 @@ BlitHoughCache(SDL_Surface *screen, struct Hough *houghCache, int screenX, int s
 }
 
 static void
-BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int screenY, int zoom)
+BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenX, int screenY)
 {
    SDL_Surface *src;
    SDL_Rect clipRect;
@@ -1433,7 +1454,6 @@ BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int screenX, int scre
    }
 }
 
-#ifdef NOTDEFINED
 /**
  *
  *
@@ -1445,12 +1465,11 @@ PlotPixel(SDL_Surface *surface, int x, int y)
    Uint32 col;
 
    ptr = (char *)surface->pixels;
-   col = SDL_MapRGB(surface->format, 255, 0, 0);
+   col = SDL_MapRGB(surface->format, 0, 255, 0);
 
    memcpy(ptr + surface->pitch * y + surface->format->BytesPerPixel * x,
          &col, surface->format->BytesPerPixel);
 }
-#endif
 
 static int
 Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1)
@@ -1600,8 +1619,8 @@ DrawLine(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, int
 
 static void
 DrawStrongLines(SDL_Surface *screen, struct Hough *pMaximaCache,
-      struct Hough *nMaximaCache, int angles, int diag, int screenX,
-      int screenY, int phiBest)
+      struct Hough *nMaximaCache, int angles, int diag, int phiBest,
+      int screenX, int screenY)
 {
    int d, idx;
 
@@ -1614,7 +1633,7 @@ DrawStrongLines(SDL_Surface *screen, struct Hough *pMaximaCache,
 }
 
 static void
-DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, struct Timing timing, int scale)
+DrawTimingLines(SDL_Surface *screen, struct Timing timing, int scale, int screenX, int screenY)
 {
    int i;
    double stride;
@@ -1625,6 +1644,17 @@ DrawTimingLines(SDL_Surface *screen, int screenX, int screenY, struct Timing tim
       DrawLine(screen, 64 * scale, screenX, screenY, timing.angle,
             (int)((timing.offset + stride * i) * scale + 0.5));
    }
+}
 
-   /* draw timing back to hough display too */
+static void
+DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY)
+{
+   int dScaled, offsetScaled;
+
+   offsetScaled = timing.offset * timing.scale;
+
+   for(dScaled = 0; dScaled < 64 * timing.scale; dScaled++) {
+      if(abs(dScaled - offsetScaled) % timing.strideScaled == 0)
+         PlotPixel(screen, screenX + timing.angle, screenY + dScaled/timing.scale);
+   }
 }
