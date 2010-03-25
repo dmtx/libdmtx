@@ -747,10 +747,13 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 }
 */
 
+/**
+ * 2x2 Kernel
+ */
+#ifdef IGNOREME
 static void
 PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
-      struct Flow *hFlowCache, struct Flow *vFlowCache,
-      DmtxImage *img)
+      struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img)
 {
    int width, height;
    int bytesPerPixel, rowSizeBytes, colorPlane;
@@ -801,6 +804,149 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
          bFlowCache[idx].mag = img->pxl[offsetTR] - img->pxl[offsetBL];
 
          offsetBL += bytesPerPixel;
+      }
+   }
+
+   tb = dmtxTimeNow();
+/* fprintf(stdout, "PopulateFlowCache time: %ldms\n", (1000000 *
+         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
+}
+#endif
+
+/**
+ * 3x3 Sobel Kernel
+ */
+static void
+PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
+      struct Flow *hFlowCache, struct Flow *vFlowCache, DmtxImage *img)
+{
+   int width, height;
+   int bytesPerPixel, rowSizeBytes, colorPlane;
+   int x, xBeg, xEnd;
+   int y, yBeg, yEnd;
+   int hMag, vMag, sMag, bMag;
+   int colorLoLf, colorLoMd, colorLoRt;
+   int colorMdRt, colorHiRt, colorHiMd;
+   int colorHiLf, colorMdLf, colorMdMd;
+   int offset, offsetLo, offsetMd, offsetHi;
+   int idx;
+   DmtxTime ta, tb;
+
+   width = dmtxImageGetProp(img, DmtxPropWidth);
+   height = dmtxImageGetProp(img, DmtxPropHeight);
+   rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
+   bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
+   colorPlane = 0; /* XXX need to make some decisions here */
+
+   xBeg = 1;
+   xEnd = width - 2;
+   yBeg = 1;
+   yEnd = height - 2;
+
+   ta = dmtxTimeNow();
+
+   for(y = yBeg; y <= yEnd; y++) {
+
+      /* Pixel data first pixel = top-left; everything else bottom-left */
+      offsetMd = ((height - y - 1) * rowSizeBytes) + bytesPerPixel + colorPlane;
+      offsetHi = offsetMd - rowSizeBytes;
+      offsetLo = offsetMd + rowSizeBytes;
+
+      colorHiLf = img->pxl[offsetHi];
+      colorMdLf = img->pxl[offsetMd];
+      colorLoLf = img->pxl[offsetLo];
+
+      offset = bytesPerPixel;
+
+      colorHiMd = img->pxl[offsetHi + offset];
+      colorMdMd = img->pxl[offsetMd + offset];
+      colorLoMd = img->pxl[offsetLo + offset];
+
+      offset += bytesPerPixel;
+
+      colorHiRt = img->pxl[offsetHi + offset];
+      colorMdRt = img->pxl[offsetMd + offset];
+      colorLoRt = img->pxl[offsetLo + offset];
+
+      for(x = xBeg; x <= xEnd; x++) {
+
+         idx = y * width + x;
+
+         /**
+          * Calculate horizontal edge flow
+          *   1  2  1
+          *   0  0  0
+          *  -1 -2 -1
+          */
+         hMag  =  colorHiLf;
+         hMag += (colorHiMd << 1);
+         hMag +=  colorHiRt;
+         hMag -=  colorLoLf;
+         hMag -= (colorLoMd << 1);
+         hMag -=  colorLoRt;
+
+         /**
+          * Calculate vertical edge flow
+          *  -1  0  1
+          *  -2  0  2
+          *  -1  0  1
+          */
+         vMag  =  colorHiRt;
+         vMag += (colorMdRt << 1);
+         vMag +=  colorLoRt;
+         vMag -=  colorHiLf;
+         vMag -= (colorMdLf << 1);
+         vMag -=  colorLoLf;
+
+         /**
+          * Calculate "slash" edge flow
+          *  -2 -1  0
+          *  -1  0  1
+          *   0  1  2
+          */
+         sMag  =  colorLoMd;
+         sMag += (colorLoRt << 1);
+         sMag +=  colorMdRt;
+         sMag -=  colorHiMd;
+         sMag -= (colorHiLf << 1);
+         sMag -=  colorMdLf;
+
+         /**
+          * Calculate "backslash" edge flow
+          *   0  1  2
+          *  -1  0  1
+          *  -2 -1  0
+          */
+         bMag  =  colorMdLf;
+         bMag += (colorLoLf << 1);
+         bMag +=  colorLoMd;
+         bMag -=  colorMdRt;
+         bMag -= (colorHiRt << 1);
+         bMag -=  colorHiMd;
+
+         /**
+          * If implementing these operations using MMX, can load 2
+          * registers with 4 doubleword values and subtract (PSUBD).
+          */
+
+         hFlowCache[idx].mag = hMag;
+         vFlowCache[idx].mag = vMag;
+         sFlowCache[idx].mag = sMag;
+         bFlowCache[idx].mag = bMag;
+
+         colorHiLf = colorHiMd;
+         colorMdLf = colorMdMd;
+         colorLoLf = colorLoMd;
+
+         colorHiMd = colorHiRt;
+         colorMdMd = colorMdRt;
+         colorLoMd = colorLoRt;
+
+         offset += bytesPerPixel;
+
+         colorHiRt = img->pxl[offsetHi + offset];
+         colorMdRt = img->pxl[offsetMd + offset];
+         colorLoRt = img->pxl[offsetLo + offset];
       }
    }
 
