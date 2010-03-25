@@ -83,7 +83,7 @@ struct Hough {
 struct Timing {
    int angle;
    int offset;
-   int strideScaled;
+   int periodScaled;
    int scale;
    int mag;
 };
@@ -145,7 +145,7 @@ static void PopulateHoughCache(struct Hough *pHoughCache, struct Hough *nHoughCa
 static void MarkHoughMaxima(struct Hough *houghCache, int width, int height);
 static void FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent, int *phi0, int *phi1);
 static int HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi);
-static int SetTimingPattern(int strideScaled, int scale, int center, char pattern[], int patternSize);
+static void SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int patternSize);
 static struct Timing FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
 static struct Timing FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
 
@@ -1285,88 +1285,30 @@ HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi
 }
 
 /**
- * stride of 2.25 would pass strideScaled = 9, scale = 4 (9/4 == 2.25)
+ * period is the width of a black/white block pair
+ * period of 2.25 would pass periodScaled = 9, scale = 4 (9/4 == 2.25)
+ * scale = 5, periodScaled = 10: X X X X X X X   <-- 1 chunk each
+ * scale = 5, periodScaled = 20: XX  XX  XX  XX  <-- 2 chunks each
  */
-static int
-SetTimingPattern(int strideScaled, int scale, int center, char pattern[], int patternSize)
+static void
+SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int patternSize)
 {
-   int xLoc, yLoc, error;
-   int rise = scale * 2;
-   int repeats[8] = { 0 }; /* need 8 elements for .25 precision */
-   int *repeatsPtr, *repeatsEnd, repeatsHalf;
-   int patternIdx;
-   int i, start, weight;
-   int area = 0;
+   int i, j;
+   int chunks;
+   char *ptr, *ptrEnd;
 
-   for(xLoc = 0, yLoc = -1, error = 0; xLoc < patternSize; xLoc++) {
-      error -= rise;
-      if(error < 0) {
-         yLoc++;
-         error += strideScaled;
-      }
+   memset(pattern, 0x00, sizeof(char) * patternSize);
 
-      assert(yLoc < 8);
-      repeats[yLoc]++;
+   chunks = periodScaled / (2 * scale);
+   ptrEnd = pattern + 64;
 
-      if(error == 0) {
-         xLoc++;
-         break;
-      }
+   for(i = 0; i < scale * 64; i += periodScaled) {
+      ptr = pattern + i/scale;
+      for(j = 0; j < chunks && ptr < ptrEnd; j++)
+         *(ptr++) = 1;
+      for(j = 0; j < chunks && ptr < ptrEnd; j++)
+         *(ptr++) = -1;
    }
-   yLoc++;
-
-   /**
-    * xLoc now holds exactly half the number of steps in the expanded pattern
-    * yLoc now holds the number of ON/OFF pairs in the basic repeating unit
-    *
-    * Example: repeats[] = { 2 2 2 3 2 2 2 3 }
-    *   xLoc == 9 // 2 + 2 + 2 + 3
-    *   yLoc == 4 // 4 jumps in the basic repeating pattern
-    *   pattern |XX__XX__XX__XXX___|XX__XX__XX__XXX___|...
-    */
-
-   /* Adjust pattern to start at middle of the first ON section */
-   start = repeats[0]/2;
-
-   repeatsPtr = repeats;
-   repeatsEnd = repeats + yLoc;
-   patternIdx = (center - start);
-   while(patternIdx > 0)
-      patternIdx -= (2*xLoc);
-
-   while(patternIdx < patternSize) {
-
-      repeatsHalf = (*repeatsPtr)/2;
-
-      weight = 1;
-      for(i = 0; i < *repeatsPtr && patternIdx < patternSize; i++) {
-         if(i == repeatsHalf && !((*repeatsPtr) & 0x01))
-            weight--;
-         if(patternIdx >= 0) {
-            pattern[patternIdx] = weight;
-            area += weight;
-         }
-         weight += (i < repeatsHalf) ? +1 : -1;
-         patternIdx++;
-      }
-
-      weight = -1;
-      for(i = 0; i < *repeatsPtr && patternIdx < patternSize; i++) {
-         if(i == repeatsHalf && !((*repeatsPtr) & 0x01))
-            weight++;
-         if(patternIdx >= 0) {
-            pattern[patternIdx] = weight;
-            area -= weight;
-         }
-         weight += (i < repeatsHalf) ? -1 : +1;
-         patternIdx++;
-      }
-
-      if(++repeatsPtr == repeatsEnd)
-         repeatsPtr = repeats;
-   }
-
-   return area;
 }
 
 /**
@@ -1400,29 +1342,24 @@ FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest
 static struct Timing
 FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest)
 {
-   int scale, stride, d, i, idx;
+   int scale, periodScaled, d, i, idx;
    int bestIdx, bestMag;
    int timingFit[TIMING_SIZE];
    char pattern[LOCAL_SIZE];
    struct Timing timing;
-   int area;
 
    memset(timingFit, 0x00, sizeof(int) * TIMING_SIZE);
 
-   /* For each possible stride */
+   /* For each possible scaled period */
    scale = 2;
-   for(stride = 2 * scale; stride < TIMING_SIZE; stride++) {
-      area = SetTimingPattern(stride, scale, dBest, pattern, LOCAL_SIZE);
+   for(periodScaled = 2 * scale; periodScaled < (scale * TIMING_SIZE)/4; periodScaled++) {
+      SetTimingPattern(periodScaled, scale, dBest, pattern, LOCAL_SIZE);
 
       /* For each possible offset at phiBest */
       for(d = 0; d < dExtent; d++) {
          idx = d * phiExtent + phiBest;
-         timingFit[stride] += (pattern[d] * houghCache[idx].mag);
+         timingFit[periodScaled] += (pattern[d] * houghCache[idx].mag);
       }
-
-      /* Normalize accumulated fit area for fair comparison, where fit area
-         (best fit (32) minus worst fit (-32) should equal 64) */
-      timingFit[stride] = (int)(timingFit[stride] * 64.0/area + 0.5);
    }
 
    bestIdx = 2;
@@ -1436,7 +1373,7 @@ FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int ph
 
    timing.angle = phiBest;
    timing.offset = dBest;
-   timing.strideScaled = bestIdx;
+   timing.periodScaled = bestIdx;
    timing.scale = scale;
    timing.mag = bestMag;
 
@@ -1782,13 +1719,13 @@ static void
 DrawTimingLines(SDL_Surface *screen, struct Timing timing, int scale, int screenX, int screenY)
 {
    int i;
-   double stride;
+   double period;
 
-   stride = (double)timing.strideScaled/timing.scale;
+   period = (double)timing.periodScaled/timing.scale;
 
    for(i = -64 * scale; i <= 64 * scale; i++) {
       DrawLine(screen, 64 * scale, screenX, screenY, timing.angle,
-            (int)((timing.offset + stride * i) * scale + 0.5));
+            (int)((timing.offset + period * i) * scale + 0.5));
    }
 }
 
@@ -1800,7 +1737,7 @@ DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int scree
    offsetScaled = timing.offset * timing.scale;
 
    for(dScaled = 0; dScaled < 64 * timing.scale; dScaled++) {
-      if(abs(dScaled - offsetScaled) % timing.strideScaled == 0)
+      if(abs(dScaled - offsetScaled) % timing.periodScaled == 0)
          PlotPixel(screen, screenX + timing.angle, screenY + 64 - dScaled/timing.scale);
    }
 }
