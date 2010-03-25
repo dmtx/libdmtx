@@ -1801,6 +1801,6 @@ DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int scree
 
    for(dScaled = 0; dScaled < 64 * timing.scale; dScaled++) {
       if(abs(dScaled - offsetScaled) % timing.strideScaled == 0)
-         PlotPixel(screen, screenX + timing.angle, screenY + dScaled/timing.scale);
+         PlotPixel(screen, screenX + timing.angle, screenY + 64 - dScaled/timing.scale);
    }
 }
