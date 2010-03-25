@@ -1294,7 +1294,7 @@ static void
 SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int patternSize)
 {
    int i, j;
-   int chunks;
+   int chunks, localChunks;
    int centerAdjust;
    char *ptr, *ptrEnd;
 
@@ -1311,10 +1311,13 @@ SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int pa
 
    for(i = 0; ptr < ptrEnd; i += periodScaled) {
       ptr = pattern + i/scale + centerAdjust;
-      for(j = 0; j < chunks && ptr < ptrEnd; j++, ptr++)
+
+      localChunks = ((i+periodScaled)/scale - i/scale)/2;
+
+      for(j = 0; j < localChunks && ptr < ptrEnd; j++, ptr++)
          if(ptr >= pattern)
             *ptr = 1;
-      for(j = 0; j < chunks && ptr < ptrEnd; j++, ptr++)
+      for(j = 0; j < localChunks && ptr < ptrEnd; j++, ptr++)
          if(ptr >= pattern)
             *ptr = -1;
    }
@@ -1360,7 +1363,7 @@ FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int ph
    memset(timingFit, 0x00, sizeof(int) * TIMING_SIZE);
 
    /* For each possible scaled period */
-   scale = 2;
+   scale = 5;
    for(periodScaled = 2 * scale; periodScaled < (scale * TIMING_SIZE)/4; periodScaled++) {
       SetTimingPattern(periodScaled, scale, dBest, pattern, LOCAL_SIZE);
 
@@ -1372,11 +1375,11 @@ FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int ph
    }
 
    bestIdx = 2;
-   bestMag = timingFit[bestIdx];
+   bestMag = abs(timingFit[bestIdx]);
    for(i = 3; i < TIMING_SIZE; i++) {
       if(timingFit[i] > bestMag) {
          bestIdx = i;
-         bestMag = timingFit[i];
+         bestMag = abs(timingFit[i]);
       }
    }
 
