@@ -1295,19 +1295,28 @@ SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int pa
 {
    int i, j;
    int chunks;
+   int centerAdjust;
    char *ptr, *ptrEnd;
 
    memset(pattern, 0x00, sizeof(char) * patternSize);
 
    chunks = periodScaled / (2 * scale);
+
+   centerAdjust = center - chunks/2; /* i.e., center - start */
+   while(centerAdjust > 0)
+      centerAdjust -= periodScaled;
+
+   ptr = pattern;
    ptrEnd = pattern + 64;
 
-   for(i = 0; i < scale * 64; i += periodScaled) {
-      ptr = pattern + i/scale;
-      for(j = 0; j < chunks && ptr < ptrEnd; j++)
-         *(ptr++) = 1;
-      for(j = 0; j < chunks && ptr < ptrEnd; j++)
-         *(ptr++) = -1;
+   for(i = 0; ptr < ptrEnd; i += periodScaled) {
+      ptr = pattern + i/scale + centerAdjust;
+      for(j = 0; j < chunks && ptr < ptrEnd; j++, ptr++)
+         if(ptr >= pattern)
+            *ptr = 1;
+      for(j = 0; j < chunks && ptr < ptrEnd; j++, ptr++)
+         if(ptr >= pattern)
+            *ptr = -1;
    }
 }
 
