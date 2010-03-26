@@ -146,8 +146,8 @@ static void MarkHoughMaxima(struct Hough *houghCache, int width, int height);
 static void FindBestAngles(struct Hough *pHoughCache, struct Hough *nHoughCache, int phiExtent, int dExtent, int *phi0, int *phi1);
 static int HackFindBestOffset(struct Hough *houghCache, int phiExtent, int dExtent, int phi);
 static void SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int patternSize);
-static struct Timing FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
-static struct Timing FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest);
+static struct Timing FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent);
+static struct Timing FindGridTimingAtPhi(struct Hough *houghCache, int phiExtent, int dExtent, int phi);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY);
@@ -517,7 +517,7 @@ main(int argc, char *argv[])
             CTRL_COL2_X, CTRL_ROW5_Y);
 
       /* Draw timing lines */
-      timing = FindGridTiming(houghCache, 128, LOCAL_SIZE, phi0, off0);
+      timing = FindGridTiming(houghCache, 128, LOCAL_SIZE);
       BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW6_Y);
       DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW6_Y);
       DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW4_Y);
@@ -1327,22 +1327,16 @@ SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int pa
  *
  */
 static struct Timing
-FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest)
+FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent)
 {
-   int phi, d, idx;
+   int phi;
    struct Timing t, tBest;
 
-   /* Find greatest maximum in p and n caches for each value of phi */
+   /* Find best timing for every angle and retain best */
    for(phi = 0; phi < phiExtent; phi++) {
-
-      for(d = 0; d < dExtent; d++) {
-         idx = d * phiExtent + phi;
-
-         t = FindGridTimingInner(houghCache, phiExtent, dExtent, phi, d);
-
-         if((phi == 1 && d == 0) || t.mag > tBest.mag)
-            tBest = t;
-      }
+      t = FindGridTimingAtPhi(houghCache, phiExtent, dExtent, phi);
+      if(phi == 0 || t.mag > tBest.mag)
+         tBest = t;
    }
 
    return tBest;
@@ -1352,7 +1346,7 @@ FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest
  *
  */
 static struct Timing
-FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int phiBest, int dBest)
+FindGridTimingAtPhi(struct Hough *houghCache, int phiExtent, int dExtent, int phi)
 {
    int scale, periodScaled, d, i, idx;
    int bestIdx, bestMag;
@@ -1362,14 +1356,16 @@ FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int ph
 
    memset(timingFit, 0x00, sizeof(int) * TIMING_SIZE);
 
-   /* For each possible scaled period */
+   /* XXX accuracy might be improved by wrapping this loop into offsets 0-periodScaled */
+
+   /* For each possible period */
    scale = 5;
    for(periodScaled = 2 * scale; periodScaled < (scale * TIMING_SIZE)/4; periodScaled++) {
-      SetTimingPattern(periodScaled, scale, dBest, pattern, LOCAL_SIZE);
+      SetTimingPattern(periodScaled, scale, 0, pattern, LOCAL_SIZE);
 
-      /* For each possible offset at phiBest */
+      /* Accumulate timing fit for each offset */
       for(d = 0; d < dExtent; d++) {
-         idx = d * phiExtent + phiBest;
+         idx = d * phiExtent + phi;
          timingFit[periodScaled] += (pattern[d] * houghCache[idx].mag);
       }
    }
@@ -1383,8 +1379,8 @@ FindGridTimingInner(struct Hough *houghCache, int phiExtent, int dExtent, int ph
       }
    }
 
-   timing.angle = phiBest;
-   timing.offset = dBest;
+   timing.angle = phi;
+   timing.offset = 0; /* fake dBest */
    timing.periodScaled = bestIdx;
    timing.scale = scale;
    timing.mag = bestMag;
