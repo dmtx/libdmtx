@@ -1332,12 +1332,14 @@ FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent)
    int phi;
    struct Timing t, tBest;
 
-   /* Find best timing for every angle and retain best */
+   /* Find best timing for every angle and retain best overall */
    for(phi = 0; phi < phiExtent; phi++) {
       t = FindGridTimingAtPhi(houghCache, phiExtent, dExtent, phi);
       if(phi == 0 || t.mag > tBest.mag)
          tBest = t;
    }
+
+   /* XXX next use weighted pattern to refine (i.e., 1 2 3 2 1 -1 -2 -3 -2 -1) */
 
    return tBest;
 }
@@ -1358,9 +1360,9 @@ FindGridTimingAtPhi(struct Hough *houghCache, int phiExtent, int dExtent, int ph
 
    /* XXX accuracy might be improved by wrapping this loop into offsets 0-periodScaled */
 
-   /* For each possible period */
+   /* For each period in useful range */
    scale = 5;
-   for(periodScaled = 2 * scale; periodScaled < (scale * TIMING_SIZE)/4; periodScaled++) {
+   for(periodScaled = 2 * scale; periodScaled < TIMING_SIZE; periodScaled++) {
       SetTimingPattern(periodScaled, scale, 0, pattern, LOCAL_SIZE);
 
       /* Accumulate timing fit for each offset */
