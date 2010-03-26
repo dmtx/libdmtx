@@ -44,7 +44,6 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
    int step, block;
    int blockErrorWords;
    int symbolDataWords;
-   int blockDataWords;
    int symbolErrorWords;
    int symbolTotalWords;
    unsigned char g[69], b[68], *bPtr;
@@ -58,9 +57,8 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
 
    assert(blockErrorWords == symbolErrorWords / step);
 
-   memset(g, 0x01, sizeof(g));
-
    /* Generate ECC polynomial */
+   memset(g, 0x01, sizeof(g));
    for(i = 1; i <= blockErrorWords; i++) {
       for(j = i - 1; j >= 0; j--) {
          g[j] = GfDoublify(g[j], i);     /* g[j] *= 2**i */
@@ -71,7 +69,6 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
 
    /* Populate error codeword array */
    for(block = 0; block < step; block++) {
-
       memset(b, 0x00, sizeof(b));
       for(i = block; i < symbolDataWords; i += step) {
          val = GfSum(b[blockErrorWords-1], codewords[i]);
@@ -81,10 +78,8 @@ GenReedSolEcc(DmtxMessage *message, int sizeIdx)
          b[0] = GfProduct(g[0], val);
       }
 
-      blockDataWords = dmtxGetBlockDataSize(sizeIdx, block);
       bPtr = b + blockErrorWords;
-
-      for(i = block + (step * blockDataWords); i < symbolTotalWords; i += step)
+      for(i = block + symbolDataWords; i < symbolTotalWords; i += step)
          codewords[i] = *(--bPtr);
 
       assert(b == bPtr);
@@ -104,6 +99,8 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
    int i, j;
    int interleavedBlocks;
    int blockErrorWords;
+   int blockDataWords;
+   int symbolDataWords;
    int blockTotalWords;
    int blockMaxCorrectable;
    struct rs *rs;
@@ -113,18 +110,23 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
    interleavedBlocks = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
    blockErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
    blockMaxCorrectable = dmtxGetSymbolAttribute(DmtxSymAttribBlockMaxCorrectable, sizeIdx);
+   symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
 
    fixedErrSum = 0;
    for(i = 0; i < interleavedBlocks; i++) {
 
-      blockTotalWords = blockErrorWords + dmtxGetBlockDataSize(sizeIdx, i);
+      blockDataWords = dmtxGetBlockDataSize(sizeIdx, i);
+      blockTotalWords = blockErrorWords + blockDataWords;
 
       rs = init_rs_char(blockErrorWords, 255 - blockTotalWords);
       if(rs == NULL)
          return DmtxFail;
 
-      for(j = 0; j < blockTotalWords; j++)
+      for(j = 0; j < blockDataWords; j++)
          data[j] = code[j*interleavedBlocks+i];
+
+      for(j = 0; j < blockErrorWords; j++)
+         data[blockDataWords+j] = code[symbolDataWords+i+j*interleavedBlocks];
 
       fixedErr = decode_rs_char(rs, data, NULL, 0, fix);
 
@@ -135,8 +137,11 @@ DecodeCheckErrors(unsigned char *code, int sizeIdx, int fix)
 
       fixedErrSum += fixedErr;
 
-      for(j = 0; j < blockTotalWords; j++)
+      for(j = 0; j < blockDataWords; j++)
          code[j*interleavedBlocks+i] = data[j];
+
+      for(j = 0; j < blockErrorWords; j++)
+         code[symbolDataWords+i+j*interleavedBlocks] = data[blockDataWords+j];
 
       free_rs_char(&rs);
    }
