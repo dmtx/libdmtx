@@ -82,7 +82,7 @@ struct Hough {
 
 struct Timing {
    int angle;
-   int offset;
+   int shift;
    int periodScaled;
    int scale;
    int mag;
@@ -1339,7 +1339,7 @@ FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent)
          tBest = t;
    }
 
-   /* XXX next use weighted pattern to refine (i.e., 1 2 3 2 1 -1 -2 -3 -2 -1) */
+   /* XXX next use weighted pattern to find precise center (i.e., 1 2 3 2 1 -1 -2 -3 -2 -1) */
 
    return tBest;
 }
@@ -1350,44 +1350,39 @@ FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent)
 static struct Timing
 FindGridTimingAtPhi(struct Hough *houghCache, int phiExtent, int dExtent, int phi)
 {
-   int scale, periodScaled, d, i, idx;
-   int bestIdx, bestMag;
-   int timingFit[TIMING_SIZE];
+   int scale, periodScaled, d, shift, idx;
    char pattern[LOCAL_SIZE];
-   struct Timing timing;
+   struct Timing timing, timingBest;
 
-   memset(timingFit, 0x00, sizeof(int) * TIMING_SIZE);
-
-   /* XXX accuracy might be improved by wrapping this loop into offsets 0-periodScaled */
+   memset(&timingBest, 0x00, sizeof(timingBest));
+   timingBest.mag = -1;
 
    /* For each period in useful range */
    scale = 5;
-   for(periodScaled = 2 * scale; periodScaled < TIMING_SIZE; periodScaled++) {
-      SetTimingPattern(periodScaled, scale, 0, pattern, LOCAL_SIZE);
+   for(periodScaled = 2 * scale; periodScaled < (TIMING_SIZE * scale)/4; periodScaled++) {
 
-      /* Accumulate timing fit for each offset */
-      for(d = 0; d < dExtent; d++) {
-         idx = d * phiExtent + phi;
-         timingFit[periodScaled] += (pattern[d] * houghCache[idx].mag);
+      timing.angle = phi;
+      timing.periodScaled = periodScaled;
+      timing.scale = scale;
+
+      for(shift = 0; shift < periodScaled; shift++) {
+         timing.shift = shift;
+         SetTimingPattern(periodScaled, scale, shift, pattern, LOCAL_SIZE);
+
+         /* Accumulate timing fit for each offset */
+         timing.mag = 0;
+         for(d = 0; d < dExtent; d++) {
+            idx = d * phiExtent + phi;
+            timing.mag += (pattern[d] * houghCache[idx].mag);
+         }
+         timing.mag = abs(timing.mag); /* XXX oversimplifying for now -- careful for later */
+
+         if(timing.mag > timingBest.mag)
+            timingBest = timing;
       }
    }
 
-   bestIdx = 2;
-   bestMag = abs(timingFit[bestIdx]);
-   for(i = 3; i < TIMING_SIZE; i++) {
-      if(timingFit[i] > bestMag) {
-         bestIdx = i;
-         bestMag = abs(timingFit[i]);
-      }
-   }
-
-   timing.angle = phi;
-   timing.offset = 0; /* fake dBest */
-   timing.periodScaled = bestIdx;
-   timing.scale = scale;
-   timing.mag = bestMag;
-
-   return timing;
+   return timingBest;
 }
 
 static void
@@ -1735,19 +1730,19 @@ DrawTimingLines(SDL_Surface *screen, struct Timing timing, int scale, int screen
 
    for(i = -64 * scale; i <= 64 * scale; i++) {
       DrawLine(screen, 64 * scale, screenX, screenY, timing.angle,
-            (int)((timing.offset + period * i) * scale + 0.5));
+            (int)((timing.shift + period * i) * scale + 0.5));
    }
 }
 
 static void
 DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY)
 {
-   int dScaled, offsetScaled;
+   int dScaled, shiftScaled;
 
-   offsetScaled = timing.offset * timing.scale;
+   shiftScaled = timing.shift * timing.scale;
 
    for(dScaled = 0; dScaled < 64 * timing.scale; dScaled++) {
-      if(abs(dScaled - offsetScaled) % timing.periodScaled == 0)
+      if(abs(dScaled - shiftScaled) % timing.periodScaled == 0)
          PlotPixel(screen, screenX + timing.angle, screenY + 64 - dScaled/timing.scale);
    }
 }
