@@ -42,7 +42,6 @@ Contact: mblaughton@users.sourceforge.net
 #include "../../dmtx.h"
 
 #define LOCAL_SIZE 64
-#define TIMING_SIZE 32 /* 16 * 2 */
 
 #define CTRL_COL1_X 512
 #define CTRL_COL2_X 576
@@ -62,6 +61,7 @@ struct AppState {
    int         windowWidth;
    int         windowHeight;
    int         activeExtent;
+   int         displayDots;
    Sint16      imageLocX;
    Sint16      imageLocY;
    Uint8       leftButton;
@@ -520,7 +520,8 @@ main(int argc, char *argv[])
       timing = FindGridTiming(houghCache, 128, LOCAL_SIZE);
       BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW6_Y);
       DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW6_Y);
-      DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW4_Y);
+      if(state.displayDots == DmtxTrue)
+         DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW4_Y);
 
       SDL_Flip(screen);
    }
@@ -588,6 +589,7 @@ InitAppState(void)
    state.windowWidth = 640;
    state.windowHeight = 453;
    state.activeExtent = 64;
+   state.displayDots = DmtxTrue;
    state.imageLocX = 0;
    state.imageLocY = 0;
    state.leftButton = SDL_RELEASED;
@@ -631,8 +633,15 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
 
    switch(event->type) {
       case SDL_KEYDOWN:
-         if(event->key.keysym.sym == SDLK_ESCAPE) {
-            state->quit = DmtxTrue;
+         switch(event->key.keysym.sym) {
+            case SDLK_ESCAPE:
+               state->quit = DmtxTrue;
+               break;
+            case SDLK_d:
+               state->displayDots = (state->displayDots == DmtxTrue) ? DmtxFalse : DmtxTrue;
+               break;
+            default:
+               break;
          }
          break;
 
@@ -1338,8 +1347,7 @@ FindGridTiming(struct Hough *houghCache, int phiExtent, int dExtent)
       if(phi == 0 || t.mag > tBest.mag)
          tBest = t;
    }
-
-   /* XXX next use weighted pattern to find precise center (i.e., 1 2 3 2 1 -1 -2 -3 -2 -1) */
+/*fprintf(stdout, "phiBest:%d\n", tBest.angle);*/
 
    return tBest;
 }
@@ -1359,7 +1367,7 @@ FindGridTimingAtPhi(struct Hough *houghCache, int phiExtent, int dExtent, int ph
 
    /* For each period in useful range */
    scale = 5;
-   for(periodScaled = 2 * scale; periodScaled < (TIMING_SIZE * scale)/4; periodScaled++) {
+   for(periodScaled = 2 * scale; periodScaled < (LOCAL_SIZE * scale)/4; periodScaled++) {
 
       timing.angle = phi;
       timing.periodScaled = periodScaled;
@@ -1377,8 +1385,13 @@ FindGridTimingAtPhi(struct Hough *houghCache, int phiExtent, int dExtent, int ph
          }
          timing.mag = abs(timing.mag); /* XXX oversimplifying for now -- careful for later */
 
-         if(timing.mag > timingBest.mag)
+         /* XXX tune this scaling later -- may be unnecessary */
+         timing.mag = (timing.mag * LOCAL_SIZE * scale)/(periodScaled);
+
+         if(timing.mag > timingBest.mag) {
             timingBest = timing;
+/*fprintf(stdout, "phi:%d\tper:%d\tmag:%d\n", timing.angle, timing.periodScaled, timing.mag);*/
+         }
       }
    }
 
