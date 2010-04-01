@@ -188,8 +188,8 @@ static void MarkHoughMaxima(struct HoughCache *houghCache);
 static void AddToAngleSort(struct HoughLineSort *stack, struct HoughLine line);
 static struct HoughLineSort FindBestAngles(struct HoughCache *houghCache);
 static void SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int patternSize);
-static struct Timing FindGridTiming(struct HoughCache *houghCache);
-static struct Timing FindGridTimingAtPhi(struct HoughCache *houghCache, int phi);
+static struct Timing FindGridTiming(struct HoughCache *houghCache, struct HoughLineSort *sort);
+static struct Timing FindGridTimingAtLine(struct HoughCache *houghCache, struct HoughLine line);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY);
@@ -222,7 +222,7 @@ main(int argc, char *argv[])
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
    struct HoughLine   line;
    struct HoughCache  houghCache;
-   struct HoughLineSort angleSort;
+   struct HoughLineSort lineSort;
    struct Timing      timing;
    SDL_Rect           clipRect;
    SDL_Surface       *local, *localTmp;
@@ -441,13 +441,13 @@ main(int argc, char *argv[])
       MarkHoughMaxima(&houghCache);
 
       /* Draw strongest lines over Hough and original view feedback panes */
-      angleSort = FindBestAngles(&houghCache);
+      lineSort = FindBestAngles(&houghCache);
 
       BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW4_Y);
       BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW4_Y);
       if(state.displayDots == DmtxTrue) {
-         for(i = 0; i < angleSort.count; i++) {
-            line = angleSort.lines[i];
+         for(i = 0; i < lineSort.count; i++) {
+            line = lineSort.lines[i];
             displayCol = (i < 2) ? CTRL_COL1_X : CTRL_COL2_X;
             DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, line.phi, line.d);
             DrawPhiBox(screen, 64, CTRL_COL1_X, CTRL_ROW3_Y, line.phi, line.d);
@@ -455,11 +455,12 @@ main(int argc, char *argv[])
       }
 
       /* Draw timing lines */
-/*    timing = FindGridTiming(&houghCache); */
+      timing = FindGridTiming(&houghCache, &lineSort);
       BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW5_Y);
-/*    DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW5_Y);
-      if(state.displayDots == DmtxTrue)
-         DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW3_Y); */
+      if(state.displayDots == DmtxTrue) {
+         DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW5_Y);
+         DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW3_Y);
+      }
 
       SDL_Flip(screen);
    }
@@ -1300,19 +1301,15 @@ SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int pa
  *
  */
 static struct Timing
-FindGridTiming(struct HoughCache *houghCache)
+FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort)
 {
-   int phiExtent, dExtent;
-   int phi;
+   int i;
    struct Timing t, tBest;
 
-   phiExtent = houghCache->phiExtent;
-   dExtent = houghCache->dExtent;
-
-   /* Find best timing for every angle and retain best overall */
-   for(phi = 0; phi < phiExtent; phi++) {
-      t = FindGridTimingAtPhi(houghCache, phi);
-      if(phi == 0 || t.mag > tBest.mag)
+   /* Find best timing for strong line and retain best overall */
+   for(i = 0; i < sort->count; i++) {
+      t = FindGridTimingAtLine(hough, sort->lines[i]);
+      if(i == 0 || t.mag > tBest.mag)
          tBest = t;
    }
 
@@ -1323,7 +1320,7 @@ FindGridTiming(struct HoughCache *houghCache)
  *
  */
 static struct Timing
-FindGridTimingAtPhi(struct HoughCache *houghCache, int phi)
+FindGridTimingAtLine(struct HoughCache *houghCache, struct HoughLine line)
 {
    int phiExtent, dExtent;
    int scale, periodScaled, d, shift, idx;
@@ -1336,38 +1333,38 @@ FindGridTimingAtPhi(struct HoughCache *houghCache, int phi)
    memset(&timingBest, 0x00, sizeof(timingBest));
    timingBest.mag = -1;
 
-   /* For each period in useful range */
    scale = 5;
+   shift = line.d; /* logic needs confirmation */
    for(periodScaled = 2 * scale; periodScaled < (LOCAL_SIZE * scale)/4; periodScaled++) {
 
-      timing.angle = phi;
+      timing.angle = line.phi;
       timing.periodScaled = periodScaled;
       timing.scale = scale;
+      timing.shift = shift;
 
-      for(shift = 0; shift < periodScaled; shift++) {
-         timing.shift = shift;
-         SetTimingPattern(periodScaled, scale, shift, pattern, LOCAL_SIZE);
+      SetTimingPattern(periodScaled, scale, shift, pattern, LOCAL_SIZE);
 
-         /* Accumulate timing fit for each offset */
-         timing.mag = 0;
-         for(d = 0; d < dExtent; d++) {
-            idx = d * phiExtent + phi;
-            timing.mag += (pattern[d] * houghCache->mag[idx]);
-         }
-         timing.mag = abs(timing.mag); /* XXX oversimplifying for now -- careful for later */
-
-         /* XXX tune this scaling later -- emphasizes small periods */
-         timing.mag = (timing.mag * LOCAL_SIZE * scale)/(periodScaled);
-
-         if(timing.mag > timingBest.mag) {
-            timingBest = timing;
-         }
+      /* Accumulate timing fit for each offset */
+      timing.mag = 0;
+      for(d = 0; d < dExtent; d++) {
+         idx = d * phiExtent + line.phi;
+         timing.mag += (pattern[d] * houghCache->mag[idx]);
       }
+      timing.mag = abs(timing.mag); /* XXX oversimplifying for now -- careful for later */
+
+      /* XXX tune this scaling later -- emphasizes small periods */
+      timing.mag = (timing.mag * LOCAL_SIZE * scale)/(periodScaled);
+
+      if(timing.mag > timingBest.mag)
+         timingBest = timing;
    }
 
    return timingBest;
 }
 
+/**
+ *
+ */
 static void
 BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY)
 {
