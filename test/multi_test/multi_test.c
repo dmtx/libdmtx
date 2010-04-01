@@ -29,6 +29,14 @@ Contact: mblaughton@users.sourceforge.net
  * only after being properly written, tuned, and tested.
  */
 
+/**
+ * Next:
+ * o Change logic to use strongest mag as starting point, then find grid from there
+ * o Track multiple strongest points so best grid can be used
+ * o Find grid at +-90 degress
+ * o Display normalized view in realtime
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,7 +51,7 @@ Contact: mblaughton@users.sourceforge.net
 
 #define LOCAL_SIZE 64
 
-#define CTRL_COL1_X 512
+#define CTRL_COL1_X 511
 #define CTRL_COL2_X 576
 
 #define CTRL_ROW1_Y   0
@@ -235,7 +243,7 @@ main(int argc, char *argv[])
    NudgeImage(state.windowWidth, picture->w, &state.imageLocX);
    NudgeImage(state.windowHeight, picture->h, &state.imageLocY);
 
-   bgColorB = SDL_MapRGBA(screen->format, 32, 32, 32, 255);
+   bgColorB = SDL_MapRGBA(screen->format, 0, 0, 50, 255);
    bgColorK = SDL_MapRGBA(screen->format, 0, 0, 0, 255);
 
    /* Create surface to hold image pixels to be scanned */
@@ -368,7 +376,7 @@ main(int argc, char *argv[])
       SDL_FillRect(screen, NULL, bgColorB);
 
       /* Draw image to main canvas area */
-      clipRect.w = 511;
+      clipRect.w = 510;
       clipRect.h = 453;
       clipRect.x = 0;
       clipRect.y = 0;
@@ -377,13 +385,13 @@ main(int argc, char *argv[])
       SDL_SetClipRect(screen, NULL);
 
       /* Draw copy of active region */
-      clipRect.w = 64;
+/*    clipRect.w = 64;
       clipRect.h = 64;
       clipRect.x = CTRL_COL1_X;
       clipRect.y = CTRL_ROW1_Y;
       SDL_BlitSurface(local, NULL, screen, &clipRect);
       clipRect.x = CTRL_COL2_X;
-      SDL_BlitSurface(local, NULL, screen, &clipRect);
+      SDL_BlitSurface(local, NULL, screen, &clipRect); */
 
       DrawActiveBorder(screen, state.activeExtent);
 
@@ -408,10 +416,10 @@ main(int argc, char *argv[])
             maxFlowMag = abs(bFlowCache[i].mag);
       }
 
-      BlitFlowCache(screen, hFlowCache, maxFlowMag, CTRL_COL1_X, CTRL_ROW2_Y);
-      BlitFlowCache(screen, vFlowCache, maxFlowMag, CTRL_COL2_X, CTRL_ROW2_Y);
-      BlitFlowCache(screen, sFlowCache, maxFlowMag, CTRL_COL1_X, CTRL_ROW3_Y);
-      BlitFlowCache(screen, bFlowCache, maxFlowMag, CTRL_COL2_X, CTRL_ROW3_Y);
+      BlitFlowCache(screen, hFlowCache, maxFlowMag, CTRL_COL1_X, CTRL_ROW1_Y);
+      BlitFlowCache(screen, vFlowCache, maxFlowMag, CTRL_COL2_X, CTRL_ROW1_Y);
+      BlitFlowCache(screen, sFlowCache, maxFlowMag, CTRL_COL1_X, CTRL_ROW2_Y);
+      BlitFlowCache(screen, bFlowCache, maxFlowMag, CTRL_COL2_X, CTRL_ROW2_Y);
 
       /* Find relative size of hough quadrants */
       PopulateHoughCache(pHoughCache, nHoughCache, sFlowCache, bFlowCache,
@@ -482,12 +490,8 @@ main(int argc, char *argv[])
          }
       }
 
-      /* Write hough cache images to feedback panes */
-/*    BlitHoughCache(screen, pHoughCache, CTRL_COL1_X, CTRL_ROW4_Y);
-      BlitHoughCache(screen, nHoughCache, CTRL_COL1_X, CTRL_ROW5_Y); */
-
-      MarkHoughMaxima(pHoughCache, 128, LOCAL_SIZE);
-      MarkHoughMaxima(nHoughCache, 128, LOCAL_SIZE);
+/*    MarkHoughMaxima(pHoughCache, 128, LOCAL_SIZE);
+      MarkHoughMaxima(nHoughCache, 128, LOCAL_SIZE); */
 
       FindBestAngles(pHoughCache, nHoughCache, 128, LOCAL_SIZE, &phi0, &phi1);
       off0 = HackFindBestOffset(pHoughCache, 128, LOCAL_SIZE, phi0);
@@ -500,28 +504,25 @@ main(int argc, char *argv[])
             houghCache[idx].isMax = 1;
          }
       }
-      BlitHoughCache(screen, houghCache, CTRL_COL1_X, CTRL_ROW4_Y);
-
-      /* Write maxima cache images to feedback panes */
-/*    BlitHoughCache(screen, pHoughCache, 256, 480);
-      BlitHoughCache(screen, nHoughCache, 256, 544); */
+      BlitHoughCache(screen, houghCache, CTRL_COL1_X, CTRL_ROW3_Y);
+      MarkHoughMaxima(houghCache, 128, LOCAL_SIZE);
 
       /* Draw positive hough lines to feedback panes */
-      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW5_Y);
+      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW4_Y);
       DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, phi0,
-            CTRL_COL1_X, CTRL_ROW5_Y);
+            CTRL_COL1_X, CTRL_ROW4_Y);
 
       /* Draw negative hough lines to feedback panes */
-      BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW5_Y);
+      BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW4_Y);
       DrawStrongLines(screen, pHoughCache, nHoughCache, 128, LOCAL_SIZE, phi1,
-            CTRL_COL2_X, CTRL_ROW5_Y);
+            CTRL_COL2_X, CTRL_ROW4_Y);
 
       /* Draw timing lines */
       timing = FindGridTiming(houghCache, 128, LOCAL_SIZE);
-      BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW6_Y);
-      DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW6_Y);
+      BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW5_Y);
+      DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW5_Y);
       if(state.displayDots == DmtxTrue)
-         DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW4_Y);
+         DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW3_Y);
 
       SDL_Flip(screen);
    }
@@ -1385,7 +1386,7 @@ FindGridTimingAtPhi(struct Hough *houghCache, int phiExtent, int dExtent, int ph
          }
          timing.mag = abs(timing.mag); /* XXX oversimplifying for now -- careful for later */
 
-         /* XXX tune this scaling later -- may be unnecessary */
+         /* XXX tune this scaling later -- emphasizes small periods */
          timing.mag = (timing.mag * LOCAL_SIZE * scale)/(periodScaled);
 
          if(timing.mag > timingBest.mag) {
