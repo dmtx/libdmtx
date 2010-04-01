@@ -37,9 +37,9 @@ Contact: mblaughton@users.sourceforge.net
  * o Display normalized view in realtime
  *
  * Approach:
- *   1) Calculate flow cache (edge intensities)
- *   2) Accumulate and normalize Hough cache (do not distinguish pos and neg)
- *   3) Detect high contrast vanishing points (skip for now ... use infinity)
+ *   1) Calculate s/b/h/v flow caches (edge intensity)
+ *   2) Accumulate and normalize Hough cache
+ *   3) Detect high contrast vanishing points (skip for now ... assume infinity)
  *   4) Normalize region by shifting vanishing points to infinity (skip for now)
  *   5) Detect N strongest angles within Hough
  *   6) Detect M strongest offsets within each of N angles
@@ -115,9 +115,9 @@ struct HoughLine {
 };
 
 struct HoughLineSort {
-   struct HoughLine lines[10]; /* [maxSize] */
+   struct HoughLine lines[10]; /* [maxCount] */
    int count;
-   int maxSize;
+   int maxCount;
 };
 
 struct Timing {
@@ -185,6 +185,8 @@ static void PopulateHoughCache(struct HoughCache *houghCache, struct Flow *sFlow
 static void NormalizeHoughCache(struct HoughCache *houghCache, struct Flow *sFlowCache, struct Flow *bFlowCache, struct Flow *hFlowCache, struct Flow *vFlowCache);
 static void MarkHoughMaxima(struct HoughCache *houghCache);
 static void FindBestAngles(struct HoughCache *houghCache, int *phi0, int *phi1);
+static void AddToAngleSort(struct HoughLineSort *stack, struct HoughLine line);
+static struct HoughLineSort FindBestAngles2(struct HoughCache *houghCache);
 static void AddToSort(struct HoughLineSort *stack, struct HoughLine line);
 static struct HoughLineSort FindStrongestLines(struct HoughCache *houghCache, int angleBase, int imgExtent);
 static void SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int patternSize);
@@ -219,10 +221,11 @@ main(int argc, char *argv[])
    DmtxImage         *img;
    DmtxDecode        *dec;
 /* int                phi, d, idx; */
-   int                phi0, phi1;
+/* int                phi0, phi1; */
    struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
    struct HoughCache  houghCache;
-   struct HoughLineSort strongLines;
+/* struct HoughLineSort strongLines; */
+   struct HoughLineSort angleSort;
    struct Timing      timing;
    SDL_Rect           clipRect;
    SDL_Surface       *local, *localTmp;
@@ -436,20 +439,28 @@ main(int argc, char *argv[])
       /* Find relative size of hough quadrants */
       PopulateHoughCache(&houghCache, sFlowCache, bFlowCache, hFlowCache, vFlowCache);
       NormalizeHoughCache(&houghCache, sFlowCache, bFlowCache, hFlowCache, vFlowCache);
-
       BlitHoughCache(screen, &houghCache, CTRL_COL1_X, CTRL_ROW3_Y);
 
       MarkHoughMaxima(&houghCache);
 
-      FindBestAngles(&houghCache, &phi0, &phi1);
+      /* Draw hough lines to feedback panes */
+      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW4_Y);
+/*    DrawStrongLines(screen, &houghCache, phi0, CTRL_COL1_X, CTRL_ROW4_Y); */
+
+/*    FindBestAngles(&houghCache, &phi0, &phi1); */
+      angleSort = FindBestAngles2(&houghCache);
+      for(i = 0; i < angleSort.count; i++) {
+         DrawLine(screen, 64, CTRL_COL1_X, CTRL_ROW4_Y,
+               angleSort.lines[i].phi, angleSort.lines[i].d);
+      }
 
       /* Draw positive hough lines to feedback panes */
-      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW4_Y);
-      DrawStrongLines(screen, &houghCache, phi0, CTRL_COL1_X, CTRL_ROW4_Y);
+/*    BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW4_Y);
+      DrawStrongLines(screen, &houghCache, phi0, CTRL_COL1_X, CTRL_ROW4_Y); */
 
       /* Draw negative hough lines to feedback panes */
-      BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW4_Y);
-      DrawStrongLines(screen, &houghCache, phi1, CTRL_COL2_X, CTRL_ROW4_Y);
+/*    BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW4_Y);
+      DrawStrongLines(screen, &houghCache, phi1, CTRL_COL2_X, CTRL_ROW4_Y); */
 
       /* Draw timing lines */
       timing = FindGridTiming(&houghCache);
@@ -458,8 +469,8 @@ main(int argc, char *argv[])
       if(state.displayDots == DmtxTrue)
          DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW3_Y);
 
-      strongLines = FindStrongestLines(&houghCache, 128, LOCAL_SIZE);
-/*    for(i = 0; i < strongLines.count; i++) {
+/*    strongLines = FindStrongestLines(&houghCache, 128, LOCAL_SIZE);
+      for(i = 0; i < strongLines.count; i++) {
          DrawLine(screen, 64, CTRL_COL1_X, CTRL_ROW4_Y,
                strongLines.lines[i].phi, strongLines.lines[i].d);
       } */
@@ -902,59 +913,6 @@ PopulateFlowCache(struct Flow *sFlowCache, struct Flow *bFlowCache,
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
 }
 
-/**
- *
- *
- */
-static void
-NormalizeHoughCache(struct HoughCache *houghCache,
-      struct Flow *sFlowCache, struct Flow *bFlowCache,
-      struct Flow *hFlowCache, struct Flow *vFlowCache)
-{
-   int          pixelCount;
-   int          i, idx, phi, d;
-   unsigned int sFlowSum, bFlowSum, hFlowSum, vFlowSum;
-   double       sFlowScale, bFlowScale, hFlowScale, vFlowScale;
-   double       normScale, phiScale;
-
-   /* Normalize hough quadrants in a very slow and inefficient way */
-   hFlowSum = vFlowSum = sFlowSum = bFlowSum = 0;
-
-   pixelCount = houghCache->dExtent * houghCache->dExtent;
-
-   for(i = 0; i < pixelCount; i++) {
-      hFlowSum += abs(hFlowCache[i].mag);
-      vFlowSum += abs(vFlowCache[i].mag);
-      sFlowSum += abs(sFlowCache[i].mag);
-      bFlowSum += abs(bFlowCache[i].mag);
-   }
-
-   hFlowScale = (double)65536/hFlowSum;
-   vFlowScale = (double)65536/vFlowSum;
-   sFlowScale = (double)65536/sFlowSum;
-   bFlowScale = (double)65536/bFlowSum;
-
-   for(phi = 0; phi < 128; phi++) {
-      for(d = 0; d < LOCAL_SIZE; d++) {
-         idx = d * 128 + phi;
-         if(phi < 16 || phi >= 112)
-            normScale = vFlowScale;
-         else if(phi < 48)
-            normScale = bFlowScale;
-         else if(phi < 80)
-            normScale = hFlowScale;
-         else if(phi < 112)
-            normScale = sFlowScale;
-         else
-            normScale = 1;
-
-         phiScale = ((phi < 32 || phi >= 96) ? abs(uCos128[phi]) : uSin128[phi])/1024.0;
-
-         houghCache->mag[idx] = (int)(houghCache->mag[idx] * normScale * phiScale + 0.5);
-      }
-   }
-}
-
 static double
 AdjustOffset(int d, int phiIdx, int extent)
 {
@@ -1106,7 +1064,6 @@ PopulateHoughCache(struct HoughCache *houghCache, struct Flow *sFlowCache,
             for(phi = 16; phi < 48; phi++) {
                d = GetOffset(x, y, phi, imgExtent);
                if(d == -1) continue;
-               /* Intentional sign inversion to force discontinuity to 0/180 degrees boundary */
                houghCache->mag[d * angleBase + phi] += abs(bFlowCache[idx].mag);
             }
          }
@@ -1126,6 +1083,58 @@ PopulateHoughCache(struct HoughCache *houghCache, struct Flow *sFlowCache,
                houghCache->mag[d * angleBase + phi] += abs(sFlowCache[idx].mag);
             }
          }
+      }
+   }
+}
+
+/**
+ * Normalize hough quadrants in a very slow and inefficient way
+ *
+ */
+static void
+NormalizeHoughCache(struct HoughCache *houghCache,
+      struct Flow *sFlowCache, struct Flow *bFlowCache,
+      struct Flow *hFlowCache, struct Flow *vFlowCache)
+{
+   int          pixelCount;
+   int          i, idx, phi, d;
+   unsigned int sFlowSum, bFlowSum, hFlowSum, vFlowSum;
+   double       sFlowScale, bFlowScale, hFlowScale, vFlowScale;
+   double       normScale, phiScale;
+
+   hFlowSum = vFlowSum = sFlowSum = bFlowSum = 0;
+
+   pixelCount = houghCache->dExtent * houghCache->dExtent;
+
+   for(i = 0; i < pixelCount; i++) {
+      hFlowSum += abs(hFlowCache[i].mag);
+      vFlowSum += abs(vFlowCache[i].mag);
+      sFlowSum += abs(sFlowCache[i].mag);
+      bFlowSum += abs(bFlowCache[i].mag);
+   }
+
+   hFlowScale = (double)65536/hFlowSum;
+   vFlowScale = (double)65536/vFlowSum;
+   sFlowScale = (double)65536/sFlowSum;
+   bFlowScale = (double)65536/bFlowSum;
+
+   for(phi = 0; phi < 128; phi++) {
+      for(d = 0; d < LOCAL_SIZE; d++) {
+         idx = d * 128 + phi;
+         if(phi < 16 || phi >= 112)
+            normScale = vFlowScale;
+         else if(phi < 48)
+            normScale = bFlowScale;
+         else if(phi < 80)
+            normScale = hFlowScale;
+         else if(phi < 112)
+            normScale = sFlowScale;
+         else
+            normScale = 1;
+
+         phiScale = ((phi < 32 || phi >= 96) ? abs(uCos128[phi]) : uSin128[phi])/1024.0;
+
+         houghCache->mag[idx] = (int)(houghCache->mag[idx] * normScale * phiScale + 0.5);
       }
    }
 }
@@ -1166,6 +1175,97 @@ MarkHoughMaxima(struct HoughCache *houghCache)
  *
  */
 static void
+AddToAngleSort(struct HoughLineSort *stack, struct HoughLine line)
+{
+   int i, startHere, diff;
+   DmtxBoolean willGrow;
+
+   /* Special case: first addition */
+   if(stack->count == 0) {
+      stack->lines[stack->count++] = line;
+      return;
+   }
+
+   willGrow = (stack->count < stack->maxCount) ? DmtxTrue : DmtxFalse;
+   startHere = stack->count - 1; /* Sort normally starts at weakest element */
+
+   for(i = 0; i < stack->count; i++) {
+      /* No use in looking further */
+      if(line.mag <= stack->lines[i].mag)
+         break;
+
+      /* Non-shifting replacement will occur */
+      diff = abs(line.phi - stack->lines[i].phi);
+      if(diff < 16 || diff > 111) {
+         startHere = i - 1;
+         willGrow = DmtxFalse;
+         stack->lines[i] = line;
+         break;
+      }
+   }
+
+   /* Shift weak entries downward */
+   for(i = startHere; i >= 0; i--) {
+      if(line.mag > stack->lines[i].mag) {
+         if(i + 1 < stack->maxCount)
+            stack->lines[i+1] = stack->lines[i];
+         stack->lines[i] = line;
+      }
+   }
+
+   /* Count changes only if shift occurs */
+   if(willGrow == DmtxTrue)
+      stack->count++;
+}
+
+/**
+ *
+ *
+ */
+static struct HoughLineSort
+FindBestAngles2(struct HoughCache *houghCache)
+{
+   int phiExtent, dExtent;
+   int phi, d, idx;
+   int magBest;
+   struct HoughLine lineBest;
+   struct HoughLineSort lineSort;
+
+   phiExtent = houghCache->phiExtent;
+   dExtent = houghCache->dExtent;
+
+   memset(&lineSort, 0x00, sizeof(struct HoughLineSort));
+   lineSort.maxCount = 10;
+
+   /* Add strongest line at each angle to sort */
+   for(phi = 0; phi < phiExtent; phi++) {
+
+      magBest = houghCache->mag[phi]; /* i.e., [0 * phiExtent + line.phi] */
+      lineBest.phi = phi;
+      lineBest.d = 0;
+      lineBest.mag = magBest;
+
+      for(d = 1; d < dExtent; d++) {
+         idx = d * phiExtent + phi;
+         if(houghCache->isMax[idx] && houghCache->mag[idx] > magBest) {
+            magBest = houghCache->mag[idx];
+            lineBest.phi = phi;
+            lineBest.d = d;
+            lineBest.mag = magBest;
+         }
+      }
+
+      AddToAngleSort(&lineSort, lineBest);
+   }
+
+   return lineSort;
+}
+
+/**
+ *
+ *
+ */
+static void
 FindBestAngles(struct HoughCache *houghCache, int *phi0, int *phi1)
 {
    int phiExtent, dExtent;
@@ -1178,10 +1278,10 @@ FindBestAngles(struct HoughCache *houghCache, int *phi0, int *phi1)
    phiExtent = houghCache->phiExtent;
    dExtent = houghCache->dExtent;
 
-   /* Find greatest maximum in p and n caches for each value of phi */
+   /* Capture strongest line at each angle */
    for(phi = 0; phi < phiExtent; phi++) {
 
-      idxBest[phi] = idxBest[phi] = phi; /* i.e., (0 * phiExtent + phi) */
+      idxBest[phi] = phi; /* i.e., (0 * phiExtent + phi) */
       magBest[phi] = houghCache->mag[phi];
 
       for(d = 1; d < dExtent; d++) {
@@ -1195,6 +1295,7 @@ FindBestAngles(struct HoughCache *houghCache, int *phi0, int *phi1)
       }
    }
 
+/* replace this stuff with a sorted stack approach */
    magRank[0] = houghCache->mag[0];
    phiRank[0] = 0;
    for(phi = 1; phi < 128; phi++) {
@@ -1251,9 +1352,9 @@ AddToSort(struct HoughLineSort *stack, struct HoughLine line)
       for(i = stack->count - 1; i >= 0; i--) {
          if(line.mag > stack->lines[i].mag) {
             /* Write current stack line to weaker stack position */
-            if(i + 1 < stack->maxSize)
+            if(i + 1 < stack->maxCount)
                stack->lines[i+1] = stack->lines[i];
-            if(stack->count < stack->maxSize)
+            if(stack->count < stack->maxCount)
                stack->count++;
 
             /* Write new line to this stack position */
@@ -1275,7 +1376,7 @@ FindStrongestLines(struct HoughCache *houghCache, int angleBase, int imgExtent)
    struct HoughLineSort stack;
 
    memset(&stack, 0x00, sizeof(struct HoughLineSort));
-   stack.maxSize = 10;
+   stack.maxCount = 10;
 
    for(line.phi = 0; line.phi < angleBase; line.phi++) {
       for(line.d = 0; line.d < imgExtent; line.d++) {
@@ -1462,6 +1563,10 @@ BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int s
    SDL_FreeSurface(surface);
 }
 
+/**
+ *
+ *
+ */
 static void
 BlitHoughCache(SDL_Surface *screen, struct HoughCache *houghCache, int screenX, int screenY)
 {
