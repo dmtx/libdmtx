@@ -199,7 +199,7 @@ static void PlotPixel(SDL_Surface *surface, int x, int y);
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
-static void DrawLine(SDL_Surface *screen, int extent, int scale, int screenX, int screenY, int phi, int d);
+static void DrawLine(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, int d);
 static void DrawPhiBox(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, int d);
 static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int scale, int screenX, int screenY);
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY);
@@ -449,7 +449,7 @@ main(int argc, char *argv[])
          for(i = 0; i < lineSort.count; i++) {
             line = lineSort.lines[i];
             displayCol = (i < 2) ? CTRL_COL1_X : CTRL_COL2_X;
-            DrawLine(screen, 64, 1, displayCol, CTRL_ROW4_Y, line.phi, line.d);
+            DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, line.phi, line.d);
             DrawPhiBox(screen, 64, CTRL_COL1_X, CTRL_ROW3_Y, line.phi, line.d);
          }
       }
@@ -1306,12 +1306,11 @@ FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort)
    int i;
    struct Timing t, tBest;
 
-   /* Find best timing for strong line and retain best overall */
+   /* Find best timing for strongest lines and retain best overall */
    for(i = 0; i < sort->count; i++) {
       t = FindGridTimingAtLine(hough, sort->lines[i]);
       if(i == 0 || t.mag > tBest.mag)
          tBest = t;
-break;
    }
 
    return tBest;
@@ -1334,8 +1333,8 @@ FindGridTimingAtLine(struct HoughCache *houghCache, struct HoughLine line)
    memset(&timingBest, 0x00, sizeof(timingBest));
    timingBest.mag = -1;
 
-   scale = 5;
-   shift = line.d; /* logic seems wrong */
+   scale = 7;
+   shift = line.d; /* logic needs confirmation */
    for(periodScaled = 2 * scale; periodScaled < (LOCAL_SIZE * scale)/4; periodScaled++) {
 
       timing.angle = line.phi;
@@ -1650,7 +1649,7 @@ DrawActiveBorder(SDL_Surface *screen, int activeExtent)
 }
 
 static void
-DrawLine(SDL_Surface *screen, int extent, int scale, int screenX, int screenY, int phi, int d)
+DrawLine(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, int d)
 {
    double phiRad;
    double dScaled;
@@ -1660,7 +1659,7 @@ DrawLine(SDL_Surface *screen, int extent, int scale, int screenX, int screenY, i
    DmtxPixelLoc d0, d1;
 
    bb0.X = bb0.Y = 0.0;
-   bb1.X = bb1.Y = extent * scale;
+   bb1.X = bb1.Y = extent;
 
    rStart.p.X = rStart.p.Y = 0.0;
 
@@ -1672,7 +1671,7 @@ DrawLine(SDL_Surface *screen, int extent, int scale, int screenX, int screenY, i
    rLine.v.X = -rStart.v.Y;
    rLine.v.Y = rStart.v.X;
 
-   dScaled = AdjustOffset(d, phi, LOCAL_SIZE) * scale;
+   dScaled = AdjustOffset(d, phi, LOCAL_SIZE);
 
    dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
 
@@ -1684,8 +1683,8 @@ DrawLine(SDL_Surface *screen, int extent, int scale, int screenX, int screenY, i
    d0.X = (int)(p0.X + 0.5) + screenX;
    d1.X = (int)(p1.X + 0.5) + screenX;
 
-   d0.Y = screenY + (extent * scale - (int)(p0.Y + 0.5) - 1);
-   d1.Y = screenY + (extent * scale - (int)(p1.Y + 0.5) - 1);
+   d0.Y = screenY + (extent - (int)(p0.Y + 0.5) - 1);
+   d1.Y = screenY + (extent - (int)(p1.Y + 0.5) - 1);
 
    lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
 }
@@ -1695,26 +1694,25 @@ DrawPhiBox(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, i
 {
    Sint16 x1, y1, x2, y2;
 
-   x1 = screenX + phi - 3;
-   y1 = screenY + 64 - d - 3;
-   x2 = x1 + 3;
-   y2 = y1 + 3;
+   x1 = screenX + phi - 2;
+   y1 = screenY + extent - d - 3;
+   x2 = x1 + 4;
+   y2 = y1 + 4;
 
    rectangleColor(screen, x1, y1, x2, y2, 0xff0000ff);
 }
 
 static void
-DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenX, int screenY)
+DrawTimingLines(SDL_Surface *screen, struct Timing timing, int scale, int screenX, int screenY)
 {
    int i;
-   int d;
    double period;
 
    period = (double)timing.periodScaled/timing.scale;
 
-   for(i = -64; i <= 64; i++) {
-      d = (int)((timing.shift + period * i) + 0.5);
-      DrawLine(screen, 64, 2, screenX, screenY, timing.angle, d);
+   for(i = -64 * scale; i <= 64 * scale; i++) {
+      DrawLine(screen, 64 * scale, screenX, screenY, timing.angle,
+            (int)((timing.shift + period * i) * scale + 0.5));
    }
 }
 
@@ -1726,7 +1724,8 @@ DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int scree
    shiftScaled = timing.shift * timing.scale;
 
    for(dScaled = 0; dScaled < 64 * timing.scale; dScaled++) {
-      if(abs(dScaled - shiftScaled) % timing.periodScaled == 0)
-         PlotPixel(screen, screenX + timing.angle, screenY + 64 - dScaled/timing.scale);
+      if(abs(dScaled - shiftScaled) % timing.periodScaled == 0) {
+         PlotPixel(screen, screenX + timing.angle, screenY + 63 - dScaled/timing.scale);
+      }
    }
 }
