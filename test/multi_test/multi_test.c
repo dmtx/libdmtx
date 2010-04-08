@@ -71,6 +71,7 @@ Contact: mblaughton@users.sourceforge.net
 #define CTRL_ROW4_Y 195
 #define CTRL_ROW5_Y 260
 #define CTRL_ROW6_Y 325
+#define CTRL_ROW7_Y 390
 
 struct UserOptions {
    const char *imagePath;
@@ -99,9 +100,10 @@ struct Flow {
 
 struct HoughCache {
    int dExtent;
+   int dExtentNew;
    int phiExtent;
-   char isMax[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
-   unsigned int mag[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
+   char isMax[2 * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
+   unsigned int mag[2 * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
 };
 
 struct Hough {
@@ -205,7 +207,8 @@ static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int scale
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY);
 static void PopulateHoughNew(struct HoughCache *hough, struct Flow *sFlow,
       struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow);
-static void PopulateHoughSlice(int *houghSlice, int phi, struct Flow *flow);
+static void PopulateHoughSliceFlat(int *houghSlice, int phi, struct Flow *flow);
+static void PopulateHoughSliceSteep(int *houghSlice, int phi, struct Flow *flow);
 
 int
 main(int argc, char *argv[])
@@ -227,7 +230,7 @@ main(int argc, char *argv[])
    struct Flow        hFlow[LOCAL_SIZE * LOCAL_SIZE];
    struct Flow        vFlow[LOCAL_SIZE * LOCAL_SIZE];
    struct HoughLine   line;
-   struct HoughCache  houghCache;
+   struct HoughCache  houghCache, houghCache2;
    struct HoughLineSort lineSort;
    struct Timing      timing;
    SDL_Rect           clipRect;
@@ -434,19 +437,21 @@ main(int argc, char *argv[])
       NormalizeHoughCache(&houghCache, sFlow, bFlow, hFlow, vFlow);
       BlitHoughCache(screen, &houghCache, CTRL_COL1_X, CTRL_ROW3_Y);
 
-      /* XXX Experimental Bresenham Hough */
-      PopulateHoughNew(&houghCache, sFlow, bFlow, hFlow, vFlow);
-      NormalizeHoughCache(&houghCache, sFlow, bFlow, hFlow, vFlow);
-      BlitHoughCache(screen, &houghCache, CTRL_COL1_X, CTRL_ROW4_Y);
-
       MarkHoughMaxima(&houghCache);
 
-      /* Draw strongest lines over Hough and original view feedback panes */
-      lineSort = FindBestAngles(&houghCache);
+      /* XXX Experimental Bresenham Hough */
+      PopulateHoughNew(&houghCache2, sFlow, bFlow, hFlow, vFlow);
+      NormalizeHoughCache(&houghCache2, sFlow, bFlow, hFlow, vFlow);
+      BlitHoughCache(screen, &houghCache2, CTRL_COL1_X, CTRL_ROW4_Y);
 
-      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW5_Y);
-      BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW5_Y);
-      BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW6_Y);
+      MarkHoughMaxima(&houghCache2);
+
+      /* Draw strongest lines over Hough and original view feedback panes */
+      lineSort = FindBestAngles(&houghCache2);
+
+      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW6_Y);
+      BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW6_Y);
+      BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW7_Y);
 
       if(state.displayDots == DmtxTrue) {
          for(i = 0; i < lineSort.count; i++) {
@@ -454,13 +459,13 @@ main(int argc, char *argv[])
 
             if(i < 2) {
                displayCol = CTRL_COL1_X;
-               DrawLine(screen, 128, displayCol, CTRL_ROW6_Y, line.phi, line.d, 2);
+               DrawLine(screen, 128, displayCol, CTRL_ROW7_Y, line.phi, line.d, 2);
             }
             else {
                displayCol = CTRL_COL2_X;
             }
             DrawLine(screen, 64, displayCol, CTRL_ROW5_Y, line.phi, line.d, 1);
-            DrawPhiBox(screen, 64, CTRL_COL1_X, CTRL_ROW3_Y, line.phi, line.d);
+            DrawPhiBox(screen, 64, CTRL_COL1_X, CTRL_ROW4_Y, line.phi, line.d);
          }
       }
 
@@ -468,7 +473,7 @@ main(int argc, char *argv[])
       timing = FindGridTiming(&houghCache, &lineSort);
       if(state.displayDots == DmtxTrue) {
 /*       DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW5_Y); */
-         DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW3_Y);
+         DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW4_Y);
       }
 
       SDL_Flip(screen);
@@ -1021,8 +1026,8 @@ PopulateHoughCache(struct HoughCache *houghCache, struct Flow *sFlow,
 
    houghCache->dExtent = HOUGH_D_EXTENT;
    houghCache->phiExtent = HOUGH_PHI_EXTENT;
-   memset(houghCache->isMax, 0x01, sizeof(char) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
-   memset(&(houghCache->mag), 0x00, sizeof(int) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
+   memset(houghCache->isMax, 0x01, sizeof(char) * houghCache->dExtent * houghCache->phiExtent);
+   memset(&(houghCache->mag), 0x00, sizeof(int) * houghCache->dExtent * houghCache->phiExtent);
 
    imgExtent = houghCache->dExtent;
    angleBase = houghCache->phiExtent;
@@ -1088,7 +1093,7 @@ PopulateHoughCache(struct HoughCache *houghCache, struct Flow *sFlow,
  *
  */
 static void
-NormalizeHoughCache(struct HoughCache *houghCache,
+NormalizeHoughCache(struct HoughCache *hough,
       struct Flow *sFlow, struct Flow *bFlow,
       struct Flow *hFlow, struct Flow *vFlow)
 {
@@ -1100,7 +1105,7 @@ NormalizeHoughCache(struct HoughCache *houghCache,
 
    hFlowSum = vFlowSum = sFlowSum = bFlowSum = 0;
 
-   pixelCount = houghCache->dExtent * houghCache->dExtent;
+   pixelCount = LOCAL_SIZE * LOCAL_SIZE;
 
    for(i = 0; i < pixelCount; i++) {
       hFlowSum += abs(hFlow[i].mag);
@@ -1114,9 +1119,9 @@ NormalizeHoughCache(struct HoughCache *houghCache,
    sFlowScale = (double)65536/sFlowSum;
    bFlowScale = (double)65536/bFlowSum;
 
-   for(phi = 0; phi < 128; phi++) {
-      for(d = 0; d < LOCAL_SIZE; d++) {
-         idx = d * 128 + phi;
+   for(phi = 0; phi < hough->phiExtent; phi++) {
+      for(d = 0; d < hough->dExtent; d++) {
+         idx = d * hough->phiExtent + phi;
          if(phi < 16 || phi >= 112)
             normScale = vFlowScale;
          else if(phi < 48)
@@ -1130,7 +1135,7 @@ NormalizeHoughCache(struct HoughCache *houghCache,
 
          phiScale = ((phi < 32 || phi >= 96) ? abs(uCos128[phi]) : uSin128[phi])/1024.0;
 
-         houghCache->mag[idx] = (int)(houghCache->mag[idx] * normScale * phiScale + 0.5);
+         hough->mag[idx] = (int)(hough->mag[idx] * normScale * phiScale + 0.5);
       }
    }
 }
@@ -1440,7 +1445,7 @@ BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int s
  *
  */
 static void
-BlitHoughCache(SDL_Surface *screen, struct HoughCache *houghCache, int screenX, int screenY)
+BlitHoughCache(SDL_Surface *screen, struct HoughCache *hough, int screenX, int screenY)
 {
    int row, col;
    int width, height;
@@ -1448,7 +1453,7 @@ BlitHoughCache(SDL_Surface *screen, struct HoughCache *houghCache, int screenX, 
    int rgb[3];
    unsigned int cache;
    int offset;
-   unsigned char pixbuf[24576]; /* 128 * 64 * 3 */
+   unsigned char pixbuf[128 * 128 * 3];
    SDL_Surface *surface;
    SDL_Rect clipRect;
    Uint32 rmask, gmask, bmask, amask;
@@ -1465,30 +1470,30 @@ BlitHoughCache(SDL_Surface *screen, struct HoughCache *houghCache, int screenX, 
    amask = 0xff000000;
 #endif
 
-   width = 128;
-   height = LOCAL_SIZE;
+   width = hough->phiExtent;
+   height = hough->dExtent;
 
    maxVal = 0;
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
-         if(houghCache->isMax[row * width + col] == 0)
+         if(hough->isMax[row * width + col] == 0)
             continue;
 
-         if(houghCache->mag[row * width + col] > maxVal)
-            maxVal = houghCache->mag[row * width + col];
+         if(hough->mag[row * width + col] > maxVal)
+            maxVal = hough->mag[row * width + col];
       }
    }
 
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
 
-         cache = houghCache->mag[row * width + col];
+         cache = hough->mag[row * width + col];
 
-         if(houghCache->isMax[row * width + col] > 2) {
+         if(hough->isMax[row * width + col] > 2) {
             rgb[0] = 255;
             rgb[1] = rgb[2] = 0;
          }
-         else if(houghCache->isMax[row * width + col] == 1) {
+         else if(hough->isMax[row * width + col] == 1) {
             rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
          }
          else {
@@ -1899,14 +1904,16 @@ PopulateHoughNew(struct HoughCache *hough, struct Flow *sFlow,
       struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow)
 {
    int d, phi;
-   int houghSlice[128];
+   int houghSlice[HOUGH_PHI_EXTENT];
    struct Flow *flow;
 
-   memset(hough->isMax, 0x01, sizeof(char) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
-   memset(&(hough->mag), 0x00, sizeof(int) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
+   hough->dExtent = 2 * HOUGH_D_EXTENT;
+   hough->phiExtent = HOUGH_PHI_EXTENT;
+   memset(hough->isMax, 0x01, sizeof(char) * hough->dExtent * hough->phiExtent);
+   memset(&(hough->mag), 0x00, sizeof(int) * hough->dExtent * hough->phiExtent);
 
-   for(phi = 0; phi < 128; phi++) {
-      memset(houghSlice, 0x00, sizeof(int) * 128);
+   for(phi = 0; phi < hough->phiExtent; phi++) {
+      memset(houghSlice, 0x00, sizeof(int) * HOUGH_PHI_EXTENT);
 
       if(phi < 16 || phi >= 112)
          flow = hFlow;
@@ -1917,11 +1924,14 @@ PopulateHoughNew(struct HoughCache *hough, struct Flow *sFlow,
       else
          flow = bFlow;
 
-      PopulateHoughSlice(houghSlice, phi, flow);
+      if(phi < 32 || phi >= 96)
+         PopulateHoughSliceFlat(houghSlice, phi, flow);
+      else
+         PopulateHoughSliceSteep(houghSlice, phi, flow);
 
       /* Copy houghSlice into houghCache (XXX intentional truncation for now) */
-      for(d = 0; d < 64; d++) {
-         hough->mag[d * 128 + phi] = houghSlice[d];
+      for(d = 0; d < hough->dExtent; d++) {
+         hough->mag[d * hough->phiExtent + phi] = houghSlice[d];
       }
    }
 }
@@ -1931,7 +1941,7 @@ PopulateHoughNew(struct HoughCache *hough, struct Flow *sFlow,
  *
  */
 static void
-PopulateHoughSlice(int houghSlice[], int phi, struct Flow *flow)
+PopulateHoughSliceFlat(int houghSlice[], int phi, struct Flow *flow)
 {
    int x, y;
    int riseMax;
@@ -1941,13 +1951,14 @@ PopulateHoughSlice(int houghSlice[], int phi, struct Flow *flow)
    DmtxBresLine bres;
    DmtxPixelLoc pDistant, pOrigin = { 0, 0 };
 
-   /* XXX Only implemented for shallow lines initially */
-   if(phi > 32 && phi < 96) {
-      return;
+   if(phi < 64) {
+      pDistant.X = (int)(10000 * cos((phi/128.0) * M_PI) + 0.5);
+      pDistant.Y = (int)(10000 * sin((phi/128.0) * M_PI) + 0.5);
    }
-
-   pDistant.X = 10000;
-   pDistant.Y = (int)(pDistant.X * cos((phi/128.0) * M_PI) + 0.5);
+   else {
+      pDistant.X = (int)(-10000 * cos((phi/128.0) * M_PI) + 0.5);
+      pDistant.Y = (int)(-10000 * sin((phi/128.0) * M_PI) + 0.5);
+   }
    bres = BresLineInit(pOrigin, pDistant, pOrigin);
 
    /* 1) Create array of rises as function of x */
@@ -1960,7 +1971,7 @@ PopulateHoughSlice(int houghSlice[], int phi, struct Flow *flow)
    riseMax = rise[63];
    offsetRange = 64 + abs(riseMax);
 
-   assert(offsetRange <= 128);
+   assert(offsetRange < 128);
 
    /* 3) Accumlate edge values into hough slice */
    for(offsetIdx = 0; offsetIdx < offsetRange; offsetIdx++) {
@@ -1969,6 +1980,50 @@ PopulateHoughSlice(int houghSlice[], int phi, struct Flow *flow)
       for(x = 0; x < 64; x++) {
          y = d + rise[x];
          if(y < 0 || y >= 64)
+            continue;
+         houghSlice[offsetIdx] += abs(flow[y * flowWidth + x].mag);
+      }
+   }
+}
+
+/**
+ *
+ *
+ */
+static void
+PopulateHoughSliceSteep(int houghSlice[], int phi, struct Flow *flow)
+{
+   int x, y;
+   int rightMax;
+   int right[64];
+   int d, offsetRange, offsetIdx;
+   int flowWidth = 64;
+   DmtxBresLine bres;
+   DmtxPixelLoc pDistant, pOrigin = { 0, 0 };
+
+   pDistant.X = (int)(10000 * cos((phi/128.0) * M_PI) + 0.5);
+   pDistant.Y = (int)(10000 * sin((phi/128.0) * M_PI) + 0.5);
+   bres = BresLineInit(pOrigin, pDistant, pOrigin);
+
+   /* 1) Create array of rights as function of x */
+   while(bres.loc.Y < 64) {
+      right[bres.loc.Y] = bres.loc.X;
+      BresLineStep(&bres, 1, 0);
+   }
+
+   /* 2) Capture final value from Bresenham line */
+   rightMax = right[63];
+   offsetRange = 64 + abs(rightMax);
+
+   assert(offsetRange <= 128);
+
+   /* 3) Accumlate edge values into hough slice */
+   for(offsetIdx = 0; offsetIdx < offsetRange; offsetIdx++) {
+      d = (rightMax < 0) ? offsetIdx : offsetIdx - rightMax;
+      assert(d > -64 && d < 128);
+      for(y = 0; y < 64; y++) {
+         x = d + right[y];
+         if(x < 0 || x >= 64)
             continue;
          houghSlice[offsetIdx] += abs(flow[y * flowWidth + x].mag);
       }
