@@ -447,7 +447,7 @@ main(int argc, char *argv[])
             if(i < 2) {
                displayCol = CTRL_COL1_X;
                DrawPhiBox(screen, 64, CTRL_COL1_X, CTRL_ROW3_Y, line.phi, line.d);
-/*             DrawLine(screen, 128, displayCol, CTRL_ROW5_Y, line.phi, line.d, 2); */
+/*             DrawLine(screen, 64, displayCol, CTRL_ROW5_Y, line.phi, line.d, 2); */
             }
             else {
                displayCol = CTRL_COL2_X;
@@ -1662,13 +1662,15 @@ DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi,
 {
    double phiRad;
    double dScaled;
+   int scaledExtent;
    DmtxVector2 bb0, bb1;
    DmtxVector2 p0, p1;
    DmtxRay2 rStart, rLine;
    DmtxPixelLoc d0, d1;
 
+   scaledExtent = baseExtent * displayScale;
    bb0.X = bb0.Y = 0.0;
-   bb1.X = bb1.Y = baseExtent - 1;
+   bb1.X = bb1.Y = scaledExtent - 1;
 
    rStart.p.X = rStart.p.Y = 0.0;
 
@@ -1692,8 +1694,8 @@ DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi,
    d0.X = (int)(p0.X + 0.5) + screenX;
    d1.X = (int)(p1.X + 0.5) + screenX;
 
-   d0.Y = screenY + (baseExtent - (int)(p0.Y + 0.5) - 1);
-   d1.Y = screenY + (baseExtent - (int)(p1.Y + 0.5) - 1);
+   d0.Y = screenY + (scaledExtent - (int)(p0.Y + 0.5) - 1);
+   d1.Y = screenY + (scaledExtent - (int)(p1.Y + 0.5) - 1);
 
    lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
 }
@@ -1719,9 +1721,9 @@ DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int
 
    period = (double)timing.periodScaled/timing.scale;
 
-   for(i = -64 * displayScale; i <= 64 * displayScale; i++) {
-      DrawLine(screen, 64 * displayScale, screenX, screenY, timing.angle,
-            (int)((timing.shift + period * i) * displayScale + 0.5), 1);
+   for(i = -64; i <= 64; i++) {
+      DrawLine(screen, 64, screenX, screenY, timing.angle,
+            (int)((timing.shift + period * i) + 0.5), 2);
    }
 }
 
