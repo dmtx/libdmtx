@@ -201,7 +201,7 @@ static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVect
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, int d, int displayScale);
 static void DrawPhiBox(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, int d);
-static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int scale, int screenX, int screenY);
+static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenX, int screenY);
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY);
 
 int
@@ -446,20 +446,20 @@ main(int argc, char *argv[])
 
             if(i < 2) {
                displayCol = CTRL_COL1_X;
-               DrawLine(screen, 128, displayCol, CTRL_ROW5_Y, line.phi, line.d, 2);
+               DrawPhiBox(screen, 64, CTRL_COL1_X, CTRL_ROW3_Y, line.phi, line.d);
+/*             DrawLine(screen, 128, displayCol, CTRL_ROW5_Y, line.phi, line.d, 2); */
             }
             else {
                displayCol = CTRL_COL2_X;
             }
             DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, line.phi, line.d, 1);
-            DrawPhiBox(screen, 64, CTRL_COL1_X, CTRL_ROW3_Y, line.phi, line.d);
          }
       }
 
       /* Draw timing lines */
       timing = FindGridTiming(&hough, &lineSort);
       if(state.displayDots == DmtxTrue) {
-/*       DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW5_Y); */
+         DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW5_Y);
          DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW3_Y);
       }
 
@@ -1304,14 +1304,22 @@ SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int pa
 static struct Timing
 FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort)
 {
-   int i;
+   int i, p;
    struct Timing t, tBest;
+   int phiSamplePattern[] = { 0, -1, 0, 1, 1, 1, 0, -1, -1 };
+   int offSamplePattern[] = { 0, -1, -1, -1, 0, 1, 1, 1, 0 };
+   struct HoughLine line;
 
    /* Find best timing for strongest lines and retain best overall */
    for(i = 0; i < sort->count; i++) {
-      t = FindGridTimingAtLine(hough, sort->lines[i]);
-      if(i == 0 || t.mag > tBest.mag)
-         tBest = t;
+      for(p = 0; p < 9; p++) {
+         line = sort->lines[i];
+         line.phi += phiSamplePattern[p];
+         line.d += offSamplePattern[p];
+         t = FindGridTimingAtLine(hough, line);
+         if((i == 0 && p == 0) || t.mag > tBest.mag)
+            tBest = t;
+      }
    }
 
    return tBest;
@@ -1704,16 +1712,16 @@ DrawPhiBox(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, i
 }
 
 static void
-DrawTimingLines(SDL_Surface *screen, struct Timing timing, int scale, int screenX, int screenY)
+DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenX, int screenY)
 {
    int i;
    double period;
 
    period = (double)timing.periodScaled/timing.scale;
 
-   for(i = -64 * scale; i <= 64 * scale; i++) {
-      DrawLine(screen, 64 * scale, screenX, screenY, timing.angle,
-            (int)((timing.shift + period * i) * scale + 0.5), scale);
+   for(i = -64 * displayScale; i <= 64 * displayScale; i++) {
+      DrawLine(screen, 64 * displayScale, screenX, screenY, timing.angle,
+            (int)((timing.shift + period * i) * displayScale + 0.5), 1);
    }
 }
 
