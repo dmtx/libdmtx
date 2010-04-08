@@ -219,7 +219,10 @@ main(int argc, char *argv[])
    int                displayCol;
    DmtxImage         *img;
    DmtxDecode        *dec;
-   struct Flow       *sFlowCache, *bFlowCache, *hFlowCache, *vFlowCache;
+   struct Flow        sFlowCache[LOCAL_SIZE * LOCAL_SIZE];
+   struct Flow        bFlowCache[LOCAL_SIZE * LOCAL_SIZE];
+   struct Flow        hFlowCache[LOCAL_SIZE * LOCAL_SIZE];
+   struct Flow        vFlowCache[LOCAL_SIZE * LOCAL_SIZE];
    struct HoughLine   line;
    struct HoughCache  houghCache;
    struct HoughLineSort lineSort;
@@ -242,16 +245,6 @@ main(int argc, char *argv[])
       fprintf(stderr, "Unable to load image \"%s\": %s\n", opt.imagePath, SDL_GetError());
       exit(1);
    }
-
-   /* Allocate memory for the flow caches */
-   sFlowCache = (struct Flow *)calloc(LOCAL_SIZE * LOCAL_SIZE, sizeof(struct Flow));
-   assert(sFlowCache != NULL);
-   bFlowCache = (struct Flow *)calloc(LOCAL_SIZE * LOCAL_SIZE, sizeof(struct Flow));
-   assert(bFlowCache != NULL);
-   hFlowCache = (struct Flow *)calloc(LOCAL_SIZE * LOCAL_SIZE, sizeof(struct Flow));
-   assert(hFlowCache != NULL);
-   vFlowCache = (struct Flow *)calloc(LOCAL_SIZE * LOCAL_SIZE, sizeof(struct Flow));
-   assert(vFlowCache != NULL);
 
    atexit(SDL_Quit);
 
@@ -475,11 +468,6 @@ main(int argc, char *argv[])
 
    SDL_FreeSurface(localTmp);
    SDL_FreeSurface(local);
-
-   free(vFlowCache);
-   free(hFlowCache);
-   free(bFlowCache);
-   free(sFlowCache);
 
    dmtxDecodeDestroy(&dec);
    dmtxImageDestroy(&img);
