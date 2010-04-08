@@ -98,7 +98,7 @@ struct Flow {
 #define HOUGH_PHI_EXTENT 128
 
 struct HoughCache {
-   int dExtent;
+   int offExtent;
    int phiExtent;
    char isMax[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
    unsigned int mag[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
@@ -110,9 +110,9 @@ struct Hough {
 };
 
 struct HoughLine {
-   int d;
-   int phi;
-   int mag;
+   int off; /* Compacted Hough offset */
+   int phi; /* Hough angle */
+   int mag; /* Hough magnitude for this line */
 };
 
 struct HoughLineSort {
@@ -180,8 +180,8 @@ static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imag
 /* Image processing functions */
 static void PopulateFlowCache(struct Flow *sFlow, struct Flow *bFlow,
       struct Flow *hFlow, struct Flow *vFlow, DmtxImage *img);
-static double AdjustOffset(int d, int phiIdx, int extent);
-static int GetOffset(int x, int y, int phiIdx, int extent);
+static int GetCompactOffset(int x, int y, int phiIdx, int extent);
+static double UncompactOffset(double d, int phiIdx, int extent);
 static void PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow, struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow);
 static void NormalizeHoughCache(struct HoughCache *hough, struct Flow *sFlow, struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow);
 static void MarkHoughMaxima(struct HoughCache *hough);
@@ -199,7 +199,7 @@ static void PlotPixel(SDL_Surface *surface, int x, int y);
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
-static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, int d, int displayScale);
+static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
 static void DrawPhiBox(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, int d);
 static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenX, int screenY);
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY);
@@ -446,13 +446,13 @@ main(int argc, char *argv[])
 
             if(i < 2) {
                displayCol = CTRL_COL1_X;
-               DrawPhiBox(screen, 64, CTRL_COL1_X, CTRL_ROW3_Y, line.phi, line.d);
+               DrawPhiBox(screen, 64, CTRL_COL1_X, CTRL_ROW3_Y, line.phi, line.off);
 /*             DrawLine(screen, 64, displayCol, CTRL_ROW5_Y, line.phi, line.d, 2); */
             }
             else {
                displayCol = CTRL_COL2_X;
             }
-            DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, line.phi, line.d, 1);
+            DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, line.phi, line.off, 1);
          }
       }
 
@@ -586,12 +586,12 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
                state->rightButton = event->button.state;
                break;
             case SDL_BUTTON_WHEELDOWN:
-               if(state->activeExtent < 64)
-                  state->activeExtent *= 2;
-               break;
-            case SDL_BUTTON_WHEELUP:
                if(state->activeExtent > 16)
                   state->activeExtent /= 2;
+               break;
+            case SDL_BUTTON_WHEELUP:
+               if(state->activeExtent < 64)
+                  state->activeExtent *= 2;
                break;
          }
          break;
@@ -687,72 +687,6 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
    fclose(fp);
 }
 */
-
-/**
- * 2x2 Kernel
- */
-#ifdef IGNOREME
-static void
-PopulateFlowCache(struct Flow *sFlow, struct Flow *bFlow,
-      struct Flow *hFlow, struct Flow *vFlow, DmtxImage *img)
-{
-   int width, height;
-   int bytesPerPixel, rowSizeBytes, colorPlane;
-   int x, xBeg, xEnd;
-   int y, yBeg, yEnd;
-   int offsetBL, offsetTL, offsetBR, offsetTR;
-   int idx;
-   DmtxTime ta, tb;
-
-   width = dmtxImageGetProp(img, DmtxPropWidth);
-   height = dmtxImageGetProp(img, DmtxPropHeight);
-   rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
-   bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
-   colorPlane = 0; /* XXX need to make some decisions here */
-
-   xBeg = 1;
-   xEnd = width - 2;
-   yBeg = 1;
-   yEnd = height - 2;
-
-   ta = dmtxTimeNow();
-
-/* XXX should be accessing image with access methods or at least respecting stride */
-   memset(sFlow, 0x00, sizeof(struct Flow) * width * height);
-   memset(bFlow, 0x00, sizeof(struct Flow) * width * height);
-   memset(hFlow, 0x00, sizeof(struct Flow) * width * height);
-   memset(vFlow, 0x00, sizeof(struct Flow) * width * height);
-
-   for(y = yBeg; y <= yEnd; y++) {
-      offsetBL = ((height - y - 1) * rowSizeBytes) + bytesPerPixel + colorPlane;
-
-      for(x = xBeg; x <= xEnd; x++) {
-
-         /* Pixel data first pixel = top-left; everything else bottom-left */
-         offsetTL = offsetBL - rowSizeBytes;
-         offsetBR = offsetBL + bytesPerPixel;
-         offsetTR = offsetTL + bytesPerPixel;
-
-         idx = y * width + x;
-
-         /**
-          * VV B+ +H  +S
-          * -+ -B -H  S-
-          */
-         hFlow[idx].mag = img->pxl[offsetTL] - img->pxl[offsetBL];
-         vFlow[idx].mag = img->pxl[offsetBR] - img->pxl[offsetBL];
-         sFlow[idx].mag = img->pxl[offsetTL] - img->pxl[offsetBR];
-         bFlow[idx].mag = img->pxl[offsetTR] - img->pxl[offsetBL];
-
-         offsetBL += bytesPerPixel;
-      }
-   }
-
-   tb = dmtxTimeNow();
-/* fprintf(stdout, "PopulateFlowCache time: %ldms\n", (1000000 *
-         (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
-}
-#endif
 
 /**
  * 3x3 Sobel Kernel
@@ -901,52 +835,8 @@ PopulateFlowCache(struct Flow *sFlow, struct Flow *bFlow,
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
 }
 
-static double
-AdjustOffset(int d, int phiIdx, int extent)
-{
-   int posMax, negMax;
-   double scale;
-
-   if(phiIdx < 64) {
-      posMax = extent * (uCos128[phiIdx] + uSin128[phiIdx]);
-      negMax = 0;
-   }
-   else {
-      posMax = extent * uSin128[phiIdx];
-      negMax = extent * uCos128[phiIdx];
-   }
-
-   scale = (double)(posMax - negMax) / extent;
-
-   return (d * scale + negMax)/1024.0;
-
-/**
- * original floating point version follows:
- *
-   double phiRad;
-   double scale;
-   double posMax, negMax;
-
-   phiRad = M_PI * phiIdx / 128.0;
-
-   if(phiIdx < 64) {
-      posMax = extent * (cos(phiRad) + sin(phiRad));
-      negMax = 0.0;
-   }
-   else {
-      posMax = extent * sin(phiRad);
-      negMax = extent * cos(phiRad);
-   }
-
-   assert(fabs(posMax - negMax) > 0.00001);
-   scale = extent / (posMax - negMax);
-
-   return d / scale + negMax;
-*/
-}
-
 static int
-GetOffset(int x, int y, int phiIdx, int extent)
+GetCompactOffset(int x, int y, int phiIdx, int extent)
 {
    int offset, posMax, negMax;
    double scale;
@@ -998,6 +888,48 @@ GetOffset(int x, int y, int phiIdx, int extent)
 */
 }
 
+static double
+UncompactOffset(double compactedOffset, int phiIdx, int extent)
+{
+   double phiRad;
+   double scale;
+   double posMax, negMax;
+
+   phiRad = M_PI * phiIdx / 128.0;
+
+   if(phiIdx < 64) {
+      posMax = extent * (cos(phiRad) + sin(phiRad));
+      negMax = 0.0;
+   }
+   else {
+      posMax = extent * sin(phiRad);
+      negMax = extent * cos(phiRad);
+   }
+
+   assert(extent > 0);
+   scale = (posMax - negMax) / extent;
+
+   return (compactedOffset * scale) + negMax;
+
+/* fixed point version:
+   int posMax, negMax;
+   double scale;
+
+   if(phiIdx < 64) {
+      posMax = extent * (uCos128[phiIdx] + uSin128[phiIdx]);
+      negMax = 0;
+   }
+   else {
+      posMax = extent * uSin128[phiIdx];
+      negMax = extent * uCos128[phiIdx];
+   }
+
+   scale = (double)(posMax - negMax) / extent;
+
+   return (d * scale + negMax)/1024.0;
+*/
+}
+
 /**
  *
  *
@@ -1011,12 +943,12 @@ PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow,
    int x, xBeg, xEnd;
    int y, yBeg, yEnd;
 
-   hough->dExtent = HOUGH_D_EXTENT;
+   hough->offExtent = HOUGH_D_EXTENT;
    hough->phiExtent = HOUGH_PHI_EXTENT;
    memset(hough->isMax, 0x01, sizeof(char) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
    memset(&(hough->mag), 0x00, sizeof(int) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
 
-   imgExtent = hough->dExtent;
+   imgExtent = hough->offExtent;
    angleBase = hough->phiExtent;
 
    xBeg = 2;
@@ -1033,16 +965,16 @@ PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow,
           *   each product (x*uCos[phi]) and (y*uSin[phi]) (FAST) (8kB)
           *   or, map each (x,y,phi) to its (d,phi) location (FASTER) (262kB)
           *
-          * This should provide a huge speedup.
+          * That should provide a huge speedup.
           */
          if(abs(vFlow[idx].mag) > 0) {
             for(phi = 0; phi < 16; phi++) {
-               d = GetOffset(x, y, phi, imgExtent);
+               d = GetCompactOffset(x, y, phi, imgExtent);
                if(d == -1) continue;
                hough->mag[d * angleBase + phi] += abs(vFlow[idx].mag);
             }
             for(phi = 112; phi < angleBase; phi++) {
-               d = GetOffset(x, y, phi, imgExtent);
+               d = GetCompactOffset(x, y, phi, imgExtent);
                if(d == -1) continue;
                hough->mag[d * angleBase + phi] += abs(vFlow[idx].mag);
             }
@@ -1050,7 +982,7 @@ PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow,
 
          if(abs(bFlow[idx].mag) > 0) {
             for(phi = 16; phi < 48; phi++) {
-               d = GetOffset(x, y, phi, imgExtent);
+               d = GetCompactOffset(x, y, phi, imgExtent);
                if(d == -1) continue;
                hough->mag[d * angleBase + phi] += abs(bFlow[idx].mag);
             }
@@ -1058,7 +990,7 @@ PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow,
 
          if(abs(hFlow[idx].mag) > 0) {
             for(phi = 48; phi < 80; phi++) {
-               d = GetOffset(x, y, phi, imgExtent);
+               d = GetCompactOffset(x, y, phi, imgExtent);
                if(d == -1) continue;
                hough->mag[d * angleBase + phi] += abs(hFlow[idx].mag);
             }
@@ -1066,7 +998,7 @@ PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow,
 
          if(abs(sFlow[idx].mag) > 0) {
             for(phi = 80; phi < 112; phi++) {
-               d = GetOffset(x, y, phi, imgExtent);
+               d = GetCompactOffset(x, y, phi, imgExtent);
                if(d == -1) continue;
                hough->mag[d * angleBase + phi] += abs(sFlow[idx].mag);
             }
@@ -1092,7 +1024,7 @@ NormalizeHoughCache(struct HoughCache *hough,
 
    hFlowSum = vFlowSum = sFlowSum = bFlowSum = 0;
 
-   pixelCount = hough->dExtent * hough->dExtent;
+   pixelCount = hough->offExtent * hough->offExtent;
 
    for(i = 0; i < pixelCount; i++) {
       hFlowSum += abs(hFlow[i].mag);
@@ -1139,7 +1071,7 @@ MarkHoughMaxima(struct HoughCache *hough)
    int width, height;
 
    width = hough->phiExtent;
-   height = hough->dExtent;
+   height = hough->offExtent;
 
    /* Find local maxima for each angle */
    for(x = 0; x < width; x++) {
@@ -1186,8 +1118,8 @@ AddToAngleSort(struct HoughLineSort *stack, struct HoughLine line)
       phiDiff = abs(line.phi - stack->lines[i].phi);
 
       /* If phiDiff spans the 0/180 deg boundary then offsets flip */
-      dDiff = (phiDiff > 119) ? abs(64 - line.d - stack->lines[i].d) :
-            abs(line.d - stack->lines[i].d);
+      dDiff = (phiDiff > 119) ? abs(64 - line.off - stack->lines[i].off) :
+            abs(line.off - stack->lines[i].off);
 
       if(dDiff < 3 && (phiDiff < 8 || phiDiff > 119)) {
          if(line.mag > stack->lines[i].mag) {
@@ -1223,14 +1155,14 @@ AddToAngleSort(struct HoughLineSort *stack, struct HoughLine line)
 static struct HoughLineSort
 FindBestAngles(struct HoughCache *hough)
 {
-   int phiExtent, dExtent;
-   int phi, d, idx;
+   int phiExtent, offExtent;
+   int phi, offset, idx;
    int magBest;
    struct HoughLine lineBest;
    struct HoughLineSort lineSort;
 
    phiExtent = hough->phiExtent;
-   dExtent = hough->dExtent;
+   offExtent = hough->offExtent;
 
    memset(&lineSort, 0x00, sizeof(struct HoughLineSort));
    lineSort.maxCount = LINE_SORT_MAX;
@@ -1240,15 +1172,15 @@ FindBestAngles(struct HoughCache *hough)
 
       magBest = hough->mag[phi]; /* i.e., [0 * phiExtent + line.phi] */
       lineBest.phi = phi;
-      lineBest.d = 0;
+      lineBest.off = 0;
       lineBest.mag = magBest;
 
-      for(d = 1; d < dExtent; d++) {
-         idx = d * phiExtent + phi;
+      for(offset = 1; offset < offExtent; offset++) {
+         idx = offset * phiExtent + phi;
          if(hough->isMax[idx] && hough->mag[idx] > magBest) {
             magBest = hough->mag[idx];
             lineBest.phi = phi;
-            lineBest.d = d;
+            lineBest.off = offset;
             lineBest.mag = magBest;
          }
       }
@@ -1315,7 +1247,7 @@ FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort)
       for(p = 0; p < 9; p++) {
          line = sort->lines[i];
          line.phi += phiSamplePattern[p];
-         line.d += offSamplePattern[p];
+         line.off += offSamplePattern[p];
          t = FindGridTimingAtLine(hough, line);
          if((i == 0 && p == 0) || t.mag > tBest.mag)
             tBest = t;
@@ -1331,19 +1263,19 @@ FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort)
 static struct Timing
 FindGridTimingAtLine(struct HoughCache *hough, struct HoughLine line)
 {
-   int phiExtent, dExtent;
-   int scale, periodScaled, d, shift, idx;
+   int phiExtent, offExtent;
+   int scale, periodScaled, offset, shift, idx;
    char pattern[LOCAL_SIZE];
    struct Timing timing, timingBest;
 
    phiExtent = hough->phiExtent;
-   dExtent = hough->dExtent;
+   offExtent = hough->offExtent;
 
    memset(&timingBest, 0x00, sizeof(timingBest));
    timingBest.mag = -1;
 
    scale = 7;
-   shift = line.d; /* logic needs confirmation */
+   shift = line.off; /* logic needs confirmation */
    for(periodScaled = 2 * scale; periodScaled < (LOCAL_SIZE * scale)/4; periodScaled++) {
 
       timing.angle = line.phi;
@@ -1355,9 +1287,9 @@ FindGridTimingAtLine(struct HoughCache *hough, struct HoughLine line)
 
       /* Accumulate timing fit for each offset */
       timing.mag = 0;
-      for(d = 0; d < dExtent; d++) {
-         idx = d * phiExtent + line.phi;
-         timing.mag += (pattern[d] * hough->mag[idx]);
+      for(offset = 0; offset < offExtent; offset++) {
+         idx = offset * phiExtent + line.phi;
+         timing.mag += (pattern[offset] * hough->mag[idx]);
       }
       timing.mag = abs(timing.mag); /* XXX oversimplifying for now -- careful for later */
 
@@ -1658,7 +1590,7 @@ DrawActiveBorder(SDL_Surface *screen, int activeExtent)
 }
 
 static void
-DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, int d, int displayScale)
+DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale)
 {
    double phiRad;
    double dScaled;
@@ -1682,7 +1614,7 @@ DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi,
    rLine.v.X = -rStart.v.Y;
    rLine.v.Y = rStart.v.X;
 
-   dScaled = AdjustOffset(d, phi, LOCAL_SIZE) * displayScale;
+   dScaled = UncompactOffset(d, phi, LOCAL_SIZE) * displayScale;
 
    dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
 
@@ -1722,8 +1654,7 @@ DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int
    period = (double)timing.periodScaled/timing.scale;
 
    for(i = -64; i <= 64; i++) {
-      DrawLine(screen, 64, screenX, screenY, timing.angle,
-            (int)((timing.shift + period * i) + 0.5), 2);
+      DrawLine(screen, 64, screenX, screenY, timing.angle, timing.shift + period * i, 2);
    }
 }
 
