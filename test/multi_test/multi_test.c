@@ -1246,8 +1246,15 @@ FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort)
    for(i = 0; i < sort->count; i++) {
       for(p = 0; p < 9; p++) {
          line = sort->lines[i];
+
          line.phi += phiSamplePattern[p];
+         if(line.phi >= hough->phiExtent) line.phi -= hough->phiExtent;
+         if(line.phi < 0) line.phi += hough->phiExtent;
+
          line.off += offSamplePattern[p];
+         if(line.off >= hough->offExtent) line.off -= hough->offExtent;
+         if(line.off < 0) line.off += hough->offExtent;
+
          t = FindGridTimingAtLine(hough, line);
          if((i == 0 && p == 0) || t.mag > tBest.mag)
             tBest = t;
@@ -1274,7 +1281,7 @@ FindGridTimingAtLine(struct HoughCache *hough, struct HoughLine line)
    memset(&timingBest, 0x00, sizeof(timingBest));
    timingBest.mag = -1;
 
-   scale = 7;
+   scale = 10;
    shift = line.off; /* logic needs confirmation */
    for(periodScaled = 2 * scale; periodScaled < (LOCAL_SIZE * scale)/4; periodScaled++) {
 
@@ -1289,7 +1296,12 @@ FindGridTimingAtLine(struct HoughCache *hough, struct HoughLine line)
       timing.mag = 0;
       for(offset = 0; offset < offExtent; offset++) {
          idx = offset * phiExtent + line.phi;
-         timing.mag += (pattern[offset] * hough->mag[idx]);
+         if(pattern[offset] == 1)
+            timing.mag += hough->mag[idx];
+         else if(pattern[offset] == -1)
+            timing.mag -= hough->mag[idx];
+         else if(pattern[offset] != 0)
+            exit(100);
       }
       timing.mag = abs(timing.mag); /* XXX oversimplifying for now -- careful for later */
 
