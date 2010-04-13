@@ -31,8 +31,6 @@ Contact: mblaughton@users.sourceforge.net
 
 /**
  * Next:
- * o Change logic to use strongest mag as starting point, then find grid from there
- * o Track multiple strongest points so best grid can be used
  * o Find grid at +-90 degress
  * o Display normalized view in realtime
  *
@@ -189,9 +187,7 @@ static void NormalizeHoughCache(struct HoughCache *hough, struct Flow *sFlow, st
 static void MarkHoughMaxima(struct HoughCache *hough);
 static void AddToAngleSort(struct HoughLineSort *stack, struct HoughLine line);
 static struct HoughLineSort FindBestAngles(struct HoughCache *hough);
-static void SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int patternSize);
 static struct Timing FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort, struct AppState *state);
-static struct Timing FindGridTimingAtLine(struct HoughCache *hough, struct HoughLine line);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY);
@@ -487,7 +483,6 @@ GetDefaultOptions(void)
    struct UserOptions opt;
 
    memset(&opt, 0x00, sizeof(struct UserOptions));
-
    opt.imagePath = NULL;
 
    return opt;
@@ -1198,88 +1193,21 @@ FindBestAngles(struct HoughCache *hough)
 }
 
 /**
- * period is the width of a black/white block pair
- * period of 2.25 would pass periodScaled = 9, scale = 4 (9/4 == 2.25)
- * scale = 5, periodScaled = 10: X X X X X X X   <-- 1 chunk each
- * scale = 5, periodScaled = 20: XX  XX  XX  XX  <-- 2 chunks each
- */
-static void
-SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int patternSize)
-{
-   int i, j;
-   int chunks, localChunks;
-   int centerAdjust;
-   char *ptr, *ptrEnd;
-
-   memset(pattern, 0x00, sizeof(char) * patternSize);
-
-   chunks = periodScaled / (2 * scale);
-
-   centerAdjust = center - chunks/2; /* i.e., center - start */
-   while(centerAdjust > 0)
-      centerAdjust -= periodScaled;
-
-   ptr = pattern;
-   ptrEnd = pattern + 64;
-
-   for(i = 0; ptr < ptrEnd; i += periodScaled) {
-      ptr = pattern + i/scale + centerAdjust;
-
-      localChunks = ((i+periodScaled)/scale - i/scale)/2;
-
-      for(j = 0; j < localChunks && ptr < ptrEnd; j++, ptr++)
-         if(ptr >= pattern)
-            *ptr = 1;
-      for(j = 0; j < localChunks && ptr < ptrEnd; j++, ptr++)
-         if(ptr >= pattern)
-            *ptr = -1;
-   }
-}
-
-/**
  *
  */
 static struct Timing
 FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort, struct AppState *state)
 {
-/*
-   int i, p;
-   struct Timing t, tBest;
-   int phiSamplePattern[] = { 0, -1, 0, 1, 1, 1, 0, -1, -1 };
-   int offSamplePattern[] = { 0, -1, -1, -1, 0, 1, 1, 1, 0 };
-   struct HoughLine line;
-
-   // Find best timing for strongest lines and retain best overall
-
-   for(i = 0; i < sort->count; i++) {
-      for(p = 0; p < 9; p++) {
-         line = sort->lines[i];
-
-         line.phi += phiSamplePattern[p];
-         if(line.phi >= hough->phiExtent) line.phi -= hough->phiExtent;
-         if(line.phi < 0) line.phi += hough->phiExtent;
-
-         line.off += offSamplePattern[p];
-         if(line.off >= hough->offExtent) line.off -= hough->offExtent;
-         if(line.off < 0) line.off += hough->offExtent;
-
-         t = FindGridTimingAtLine(hough, line);
-         if((i == 0 && p == 0) || t.mag > tBest.mag)
-            tBest = t;
-      }
-   }
-*/
-   /* Experiment with FFT */
 #define NFFT 64
+   int x, y, fitMag, fitMax, fitOff;
    int i, p, phi;
    struct Timing tBest;
    kiss_fftr_cfg   cfg = NULL;
    kiss_fft_scalar rin[NFFT];
-   kiss_fft_cpx    sout[33];
+   kiss_fft_cpx    sout[NFFT/2+1];
    kiss_fft_scalar maxReal, bestReal, tmp, maxPhase;
    int maxIdx, bestIdx;
 
-/* for(phi = 0; phi < 128; phi++) { */
    for(p = 0; p < 2; p++) {
 
       phi = sort->lines[p].phi;
@@ -1295,17 +1223,13 @@ FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort, struct AppS
 
       /* Select best result */
       maxIdx = 8;
-/*    maxReal = fabs(sout[maxIdx].r); */
       maxReal = sout[maxIdx].r * sout[maxIdx].r + sout[maxIdx].i * sout[maxIdx].i;
       for(i = 9; i < 33; i++) {
          tmp = sout[i].r * sout[i].r + sout[i].i * sout[i].i;
-/*       if(fabs(sout[i].r) > maxReal) { */
          if(tmp > maxReal) {
             maxIdx = i;
             maxReal = tmp;
             maxPhase = atan2(sout[i].i, sout[i].r);
-/*          maxReal = fabs(sout[maxIdx].r); */
-/*          maxReal = sout[maxIdx].r * sout[maxIdx].r + sout[maxIdx].i * sout[maxIdx].i; */
          }
       }
 
@@ -1314,11 +1238,24 @@ FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort, struct AppS
          bestReal = maxReal;
          tBest.angle = phi;
          tBest.periodScaled = (int)((640.0/maxIdx) + 0.5);
-         tBest.shift = 0; /* tBest.periodScaled * (maxPhase/M_PI); */
+         tBest.shift = 0;
          tBest.scale = 10;
          tBest.mag = 0;
       }
    }
+
+   /* Find best offset */
+   for(x = 0; x < tBest.periodScaled; x++) {
+      fitMag = 0;
+      for(y = x; y < 64 * tBest.scale; y += tBest.periodScaled) {
+         fitMag += hough->mag[(y/tBest.scale) * hough->phiExtent + tBest.angle];
+      }
+      if(fitMag > fitMax) {
+         fitMax = fitMag;
+         fitOff = x;
+      }
+   }
+   tBest.shift = fitOff/tBest.scale;
 
    if(state->printValues == DmtxTrue) {
       /* Load FFT input array */
@@ -1338,58 +1275,6 @@ FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort, struct AppS
    }
 
    return tBest;
-}
-
-/**
- *
- */
-static struct Timing
-FindGridTimingAtLine(struct HoughCache *hough, struct HoughLine line)
-{
-   int phiExtent, offExtent;
-   int scale, periodScaled, offset, shift, idx;
-   char pattern[LOCAL_SIZE];
-   struct Timing timing, timingBest;
-
-   phiExtent = hough->phiExtent;
-   offExtent = hough->offExtent;
-
-   memset(&timingBest, 0x00, sizeof(timingBest));
-   timingBest.mag = -1;
-
-   scale = 10;
-   shift = line.off; /* logic needs confirmation */
-   for(periodScaled = 2 * scale; periodScaled < (LOCAL_SIZE * scale)/4; periodScaled++) {
-
-      timing.angle = line.phi;
-      timing.periodScaled = periodScaled;
-      timing.scale = scale;
-      timing.shift = shift;
-
-      SetTimingPattern(periodScaled, scale, shift, pattern, LOCAL_SIZE);
-
-      /* Accumulate timing fit for each offset */
-      timing.mag = 0;
-      for(offset = 0; offset < offExtent; offset++) {
-         idx = offset * phiExtent + line.phi;
-         if(pattern[offset] == 1)
-            timing.mag += hough->mag[idx];
-         else if(pattern[offset] == -1)
-            timing.mag -= hough->mag[idx];
-         else if(pattern[offset] != 0)
-            exit(100);
-      }
-      timing.mag = abs(timing.mag); /* XXX oversimplifying for now -- careful for later */
-
-      /* XXX tune this scaling later -- emphasizes small periods */
-/*    timing.mag = (timing.mag * LOCAL_SIZE * scale)/(periodScaled);
-XXX try removing this and see if it still works at specific scale XXX */
-
-      if(timing.mag > timingBest.mag)
-         timingBest = timing;
-   }
-
-   return timingBest;
 }
 
 /**
