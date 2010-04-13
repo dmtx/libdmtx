@@ -58,6 +58,7 @@ Contact: mblaughton@users.sourceforge.net
 #include <SDL/SDL_gfxPrimitives.h>
 #include <SDL/SDL_rotozoom.h>
 #include "../../dmtx.h"
+#include "kiss_fftr.h"
 
 #define LOCAL_SIZE   64
 #define LINE_SORT_MAX 8
@@ -81,6 +82,7 @@ struct AppState {
    int         windowHeight;
    int         activeExtent;
    int         displayDots;
+   int         printValues;
    Sint16      imageLocX;
    Sint16      imageLocY;
    Uint8       leftButton;
@@ -188,7 +190,7 @@ static void MarkHoughMaxima(struct HoughCache *hough);
 static void AddToAngleSort(struct HoughLineSort *stack, struct HoughLine line);
 static struct HoughLineSort FindBestAngles(struct HoughCache *hough);
 static void SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int patternSize);
-static struct Timing FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort);
+static struct Timing FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort, struct AppState *state);
 static struct Timing FindGridTimingAtLine(struct HoughCache *hough, struct HoughLine line);
 
 /* Process visualization functions */
@@ -457,7 +459,7 @@ main(int argc, char *argv[])
       }
 
       /* Draw timing lines */
-      timing = FindGridTiming(&hough, &lineSort);
+      timing = FindGridTiming(&hough, &lineSort, &state);
       if(state.displayDots == DmtxTrue) {
          DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW5_Y);
          DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW3_Y);
@@ -522,6 +524,7 @@ InitAppState(void)
    state.windowHeight = 453;
    state.activeExtent = 64;
    state.displayDots = DmtxTrue;
+   state.printValues = DmtxFalse;
    state.imageLocX = 0;
    state.imageLocY = 0;
    state.leftButton = SDL_RELEASED;
@@ -571,6 +574,9 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
                break;
             case SDLK_d:
                state->displayDots = (state->displayDots == DmtxTrue) ? DmtxFalse : DmtxTrue;
+               break;
+            case SDLK_p:
+               state->printValues = (state->printValues == DmtxTrue) ? DmtxFalse : DmtxTrue;
                break;
             default:
                break;
@@ -1234,15 +1240,17 @@ SetTimingPattern(int periodScaled, int scale, int center, char pattern[], int pa
  *
  */
 static struct Timing
-FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort)
+FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort, struct AppState *state)
 {
+/*
    int i, p;
    struct Timing t, tBest;
    int phiSamplePattern[] = { 0, -1, 0, 1, 1, 1, 0, -1, -1 };
    int offSamplePattern[] = { 0, -1, -1, -1, 0, 1, 1, 1, 0 };
    struct HoughLine line;
 
-   /* Find best timing for strongest lines and retain best overall */
+   // Find best timing for strongest lines and retain best overall
+
    for(i = 0; i < sort->count; i++) {
       for(p = 0; p < 9; p++) {
          line = sort->lines[i];
@@ -1259,6 +1267,74 @@ FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort)
          if((i == 0 && p == 0) || t.mag > tBest.mag)
             tBest = t;
       }
+   }
+*/
+   /* Experiment with FFT */
+#define NFFT 64
+   int i, p, phi;
+   struct Timing tBest;
+   kiss_fftr_cfg   cfg = NULL;
+   kiss_fft_scalar rin[NFFT];
+   kiss_fft_cpx    sout[33];
+   kiss_fft_scalar maxReal, bestReal, tmp, maxPhase;
+   int maxIdx, bestIdx;
+
+/* for(phi = 0; phi < 128; phi++) { */
+   for(p = 0; p < 2; p++) {
+
+      phi = sort->lines[p].phi;
+
+      /* Load FFT input array */
+      for(i = 0; i < 64; i++)
+         rin[i] = hough->mag[i * hough->phiExtent + phi];
+
+      /* Execute FFT */
+      cfg = kiss_fftr_alloc(NFFT, 0, 0, 0);
+      kiss_fftr(cfg, rin, sout);
+      free(cfg);
+
+      /* Select best result */
+      maxIdx = 8;
+/*    maxReal = fabs(sout[maxIdx].r); */
+      maxReal = sout[maxIdx].r * sout[maxIdx].r + sout[maxIdx].i * sout[maxIdx].i;
+      for(i = 9; i < 33; i++) {
+         tmp = sout[i].r * sout[i].r + sout[i].i * sout[i].i;
+/*       if(fabs(sout[i].r) > maxReal) { */
+         if(tmp > maxReal) {
+            maxIdx = i;
+            maxReal = tmp;
+            maxPhase = atan2(sout[i].i, sout[i].r);
+/*          maxReal = fabs(sout[maxIdx].r); */
+/*          maxReal = sout[maxIdx].r * sout[maxIdx].r + sout[maxIdx].i * sout[maxIdx].i; */
+         }
+      }
+
+      if(phi == 0 || maxReal > bestReal) {
+         bestIdx = maxIdx;
+         bestReal = maxReal;
+         tBest.angle = phi;
+         tBest.periodScaled = (int)((640.0/maxIdx) + 0.5);
+         tBest.shift = 0; /* tBest.periodScaled * (maxPhase/M_PI); */
+         tBest.scale = 10;
+         tBest.mag = 0;
+      }
+   }
+
+   if(state->printValues == DmtxTrue) {
+      /* Load FFT input array */
+      for(i = 0; i < 64; i++)
+         rin[i] = hough->mag[i * hough->phiExtent + tBest.angle];
+
+      /* Execute FFT */
+      cfg = kiss_fftr_alloc(NFFT, 0, 0, 0);
+      kiss_fftr(cfg, rin, sout);
+      free(cfg);
+
+      for(i = 0; i < 33; i++) {
+         fprintf(stdout, "%2d\t%8.1f\t%8.1f\n", i, sout[i].r, sout[i].i);
+      }
+      fprintf(stdout, "\n");
+      state->printValues = DmtxFalse;
    }
 
    return tBest;
@@ -1306,7 +1382,8 @@ FindGridTimingAtLine(struct HoughCache *hough, struct HoughLine line)
       timing.mag = abs(timing.mag); /* XXX oversimplifying for now -- careful for later */
 
       /* XXX tune this scaling later -- emphasizes small periods */
-      timing.mag = (timing.mag * LOCAL_SIZE * scale)/(periodScaled);
+/*    timing.mag = (timing.mag * LOCAL_SIZE * scale)/(periodScaled);
+XXX try removing this and see if it still works at specific scale XXX */
 
       if(timing.mag > timingBest.mag)
          timingBest = timing;
