@@ -59,7 +59,8 @@ Contact: mblaughton@users.sourceforge.net
 #include "kiss_fftr.h"
 
 #define LOCAL_SIZE   64
-#define LINE_SORT_MAX 8
+#define ANGLE_SORT_MAX_COUNT 8
+#define MAXIMA_SORT_MAX_COUNT 8
 
 #define CTRL_COL1_X 511
 #define CTRL_COL2_X 576
@@ -115,18 +116,27 @@ struct HoughLine {
    int mag; /* Hough magnitude for this line */
 };
 
-struct HoughLineSort {
-   struct HoughLine lines[LINE_SORT_MAX];
-   int count;
-   int maxCount;
-};
-
 struct Timing {
    int mag;
    int angle;
    int scale;
    int shiftScaled;
    int periodScaled;
+};
+
+struct HoughAngleSum {
+   int phi;
+   int mag;
+};
+
+struct HoughAngleSumSort {
+   int count;
+   struct HoughAngleSum angleSum[ANGLE_SORT_MAX_COUNT];
+};
+
+struct HoughMaximaSort {
+   int count;
+   int mag[MAXIMA_SORT_MAX_COUNT];
 };
 
 /* Scaled unit sin */
@@ -185,9 +195,11 @@ static double UncompactOffset(double d, int phiIdx, int extent);
 static void PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow, struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow);
 static void NormalizeHoughCache(struct HoughCache *hough, struct Flow *sFlow, struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow);
 static void MarkHoughMaxima(struct HoughCache *hough);
-static void AddToAngleSort(struct HoughLineSort *stack, struct HoughLine line);
-static struct HoughLineSort FindBestAngles(struct HoughCache *hough);
-static struct Timing FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort, struct AppState *state);
+static void AddToAngleSumSort(struct HoughAngleSumSort *sort, struct HoughAngleSum angleSum);
+static struct HoughAngleSumSort FindBestAngles(struct HoughCache *hough);
+static void AddToMaximaSort(struct HoughMaximaSort *sort, int maximaMag);
+static struct HoughAngleSum GetAngleSumAtPhi(struct HoughCache *hough, int phi);
+static struct Timing FindGridTiming(struct HoughCache *hough, struct HoughAngleSumSort *sort, struct AppState *state);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY);
@@ -198,7 +210,6 @@ static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale, int dScale);
-static void DrawPhiBox(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, int d);
 static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenX, int screenY);
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY);
 
@@ -221,9 +232,8 @@ main(int argc, char *argv[])
    struct Flow        bFlow[LOCAL_SIZE * LOCAL_SIZE];
    struct Flow        hFlow[LOCAL_SIZE * LOCAL_SIZE];
    struct Flow        vFlow[LOCAL_SIZE * LOCAL_SIZE];
-   struct HoughLine   line;
    struct HoughCache  hough;
-   struct HoughLineSort lineSort;
+   struct HoughAngleSumSort angleSort;
    struct Timing      timing;
    SDL_Rect           clipRect;
    SDL_Surface       *local, *localTmp;
@@ -430,32 +440,29 @@ main(int argc, char *argv[])
       BlitHoughCache(screen, &hough, CTRL_COL1_X, CTRL_ROW3_Y);
 
       MarkHoughMaxima(&hough);
-
-      /* Draw strongest lines over Hough and original view feedback panes */
-      lineSort = FindBestAngles(&hough);
+      angleSort = FindBestAngles(&hough);
 
       BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW4_Y);
       BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW4_Y);
       BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW5_Y);
 
       if(state.displayDots == DmtxTrue) {
-         for(i = 0; i < lineSort.count; i++) {
-            line = lineSort.lines[i];
+         for(i = 0; i < angleSort.count; i++) {
 
             if(i < 2) {
                displayCol = CTRL_COL1_X;
-               DrawPhiBox(screen, 64, CTRL_COL1_X, CTRL_ROW3_Y, line.phi, line.off);
 /*             DrawLine(screen, 64, displayCol, CTRL_ROW5_Y, line.phi, line.d, 2, 1); */
             }
             else {
                displayCol = CTRL_COL2_X;
             }
-            DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, line.phi, line.off, 1, 1);
+/*          DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, line.phi, line.off, 1, 1); */
+            DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, angleSort.angleSum[i].phi, 32, 1, 1);
          }
       }
 
       /* Draw timing lines */
-      timing = FindGridTiming(&hough, &lineSort, &state);
+      timing = FindGridTiming(&hough, &angleSort, &state);
       if(state.displayDots == DmtxTrue) {
          DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW5_Y);
          DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW3_Y);
@@ -1096,107 +1103,135 @@ MarkHoughMaxima(struct HoughCache *hough)
  *
  */
 static void
-AddToAngleSort(struct HoughLineSort *stack, struct HoughLine line)
+AddToAngleSumSort(struct HoughAngleSumSort *sort, struct HoughAngleSum angleSum)
 {
    int i, startHere;
-   int dDiff, phiDiff;
+   int phiDiff;
    DmtxBoolean willGrow;
 
    /* Special case: first addition */
-   if(stack->count == 0) {
-      stack->lines[stack->count++] = line;
+   if(sort->count == 0) {
+      sort->angleSum[sort->count++] = angleSum;
       return;
    }
 
-   willGrow = (stack->count < stack->maxCount) ? DmtxTrue : DmtxFalse;
-   startHere = stack->count - 1; /* Sort normally starts at weakest element */
+   willGrow = (sort->count < ANGLE_SORT_MAX_COUNT) ? DmtxTrue : DmtxFalse;
+   startHere = sort->count - 1; /* Sort normally starts at weakest element */
 
-   /* If stack already has entry for this angle+offset (or close) then either:
+   /* If sort already has entry for this angle (or close) then either:
     *   a) Overwrite the old one without shifting (if stronger), or
     *   b) Reject the new one completely (if weaker)
     */
-   for(i = 0; i < stack->count; i++) {
-      phiDiff = abs(line.phi - stack->lines[i].phi);
+   for(i = 0; i < sort->count; i++) {
+      phiDiff = abs(angleSum.phi - sort->angleSum[i].phi);
 
-      /* If phiDiff spans the 0/180 deg boundary then offsets flip */
-      dDiff = (phiDiff > 119) ? abs(64 - line.off - stack->lines[i].off) :
-            abs(line.off - stack->lines[i].off);
-
-      if(dDiff < 3 && (phiDiff < 8 || phiDiff > 119)) {
-         if(line.mag > stack->lines[i].mag) {
-            startHere = i - 1;
-            willGrow = DmtxFalse;
-            stack->lines[i] = line;
-            break;
-         }
-         else {
+      if(phiDiff < 8 || phiDiff > 119) {
+         /* Similar angle is already represented with stronger magnitude */
+         if(angleSum.mag < sort->angleSum[i].mag) {
             return;
+         }
+         /* Found similar-but-weaker angle that will be overwritten */
+         else {
+            sort->angleSum[i] = angleSum;
+            willGrow = DmtxFalse; /* Non-growing re-sort required */
+            startHere = i - 1;
+            break;
          }
       }
    }
 
    /* Shift weak entries downward */
    for(i = startHere; i >= 0; i--) {
-      if(line.mag > stack->lines[i].mag) {
-         if(i + 1 < stack->maxCount)
-            stack->lines[i+1] = stack->lines[i];
-         stack->lines[i] = line;
+      if(angleSum.mag > sort->angleSum[i].mag) {
+         if(i + 1 < ANGLE_SORT_MAX_COUNT)
+            sort->angleSum[i+1] = sort->angleSum[i];
+         sort->angleSum[i] = angleSum;
       }
    }
 
    /* Count changes only if shift occurs */
    if(willGrow == DmtxTrue)
-      stack->count++;
+      sort->count++;
 }
 
 /**
  *
  *
  */
-static struct HoughLineSort
+static struct HoughAngleSumSort
 FindBestAngles(struct HoughCache *hough)
 {
-   int phiExtent, offExtent;
-   int phi, offset, idx;
-   int magBest;
-   struct HoughLine lineBest;
-   struct HoughLineSort lineSort;
+   int phi;
+   struct HoughAngleSumSort sort;
 
-   phiExtent = hough->phiExtent;
-   offExtent = hough->offExtent;
-
-   memset(&lineSort, 0x00, sizeof(struct HoughLineSort));
-   lineSort.maxCount = LINE_SORT_MAX;
+   memset(&sort, 0x00, sizeof(struct HoughAngleSumSort));
 
    /* Add strongest line at each angle to sort */
-   for(phi = 0; phi < phiExtent; phi++) {
+   for(phi = 0; phi < hough->phiExtent; phi++)
+      AddToAngleSumSort(&sort, GetAngleSumAtPhi(hough, phi));
 
-      magBest = hough->mag[phi]; /* i.e., [0 * phiExtent + line.phi] */
-      lineBest.phi = phi;
-      lineBest.off = 0;
-      lineBest.mag = magBest;
-
-      for(offset = 1; offset < offExtent; offset++) {
-         idx = offset * phiExtent + phi;
-         if(hough->isMax[idx] && hough->mag[idx] > magBest) {
-            magBest = hough->mag[idx];
-            lineBest.phi = phi;
-            lineBest.off = offset;
-            lineBest.mag = magBest;
-         }
-      }
-
-      AddToAngleSort(&lineSort, lineBest);
-   }
-
-   return lineSort;
+   return sort;
 }
 
 /**
+ *
+ *
+ */
+static void
+AddToMaximaSort(struct HoughMaximaSort *sort, int maximaMag)
+{
+   int i;
+
+   /* If new entry would be weakest (or only) one in list, then append */
+   if(sort->count == 0 || maximaMag < sort->mag[sort->count - 1]) {
+      if(sort->count + 1 < MAXIMA_SORT_MAX_COUNT)
+         sort->mag[sort->count++] = maximaMag;
+      return;
+   }
+
+   /* Otherwise shift the weaker entries downward */
+   for(i = sort->count - 1; i >= 0; i--) {
+      if(maximaMag > sort->mag[i]) {
+         if(i + 1 < MAXIMA_SORT_MAX_COUNT)
+            sort->mag[i+1] = sort->mag[i];
+         sort->mag[i] = maximaMag;
+      }
+   }
+}
+
+/**
+ *
+ *
+ */
+static struct HoughAngleSum
+GetAngleSumAtPhi(struct HoughCache *hough, int phi)
+{
+   int offset, i;
+   struct HoughAngleSum angleSum;
+   struct HoughMaximaSort sort;
+
+   memset(&sort, 0x00, sizeof(struct HoughMaximaSort));
+
+   for(offset = 0; offset < hough->offExtent; offset++) {
+      i = offset * hough->phiExtent + phi;
+      if(hough->isMax[i])
+         AddToMaximaSort(&sort, hough->mag[i]);
+   }
+
+   angleSum.phi = phi;
+   angleSum.mag = 0;
+   for(i = 0; i < 8; i++)
+      angleSum.mag += sort.mag[i];
+
+   return angleSum;
+}
+
+/**
+ *
  *
  */
 static struct Timing
-FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort, struct AppState *state)
+FindGridTiming(struct HoughCache *hough, struct HoughAngleSumSort *sort, struct AppState *state)
 {
 #define NFFT 64
    int x, y, fitMag, fitMax, fitOff;
@@ -1210,7 +1245,7 @@ FindGridTiming(struct HoughCache *hough, struct HoughLineSort *sort, struct AppS
 
    for(p = 0; p < 8; p++) {
 
-      phi = sort->lines[p].phi;
+      phi = sort->angleSum[p].phi;
 
       /* Load FFT input array */
       for(i = 0; i < 64; i++)
@@ -1605,19 +1640,6 @@ DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi,
    d1.Y = screenY + (scaledExtent - (int)(p1.Y + 0.5) - 1);
 
    lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
-}
-
-static void
-DrawPhiBox(SDL_Surface *screen, int extent, int screenX, int screenY, int phi, int d)
-{
-   Sint16 x1, y1, x2, y2;
-
-   x1 = screenX + phi - 2;
-   y1 = screenY + extent - d - 3;
-   x2 = x1 + 4;
-   y2 = y1 + 4;
-
-   rectangleColor(screen, x1, y1, x2, y2, 0xff0000ff);
 }
 
 static void
