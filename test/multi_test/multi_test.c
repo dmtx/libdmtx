@@ -82,6 +82,7 @@ struct UserOptions {
 };
 
 struct AppState {
+   int         adjust;
    int         windowWidth;
    int         windowHeight;
    int         activeExtent;
@@ -129,6 +130,8 @@ struct Timing {
    int shiftScaled;
    int periodScaled;
    double mag;
+   double up; /* temporary experiment */
+   double dn; /* temporary experiment */
 };
 
 struct TimingSort {
@@ -197,7 +200,7 @@ static struct VanishPointSort FindVanishPoints(struct HoughCache *hough);
 static void AddToMaximaSort(struct HoughMaximaSort *sort, int maximaMag);
 static struct VanishPointSum GetAngleSumAtPhi(struct HoughCache *hough, int phi);
 static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
-static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort);
+static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY);
@@ -446,9 +449,9 @@ main(int argc, char *argv[])
          DrawVanishingPoints(screen, vanishSort, CTRL_COL1_X, CTRL_ROW3_Y);
 
       /* Draw timing lines */
-      timingSort = FindGridTiming(&hough, &vanishSort);
+      timingSort = FindGridTiming(&hough, &vanishSort, &state);
       if(state.displayTiming == DmtxTrue) {
-         for(i = 0; i < 2; i++) {
+         for(i = 0; i < 1; i++) {
             DrawTimingDots(screen, timingSort.timing[i], CTRL_COL1_X, CTRL_ROW3_Y);
             DrawTimingLines(screen, timingSort.timing[i], 2, CTRL_COL1_X, CTRL_ROW4_Y);
          }
@@ -508,6 +511,7 @@ InitAppState(void)
 {
    struct AppState state;
 
+   state.adjust = DmtxTrue;
    state.windowWidth = 640;
    state.windowHeight = 453;
    state.activeExtent = 64;
@@ -560,6 +564,9 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
          switch(event->key.keysym.sym) {
             case SDLK_ESCAPE:
                state->quit = DmtxTrue;
+               break;
+            case SDLK_a:
+               state->adjust = (state->adjust == DmtxTrue) ? DmtxFalse : DmtxTrue;
                break;
             case SDLK_p:
                state->printValues = (state->printValues == DmtxTrue) ? DmtxFalse : DmtxTrue;
@@ -1249,9 +1256,9 @@ AddToTimingSort(struct TimingSort *sort, struct Timing timing)
  *
  */
 static struct TimingSort
-FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort)
+FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, struct AppState *state)
 {
-   int x, y, fitMag, fitMax, fitOff;
+   int x, y, yUnscaled, fitMag, fitMax, fitOff;
    int i, vSortIdx, phi;
    kiss_fftr_cfg   cfg = NULL;
    kiss_fft_scalar rin[NFFT];
@@ -1289,16 +1296,39 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort)
       }
 
       timing.angle = phi;
-      timing.scale = 10;
+      timing.scale = 1024;
       timing.periodScaled = (int)(((64*timing.scale)/maxIdx) + 0.5);
       timing.mag = mag[maxIdx];
+      if(maxIdx <= 8 || maxIdx >= 32) {
+         timing.up = 1.0;
+         timing.dn = 1.0;
+      }
+      else {
+         timing.up = mag[maxIdx] - mag[maxIdx-1];
+         timing.dn = mag[maxIdx] - mag[maxIdx+1];
+      }
 
-      /* Find best offset */
+      /* Recalculate periodScaled using experimental method */
+      if(maxIdx <= 7 || maxIdx >= 33) {
+         timing.periodScaled = (int)(((64.0*timing.scale)/maxIdx) + 0.5);
+      }
+      else {
+         if(state->adjust == DmtxTrue) {
+            double tmp = (5.0 * timing.up)/(timing.up+timing.dn) - 0.5;
+            timing.periodScaled = (int)(timing.scale * (64.0/(maxIdx + tmp)) + 0.5);
+         }
+         else {
+            timing.periodScaled = (int)(timing.scale * (64.0/maxIdx) + 0.5);
+         }
+      }
+
+      /* Find best offset -- XXX needs improvment; still shifted */
       fitOff = fitMax = 0;
       for(x = 0; x < timing.periodScaled; x++) {
          fitMag = 0;
          for(y = x; y < 64 * timing.scale; y += timing.periodScaled) {
-            fitMag += hough->mag[(y/timing.scale) * hough->phiExtent + timing.angle];
+            yUnscaled = y/timing.scale;
+            fitMag += hough->mag[yUnscaled * hough->phiExtent + timing.angle];
          }
          if(x == 0 || fitMag > fitMax) {
             fitMax = fitMag;
@@ -1309,7 +1339,10 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort)
 
       AddToTimingSort(&timingSort, timing);
    }
-
+{
+struct Timing timingTmp = timingSort.timing[0];
+fprintf(stdout, "%g %g %g\n", timingTmp.up, timingTmp.dn, timingTmp.up/(timingTmp.up+timingTmp.dn) - 0.5);
+}
    return timingSort;
 }
 
