@@ -1256,7 +1256,7 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort)
    kiss_fftr_cfg   cfg = NULL;
    kiss_fft_scalar rin[NFFT];
    kiss_fft_cpx    sout[NFFT/2+1];
-   kiss_fft_scalar maxMag, tmpMag;
+   kiss_fft_scalar mag[NFFT/2+1];
    int maxIdx;
    struct Timing timing;
    struct TimingSort timingSort;
@@ -1279,20 +1279,19 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort)
       free(cfg);
 
       /* Select best result */
-      maxIdx = maxMag = 0;
+      maxIdx = 7;
+      for(i = 0; i < 7; i++)
+         mag[i] = 0.0;
       for(i = 7; i < 33; i++) {
-         tmpMag = sout[i].r * sout[i].r + sout[i].i * sout[i].i;
-         if(i == 7 || tmpMag > maxMag) {
+         mag[i] = sout[i].r * sout[i].r + sout[i].i * sout[i].i;
+         if(mag[i] > mag[maxIdx])
             maxIdx = i;
-            maxMag = tmpMag;
-         }
       }
 
       timing.angle = phi;
-      timing.periodScaled = (int)((640.0/maxIdx) + 0.5);
-      timing.shiftScaled = 0;
       timing.scale = 10;
-      timing.mag = maxMag;
+      timing.periodScaled = (int)(((64*timing.scale)/maxIdx) + 0.5);
+      timing.mag = mag[maxIdx];
 
       /* Find best offset */
       fitOff = fitMax = 0;
