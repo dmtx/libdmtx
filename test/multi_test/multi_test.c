@@ -59,8 +59,10 @@ Contact: mblaughton@users.sourceforge.net
 #include "kiss_fftr.h"
 
 #define LOCAL_SIZE            64
-#define ANGLE_SORT_MAX_COUNT   8
 #define MAXIMA_SORT_MAX_COUNT  8
+#define ANGLE_SORT_MAX_COUNT   8
+#define TIMING_SORT_MAX_COUNT  8
+
 #define NFFT                  64 /* FFT input size */
 #define HOUGH_D_EXTENT        64
 #define HOUGH_PHI_EXTENT     128
@@ -106,23 +108,9 @@ struct HoughCache {
    unsigned int mag[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
 };
 
-struct Hough {
-   char isMax;
-   unsigned int mag;
-};
-
-struct HoughLine {
-   int off; /* Compacted Hough offset */
-   int phi; /* Hough angle */
-   int mag; /* Hough magnitude for this line */
-};
-
-struct Timing {
-   int mag;
-   int angle;
-   int scale;
-   int shiftScaled;
-   int periodScaled;
+struct HoughMaximaSort {
+   int count;
+   int mag[MAXIMA_SORT_MAX_COUNT];
 };
 
 struct VanishPointSum {
@@ -135,9 +123,17 @@ struct VanishPointSort {
    struct VanishPointSum vanishSum[ANGLE_SORT_MAX_COUNT];
 };
 
-struct HoughMaximaSort {
+struct Timing {
+   int angle;
+   int scale;
+   int shiftScaled;
+   int periodScaled;
+   double mag;
+};
+
+struct TimingSort {
    int count;
-   int mag[MAXIMA_SORT_MAX_COUNT];
+   struct Timing timing[TIMING_SORT_MAX_COUNT];
 };
 
 /* Scaled unit sin */
@@ -196,11 +192,12 @@ static double UncompactOffset(double d, int phiIdx, int extent);
 static void PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow, struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow);
 static void NormalizeHoughCache(struct HoughCache *hough, struct Flow *sFlow, struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow);
 static void MarkHoughMaxima(struct HoughCache *hough);
-static void AddToAngleSumSort(struct VanishPointSort *sort, struct VanishPointSum vanishSum);
+static void AddToVanishPointSort(struct VanishPointSort *sort, struct VanishPointSum vanishSum);
 static struct VanishPointSort FindVanishPoints(struct HoughCache *hough);
 static void AddToMaximaSort(struct HoughMaximaSort *sort, int maximaMag);
 static struct VanishPointSum GetAngleSumAtPhi(struct HoughCache *hough, int phi);
-static struct Timing FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
+static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
+static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY);
@@ -236,7 +233,7 @@ main(int argc, char *argv[])
    struct Flow        vFlow[LOCAL_SIZE * LOCAL_SIZE];
    struct HoughCache  hough;
    struct VanishPointSort vanishSort;
-   struct Timing      timing;
+   struct TimingSort      timingSort;
    SDL_Rect           clipRect;
    SDL_Surface       *local, *localTmp;
 
@@ -435,6 +432,7 @@ main(int argc, char *argv[])
       BlitFlowCache(screen, vFlow, maxFlowMag, CTRL_COL2_X, CTRL_ROW1_Y);
       BlitFlowCache(screen, sFlow, maxFlowMag, CTRL_COL1_X, CTRL_ROW2_Y);
       BlitFlowCache(screen, bFlow, maxFlowMag, CTRL_COL2_X, CTRL_ROW2_Y);
+      BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW4_Y);
 
       /* Find relative size of hough quadrants */
       PopulateHoughCache(&hough, sFlow, bFlow, hFlow, vFlow);
@@ -442,37 +440,18 @@ main(int argc, char *argv[])
       BlitHoughCache(screen, &hough, CTRL_COL1_X, CTRL_ROW3_Y);
       MarkHoughMaxima(&hough);
 
-      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW4_Y);
-      BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW4_Y);
-      BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW5_Y);
-
       /* Find vanishing points */
       vanishSort = FindVanishPoints(&hough);
       if(state.displayVanish == DmtxTrue)
          DrawVanishingPoints(screen, vanishSort, CTRL_COL1_X, CTRL_ROW3_Y);
 
-/*
-      if(state.displayTiming == DmtxTrue) {
-         for(i = 0; i < vanishSort.count; i++) {
-
-            if(i < 2) {
-               displayCol = CTRL_COL1_X;
-               DrawLine(screen, 64, displayCol, CTRL_ROW5_Y, line.phi, line.d, 2, 1);
-            }
-            else {
-               displayCol = CTRL_COL2_X;
-            }
-            DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, line.phi, line.off, 1, 1);
-            DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, vanishSort.vanishSum[i].phi, 32, 1, 1);
-         }
-      }
-*/
-
       /* Draw timing lines */
-      timing = FindGridTiming(&hough, &vanishSort, &state);
+      timingSort = FindGridTiming(&hough, &vanishSort);
       if(state.displayTiming == DmtxTrue) {
-         DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW3_Y);
-         DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW5_Y);
+         for(i = 0; i < 2; i++) {
+            DrawTimingDots(screen, timingSort.timing[i], CTRL_COL1_X, CTRL_ROW3_Y);
+            DrawTimingLines(screen, timingSort.timing[i], 2, CTRL_COL1_X, CTRL_ROW4_Y);
+         }
       }
 
       SDL_Flip(screen);
@@ -533,7 +512,7 @@ InitAppState(void)
    state.windowHeight = 453;
    state.activeExtent = 64;
    state.displayVanish = DmtxFalse;
-   state.displayTiming = DmtxFalse;
+   state.displayTiming = DmtxTrue;
    state.printValues = DmtxFalse;
    state.imageLocX = 0;
    state.imageLocY = 0;
@@ -1110,7 +1089,7 @@ MarkHoughMaxima(struct HoughCache *hough)
  *
  */
 static void
-AddToAngleSumSort(struct VanishPointSort *sort, struct VanishPointSum vanishSum)
+AddToVanishPointSort(struct VanishPointSort *sort, struct VanishPointSum vanishSum)
 {
    int i, startHere;
    int phiDiff;
@@ -1175,7 +1154,7 @@ FindVanishPoints(struct HoughCache *hough)
 
    /* Add strongest line at each angle to sort */
    for(phi = 0; phi < hough->phiExtent; phi++)
-      AddToAngleSumSort(&sort, GetAngleSumAtPhi(hough, phi));
+      AddToVanishPointSort(&sort, GetAngleSumAtPhi(hough, phi));
 
    return sort;
 }
@@ -1240,86 +1219,99 @@ GetAngleSumAtPhi(struct HoughCache *hough, int phi)
  *
  *
  */
-static struct Timing
-FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state)
+static void
+AddToTimingSort(struct TimingSort *sort, struct Timing timing)
+{
+   int i;
+
+   /* If new entry would be weakest (or only) one in list, then append */
+   if(sort->count == 0 || timing.mag < sort->timing[sort->count - 1].mag) {
+      if(sort->count + 1 < TIMING_SORT_MAX_COUNT)
+         sort->timing[sort->count++] = timing;
+      return;
+   }
+
+   /* Otherwise shift the weaker entries downward */
+   for(i = sort->count - 1; i >= 0; i--) {
+      if(timing.mag > sort->timing[i].mag) {
+         if(i + 1 < TIMING_SORT_MAX_COUNT)
+            sort->timing[i+1] = sort->timing[i];
+         sort->timing[i] = timing;
+      }
+   }
+
+   if(sort->count < TIMING_SORT_MAX_COUNT)
+      sort->count++;
+}
+
+/**
+ *
+ *
+ */
+static struct TimingSort
+FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort)
 {
    int x, y, fitMag, fitMax, fitOff;
-   int i, sortIdx, phi;
-   struct Timing tBest;
+   int i, vSortIdx, phi;
    kiss_fftr_cfg   cfg = NULL;
    kiss_fft_scalar rin[NFFT];
    kiss_fft_cpx    sout[NFFT/2+1];
-   kiss_fft_scalar maxReal, bestReal, tmp, maxPhase;
-   int maxIdx, bestIdx;
+   kiss_fft_scalar maxMag, tmpMag;
+   int maxIdx;
+   struct Timing timing;
+   struct TimingSort timingSort;
 
-   for(sortIdx = 0; sortIdx < sort->count; sortIdx++) {
+   memset(&timingSort, 0x00, sizeof(struct TimingSort));
 
-      phi = sort->vanishSum[sortIdx].phi;
+   for(vSortIdx = 0; vSortIdx < vanishSort->count; vSortIdx++) {
+
+      phi = vanishSort->vanishSum[vSortIdx].phi;
 
       /* Load FFT input array */
-      for(i = 0; i < hough->offExtent; i++)
+      assert(NFFT == hough->offExtent);
+      for(i = 0; i < NFFT; i++)
          rin[i] = hough->mag[i * hough->phiExtent + phi];
 
       /* Execute FFT */
+      memset(sout, 0x00, sizeof(kiss_fft_cpx) * (NFFT/2 + 1));
       cfg = kiss_fftr_alloc(NFFT, 0, 0, 0);
       kiss_fftr(cfg, rin, sout);
       free(cfg);
 
       /* Select best result */
-      maxIdx = 6;
-      maxReal = sout[maxIdx].r * sout[maxIdx].r + sout[maxIdx].i * sout[maxIdx].i;
+      maxIdx = maxMag = 0;
       for(i = 7; i < 33; i++) {
-         tmp = sout[i].r * sout[i].r + sout[i].i * sout[i].i;
-         if(tmp > maxReal) {
+         tmpMag = sout[i].r * sout[i].r + sout[i].i * sout[i].i;
+         if(i == 7 || tmpMag > maxMag) {
             maxIdx = i;
-            maxReal = tmp;
-            maxPhase = atan2(sout[i].i, sout[i].r);
+            maxMag = tmpMag;
          }
       }
 
-      if(sortIdx == 0 || maxReal > bestReal) {
-         bestIdx = maxIdx;
-         bestReal = maxReal;
-         tBest.angle = phi;
-         tBest.periodScaled = (int)((640.0/maxIdx) + 0.5);
-         tBest.shiftScaled = 0;
-         tBest.scale = 10;
-         tBest.mag = 0;
+      timing.angle = phi;
+      timing.periodScaled = (int)((640.0/maxIdx) + 0.5);
+      timing.shiftScaled = 0;
+      timing.scale = 10;
+      timing.mag = maxMag;
+
+      /* Find best offset */
+      fitOff = fitMax = 0;
+      for(x = 0; x < timing.periodScaled; x++) {
+         fitMag = 0;
+         for(y = x; y < 64 * timing.scale; y += timing.periodScaled) {
+            fitMag += hough->mag[(y/timing.scale) * hough->phiExtent + timing.angle];
+         }
+         if(x == 0 || fitMag > fitMax) {
+            fitMax = fitMag;
+            fitOff = x;
+         }
       }
+      timing.shiftScaled = fitOff;
+
+      AddToTimingSort(&timingSort, timing);
    }
 
-   /* Find best offset */
-   for(x = 0; x < tBest.periodScaled; x++) {
-      fitMag = 0;
-      for(y = x; y < 64 * tBest.scale; y += tBest.periodScaled) {
-         fitMag += hough->mag[(y/tBest.scale) * hough->phiExtent + tBest.angle];
-      }
-      if(fitMag > fitMax) {
-         fitMax = fitMag;
-         fitOff = x;
-      }
-   }
-   tBest.shiftScaled = fitOff;
-
-   if(state->printValues == DmtxTrue) {
-      /* Load FFT input array */
-      for(i = 0; i < 64; i++)
-         rin[i] = hough->mag[i * hough->phiExtent + tBest.angle];
-
-      /* Execute FFT */
-      cfg = kiss_fftr_alloc(NFFT, 0, 0, 0);
-      kiss_fftr(cfg, rin, sout);
-      free(cfg);
-
-      for(i = 0; i < 33; i++) {
-         fprintf(stdout, "%2d  %8.1f  %8.1f  %8.1f\n", i, sout[i].r, sout[i].i,
-               sqrt(sout[i].r * sout[i].r + sout[i].i * sout[i].i));
-      }
-      fprintf(stdout, "\n");
-      state->printValues = DmtxFalse;
-   }
-
-   return tBest;
+   return timingSort;
 }
 
 /**
