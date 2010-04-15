@@ -58,19 +58,22 @@ Contact: mblaughton@users.sourceforge.net
 #include "../../dmtx.h"
 #include "kiss_fftr.h"
 
-#define LOCAL_SIZE   64
-#define ANGLE_SORT_MAX_COUNT 8
-#define MAXIMA_SORT_MAX_COUNT 8
+#define LOCAL_SIZE            64
+#define ANGLE_SORT_MAX_COUNT   8
+#define MAXIMA_SORT_MAX_COUNT  8
+#define NFFT                  64 /* FFT input size */
+#define HOUGH_D_EXTENT        64
+#define HOUGH_PHI_EXTENT     128
 
-#define CTRL_COL1_X 511
-#define CTRL_COL2_X 576
-
-#define CTRL_ROW1_Y   0
-#define CTRL_ROW2_Y  65
-#define CTRL_ROW3_Y 130
-#define CTRL_ROW4_Y 195
-#define CTRL_ROW5_Y 260
-#define CTRL_ROW6_Y 325
+/* Layout constants */
+#define CTRL_COL1_X          511
+#define CTRL_COL2_X          576
+#define CTRL_ROW1_Y            0
+#define CTRL_ROW2_Y           65
+#define CTRL_ROW3_Y          130
+#define CTRL_ROW4_Y          195
+#define CTRL_ROW5_Y          260
+#define CTRL_ROW6_Y          325
 
 struct UserOptions {
    const char *imagePath;
@@ -80,8 +83,9 @@ struct AppState {
    int         windowWidth;
    int         windowHeight;
    int         activeExtent;
-   int         displayDots;
-   int         printValues;
+   DmtxBoolean displayVanish;
+   DmtxBoolean displayTiming;
+   DmtxBoolean printValues;
    Sint16      imageLocX;
    Sint16      imageLocY;
    Uint8       leftButton;
@@ -94,9 +98,6 @@ struct AppState {
 struct Flow {
    int mag;
 };
-
-#define HOUGH_D_EXTENT 64
-#define HOUGH_PHI_EXTENT 128
 
 struct HoughCache {
    int offExtent;
@@ -124,14 +125,14 @@ struct Timing {
    int periodScaled;
 };
 
-struct HoughAngleSum {
+struct VanishPointSum {
    int phi;
    int mag;
 };
 
-struct HoughAngleSumSort {
+struct VanishPointSort {
    int count;
-   struct HoughAngleSum angleSum[ANGLE_SORT_MAX_COUNT];
+   struct VanishPointSum vanishSum[ANGLE_SORT_MAX_COUNT];
 };
 
 struct HoughMaximaSort {
@@ -195,11 +196,11 @@ static double UncompactOffset(double d, int phiIdx, int extent);
 static void PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow, struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow);
 static void NormalizeHoughCache(struct HoughCache *hough, struct Flow *sFlow, struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow);
 static void MarkHoughMaxima(struct HoughCache *hough);
-static void AddToAngleSumSort(struct HoughAngleSumSort *sort, struct HoughAngleSum angleSum);
-static struct HoughAngleSumSort FindBestAngles(struct HoughCache *hough);
+static void AddToAngleSumSort(struct VanishPointSort *sort, struct VanishPointSum vanishSum);
+static struct VanishPointSort FindVanishPoints(struct HoughCache *hough);
 static void AddToMaximaSort(struct HoughMaximaSort *sort, int maximaMag);
-static struct HoughAngleSum GetAngleSumAtPhi(struct HoughCache *hough, int phi);
-static struct Timing FindGridTiming(struct HoughCache *hough, struct HoughAngleSumSort *sort, struct AppState *state);
+static struct VanishPointSum GetAngleSumAtPhi(struct HoughCache *hough, int phi);
+static struct Timing FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY);
@@ -211,6 +212,7 @@ static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVect
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale, int dScale);
 static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenX, int screenY);
+static void DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenX, int screenY);
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY);
 
 int
@@ -225,7 +227,7 @@ main(int argc, char *argv[])
    Uint32             bgColorB, bgColorK;
    int                i, j;
    int                pixelCount, maxFlowMag;
-   int                displayCol;
+/* int                displayCol; */
    DmtxImage         *img;
    DmtxDecode        *dec;
    struct Flow        sFlow[LOCAL_SIZE * LOCAL_SIZE];
@@ -233,7 +235,7 @@ main(int argc, char *argv[])
    struct Flow        hFlow[LOCAL_SIZE * LOCAL_SIZE];
    struct Flow        vFlow[LOCAL_SIZE * LOCAL_SIZE];
    struct HoughCache  hough;
-   struct HoughAngleSumSort angleSort;
+   struct VanishPointSort vanishSort;
    struct Timing      timing;
    SDL_Rect           clipRect;
    SDL_Surface       *local, *localTmp;
@@ -438,34 +440,39 @@ main(int argc, char *argv[])
       PopulateHoughCache(&hough, sFlow, bFlow, hFlow, vFlow);
       NormalizeHoughCache(&hough, sFlow, bFlow, hFlow, vFlow);
       BlitHoughCache(screen, &hough, CTRL_COL1_X, CTRL_ROW3_Y);
-
       MarkHoughMaxima(&hough);
-      angleSort = FindBestAngles(&hough);
 
       BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW4_Y);
       BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW4_Y);
       BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW5_Y);
 
-      if(state.displayDots == DmtxTrue) {
-         for(i = 0; i < angleSort.count; i++) {
+      /* Find vanishing points */
+      vanishSort = FindVanishPoints(&hough);
+      if(state.displayVanish == DmtxTrue)
+         DrawVanishingPoints(screen, vanishSort, CTRL_COL1_X, CTRL_ROW3_Y);
+
+/*
+      if(state.displayTiming == DmtxTrue) {
+         for(i = 0; i < vanishSort.count; i++) {
 
             if(i < 2) {
                displayCol = CTRL_COL1_X;
-/*             DrawLine(screen, 64, displayCol, CTRL_ROW5_Y, line.phi, line.d, 2, 1); */
+               DrawLine(screen, 64, displayCol, CTRL_ROW5_Y, line.phi, line.d, 2, 1);
             }
             else {
                displayCol = CTRL_COL2_X;
             }
-/*          DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, line.phi, line.off, 1, 1); */
-            DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, angleSort.angleSum[i].phi, 32, 1, 1);
+            DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, line.phi, line.off, 1, 1);
+            DrawLine(screen, 64, displayCol, CTRL_ROW4_Y, vanishSort.vanishSum[i].phi, 32, 1, 1);
          }
       }
+*/
 
       /* Draw timing lines */
-      timing = FindGridTiming(&hough, &angleSort, &state);
-      if(state.displayDots == DmtxTrue) {
-         DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW5_Y);
+      timing = FindGridTiming(&hough, &vanishSort, &state);
+      if(state.displayTiming == DmtxTrue) {
          DrawTimingDots(screen, timing, CTRL_COL1_X, CTRL_ROW3_Y);
+         DrawTimingLines(screen, timing, 2, CTRL_COL1_X, CTRL_ROW5_Y);
       }
 
       SDL_Flip(screen);
@@ -525,7 +532,8 @@ InitAppState(void)
    state.windowWidth = 640;
    state.windowHeight = 453;
    state.activeExtent = 64;
-   state.displayDots = DmtxTrue;
+   state.displayVanish = DmtxFalse;
+   state.displayTiming = DmtxFalse;
    state.printValues = DmtxFalse;
    state.imageLocX = 0;
    state.imageLocY = 0;
@@ -574,11 +582,14 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
             case SDLK_ESCAPE:
                state->quit = DmtxTrue;
                break;
-            case SDLK_d:
-               state->displayDots = (state->displayDots == DmtxTrue) ? DmtxFalse : DmtxTrue;
-               break;
             case SDLK_p:
                state->printValues = (state->printValues == DmtxTrue) ? DmtxFalse : DmtxTrue;
+               break;
+            case SDLK_t:
+               state->displayTiming = (state->displayTiming == DmtxTrue) ? DmtxFalse : DmtxTrue;
+               break;
+            case SDLK_v:
+               state->displayVanish = (state->displayVanish == DmtxTrue) ? DmtxFalse : DmtxTrue;
                break;
             default:
                break;
@@ -1074,19 +1085,15 @@ NormalizeHoughCache(struct HoughCache *hough,
 static void
 MarkHoughMaxima(struct HoughCache *hough)
 {
-   int x, y;
+   int phi, offset;
    int idx0, idx1;
-   int width, height;
-
-   width = hough->phiExtent;
-   height = hough->offExtent;
 
    /* Find local maxima for each angle */
-   for(x = 0; x < width; x++) {
-      for(y = 0; y < height - 1; y++) {
+   for(phi = 0; phi < hough->phiExtent; phi++) {
+      for(offset = 0; offset < hough->offExtent - 1; offset++) {
 
-         idx0 = y * width + x;
-         idx1 = idx0 + width;
+         idx0 = offset * hough->phiExtent + phi;
+         idx1 = idx0 + hough->phiExtent;
 
          if(hough->mag[idx0] == 0)
             hough->isMax[idx0] = 0;
@@ -1103,7 +1110,7 @@ MarkHoughMaxima(struct HoughCache *hough)
  *
  */
 static void
-AddToAngleSumSort(struct HoughAngleSumSort *sort, struct HoughAngleSum angleSum)
+AddToAngleSumSort(struct VanishPointSort *sort, struct VanishPointSum vanishSum)
 {
    int i, startHere;
    int phiDiff;
@@ -1111,7 +1118,7 @@ AddToAngleSumSort(struct HoughAngleSumSort *sort, struct HoughAngleSum angleSum)
 
    /* Special case: first addition */
    if(sort->count == 0) {
-      sort->angleSum[sort->count++] = angleSum;
+      sort->vanishSum[sort->count++] = vanishSum;
       return;
    }
 
@@ -1123,16 +1130,16 @@ AddToAngleSumSort(struct HoughAngleSumSort *sort, struct HoughAngleSum angleSum)
     *   b) Reject the new one completely (if weaker)
     */
    for(i = 0; i < sort->count; i++) {
-      phiDiff = abs(angleSum.phi - sort->angleSum[i].phi);
+      phiDiff = abs(vanishSum.phi - sort->vanishSum[i].phi);
 
       if(phiDiff < 8 || phiDiff > 119) {
          /* Similar angle is already represented with stronger magnitude */
-         if(angleSum.mag < sort->angleSum[i].mag) {
+         if(vanishSum.mag < sort->vanishSum[i].mag) {
             return;
          }
          /* Found similar-but-weaker angle that will be overwritten */
          else {
-            sort->angleSum[i] = angleSum;
+            sort->vanishSum[i] = vanishSum;
             willGrow = DmtxFalse; /* Non-growing re-sort required */
             startHere = i - 1;
             break;
@@ -1142,10 +1149,10 @@ AddToAngleSumSort(struct HoughAngleSumSort *sort, struct HoughAngleSum angleSum)
 
    /* Shift weak entries downward */
    for(i = startHere; i >= 0; i--) {
-      if(angleSum.mag > sort->angleSum[i].mag) {
+      if(vanishSum.mag > sort->vanishSum[i].mag) {
          if(i + 1 < ANGLE_SORT_MAX_COUNT)
-            sort->angleSum[i+1] = sort->angleSum[i];
-         sort->angleSum[i] = angleSum;
+            sort->vanishSum[i+1] = sort->vanishSum[i];
+         sort->vanishSum[i] = vanishSum;
       }
    }
 
@@ -1158,13 +1165,13 @@ AddToAngleSumSort(struct HoughAngleSumSort *sort, struct HoughAngleSum angleSum)
  *
  *
  */
-static struct HoughAngleSumSort
-FindBestAngles(struct HoughCache *hough)
+static struct VanishPointSort
+FindVanishPoints(struct HoughCache *hough)
 {
    int phi;
-   struct HoughAngleSumSort sort;
+   struct VanishPointSort sort;
 
-   memset(&sort, 0x00, sizeof(struct HoughAngleSumSort));
+   memset(&sort, 0x00, sizeof(struct VanishPointSort));
 
    /* Add strongest line at each angle to sort */
    for(phi = 0; phi < hough->phiExtent; phi++)
@@ -1197,17 +1204,20 @@ AddToMaximaSort(struct HoughMaximaSort *sort, int maximaMag)
          sort->mag[i] = maximaMag;
       }
    }
+
+   if(sort->count < MAXIMA_SORT_MAX_COUNT)
+      sort->count++;
 }
 
 /**
  *
  *
  */
-static struct HoughAngleSum
+static struct VanishPointSum
 GetAngleSumAtPhi(struct HoughCache *hough, int phi)
 {
    int offset, i;
-   struct HoughAngleSum angleSum;
+   struct VanishPointSum vanishSum;
    struct HoughMaximaSort sort;
 
    memset(&sort, 0x00, sizeof(struct HoughMaximaSort));
@@ -1218,12 +1228,12 @@ GetAngleSumAtPhi(struct HoughCache *hough, int phi)
          AddToMaximaSort(&sort, hough->mag[i]);
    }
 
-   angleSum.phi = phi;
-   angleSum.mag = 0;
+   vanishSum.phi = phi;
+   vanishSum.mag = 0;
    for(i = 0; i < 8; i++)
-      angleSum.mag += sort.mag[i];
+      vanishSum.mag += sort.mag[i];
 
-   return angleSum;
+   return vanishSum;
 }
 
 /**
@@ -1231,11 +1241,10 @@ GetAngleSumAtPhi(struct HoughCache *hough, int phi)
  *
  */
 static struct Timing
-FindGridTiming(struct HoughCache *hough, struct HoughAngleSumSort *sort, struct AppState *state)
+FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state)
 {
-#define NFFT 64
    int x, y, fitMag, fitMax, fitOff;
-   int i, p, phi;
+   int i, sortIdx, phi;
    struct Timing tBest;
    kiss_fftr_cfg   cfg = NULL;
    kiss_fft_scalar rin[NFFT];
@@ -1243,12 +1252,12 @@ FindGridTiming(struct HoughCache *hough, struct HoughAngleSumSort *sort, struct 
    kiss_fft_scalar maxReal, bestReal, tmp, maxPhase;
    int maxIdx, bestIdx;
 
-   for(p = 0; p < 8; p++) {
+   for(sortIdx = 0; sortIdx < sort->count; sortIdx++) {
 
-      phi = sort->angleSum[p].phi;
+      phi = sort->vanishSum[sortIdx].phi;
 
       /* Load FFT input array */
-      for(i = 0; i < 64; i++)
+      for(i = 0; i < hough->offExtent; i++)
          rin[i] = hough->mag[i * hough->phiExtent + phi];
 
       /* Execute FFT */
@@ -1257,9 +1266,9 @@ FindGridTiming(struct HoughCache *hough, struct HoughAngleSumSort *sort, struct 
       free(cfg);
 
       /* Select best result */
-      maxIdx = 8;
+      maxIdx = 6;
       maxReal = sout[maxIdx].r * sout[maxIdx].r + sout[maxIdx].i * sout[maxIdx].i;
-      for(i = 9; i < 33; i++) {
+      for(i = 7; i < 33; i++) {
          tmp = sout[i].r * sout[i].r + sout[i].i * sout[i].i;
          if(tmp > maxReal) {
             maxIdx = i;
@@ -1268,7 +1277,7 @@ FindGridTiming(struct HoughCache *hough, struct HoughAngleSumSort *sort, struct 
          }
       }
 
-      if(phi == 0 || maxReal > bestReal) {
+      if(sortIdx == 0 || maxReal > bestReal) {
          bestIdx = maxIdx;
          bestReal = maxReal;
          tBest.angle = phi;
@@ -1600,7 +1609,8 @@ DrawActiveBorder(SDL_Surface *screen, int activeExtent)
 }
 
 static void
-DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale, int dScale)
+DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
+      int phi, double d, int displayScale, int dScale)
 {
    double phiRad;
    double dScaled;
@@ -1642,8 +1652,13 @@ DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi,
    lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
 }
 
+/**
+ *
+ *
+ */
 static void
-DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenX, int screenY)
+DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale,
+      int screenX, int screenY)
 {
    int i;
    double period;
@@ -1653,6 +1668,35 @@ DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int
    for(i = -64; i <= 64; i++) {
       DrawLine(screen, 64, screenX, screenY, timing.angle,
             timing.shiftScaled + timing.periodScaled * i, 2, timing.scale);
+   }
+}
+
+/**
+ *
+ *
+ */
+static void
+DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenX, int screenY)
+{
+   int sortIdx;
+   DmtxPixelLoc d0, d1;
+   Uint32 rgba;
+
+   for(sortIdx = 0; sortIdx < sort.count; sortIdx++) {
+      d0.X = d1.X = screenX + sort.vanishSum[sortIdx].phi;
+      d0.Y = screenY;
+      d1.Y = d0.Y + 64;
+
+      if(sortIdx < 2)
+         rgba = 0xff0000ff;
+      else if(sortIdx < 4)
+         rgba = 0x007700ff;
+      else if(sortIdx < 6)
+         rgba = 0x000077ff;
+      else
+         rgba = 0x000000ff;
+
+      lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, rgba);
    }
 }
 
