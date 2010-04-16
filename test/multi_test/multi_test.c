@@ -130,8 +130,6 @@ struct Timing {
    int shiftScaled;
    int periodScaled;
    double mag;
-   double up; /* temporary experiment */
-   double dn; /* temporary experiment */
 };
 
 struct TimingSort {
@@ -451,7 +449,7 @@ main(int argc, char *argv[])
       /* Draw timing lines */
       timingSort = FindGridTiming(&hough, &vanishSort, &state);
       if(state.displayTiming == DmtxTrue) {
-         for(i = 0; i < 1; i++) {
+         for(i = 0; i < 2; i++) {
             DrawTimingDots(screen, timingSort.timing[i], CTRL_COL1_X, CTRL_ROW3_Y);
             DrawTimingLines(screen, timingSort.timing[i], 2, CTRL_COL1_X, CTRL_ROW4_Y);
          }
@@ -1299,28 +1297,8 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
       timing.scale = 1024;
       timing.periodScaled = (int)(((64*timing.scale)/maxIdx) + 0.5);
       timing.mag = mag[maxIdx];
-      if(maxIdx <= 8 || maxIdx >= 32) {
-         timing.up = 1.0;
-         timing.dn = 1.0;
-      }
-      else {
-         timing.up = mag[maxIdx] - mag[maxIdx-1];
-         timing.dn = mag[maxIdx] - mag[maxIdx+1];
-      }
 
-      /* Recalculate periodScaled using experimental method */
-      if(maxIdx <= 7 || maxIdx >= 33) {
-         timing.periodScaled = (int)(((64.0*timing.scale)/maxIdx) + 0.5);
-      }
-      else {
-         if(state->adjust == DmtxTrue) {
-            double tmp = (5.0 * timing.up)/(timing.up+timing.dn) - 0.5;
-            timing.periodScaled = (int)(timing.scale * (64.0/(maxIdx + tmp)) + 0.5);
-         }
-         else {
-            timing.periodScaled = (int)(timing.scale * (64.0/maxIdx) + 0.5);
-         }
-      }
+      timing.periodScaled = (int)(((64.0*timing.scale)/maxIdx) + 0.5);
 
       /* Find best offset -- XXX needs improvment; still shifted */
       fitOff = fitMax = 0;
@@ -1339,10 +1317,7 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
 
       AddToTimingSort(&timingSort, timing);
    }
-{
-struct Timing timingTmp = timingSort.timing[0];
-fprintf(stdout, "%g %g %g\n", timingTmp.up, timingTmp.dn, timingTmp.up/(timingTmp.up+timingTmp.dn) - 0.5);
-}
+
    return timingSort;
 }
 
@@ -1504,7 +1479,8 @@ BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenX
       SDL_BlitSurface(active, NULL, screen, &clipRect);
    }
    else {
-      src = zoomSurface(active, 2.0, 2.0, 1 /* smoothing on */);
+      /* Smoothing option ruins proportions -- leave off */
+      src = zoomSurface(active, 2.0, 2.0, 0 /* smoothing */);
       SDL_BlitSurface(src, NULL, screen, &clipRect);
       SDL_FreeSurface(src);
    }
