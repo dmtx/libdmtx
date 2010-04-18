@@ -40,7 +40,7 @@ main(int argc, char *argv[])
    UserOptions opt;
    DmtxEncode *enc;
    unsigned char codeBuffer[DMTXWRITE_BUFFER_SIZE];
-   int codeBufferSize = sizeof codeBuffer;
+   int codeBufferSize;
 
    opt = GetDefaultOptions();
 
@@ -66,7 +66,7 @@ main(int argc, char *argv[])
    dmtxEncodeSetProp(enc, DmtxPropSizeRequest, opt.sizeIdx);
 
    /* Read input data into buffer */
-   ReadInputData(&codeBufferSize, codeBuffer, &opt);
+   codeBufferSize = ReadInputData(codeBuffer, &opt);
 
    /* Create barcode image */
    if(opt.mosaic == DmtxTrue)
@@ -317,10 +317,12 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
  *
  *
  */
-static void
-ReadInputData(int *codeBufferSize, unsigned char *codeBuffer, UserOptions *opt)
+static size_t
+ReadInputData(unsigned char *codeBuffer, UserOptions *opt)
 {
    int fd;
+   ssize_t bytesRead;
+   size_t bytesReadTotal;
 
    /* Open file or stdin for reading */
    fd = (opt->inputPath == NULL) ? 0 : open(opt->inputPath, O_RDONLY);
@@ -328,13 +330,22 @@ ReadInputData(int *codeBufferSize, unsigned char *codeBuffer, UserOptions *opt)
       FatalError(EX_IOERR, _("Error while opening file \"%s\""), opt->inputPath);
 
    /* Read input contents into buffer */
-   *codeBufferSize = read(fd, codeBuffer, DMTXWRITE_BUFFER_SIZE);
-   if(*codeBufferSize == DMTXWRITE_BUFFER_SIZE)
-      FatalError(EX_DATAERR, _("Message to be encoded is too large"));
+   for(bytesReadTotal = 0;; bytesReadTotal += bytesRead) {
+      bytesRead = read(fd, codeBuffer + bytesReadTotal, DMTXWRITE_BUFFER_SIZE);
+      if(bytesRead == 0)
+         break;
+
+      if(bytesRead == -1)
+         FatalError(EX_IOERR, _("Message read error"));
+      else if(bytesReadTotal == DMTXWRITE_BUFFER_SIZE)
+         FatalError(EX_DATAERR, _("Message to be encoded is too large"));
+   }
 
    /* Close file only if not stdin */
    if(fd != 0 && close(fd) != 0)
       FatalError(EX_IOERR, _("Error while closing file"));
+
+   return bytesReadTotal;
 }
 
 /**

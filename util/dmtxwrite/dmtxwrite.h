@@ -79,7 +79,7 @@ typedef struct {
 
 static UserOptions GetDefaultOptions(void);
 static DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[]);
-static void ReadInputData(int *codeBuffer, unsigned char *codeBufferSize, UserOptions *opt);
+static size_t ReadInputData(unsigned char *codeBufferSize, UserOptions *opt);
 static void ShowUsage(int status);
 static void CleanupMagick(MagickWand **wand, int magickError);
 static void ListImageFormats(void);
