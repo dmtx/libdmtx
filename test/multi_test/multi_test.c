@@ -224,7 +224,6 @@ main(int argc, char *argv[])
    Uint32             bgColorB, bgColorK;
    int                i, j;
    int                pixelCount, maxFlowMag;
-/* int                displayCol; */
    DmtxImage         *img;
    DmtxDecode        *dec;
    struct Flow        sFlow[LOCAL_SIZE * LOCAL_SIZE];
@@ -368,30 +367,6 @@ main(int argc, char *argv[])
          SDL_UnlockSurface(localTmp);
          SDL_UnlockSurface(local);
       }
-      else if(state.activeExtent == 16) {
-         Uint8 localBpp;
-         Uint8 *writePixel, *readTL;
-
-         /* first blit, then expand */
-         clipRect.x = (screen->w - state.activeExtent)/2 - imageLoc.x;
-         clipRect.y = (screen->h - state.activeExtent)/2 - imageLoc.y;
-         clipRect.w = LOCAL_SIZE;
-         clipRect.h = LOCAL_SIZE;
-         SDL_BlitSurface(picture, &clipRect, localTmp, NULL);
-
-         localBpp = local->format->BytesPerPixel;
-         SDL_LockSurface(local);
-         SDL_LockSurface(localTmp);
-         for(i = 0; i < 64; i++) {
-            for(j = 0; j < 64; j++) {
-               readTL = (Uint8 *)localTmp->pixels + ((i/4) * 64 + (j/4)) * localBpp;
-               writePixel = (Uint8 *)local->pixels + ((i * 64 + j) * localBpp);
-               memcpy(writePixel, readTL, localBpp);
-            }
-         }
-         SDL_UnlockSurface(localTmp);
-         SDL_UnlockSurface(local);
-      }
 
       /* Start with blank canvas */
       SDL_FillRect(screen, NULL, bgColorB);
@@ -433,6 +408,7 @@ main(int argc, char *argv[])
       BlitFlowCache(screen, sFlow, maxFlowMag, CTRL_COL1_X, CTRL_ROW2_Y);
       BlitFlowCache(screen, bFlow, maxFlowMag, CTRL_COL2_X, CTRL_ROW2_Y);
       BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW4_Y);
+      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW6_Y);
 
       /* Find relative size of hough quadrants */
       PopulateHoughCache(&hough, sFlow, bFlow, hFlow, vFlow);
@@ -451,6 +427,7 @@ main(int argc, char *argv[])
          for(i = 0; i < 2; i++) {
             DrawTimingDots(screen, timingSort.timing[i], CTRL_COL1_X, CTRL_ROW3_Y);
             DrawTimingLines(screen, timingSort.timing[i], 2, CTRL_COL1_X, CTRL_ROW4_Y);
+            DrawTimingLines(screen, timingSort.timing[i], 1, CTRL_COL1_X, CTRL_ROW6_Y);
          }
       }
 
@@ -577,6 +554,22 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
             case SDLK_v:
                state->displayVanish = (state->displayVanish == DmtxTrue) ? DmtxFalse : DmtxTrue;
                break;
+            case SDLK_UP:
+               state->imageLocY--;
+               nudgeRequired = DmtxTrue;
+               break;
+            case SDLK_DOWN:
+               state->imageLocY++;
+               nudgeRequired = DmtxTrue;
+               break;
+            case SDLK_RIGHT:
+               state->imageLocX++;
+               nudgeRequired = DmtxTrue;
+               break;
+            case SDLK_LEFT:
+               state->imageLocX--;
+               nudgeRequired = DmtxTrue;
+               break;
             default:
                break;
          }
@@ -591,7 +584,7 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
                state->rightButton = event->button.state;
                break;
             case SDL_BUTTON_WHEELDOWN:
-               if(state->activeExtent > 16)
+               if(state->activeExtent > 32)
                   state->activeExtent /= 2;
                break;
             case SDL_BUTTON_WHEELUP:
@@ -733,7 +726,7 @@ PopulateFlowCache(struct Flow *sFlow, struct Flow *bFlow,
    for(y = yBeg; y <= yEnd; y++) {
 
       /* Pixel data first pixel = top-left; everything else bottom-left */
-      offsetMd = ((height - y - 1) * rowSizeBytes) + bytesPerPixel + colorPlane;
+      offsetMd = ((height - y - 1) * rowSizeBytes) + colorPlane;
       offsetHi = offsetMd - rowSizeBytes;
       offsetLo = offsetMd + rowSizeBytes;
 
@@ -1275,9 +1268,9 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
       phi = vanishSort->vanishSum[vSortIdx].phi;
 
       /* Load FFT input array */
-      assert(NFFT == hough->offExtent);
-      for(i = 0; i < NFFT; i++)
-         rin[i] = hough->mag[i * hough->phiExtent + phi];
+      for(i = 0; i < NFFT; i++) {
+         rin[i] = (i < 64) ? hough->mag[i * hough->phiExtent + phi] : 0;
+      }
 
       /* Execute FFT */
       memset(sout, 0x00, sizeof(kiss_fft_cpx) * (NFFT/2 + 1));
@@ -1286,21 +1279,20 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
       free(cfg);
 
       /* Select best result */
-      maxIdx = 7;
-      for(i = 0; i < 7; i++)
+      maxIdx = NFFT/8-1;
+      for(i = 0; i < NFFT/8-1; i++)
          mag[i] = 0.0;
-      for(i = 7; i < 33; i++) {
+      for(i = NFFT/8-1; i < NFFT/2+1; i++) {
          mag[i] = sout[i].r * sout[i].r + sout[i].i * sout[i].i;
          if(mag[i] > mag[maxIdx])
             maxIdx = i;
       }
 
       timing.phi = phi;
-      timing.period = 64.0 / maxIdx;
+      timing.period = NFFT / (double)maxIdx;
       timing.mag = mag[maxIdx];
 
-      /* Find best offset -- XXX still not perfect */
-      /* ink_cartridge.jpg (221, 155) shows vertical edge offset problem */
+      /* Find best offset */
       fitOff = fitMax = 0;
       attempts = (int)timing.period + 1;
       for(x = 0; x < attempts; x++) {
@@ -1315,14 +1307,8 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
             fitMax = fitMag;
             fitOff = x;
          }
-/*
-if(state->printValues == DmtxTrue) {
-   fprintf(stdout, "x[%d]: %d\n", x, fitMag);
-}
-*/
       }
       timing.shift = fitOff;
-/*state->printValues = DmtxFalse;*/
 
       AddToTimingSort(&timingSort, timing);
    }
@@ -1488,7 +1474,7 @@ BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenX
       SDL_BlitSurface(active, NULL, screen, &clipRect);
    }
    else {
-      /* Smoothing option ruins proportions -- leave off */
+      /* Smoothing option distorts symbol proportions -- DO NOT USE */
       src = zoomSurface(active, 2.0, 2.0, 0 /* smoothing */);
       SDL_BlitSurface(src, NULL, screen, &clipRect);
       SDL_FreeSurface(src);
@@ -1672,7 +1658,8 @@ DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale,
    int i;
 
    for(i = -64; i <= 64; i++) {
-      DrawLine(screen, 64, screenX, screenY, timing.phi, timing.shift + (timing.period * i), 2);
+      DrawLine(screen, 64, screenX, screenY, timing.phi,
+            timing.shift + (timing.period * i), displayScale);
    }
 }
 
