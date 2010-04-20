@@ -127,8 +127,8 @@ struct VanishPointSort {
 struct Timing {
    int angle;
    int scale;
-   int shiftScaled;
-   int periodScaled;
+   double shift;
+   double period;
    double mag;
 };
 
@@ -208,7 +208,7 @@ static void PlotPixel(SDL_Surface *surface, int x, int y);
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
-static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale, int dScale);
+static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
 static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenX, int screenY);
 static void DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenX, int screenY);
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY);
@@ -1295,16 +1295,16 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
 
       timing.angle = phi;
       timing.scale = 1024;
-      timing.periodScaled = (int)(((64.0*timing.scale)/maxIdx) + 0.5);
+      timing.period = 64.0 / maxIdx;
       timing.mag = mag[maxIdx];
 
       /* Find best offset -- XXX still not perfect */
       fitOff = fitMax = 0;
-      attempts = (timing.periodScaled / timing.scale) + 1;
+      attempts = (int)timing.period + 1;
       for(x = 0; x < attempts; x++) {
          fitMag = 0;
          for(iter = 0; ; iter++) {
-            y = x + (iter * timing.periodScaled)/timing.scale;
+            y = x + (int)(iter * timing.period);
             if(y >= 64)
                break;
             fitMag += hough->mag[y * hough->phiExtent + timing.angle];
@@ -1314,7 +1314,7 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
             fitOff = x;
          }
       }
-      timing.shiftScaled = fitOff * timing.scale;
+      timing.shift = fitOff;
 
       AddToTimingSort(&timingSort, timing);
    }
@@ -1611,7 +1611,7 @@ DrawActiveBorder(SDL_Surface *screen, int activeExtent)
 
 static void
 DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
-      int phi, double d, int displayScale, int dScale)
+      int phi, double d, int displayScale)
 {
    double phiRad;
    double dScaled;
@@ -1635,7 +1635,7 @@ DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
    rLine.v.X = -rStart.v.Y;
    rLine.v.Y = rStart.v.X;
 
-   dScaled = UncompactOffset((double)d/dScale, phi, LOCAL_SIZE) * displayScale;
+   dScaled = UncompactOffset(d, phi, LOCAL_SIZE) * displayScale;
 
    dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
 
@@ -1662,13 +1662,9 @@ DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale,
       int screenX, int screenY)
 {
    int i;
-   double period;
-
-   period = (double)timing.periodScaled/timing.scale;
 
    for(i = -64; i <= 64; i++) {
-      DrawLine(screen, 64, screenX, screenY, timing.angle,
-            timing.shiftScaled + timing.periodScaled * i, 2, timing.scale);
+      DrawLine(screen, 64, screenX, screenY, timing.angle, timing.shift + (timing.period * i), 2);
    }
 }
 
@@ -1704,11 +1700,13 @@ DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screen
 static void
 DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY)
 {
-   int dScaled;
+   int i, d;
 
-   for(dScaled = 0; dScaled < 64 * timing.scale; dScaled++) {
-      if(abs(dScaled - timing.shiftScaled) % timing.periodScaled == 0) {
-         PlotPixel(screen, screenX + timing.angle, screenY + 63 - dScaled/timing.scale);
-      }
+   for(i = 0; i < 64; i++) {
+      d = (int)(i * timing.period + timing.shift);
+      if(d >= 64)
+         break;
+
+      PlotPixel(screen, screenX + timing.angle, screenY + 63 - d);
    }
 }
