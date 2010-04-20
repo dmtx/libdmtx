@@ -1256,7 +1256,7 @@ AddToTimingSort(struct TimingSort *sort, struct Timing timing)
 static struct TimingSort
 FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, struct AppState *state)
 {
-   int x, y, yUnscaled, fitMag, fitMax, fitOff;
+   int x, y, fitMag, fitMax, fitOff, attempts, iter;
    int i, vSortIdx, phi;
    kiss_fftr_cfg   cfg = NULL;
    kiss_fft_scalar rin[NFFT];
@@ -1295,25 +1295,26 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
 
       timing.angle = phi;
       timing.scale = 1024;
-      timing.periodScaled = (int)(((64*timing.scale)/maxIdx) + 0.5);
+      timing.periodScaled = (int)(((64.0*timing.scale)/maxIdx) + 0.5);
       timing.mag = mag[maxIdx];
 
-      timing.periodScaled = (int)(((64.0*timing.scale)/maxIdx) + 0.5);
-
-      /* Find best offset -- XXX needs improvment; still shifted */
+      /* Find best offset -- XXX still not perfect */
       fitOff = fitMax = 0;
-      for(x = 0; x < timing.periodScaled; x++) {
+      attempts = (timing.periodScaled / timing.scale) + 1;
+      for(x = 0; x < attempts; x++) {
          fitMag = 0;
-         for(y = x; y < 64 * timing.scale; y += timing.periodScaled) {
-            yUnscaled = y/timing.scale;
-            fitMag += hough->mag[yUnscaled * hough->phiExtent + timing.angle];
+         for(iter = 0; ; iter++) {
+            y = x + (iter * timing.periodScaled)/timing.scale;
+            if(y >= 64)
+               break;
+            fitMag += hough->mag[y * hough->phiExtent + timing.angle];
          }
          if(x == 0 || fitMag > fitMax) {
             fitMax = fitMag;
             fitOff = x;
          }
       }
-      timing.shiftScaled = fitOff;
+      timing.shiftScaled = fitOff * timing.scale;
 
       AddToTimingSort(&timingSort, timing);
    }
