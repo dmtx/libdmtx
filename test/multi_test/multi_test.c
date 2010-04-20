@@ -125,8 +125,7 @@ struct VanishPointSort {
 };
 
 struct Timing {
-   int angle;
-   int scale;
+   int phi;
    double shift;
    double period;
    double mag;
@@ -568,6 +567,9 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
                break;
             case SDLK_p:
                state->printValues = (state->printValues == DmtxTrue) ? DmtxFalse : DmtxTrue;
+               break;
+            case SDLK_l:
+               fprintf(stdout, "Image Location: (%d, %d)\n", state->imageLocX,  state->imageLocY);
                break;
             case SDLK_t:
                state->displayTiming = (state->displayTiming == DmtxTrue) ? DmtxFalse : DmtxTrue;
@@ -1293,12 +1295,12 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
             maxIdx = i;
       }
 
-      timing.angle = phi;
-      timing.scale = 1024;
+      timing.phi = phi;
       timing.period = 64.0 / maxIdx;
       timing.mag = mag[maxIdx];
 
       /* Find best offset -- XXX still not perfect */
+      /* ink_cartridge.jpg (221, 155) shows vertical edge offset problem */
       fitOff = fitMax = 0;
       attempts = (int)timing.period + 1;
       for(x = 0; x < attempts; x++) {
@@ -1307,14 +1309,20 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
             y = x + (int)(iter * timing.period);
             if(y >= 64)
                break;
-            fitMag += hough->mag[y * hough->phiExtent + timing.angle];
+            fitMag += hough->mag[y * hough->phiExtent + timing.phi];
          }
          if(x == 0 || fitMag > fitMax) {
             fitMax = fitMag;
             fitOff = x;
          }
+/*
+if(state->printValues == DmtxTrue) {
+   fprintf(stdout, "x[%d]: %d\n", x, fitMag);
+}
+*/
       }
       timing.shift = fitOff;
+/*state->printValues = DmtxFalse;*/
 
       AddToTimingSort(&timingSort, timing);
    }
@@ -1664,7 +1672,7 @@ DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale,
    int i;
 
    for(i = -64; i <= 64; i++) {
-      DrawLine(screen, 64, screenX, screenY, timing.angle, timing.shift + (timing.period * i), 2);
+      DrawLine(screen, 64, screenX, screenY, timing.phi, timing.shift + (timing.period * i), 2);
    }
 }
 
@@ -1707,6 +1715,6 @@ DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int scree
       if(d >= 64)
          break;
 
-      PlotPixel(screen, screenX + timing.angle, screenY + 63 - d);
+      PlotPixel(screen, screenX + timing.phi, screenY + 63 - d);
    }
 }
