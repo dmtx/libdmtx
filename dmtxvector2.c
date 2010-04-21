@@ -175,9 +175,9 @@ dmtxDistanceAlongRay2(const DmtxRay2 *r, const DmtxVector2 *q)
 {
    DmtxVector2 vSubTmp;
 
-/* Assumes that v is a unit vector */
 #ifdef DEBUG
-   if(fabs(1.0 - dmtxVector2Mag(v)) > DmtxAlmostZero) {
+   /* Assumes that v is a unit vector */
+   if(fabs(1.0 - dmtxVector2Mag(&(r->v))) > DmtxAlmostZero) {
       ; /* XXX big error goes here */
    }
 #endif
