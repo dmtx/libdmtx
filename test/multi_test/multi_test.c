@@ -68,14 +68,16 @@ Contact: mblaughton@users.sourceforge.net
 #define HOUGH_PHI_EXTENT     128
 
 /* Layout constants */
-#define CTRL_COL1_X          511
-#define CTRL_COL2_X          576
+#define CTRL_COL1_X          380
+#define CTRL_COL2_X          445
+#define CTRL_COL3_X          510
+#define CTRL_COL4_X          575
 #define CTRL_ROW1_Y            0
 #define CTRL_ROW2_Y           65
 #define CTRL_ROW3_Y          130
 #define CTRL_ROW4_Y          195
 #define CTRL_ROW5_Y          260
-#define CTRL_ROW6_Y          325
+#define CTRL_ROW6_Y          324
 
 struct UserOptions {
    const char *imagePath;
@@ -264,7 +266,7 @@ main(int argc, char *argv[])
    NudgeImage(state.windowWidth, picture->w, &state.imageLocX);
    NudgeImage(state.windowHeight, picture->h, &state.imageLocY);
 
-   bgColorB = SDL_MapRGBA(screen->format, 0, 0, 50, 255);
+   bgColorB = SDL_MapRGBA(screen->format, 100, 100, 100, 255);
    bgColorK = SDL_MapRGBA(screen->format, 0, 0, 0, 255);
 
    /* Create surface to hold image pixels to be scanned */
@@ -372,8 +374,8 @@ main(int argc, char *argv[])
       SDL_FillRect(screen, NULL, bgColorB);
 
       /* Draw image to main canvas area */
-      clipRect.w = 510;
-      clipRect.h = 453;
+      clipRect.w = CTRL_COL1_X - 1;
+      clipRect.h = state.windowHeight;
       clipRect.x = 0;
       clipRect.y = 0;
       SDL_SetClipRect(screen, &clipRect);
@@ -403,18 +405,26 @@ main(int argc, char *argv[])
             maxFlowMag = abs(bFlow[i].mag);
       }
 
-      BlitFlowCache(screen, hFlow, maxFlowMag, CTRL_COL1_X, CTRL_ROW1_Y);
-      BlitFlowCache(screen, vFlow, maxFlowMag, CTRL_COL2_X, CTRL_ROW1_Y);
-      BlitFlowCache(screen, sFlow, maxFlowMag, CTRL_COL1_X, CTRL_ROW2_Y);
+      BlitFlowCache(screen, vFlow, maxFlowMag, CTRL_COL1_X, CTRL_ROW2_Y);
       BlitFlowCache(screen, bFlow, maxFlowMag, CTRL_COL2_X, CTRL_ROW2_Y);
-      BlitActiveRegion(screen, local, 2, CTRL_COL1_X, CTRL_ROW4_Y);
-      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW6_Y);
+      BlitFlowCache(screen, hFlow, maxFlowMag, CTRL_COL3_X, CTRL_ROW2_Y);
+      BlitFlowCache(screen, sFlow, maxFlowMag, CTRL_COL4_X, CTRL_ROW2_Y);
+
+      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW1_Y);
+      BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW1_Y);
+      BlitActiveRegion(screen, local, 1, CTRL_COL3_X, CTRL_ROW1_Y);
+      BlitActiveRegion(screen, local, 1, CTRL_COL4_X, CTRL_ROW1_Y);
+
+      /* XXX Placeholder for normalized view */
+      BlitActiveRegion(screen, local, 2, CTRL_COL1_X + 1, CTRL_ROW4_Y);
 
       /* Find relative size of hough quadrants */
       PopulateHoughCache(&hough, sFlow, bFlow, hFlow, vFlow);
       NormalizeHoughCache(&hough, sFlow, bFlow, hFlow, vFlow);
-      BlitHoughCache(screen, &hough, CTRL_COL1_X, CTRL_ROW3_Y);
+      BlitHoughCache(screen, &hough, CTRL_COL1_X + 1, CTRL_ROW3_Y);
+
       MarkHoughMaxima(&hough);
+      BlitHoughCache(screen, &hough, CTRL_COL3_X, CTRL_ROW3_Y);
 
       /* Find vanishing points */
       vanishSort = FindVanishPoints(&hough);
@@ -425,11 +435,14 @@ main(int argc, char *argv[])
       timingSort = FindGridTiming(&hough, &vanishSort, &state);
       if(state.displayTiming == DmtxTrue) {
          for(i = 0; i < 2; i++) {
+            if(i >= timingSort.count)
+               continue;
             DrawTimingDots(screen, timingSort.timing[i], CTRL_COL1_X, CTRL_ROW3_Y);
             DrawTimingLines(screen, timingSort.timing[i], 2, CTRL_COL1_X, CTRL_ROW4_Y);
-            DrawTimingLines(screen, timingSort.timing[i], 1, CTRL_COL1_X, CTRL_ROW6_Y);
          }
       }
+
+      BlitActiveRegion(screen, local, 2, CTRL_COL3_X, CTRL_ROW4_Y);
 
       SDL_Flip(screen);
    }
@@ -487,7 +500,7 @@ InitAppState(void)
 
    state.adjust = DmtxTrue;
    state.windowWidth = 640;
-   state.windowHeight = 453;
+   state.windowHeight = 480;
    state.activeExtent = 64;
    state.displayVanish = DmtxFalse;
    state.displayTiming = DmtxTrue;
@@ -1223,6 +1236,9 @@ static void
 AddToTimingSort(struct TimingSort *sort, struct Timing timing)
 {
    int i;
+
+   if(timing.mag < 1.0) /* XXX or some minimum threshold */
+      return;
 
    /* If new entry would be weakest (or only) one in list, then append */
    if(sort->count == 0 || timing.mag < sort->timing[sort->count - 1].mag) {
