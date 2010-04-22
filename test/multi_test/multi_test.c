@@ -138,6 +138,11 @@ struct TimingSort {
    struct Timing timing[TIMING_SORT_MAX_COUNT];
 };
 
+struct FitRegion {
+   DmtxMatrix3 raw2fit;
+   DmtxMatrix3 fit2raw;
+};
+
 /* Scaled unit sin */
 static int uSin128[] = {
        0,    25,    50,    75,   100,   125,   150,   175,
@@ -200,6 +205,9 @@ static void AddToMaximaSort(struct HoughMaximaSort *sort, int maximaMag);
 static struct VanishPointSum GetAngleSumAtPhi(struct HoughCache *hough, int phi);
 static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
 static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
+static DmtxRay2 HoughLineToRay2(int phi, double d);
+static DmtxPixelLoc Vector2ToPixelLoc(DmtxVector2 v);
+static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *screen);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY);
@@ -237,6 +245,8 @@ main(int argc, char *argv[])
    struct TimingSort      timingSort;
    SDL_Rect           clipRect;
    SDL_Surface       *local, *localTmp;
+   struct FitRegion   normal;
+   DmtxPassFail       err;
 
    opt = GetDefaultOptions();
 
@@ -414,8 +424,6 @@ main(int argc, char *argv[])
       BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW1_Y);
       BlitActiveRegion(screen, local, 1, CTRL_COL3_X, CTRL_ROW1_Y);
       BlitActiveRegion(screen, local, 1, CTRL_COL4_X, CTRL_ROW1_Y);
-
-      /* XXX Placeholder for normalized view */
       BlitActiveRegion(screen, local, 2, CTRL_COL1_X + 1, CTRL_ROW4_Y);
 
       /* Find relative size of hough quadrants */
@@ -442,7 +450,10 @@ main(int argc, char *argv[])
          }
       }
 
-      BlitActiveRegion(screen, local, 2, CTRL_COL3_X, CTRL_ROW4_Y);
+      /* Normalize region */
+      err = NormalizeRegion(&normal, &timingSort, screen);
+/*    DrawNormalizedRegion(); */
+/*    BlitActiveRegion(screen, local, 2, CTRL_COL3_X, CTRL_ROW4_Y); */
 
       SDL_Flip(screen);
    }
@@ -1295,10 +1306,10 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
       free(cfg);
 
       /* Select best result */
-      maxIdx = NFFT/8-1;
-      for(i = 0; i < NFFT/8-1; i++)
+      maxIdx = NFFT/9-1;
+      for(i = 0; i < NFFT/9-1; i++)
          mag[i] = 0.0;
-      for(i = NFFT/8-1; i < NFFT/2+1; i++) {
+      for(i = NFFT/9-1; i < NFFT/2+1; i++) {
          mag[i] = sout[i].r * sout[i].r + sout[i].i * sout[i].i;
          if(mag[i] > mag[maxIdx])
             maxIdx = i;
@@ -1330,6 +1341,104 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
    }
 
    return timingSort;
+}
+
+/**
+ *
+ *
+ */
+static DmtxRay2
+HoughLineToRay2(int phi, double d)
+{
+   double phiRad;
+   double dScaled;
+   DmtxRay2 rStart, rLine;
+
+   memset(&rStart, 0x00, sizeof(DmtxRay2));
+   memset(&rLine, 0x00, sizeof(DmtxRay2));
+
+   rStart.p.X = rStart.p.Y = 0.0;
+
+   phiRad = phi * M_PI/128.0;
+
+   rStart.v.X = cos(phiRad);
+   rStart.v.Y = sin(phiRad);
+
+   rLine.v.X = -rStart.v.Y;
+   rLine.v.Y = rStart.v.X;
+
+   dScaled = UncompactOffset(d, phi, LOCAL_SIZE);
+
+   dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
+
+   return rLine;
+}
+
+/**
+ *
+ *
+ */
+static DmtxPixelLoc
+Vector2ToPixelLoc(DmtxVector2 v)
+{
+   DmtxPixelLoc p;
+
+   p.X = (int)(v.X + 0.5);
+   p.Y = (int)(v.Y + 0.5);
+
+   return p;
+}
+
+/**
+ *
+ *
+ */
+static DmtxPassFail
+NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *screen)
+{
+   int i;
+   DmtxRay2 hLines[4];
+   DmtxVector2 p[4];
+   DmtxPixelLoc l[4];
+   DmtxPassFail err;
+
+   /* Convert extreme Hough points to lines in image space */
+   hLines[0] = HoughLineToRay2(sort->timing[0].phi, 0.0);
+   hLines[1] = HoughLineToRay2(sort->timing[1].phi, 0.0);
+   hLines[2] = HoughLineToRay2(sort->timing[0].phi, 63.0);
+   hLines[3] = HoughLineToRay2(sort->timing[1].phi, 63.0);
+
+   err = dmtxRay2Intersect(&p[0], &hLines[0], &hLines[1]);
+   if(err == DmtxFail)
+      return DmtxFail;
+
+   err = dmtxRay2Intersect(&p[1], &hLines[1], &hLines[2]);
+   if(err == DmtxFail)
+      return DmtxFail;
+
+   err = dmtxRay2Intersect(&p[2], &hLines[2], &hLines[3]);
+   if(err == DmtxFail)
+      return DmtxFail;
+
+   err = dmtxRay2Intersect(&p[3], &hLines[3], &hLines[0]);
+   if(err == DmtxFail)
+      return DmtxFail;
+
+   for(i = 0; i < 4; i++) {
+      l[i] = Vector2ToPixelLoc(p[i]);
+      l[i].X += 287;
+      l[i].Y = 271 - l[i].Y;
+   }
+
+   lineColor(screen, l[0].X, l[0].Y, l[1].X, l[1].Y, 0xff0000ff);
+   lineColor(screen, l[1].X, l[1].Y, l[2].X, l[2].Y, 0xff0000ff);
+   lineColor(screen, l[2].X, l[2].Y, l[3].X, l[3].Y, 0xff0000ff);
+   lineColor(screen, l[3].X, l[3].Y, l[0].X, l[0].Y, 0xff0000ff);
+
+   dmtxMatrix3Identity(normal->raw2fit);
+   dmtxMatrix3Identity(normal->fit2raw);
+
+   return DmtxPass;
 }
 
 /**
@@ -1623,31 +1732,18 @@ static void
 DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
       int phi, double d, int displayScale)
 {
-   double phiRad;
-   double dScaled;
    int scaledExtent;
    DmtxVector2 bb0, bb1;
    DmtxVector2 p0, p1;
-   DmtxRay2 rStart, rLine;
+   DmtxRay2 rLine;
    DmtxPixelLoc d0, d1;
 
    scaledExtent = baseExtent * displayScale;
    bb0.X = bb0.Y = 0.0;
    bb1.X = bb1.Y = scaledExtent - 1;
 
-   rStart.p.X = rStart.p.Y = 0.0;
-
-   phiRad = phi * M_PI/128.0;
-
-   rStart.v.X = cos(phiRad);
-   rStart.v.Y = sin(phiRad);
-
-   rLine.v.X = -rStart.v.Y;
-   rLine.v.Y = rStart.v.X;
-
-   dScaled = UncompactOffset(d, phi, LOCAL_SIZE) * displayScale;
-
-   dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
+   rLine = HoughLineToRay2(phi, d);
+   dmtxVector2ScaleBy(&rLine.p, (double)displayScale);
 
    p0.X = p0.Y = p1.X = p1.Y = 0.0;
 
