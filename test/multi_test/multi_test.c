@@ -210,17 +210,17 @@ static DmtxPixelLoc Vector2ToPixelLoc(DmtxVector2 v);
 static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *screen);
 
 /* Process visualization functions */
-static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY);
-static void BlitHoughCache(SDL_Surface *screen, struct HoughCache *hough, int screenX, int screenY);
-static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenX, int screenY);
+static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenY, int screenX);
+static void BlitHoughCache(SDL_Surface *screen, struct HoughCache *hough, int screenY, int screenX);
+static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
 static void PlotPixel(SDL_Surface *surface, int x, int y);
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
-static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenX, int screenY);
-static void DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenX, int screenY);
-static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY);
+static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenY, int screenX);
+static void DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenY, int screenX);
+static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int screenX);
 
 int
 main(int argc, char *argv[])
@@ -415,45 +415,45 @@ main(int argc, char *argv[])
             maxFlowMag = abs(bFlow[i].mag);
       }
 
-      BlitFlowCache(screen, vFlow, maxFlowMag, CTRL_COL1_X, CTRL_ROW2_Y);
-      BlitFlowCache(screen, bFlow, maxFlowMag, CTRL_COL2_X, CTRL_ROW2_Y);
-      BlitFlowCache(screen, hFlow, maxFlowMag, CTRL_COL3_X, CTRL_ROW2_Y);
-      BlitFlowCache(screen, sFlow, maxFlowMag, CTRL_COL4_X, CTRL_ROW2_Y);
+      BlitActiveRegion(screen, local, 1, CTRL_ROW1_Y, CTRL_COL1_X);
+      BlitActiveRegion(screen, local, 1, CTRL_ROW1_Y, CTRL_COL2_X);
+      BlitActiveRegion(screen, local, 1, CTRL_ROW1_Y, CTRL_COL3_X);
+      BlitActiveRegion(screen, local, 1, CTRL_ROW1_Y, CTRL_COL4_X);
 
-      BlitActiveRegion(screen, local, 1, CTRL_COL1_X, CTRL_ROW1_Y);
-      BlitActiveRegion(screen, local, 1, CTRL_COL2_X, CTRL_ROW1_Y);
-      BlitActiveRegion(screen, local, 1, CTRL_COL3_X, CTRL_ROW1_Y);
-      BlitActiveRegion(screen, local, 1, CTRL_COL4_X, CTRL_ROW1_Y);
-      BlitActiveRegion(screen, local, 2, CTRL_COL1_X + 1, CTRL_ROW4_Y);
+      BlitFlowCache(screen, vFlow, maxFlowMag, CTRL_ROW2_Y, CTRL_COL1_X);
+      BlitFlowCache(screen, bFlow, maxFlowMag, CTRL_ROW2_Y, CTRL_COL2_X);
+      BlitFlowCache(screen, hFlow, maxFlowMag, CTRL_ROW2_Y, CTRL_COL3_X);
+      BlitFlowCache(screen, sFlow, maxFlowMag, CTRL_ROW2_Y, CTRL_COL4_X);
 
       /* Find relative size of hough quadrants */
       PopulateHoughCache(&hough, sFlow, bFlow, hFlow, vFlow);
       NormalizeHoughCache(&hough, sFlow, bFlow, hFlow, vFlow);
-      BlitHoughCache(screen, &hough, CTRL_COL1_X + 1, CTRL_ROW3_Y);
+      BlitHoughCache(screen, &hough, CTRL_ROW3_Y, CTRL_COL1_X);
 
       MarkHoughMaxima(&hough);
-      BlitHoughCache(screen, &hough, CTRL_COL3_X, CTRL_ROW3_Y);
+      BlitHoughCache(screen, &hough, CTRL_ROW4_Y, CTRL_COL1_X);
 
       /* Find vanishing points */
       vanishSort = FindVanishPoints(&hough);
       if(state.displayVanish == DmtxTrue)
-         DrawVanishingPoints(screen, vanishSort, CTRL_COL1_X, CTRL_ROW3_Y);
+         DrawVanishingPoints(screen, vanishSort, CTRL_ROW3_Y, CTRL_COL1_X);
 
       /* Draw timing lines */
+      BlitActiveRegion(screen, local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
       timingSort = FindGridTiming(&hough, &vanishSort, &state);
       if(state.displayTiming == DmtxTrue) {
          for(i = 0; i < 2; i++) {
             if(i >= timingSort.count)
                continue;
-            DrawTimingDots(screen, timingSort.timing[i], CTRL_COL1_X, CTRL_ROW3_Y);
-            DrawTimingLines(screen, timingSort.timing[i], 2, CTRL_COL1_X, CTRL_ROW4_Y);
+            DrawTimingDots(screen, timingSort.timing[i], CTRL_ROW3_Y, CTRL_COL1_X);
+            DrawTimingLines(screen, timingSort.timing[i], 2, CTRL_ROW3_Y, CTRL_COL3_X);
          }
       }
 
       /* Normalize region */
       err = NormalizeRegion(&normal, &timingSort, screen);
 /*    DrawNormalizedRegion(); */
-/*    BlitActiveRegion(screen, local, 2, CTRL_COL3_X, CTRL_ROW4_Y); */
+/*    BlitActiveRegion(screen, local, 2, CTRL_ROW4_Y, CTRL_COL3_X); */
 
       SDL_Flip(screen);
    }
@@ -1445,7 +1445,7 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *
  *
  */
 static void
-BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenX, int screenY)
+BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenY, int screenX)
 {
    int row, col;
    unsigned char rgb[3];
@@ -1510,7 +1510,7 @@ BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int s
  *
  */
 static void
-BlitHoughCache(SDL_Surface *screen, struct HoughCache *hough, int screenX, int screenY)
+BlitHoughCache(SDL_Surface *screen, struct HoughCache *hough, int screenY, int screenX)
 {
    int row, col;
    int width, height;
@@ -1585,7 +1585,7 @@ BlitHoughCache(SDL_Surface *screen, struct HoughCache *hough, int screenX, int s
 }
 
 static void
-BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenX, int screenY)
+BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX)
 {
    SDL_Surface *src;
    SDL_Rect clipRect;
@@ -1765,7 +1765,7 @@ DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
  */
 static void
 DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale,
-      int screenX, int screenY)
+      int screenY, int screenX)
 {
    int i;
 
@@ -1780,7 +1780,7 @@ DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale,
  *
  */
 static void
-DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenX, int screenY)
+DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenY, int screenX)
 {
    int sortIdx;
    DmtxPixelLoc d0, d1;
@@ -1805,7 +1805,7 @@ DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screen
 }
 
 static void
-DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenX, int screenY)
+DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int screenX)
 {
    int i, d;
 
