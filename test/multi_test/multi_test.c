@@ -76,7 +76,7 @@ Contact: mblaughton@users.sourceforge.net
 #define CTRL_ROW2_Y           65
 #define CTRL_ROW3_Y          130
 #define CTRL_ROW4_Y          195
-#define CTRL_ROW5_Y          260
+#define CTRL_ROW5_Y          259
 #define CTRL_ROW6_Y          324
 
 struct UserOptions {
@@ -206,8 +206,8 @@ static struct VanishPointSum GetAngleSumAtPhi(struct HoughCache *hough, int phi)
 static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
 static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
-static DmtxPixelLoc Vector2ToPixelLoc(DmtxVector2 v);
-static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *screen);
+/*static DmtxPixelLoc Vector2ToPixelLoc(DmtxVector2 v);*/
+static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenY, int screenX);
@@ -221,6 +221,7 @@ static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int scree
 static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenY, int screenX);
 static void DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenY, int screenX);
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int screenX);
+static void DrawNormalizedRegion(SDL_Surface *screen, struct FitRegion *normal, int screenY, int screenX);
 
 int
 main(int argc, char *argv[])
@@ -273,7 +274,7 @@ main(int argc, char *argv[])
    }
 
    screen = SetWindowSize(state.windowWidth, state.windowHeight);
-   NudgeImage(state.windowWidth, picture->w, &state.imageLocX);
+   NudgeImage(CTRL_COL1_X, picture->w, &state.imageLocX);
    NudgeImage(state.windowHeight, picture->h, &state.imageLocY);
 
    bgColorB = SDL_MapRGBA(screen->format, 100, 100, 100, 255);
@@ -428,10 +429,10 @@ main(int argc, char *argv[])
       /* Find relative size of hough quadrants */
       PopulateHoughCache(&hough, sFlow, bFlow, hFlow, vFlow);
       NormalizeHoughCache(&hough, sFlow, bFlow, hFlow, vFlow);
-      BlitHoughCache(screen, &hough, CTRL_ROW3_Y, CTRL_COL1_X);
+      BlitHoughCache(screen, &hough, CTRL_ROW3_Y, CTRL_COL1_X + 1);
 
       MarkHoughMaxima(&hough);
-      BlitHoughCache(screen, &hough, CTRL_ROW4_Y, CTRL_COL1_X);
+      BlitHoughCache(screen, &hough, CTRL_ROW4_Y - 1, CTRL_COL1_X + 1);
 
       /* Find vanishing points */
       vanishSort = FindVanishPoints(&hough);
@@ -451,9 +452,9 @@ main(int argc, char *argv[])
       }
 
       /* Normalize region */
-      err = NormalizeRegion(&normal, &timingSort, screen);
-/*    DrawNormalizedRegion(); */
-/*    BlitActiveRegion(screen, local, 2, CTRL_ROW4_Y, CTRL_COL3_X); */
+      err = NormalizeRegion(&normal, &timingSort);
+      DrawNormalizedRegion(screen, &normal, CTRL_ROW5_Y, CTRL_COL1_X + 1);
+/*    BlitActiveRegion(screen, local, 2, CTRL_ROW5_Y, CTRL_COL3_X); */
 
       SDL_Flip(screen);
    }
@@ -656,7 +657,7 @@ HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_
    }
 
    if(nudgeRequired == DmtxTrue) {
-      NudgeImage(state->windowWidth, picture->w, &(state->imageLocX));
+      NudgeImage(CTRL_COL1_X, picture->w, &(state->imageLocX));
       NudgeImage(state->windowHeight, picture->h, &(state->imageLocY));
    }
 
@@ -1378,6 +1379,7 @@ HoughLineToRay2(int phi, double d)
  *
  *
  */
+/*
 static DmtxPixelLoc
 Vector2ToPixelLoc(DmtxVector2 v)
 {
@@ -1388,55 +1390,71 @@ Vector2ToPixelLoc(DmtxVector2 v)
 
    return p;
 }
+*/
 
 /**
  *
  *
  */
 static DmtxPassFail
-NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *screen)
+NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort)
 {
-   int i;
+   int lineCount;
+   struct Timing timing0, timing1;
+   double d0a, d0b, d1a, d1b;
    DmtxRay2 hLines[4];
-   DmtxVector2 p[4];
-   DmtxPixelLoc l[4];
+   DmtxVector2 p00, p10, p11, p01;
    DmtxPassFail err;
+   DmtxDecode dec;
+   DmtxRegion reg;
 
-   /* Convert extreme Hough points to lines in image space */
-   hLines[0] = HoughLineToRay2(sort->timing[0].phi, 0.0);
-   hLines[1] = HoughLineToRay2(sort->timing[1].phi, 0.0);
-   hLines[2] = HoughLineToRay2(sort->timing[0].phi, 63.0);
-   hLines[3] = HoughLineToRay2(sort->timing[1].phi, 63.0);
+   /* (1) -- later compare all possible combinations for strongest pair */
+   timing0 = sort->timing[0];
+   lineCount = (int)((64.0 - timing0.shift)/timing0.period) + 1;
+   d0a = timing0.shift + timing0.period;
+   d0b = timing0.shift + timing0.period * lineCount;
 
-   err = dmtxRay2Intersect(&p[0], &hLines[0], &hLines[1]);
+   timing1 = sort->timing[1];
+   lineCount = (int)((64.0 - timing1.shift)/timing1.period) + 1;
+   d1a = timing1.shift + timing1.period;
+   d1b = timing1.shift + timing1.period * lineCount;
+
+   hLines[0] = HoughLineToRay2(timing0.phi, d0a);
+   hLines[1] = HoughLineToRay2(timing1.phi, d1a);
+   hLines[2] = HoughLineToRay2(timing1.phi, d1b);
+   hLines[3] = HoughLineToRay2(timing0.phi, d0b);
+
+   /* XXX temporary fake out -- use DmtxDecode and DmtxRegion for transformations */
+   memset(&dec, 0x00, sizeof(DmtxDecode));
+   dmtxDecodeSetProp(&dec, DmtxPropWidth, 10000);
+   dmtxDecodeSetProp(&dec, DmtxPropHeight, 10000);
+   dmtxDecodeSetProp(&dec, DmtxPropSquareDevn, 0.7);
+   memset(&reg, 0x00, sizeof(DmtxRegion));
+
+   err = dmtxRay2Intersect(&p00, &hLines[0], &hLines[1]);
    if(err == DmtxFail)
       return DmtxFail;
 
-   err = dmtxRay2Intersect(&p[1], &hLines[1], &hLines[2]);
+   err = dmtxRay2Intersect(&p10, &hLines[1], &hLines[2]);
    if(err == DmtxFail)
       return DmtxFail;
 
-   err = dmtxRay2Intersect(&p[2], &hLines[2], &hLines[3]);
+   err = dmtxRay2Intersect(&p11, &hLines[2], &hLines[3]);
    if(err == DmtxFail)
       return DmtxFail;
 
-   err = dmtxRay2Intersect(&p[3], &hLines[3], &hLines[0]);
+   err = dmtxRay2Intersect(&p01, &hLines[3], &hLines[0]);
    if(err == DmtxFail)
       return DmtxFail;
 
-   for(i = 0; i < 4; i++) {
-      l[i] = Vector2ToPixelLoc(p[i]);
-      l[i].X += 287;
-      l[i].Y = 271 - l[i].Y;
-   }
+   err = dmtxRegionUpdateCorners(&dec, &reg, p00, p10, p11, p01);
+   if(err == DmtxFail)
+      return DmtxFail;
 
-   lineColor(screen, l[0].X, l[0].Y, l[1].X, l[1].Y, 0xff0000ff);
-   lineColor(screen, l[1].X, l[1].Y, l[2].X, l[2].Y, 0xff0000ff);
-   lineColor(screen, l[2].X, l[2].Y, l[3].X, l[3].Y, 0xff0000ff);
-   lineColor(screen, l[3].X, l[3].Y, l[0].X, l[0].Y, 0xff0000ff);
+   dmtxMatrix3Copy(normal->raw2fit, reg.raw2fit);
+   dmtxMatrix3Copy(normal->fit2raw, reg.fit2raw);
 
-   dmtxMatrix3Identity(normal->raw2fit);
-   dmtxMatrix3Identity(normal->fit2raw);
+   /* XXX also scale normal->raw2fit and fit2raw by number of lines found */
 
    return DmtxPass;
 }
@@ -1584,6 +1602,10 @@ BlitHoughCache(SDL_Surface *screen, struct HoughCache *hough, int screenY, int s
    SDL_FreeSurface(surface);
 }
 
+/**
+ *
+ *
+ */
 static void
 BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX)
 {
@@ -1804,6 +1826,10 @@ DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screen
    }
 }
 
+/**
+ *
+ *
+ */
 static void
 DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int screenX)
 {
@@ -1816,4 +1842,54 @@ DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int scree
 
       PlotPixel(screen, screenX + timing.phi, screenY + 63 - d);
    }
+}
+
+/**
+ *
+ *
+ */
+static void
+DrawNormalizedRegion(SDL_Surface *screen, struct FitRegion *normal, int screenY, int screenX)
+{
+   unsigned char pixbuf[49152]; /* 128 * 128 * 3 */
+   unsigned char *ptr;
+   SDL_Rect clipRect;
+   SDL_Surface *surface;
+   Uint32 rmask, gmask, bmask, amask;
+   int x, y;
+   int extent = 128;
+   int bytesPerRow = 128 * 3;
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+   rmask = 0xff000000;
+   gmask = 0x00ff0000;
+   bmask = 0x0000ff00;
+   amask = 0x000000ff;
+#else
+   rmask = 0x000000ff;
+   gmask = 0x0000ff00;
+   bmask = 0x00ff0000;
+   amask = 0xff000000;
+#endif
+
+   for(y = 0; y < 128; y++) {
+      for(x = 0; x < bytesPerRow; x += 3) {
+         ; /* XXX beware that normal matrices are still wrong */
+         ptr = pixbuf + (y * bytesPerRow + x);
+         *(ptr++) = 0;
+         *(ptr++) = 0;
+         *ptr = 0;
+      }
+   }
+
+   clipRect.w = extent;
+   clipRect.h = extent;
+   clipRect.x = screenX;
+   clipRect.y = screenY;
+
+   surface = SDL_CreateRGBSurfaceFrom(pixbuf, extent, extent, 24, extent * 3,
+         rmask, gmask, bmask, 0);
+
+   SDL_BlitSurface(surface, NULL, screen, &clipRect);
+   SDL_FreeSurface(surface);
 }
