@@ -207,7 +207,8 @@ static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
 static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 /*static DmtxPixelLoc Vector2ToPixelLoc(DmtxVector2 v);*/
-static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort);
+static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *screen);
+static DmtxPassFail RegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenY, int screenX);
@@ -452,7 +453,7 @@ main(int argc, char *argv[])
       }
 
       /* Normalize region */
-      err = NormalizeRegion(&normal, &timingSort);
+      err = NormalizeRegion(&normal, &timingSort, screen);
       if(err == DmtxPass) {
          DrawNormalizedRegion(screen, local, &normal, CTRL_ROW5_Y, CTRL_COL1_X + 1);
 /*       BlitActiveRegion(screen, local, 2, CTRL_ROW5_Y, CTRL_COL3_X); */
@@ -1399,7 +1400,7 @@ Vector2ToPixelLoc(DmtxVector2 v)
  *
  */
 static DmtxPassFail
-NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort)
+NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *screen)
 {
    int lineCount;
    struct Timing timing0, timing1;
@@ -1422,44 +1423,158 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort)
    d1b = timing1.shift + timing1.period * lineCount;
 
    hLines[0] = HoughLineToRay2(timing0.phi, d0a);
-   hLines[1] = HoughLineToRay2(timing1.phi, d1a);
-   hLines[2] = HoughLineToRay2(timing1.phi, d1b);
-   hLines[3] = HoughLineToRay2(timing0.phi, d0b);
+   hLines[1] = HoughLineToRay2(timing0.phi, d0b);
+   hLines[2] = HoughLineToRay2(timing1.phi, d1a);
+   hLines[3] = HoughLineToRay2(timing1.phi, d1b);
+
+   err = dmtxRay2Intersect(&p00, &hLines[0], &hLines[2]);
+   if(err == DmtxFail)
+      return DmtxFail;
+fprintf(stdout, "p00: %g,%g\n", p00.X, p00.Y); fflush(stdout);
+
+   err = dmtxRay2Intersect(&p10, &hLines[0], &hLines[3]);
+   if(err == DmtxFail)
+      return DmtxFail;
+fprintf(stdout, "p10: %g,%g\n", p10.X, p10.Y); fflush(stdout);
+
+   err = dmtxRay2Intersect(&p11, &hLines[1], &hLines[3]);
+   if(err == DmtxFail)
+      return DmtxFail;
+fprintf(stdout, "p11: %g,%g\n", p11.X, p11.Y); fflush(stdout);
+
+   err = dmtxRay2Intersect(&p01, &hLines[1], &hLines[2]);
+   if(err == DmtxFail)
+      return DmtxFail;
+fprintf(stdout, "p01: %g,%g\n", p01.X, p01.Y); fflush(stdout);
 
    /* XXX temporary fake out -- use DmtxDecode and DmtxRegion for transformations */
    memset(&dec, 0x00, sizeof(DmtxDecode));
-   dmtxDecodeSetProp(&dec, DmtxPropWidth, 10000);
-   dmtxDecodeSetProp(&dec, DmtxPropHeight, 10000);
-   dmtxDecodeSetProp(&dec, DmtxPropSquareDevn, 0.7);
+   dec.scale = 1;
+   dmtxDecodeSetProp(&dec, DmtxPropWidth, 64);
+   dmtxDecodeSetProp(&dec, DmtxPropHeight, 64);
    memset(&reg, 0x00, sizeof(DmtxRegion));
-/*
-   err = dmtxRay2Intersect(&p00, &hLines[0], &hLines[1]);
-   if(err == DmtxFail)
-      return DmtxFail;
 
-   err = dmtxRay2Intersect(&p10, &hLines[1], &hLines[2]);
+   err = RegionUpdateCorners(&dec, &reg, p00, p10, p11, p01);
    if(err == DmtxFail)
       return DmtxFail;
+fprintf(stdout, "dmtxRegionUpdateCorners()\n"); fflush(stdout);
 
-   err = dmtxRay2Intersect(&p11, &hLines[2], &hLines[3]);
-   if(err == DmtxFail)
-      return DmtxFail;
-
-   err = dmtxRay2Intersect(&p01, &hLines[3], &hLines[0]);
-   if(err == DmtxFail)
-      return DmtxFail;
-
-   err = dmtxRegionUpdateCorners(&dec, &reg, p00, p10, p11, p01);
-   if(err == DmtxFail)
-      return DmtxFail;
-*/
    dmtxMatrix3Copy(normal->raw2fit, reg.raw2fit);
    dmtxMatrix3Copy(normal->fit2raw, reg.fit2raw);
+fprintf(stdout, "dmtxMatrix3Copy()\n"); fflush(stdout);
 
    /* XXX also scale normal->raw2fit and fit2raw by number of lines found */
-   dmtxMatrix3Identity(normal->raw2fit);
-   dmtxMatrix3Identity(normal->fit2raw);
+/* dmtxMatrix3Identity(normal->raw2fit);
+   dmtxMatrix3Identity(normal->fit2raw); */
 
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+static DmtxPassFail
+RegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
+      DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01)
+{
+   double xMax, yMax;
+   double tx, ty, phi, shx, scx, scy, skx, sky;
+   double dimOT, dimOR, dimTX, dimRX, ratio;
+   DmtxVector2 vOT, vOR, vTX, vRX, vTmp;
+   DmtxMatrix3 m, mtxy, mphi, mshx, mscx, mscy, mscxy, msky, mskx;
+
+fprintf(stdout, "here 1\n"); fflush(stdout);
+   xMax = (double)(dmtxDecodeGetProp(dec, DmtxPropWidth) - 1);
+fprintf(stdout, "here 2\n"); fflush(stdout);
+   yMax = (double)(dmtxDecodeGetProp(dec, DmtxPropHeight) - 1);
+
+/* if(p00.X < 0.0 || p00.Y < 0.0 || p00.X > xMax || p00.Y > yMax ||
+         p01.X < 0.0 || p01.Y < 0.0 || p01.X > xMax || p01.Y > yMax ||
+         p10.X < 0.0 || p10.Y < 0.0 || p10.X > xMax || p10.Y > yMax)
+      return DmtxFail; */
+fprintf(stdout, "here 3\n"); fflush(stdout);
+   dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &p01, &p00)); /* XXX could use MagSquared() */
+   dimOR = dmtxVector2Mag(dmtxVector2Sub(&vOR, &p10, &p00));
+   dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTX, &p11, &p01));
+   dimRX = dmtxVector2Mag(dmtxVector2Sub(&vRX, &p11, &p10));
+
+   /* Verify that sides are reasonably long */
+/* if(dimOT <= 8.0 || dimOR <= 8.0 || dimTX <= 8.0 || dimRX <= 8.0)
+      return DmtxFail; */
+
+   /* Verify that the 4 corners define a reasonably fat quadrilateral */
+/* ratio = dimOT / dimRX;
+   if(ratio <= 0.5 || ratio >= 2.0)
+      return DmtxFail; */
+
+/* ratio = dimOR / dimTX;
+   if(ratio <= 0.5 || ratio >= 2.0)
+      return DmtxFail; */
+
+   /* Verify this is not a bowtie shape */
+/*
+   if(dmtxVector2Cross(&vOR, &vRX) <= 0.0 ||
+         dmtxVector2Cross(&vOT, &vTX) >= 0.0)
+      return DmtxFail; */
+fprintf(stdout, "here 4\n"); fflush(stdout);
+
+/* if(RightAngleTrueness(p00, p10, p11, M_PI_2) <= dec->squareDevn)
+      return DmtxFail;
+   if(RightAngleTrueness(p10, p11, p01, M_PI_2) <= dec->squareDevn)
+      return DmtxFail; */
+
+   /* Calculate values needed for transformations */
+   tx = -1 * p00.X;
+   ty = -1 * p00.Y;
+   dmtxMatrix3Translate(mtxy, tx, ty);
+
+   phi = atan2(vOT.X, vOT.Y);
+   dmtxMatrix3Rotate(mphi, phi);
+   dmtxMatrix3Multiply(m, mtxy, mphi);
+
+   dmtxMatrix3VMultiply(&vTmp, &p10, m);
+   shx = -vTmp.Y / vTmp.X;
+   dmtxMatrix3Shear(mshx, 0.0, shx);
+   dmtxMatrix3MultiplyBy(m, mshx);
+
+   scx = 1.0/vTmp.X;
+   dmtxMatrix3Scale(mscx, scx, 1.0);
+   dmtxMatrix3MultiplyBy(m, mscx);
+
+   dmtxMatrix3VMultiply(&vTmp, &p11, m);
+   scy = 1.0/vTmp.Y;
+   dmtxMatrix3Scale(mscy, 1.0, scy);
+   dmtxMatrix3MultiplyBy(m, mscy);
+
+   dmtxMatrix3VMultiply(&vTmp, &p11, m);
+   skx = vTmp.X;
+   dmtxMatrix3LineSkewSide(mskx, 1.0, skx, 1.0);
+   dmtxMatrix3MultiplyBy(m, mskx);
+
+   dmtxMatrix3VMultiply(&vTmp, &p01, m);
+   sky = vTmp.Y;
+   dmtxMatrix3LineSkewTop(msky, sky, 1.0, 1.0);
+   dmtxMatrix3Multiply(reg->raw2fit, m, msky);
+
+   /* Create inverse matrix by reverse (avoid straight matrix inversion) */
+   dmtxMatrix3LineSkewTopInv(msky, sky, 1.0, 1.0);
+   dmtxMatrix3LineSkewSideInv(mskx, 1.0, skx, 1.0);
+   dmtxMatrix3Multiply(m, msky, mskx);
+
+   dmtxMatrix3Scale(mscxy, 1.0/scx, 1.0/scy);
+   dmtxMatrix3MultiplyBy(m, mscxy);
+
+   dmtxMatrix3Shear(mshx, 0.0, -shx);
+   dmtxMatrix3MultiplyBy(m, mshx);
+
+   dmtxMatrix3Rotate(mphi, -phi);
+   dmtxMatrix3MultiplyBy(m, mphi);
+
+   dmtxMatrix3Translate(mtxy, -tx, -ty);
+   dmtxMatrix3Multiply(reg->fit2raw, m, mtxy);
+
+fprintf(stdout, "here 5\n"); fflush(stdout);
    return DmtxPass;
 }
 
@@ -1856,7 +1971,7 @@ static void
 DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *local, struct FitRegion *normal, int screenY, int screenX)
 {
    unsigned char pixbuf[49152]; /* 128 * 128 * 3 */
-   unsigned char *ptr, *ptrRaw;
+   unsigned char *ptrFit, *ptrRaw;
    SDL_Rect clipRect;
    SDL_Surface *surface;
    Uint32 rmask, gmask, bmask, amask;
@@ -1865,6 +1980,7 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *local, struct FitRegion *
    int extent = 128;
    int bytesPerRow = 128 * 3;
    DmtxVector2 pFit, pRaw;
+   DmtxMatrix3 mScale, mDisplay;
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
    rmask = 0xff000000;
@@ -1878,13 +1994,16 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *local, struct FitRegion *
    amask = 0xff000000;
 #endif
 
+   dmtxMatrix3Scale(mScale, 1/100.0, 1/100.0);
+   dmtxMatrix3Multiply(mDisplay, mScale, normal->fit2raw);
+
    SDL_LockSurface(local);
 
    for(y = 0; y < 128; y++) {
       for(x = 0; x < 128; x++) {
          pFit.X = x;
          pFit.Y = y;
-         dmtxMatrix3VMultiply(&pRaw, &pFit, normal->fit2raw);
+         dmtxMatrix3VMultiply(&pRaw, &pFit, mDisplay);
 
          xRaw = (int)(pRaw.X + 0.5);
          yRaw = (int)(pRaw.Y + 0.5);
@@ -1892,12 +2011,12 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *local, struct FitRegion *
          if(xRaw < 0 || xRaw > 63 || yRaw < 0 || yRaw > 63)
             continue;
 
-         ptr = pixbuf + (y * 384 + x * 3);
-         ptrRaw = (unsigned char *)local->pixels + (yRaw * 192 + xRaw * 3);
+         ptrFit = pixbuf + (y * bytesPerRow + x * 3);
+         ptrRaw = (unsigned char *)local->pixels + ((63-yRaw) * local->pitch + xRaw * 4);
 
-         *(ptr++) = *(ptrRaw++);
-         *(ptr++) = *(ptrRaw++);
-         *ptr = *ptrRaw;
+         ptrFit[0] = ptrRaw[2]; /* XXX figure out proper SDL way to map RGB */
+         ptrFit[1] = ptrRaw[1];
+         ptrFit[2] = ptrRaw[0];
       }
    }
 
