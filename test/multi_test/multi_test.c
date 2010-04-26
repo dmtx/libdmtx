@@ -221,7 +221,7 @@ static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int scree
 static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenY, int screenX);
 static void DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenY, int screenX);
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int screenX);
-static void DrawNormalizedRegion(SDL_Surface *screen, struct FitRegion *normal, int screenY, int screenX);
+static void DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *local, struct FitRegion *normal, int screenY, int screenX);
 
 int
 main(int argc, char *argv[])
@@ -453,8 +453,10 @@ main(int argc, char *argv[])
 
       /* Normalize region */
       err = NormalizeRegion(&normal, &timingSort);
-      DrawNormalizedRegion(screen, &normal, CTRL_ROW5_Y, CTRL_COL1_X + 1);
-/*    BlitActiveRegion(screen, local, 2, CTRL_ROW5_Y, CTRL_COL3_X); */
+      if(err == DmtxPass) {
+         DrawNormalizedRegion(screen, local, &normal, CTRL_ROW5_Y, CTRL_COL1_X + 1);
+/*       BlitActiveRegion(screen, local, 2, CTRL_ROW5_Y, CTRL_COL3_X); */
+      }
 
       SDL_Flip(screen);
    }
@@ -1430,7 +1432,7 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort)
    dmtxDecodeSetProp(&dec, DmtxPropHeight, 10000);
    dmtxDecodeSetProp(&dec, DmtxPropSquareDevn, 0.7);
    memset(&reg, 0x00, sizeof(DmtxRegion));
-
+/*
    err = dmtxRay2Intersect(&p00, &hLines[0], &hLines[1]);
    if(err == DmtxFail)
       return DmtxFail;
@@ -1450,11 +1452,13 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort)
    err = dmtxRegionUpdateCorners(&dec, &reg, p00, p10, p11, p01);
    if(err == DmtxFail)
       return DmtxFail;
-
+*/
    dmtxMatrix3Copy(normal->raw2fit, reg.raw2fit);
    dmtxMatrix3Copy(normal->fit2raw, reg.fit2raw);
 
    /* XXX also scale normal->raw2fit and fit2raw by number of lines found */
+   dmtxMatrix3Identity(normal->raw2fit);
+   dmtxMatrix3Identity(normal->fit2raw);
 
    return DmtxPass;
 }
@@ -1849,16 +1853,18 @@ DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int scree
  *
  */
 static void
-DrawNormalizedRegion(SDL_Surface *screen, struct FitRegion *normal, int screenY, int screenX)
+DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *local, struct FitRegion *normal, int screenY, int screenX)
 {
    unsigned char pixbuf[49152]; /* 128 * 128 * 3 */
-   unsigned char *ptr;
+   unsigned char *ptr, *ptrRaw;
    SDL_Rect clipRect;
    SDL_Surface *surface;
    Uint32 rmask, gmask, bmask, amask;
    int x, y;
+   int xRaw, yRaw;
    int extent = 128;
    int bytesPerRow = 128 * 3;
+   DmtxVector2 pFit, pRaw;
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
    rmask = 0xff000000;
@@ -1872,15 +1878,30 @@ DrawNormalizedRegion(SDL_Surface *screen, struct FitRegion *normal, int screenY,
    amask = 0xff000000;
 #endif
 
+   SDL_LockSurface(local);
+
    for(y = 0; y < 128; y++) {
-      for(x = 0; x < bytesPerRow; x += 3) {
-         ; /* XXX beware that normal matrices are still wrong */
-         ptr = pixbuf + (y * bytesPerRow + x);
-         *(ptr++) = 0;
-         *(ptr++) = 0;
-         *ptr = 0;
+      for(x = 0; x < 128; x++) {
+         pFit.X = x;
+         pFit.Y = y;
+         dmtxMatrix3VMultiply(&pRaw, &pFit, normal->fit2raw);
+
+         xRaw = (int)(pRaw.X + 0.5);
+         yRaw = (int)(pRaw.Y + 0.5);
+
+         if(xRaw < 0 || xRaw > 63 || yRaw < 0 || yRaw > 63)
+            continue;
+
+         ptr = pixbuf + (y * 384 + x * 3);
+         ptrRaw = (unsigned char *)local->pixels + (yRaw * 192 + xRaw * 3);
+
+         *(ptr++) = *(ptrRaw++);
+         *(ptr++) = *(ptrRaw++);
+         *ptr = *ptrRaw;
       }
    }
+
+   SDL_UnlockSurface(local);
 
    clipRect.w = extent;
    clipRect.h = extent;
