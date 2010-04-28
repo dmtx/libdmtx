@@ -139,7 +139,6 @@ struct TimingSort {
 };
 
 struct FitRegion {
-   int gridSize;
    DmtxMatrix3 raw2fit;
    DmtxMatrix3 fit2raw;
 };
@@ -1411,16 +1410,17 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *
    DmtxPassFail err;
    DmtxDecode dec;
    DmtxRegion reg;
+   DmtxMatrix3 mScale;
 
    /* (1) -- later compare all possible combinations for strongest pair */
    timing0 = sort->timing[0];
    lineCount0 = (int)((64.0 - timing0.shift)/timing0.period) + 1;
-   d0a = timing0.shift + timing0.period;
+   d0a = timing0.shift;
    d0b = timing0.shift + timing0.period * lineCount0;
 
    timing1 = sort->timing[1];
    lineCount1 = (int)((64.0 - timing1.shift)/timing1.period) + 1;
-   d1a = timing1.shift + timing1.period;
+   d1a = timing1.shift;
    d1b = timing1.shift + timing1.period * lineCount1;
 
    hLines[0] = HoughLineToRay2(timing0.phi, d0a);
@@ -1431,22 +1431,18 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *
    err = dmtxRay2Intersect(&p00, &hLines[0], &hLines[2]);
    if(err == DmtxFail)
       return DmtxFail;
-fprintf(stdout, "p00: %g,%g\n", p00.X, p00.Y); fflush(stdout);
 
    err = dmtxRay2Intersect(&p10, &hLines[0], &hLines[3]);
    if(err == DmtxFail)
       return DmtxFail;
-fprintf(stdout, "p10: %g,%g\n", p10.X, p10.Y); fflush(stdout);
 
    err = dmtxRay2Intersect(&p11, &hLines[1], &hLines[3]);
    if(err == DmtxFail)
       return DmtxFail;
-fprintf(stdout, "p11: %g,%g\n", p11.X, p11.Y); fflush(stdout);
 
    err = dmtxRay2Intersect(&p01, &hLines[1], &hLines[2]);
    if(err == DmtxFail)
       return DmtxFail;
-fprintf(stdout, "p01: %g,%g\n", p01.X, p01.Y); fflush(stdout);
 
    /* XXX temporary fake out -- use DmtxDecode and DmtxRegion for transformations */
    memset(&dec, 0x00, sizeof(DmtxDecode));
@@ -1458,12 +1454,12 @@ fprintf(stdout, "p01: %g,%g\n", p01.X, p01.Y); fflush(stdout);
    err = RegionUpdateCorners(&dec, &reg, p00, p10, p11, p01);
    if(err == DmtxFail)
       return DmtxFail;
-fprintf(stdout, "dmtxRegionUpdateCorners()\n"); fflush(stdout);
 
-   normal->gridSize = lineCount0; /* also lineCount1 */
-   dmtxMatrix3Copy(normal->raw2fit, reg.raw2fit);
-   dmtxMatrix3Copy(normal->fit2raw, reg.fit2raw);
-fprintf(stdout, "dmtxMatrix3Copy()\n"); fflush(stdout);
+   /* Scale such that origin module is 1x1 unit box */
+   dmtxMatrix3Scale(mScale, 1.0/lineCount0, 1.0/lineCount1);
+
+   dmtxMatrix3Multiply(normal->raw2fit, reg.raw2fit, mScale); /* wrong */
+   dmtxMatrix3Multiply(normal->fit2raw, mScale, reg.fit2raw);
 
    return DmtxPass;
 }
@@ -1478,20 +1474,17 @@ RegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
 {
    double xMax, yMax;
    double tx, ty, phi, shx, scx, scy, skx, sky;
-   double dimOT, dimOR, dimTX, dimRX, ratio;
+   double dimOT, dimOR, dimTX, dimRX; /* , ratio; */
    DmtxVector2 vOT, vOR, vTX, vRX, vTmp;
    DmtxMatrix3 m, mtxy, mphi, mshx, mscx, mscy, mscxy, msky, mskx;
 
-fprintf(stdout, "here 1\n"); fflush(stdout);
    xMax = (double)(dmtxDecodeGetProp(dec, DmtxPropWidth) - 1);
-fprintf(stdout, "here 2\n"); fflush(stdout);
    yMax = (double)(dmtxDecodeGetProp(dec, DmtxPropHeight) - 1);
 
 /* if(p00.X < 0.0 || p00.Y < 0.0 || p00.X > xMax || p00.Y > yMax ||
          p01.X < 0.0 || p01.Y < 0.0 || p01.X > xMax || p01.Y > yMax ||
          p10.X < 0.0 || p10.Y < 0.0 || p10.X > xMax || p10.Y > yMax)
       return DmtxFail; */
-fprintf(stdout, "here 3\n"); fflush(stdout);
    dimOT = dmtxVector2Mag(dmtxVector2Sub(&vOT, &p01, &p00)); /* XXX could use MagSquared() */
    dimOR = dmtxVector2Mag(dmtxVector2Sub(&vOR, &p10, &p00));
    dimTX = dmtxVector2Mag(dmtxVector2Sub(&vTX, &p11, &p01));
@@ -1515,7 +1508,6 @@ fprintf(stdout, "here 3\n"); fflush(stdout);
    if(dmtxVector2Cross(&vOR, &vRX) <= 0.0 ||
          dmtxVector2Cross(&vOT, &vTX) >= 0.0)
       return DmtxFail; */
-fprintf(stdout, "here 4\n"); fflush(stdout);
 
 /* if(RightAngleTrueness(p00, p10, p11, M_PI_2) <= dec->squareDevn)
       return DmtxFail;
@@ -1572,7 +1564,6 @@ fprintf(stdout, "here 4\n"); fflush(stdout);
    dmtxMatrix3Translate(mtxy, -tx, -ty);
    dmtxMatrix3Multiply(reg->fit2raw, m, mtxy);
 
-fprintf(stdout, "here 5\n"); fflush(stdout);
    return DmtxPass;
 }
 
@@ -1993,7 +1984,8 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture, struct FitRegion
    amask = 0xff000000;
 #endif
 
-   dmtxMatrix3Scale(mScale, 1/128.0, 1/128.0);
+   /* Display zoom */
+   dmtxMatrix3Scale(mScale, 10.0/128, 10.0/128);
    dmtxMatrix3Multiply(mDisplay, mScale, normal->fit2raw);
 
    SDL_LockSurface(picture);
