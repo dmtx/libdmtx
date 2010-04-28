@@ -1407,6 +1407,7 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *
    double d0a, d0b, d1a, d1b;
    DmtxRay2 hLines[4];
    DmtxVector2 p00, p10, p11, p01;
+   DmtxVector2 dir1, dir2;
    DmtxPassFail err;
    DmtxDecode dec;
    DmtxRegion reg;
@@ -1451,12 +1452,21 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *
    dmtxDecodeSetProp(&dec, DmtxPropHeight, 64);
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
-   err = RegionUpdateCorners(&dec, &reg, p00, p10, p11, p01);
-   if(err == DmtxFail)
-      return DmtxFail;
+   dmtxVector2Sub(&dir1, &p10, &p00);
+   dmtxVector2Sub(&dir2, &p11, &p10);
 
-   /* Scale such that origin module is 1x1 unit box */
-   dmtxMatrix3Scale(mScale, 1.0/lineCount0, 1.0/lineCount1);
+   if(dmtxVector2Cross(&dir1, &dir2) > 0.0) {
+      err = RegionUpdateCorners(&dec, &reg, p00, p10, p11, p01);
+      if(err == DmtxFail)
+         return DmtxFail;
+      dmtxMatrix3Scale(mScale, 1.0/lineCount1, 1.0/lineCount0);
+   }
+   else {
+      err = RegionUpdateCorners(&dec, &reg, p00, p01, p11, p10);
+      if(err == DmtxFail)
+         return DmtxFail;
+      dmtxMatrix3Scale(mScale, 1.0/lineCount0, 1.0/lineCount1);
+   }
 
    dmtxMatrix3Multiply(normal->raw2fit, reg.raw2fit, mScale); /* wrong */
    dmtxMatrix3Multiply(normal->fit2raw, mScale, reg.fit2raw);
@@ -1985,7 +1995,7 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture, struct FitRegion
 #endif
 
    /* Display zoom */
-   dmtxMatrix3Scale(mScale, 10.0/128, 10.0/128);
+   dmtxMatrix3Scale(mScale, 32.0/128, 32.0/128);
    dmtxMatrix3Multiply(mDisplay, mScale, normal->fit2raw);
 
    SDL_LockSurface(picture);
