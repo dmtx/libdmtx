@@ -139,6 +139,8 @@ struct TimingSort {
 };
 
 struct FitRegion {
+   int flatCount;
+   int steepCount;
    DmtxMatrix3 raw2fit;
    DmtxMatrix3 fit2raw;
 };
@@ -1480,9 +1482,15 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *
    err = RegionUpdateCorners(&dec, &reg, p00, p10, p11, p01);
    if(err == DmtxFail)
       return DmtxFail;
-   dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount);
 
-   dmtxMatrix3Multiply(normal->raw2fit, reg.raw2fit, mScale); /* wrong */
+   normal->flatCount = flat->lineCount;
+   normal->steepCount = steep->lineCount;
+
+   /* Final transformation fits single origin module */
+   dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount);
+   dmtxMatrix3Multiply(normal->raw2fit, reg.raw2fit, mScale);
+
+   dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount);
    dmtxMatrix3Multiply(normal->fit2raw, mScale, reg.fit2raw);
 
    return DmtxPass;
@@ -1989,13 +1997,13 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
    SDL_Rect clipRect;
    SDL_Surface *surface;
    Uint32 rmask, gmask, bmask, amask;
-   int x, y;
+   int x, y, yFlip;
    int xRaw, yRaw;
    int xRawAbs, yRawAbs;
-   int extent = 259;
+   int extent = 128; /* 259; */
    int bytesPerRow = extent * 3;
-   DmtxVector2 pFit, pRaw;
-   DmtxMatrix3 mScale, mDisplay;
+   DmtxVector2 pFit, pRaw, pTmp, pCtr;
+   double xFitAdjusted, yFitAdjusted;
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
    rmask = 0xff000000;
@@ -2009,24 +2017,30 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
    amask = 0xff000000;
 #endif
 
-   /* Display zoom */
-   dmtxMatrix3Scale(mScale, 32.0/extent, 32.0/extent);
-   dmtxMatrix3Multiply(mDisplay, mScale, normal->fit2raw);
+   /* Adjust input to center active region in normalized window */
+   pTmp.X = pTmp.Y = 32.0;
+   dmtxMatrix3VMultiply(&pCtr, &pTmp, normal->raw2fit);
 
    SDL_LockSurface(picture);
-
    for(y = 0; y < extent; y++) {
       for(x = 0; x < extent; x++) {
-         pFit.X = x;
-         pFit.Y = (extent - 1) - y; /* Flip to interact with libdmtx */
-         dmtxMatrix3VMultiply(&pRaw, &pFit, mDisplay);
+
+         yFlip = (extent - 1) - y;
+
+         /* Adjust fitted input so unfitted center is display centered */
+         xFitAdjusted = ((x-extent/2) * 16.0)/extent + pCtr.X;
+         yFitAdjusted = ((yFlip-extent/2) * 16.0)/extent + pCtr.Y;
+
+         pFit.X = xFitAdjusted;
+         pFit.Y = yFitAdjusted;
+         dmtxMatrix3VMultiply(&pRaw, &pFit, normal->fit2raw);
 
          xRaw = (int)(pRaw.X + 0.5);
-         yRaw = (int)(pRaw.Y + 0.5); /* Unflip to interact with SDL */
+         yRaw = (int)(pRaw.Y + 0.5);
 
          /* XXX consider creating translated (and scaled?) image so AppState isn't necessary here */
-         xRawAbs = (xRaw + 288) - state->imageLocX;
-         yRawAbs = (291 - yRaw) - state->imageLocY;
+         xRawAbs = (xRaw + 288) - state->imageLocX; /* 288 == 640/2 - 32 */
+         yRawAbs = (291 - yRaw) - state->imageLocY; /* 291 == 518/2 + 32 */
 
          ptrFit = pixbuf + (y * bytesPerRow + x * 3);
          if(xRawAbs < 0 || xRawAbs >= picture->w || yRawAbs < 0 || yRawAbs >= picture->h) {
@@ -2039,19 +2053,18 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
                   picture->pitch + xRawAbs * picture->format->BytesPerPixel);
 
             if(xRaw < 0 || xRaw >= 63 || yRaw < 0 || yRaw >= 63) {
-               ptrFit[0] = ptrRaw[2]/2;
+               ptrFit[0] = ptrRaw[0]/2;
                ptrFit[1] = ptrRaw[1]/2;
-               ptrFit[2] = ptrRaw[0]/2;
+               ptrFit[2] = ptrRaw[2]/2;
             }
             else {
-               ptrFit[0] = ptrRaw[2]; /* XXX figure out proper SDL way to map RGB */
+               ptrFit[0] = ptrRaw[0];
                ptrFit[1] = ptrRaw[1];
-               ptrFit[2] = ptrRaw[0];
+               ptrFit[2] = ptrRaw[2];
             }
          }
       }
    }
-
    SDL_UnlockSurface(picture);
 
    clipRect.w = extent;
