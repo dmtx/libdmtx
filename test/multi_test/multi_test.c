@@ -455,7 +455,7 @@ main(int argc, char *argv[])
       /* Normalize region */
       err = NormalizeRegion(&normal, &timingSort, screen);
       if(err == DmtxPass) {
-         DrawNormalizedRegion(screen, picture, &normal, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
+         DrawNormalizedRegion(screen, picture, &normal, &state, CTRL_ROW5_Y, CTRL_COL1_X);
 /*       BlitActiveRegion(screen, local, 2, CTRL_ROW5_Y, CTRL_COL3_X); */
       }
 
@@ -515,7 +515,7 @@ InitAppState(void)
 
    state.adjust = DmtxTrue;
    state.windowWidth = 640;
-   state.windowHeight = 480;
+   state.windowHeight = 518;
    state.activeExtent = 64;
    state.displayVanish = DmtxFalse;
    state.displayTiming = DmtxTrue;
@@ -541,7 +541,7 @@ SetWindowSize(int windowWidth, int windowHeight)
    SDL_Surface *screen;
 
    screen = SDL_SetVideoMode(windowWidth, windowHeight, 32,
-         SDL_HWSURFACE | SDL_DOUBLEBUF | SDL_RESIZABLE);
+         SDL_HWSURFACE | SDL_DOUBLEBUF); /* | SDL_RESIZABLE); */
 
    if(screen == NULL) {
       fprintf(stderr, "Couldn't set %dx%dx32 video mode: %s\n", windowWidth,
@@ -1395,6 +1395,13 @@ Vector2ToPixelLoc(DmtxVector2 v)
 }
 */
 
+struct RegionLines {
+   int lineCount;
+   struct Timing timing;
+   double dA, dB;
+   DmtxRay2 line[2];
+};
+
 /**
  *
  *
@@ -1402,46 +1409,64 @@ Vector2ToPixelLoc(DmtxVector2 v)
 static DmtxPassFail
 NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *screen)
 {
-   int lineCount0, lineCount1;
-   struct Timing timing0, timing1;
-   double d0a, d0b, d1a, d1b;
-   DmtxRay2 hLines[4];
+   struct RegionLines rl0, rl1, *flat, *steep;
    DmtxVector2 p00, p10, p11, p01;
-   DmtxVector2 dir1, dir2;
    DmtxPassFail err;
    DmtxDecode dec;
    DmtxRegion reg;
    DmtxMatrix3 mScale;
 
    /* (1) -- later compare all possible combinations for strongest pair */
-   timing0 = sort->timing[0];
-   lineCount0 = (int)((64.0 - timing0.shift)/timing0.period) + 1;
-   d0a = timing0.shift;
-   d0b = timing0.shift + timing0.period * lineCount0;
+   rl0.timing = sort->timing[0];
+   rl0.lineCount = (int)((64.0 - rl0.timing.shift)/rl0.timing.period) + 1;
+   rl0.dA = rl0.timing.shift;
+   rl0.dB = rl0.timing.shift + rl0.timing.period * rl0.lineCount;
 
-   timing1 = sort->timing[1];
-   lineCount1 = (int)((64.0 - timing1.shift)/timing1.period) + 1;
-   d1a = timing1.shift;
-   d1b = timing1.shift + timing1.period * lineCount1;
+   rl1.timing = sort->timing[1];
+   rl1.lineCount = (int)((64.0 - rl1.timing.shift)/rl1.timing.period) + 1;
+   rl1.dA = rl1.timing.shift;
+   rl1.dB = rl1.timing.shift + rl1.timing.period * rl1.lineCount;
 
-   hLines[0] = HoughLineToRay2(timing0.phi, d0a);
-   hLines[1] = HoughLineToRay2(timing0.phi, d0b);
-   hLines[2] = HoughLineToRay2(timing1.phi, d1a);
-   hLines[3] = HoughLineToRay2(timing1.phi, d1b);
+   /* flat[0] is the bottom flat line */
+   /* flat[1] is the top flat line */
+   /* steep[0] is the left steep line */
+   /* steep[1] is the right line */
 
-   err = dmtxRay2Intersect(&p00, &hLines[0], &hLines[2]);
+   /* Line with angle closest to horizontal is flatest */
+   if(abs(64 - rl0.timing.phi) < abs(64 - rl1.timing.phi)) {
+      flat = &rl0;
+      steep = &rl1;
+   }
+   else {
+      flat = &rl1;
+      steep = &rl0;
+   }
+
+   flat->line[0] = HoughLineToRay2(flat->timing.phi, flat->dA);
+   flat->line[1] = HoughLineToRay2(flat->timing.phi, flat->dB);
+
+   if(steep->timing.phi < 64) {
+      steep->line[0] = HoughLineToRay2(steep->timing.phi, steep->dA);
+      steep->line[1] = HoughLineToRay2(steep->timing.phi, steep->dB);
+   }
+   else {
+      steep->line[0] = HoughLineToRay2(steep->timing.phi, steep->dB);
+      steep->line[1] = HoughLineToRay2(steep->timing.phi, steep->dA);
+   }
+
+   err = dmtxRay2Intersect(&p00, &(flat->line[0]), &(steep->line[0]));
    if(err == DmtxFail)
       return DmtxFail;
 
-   err = dmtxRay2Intersect(&p10, &hLines[0], &hLines[3]);
+   err = dmtxRay2Intersect(&p10, &(flat->line[0]), &(steep->line[1]));
    if(err == DmtxFail)
       return DmtxFail;
 
-   err = dmtxRay2Intersect(&p11, &hLines[1], &hLines[3]);
+   err = dmtxRay2Intersect(&p11, &(flat->line[1]), &(steep->line[1]));
    if(err == DmtxFail)
       return DmtxFail;
 
-   err = dmtxRay2Intersect(&p01, &hLines[1], &hLines[2]);
+   err = dmtxRay2Intersect(&p01, &(flat->line[1]), &(steep->line[0]));
    if(err == DmtxFail)
       return DmtxFail;
 
@@ -1452,21 +1477,10 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, SDL_Surface *
    dmtxDecodeSetProp(&dec, DmtxPropHeight, 64);
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
-   dmtxVector2Sub(&dir1, &p10, &p00);
-   dmtxVector2Sub(&dir2, &p11, &p10);
-
-   if(dmtxVector2Cross(&dir1, &dir2) > 0.0) {
-      err = RegionUpdateCorners(&dec, &reg, p00, p10, p11, p01);
-      if(err == DmtxFail)
-         return DmtxFail;
-      dmtxMatrix3Scale(mScale, 1.0/lineCount1, 1.0/lineCount0);
-   }
-   else {
-      err = RegionUpdateCorners(&dec, &reg, p00, p01, p11, p10);
-      if(err == DmtxFail)
-         return DmtxFail;
-      dmtxMatrix3Scale(mScale, 1.0/lineCount0, 1.0/lineCount1);
-   }
+   err = RegionUpdateCorners(&dec, &reg, p00, p10, p11, p01);
+   if(err == DmtxFail)
+      return DmtxFail;
+   dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount);
 
    dmtxMatrix3Multiply(normal->raw2fit, reg.raw2fit, mScale); /* wrong */
    dmtxMatrix3Multiply(normal->fit2raw, mScale, reg.fit2raw);
@@ -1967,9 +1981,10 @@ DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int scree
  *
  */
 static void
-DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture, struct FitRegion *normal, struct AppState *state, int screenY, int screenX)
+DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
+      struct FitRegion *normal, struct AppState *state, int screenY, int screenX)
 {
-   unsigned char pixbuf[49152]; /* 128 * 128 * 3 */
+   unsigned char pixbuf[201243]; /* 259 * 259 * 3 */
    unsigned char *ptrFit, *ptrRaw;
    SDL_Rect clipRect;
    SDL_Surface *surface;
@@ -1977,8 +1992,8 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture, struct FitRegion
    int x, y;
    int xRaw, yRaw;
    int xRawAbs, yRawAbs;
-   int extent = 128;
-   int bytesPerRow = 128 * 3;
+   int extent = 259;
+   int bytesPerRow = extent * 3;
    DmtxVector2 pFit, pRaw;
    DmtxMatrix3 mScale, mDisplay;
 
@@ -1995,23 +2010,23 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture, struct FitRegion
 #endif
 
    /* Display zoom */
-   dmtxMatrix3Scale(mScale, 32.0/128, 32.0/128);
+   dmtxMatrix3Scale(mScale, 32.0/extent, 32.0/extent);
    dmtxMatrix3Multiply(mDisplay, mScale, normal->fit2raw);
 
    SDL_LockSurface(picture);
 
-   for(y = 0; y < 128; y++) {
-      for(x = 0; x < 128; x++) {
+   for(y = 0; y < extent; y++) {
+      for(x = 0; x < extent; x++) {
          pFit.X = x;
-         pFit.Y = y;
+         pFit.Y = (extent - 1) - y; /* Flip to interact with libdmtx */
          dmtxMatrix3VMultiply(&pRaw, &pFit, mDisplay);
 
-         /* XXX consider creating translated (and scaled?) image so AppState isn't necessary here */
          xRaw = (int)(pRaw.X + 0.5);
-         yRaw = (63 - (int)(pRaw.Y + 0.5));
+         yRaw = (int)(pRaw.Y + 0.5); /* Unflip to interact with SDL */
 
-         xRawAbs = xRaw + 288 - state->imageLocX;
-         yRawAbs = yRaw + 208 - state->imageLocY;
+         /* XXX consider creating translated (and scaled?) image so AppState isn't necessary here */
+         xRawAbs = (xRaw + 288) - state->imageLocX;
+         yRawAbs = (291 - yRaw) - state->imageLocY;
 
          ptrFit = pixbuf + (y * bytesPerRow + x * 3);
          if(xRawAbs < 0 || xRawAbs >= picture->w || yRawAbs < 0 || yRawAbs >= picture->h) {
