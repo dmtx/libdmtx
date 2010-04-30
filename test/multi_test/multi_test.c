@@ -461,6 +461,10 @@ main(int argc, char *argv[])
 /*       BlitActiveRegion(screen, local, 2, CTRL_ROW5_Y, CTRL_COL3_X); */
       }
 
+      /* Next step: start with small 2-layer box and step each edge outward
+       * until outer edge is approximately solid and inner edge is either
+       * approximately solid-but-opposite or 50% of both colors */
+
       SDL_Flip(screen);
    }
 
@@ -2056,42 +2060,30 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
                ptrFit[0] = ptrRaw[0]/2;
                ptrFit[1] = ptrRaw[1]/2;
                ptrFit[2] = ptrRaw[2]/2;
-               if((int)(x + 8*pCtr.X) % 8 == 0 && (int)(yFlip + 8*pCtr.Y) % 8 == 0) {
-                  ptrFit[0] = (ptrFit[0] < 150 ? 255 : 0);
-                  ptrFit[1] = (ptrFit[1] < 150 ? 255 : 0);
-                  ptrFit[2] = (ptrFit[2] < 150 ? 255 : 0);
-               }
             }
             else {
                ptrFit[0] = ptrRaw[0];
                ptrFit[1] = ptrRaw[1];
                ptrFit[2] = ptrRaw[2];
-               if((int)(x + 8*pCtr.X) % 8 == 0 && (int)(yFlip + 8*pCtr.Y) % 8 == 0) {
-                  ptrFit[0] = (ptrFit[0] < 150 ? 255 : 0);
-                  ptrFit[1] = (ptrFit[1] < 150 ? 255 : 0);
-                  ptrFit[2] = (ptrFit[2] < 150 ? 255 : 0);
-               }
             }
          }
       }
    }
    SDL_UnlockSurface(picture);
-/*
-   for(y = pCtr.Y * -8; y < extent; y += 8) {
+
+   for(y = 0; y < extent; y++) {
       yFlip = extent - 1 - y;
-      if(yFlip < 0) continue;
 
-      for(x = pCtr.X * -8; x < extent; x += 8) {
-         if(x < 0) continue;
-
+      for(x = 0; x < extent; x++) {
          ptrFit = pixbuf + (yFlip * bytesPerRow + x * 3);
 
-         ptrFit[0] += (255 - ptrFit[0])/2;
-         ptrFit[1] += (255 - ptrFit[1])/2;
-         ptrFit[2] += (255 - ptrFit[2])/2;
+         if((int)(x + 8*pCtr.X) % 8 == 0 || (int)(y + 8*pCtr.Y) % 8 == 0) {
+            ptrFit[0] = (ptrFit[0] * 8)/10;
+            ptrFit[1] = (ptrFit[1] * 8)/10;
+            ptrFit[2] = (ptrFit[2] * 8)/10;
+         }
       }
    }
-*/
 
    clipRect.w = extent;
    clipRect.h = extent;
