@@ -887,6 +887,7 @@ GetCompactOffset(int x, int y, int phiIdx, int extent)
 
    offset = (int)((x * uCos128[phiIdx] + y * uSin128[phiIdx] - negMax) * scale + 0.5);
 
+   assert(offset >= 0);
    assert(offset <= 64);
 
    return offset;
@@ -1996,7 +1997,7 @@ static void
 DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
       struct FitRegion *normal, struct AppState *state, int screenY, int screenX)
 {
-   unsigned char pixbuf[201243]; /* 259 * 259 * 3 */
+   unsigned char pixbuf[49152]; /* 128 * 128 * 3 */
    unsigned char *ptrFit, *ptrRaw;
    SDL_Rect clipRect;
    SDL_Surface *surface;
@@ -2008,6 +2009,9 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
    int bytesPerRow = extent * 3;
    DmtxVector2 pFit, pRaw, pTmp, pCtr;
    double xFitAdjusted, yFitAdjusted;
+   int modulesToDisplay = 16;
+   int dispModExtent = extent/modulesToDisplay;
+   DmtxMatrix3 mDisplay, mScale;
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
    rmask = 0xff000000;
@@ -2025,6 +2029,14 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
    pTmp.X = pTmp.Y = 32.0;
    dmtxMatrix3VMultiply(&pCtr, &pTmp, normal->raw2fit);
 
+   if(state->activeExtent == 64) {
+      dmtxMatrix3Copy(mDisplay, normal->fit2raw);
+   }
+   else if(state->activeExtent == 32) {
+      dmtxMatrix3Scale(mScale, 0.5, 0.5);
+      dmtxMatrix3Multiply(mDisplay, normal->fit2raw, mScale);
+   }
+
    SDL_LockSurface(picture);
    for(y = 0; y < extent; y++) {
       for(x = 0; x < extent; x++) {
@@ -2032,19 +2044,25 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
          yFlip = (extent - 1) - y;
 
          /* Adjust fitted input so unfitted center is display centered */
-         xFitAdjusted = ((x-extent/2) * 16.0)/extent + pCtr.X;
-         yFitAdjusted = ((yFlip-extent/2) * 16.0)/extent + pCtr.Y;
+         xFitAdjusted = ((x-extent/2) * (double)modulesToDisplay)/extent + pCtr.X;
+         yFitAdjusted = ((yFlip-extent/2) * (double)modulesToDisplay)/extent + pCtr.Y;
 
          pFit.X = xFitAdjusted;
          pFit.Y = yFitAdjusted;
-         dmtxMatrix3VMultiply(&pRaw, &pFit, normal->fit2raw);
+         dmtxMatrix3VMultiply(&pRaw, &pFit, mDisplay);
 
-         xRaw = (int)(pRaw.X + 0.5);
-         yRaw = (int)(pRaw.Y + 0.5);
+         xRaw = (pRaw.X >= 0.0 ? (int)(pRaw.X + 0.5) : (int)(pRaw.X - 0.5));
+         yRaw = (pRaw.Y >= 0.0 ? (int)(pRaw.Y + 0.5) : (int)(pRaw.Y - 0.5));
 
          /* XXX consider creating translated (and scaled?) image so AppState isn't necessary here */
-         xRawAbs = (xRaw + 288) - state->imageLocX; /* 288 == 640/2 - 32 */
-         yRawAbs = (291 - yRaw) - state->imageLocY; /* 291 == 518/2 + 32 */
+         if(state->activeExtent == 64) {
+            xRawAbs = (xRaw + 288) - state->imageLocX; /* 288 == 640/2 - 32 */
+            yRawAbs = (291 - yRaw) - state->imageLocY; /* 291 == 518/2 + 32 */
+         }
+         else {
+            xRawAbs = (xRaw + 304) - state->imageLocX; /* 304 == 640/2 - 16 */
+            yRawAbs = (275 - yRaw) - state->imageLocY; /* 275 == 518/2 + 16 */
+         }
 
          ptrFit = pixbuf + (y * bytesPerRow + x * 3);
          if(xRawAbs < 0 || xRawAbs >= picture->w || yRawAbs < 0 || yRawAbs >= picture->h) {
@@ -2056,7 +2074,8 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
             ptrRaw = (unsigned char *)picture->pixels + (yRawAbs *
                   picture->pitch + xRawAbs * picture->format->BytesPerPixel);
 
-            if(xRaw < 0 || xRaw >= 63 || yRaw < 0 || yRaw >= 63) {
+            if(xRaw < 0 || xRaw >= state->activeExtent - 1 ||
+                  yRaw < 0 || yRaw >= state->activeExtent - 1) {
                ptrFit[0] = ptrRaw[0]/2;
                ptrFit[1] = ptrRaw[1]/2;
                ptrFit[2] = ptrRaw[2]/2;
@@ -2077,7 +2096,8 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
       for(x = 0; x < extent; x++) {
          ptrFit = pixbuf + (yFlip * bytesPerRow + x * 3);
 
-         if((int)(x + 8*pCtr.X) % 8 == 0 || (int)(y + 8*pCtr.Y) % 8 == 0) {
+         if((int)(x + dispModExtent*pCtr.X) % dispModExtent == 0 ||
+               (int)(y + dispModExtent*pCtr.Y) % dispModExtent == 0) {
             ptrFit[0] = (ptrFit[0] * 8)/10;
             ptrFit[1] = (ptrFit[1] * 8)/10;
             ptrFit[2] = (ptrFit[2] * 8)/10;
