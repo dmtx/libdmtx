@@ -78,6 +78,7 @@ Contact: mblaughton@users.sourceforge.net
 #define CTRL_ROW4_Y          195
 #define CTRL_ROW5_Y          259
 #define CTRL_ROW6_Y          324
+#define CTRL_ROW7_Y          388
 
 struct UserOptions {
    const char *imagePath;
@@ -225,6 +226,8 @@ static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displ
 static void DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenY, int screenX);
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int screenX);
 static void DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *local, struct FitRegion *normal, struct AppState *state, int screenY, int screenX);
+static int ReadModuleColor(DmtxDecode *dec, DmtxMatrix3 *fit2raw, int symbolRow, int symbolCol, int sizeIdx, int colorPlane);
+static void DrawSymbolPreview(SDL_Surface *screen, SDL_Surface *picture, struct FitRegion *normal, struct AppState *state, int screenY, int screenX);
 
 int
 main(int argc, char *argv[])
@@ -457,8 +460,12 @@ main(int argc, char *argv[])
       /* Normalize region */
       err = NormalizeRegion(&normal, &timingSort, screen);
       if(err == DmtxPass) {
-         DrawNormalizedRegion(screen, picture, &normal, &state, CTRL_ROW5_Y, CTRL_COL1_X);
+         DrawNormalizedRegion(screen, picture, &normal, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
 /*       BlitActiveRegion(screen, local, 2, CTRL_ROW5_Y, CTRL_COL3_X); */
+
+         DrawSymbolPreview(screen, picture, &normal, &state, CTRL_ROW5_Y, CTRL_COL3_X);
+         DrawSymbolPreview(screen, picture, &normal, &state, CTRL_ROW7_Y, CTRL_COL1_X + 1);
+         DrawSymbolPreview(screen, picture, &normal, &state, CTRL_ROW7_Y, CTRL_COL3_X);
       }
 
       /* Next step: start with small 2-layer box and step each edge outward
@@ -2115,4 +2122,106 @@ DrawNormalizedRegion(SDL_Surface *screen, SDL_Surface *picture,
 
    SDL_BlitSurface(surface, NULL, screen, &clipRect);
    SDL_FreeSurface(surface);
+}
+
+/**
+ *
+ *
+ */
+static int
+ReadModuleColor(DmtxDecode *dec, DmtxMatrix3 *fit2raw, int symbolRow, int symbolCol,
+      int sizeIdx, int colorPlane)
+{
+   int err;
+   int i;
+   int symbolRows, symbolCols;
+   int color, colorTmp;
+   double sampleX[] = { 0.5, 0.4, 0.5, 0.6, 0.5 };
+   double sampleY[] = { 0.5, 0.5, 0.4, 0.5, 0.6 };
+   DmtxVector2 p;
+
+   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
+   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
+
+   color = 0;
+/* for(i = 0; i < 5; i++) {
+
+      p.X = (1.0/symbolCols) * (symbolCol + sampleX[i]);
+      p.Y = (1.0/symbolRows) * (symbolRow + sampleY[i]);
+
+      dmtxMatrix3VMultiplyBy(&p, fit2raw);
+
+      XXX fake up a dec that holds an image only
+      err = dmtxDecodeGetPixelValue(dec, (int)(p.X + 0.5), (int)(p.Y + 0.5), colorPlane, &colorTmp);
+
+      color += colorTmp;
+   } */
+
+   return color/5;
+}
+
+/**
+ *
+ *
+ */
+static void
+DrawSymbolPreview(SDL_Surface *screen, SDL_Surface *picture,
+      struct FitRegion *normal, struct AppState *state, int screenY, int screenX)
+{
+   unsigned char pixbuf[49152]; /* 128 * 128 * 3 */
+   SDL_Rect clipRect;
+   int extent = 128;
+   int regionRow, regionCol;
+   int moduleExtent;
+   int rowCount, colCount, maxCount;
+   Sint16 x1, y1, x2, y2;
+   int rColor, gColor, bColor, color;
+   int xMargin, yMargin;
+   DmtxMatrix3 fit2raw, mScale;
+
+/**
+ * approach:
+ * determine max module display size
+ * for each grid location
+ *   poll module color using ReadModuleColor()
+ *   display to grid
+ */
+   memset(pixbuf, 0x00, sizeof(pixbuf));
+
+   if(state->activeExtent == 64) {
+      dmtxMatrix3Copy(fit2raw, normal->fit2raw);
+   }
+   else if(state->activeExtent == 32) {
+      dmtxMatrix3Scale(mScale, 0.5, 0.5);
+      dmtxMatrix3Multiply(fit2raw, normal->fit2raw, mScale);
+   }
+
+   rowCount = normal->flatCount;
+   colCount = normal->steepCount;
+   maxCount = (rowCount > colCount ? rowCount : colCount);
+
+   moduleExtent = 128/(maxCount + 2); /* Add +2 for quiet zone */
+
+   xMargin = (128 - (moduleExtent * colCount))/2;
+   yMargin = (128 - (moduleExtent * rowCount))/2;
+
+/* SDL_LockSurface(picture); */
+   for(regionRow = 0; regionRow < rowCount; regionRow++) {
+      for(regionCol = 0; regionCol < colCount; regionCol++) {
+
+         rColor = ((1+regionRow) * (4+regionCol) * 37) % 255;
+         gColor = ((2+regionRow) * (5+regionCol) * 17) % 255;
+         bColor = ((3+regionRow) * (6+regionCol) * 27) % 255;
+         color = (rColor << 24) | (gColor << 16) | (bColor << 8) | 0xff;;
+/*       color = ReadModuleColor(dec, fit2raw, symbolRow, symbolCol, sizeIdx, colorPlane); */
+
+         x1 = regionCol * moduleExtent + screenX + xMargin;
+         y1 = regionRow * moduleExtent + screenY + yMargin;
+         x2 = x1 + moduleExtent;
+         y2 = y1 + moduleExtent;
+
+         boxColor(screen, x1, y1, x2, y2, color);
+      }
+   }
+/* SDL_UnlockSurface(picture); */
 }
