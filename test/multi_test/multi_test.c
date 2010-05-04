@@ -33,6 +33,7 @@ Contact: mblaughton@users.sourceforge.net
  * Next:
  * x Find grid at +-90 degress
  * x Display normalized view in realtime
+ * o Switch back to fitted 0-1 unit region regardless of grid size
  *
  * Approach:
  *   1) Calculate s/b/h/v flow caches (edge intensity)
@@ -213,7 +214,6 @@ static struct VanishPointSum GetAngleSumAtPhi(struct HoughCache *hough, int phi)
 static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
 static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
-/*static DmtxPixelLoc Vector2ToPixelLoc(DmtxVector2 v);*/
 static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppState *state);
 static DmtxPassFail RegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
@@ -230,8 +230,8 @@ static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displ
 static void DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenY, int screenX);
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int screenX);
 static void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal, struct AppState *state, int screenY, int screenX);
-static int ReadModuleColor(DmtxDecode *dec, DmtxMatrix3 *fit2raw, int symbolRow, int symbolCol, int sizeIdx, int colorPlane);
-static void DrawSymbolPreview(SDL_Surface *screen, SDL_Surface *picture, struct FitRegion *normal, struct AppState *state, int screenY, int screenX);
+static int ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow, int symbolCol, int colorPlane);
+static void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal, struct AppState *state, int screenY, int screenX);
 
 int
 main(int argc, char *argv[])
@@ -475,9 +475,9 @@ main(int argc, char *argv[])
          DrawNormalizedRegion(screen, imgFull, &normal, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
 /*       BlitActiveRegion(screen, local, 2, CTRL_ROW5_Y, CTRL_COL3_X); */
 
-         DrawSymbolPreview(screen, picture, &normal, &state, CTRL_ROW5_Y, CTRL_COL3_X);
-         DrawSymbolPreview(screen, picture, &normal, &state, CTRL_ROW7_Y, CTRL_COL1_X + 1);
-         DrawSymbolPreview(screen, picture, &normal, &state, CTRL_ROW7_Y, CTRL_COL3_X);
+         DrawSymbolPreview(screen, imgFull, &normal, &state, CTRL_ROW5_Y, CTRL_COL3_X);
+         DrawSymbolPreview(screen, imgFull, &normal, &state, CTRL_ROW7_Y, CTRL_COL1_X + 1);
+         DrawSymbolPreview(screen, imgFull, &normal, &state, CTRL_ROW7_Y, CTRL_COL3_X);
          SDL_UnlockSurface(picture);
       }
 
@@ -1408,23 +1408,6 @@ HoughLineToRay2(int phi, double d)
    return rLine;
 }
 
-/**
- *
- *
- */
-/*
-static DmtxPixelLoc
-Vector2ToPixelLoc(DmtxVector2 v)
-{
-   DmtxPixelLoc p;
-
-   p.X = (int)(v.X + 0.5);
-   p.Y = (int)(v.Y + 0.5);
-
-   return p;
-}
-*/
-
 struct RegionLines {
    int lineCount;
    struct Timing timing;
@@ -1527,7 +1510,7 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
    }
 
    dmtxMatrix3Multiply(normal->raw2fitActive, reg.raw2fit, mScale);
-   dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, reg.raw2fit);
+   dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, reg.raw2fit); /* not tested */
 
    /* fit2raw: Abstract away display nuances of multi_test application */
    if(state->activeExtent == 64) {
@@ -2163,55 +2146,33 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
  *
  */
 static int
-ReadModuleColor(DmtxDecode *dec, DmtxMatrix3 *fit2raw, int symbolRow, int symbolCol,
-      int sizeIdx, int colorPlane)
+ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow, int symbolCol, int colorPlane)
 {
-/* int err;
-   int i; */
-   int symbolRows, symbolCols;
-   int color; /*, colorTmp;
+   int err;
+   int i;
+   int color, colorTmp;
    double sampleX[] = { 0.5, 0.4, 0.5, 0.6, 0.5 };
    double sampleY[] = { 0.5, 0.5, 0.4, 0.5, 0.6 };
-   DmtxVector2 p; */
-
-   symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, sizeIdx);
-   symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, sizeIdx);
+   DmtxVector2 p;
 
    color = 0;
-/* for(i = 0; i < 5; i++) {
+   for(i = 0; i < 5; i++) {
 
-      p.X = (1.0/symbolCols) * (symbolCol + sampleX[i]);
-      p.Y = (1.0/symbolRows) * (symbolRow + sampleY[i]);
+/*    p.X = (1.0/colCount) * (symbolCol + sampleX[i]);
+      p.Y = (1.0/rowCount) * (symbolRow + sampleY[i]); */
+      p.X = symbolCol + sampleX[i];
+      p.Y = symbolRow + sampleY[i];
 
-      dmtxMatrix3VMultiplyBy(&p, fit2raw);
+      dmtxMatrix3VMultiplyBy(&p, normal->fit2rawFull);
 
-      XXX fake up a dec that holds an image only
-      err = dmtxDecodeGetPixelValue(dec, (int)(p.X + 0.5), (int)(p.Y + 0.5), colorPlane, &colorTmp);
+      /* Should use dmtxDecodeGetPixelValue() later to properly handle pixel skipping */
+      err = dmtxImageGetPixelValue(img, p.X, p.Y, colorPlane, &colorTmp);
 
       color += colorTmp;
-   } */
+   }
 
    return color/5;
 }
-
-/**
- *
- *
- */
-static void
-DrawSymbolPreview(SDL_Surface *screen, SDL_Surface *picture,
-      struct FitRegion *normal, struct AppState *state, int screenY, int screenX)
-{
-   unsigned char pixbuf[49152]; /* 128 * 128 * 3 */
-/* SDL_Rect clipRect;
-   int extent = 128; */
-   int regionRow, regionCol;
-   int moduleExtent;
-   int rowCount, colCount, maxCount;
-   Sint16 x1, y1, x2, y2;
-   int rColor, gColor, bColor, color;
-   int xMargin, yMargin;
-   DmtxMatrix3 fit2raw, mScale;
 
 /**
  * approach:
@@ -2220,15 +2181,16 @@ DrawSymbolPreview(SDL_Surface *screen, SDL_Surface *picture,
  *   poll module color using ReadModuleColor()
  *   display to grid
  */
-   memset(pixbuf, 0x00, sizeof(pixbuf));
-
-   if(state->activeExtent == 64) {
-      dmtxMatrix3Copy(fit2raw, normal->fit2rawActive);
-   }
-   else if(state->activeExtent == 32) {
-      dmtxMatrix3Scale(mScale, 0.5, 0.5);
-      dmtxMatrix3Multiply(fit2raw, normal->fit2rawActive, mScale);
-   }
+static void
+DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal,
+      struct AppState *state, int screenY, int screenX)
+{
+   int regionRow, regionCol, dmtxRow;
+   int moduleExtent;
+   int rowCount, colCount, maxCount;
+   Sint16 x1, y1, x2, y2;
+   int rColor, gColor, bColor, color;
+   int xMargin, yMargin;
 
    rowCount = normal->flatCount;
    colCount = normal->steepCount;
@@ -2239,15 +2201,16 @@ DrawSymbolPreview(SDL_Surface *screen, SDL_Surface *picture,
    xMargin = (128 - (moduleExtent * colCount))/2;
    yMargin = (128 - (moduleExtent * rowCount))/2;
 
-/* SDL_LockSurface(picture); */
    for(regionRow = 0; regionRow < rowCount; regionRow++) {
+
+      dmtxRow = rowCount - 1 - regionRow;
+
       for(regionCol = 0; regionCol < colCount; regionCol++) {
 
-         rColor = ((1+regionRow) * (4+regionCol) * 37) % 255;
-         gColor = ((2+regionRow) * (5+regionCol) * 17) % 255;
-         bColor = ((3+regionRow) * (6+regionCol) * 27) % 255;
-         color = (rColor << 24) | (gColor << 16) | (bColor << 8) | 0xff;;
-/*       color = ReadModuleColor(dec, fit2raw, symbolRow, symbolCol, sizeIdx, colorPlane); */
+         rColor = ReadModuleColor(img, normal, dmtxRow, regionCol, 0);
+         gColor = ReadModuleColor(img, normal, dmtxRow, regionCol, 1);
+         bColor = ReadModuleColor(img, normal, dmtxRow, regionCol, 2);
+         color = (rColor << 24) | (gColor << 16) | (bColor << 8) | 0xff;
 
          x1 = regionCol * moduleExtent + screenX + xMargin;
          y1 = regionRow * moduleExtent + screenY + yMargin;
@@ -2257,5 +2220,4 @@ DrawSymbolPreview(SDL_Surface *screen, SDL_Surface *picture,
          boxColor(screen, x1, y1, x2, y2, color);
       }
    }
-/* SDL_UnlockSurface(picture); */
 }
