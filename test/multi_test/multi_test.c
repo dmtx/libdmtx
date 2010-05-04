@@ -32,10 +32,7 @@ Contact: mblaughton@users.sourceforge.net
 /**
  * Next:
  * x Find grid at +-90 degress
- * / Display normalized view in realtime
- *   x Abstract multi_test display nuances in fit2rawFull
- *   o Abstract multi_test display nuances in raw2fitFull
- *   o Fix pCtr handling after making above changes
+ * x Display normalized view in realtime
  *
  * Approach:
  *   1) Calculate s/b/h/v flow caches (edge intensity)
@@ -147,7 +144,8 @@ struct TimingSort {
 struct FitRegion {
    int flatCount;
    int steepCount;
-   DmtxMatrix3 raw2fit;
+   DmtxMatrix3 raw2fitActive;
+   DmtxMatrix3 raw2fitFull;
    DmtxMatrix3 fit2rawActive;
    DmtxMatrix3 fit2rawFull;
 };
@@ -1446,7 +1444,7 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
    DmtxPassFail err;
    DmtxDecode dec;
    DmtxRegion reg;
-   DmtxMatrix3 mScale, mTranslate, mAdjust;
+   DmtxMatrix3 mScale, mTranslate;
 
    /* (1) -- later compare all possible combinations for strongest pair */
    rl0.timing = sort->timing[0];
@@ -1517,10 +1515,19 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
    normal->steepCount = steep->lineCount;
 
    /* raw2fit: Final transformation fits single origin module */
-   dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount);
-   dmtxMatrix3Translate(mTranslate, 0, 0);
-   dmtxMatrix3Multiply(mAdjust, mScale, mTranslate);
-   dmtxMatrix3Multiply(normal->raw2fit, reg.raw2fit, mAdjust);
+   if(state->activeExtent == 64) {
+      dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount);
+      dmtxMatrix3Translate(mTranslate, state->imageLocX - 288,
+            518 - (227 + state->imageLocY + state->imageHeight));
+   }
+   else {
+      dmtxMatrix3Scale(mScale, 2 * steep->lineCount, 2 * flat->lineCount);
+      dmtxMatrix3Translate(mTranslate, state->imageLocX - 304,
+            518 - (243 + state->imageLocY + state->imageHeight));
+   }
+
+   dmtxMatrix3Multiply(normal->raw2fitActive, reg.raw2fit, mScale);
+   dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, reg.raw2fit);
 
    /* fit2raw: Abstract away display nuances of multi_test application */
    if(state->activeExtent == 64) {
@@ -1829,6 +1836,10 @@ PlotPixel(SDL_Surface *surface, int x, int y)
          &col, surface->format->BytesPerPixel);
 }
 
+/**
+ *
+ *
+ */
 static int
 Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1)
 {
@@ -1847,6 +1858,10 @@ Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1)
    return DmtxTrue;
 }
 
+/**
+ *
+ *
+ */
 static int
 IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1)
 {
@@ -1908,6 +1923,10 @@ IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, Dm
    return DmtxTrue;
 }
 
+/**
+ *
+ *
+ */
 static void
 DrawActiveBorder(SDL_Surface *screen, int activeExtent)
 {
@@ -1934,6 +1953,10 @@ DrawActiveBorder(SDL_Surface *screen, int activeExtent)
    lineColor(screen, x01, y01, x00, y00, 0x0000ffff);
 }
 
+/**
+ *
+ *
+ */
 static void
 DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
       int phi, double d, int displayScale)
@@ -2041,9 +2064,8 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
    SDL_Rect clipRect;
    SDL_Surface *surface;
    Uint32 rmask, gmask, bmask, amask;
-   int x, y, yFlip;
+   int x, yImage, yDmtx;
    int xRaw, yRaw;
-   int xRawAbs, yRawAbs;
    int extent = 128;
    int bytesPerRow = extent * 3;
    DmtxVector2 pFit, pRaw, pRawActive, pTmp, pCtr;
@@ -2064,17 +2086,17 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
 #endif
 
    /* Adjust input to center active region in normalized window */
-   pTmp.X = pTmp.Y = 32.0;
-   dmtxMatrix3VMultiply(&pCtr, &pTmp, normal->raw2fit);
+   pTmp.X = pTmp.Y = state->activeExtent/2.0;
+   dmtxMatrix3VMultiply(&pCtr, &pTmp, normal->raw2fitActive);
 
-   for(y = 0; y < extent; y++) {
+   for(yImage = 0; yImage < extent; yImage++) {
       for(x = 0; x < extent; x++) {
 
-         yFlip = (extent - 1) - y;
+         yDmtx = (extent - 1) - yImage;
 
          /* Adjust fitted input so unfitted center is display centered */
          xFitAdjusted = ((x-extent/2) * (double)modulesToDisplay)/extent + pCtr.X;
-         yFitAdjusted = ((yFlip-extent/2) * (double)modulesToDisplay)/extent + pCtr.Y;
+         yFitAdjusted = ((yDmtx-extent/2) * (double)modulesToDisplay)/extent + pCtr.Y;
 
          pFit.X = xFitAdjusted;
          pFit.Y = yFitAdjusted;
@@ -2084,26 +2106,17 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
          xRaw = (pRaw.X >= 0.0 ? (int)(pRaw.X + 0.5) : (int)(pRaw.X - 0.5));
          yRaw = (pRaw.Y >= 0.0 ? (int)(pRaw.Y + 0.5) : (int)(pRaw.Y - 0.5));
 
-         if(state->activeExtent == 64) {
-            xRawAbs = xRaw;
-            yRawAbs = yRaw;
-         }
-         else {
-            xRawAbs = xRaw;
-            yRawAbs = yRaw;
-         }
-
-         ptrFit = pixbuf + (y * bytesPerRow + x * 3);
-         if(xRawAbs < 0 || xRawAbs >= img->width || yRawAbs < 0 || yRawAbs >= img->height) {
+         ptrFit = pixbuf + (yImage * bytesPerRow + x * 3);
+         if(xRaw < 0 || xRaw >= img->width || yRaw < 0 || yRaw >= img->height) {
             ptrFit[0] = 0;
             ptrFit[1] = 0;
             ptrFit[2] = 0;
          }
          else {
-            ptrRaw = (unsigned char *)img->pxl + dmtxImageGetByteOffset(img, xRawAbs, yRawAbs);
+            ptrRaw = (unsigned char *)img->pxl + dmtxImageGetByteOffset(img, xRaw, yRaw);
 
             if(pRawActive.X < 0.0 || pRawActive.X >= state->activeExtent - 1 ||
-                  pRawActive.Y < 0 || pRawActive.Y >= state->activeExtent - 1) {
+                  pRawActive.Y < 0.0 || pRawActive.Y >= state->activeExtent - 1) {
                ptrFit[0] = ptrRaw[0]/2;
                ptrFit[1] = ptrRaw[1]/2;
                ptrFit[2] = ptrRaw[2]/2;
@@ -2117,14 +2130,15 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
       }
    }
 
-   for(y = 0; y < extent; y++) {
-      yFlip = extent - 1 - y;
+   /* Overlay grid pattern */
+   for(yImage = 0; yImage < extent; yImage++) {
+      yDmtx = extent - 1 - yImage;
 
       for(x = 0; x < extent; x++) {
-         ptrFit = pixbuf + (yFlip * bytesPerRow + x * 3);
+         ptrFit = pixbuf + (yDmtx * bytesPerRow + x * 3);
 
          if((int)(x + dispModExtent*pCtr.X) % dispModExtent == 0 ||
-               (int)(y + dispModExtent*pCtr.Y) % dispModExtent == 0) {
+               (int)(yImage + dispModExtent*pCtr.Y) % dispModExtent == 0) {
             ptrFit[0] = (ptrFit[0] * 8)/10;
             ptrFit[1] = (ptrFit[1] * 8)/10;
             ptrFit[2] = (ptrFit[2] * 8)/10;
