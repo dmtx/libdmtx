@@ -216,7 +216,7 @@ static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
 static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppState *state);
-static DmtxPassFail RegionUpdateCorners(DmtxRegion *reg, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
+static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenY, int screenX);
@@ -1427,8 +1427,8 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
    struct RegionLines rl0, rl1, *flat, *steep;
    DmtxVector2 p00, p10, p11, p01;
    DmtxPassFail err;
-   DmtxRegion reg;
-   DmtxMatrix3 mScale, mTranslate;
+   DmtxMatrix3 fit2raw, raw2fit;
+   DmtxMatrix3 mScale, mTranslate, mTmp;
 
    /* (1) -- later compare all possible combinations for strongest pair */
    rl0.timing = sort->timing[0];
@@ -1485,9 +1485,7 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
       return DmtxFail;
 
    /* XXX temporary fake out -- use DmtxDecode and DmtxRegion for transformations */
-   memset(&reg, 0x00, sizeof(DmtxRegion));
-
-   err = RegionUpdateCorners(&reg, p00, p10, p11, p01);
+   err = RegionUpdateCorners(fit2raw, raw2fit, p00, p10, p11, p01);
    if(err == DmtxFail)
       return DmtxFail;
 
@@ -1495,44 +1493,41 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
    normal->steepCount = steep->lineCount;
 
    /* raw2fit: Final transformation fits single origin module */
-   if(state->activeExtent == 64) {
-      dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount);
-      dmtxMatrix3Multiply(normal->raw2fitActive, reg.raw2fit, mScale);
+   dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount);
+   dmtxMatrix3Multiply(normal->raw2fitActive, raw2fit, mScale);
 
+   if(state->activeExtent == 64) {
       dmtxMatrix3Translate(mTranslate, state->imageLocX - 288,
             518 - (227 + state->imageLocY + state->imageHeight));
-      dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, reg.raw2fit); /* not tested */
+      dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, normal->raw2fitActive); /* not tested */
    }
    else {
       dmtxMatrix3Scale(mScale, 2.0, 2.0);
-      dmtxMatrix3Multiply(normal->raw2fitActive, reg.raw2fit, mScale);
-      dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount);
-      dmtxMatrix3MultiplyBy(normal->raw2fitActive, mScale);
+      dmtxMatrix3Multiply(mTmp, mScale, normal->raw2fitActive);
+      dmtxMatrix3Copy(normal->raw2fitActive, mTmp);
 
       dmtxMatrix3Translate(mTranslate, state->imageLocX - 304,
             518 - (243 + state->imageLocY + state->imageHeight));
-      dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, reg.raw2fit); /* not tested */
+      dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, normal->raw2fitActive); /* not tested */
    }
 
    /* fit2raw: Abstract away display nuances of multi_test application */
-   if(state->activeExtent == 64) {
-      dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount);
-      dmtxMatrix3Multiply(normal->fit2rawActive, mScale, reg.fit2raw);
+   dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount);
+   dmtxMatrix3Multiply(normal->fit2rawActive, mScale, fit2raw);
 
+   if(state->activeExtent == 64) {
       dmtxMatrix3Translate(mTranslate, 288 - state->imageLocX,
             227 + state->imageLocY + state->imageHeight - 518);
-      dmtxMatrix3Multiply(normal->fit2rawFull, normal->fit2rawActive, mTranslate);
    }
    else {
-      dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount);
-      dmtxMatrix3Multiply(normal->fit2rawActive, mScale, reg.fit2raw);
       dmtxMatrix3Scale(mScale, 0.5, 0.5);
-      dmtxMatrix3MultiplyBy(normal->fit2rawActive, mScale);
+      dmtxMatrix3Multiply(mTmp, normal->fit2rawActive, mScale);
+      dmtxMatrix3Copy(normal->fit2rawActive, mTmp);
 
       dmtxMatrix3Translate(mTranslate, 304 - state->imageLocX,
             243 + state->imageLocY + state->imageHeight - 518);
-      dmtxMatrix3Multiply(normal->fit2rawFull, normal->fit2rawActive, mTranslate);
    }
+   dmtxMatrix3Multiply(normal->fit2rawFull, normal->fit2rawActive, mTranslate);
 
    return DmtxPass;
 }
@@ -1542,7 +1537,7 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
  *
  */
 static DmtxPassFail
-RegionUpdateCorners(DmtxRegion *reg, DmtxVector2 p00,
+RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00,
       DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01)
 {
 /* double xMax, yMax; */
@@ -1618,7 +1613,7 @@ RegionUpdateCorners(DmtxRegion *reg, DmtxVector2 p00,
    dmtxMatrix3VMultiply(&vTmp, &p01, m);
    sky = vTmp.Y;
    dmtxMatrix3LineSkewTop(msky, sky, 1.0, 1.0);
-   dmtxMatrix3Multiply(reg->raw2fit, m, msky);
+   dmtxMatrix3Multiply(raw2fit, m, msky);
 
    /* Create inverse matrix by reverse (avoid straight matrix inversion) */
    dmtxMatrix3LineSkewTopInv(msky, sky, 1.0, 1.0);
@@ -1635,7 +1630,7 @@ RegionUpdateCorners(DmtxRegion *reg, DmtxVector2 p00,
    dmtxMatrix3MultiplyBy(m, mphi);
 
    dmtxMatrix3Translate(mtxy, -tx, -ty);
-   dmtxMatrix3Multiply(reg->fit2raw, m, mtxy);
+   dmtxMatrix3Multiply(fit2raw, m, mtxy);
 
    return DmtxPass;
 }
@@ -2077,7 +2072,6 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
 
    pTmp.X = pTmp.Y = state->activeExtent/2.0;
    dmtxMatrix3VMultiply(&pCtr, &pTmp, normal->raw2fitActive);
-   pCtr.X = pCtr.Y = 0.0;
 
    for(yImage = 0; yImage < extent; yImage++) {
       for(x = 0; x < extent; x++) {
