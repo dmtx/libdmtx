@@ -33,7 +33,8 @@ Contact: mblaughton@users.sourceforge.net
  * Next:
  * x Find grid at +-90 degress
  * x Display normalized view in realtime
- * o Switch back to fitted 0-1 unit region regardless of grid size
+ * o Switch back to fitted 0-1 unit region regardless of grid size (maybe?)
+ * o Use consistent naming to hold grid lineCount vs. rowCount
  *
  * Approach:
  *   1) Calculate s/b/h/v flow caches (edge intensity)
@@ -215,7 +216,7 @@ static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
 static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppState *state);
-static DmtxPassFail RegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
+static DmtxPassFail RegionUpdateCorners(DmtxRegion *reg, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenY, int screenX);
@@ -1418,6 +1419,7 @@ struct RegionLines {
 /**
  *
  *
+ *
  */
 static DmtxPassFail
 NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppState *state)
@@ -1425,7 +1427,6 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
    struct RegionLines rl0, rl1, *flat, *steep;
    DmtxVector2 p00, p10, p11, p01;
    DmtxPassFail err;
-   DmtxDecode dec;
    DmtxRegion reg;
    DmtxMatrix3 mScale, mTranslate;
 
@@ -1484,13 +1485,9 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
       return DmtxFail;
 
    /* XXX temporary fake out -- use DmtxDecode and DmtxRegion for transformations */
-   memset(&dec, 0x00, sizeof(DmtxDecode));
-   dec.scale = 1;
-   dmtxDecodeSetProp(&dec, DmtxPropWidth, 64);
-   dmtxDecodeSetProp(&dec, DmtxPropHeight, 64);
    memset(&reg, 0x00, sizeof(DmtxRegion));
 
-   err = RegionUpdateCorners(&dec, &reg, p00, p10, p11, p01);
+   err = RegionUpdateCorners(&reg, p00, p10, p11, p01);
    if(err == DmtxFail)
       return DmtxFail;
 
@@ -1500,32 +1497,42 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
    /* raw2fit: Final transformation fits single origin module */
    if(state->activeExtent == 64) {
       dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount);
+      dmtxMatrix3Multiply(normal->raw2fitActive, reg.raw2fit, mScale);
+
       dmtxMatrix3Translate(mTranslate, state->imageLocX - 288,
             518 - (227 + state->imageLocY + state->imageHeight));
+      dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, reg.raw2fit); /* not tested */
    }
    else {
-      dmtxMatrix3Scale(mScale, 2 * steep->lineCount, 2 * flat->lineCount);
+      dmtxMatrix3Scale(mScale, 2.0, 2.0);
+      dmtxMatrix3Multiply(normal->raw2fitActive, reg.raw2fit, mScale);
+      dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount);
+      dmtxMatrix3MultiplyBy(normal->raw2fitActive, mScale);
+
       dmtxMatrix3Translate(mTranslate, state->imageLocX - 304,
             518 - (243 + state->imageLocY + state->imageHeight));
+      dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, reg.raw2fit); /* not tested */
    }
-
-   dmtxMatrix3Multiply(normal->raw2fitActive, reg.raw2fit, mScale);
-   dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, reg.raw2fit); /* not tested */
 
    /* fit2raw: Abstract away display nuances of multi_test application */
    if(state->activeExtent == 64) {
       dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount);
+      dmtxMatrix3Multiply(normal->fit2rawActive, mScale, reg.fit2raw);
+
       dmtxMatrix3Translate(mTranslate, 288 - state->imageLocX,
             227 + state->imageLocY + state->imageHeight - 518);
+      dmtxMatrix3Multiply(normal->fit2rawFull, normal->fit2rawActive, mTranslate);
    }
    else {
-      dmtxMatrix3Scale(mScale, 0.5/steep->lineCount, 0.5/flat->lineCount);
+      dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount);
+      dmtxMatrix3Multiply(normal->fit2rawActive, mScale, reg.fit2raw);
+      dmtxMatrix3Scale(mScale, 0.5, 0.5);
+      dmtxMatrix3MultiplyBy(normal->fit2rawActive, mScale);
+
       dmtxMatrix3Translate(mTranslate, 304 - state->imageLocX,
             243 + state->imageLocY + state->imageHeight - 518);
+      dmtxMatrix3Multiply(normal->fit2rawFull, normal->fit2rawActive, mTranslate);
    }
-
-   dmtxMatrix3Multiply(normal->fit2rawActive, mScale, reg.fit2raw);
-   dmtxMatrix3Multiply(normal->fit2rawFull, normal->fit2rawActive, mTranslate);
 
    return DmtxPass;
 }
@@ -1535,19 +1542,19 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
  *
  */
 static DmtxPassFail
-RegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
+RegionUpdateCorners(DmtxRegion *reg, DmtxVector2 p00,
       DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01)
 {
-   double xMax, yMax;
+/* double xMax, yMax; */
    double tx, ty, phi, shx, scx, scy, skx, sky;
    double dimOT, dimOR, dimTX, dimRX; /* , ratio; */
    DmtxVector2 vOT, vOR, vTX, vRX, vTmp;
    DmtxMatrix3 m, mtxy, mphi, mshx, mscx, mscy, mscxy, msky, mskx;
 
-   xMax = (double)(dmtxDecodeGetProp(dec, DmtxPropWidth) - 1);
+/* xMax = (double)(dmtxDecodeGetProp(dec, DmtxPropWidth) - 1);
    yMax = (double)(dmtxDecodeGetProp(dec, DmtxPropHeight) - 1);
 
-/* if(p00.X < 0.0 || p00.Y < 0.0 || p00.X > xMax || p00.Y > yMax ||
+   if(p00.X < 0.0 || p00.Y < 0.0 || p00.X > xMax || p00.Y > yMax ||
          p01.X < 0.0 || p01.Y < 0.0 || p01.X > xMax || p01.Y > yMax ||
          p10.X < 0.0 || p10.Y < 0.0 || p10.X > xMax || p10.Y > yMax)
       return DmtxFail; */
@@ -2050,11 +2057,11 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
    int x, yImage, yDmtx;
    int xRaw, yRaw;
    int extent = 128;
+   int modulesToDisplay = 16;
+   int dispModExtent = extent/modulesToDisplay;
    int bytesPerRow = extent * 3;
    DmtxVector2 pFit, pRaw, pRawActive, pTmp, pCtr;
    double xFitAdjusted, yFitAdjusted;
-   int modulesToDisplay = 16;
-   int dispModExtent = extent/modulesToDisplay;
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
    rmask = 0xff000000;
@@ -2068,9 +2075,9 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
    amask = 0xff000000;
 #endif
 
-   /* Adjust input to center active region in normalized window */
    pTmp.X = pTmp.Y = state->activeExtent/2.0;
    dmtxMatrix3VMultiply(&pCtr, &pTmp, normal->raw2fitActive);
+   pCtr.X = pCtr.Y = 0.0;
 
    for(yImage = 0; yImage < extent; yImage++) {
       for(x = 0; x < extent; x++) {
