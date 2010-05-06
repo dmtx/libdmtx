@@ -474,11 +474,7 @@ main(int argc, char *argv[])
       if(err == DmtxPass) {
          SDL_LockSurface(picture);
          DrawNormalizedRegion(screen, imgFull, &normal, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
-/*       BlitActiveRegion(screen, local, 2, CTRL_ROW5_Y, CTRL_COL3_X); */
-
          DrawSymbolPreview(screen, imgFull, &normal, &state, CTRL_ROW5_Y, CTRL_COL3_X);
-         DrawSymbolPreview(screen, imgFull, &normal, &state, CTRL_ROW7_Y, CTRL_COL1_X + 1);
-         DrawSymbolPreview(screen, imgFull, &normal, &state, CTRL_ROW7_Y, CTRL_COL3_X);
          SDL_UnlockSurface(picture);
       }
 
@@ -2120,15 +2116,24 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
          }
 
          gridTest.X = pFit.X * normal->colCount * dispModExtent;
-         gridTest.X += (gridTest.X >= 0 ? 0.5 : -0.5);
+         gridTest.X += (gridTest.X >= 0.0 ? 0.5 : -0.5);
 
          gridTest.Y = pFit.Y * normal->rowCount * dispModExtent;
-         gridTest.Y += (gridTest.Y >= 0 ? 0.5 : -0.5);
+         gridTest.Y += (gridTest.Y >= 0.0 ? 0.5 : -0.5);
 
          if((int)gridTest.X % dispModExtent == 0 || (int)gridTest.Y % dispModExtent == 0) {
-            ptrFit[0] = (ptrFit[0] * 8)/10;
-            ptrFit[1] = (ptrFit[1] * 8)/10;
-            ptrFit[2] = (ptrFit[2] * 8)/10;
+            /* If reeaally dark then add brightened grid lines */
+            if(ptrFit[0] + ptrFit[1] + ptrFit[2] < 60) {
+               ptrFit[0] += (255 - ptrFit[0])/8;
+               ptrFit[1] += (255 - ptrFit[1])/8;
+               ptrFit[2] += (255 - ptrFit[2])/8;
+            }
+            /* Otherwise add darkened grid lines */
+            else {
+               ptrFit[0] = (ptrFit[0] * 8)/10;
+               ptrFit[1] = (ptrFit[1] * 8)/10;
+               ptrFit[2] = (ptrFit[2] * 8)/10;
+            }
          }
 
       }
@@ -2151,7 +2156,8 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
  *
  */
 static int
-ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow, int symbolCol, int colorPlane)
+ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow,
+      int symbolCol, int colorPlane)
 {
    int err;
    int i;
@@ -2163,15 +2169,15 @@ ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow, int sym
    color = 0;
    for(i = 0; i < 5; i++) {
 
-/*    p.X = (1.0/colCount) * (symbolCol + sampleX[i]);
-      p.Y = (1.0/rowCount) * (symbolRow + sampleY[i]); */
-      p.X = symbolCol + sampleX[i];
-      p.Y = symbolRow + sampleY[i];
+      p.X = (1.0/normal->colCount) * (symbolCol + sampleX[i]);
+      p.Y = (1.0/normal->rowCount) * (symbolRow + sampleY[i]);
 
       dmtxMatrix3VMultiplyBy(&p, normal->fit2rawFull);
 
       /* Should use dmtxDecodeGetPixelValue() later to properly handle pixel skipping */
       err = dmtxImageGetPixelValue(img, p.X, p.Y, colorPlane, &colorTmp);
+      if(err == DmtxFail)
+         return 0;
 
       color += colorTmp;
    }
@@ -2180,43 +2186,45 @@ ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow, int sym
 }
 
 /**
- * approach:
- * determine max module display size
- * for each grid location
- *   poll module color using ReadModuleColor()
- *   display to grid
+ *
+ *
  */
 static void
 DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal,
       struct AppState *state, int screenY, int screenX)
 {
-   int regionRow, regionCol, dmtxRow;
-   int moduleExtent;
-   int maxCount;
+   int regionRow, regionCol;
+   int moduleExtent = 8;
    Sint16 x1, y1, x2, y2;
    int rColor, gColor, bColor, color;
-   int xMargin, yMargin;
+   DmtxVector2 pTmp, pCtr;
+   int centerRow, centerCol;
+   int rowShift, colShift;
+   int row, col;
 
-   maxCount = (normal->rowCount > normal->colCount ? normal->rowCount : normal->colCount);
+   pTmp.X = pTmp.Y = state->activeExtent/2.0;
+   dmtxMatrix3VMultiply(&pCtr, &pTmp, normal->raw2fitActive);
 
-   moduleExtent = 128/(maxCount + 2); /* Add +2 for quiet zone */
+   /* centerRow and centerCol are to be centered in display */
+   centerRow = (int)(pCtr.X * normal->colCount + 0.0);
+   centerCol = (int)(pCtr.Y * normal->rowCount + 0.0);
 
-   xMargin = (128 - (moduleExtent * normal->colCount))/2;
-   yMargin = (128 - (moduleExtent * normal->rowCount))/2;
+   rowShift = centerRow - 8;
+   colShift = centerCol - 8;
 
-   for(regionRow = 0; regionRow < normal->rowCount; regionRow++) {
+   for(row = 0; row < 16; row++) {
+      regionRow = row + rowShift;
 
-      dmtxRow = normal->rowCount - 1 - regionRow;
+      for(col = 0; col < 16; col++) {
+         regionCol = col + colShift;
 
-      for(regionCol = 0; regionCol < normal->colCount; regionCol++) {
-
-         rColor = ReadModuleColor(img, normal, dmtxRow, regionCol, 0);
-         gColor = ReadModuleColor(img, normal, dmtxRow, regionCol, 1);
-         bColor = ReadModuleColor(img, normal, dmtxRow, regionCol, 2);
+         rColor = ReadModuleColor(img, normal, regionRow, regionCol, 0);
+         gColor = ReadModuleColor(img, normal, regionRow, regionCol, 1);
+         bColor = ReadModuleColor(img, normal, regionRow, regionCol, 2);
          color = (rColor << 24) | (gColor << 16) | (bColor << 8) | 0xff;
 
-         x1 = regionCol * moduleExtent + screenX + xMargin;
-         y1 = regionRow * moduleExtent + screenY + yMargin;
+         x1 = col * moduleExtent + screenX;
+         y1 = (15 - row) * moduleExtent + screenY;
          x2 = x1 + moduleExtent;
          y2 = y1 + moduleExtent;
 
