@@ -144,8 +144,8 @@ struct TimingSort {
 };
 
 struct FitRegion {
-   int flatCount;
-   int steepCount;
+   int rowCount;
+   int colCount;
    DmtxMatrix3 raw2fitActive;
    DmtxMatrix3 raw2fitFull;
    DmtxMatrix3 fit2rawActive;
@@ -1410,7 +1410,7 @@ HoughLineToRay2(int phi, double d)
 }
 
 struct RegionLines {
-   int lineCount;
+   int gridCount;
    struct Timing timing;
    double dA, dB;
    DmtxRay2 line[2];
@@ -1432,14 +1432,14 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
 
    /* (1) -- later compare all possible combinations for strongest pair */
    rl0.timing = sort->timing[0];
-   rl0.lineCount = (int)((64.0 - rl0.timing.shift)/rl0.timing.period) + 1;
+   rl0.gridCount = (int)((64.0 - rl0.timing.shift)/rl0.timing.period);
    rl0.dA = rl0.timing.shift;
-   rl0.dB = rl0.timing.shift + rl0.timing.period * rl0.lineCount;
+   rl0.dB = rl0.timing.shift + rl0.timing.period * rl0.gridCount; /* doesn't work but whatever */
 
    rl1.timing = sort->timing[1];
-   rl1.lineCount = (int)((64.0 - rl1.timing.shift)/rl1.timing.period) + 1;
+   rl1.gridCount = (int)((64.0 - rl1.timing.shift)/rl1.timing.period);
    rl1.dA = rl1.timing.shift;
-   rl1.dB = rl1.timing.shift + rl1.timing.period * rl1.lineCount;
+   rl1.dB = rl1.timing.shift + rl1.timing.period * rl1.gridCount; /* doesn't work but whatever */
 
    /* flat[0] is the bottom flat line */
    /* flat[1] is the top flat line */
@@ -1489,11 +1489,12 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
    if(err == DmtxFail)
       return DmtxFail;
 
-   normal->flatCount = flat->lineCount;
-   normal->steepCount = steep->lineCount;
+   normal->rowCount = flat->gridCount;
+   normal->colCount = steep->gridCount;
 
    /* raw2fit: Final transformation fits single origin module */
-   dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount);
+/* dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount); */
+   dmtxMatrix3Identity(mScale);
    dmtxMatrix3Multiply(normal->raw2fitActive, raw2fit, mScale);
 
    if(state->activeExtent == 64) {
@@ -1512,7 +1513,8 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
    }
 
    /* fit2raw: Abstract away display nuances of multi_test application */
-   dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount);
+/* dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount); */
+   dmtxMatrix3Identity(mScale);
    dmtxMatrix3Multiply(normal->fit2rawActive, mScale, fit2raw);
 
    if(state->activeExtent == 64) {
@@ -2057,6 +2059,7 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
    int bytesPerRow = extent * 3;
    DmtxVector2 pFit, pRaw, pRawActive, pTmp, pCtr;
    double xFitAdjusted, yFitAdjusted;
+   DmtxVector2 gridTest;
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
    rmask = 0xff000000;
@@ -2079,11 +2082,15 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
          yDmtx = (extent - 1) - yImage;
 
          /* Adjust fitted input so unfitted center is display centered */
-         xFitAdjusted = ((x-extent/2) * (double)modulesToDisplay)/extent + pCtr.X;
-         yFitAdjusted = ((yDmtx-extent/2) * (double)modulesToDisplay)/extent + pCtr.Y;
+         xFitAdjusted = ((x-extent/2) * (double)modulesToDisplay) /
+               (normal->colCount * extent) + pCtr.X;
+
+         yFitAdjusted = ((yDmtx-extent/2) * (double)modulesToDisplay) /
+               (normal->rowCount * extent) + pCtr.Y;
 
          pFit.X = xFitAdjusted;
          pFit.Y = yFitAdjusted;
+
          dmtxMatrix3VMultiply(&pRaw, &pFit, normal->fit2rawFull);
          dmtxMatrix3VMultiply(&pRawActive, &pFit, normal->fit2rawActive);
 
@@ -2111,22 +2118,19 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
                ptrFit[2] = ptrRaw[2];
             }
          }
-      }
-   }
 
-   /* Overlay grid pattern */
-   for(yImage = 0; yImage < extent; yImage++) {
-      yDmtx = extent - 1 - yImage;
+         gridTest.X = pFit.X * normal->colCount * dispModExtent;
+         gridTest.X += (gridTest.X >= 0 ? 0.5 : -0.5);
 
-      for(x = 0; x < extent; x++) {
-         ptrFit = pixbuf + (yDmtx * bytesPerRow + x * 3);
+         gridTest.Y = pFit.Y * normal->rowCount * dispModExtent;
+         gridTest.Y += (gridTest.Y >= 0 ? 0.5 : -0.5);
 
-         if((int)(x + dispModExtent*pCtr.X) % dispModExtent == 0 ||
-               (int)(yImage + dispModExtent*pCtr.Y) % dispModExtent == 0) {
+         if((int)gridTest.X % dispModExtent == 0 || (int)gridTest.Y % dispModExtent == 0) {
             ptrFit[0] = (ptrFit[0] * 8)/10;
             ptrFit[1] = (ptrFit[1] * 8)/10;
             ptrFit[2] = (ptrFit[2] * 8)/10;
          }
+
       }
    }
 
@@ -2188,25 +2192,23 @@ DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal,
 {
    int regionRow, regionCol, dmtxRow;
    int moduleExtent;
-   int rowCount, colCount, maxCount;
+   int maxCount;
    Sint16 x1, y1, x2, y2;
    int rColor, gColor, bColor, color;
    int xMargin, yMargin;
 
-   rowCount = normal->flatCount;
-   colCount = normal->steepCount;
-   maxCount = (rowCount > colCount ? rowCount : colCount);
+   maxCount = (normal->rowCount > normal->colCount ? normal->rowCount : normal->colCount);
 
    moduleExtent = 128/(maxCount + 2); /* Add +2 for quiet zone */
 
-   xMargin = (128 - (moduleExtent * colCount))/2;
-   yMargin = (128 - (moduleExtent * rowCount))/2;
+   xMargin = (128 - (moduleExtent * normal->colCount))/2;
+   yMargin = (128 - (moduleExtent * normal->rowCount))/2;
 
-   for(regionRow = 0; regionRow < rowCount; regionRow++) {
+   for(regionRow = 0; regionRow < normal->rowCount; regionRow++) {
 
-      dmtxRow = rowCount - 1 - regionRow;
+      dmtxRow = normal->rowCount - 1 - regionRow;
 
-      for(regionCol = 0; regionCol < colCount; regionCol++) {
+      for(regionCol = 0; regionCol < normal->colCount; regionCol++) {
 
          rColor = ReadModuleColor(img, normal, dmtxRow, regionCol, 0);
          gColor = ReadModuleColor(img, normal, dmtxRow, regionCol, 1);
