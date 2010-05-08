@@ -33,8 +33,9 @@ Contact: mblaughton@users.sourceforge.net
  * Next:
  * x Find grid at +-90 degress
  * x Display normalized view in realtime
- * o Switch back to fitted 0-1 unit region regardless of grid size (maybe?)
- * o Use consistent naming to hold grid lineCount vs. rowCount
+ * x Switch back to fitted 0-1 unit region regardless of grid size (maybe?)
+ * x Use consistent naming to hold grid lineCount vs. rowCount
+ * o Start region growing function
  *
  * Approach:
  *   1) Calculate s/b/h/v flow caches (edge intensity)
@@ -59,6 +60,9 @@ Contact: mblaughton@users.sourceforge.net
 #include <SDL/SDL_rotozoom.h>
 #include "../../dmtx.h"
 #include "kiss_fftr.h"
+
+#define max(N,M) ((N > M) ? N : M)
+#define min(N,M) ((N < M) ? N : M)
 
 #define LOCAL_SIZE            64
 #define MAXIMA_SORT_MAX_COUNT  8
@@ -2054,8 +2058,8 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
    int dispModExtent = extent/modulesToDisplay;
    int bytesPerRow = extent * 3;
    DmtxVector2 pFit, pRaw, pRawActive, pTmp, pCtr;
-   double xFitAdjusted, yFitAdjusted;
    DmtxVector2 gridTest;
+   int shiftX, shiftY;
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
    rmask = 0xff000000;
@@ -2078,14 +2082,11 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
          yDmtx = (extent - 1) - yImage;
 
          /* Adjust fitted input so unfitted center is display centered */
-         xFitAdjusted = ((x-extent/2) * (double)modulesToDisplay) /
+         pFit.X = ((x-extent/2) * (double)modulesToDisplay) /
                (normal->colCount * extent) + pCtr.X;
 
-         yFitAdjusted = ((yDmtx-extent/2) * (double)modulesToDisplay) /
+         pFit.Y = ((yDmtx-extent/2) * (double)modulesToDisplay) /
                (normal->rowCount * extent) + pCtr.Y;
-
-         pFit.X = xFitAdjusted;
-         pFit.Y = yFitAdjusted;
 
          dmtxMatrix3VMultiply(&pRaw, &pFit, normal->fit2rawFull);
          dmtxMatrix3VMultiply(&pRawActive, &pFit, normal->fit2rawActive);
@@ -2114,28 +2115,41 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
                ptrFit[2] = ptrRaw[2];
             }
          }
+      }
+   }
 
-         gridTest.X = pFit.X * normal->colCount * dispModExtent;
-         gridTest.X += (gridTest.X >= 0.0 ? 0.5 : -0.5);
+   gridTest.X = pCtr.X * normal->colCount * dispModExtent;
+   gridTest.X += (gridTest.X >= 0.0 ? 0.5 : -0.5);
+   shiftX = (int)gridTest.X % dispModExtent;
 
-         gridTest.Y = pFit.Y * normal->rowCount * dispModExtent;
-         gridTest.Y += (gridTest.Y >= 0.0 ? 0.5 : -0.5);
+   gridTest.Y = pCtr.Y * normal->rowCount * dispModExtent;
+   gridTest.Y += (gridTest.Y >= 0.0 ? 0.5 : -0.5);
+   shiftY = (int)gridTest.Y % dispModExtent;
 
-         if((int)gridTest.X % dispModExtent == 0 || (int)gridTest.Y % dispModExtent == 0) {
-            /* If reeaally dark then add brightened grid lines */
-            if(ptrFit[0] + ptrFit[1] + ptrFit[2] < 60) {
-               ptrFit[0] += (255 - ptrFit[0])/8;
-               ptrFit[1] += (255 - ptrFit[1])/8;
-               ptrFit[2] += (255 - ptrFit[2])/8;
-            }
-            /* Otherwise add darkened grid lines */
-            else {
-               ptrFit[0] = (ptrFit[0] * 8)/10;
-               ptrFit[1] = (ptrFit[1] * 8)/10;
-               ptrFit[2] = (ptrFit[2] * 8)/10;
-            }
+   for(yImage = 0; yImage < extent; yImage++) {
+
+      yDmtx = (extent - 1) - yImage;
+
+      for(x = 0; x < extent; x++) {
+
+         if((yDmtx + shiftY) % dispModExtent != 0 &&
+               (x + shiftX) % dispModExtent != 0)
+            continue;
+
+         ptrFit = pixbuf + (yImage * bytesPerRow + x * 3);
+
+         /* If reeaally dark then add brightened grid lines */
+         if(ptrFit[0] + ptrFit[1] + ptrFit[2] < 60) {
+            ptrFit[0] += (255 - ptrFit[0])/8;
+            ptrFit[1] += (255 - ptrFit[1])/8;
+            ptrFit[2] += (255 - ptrFit[2])/8;
          }
-
+         /* Otherwise add darkened grid lines */
+         else {
+            ptrFit[0] = (ptrFit[0] * 8)/10;
+            ptrFit[1] = (ptrFit[1] * 8)/10;
+            ptrFit[2] = (ptrFit[2] * 8)/10;
+         }
       }
    }
 
@@ -2185,6 +2199,21 @@ ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow,
    return color/5;
 }
 
+static Sint16
+Clamp(Sint16 x, Sint16 xMin, Sint16 extent)
+{
+   Sint16 xMax;
+
+   if(x < xMin)
+      return xMin;
+
+   xMax = xMin + extent - 1;
+   if(x > xMax)
+      return xMax;
+
+   return x;
+}
+
 /**
  *
  *
@@ -2193,40 +2222,56 @@ static void
 DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal,
       struct AppState *state, int screenY, int screenX)
 {
-   int regionRow, regionCol;
-   int moduleExtent = 8;
-   Sint16 x1, y1, x2, y2;
-   int rColor, gColor, bColor, color;
    DmtxVector2 pTmp, pCtr;
-   int centerRow, centerCol;
-   int rowShift, colShift;
+   DmtxVector2 gridTest;
+   int shiftX, shiftY;
+   int rColor, gColor, bColor, color;
+   Sint16 x1, y1, x2, y2;
+   int x, y;
+   int extent = 128;
+   int modulesToDisplay = 16;
+   int dispModExtent = extent/modulesToDisplay;
    int row, col;
+   int rowBeg, colBeg;
+   int rowEnd, colEnd;
 
    pTmp.X = pTmp.Y = state->activeExtent/2.0;
    dmtxMatrix3VMultiply(&pCtr, &pTmp, normal->raw2fitActive);
 
-   /* centerRow and centerCol are to be centered in display */
-   centerRow = (int)(pCtr.X * normal->colCount + 0.0);
-   centerCol = (int)(pCtr.Y * normal->rowCount + 0.0);
+   gridTest.X = pCtr.X * normal->colCount * dispModExtent;
+   gridTest.X += (gridTest.X >= 0.0 ? 0.5 : -0.5);
+   shiftX = 64 - (int)gridTest.X;
+   colBeg = (shiftX < 0) ? 0 : -shiftX/8 - 1;
+   colEnd = max(colBeg + 17, normal->colCount);
 
-   rowShift = centerRow - 8;
-   colShift = centerCol - 8;
+   gridTest.Y = pCtr.Y * normal->rowCount * dispModExtent;
+   gridTest.Y += (gridTest.Y >= 0.0 ? 0.5 : -0.5);
+   shiftY = 64 - (int)gridTest.Y;
+   rowBeg = (shiftY < 0) ? 0 : -shiftY/8 - 1;
+   rowEnd = max(rowBeg + 17, normal->rowCount);
 
-   for(row = 0; row < 16; row++) {
-      regionRow = row + rowShift;
+   for(row = rowBeg; row < rowEnd;row++) {
 
-      for(col = 0; col < 16; col++) {
-         regionCol = col + colShift;
+      y = row * dispModExtent + shiftY;
 
-         rColor = ReadModuleColor(img, normal, regionRow, regionCol, 0);
-         gColor = ReadModuleColor(img, normal, regionRow, regionCol, 1);
-         bColor = ReadModuleColor(img, normal, regionRow, regionCol, 2);
+      for(col = colBeg; col < colEnd; col++) {
+
+         x = col * dispModExtent + shiftX;
+
+         rColor = ReadModuleColor(img, normal, row, col, 0);
+         gColor = ReadModuleColor(img, normal, row, col, 1);
+         bColor = ReadModuleColor(img, normal, row, col, 2);
          color = (rColor << 24) | (gColor << 16) | (bColor << 8) | 0xff;
 
-         x1 = col * moduleExtent + screenX;
-         y1 = (15 - row) * moduleExtent + screenY;
-         x2 = x1 + moduleExtent;
-         y2 = y1 + moduleExtent;
+         x1 = x + screenX;
+         y1 = (extent - 1 - y - dispModExtent) + screenY;
+         x2 = x1 + dispModExtent - 1;
+         y2 = y1 + dispModExtent - 1;
+
+         x1 = Clamp(x1, screenX, 128);
+         y1 = Clamp(y1, screenY, 128);
+         x2 = Clamp(x2, screenX, 128);
+         y2 = Clamp(y2, screenY, 128);
 
          boxColor(screen, x1, y1, x2, y2, color);
       }
