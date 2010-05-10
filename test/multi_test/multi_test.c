@@ -219,7 +219,7 @@ static struct VanishPointSum GetAngleSumAtPhi(struct HoughCache *hough, int phi)
 static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
 static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
-static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppState *state);
+static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct Timing vp0, struct Timing vp1, struct AppState *state);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
 /* Process visualization functions */
@@ -236,6 +236,7 @@ static void DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int screenX);
 static void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal, struct AppState *state, int screenY, int screenX);
 static int ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow, int symbolCol, int colorPlane);
+static Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
 static void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal, struct AppState *state, int screenY, int screenX);
 
 int
@@ -263,6 +264,9 @@ main(int argc, char *argv[])
    SDL_Surface       *local, *localTmp;
    struct FitRegion   normal;
    DmtxPassFail       err;
+   DmtxBoolean        normalized;
+   int                phiDiff;
+   double             periodRatio;
 
    opt = GetDefaultOptions();
 
@@ -464,18 +468,48 @@ main(int argc, char *argv[])
       /* Draw timing lines */
       BlitActiveRegion(screen, local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
       timingSort = FindGridTiming(&hough, &vanishSort, &state);
-      if(state.displayTiming == DmtxTrue) {
-         for(i = 0; i < 2; i++) {
-            if(i >= timingSort.count)
+
+      i = j = 0;
+      normalized = DmtxFalse;
+      for(i = 0; normalized == DmtxFalse && i < timingSort.count; i++) {
+         for(j = i+1; j < timingSort.count; j++) {
+            phiDiff = abs(timingSort.timing[i].phi - timingSort.timing[j].phi);
+
+            /* Reject combinations that deviate from right angle (phi == 64) */
+            if(phiDiff < 43 || phiDiff > 85) /* within +- ~15 deg */
                continue;
-            DrawTimingDots(screen, timingSort.timing[i], CTRL_ROW3_Y, CTRL_COL1_X);
-            DrawTimingLines(screen, timingSort.timing[i], 2, CTRL_ROW3_Y, CTRL_COL3_X);
+
+            /* Reject/save combinations with large period ratio */
+            periodRatio = timingSort.timing[i].period / timingSort.timing[j].period;
+            if(periodRatio < 0.5 || periodRatio > 2.0) {
+               fprintf(stdout, "opportunity_1 ");
+               fflush(stdout);
+            }
+
+            /* XXX Add other criteria here */
+
+            /* Normalize region based on this combination of angles */
+            err = NormalizeRegion(&normal, timingSort.timing[i], timingSort.timing[j], &state);
+            if(err == DmtxPass) {
+               normalized = DmtxTrue;
+               break;
+            }
          }
+
+         /* Don't allow i to increment if done */
+         if(normalized == DmtxTrue)
+            break;
       }
 
-      /* Normalize region */
-      err = NormalizeRegion(&normal, &timingSort, &state);
-      if(err == DmtxPass) {
+      if(normalized == DmtxTrue) {
+         /* Uses i & j from previous loop */
+         if(state.displayTiming == DmtxTrue) {
+            DrawTimingDots(screen, timingSort.timing[i], CTRL_ROW3_Y, CTRL_COL1_X);
+            DrawTimingDots(screen, timingSort.timing[j], CTRL_ROW3_Y, CTRL_COL1_X);
+            DrawTimingLines(screen, timingSort.timing[i], 2, CTRL_ROW3_Y, CTRL_COL3_X);
+            DrawTimingLines(screen, timingSort.timing[j], 2, CTRL_ROW3_Y, CTRL_COL3_X);
+         }
+
          SDL_LockSurface(picture);
          DrawNormalizedRegion(screen, imgFull, &normal, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
          DrawSymbolPreview(screen, imgFull, &normal, &state, CTRL_ROW5_Y, CTRL_COL3_X);
@@ -767,7 +801,7 @@ PopulateFlowCache(struct Flow *sFlow, struct Flow *bFlow,
    height = dmtxImageGetProp(img, DmtxPropHeight);
    rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
    bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
-   colorPlane = 0; /* XXX need to make some decisions here */
+   colorPlane = 1; /* XXX need to make some decisions here */
 
    xBeg = 1;
    xEnd = width - 2;
@@ -1422,7 +1456,7 @@ struct RegionLines {
  *
  */
 static DmtxPassFail
-NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppState *state)
+NormalizeRegion(struct FitRegion *normal, struct Timing vp0, struct Timing vp1, struct AppState *state)
 {
    struct RegionLines rl0, rl1, *flat, *steep;
    DmtxVector2 p00, p10, p11, p01;
@@ -1431,15 +1465,15 @@ NormalizeRegion(struct FitRegion *normal, struct TimingSort *sort, struct AppSta
    DmtxMatrix3 mScale, mTranslate, mTmp;
 
    /* (1) -- later compare all possible combinations for strongest pair */
-   rl0.timing = sort->timing[0];
-   rl0.gridCount = (int)((64.0 - rl0.timing.shift)/rl0.timing.period);
-   rl0.dA = rl0.timing.shift;
-   rl0.dB = rl0.timing.shift + rl0.timing.period * rl0.gridCount; /* doesn't work but whatever */
+   rl0.timing = vp0;
+   rl0.gridCount = (int)((64.0 - vp0.shift)/vp0.period);
+   rl0.dA = vp0.shift;
+   rl0.dB = vp0.shift + vp0.period * rl0.gridCount; /* doesn't work but whatever */
 
-   rl1.timing = sort->timing[1];
-   rl1.gridCount = (int)((64.0 - rl1.timing.shift)/rl1.timing.period);
-   rl1.dA = rl1.timing.shift;
-   rl1.dB = rl1.timing.shift + rl1.timing.period * rl1.gridCount; /* doesn't work but whatever */
+   rl1.timing = vp1;
+   rl1.gridCount = (int)((64.0 - vp1.shift)/vp1.period);
+   rl1.dA = vp1.shift;
+   rl1.dB = vp1.shift + vp1.period * rl1.gridCount; /* doesn't work but whatever */
 
    /* flat[0] is the bottom flat line */
    /* flat[1] is the top flat line */
@@ -2199,6 +2233,10 @@ ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow,
    return color/5;
 }
 
+/**
+ *
+ *
+ */
 static Sint16
 Clamp(Sint16 x, Sint16 xMin, Sint16 extent)
 {
