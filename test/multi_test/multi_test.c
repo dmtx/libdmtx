@@ -154,6 +154,8 @@ struct FitRegion {
    DmtxMatrix3 raw2fitFull;
    DmtxMatrix3 fit2rawActive;
    DmtxMatrix3 fit2rawFull;
+   struct Timing flat;
+   struct Timing steep;
 };
 
 /* Scaled unit sin */
@@ -219,7 +221,8 @@ static struct VanishPointSum GetAngleSumAtPhi(struct HoughCache *hough, int phi)
 static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
 static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
-static DmtxPassFail NormalizeRegion(struct FitRegion *normal, struct Timing vp0, struct Timing vp1, struct AppState *state);
+static DmtxPassFail NormalizeUntimedRegion(struct FitRegion *untimed, struct Timing vp0, struct Timing vp1, struct AppState *state);
+static DmtxPassFail FindTimedRegion(struct FitRegion *timed, const struct FitRegion *untimed, const DmtxImage *img);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
 /* Process visualization functions */
@@ -234,10 +237,10 @@ static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int scree
 static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenY, int screenX);
 static void DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenY, int screenX);
 static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int screenX);
-static void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal, struct AppState *state, int screenY, int screenX);
-static int ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow, int symbolCol, int colorPlane);
+static void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, struct FitRegion *untimed, struct AppState *state, int screenY, int screenX);
+static int ReadModuleColor(DmtxImage *img, struct FitRegion *region, int symbolRow, int symbolCol, int colorPlane);
 static Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
-static void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal, struct AppState *state, int screenY, int screenX);
+static void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *region, struct AppState *state, int screenY, int screenX);
 
 int
 main(int argc, char *argv[])
@@ -258,13 +261,13 @@ main(int argc, char *argv[])
    struct Flow        hFlow[LOCAL_SIZE * LOCAL_SIZE];
    struct Flow        vFlow[LOCAL_SIZE * LOCAL_SIZE];
    struct HoughCache  hough;
-   struct VanishPointSort vanishSort;
-   struct TimingSort      timingSort;
+   struct VanishPointSort vPoints;
+   struct TimingSort      timings;
    SDL_Rect           clipRect;
    SDL_Surface       *local, *localTmp;
-   struct FitRegion   normal;
+   struct FitRegion   untimed, timed;
    DmtxPassFail       err;
-   DmtxBoolean        normalized;
+   DmtxBoolean        regionFound;
    int                phiDiff;
    double             periodRatio;
 
@@ -461,64 +464,65 @@ main(int argc, char *argv[])
       BlitHoughCache(screen, &hough, CTRL_ROW4_Y - 1, CTRL_COL1_X + 1);
 
       /* Find vanishing points */
-      vanishSort = FindVanishPoints(&hough);
+      vPoints = FindVanishPoints(&hough);
       if(state.displayVanish == DmtxTrue)
-         DrawVanishingPoints(screen, vanishSort, CTRL_ROW3_Y, CTRL_COL1_X);
+         DrawVanishingPoints(screen, vPoints, CTRL_ROW3_Y, CTRL_COL1_X);
 
-      /* Draw timing lines */
-      BlitActiveRegion(screen, local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
-      timingSort = FindGridTiming(&hough, &vanishSort, &state);
+      /* Find and rank best timings for vanishing points */
+      timings = FindGridTiming(&hough, &vPoints, &state);
 
-      i = j = 0;
-      normalized = DmtxFalse;
-      for(i = 0; normalized == DmtxFalse && i < timingSort.count; i++) {
-         for(j = i+1; j < timingSort.count; j++) {
-            phiDiff = abs(timingSort.timing[i].phi - timingSort.timing[j].phi);
+      /* Test timing combinations for potential barcode regions */
+      regionFound = DmtxFalse;
+      for(i = 0; regionFound == DmtxFalse && i < timings.count; i++) {
+         for(j = i+1; j < timings.count; j++) {
+            phiDiff = abs(timings.timing[i].phi - timings.timing[j].phi);
 
             /* Reject combinations that deviate from right angle (phi == 64) */
-            if(phiDiff < 43 || phiDiff > 85) /* within +- ~15 deg */
+            if(abs(64 - phiDiff) > 28) /* within +- ~40 deg */
                continue;
 
-            /* Reject/save combinations with large period ratio */
-            periodRatio = timingSort.timing[i].period / timingSort.timing[j].period;
+            /* Reject/alter combinations with large period ratio */
+            periodRatio = timings.timing[i].period / timings.timing[j].period;
             if(periodRatio < 0.5 || periodRatio > 2.0) {
                fprintf(stdout, "opportunity_1 ");
                fflush(stdout);
             }
 
-            /* XXX Add other criteria here */
+            /* XXX Additional criteria go here */
 
-            /* Normalize region based on this combination of angles */
-            err = NormalizeRegion(&normal, timingSort.timing[i], timingSort.timing[j], &state);
+            /* Normalize region based on this angle combination */
+/* XXX the terms "timed" and "untimed" are used to mean too many things here */
+            err = NormalizeUntimedRegion(&untimed, timings.timing[i], timings.timing[j], &state);
+            if(err == DmtxFail)
+               continue; /* Keep trying */
+
+            /* Test for timing patterns */
+            SDL_LockSurface(picture);
+            err = FindTimedRegion(&timed, &untimed, imgFull);
+            SDL_UnlockSurface(picture);
+
             if(err == DmtxPass) {
-               normalized = DmtxTrue;
+               regionFound = DmtxTrue;
                break;
             }
          }
-
-         /* Don't allow i to increment if done */
-         if(normalized == DmtxTrue)
-            break;
       }
 
-      if(normalized == DmtxTrue) {
-         /* Uses i & j from previous loop */
+      /* Draw untimed region lines */
+      BlitActiveRegion(screen, local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+      if(regionFound == DmtxTrue) {
          if(state.displayTiming == DmtxTrue) {
-            DrawTimingDots(screen, timingSort.timing[i], CTRL_ROW3_Y, CTRL_COL1_X);
-            DrawTimingDots(screen, timingSort.timing[j], CTRL_ROW3_Y, CTRL_COL1_X);
-            DrawTimingLines(screen, timingSort.timing[i], 2, CTRL_ROW3_Y, CTRL_COL3_X);
-            DrawTimingLines(screen, timingSort.timing[j], 2, CTRL_ROW3_Y, CTRL_COL3_X);
+            DrawTimingDots(screen, untimed.flat, CTRL_ROW3_Y, CTRL_COL1_X);
+            DrawTimingDots(screen, untimed.steep, CTRL_ROW3_Y, CTRL_COL1_X);
+            DrawTimingLines(screen, untimed.flat, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+            DrawTimingLines(screen, untimed.steep, 2, CTRL_ROW3_Y, CTRL_COL3_X);
          }
 
          SDL_LockSurface(picture);
-         DrawNormalizedRegion(screen, imgFull, &normal, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
-         DrawSymbolPreview(screen, imgFull, &normal, &state, CTRL_ROW5_Y, CTRL_COL3_X);
+         DrawNormalizedRegion(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
+         DrawSymbolPreview(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL3_X);
          SDL_UnlockSurface(picture);
       }
-
-      /* Next step: start with small 2-layer box and step each edge outward
-       * until outer edge is approximately solid and inner edge is either
-       * approximately solid-but-opposite or 50% of both colors */
 
       SDL_Flip(screen);
    }
@@ -1345,7 +1349,7 @@ AddToTimingSort(struct TimingSort *sort, struct Timing timing)
  *
  */
 static struct TimingSort
-FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, struct AppState *state)
+FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vPoints, struct AppState *state)
 {
    int x, y, fitMag, fitMax, fitOff, attempts, iter;
    int i, vSortIdx, phi;
@@ -1355,13 +1359,13 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
    kiss_fft_scalar mag[NFFT/2+1];
    int maxIdx;
    struct Timing timing;
-   struct TimingSort timingSort;
+   struct TimingSort timings;
 
-   memset(&timingSort, 0x00, sizeof(struct TimingSort));
+   memset(&timings, 0x00, sizeof(struct TimingSort));
 
-   for(vSortIdx = 0; vSortIdx < vanishSort->count; vSortIdx++) {
+   for(vSortIdx = 0; vSortIdx < vPoints->count; vSortIdx++) {
 
-      phi = vanishSort->vanishSum[vSortIdx].phi;
+      phi = vPoints->vanishSum[vSortIdx].phi;
 
       /* Load FFT input array */
       for(i = 0; i < NFFT; i++) {
@@ -1406,10 +1410,10 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vanishSort, str
       }
       timing.shift = fitOff;
 
-      AddToTimingSort(&timingSort, timing);
+      AddToTimingSort(&timings, timing);
    }
 
-   return timingSort;
+   return timings;
 }
 
 /**
@@ -1456,7 +1460,7 @@ struct RegionLines {
  *
  */
 static DmtxPassFail
-NormalizeRegion(struct FitRegion *normal, struct Timing vp0, struct Timing vp1, struct AppState *state)
+NormalizeUntimedRegion(struct FitRegion *untimed, struct Timing vp0, struct Timing vp1, struct AppState *state)
 {
    struct RegionLines rl0, rl1, *flat, *steep;
    DmtxVector2 p00, p10, p11, p01;
@@ -1484,10 +1488,14 @@ NormalizeRegion(struct FitRegion *normal, struct Timing vp0, struct Timing vp1, 
    if(abs(64 - rl0.timing.phi) < abs(64 - rl1.timing.phi)) {
       flat = &rl0;
       steep = &rl1;
+      untimed->flat = vp0;
+      untimed->steep = vp1;
    }
    else {
       flat = &rl1;
       steep = &rl0;
+      untimed->flat = vp1;
+      untimed->steep = vp0;
    }
 
    flat->line[0] = HoughLineToRay2(flat->timing.phi, flat->dA);
@@ -1523,33 +1531,33 @@ NormalizeRegion(struct FitRegion *normal, struct Timing vp0, struct Timing vp1, 
    if(err == DmtxFail)
       return DmtxFail;
 
-   normal->rowCount = flat->gridCount;
-   normal->colCount = steep->gridCount;
+   untimed->rowCount = flat->gridCount;
+   untimed->colCount = steep->gridCount;
 
    /* raw2fit: Final transformation fits single origin module */
 /* dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount); */
    dmtxMatrix3Identity(mScale);
-   dmtxMatrix3Multiply(normal->raw2fitActive, raw2fit, mScale);
+   dmtxMatrix3Multiply(untimed->raw2fitActive, raw2fit, mScale);
 
    if(state->activeExtent == 64) {
       dmtxMatrix3Translate(mTranslate, state->imageLocX - 288,
             518 - (227 + state->imageLocY + state->imageHeight));
-      dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, normal->raw2fitActive); /* not tested */
+      dmtxMatrix3Multiply(untimed->raw2fitFull, mTranslate, untimed->raw2fitActive); /* not tested */
    }
    else {
       dmtxMatrix3Scale(mScale, 2.0, 2.0);
-      dmtxMatrix3Multiply(mTmp, mScale, normal->raw2fitActive);
-      dmtxMatrix3Copy(normal->raw2fitActive, mTmp);
+      dmtxMatrix3Multiply(mTmp, mScale, untimed->raw2fitActive);
+      dmtxMatrix3Copy(untimed->raw2fitActive, mTmp);
 
       dmtxMatrix3Translate(mTranslate, state->imageLocX - 304,
             518 - (243 + state->imageLocY + state->imageHeight));
-      dmtxMatrix3Multiply(normal->raw2fitFull, mTranslate, normal->raw2fitActive); /* not tested */
+      dmtxMatrix3Multiply(untimed->raw2fitFull, mTranslate, untimed->raw2fitActive); /* not tested */
    }
 
    /* fit2raw: Abstract away display nuances of multi_test application */
 /* dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount); */
    dmtxMatrix3Identity(mScale);
-   dmtxMatrix3Multiply(normal->fit2rawActive, mScale, fit2raw);
+   dmtxMatrix3Multiply(untimed->fit2rawActive, mScale, fit2raw);
 
    if(state->activeExtent == 64) {
       dmtxMatrix3Translate(mTranslate, 288 - state->imageLocX,
@@ -1557,13 +1565,26 @@ NormalizeRegion(struct FitRegion *normal, struct Timing vp0, struct Timing vp1, 
    }
    else {
       dmtxMatrix3Scale(mScale, 0.5, 0.5);
-      dmtxMatrix3Multiply(mTmp, normal->fit2rawActive, mScale);
-      dmtxMatrix3Copy(normal->fit2rawActive, mTmp);
+      dmtxMatrix3Multiply(mTmp, untimed->fit2rawActive, mScale);
+      dmtxMatrix3Copy(untimed->fit2rawActive, mTmp);
 
       dmtxMatrix3Translate(mTranslate, 304 - state->imageLocX,
             243 + state->imageLocY + state->imageHeight - 518);
    }
-   dmtxMatrix3Multiply(normal->fit2rawFull, normal->fit2rawActive, mTranslate);
+   dmtxMatrix3Multiply(untimed->fit2rawFull, untimed->fit2rawActive, mTranslate);
+
+   return DmtxPass;
+}
+
+/**
+ * Next step: start with small 2-layer box and step each edge outward until
+ * outer edge is approximately solid and inner edge is either approximately
+ * solid-but-opposite or 50% of both colors.
+ */
+static DmtxPassFail
+FindTimedRegion(struct FitRegion *timed, const struct FitRegion *untimed, const DmtxImage *img)
+{
+   *timed = *untimed;
 
    return DmtxPass;
 }
@@ -2078,7 +2099,7 @@ DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int scree
  */
 static void
 DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
-      struct FitRegion *normal, struct AppState *state, int screenY, int screenX)
+      struct FitRegion *region, struct AppState *state, int screenY, int screenX)
 {
    unsigned char pixbuf[49152]; /* 128 * 128 * 3 */
    unsigned char *ptrFit, *ptrRaw;
@@ -2108,7 +2129,7 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
 #endif
 
    pTmp.X = pTmp.Y = state->activeExtent/2.0;
-   dmtxMatrix3VMultiply(&pCtr, &pTmp, normal->raw2fitActive);
+   dmtxMatrix3VMultiply(&pCtr, &pTmp, region->raw2fitActive);
 
    for(yImage = 0; yImage < extent; yImage++) {
       for(x = 0; x < extent; x++) {
@@ -2117,13 +2138,13 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
 
          /* Adjust fitted input so unfitted center is display centered */
          pFit.X = ((x-extent/2) * (double)modulesToDisplay) /
-               (normal->colCount * extent) + pCtr.X;
+               (region->colCount * extent) + pCtr.X;
 
          pFit.Y = ((yDmtx-extent/2) * (double)modulesToDisplay) /
-               (normal->rowCount * extent) + pCtr.Y;
+               (region->rowCount * extent) + pCtr.Y;
 
-         dmtxMatrix3VMultiply(&pRaw, &pFit, normal->fit2rawFull);
-         dmtxMatrix3VMultiply(&pRawActive, &pFit, normal->fit2rawActive);
+         dmtxMatrix3VMultiply(&pRaw, &pFit, region->fit2rawFull);
+         dmtxMatrix3VMultiply(&pRawActive, &pFit, region->fit2rawActive);
 
          xRaw = (pRaw.X >= 0.0 ? (int)(pRaw.X + 0.5) : (int)(pRaw.X - 0.5));
          yRaw = (pRaw.Y >= 0.0 ? (int)(pRaw.Y + 0.5) : (int)(pRaw.Y - 0.5));
@@ -2152,11 +2173,11 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
       }
    }
 
-   gridTest.X = pCtr.X * normal->colCount * dispModExtent;
+   gridTest.X = pCtr.X * region->colCount * dispModExtent;
    gridTest.X += (gridTest.X >= 0.0 ? 0.5 : -0.5);
    shiftX = (int)gridTest.X % dispModExtent;
 
-   gridTest.Y = pCtr.Y * normal->rowCount * dispModExtent;
+   gridTest.Y = pCtr.Y * region->rowCount * dispModExtent;
    gridTest.Y += (gridTest.Y >= 0.0 ? 0.5 : -0.5);
    shiftY = (int)gridTest.Y % dispModExtent;
 
@@ -2204,7 +2225,7 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
  *
  */
 static int
-ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow,
+ReadModuleColor(DmtxImage *img, struct FitRegion *region, int symbolRow,
       int symbolCol, int colorPlane)
 {
    int err;
@@ -2217,10 +2238,10 @@ ReadModuleColor(DmtxImage *img, struct FitRegion *normal, int symbolRow,
    color = 0;
    for(i = 0; i < 5; i++) {
 
-      p.X = (1.0/normal->colCount) * (symbolCol + sampleX[i]);
-      p.Y = (1.0/normal->rowCount) * (symbolRow + sampleY[i]);
+      p.X = (1.0/region->colCount) * (symbolCol + sampleX[i]);
+      p.Y = (1.0/region->rowCount) * (symbolRow + sampleY[i]);
 
-      dmtxMatrix3VMultiplyBy(&p, normal->fit2rawFull);
+      dmtxMatrix3VMultiplyBy(&p, region->fit2rawFull);
 
       /* Should use dmtxDecodeGetPixelValue() later to properly handle pixel skipping */
       err = dmtxImageGetPixelValue(img, p.X, p.Y, colorPlane, &colorTmp);
@@ -2257,7 +2278,7 @@ Clamp(Sint16 x, Sint16 xMin, Sint16 extent)
  *
  */
 static void
-DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal,
+DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *region,
       struct AppState *state, int screenY, int screenX)
 {
    DmtxVector2 pTmp, pCtr;
@@ -2274,19 +2295,19 @@ DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal,
    int rowEnd, colEnd;
 
    pTmp.X = pTmp.Y = state->activeExtent/2.0;
-   dmtxMatrix3VMultiply(&pCtr, &pTmp, normal->raw2fitActive);
+   dmtxMatrix3VMultiply(&pCtr, &pTmp, region->raw2fitActive);
 
-   gridTest.X = pCtr.X * normal->colCount * dispModExtent;
+   gridTest.X = pCtr.X * region->colCount * dispModExtent;
    gridTest.X += (gridTest.X >= 0.0 ? 0.5 : -0.5);
    shiftX = 64 - (int)gridTest.X;
    colBeg = (shiftX < 0) ? 0 : -shiftX/8 - 1;
-   colEnd = max(colBeg + 17, normal->colCount);
+   colEnd = max(colBeg + 17, region->colCount);
 
-   gridTest.Y = pCtr.Y * normal->rowCount * dispModExtent;
+   gridTest.Y = pCtr.Y * region->rowCount * dispModExtent;
    gridTest.Y += (gridTest.Y >= 0.0 ? 0.5 : -0.5);
    shiftY = 64 - (int)gridTest.Y;
    rowBeg = (shiftY < 0) ? 0 : -shiftY/8 - 1;
-   rowEnd = max(rowBeg + 17, normal->rowCount);
+   rowEnd = max(rowBeg + 17, region->rowCount);
 
    for(row = rowBeg; row < rowEnd;row++) {
 
@@ -2296,9 +2317,9 @@ DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *normal,
 
          x = col * dispModExtent + shiftX;
 
-         rColor = ReadModuleColor(img, normal, row, col, 0);
-         gColor = ReadModuleColor(img, normal, row, col, 1);
-         bColor = ReadModuleColor(img, normal, row, col, 2);
+         rColor = ReadModuleColor(img, region, row, col, 0);
+         gColor = ReadModuleColor(img, region, row, col, 1);
+         bColor = ReadModuleColor(img, region, row, col, 2);
          color = (rColor << 24) | (gColor << 16) | (bColor << 8) | 0xff;
 
          x1 = x + screenX;
