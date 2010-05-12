@@ -35,7 +35,8 @@ Contact: mblaughton@users.sourceforge.net
  * x Display normalized view in realtime
  * x Switch back to fitted 0-1 unit region regardless of grid size (maybe?)
  * x Use consistent naming to hold grid lineCount vs. rowCount
- * o Start region growing function
+ * / Start region growing function
+ * o Consider storing FFT results in timing struct so multiple periods can be tried
  *
  * Approach:
  *   1) Calculate s/b/h/v flow caches (edge intensity)
@@ -158,6 +159,15 @@ struct FitRegion {
    struct Timing steep;
 };
 
+typedef enum {
+   GridGrowthUp,
+   GridGrowthLeft,
+   GridGrowthDown,
+   GridGrowthRight,
+   GridGrowthComplete,
+   GridGrowthError
+} GridGrowth;
+
 /* Scaled unit sin */
 static int uSin128[] = {
        0,    25,    50,    75,   100,   125,   150,   175,
@@ -221,8 +231,10 @@ static struct VanishPointSum GetAngleSumAtPhi(struct HoughCache *hough, int phi)
 static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
 static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
-static DmtxPassFail NormalizeUntimedRegion(struct FitRegion *untimed, struct Timing vp0, struct Timing vp1, struct AppState *state);
-static DmtxPassFail FindTimedRegion(struct FitRegion *timed, const struct FitRegion *untimed, const DmtxImage *img);
+static DmtxPassFail BuildGridFromTimings(struct FitRegion *untimed, struct Timing vp0, struct Timing vp1, struct AppState *state);
+static GridGrowth NextGridExpansion(void);
+static DmtxPassFail GridSizeIncrement(struct FitRegion *timed, int flatInc, int steepInc);
+static DmtxPassFail FindRegionWithinGrid(struct FitRegion *timed, const struct FitRegion *untimed, const DmtxImage *img);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
 /* Process visualization functions */
@@ -491,14 +503,13 @@ main(int argc, char *argv[])
             /* XXX Additional criteria go here */
 
             /* Normalize region based on this angle combination */
-/* XXX the terms "timed" and "untimed" are used to mean too many things here */
-            err = NormalizeUntimedRegion(&untimed, timings.timing[i], timings.timing[j], &state);
+            err = BuildGridFromTimings(&untimed, timings.timing[i], timings.timing[j], &state);
             if(err == DmtxFail)
                continue; /* Keep trying */
 
             /* Test for timing patterns */
             SDL_LockSurface(picture);
-            err = FindTimedRegion(&timed, &untimed, imgFull);
+            err = FindRegionWithinGrid(&timed, &untimed, imgFull);
             SDL_UnlockSurface(picture);
 
             if(err == DmtxPass) {
@@ -508,21 +519,31 @@ main(int argc, char *argv[])
          }
       }
 
-      /* Draw untimed region lines */
-      BlitActiveRegion(screen, local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
-      if(regionFound == DmtxTrue) {
-         if(state.displayTiming == DmtxTrue) {
-            DrawTimingDots(screen, untimed.flat, CTRL_ROW3_Y, CTRL_COL1_X);
-            DrawTimingDots(screen, untimed.steep, CTRL_ROW3_Y, CTRL_COL1_X);
-            DrawTimingLines(screen, untimed.flat, 2, CTRL_ROW3_Y, CTRL_COL3_X);
-            DrawTimingLines(screen, untimed.steep, 2, CTRL_ROW3_Y, CTRL_COL3_X);
-         }
-
-         SDL_LockSurface(picture);
-         DrawNormalizedRegion(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
-         DrawSymbolPreview(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL3_X);
-         SDL_UnlockSurface(picture);
+      if(regionFound == DmtxFalse) {
+         SDL_Flip(screen);
+         continue;
       }
+
+      if(state.printValues == DmtxTrue) {
+         /* Dump FFT results here */
+         state.printValues = DmtxFalse;
+      }
+
+      /* Draw timed and untimed region lines */
+      BlitActiveRegion(screen, local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+      if(state.displayTiming == DmtxTrue) {
+         DrawTimingDots(screen, untimed.flat, CTRL_ROW3_Y, CTRL_COL1_X);
+         DrawTimingDots(screen, untimed.steep, CTRL_ROW3_Y, CTRL_COL1_X);
+         DrawTimingLines(screen, untimed.flat, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+         DrawTimingLines(screen, untimed.steep, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+      }
+
+      SDL_LockSurface(picture);
+      DrawNormalizedRegion(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
+      DrawSymbolPreview(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL3_X);
+/*    DrawNormalizedRegion(screen, imgFull, &timed, &state, CTRL_ROW7_Y, CTRL_COL1_X + 1); */
+      DrawSymbolPreview(screen, imgFull, &timed, &state, CTRL_ROW7_Y, CTRL_COL3_X);
+      SDL_UnlockSurface(picture);
 
       SDL_Flip(screen);
    }
@@ -1460,7 +1481,7 @@ struct RegionLines {
  *
  */
 static DmtxPassFail
-NormalizeUntimedRegion(struct FitRegion *untimed, struct Timing vp0, struct Timing vp1, struct AppState *state)
+BuildGridFromTimings(struct FitRegion *untimed, struct Timing vp0, struct Timing vp1, struct AppState *state)
 {
    struct RegionLines rl0, rl1, *flat, *steep;
    DmtxVector2 p00, p10, p11, p01;
@@ -1577,14 +1598,151 @@ NormalizeUntimedRegion(struct FitRegion *untimed, struct Timing vp0, struct Timi
 }
 
 /**
+ * Want to maintain square shape while growing for as long as
+ *    possible to maximize align-while-growing feature
+ *
+ *    10 - abs(10) // solid pass perfect
+ *    10 - abs(9)  // solid pass okay
+ *    10 - abs(8)  // fail
+ *    10 - abs(7)  // fail
+ *    10 - abs(6)  // timing pass
+ *    10 - abs(5)  // timing pass
+ *    10 - abs(4)  // timing pass
+ *    10 - abs(3)  // fail
+ *    10 - abs(2)  // fail
+ *    10 - abs(1)  // solid pass okay
+ *    10 - abs(0)  // solid pass perfect
+ */
+static GridGrowth
+NextGridExpansion(void) /* maybe should be named something different ... like "DecideNextStep" */
+{
+#ifdef IGNOREMEFORNOW
+struct JumpTally {
+   int onCount;
+   int offCount;
+}
+
+   struct JumpTally tally[4]; /* up, left, down, right */
+
+   /* Find end colors/contrast using intensity bins? */
+   /* err = FindOnOffColors() */
+
+   /* Determine which sides are potentially valid */
+   for(dir = 0; dir < 4; dir++) {
+      tally[dir] = TallyJumps(dir, ...);
+
+      devn = N - abs(tally[dir].onCount - tally[dir].offCount);
+
+      assert(tally[dir].onCount + tally[dir].offCount == N);
+
+      if(abs(rowCount - tally[dir].onCount > 2 &&
+            abs(tally[dir].onCount - tally[dir].offCount) > 2))
+         valid[dir] = DmtxFalse;
+      else
+         valid[dir] = DmtxTrue;
+   }
+
+   /* End condition: All sides are valid -- compare to official symbol sizes */
+   if(valid[0] == valid[1] == valid[2] == valid[3] == DmtxTrue) {
+      /* XXX keep in mind it could be a vertically-oriented rectangle */
+      test current region against known valid Data Matrix sizes
+
+      /* Valid size: Check quiet zone */
+      if(is a valid size) {
+         quietZoneStatus = CheckQuietZone(); /* done, up, left, down, right */
+         if(quietZoneStatus == done)
+            return GridGrowthComplete;
+         else
+            return growth direction;
+      }
+
+      /* Invalid size: Force growth in one direction */
+      /* if all of the sides are valid, but we still aren't an official shape, then
+       * we need to force growth in a direction. be careful to not destroy rectangle
+       * possibilities. may need to poll possible directions to find best option. */
+   }
+
+   /* Determine whether growth can occur vertically and/or horizontally */
+   growVertical = (valid[up] || valid[down]) ? DmtxTrue : DmtxFalse;
+   growHorizontal = (valid[left] || valid[right]) ? DmtxTrue : DmtxFalse;
+
+   /* Maintain square shape while growing for incremental alignment feature */
+   if(growVertical && growHorizontal) {
+      if(normal.flatCount > normal.steepCount)
+         growVertical = DmtxFalse;
+      else
+         growHorizontal = DmtxFalse;
+   }
+
+   /* Now exactly one of growVertical or growHorizontal should be set */
+   assert(growVertical + growHorizontal == DmtxTrue + DmtxFalse);
+
+   /* XXX keep in mind it could be a vertically-oriented rectangle */
+#endif
+
+   return GridGrowthComplete;
+}
+
+/**
+ *
+ *
+ */
+static DmtxPassFail
+GridSizeIncrement(struct FitRegion *timed, int flatInc, int steepInc)
+{
+   return DmtxPass;
+}
+
+/**
  * Next step: start with small 2-layer box and step each edge outward until
  * outer edge is approximately solid and inner edge is either approximately
  * solid-but-opposite or 50% of both colors.
  */
 static DmtxPassFail
-FindTimedRegion(struct FitRegion *timed, const struct FitRegion *untimed, const DmtxImage *img)
+FindRegionWithinGrid(struct FitRegion *timed, const struct FitRegion *untimed, const DmtxImage *img)
 {
+   DmtxPassFail err;
+   GridGrowth growDir;
+
+   /* Start with original untimed grid region */
    *timed = *untimed;
+
+   /* Poll modules near center to find nominal contrast */
+   /* err = GetContrastOrWhatever(); */
+
+   /* Find 2 initial adjacent modules near center with differing colors */
+   /* err = FindAdjacentDifferingModules(); */
+
+   /* Grow region outward until success/failure condition is met */
+   for(;;) {
+      growDir = NextGridExpansion();
+
+      if(growDir == GridGrowthComplete || growDir == GridGrowthError)
+         break;
+
+      switch(growDir) {
+         case GridGrowthUp:
+            err = GridSizeIncrement(timed, +1,  0);
+            break;
+         case GridGrowthLeft:
+            err = GridSizeIncrement(timed,  0, -1);
+            break;
+         case GridGrowthDown:
+            err = GridSizeIncrement(timed, -1,  0);
+            break;
+         case GridGrowthRight:
+            err = GridSizeIncrement(timed,  0, +1);
+            break;
+         default:
+            err = DmtxFail;
+            break;
+      }
+      if(err == DmtxFail)
+         return err;
+
+      /* Update region to reflect growth */
+      /* err = BuildGridFromTimings(timed, vp0, vp1, NULL); */
+   }
 
    return DmtxPass;
 }
@@ -2146,8 +2304,8 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
          dmtxMatrix3VMultiply(&pRaw, &pFit, region->fit2rawFull);
          dmtxMatrix3VMultiply(&pRawActive, &pFit, region->fit2rawActive);
 
-         xRaw = (pRaw.X >= 0.0 ? (int)(pRaw.X + 0.5) : (int)(pRaw.X - 0.5));
-         yRaw = (pRaw.Y >= 0.0 ? (int)(pRaw.Y + 0.5) : (int)(pRaw.Y - 0.5));
+         xRaw = (pRaw.X >= 0.0) ? (int)(pRaw.X + 0.5) : (int)(pRaw.X - 0.5);
+         yRaw = (pRaw.Y >= 0.0) ? (int)(pRaw.Y + 0.5) : (int)(pRaw.Y - 0.5);
 
          ptrFit = pixbuf + (yImage * bytesPerRow + x * 3);
          if(xRaw < 0 || xRaw >= img->width || yRaw < 0 || yRaw >= img->height) {
@@ -2174,11 +2332,11 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
    }
 
    gridTest.X = pCtr.X * region->colCount * dispModExtent;
-   gridTest.X += (gridTest.X >= 0.0 ? 0.5 : -0.5);
+   gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
    shiftX = (int)gridTest.X % dispModExtent;
 
    gridTest.Y = pCtr.Y * region->rowCount * dispModExtent;
-   gridTest.Y += (gridTest.Y >= 0.0 ? 0.5 : -0.5);
+   gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
    shiftY = (int)gridTest.Y % dispModExtent;
 
    for(yImage = 0; yImage < extent; yImage++) {
@@ -2298,13 +2456,13 @@ DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *region,
    dmtxMatrix3VMultiply(&pCtr, &pTmp, region->raw2fitActive);
 
    gridTest.X = pCtr.X * region->colCount * dispModExtent;
-   gridTest.X += (gridTest.X >= 0.0 ? 0.5 : -0.5);
+   gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
    shiftX = 64 - (int)gridTest.X;
    colBeg = (shiftX < 0) ? 0 : -shiftX/8 - 1;
    colEnd = max(colBeg + 17, region->colCount);
 
    gridTest.Y = pCtr.Y * region->rowCount * dispModExtent;
-   gridTest.Y += (gridTest.Y >= 0.0 ? 0.5 : -0.5);
+   gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
    shiftY = 64 - (int)gridTest.Y;
    rowBeg = (shiftY < 0) ? 0 : -shiftY/8 - 1;
    rowEnd = max(rowBeg + 17, region->rowCount);
