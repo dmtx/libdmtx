@@ -87,11 +87,11 @@ Contact: mblaughton@users.sourceforge.net
 #define CTRL_ROW6_Y          324
 #define CTRL_ROW7_Y          388
 
-struct UserOptions {
+typedef struct UserOptions_struct {
    const char *imagePath;
-};
+} UserOptions;
 
-struct AppState {
+typedef struct AppState_struct {
    int         adjust;
    int         windowWidth;
    int         windowHeight;
@@ -108,84 +108,78 @@ struct AppState {
    Uint16      pointerX;
    Uint16      pointerY;
    DmtxBoolean quit;
-};
+} AppState;
 
-struct Flow {
+typedef struct Flow_struct {
    int mag;
-};
+} Flow;
 
-struct HoughCache {
+typedef struct HoughCache_struct {
    int offExtent;
    int phiExtent;
    char isMax[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
    unsigned int mag[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
-};
+} HoughCache;
 
-struct HoughMaximaSort {
+typedef struct HoughMaximaSort_struct {
    int count;
    int mag[MAXIMA_SORT_MAX_COUNT];
-};
+} HoughMaximaSort;
 
-struct VanishPointSum {
+typedef struct VanishPointSum_struct {
    int phi;
    int mag;
-};
+} VanishPointSum;
 
-struct VanishPointSort {
+typedef struct VanishPointSort_struct {
    int count;
-   struct VanishPointSum vanishSum[ANGLE_SORT_MAX_COUNT];
-};
+   VanishPointSum vanishSum[ANGLE_SORT_MAX_COUNT];
+} VanishPointSort;
 
-struct Timing {
+typedef struct Timing_struct {
    int phi;
    double shift;
    double period;
    double mag;
-};
+} Timing;
 
-struct TimingSort {
+typedef struct TimingSort_struct {
    int count;
-   struct Timing timing[TIMING_SORT_MAX_COUNT];
-};
+   Timing timing[TIMING_SORT_MAX_COUNT];
+} TimingSort;
 
-struct AlignmentGrid {
+typedef struct AlignmentGrid_struct {
    int rowCount;
    int colCount;
    DmtxMatrix3 raw2fitActive;
    DmtxMatrix3 raw2fitFull;
    DmtxMatrix3 fit2rawActive;
    DmtxMatrix3 fit2rawFull;
-   struct Timing flat;
-   struct Timing steep;
-};
+} AlignmentGrid;
 
-struct GridRegion {
-   struct AlignmentGrid grid;
-   int row0;
-   int row1;
-   int col0;
-   int col1;
-};
+typedef struct GridRegion_struct {
+   AlignmentGrid grid;
+   int rowTop;
+   int rowBottom;
+   int colLeft;
+   int colRight;
+} GridRegion;
 
-struct FitRegion {
-   int rowCount;
-   int colCount;
-   DmtxMatrix3 raw2fitActive;
-   DmtxMatrix3 raw2fitFull;
-   DmtxMatrix3 fit2rawActive;
-   DmtxMatrix3 fit2rawFull;
-   struct Timing flat;
-   struct Timing steep;
-};
+typedef struct RegionLines_struct {
+   int gridCount;
+   Timing timing;
+   double dA, dB;
+   DmtxRay2 line[2];
+} RegionLines;
 
 typedef enum {
-   GridGrowthUp,
-   GridGrowthLeft,
-   GridGrowthDown,
-   GridGrowthRight,
-   GridGrowthComplete,
-   GridGrowthError
-} GridGrowth;
+   GridRegionGrowthUp,
+   GridRegionGrowthLeft,
+   GridRegionGrowthDown,
+   GridRegionGrowthRight,
+   GridRegionGrowthComplete,
+   GridRegionGrowthError
+} GridRegionGrowth;
 
 /* Scaled unit sin */
 static int uSin128[] = {
@@ -226,58 +220,57 @@ static int uCos128[] = {
    -1004, -1009, -1013, -1016, -1019, -1021, -1023, -1024 };
 
 /* Application level functions */
-static struct UserOptions GetDefaultOptions(void);
-static DmtxPassFail HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[]);
-static struct AppState InitAppState(void);
+static UserOptions GetDefaultOptions(void);
+static DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[]);
+static AppState InitAppState(void);
 static SDL_Surface *SetWindowSize(int windowWidth, int windowHeight);
-static DmtxPassFail HandleEvent(SDL_Event *event, struct AppState *state,
+static DmtxPassFail HandleEvent(SDL_Event *event, AppState *state,
       SDL_Surface *picture, SDL_Surface **screen);
 static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 
 /* Image processing functions */
-static void PopulateFlowCache(struct Flow *sFlow, struct Flow *bFlow,
-      struct Flow *hFlow, struct Flow *vFlow, DmtxImage *img);
+static void PopulateFlowCache(Flow *sFlow, Flow *bFlow, Flow *hFlow, Flow *vFlow, DmtxImage *img);
 static int GetCompactOffset(int x, int y, int phiIdx, int extent);
 static double UncompactOffset(double d, int phiIdx, int extent);
-static void PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow, struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow);
-static void NormalizeHoughCache(struct HoughCache *hough, struct Flow *sFlow, struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow);
-static void MarkHoughMaxima(struct HoughCache *hough);
-static void AddToVanishPointSort(struct VanishPointSort *sort, struct VanishPointSum vanishSum);
-static struct VanishPointSort FindVanishPoints(struct HoughCache *hough);
-static void AddToMaximaSort(struct HoughMaximaSort *sort, int maximaMag);
-static struct VanishPointSum GetAngleSumAtPhi(struct HoughCache *hough, int phi);
-static void AddToTimingSort(struct TimingSort *sort, struct Timing timing);
-static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishPointSort *sort, struct AppState *state);
+static void PopulateHoughCache(HoughCache *hough, Flow *sFlow, Flow *bFlow, Flow *hFlow, Flow *vFlow);
+static void NormalizeHoughCache(HoughCache *hough, Flow *sFlow, Flow *bFlow, Flow *hFlow, Flow *vFlow);
+static void MarkHoughMaxima(HoughCache *hough);
+static void AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum);
+static VanishPointSort FindVanishPoints(HoughCache *hough);
+static void AddToMaximaSort(HoughMaximaSort *sort, int maximaMag);
+static VanishPointSum GetAngleSumAtPhi(HoughCache *hough, int phi);
+static void AddToTimingSort(TimingSort *sort, Timing timing);
+static TimingSort FindGridTiming(HoughCache *hough, VanishPointSort *sort, AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
-static DmtxPassFail BuildGridFromTimings(struct FitRegion *untimed, struct Timing vp0, struct Timing vp1, struct AppState *state);
-static GridGrowth NextGridExpansion(void);
-static DmtxPassFail GridSizeIncrement(struct FitRegion *timed, GridGrowth growDir);
-static DmtxPassFail FindRegionWithinGrid(struct FitRegion *timed, const struct FitRegion *untimed, const DmtxImage *img, SDL_Surface *screen);
+static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
+static GridRegionGrowth NextGridExpansion(void);
+static DmtxPassFail GridRegionGrow(GridRegion *region, GridRegionGrowth growDir);
+static DmtxPassFail FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid, const DmtxImage *img, SDL_Surface *screen);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
 /* Process visualization functions */
-static void BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenY, int screenX);
-static void BlitHoughCache(SDL_Surface *screen, struct HoughCache *hough, int screenY, int screenX);
+static void BlitFlowCache(SDL_Surface *screen, Flow *flowCache, int maxFlowMag, int screenY, int screenX);
+static void BlitHoughCache(SDL_Surface *screen, HoughCache *hough, int screenY, int screenX);
 static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
 static void PlotPixel(SDL_Surface *surface, int x, int y);
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
-static void DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale, int screenY, int screenX);
-static void DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenY, int screenX);
-static void DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int screenX);
-static void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, struct FitRegion *untimed, struct AppState *state, int screenY, int screenX);
-static int ReadModuleColor(DmtxImage *img, struct FitRegion *region, int symbolRow, int symbolCol, int colorPlane);
+static void DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale, int screenY, int screenX);
+static void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort sort, int screenY, int screenX);
+static void DrawTimingDots(SDL_Surface *screen, Timing timing, int screenY, int screenX);
+static void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
+static int ReadModuleColor(DmtxImage *img, AlignmentGrid *region, int symbolRow, int symbolCol, int colorPlane);
 static Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
-static void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *region, struct AppState *state, int screenY, int screenX);
+static void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *region, AppState *state, int screenY, int screenX);
 
 int
 main(int argc, char *argv[])
 {
-   struct UserOptions opt;
-   struct AppState    state;
+   UserOptions        opt;
+   AppState           state;
    SDL_Surface       *screen;
    SDL_Surface       *picture;
    SDL_Event          event;
@@ -287,16 +280,17 @@ main(int argc, char *argv[])
    int                pixelCount, maxFlowMag;
    DmtxImage         *imgActive, *imgFull;
    DmtxDecode        *dec;
-   struct Flow        sFlow[LOCAL_SIZE * LOCAL_SIZE];
-   struct Flow        bFlow[LOCAL_SIZE * LOCAL_SIZE];
-   struct Flow        hFlow[LOCAL_SIZE * LOCAL_SIZE];
-   struct Flow        vFlow[LOCAL_SIZE * LOCAL_SIZE];
-   struct HoughCache  hough;
-   struct VanishPointSort vPoints;
-   struct TimingSort      timings;
+   Flow               sFlow[LOCAL_SIZE * LOCAL_SIZE];
+   Flow               bFlow[LOCAL_SIZE * LOCAL_SIZE];
+   Flow               hFlow[LOCAL_SIZE * LOCAL_SIZE];
+   Flow               vFlow[LOCAL_SIZE * LOCAL_SIZE];
+   HoughCache         hough;
+   VanishPointSort    vPoints;
+   TimingSort         timings;
    SDL_Rect           clipRect;
    SDL_Surface       *local, *localTmp;
-   struct FitRegion   untimed, timed;
+   AlignmentGrid      grid;
+   GridRegion         region;
    DmtxPassFail       err;
    DmtxBoolean        regionFound;
    int                phiDiff;
@@ -523,15 +517,24 @@ main(int argc, char *argv[])
             /* XXX Additional criteria go here */
 
             /* Normalize region based on this angle combination */
-            err = BuildGridFromTimings(&untimed, timings.timing[i], timings.timing[j], &state);
+            err = BuildGridFromTimings(&grid, timings.timing[i], timings.timing[j], &state);
             if(err == DmtxFail)
                continue; /* Keep trying */
 
+            /* Draw timed and untimed region lines */
+            BlitActiveRegion(screen, local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+            if(state.displayTiming == DmtxTrue) {
+               DrawTimingDots(screen, timings.timing[i], CTRL_ROW3_Y, CTRL_COL1_X);
+               DrawTimingDots(screen, timings.timing[j], CTRL_ROW3_Y, CTRL_COL1_X);
+               DrawTimingLines(screen, timings.timing[i], 2, CTRL_ROW3_Y, CTRL_COL3_X);
+               DrawTimingLines(screen, timings.timing[j], 2, CTRL_ROW3_Y, CTRL_COL3_X);
+            }
+
             /* Test for timing patterns */
             SDL_LockSurface(picture);
-            DrawNormalizedRegion(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
-            DrawSymbolPreview(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL3_X);
-            err = FindRegionWithinGrid(&timed, &untimed, imgFull, screen);
+            DrawNormalizedRegion(screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
+            DrawSymbolPreview(screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL3_X);
+            err = FindRegionWithinGrid(&region, &grid, imgFull, screen);
             SDL_UnlockSurface(picture);
 
             if(err == DmtxPass) {
@@ -551,15 +554,6 @@ main(int argc, char *argv[])
          state.printValues = DmtxFalse;
       }
 
-      /* Draw timed and untimed region lines */
-      BlitActiveRegion(screen, local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
-      if(state.displayTiming == DmtxTrue) {
-         DrawTimingDots(screen, untimed.flat, CTRL_ROW3_Y, CTRL_COL1_X);
-         DrawTimingDots(screen, untimed.steep, CTRL_ROW3_Y, CTRL_COL1_X);
-         DrawTimingLines(screen, untimed.flat, 2, CTRL_ROW3_Y, CTRL_COL3_X);
-         DrawTimingLines(screen, untimed.steep, 2, CTRL_ROW3_Y, CTRL_COL3_X);
-      }
-
       SDL_Flip(screen);
    }
 
@@ -577,12 +571,12 @@ main(int argc, char *argv[])
  *
  *
  */
-static struct UserOptions
+static UserOptions
 GetDefaultOptions(void)
 {
-   struct UserOptions opt;
+   UserOptions opt;
 
-   memset(&opt, 0x00, sizeof(struct UserOptions));
+   memset(&opt, 0x00, sizeof(UserOptions));
    opt.imagePath = NULL;
 
    return opt;
@@ -593,7 +587,7 @@ GetDefaultOptions(void)
  *
  */
 static DmtxPassFail
-HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[])
+HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
 {
    if(*argcp < 2) {
       fprintf(stdout, "argument required\n");
@@ -610,10 +604,10 @@ HandleArgs(struct UserOptions *opt, int *argcp, char **argvp[])
  *
  *
  */
-static struct AppState
+static AppState
 InitAppState(void)
 {
-   struct AppState state;
+   AppState state;
 
    state.adjust = DmtxTrue;
    state.windowWidth = 640;
@@ -661,7 +655,7 @@ SetWindowSize(int windowWidth, int windowHeight)
  *
  */
 static DmtxPassFail
-HandleEvent(SDL_Event *event, struct AppState *state, SDL_Surface *picture, SDL_Surface **screen)
+HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface **screen)
 {
    int nudgeRequired = DmtxFalse;
 
@@ -822,8 +816,8 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
  * 3x3 Sobel Kernel
  */
 static void
-PopulateFlowCache(struct Flow *sFlow, struct Flow *bFlow,
-      struct Flow *hFlow, struct Flow *vFlow, DmtxImage *img)
+PopulateFlowCache(Flow *sFlow, Flow *bFlow,
+      Flow *hFlow, Flow *vFlow, DmtxImage *img)
 {
    int width, height;
    int bytesPerPixel, rowSizeBytes, colorPlane;
@@ -850,10 +844,10 @@ PopulateFlowCache(struct Flow *sFlow, struct Flow *bFlow,
 
    ta = dmtxTimeNow();
 
-   memset(sFlow, 0x00, sizeof(struct Flow) * width * height);
-   memset(bFlow, 0x00, sizeof(struct Flow) * width * height);
-   memset(hFlow, 0x00, sizeof(struct Flow) * width * height);
-   memset(vFlow, 0x00, sizeof(struct Flow) * width * height);
+   memset(sFlow, 0x00, sizeof(Flow) * width * height);
+   memset(bFlow, 0x00, sizeof(Flow) * width * height);
+   memset(hFlow, 0x00, sizeof(Flow) * width * height);
+   memset(vFlow, 0x00, sizeof(Flow) * width * height);
 
    for(y = yBeg; y <= yEnd; y++) {
 
@@ -1066,8 +1060,8 @@ UncompactOffset(double compactedOffset, int phiIdx, int extent)
  *
  */
 static void
-PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow,
-      struct Flow *bFlow, struct Flow *hFlow, struct Flow *vFlow)
+PopulateHoughCache(HoughCache *hough, Flow *sFlow,
+      Flow *bFlow, Flow *hFlow, Flow *vFlow)
 {
    int idx, phi, d;
    int angleBase, imgExtent;
@@ -1143,9 +1137,9 @@ PopulateHoughCache(struct HoughCache *hough, struct Flow *sFlow,
  *
  */
 static void
-NormalizeHoughCache(struct HoughCache *hough,
-      struct Flow *sFlow, struct Flow *bFlow,
-      struct Flow *hFlow, struct Flow *vFlow)
+NormalizeHoughCache(HoughCache *hough,
+      Flow *sFlow, Flow *bFlow,
+      Flow *hFlow, Flow *vFlow)
 {
    int          pixelCount;
    int          i, idx, phi, d;
@@ -1195,7 +1189,7 @@ NormalizeHoughCache(struct HoughCache *hough,
  *
  */
 static void
-MarkHoughMaxima(struct HoughCache *hough)
+MarkHoughMaxima(HoughCache *hough)
 {
    int phi, offset;
    int idx0, idx1;
@@ -1222,7 +1216,7 @@ MarkHoughMaxima(struct HoughCache *hough)
  *
  */
 static void
-AddToVanishPointSort(struct VanishPointSort *sort, struct VanishPointSum vanishSum)
+AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum)
 {
    int i, startHere;
    int phiDiff;
@@ -1277,13 +1271,13 @@ AddToVanishPointSort(struct VanishPointSort *sort, struct VanishPointSum vanishS
  *
  *
  */
-static struct VanishPointSort
-FindVanishPoints(struct HoughCache *hough)
+static VanishPointSort
+FindVanishPoints(HoughCache *hough)
 {
    int phi;
-   struct VanishPointSort sort;
+   VanishPointSort sort;
 
-   memset(&sort, 0x00, sizeof(struct VanishPointSort));
+   memset(&sort, 0x00, sizeof(VanishPointSort));
 
    /* Add strongest line at each angle to sort */
    for(phi = 0; phi < hough->phiExtent; phi++)
@@ -1297,7 +1291,7 @@ FindVanishPoints(struct HoughCache *hough)
  *
  */
 static void
-AddToMaximaSort(struct HoughMaximaSort *sort, int maximaMag)
+AddToMaximaSort(HoughMaximaSort *sort, int maximaMag)
 {
    int i;
 
@@ -1325,14 +1319,14 @@ AddToMaximaSort(struct HoughMaximaSort *sort, int maximaMag)
  *
  *
  */
-static struct VanishPointSum
-GetAngleSumAtPhi(struct HoughCache *hough, int phi)
+static VanishPointSum
+GetAngleSumAtPhi(HoughCache *hough, int phi)
 {
    int offset, i;
-   struct VanishPointSum vanishSum;
-   struct HoughMaximaSort sort;
+   VanishPointSum vanishSum;
+   HoughMaximaSort sort;
 
-   memset(&sort, 0x00, sizeof(struct HoughMaximaSort));
+   memset(&sort, 0x00, sizeof(HoughMaximaSort));
 
    for(offset = 0; offset < hough->offExtent; offset++) {
       i = offset * hough->phiExtent + phi;
@@ -1353,7 +1347,7 @@ GetAngleSumAtPhi(struct HoughCache *hough, int phi)
  *
  */
 static void
-AddToTimingSort(struct TimingSort *sort, struct Timing timing)
+AddToTimingSort(TimingSort *sort, Timing timing)
 {
    int i;
 
@@ -1384,8 +1378,8 @@ AddToTimingSort(struct TimingSort *sort, struct Timing timing)
  *
  *
  */
-static struct TimingSort
-FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vPoints, struct AppState *state)
+static TimingSort
+FindGridTiming(HoughCache *hough, VanishPointSort *vPoints, AppState *state)
 {
    int x, y, fitMag, fitMax, fitOff, attempts, iter;
    int i, vSortIdx, phi;
@@ -1394,10 +1388,10 @@ FindGridTiming(struct HoughCache *hough, struct VanishPointSort *vPoints, struct
    kiss_fft_cpx    sout[NFFT/2+1];
    kiss_fft_scalar mag[NFFT/2+1];
    int maxIdx;
-   struct Timing timing;
-   struct TimingSort timings;
+   Timing timing;
+   TimingSort timings;
 
-   memset(&timings, 0x00, sizeof(struct TimingSort));
+   memset(&timings, 0x00, sizeof(TimingSort));
 
    for(vSortIdx = 0; vSortIdx < vPoints->count; vSortIdx++) {
 
@@ -1483,22 +1477,15 @@ HoughLineToRay2(int phi, double d)
    return rLine;
 }
 
-struct RegionLines {
-   int gridCount;
-   struct Timing timing;
-   double dA, dB;
-   DmtxRay2 line[2];
-};
-
 /**
  *
  *
  *
  */
 static DmtxPassFail
-BuildGridFromTimings(struct FitRegion *untimed, struct Timing vp0, struct Timing vp1, struct AppState *state)
+BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state)
 {
-   struct RegionLines rl0, rl1, *flat, *steep;
+   RegionLines rl0, rl1, *flat, *steep;
    DmtxVector2 p00, p10, p11, p01;
    DmtxPassFail err;
    DmtxMatrix3 fit2raw, raw2fit;
@@ -1524,14 +1511,10 @@ BuildGridFromTimings(struct FitRegion *untimed, struct Timing vp0, struct Timing
    if(abs(64 - rl0.timing.phi) < abs(64 - rl1.timing.phi)) {
       flat = &rl0;
       steep = &rl1;
-      untimed->flat = vp0;
-      untimed->steep = vp1;
    }
    else {
       flat = &rl1;
       steep = &rl0;
-      untimed->flat = vp1;
-      untimed->steep = vp0;
    }
 
    flat->line[0] = HoughLineToRay2(flat->timing.phi, flat->dA);
@@ -1567,31 +1550,31 @@ BuildGridFromTimings(struct FitRegion *untimed, struct Timing vp0, struct Timing
    if(err == DmtxFail)
       return DmtxFail;
 
-   untimed->rowCount = flat->gridCount;
-   untimed->colCount = steep->gridCount;
+   grid->rowCount = flat->gridCount;
+   grid->colCount = steep->gridCount;
 
    /* raw2fit: Final transformation fits single origin module */
    dmtxMatrix3Identity(mScale);
-   dmtxMatrix3Multiply(untimed->raw2fitActive, raw2fit, mScale);
+   dmtxMatrix3Multiply(grid->raw2fitActive, raw2fit, mScale);
 
    if(state->activeExtent == 64) {
       dmtxMatrix3Translate(mTranslate, state->imageLocX - 288,
             518 - (227 + state->imageLocY + state->imageHeight));
-      dmtxMatrix3Multiply(untimed->raw2fitFull, mTranslate, untimed->raw2fitActive); /* not tested */
+      dmtxMatrix3Multiply(grid->raw2fitFull, mTranslate, grid->raw2fitActive); /* not tested */
    }
    else {
       dmtxMatrix3Scale(mScale, 2.0, 2.0);
-      dmtxMatrix3Multiply(mTmp, mScale, untimed->raw2fitActive);
-      dmtxMatrix3Copy(untimed->raw2fitActive, mTmp);
+      dmtxMatrix3Multiply(mTmp, mScale, grid->raw2fitActive);
+      dmtxMatrix3Copy(grid->raw2fitActive, mTmp);
 
       dmtxMatrix3Translate(mTranslate, state->imageLocX - 304,
             518 - (243 + state->imageLocY + state->imageHeight));
-      dmtxMatrix3Multiply(untimed->raw2fitFull, mTranslate, untimed->raw2fitActive); /* not tested */
+      dmtxMatrix3Multiply(grid->raw2fitFull, mTranslate, grid->raw2fitActive); /* not tested */
    }
 
    /* fit2raw: Abstract away display nuances of multi_test application */
    dmtxMatrix3Identity(mScale);
-   dmtxMatrix3Multiply(untimed->fit2rawActive, mScale, fit2raw);
+   dmtxMatrix3Multiply(grid->fit2rawActive, mScale, fit2raw);
 
    if(state->activeExtent == 64) {
       dmtxMatrix3Translate(mTranslate, 288 - state->imageLocX,
@@ -1599,13 +1582,13 @@ BuildGridFromTimings(struct FitRegion *untimed, struct Timing vp0, struct Timing
    }
    else {
       dmtxMatrix3Scale(mScale, 0.5, 0.5);
-      dmtxMatrix3Multiply(mTmp, untimed->fit2rawActive, mScale);
-      dmtxMatrix3Copy(untimed->fit2rawActive, mTmp);
+      dmtxMatrix3Multiply(mTmp, grid->fit2rawActive, mScale);
+      dmtxMatrix3Copy(grid->fit2rawActive, mTmp);
 
       dmtxMatrix3Translate(mTranslate, 304 - state->imageLocX,
             243 + state->imageLocY + state->imageHeight - 518);
    }
-   dmtxMatrix3Multiply(untimed->fit2rawFull, untimed->fit2rawActive, mTranslate);
+   dmtxMatrix3Multiply(grid->fit2rawFull, grid->fit2rawActive, mTranslate);
 
    return DmtxPass;
 }
@@ -1626,7 +1609,7 @@ BuildGridFromTimings(struct FitRegion *untimed, struct Timing vp0, struct Timing
  *    10 - abs(1)  // solid pass okay
  *    10 - abs(0)  // solid pass perfect
  */
-static GridGrowth
+static GridRegionGrowth
 NextGridExpansion(void) /* maybe should be named something different ... like "DecideNextStep" */
 {
 #ifdef IGNOREMEFORNOW
@@ -1664,7 +1647,7 @@ struct JumpTally {
       if(is a valid size) {
          quietZoneStatus = CheckQuietZone(); /* done, up, left, down, right */
          if(quietZoneStatus == done)
-            return GridGrowthComplete;
+            return GridRegionGrowthComplete;
          else
             return growth direction;
       }
@@ -1693,7 +1676,7 @@ struct JumpTally {
    /* XXX keep in mind it could be a vertically-oriented rectangle */
 #endif
 
-   return GridGrowthComplete;
+   return GridRegionGrowthComplete;
 }
 
 /**
@@ -1701,51 +1684,55 @@ struct JumpTally {
  *
  */
 static DmtxPassFail
-GridSizeIncrement(struct FitRegion *timed, GridGrowth growDir)
+GridRegionGrow(GridRegion *region, GridRegionGrowth growDir)
 {
-   int oldRowCount, oldColCount;
-   DmtxMatrix3 mScale, mTrans, mTmp;
+/* int oldRowCount, oldColCount;
+   DmtxMatrix3 mScale, mTrans, mTmp; */
 
-   assert(growDir == GridGrowthUp || growDir == GridGrowthLeft ||
-         growDir == GridGrowthDown || growDir == GridGrowthRight);
-
-   assert(timed->rowCount > 0 && timed->colCount > 0);
-
-   oldRowCount = timed->rowCount;
-   oldColCount = timed->colCount;
-
-   if(growDir == GridGrowthUp || growDir == GridGrowthDown)
-      timed->rowCount++;
-   else
-      timed->colCount++;
+   switch(growDir) {
+      case GridRegionGrowthUp:
+         region->rowTop++;
+         break;
+      case GridRegionGrowthLeft:
+         region->colLeft--;
+         break;
+      case GridRegionGrowthDown:
+         region->rowBottom--;
+         break;
+      case GridRegionGrowthRight:
+         region->colRight++;
+         break;
+      default:
+         return DmtxFail;
+   }
 
    /* Adjust fit2raw */
-   dmtxMatrix3Scale(mScale, (double)timed->rowCount/oldRowCount,
-         (double)timed->colCount/oldColCount);
+/* dmtxMatrix3Scale(mScale, (double)region->rowCount/oldRowCount,
+         (double)region->colCount/oldColCount);
 
    dmtxMatrix3Translate(mTrans,
-         (growDir == GridGrowthLeft) ? -1.0/timed->colCount : 0.0,
-         (growDir == GridGrowthDown) ? -1.0/timed->rowCount : 0.0);
+         (growDir == GridRegionGrowthLeft) ? -1.0/region->colCount : 0.0,
+         (growDir == GridRegionGrowthDown) ? -1.0/region->rowCount : 0.0);
 
-   dmtxMatrix3Multiply(mTmp, timed->fit2rawFull, mScale);
-   dmtxMatrix3Multiply(timed->fit2rawFull, mTmp, mTrans);
+   dmtxMatrix3Multiply(mTmp, region->fit2rawFull, mScale);
+   dmtxMatrix3Multiply(region->fit2rawFull, mTmp, mTrans);
 
-   dmtxMatrix3Multiply(mTmp, timed->fit2rawActive, mScale);
-   dmtxMatrix3Multiply(timed->fit2rawActive, mTmp, mTrans);
+   dmtxMatrix3Multiply(mTmp, region->fit2rawActive, mScale);
+   dmtxMatrix3Multiply(region->fit2rawActive, mTmp, mTrans); */
 
    /* Adjust raw2fit */
-   dmtxMatrix3Scale(mScale, (double)oldRowCount/timed->rowCount,
-         (double)oldColCount/timed->colCount);
+/* dmtxMatrix3Scale(mScale, (double)oldRowCount/region->rowCount,
+         (double)oldColCount/region->colCount);
 
    dmtxMatrix3Translate(mTrans,
-         (growDir == GridGrowthLeft) ? 1.0/timed->colCount : 0.0,
-         (growDir == GridGrowthDown) ? 1.0/timed->rowCount : 0.0);
+         (growDir == GridRegionGrowthLeft) ? 1.0/region->colCount : 0.0,
+         (growDir == GridRegionGrowthDown) ? 1.0/region->rowCount : 0.0);
 
-   dmtxMatrix3Multiply(mTmp, timed->raw2fitFull, mTrans);
-   dmtxMatrix3Multiply(timed->raw2fitFull, mTmp, mScale);
+   dmtxMatrix3Multiply(mTmp, region->raw2fitFull, mTrans);
+   dmtxMatrix3Multiply(region->raw2fitFull, mTmp, mScale);
 
-   dmtxMatrix3Multiply(mTmp, timed->raw2fitActive, mTrans);
-   dmtxMatrix3Multiply(timed->raw2fitActive, mTmp, mScale);
+   dmtxMatrix3Multiply(mTmp, region->raw2fitActive, mTrans);
+   dmtxMatrix3Multiply(region->raw2fitActive, mTmp, mScale); */
 
    return DmtxPass;
 }
@@ -1756,11 +1743,21 @@ GridSizeIncrement(struct FitRegion *timed, GridGrowth growDir)
  */
 /*
 static void
-HighlightAlignedRegion(SDL_Surface *screen, struct FitRegion *reg, int screenY, int screenX)
+HighlightAlignedRegion(SDL_Surface *screen, AlignmentGrid *reg, int screenY, int screenX)
 {
    ;
 }
 */
+
+static void
+DrawGridRegion(GridRegion *region, SDL_Surface *screen)
+{
+   rectangleColor(screen, CTRL_COL1_X + (region->colLeft * 8),
+                          CTRL_ROW5_Y + (region->rowBottom * 8),
+                          CTRL_COL1_X + (region->colRight * 8),
+                          CTRL_ROW5_Y + (region->rowTop * 8),
+                          0xff0000ff);
+}
 
 /**
  * Next step: start with small 2-layer box and step each edge outward until
@@ -1768,39 +1765,45 @@ HighlightAlignedRegion(SDL_Surface *screen, struct FitRegion *reg, int screenY, 
  * solid-but-opposite or 50% of both colors.
  */
 static DmtxPassFail
-FindRegionWithinGrid(struct FitRegion *timed, const struct FitRegion *untimed,
+FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid,
       const DmtxImage *img, SDL_Surface *screen)
 {
    int tmp = 0;
    DmtxPassFail err;
-   GridGrowth growDir;
+   GridRegionGrowth growDir;
 
-   /* Start with original untimed grid region */
-   *timed = *untimed;
+   /* Capture local copy of grid for tweaking */
+   region->grid = *grid;
 
    /* Poll modules near center to find nominal contrast */
    /* err = GetContrastOrWhatever(); */
 
    /* Find 2 initial adjacent modules near center with differing colors */
    /* err = FindAdjacentDifferingModules(); */
+   region->rowBottom = region->grid.rowCount / 2;
+   region->rowTop = region->rowBottom + 1;
+   region->colLeft = region->grid.colCount / 2;
+   region->colRight = region->colLeft + 1;
 
    /* Grow region outward until success/failure condition is met */
    for(;;) {
       growDir = NextGridExpansion();
-      if(tmp++ < 4)
-         growDir = tmp;
+      if(tmp++ < 10)
+         growDir = tmp % 4;
       else
          tmp = 0;
 
-      if(growDir == GridGrowthComplete || growDir == GridGrowthError)
+      DrawGridRegion(region, screen);
+
+      if(growDir == GridRegionGrowthComplete || growDir == GridRegionGrowthError)
          break;
 
-      err = GridSizeIncrement(timed, growDir);
+      err = GridRegionGrow(region, growDir);
       if(err == DmtxFail)
          return DmtxFail;
 
       /* Update region to reflect growth */
-      /* err = BuildGridFromTimings(timed, vp0, vp1, NULL); */
+      /* err = BuildGridFromTimings(grid, vp0, vp1, NULL); */
    }
 
    return DmtxPass;
@@ -1913,13 +1916,13 @@ RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00,
  *
  */
 static void
-BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int screenY, int screenX)
+BlitFlowCache(SDL_Surface *screen, Flow *flowCache, int maxFlowMag, int screenY, int screenX)
 {
    int row, col;
    unsigned char rgb[3];
    int width, height;
    int offset;
-   struct Flow flow;
+   Flow flow;
    unsigned char pixbuf[12288]; /* 64 * 64 * 3 */
    SDL_Surface *surface;
    SDL_Rect clipRect;
@@ -1978,7 +1981,7 @@ BlitFlowCache(SDL_Surface *screen, struct Flow *flowCache, int maxFlowMag, int s
  *
  */
 static void
-BlitHoughCache(SDL_Surface *screen, struct HoughCache *hough, int screenY, int screenX)
+BlitHoughCache(SDL_Surface *screen, HoughCache *hough, int screenY, int screenX)
 {
    int row, col;
    int width, height;
@@ -2252,7 +2255,7 @@ DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
  *
  */
 static void
-DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale,
+DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale,
       int screenY, int screenX)
 {
    int i;
@@ -2268,7 +2271,7 @@ DrawTimingLines(SDL_Surface *screen, struct Timing timing, int displayScale,
  *
  */
 static void
-DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screenY, int screenX)
+DrawVanishingPoints(SDL_Surface *screen, VanishPointSort sort, int screenY, int screenX)
 {
    int sortIdx;
    DmtxPixelLoc d0, d1;
@@ -2297,7 +2300,7 @@ DrawVanishingPoints(SDL_Surface *screen, struct VanishPointSort sort, int screen
  *
  */
 static void
-DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int screenX)
+DrawTimingDots(SDL_Surface *screen, Timing timing, int screenY, int screenX)
 {
    int i, d;
 
@@ -2316,7 +2319,7 @@ DrawTimingDots(SDL_Surface *screen, struct Timing timing, int screenY, int scree
  */
 static void
 DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
-      struct FitRegion *region, struct AppState *state, int screenY, int screenX)
+      AlignmentGrid *region, AppState *state, int screenY, int screenX)
 {
    unsigned char pixbuf[49152]; /* 128 * 128 * 3 */
    unsigned char *ptrFit, *ptrRaw;
@@ -2442,7 +2445,7 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
  *
  */
 static int
-ReadModuleColor(DmtxImage *img, struct FitRegion *region, int symbolRow,
+ReadModuleColor(DmtxImage *img, AlignmentGrid *region, int symbolRow,
       int symbolCol, int colorPlane)
 {
    int err;
@@ -2495,8 +2498,8 @@ Clamp(Sint16 x, Sint16 xMin, Sint16 extent)
  *
  */
 static void
-DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, struct FitRegion *region,
-      struct AppState *state, int screenY, int screenX)
+DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *region,
+      AppState *state, int screenY, int screenX)
 {
    DmtxVector2 pTmp, pCtr;
    DmtxVector2 gridTest;
