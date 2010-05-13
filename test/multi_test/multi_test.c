@@ -148,6 +148,25 @@ struct TimingSort {
    struct Timing timing[TIMING_SORT_MAX_COUNT];
 };
 
+struct AlignmentGrid {
+   int rowCount;
+   int colCount;
+   DmtxMatrix3 raw2fitActive;
+   DmtxMatrix3 raw2fitFull;
+   DmtxMatrix3 fit2rawActive;
+   DmtxMatrix3 fit2rawFull;
+   struct Timing flat;
+   struct Timing steep;
+};
+
+struct GridRegion {
+   struct AlignmentGrid grid;
+   int row0;
+   int row1;
+   int col0;
+   int col1;
+};
+
 struct FitRegion {
    int rowCount;
    int colCount;
@@ -233,8 +252,8 @@ static struct TimingSort FindGridTiming(struct HoughCache *hough, struct VanishP
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(struct FitRegion *untimed, struct Timing vp0, struct Timing vp1, struct AppState *state);
 static GridGrowth NextGridExpansion(void);
-static DmtxPassFail GridSizeIncrement(struct FitRegion *timed, int flatInc, int steepInc);
-static DmtxPassFail FindRegionWithinGrid(struct FitRegion *timed, const struct FitRegion *untimed, const DmtxImage *img);
+static DmtxPassFail GridSizeIncrement(struct FitRegion *timed, GridGrowth growDir);
+static DmtxPassFail FindRegionWithinGrid(struct FitRegion *timed, const struct FitRegion *untimed, const DmtxImage *img, SDL_Surface *screen);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
 /* Process visualization functions */
@@ -495,11 +514,12 @@ main(int argc, char *argv[])
 
             /* Reject/alter combinations with large period ratio */
             periodRatio = timings.timing[i].period / timings.timing[j].period;
+/*
             if(periodRatio < 0.5 || periodRatio > 2.0) {
-               fprintf(stdout, "opportunity_1 ");
+               fprintf(stdout, "opp_1 ");
                fflush(stdout);
             }
-
+*/
             /* XXX Additional criteria go here */
 
             /* Normalize region based on this angle combination */
@@ -509,7 +529,9 @@ main(int argc, char *argv[])
 
             /* Test for timing patterns */
             SDL_LockSurface(picture);
-            err = FindRegionWithinGrid(&timed, &untimed, imgFull);
+            DrawNormalizedRegion(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
+            DrawSymbolPreview(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL3_X);
+            err = FindRegionWithinGrid(&timed, &untimed, imgFull, screen);
             SDL_UnlockSurface(picture);
 
             if(err == DmtxPass) {
@@ -537,13 +559,6 @@ main(int argc, char *argv[])
          DrawTimingLines(screen, untimed.flat, 2, CTRL_ROW3_Y, CTRL_COL3_X);
          DrawTimingLines(screen, untimed.steep, 2, CTRL_ROW3_Y, CTRL_COL3_X);
       }
-
-      SDL_LockSurface(picture);
-      DrawNormalizedRegion(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
-      DrawSymbolPreview(screen, imgFull, &untimed, &state, CTRL_ROW5_Y, CTRL_COL3_X);
-/*    DrawNormalizedRegion(screen, imgFull, &timed, &state, CTRL_ROW7_Y, CTRL_COL1_X + 1); */
-      DrawSymbolPreview(screen, imgFull, &timed, &state, CTRL_ROW7_Y, CTRL_COL3_X);
-      SDL_UnlockSurface(picture);
 
       SDL_Flip(screen);
    }
@@ -1556,7 +1571,6 @@ BuildGridFromTimings(struct FitRegion *untimed, struct Timing vp0, struct Timing
    untimed->colCount = steep->gridCount;
 
    /* raw2fit: Final transformation fits single origin module */
-/* dmtxMatrix3Scale(mScale, steep->lineCount, flat->lineCount); */
    dmtxMatrix3Identity(mScale);
    dmtxMatrix3Multiply(untimed->raw2fitActive, raw2fit, mScale);
 
@@ -1576,7 +1590,6 @@ BuildGridFromTimings(struct FitRegion *untimed, struct Timing vp0, struct Timing
    }
 
    /* fit2raw: Abstract away display nuances of multi_test application */
-/* dmtxMatrix3Scale(mScale, 1.0/steep->lineCount, 1.0/flat->lineCount); */
    dmtxMatrix3Identity(mScale);
    dmtxMatrix3Multiply(untimed->fit2rawActive, mScale, fit2raw);
 
@@ -1688,10 +1701,66 @@ struct JumpTally {
  *
  */
 static DmtxPassFail
-GridSizeIncrement(struct FitRegion *timed, int flatInc, int steepInc)
+GridSizeIncrement(struct FitRegion *timed, GridGrowth growDir)
 {
+   int oldRowCount, oldColCount;
+   DmtxMatrix3 mScale, mTrans, mTmp;
+
+   assert(growDir == GridGrowthUp || growDir == GridGrowthLeft ||
+         growDir == GridGrowthDown || growDir == GridGrowthRight);
+
+   assert(timed->rowCount > 0 && timed->colCount > 0);
+
+   oldRowCount = timed->rowCount;
+   oldColCount = timed->colCount;
+
+   if(growDir == GridGrowthUp || growDir == GridGrowthDown)
+      timed->rowCount++;
+   else
+      timed->colCount++;
+
+   /* Adjust fit2raw */
+   dmtxMatrix3Scale(mScale, (double)timed->rowCount/oldRowCount,
+         (double)timed->colCount/oldColCount);
+
+   dmtxMatrix3Translate(mTrans,
+         (growDir == GridGrowthLeft) ? -1.0/timed->colCount : 0.0,
+         (growDir == GridGrowthDown) ? -1.0/timed->rowCount : 0.0);
+
+   dmtxMatrix3Multiply(mTmp, timed->fit2rawFull, mScale);
+   dmtxMatrix3Multiply(timed->fit2rawFull, mTmp, mTrans);
+
+   dmtxMatrix3Multiply(mTmp, timed->fit2rawActive, mScale);
+   dmtxMatrix3Multiply(timed->fit2rawActive, mTmp, mTrans);
+
+   /* Adjust raw2fit */
+   dmtxMatrix3Scale(mScale, (double)oldRowCount/timed->rowCount,
+         (double)oldColCount/timed->colCount);
+
+   dmtxMatrix3Translate(mTrans,
+         (growDir == GridGrowthLeft) ? 1.0/timed->colCount : 0.0,
+         (growDir == GridGrowthDown) ? 1.0/timed->rowCount : 0.0);
+
+   dmtxMatrix3Multiply(mTmp, timed->raw2fitFull, mTrans);
+   dmtxMatrix3Multiply(timed->raw2fitFull, mTmp, mScale);
+
+   dmtxMatrix3Multiply(mTmp, timed->raw2fitActive, mTrans);
+   dmtxMatrix3Multiply(timed->raw2fitActive, mTmp, mScale);
+
    return DmtxPass;
 }
+
+/**
+ *
+ *
+ */
+/*
+static void
+HighlightAlignedRegion(SDL_Surface *screen, struct FitRegion *reg, int screenY, int screenX)
+{
+   ;
+}
+*/
 
 /**
  * Next step: start with small 2-layer box and step each edge outward until
@@ -1699,8 +1768,10 @@ GridSizeIncrement(struct FitRegion *timed, int flatInc, int steepInc)
  * solid-but-opposite or 50% of both colors.
  */
 static DmtxPassFail
-FindRegionWithinGrid(struct FitRegion *timed, const struct FitRegion *untimed, const DmtxImage *img)
+FindRegionWithinGrid(struct FitRegion *timed, const struct FitRegion *untimed,
+      const DmtxImage *img, SDL_Surface *screen)
 {
+   int tmp = 0;
    DmtxPassFail err;
    GridGrowth growDir;
 
@@ -1716,29 +1787,17 @@ FindRegionWithinGrid(struct FitRegion *timed, const struct FitRegion *untimed, c
    /* Grow region outward until success/failure condition is met */
    for(;;) {
       growDir = NextGridExpansion();
+      if(tmp++ < 4)
+         growDir = tmp;
+      else
+         tmp = 0;
 
       if(growDir == GridGrowthComplete || growDir == GridGrowthError)
          break;
 
-      switch(growDir) {
-         case GridGrowthUp:
-            err = GridSizeIncrement(timed, +1,  0);
-            break;
-         case GridGrowthLeft:
-            err = GridSizeIncrement(timed,  0, -1);
-            break;
-         case GridGrowthDown:
-            err = GridSizeIncrement(timed, -1,  0);
-            break;
-         case GridGrowthRight:
-            err = GridSizeIncrement(timed,  0, +1);
-            break;
-         default:
-            err = DmtxFail;
-            break;
-      }
+      err = GridSizeIncrement(timed, growDir);
       if(err == DmtxFail)
-         return err;
+         return DmtxFail;
 
       /* Update region to reflect growth */
       /* err = BuildGridFromTimings(timed, vp0, vp1, NULL); */
