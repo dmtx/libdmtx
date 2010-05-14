@@ -159,10 +159,10 @@ typedef struct AlignmentGrid_struct {
 
 typedef struct GridRegion_struct {
    AlignmentGrid grid;
-   int rowTop;
-   int rowBottom;
-   int colLeft;
-   int colRight;
+   int x;
+   int y;
+   int width;
+   int height;
 } GridRegion;
 
 typedef struct RegionLines_struct {
@@ -1691,18 +1691,20 @@ GridRegionGrow(GridRegion *region, GridRegionGrowth growDir)
    DmtxMatrix3 mScale, mTrans, mTmp; */
 
    switch(growDir) {
-      case GridRegionGrowthUp:
-         region->rowTop++;
-         break;
-      case GridRegionGrowthLeft:
-         region->colLeft--;
-         break;
       case GridRegionGrowthDown:
-         region->rowBottom--;
+         region->y--;
+         /* Fall through */
+      case GridRegionGrowthUp:
+         region->height++;
          break;
+
+      case GridRegionGrowthLeft:
+         region->x--;
+         /* Fall through */
       case GridRegionGrowthRight:
-         region->colRight++;
+         region->width++;
          break;
+
       default:
          return DmtxFail;
    }
@@ -1764,8 +1766,8 @@ DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
    int modulesToDisplay = 16;
    int dispModExtent = extent/modulesToDisplay;
    Sint16 x1, y1, x2, y2;
-   int x, y;
-   int screenX, screenY;
+   const int screenX = CTRL_COL1_X;
+   const int screenY = CTRL_ROW5_Y;
 
    pTmp.X = pTmp.Y = state->activeExtent/2.0;
    dmtxMatrix3VMultiply(&pCtr, &pTmp, region->grid.raw2fitActive);
@@ -1778,21 +1780,18 @@ DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
    gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
    shiftY = 64 - (int)gridTest.Y;
 
-   screenX = CTRL_COL1_X;
-   screenY = CTRL_ROW5_Y;
+   x1 = region->x * dispModExtent + shiftX;
+   y1 = region->y * dispModExtent + shiftY;
+   x2 = x1 + region->width * dispModExtent - 1;
+   y2 = y1 + region->height * dispModExtent - 1;
 
-   x = region->colLeft * dispModExtent + shiftX;
-   y = region->rowBottom * dispModExtent + shiftY;
+   y1 = (extent - 1 - y1);
+   y2 = (extent - 1 - y2);
 
-   x1 = x + screenX;
-   y1 = (extent - 1 - y - dispModExtent) + screenY;
-   x2 = x1 + (region->colRight - region->colLeft + 1) * dispModExtent - 1;
-   y2 = y1 + (region->rowBottom - region->rowTop + 1) * dispModExtent - 1;
-
-   x1 = Clamp(x1, screenX, 128);
-   y1 = Clamp(y1, screenY, 128);
-   x2 = Clamp(x2, screenX, 128);
-   y2 = Clamp(y2, screenY, 128);
+   x1 = Clamp(x1 + screenX, screenX, 128);
+   y1 = Clamp(y1 + screenY, screenY, 128);
+   x2 = Clamp(x2 + screenX, screenX, 128);
+   y2 = Clamp(y2 + screenY, screenY, 128);
 
    rectangleColor(screen, x1, y1, x2, y2, 0xff0000ff);
 }
@@ -1818,8 +1817,10 @@ FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid,
 
    /* Find 2 initial adjacent modules near center with differing colors */
    /* err = FindAdjacentDifferingModules(); */
-   region->colLeft = region->colRight = region->grid.colCount / 2;
-   region->rowBottom = region->rowTop = region->grid.rowCount / 2;
+   region->x = region->grid.colCount / 2;
+   region->y = region->grid.rowCount / 2;
+   region->width = 1;
+   region->height = 2;
 
    DrawGridRegion(screen, region, state);
 
@@ -2545,7 +2546,6 @@ DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *region,
    int shiftX, shiftY;
    int rColor, gColor, bColor, color;
    Sint16 x1, y1, x2, y2;
-   int x, y;
    int extent = 128;
    int modulesToDisplay = 16;
    int dispModExtent = extent/modulesToDisplay;
@@ -2570,26 +2570,27 @@ DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *region,
 
    for(row = rowBeg; row < rowEnd;row++) {
 
-      y = row * dispModExtent + shiftY;
+      y1 = row * dispModExtent + shiftY;
 
       for(col = colBeg; col < colEnd; col++) {
 
-         x = col * dispModExtent + shiftX;
+         x1 = col * dispModExtent + shiftX;
 
          rColor = ReadModuleColor(img, region, row, col, 0);
          gColor = ReadModuleColor(img, region, row, col, 1);
          bColor = ReadModuleColor(img, region, row, col, 2);
          color = (rColor << 24) | (gColor << 16) | (bColor << 8) | 0xff;
 
-         x1 = x + screenX;
-         y1 = (extent - 1 - y - dispModExtent) + screenY;
          x2 = x1 + dispModExtent - 1;
          y2 = y1 + dispModExtent - 1;
 
-         x1 = Clamp(x1, screenX, 128);
-         y1 = Clamp(y1, screenY, 128);
-         x2 = Clamp(x2, screenX, 128);
-         y2 = Clamp(y2, screenY, 128);
+         y1 = (extent - 1 - y1);
+         y2 = (extent - 1 - y2);
+
+         x1 = Clamp(x1 + screenX, screenX, 128);
+         y1 = Clamp(y1 + screenY, screenY, 128);
+         x2 = Clamp(x2 + screenX, screenX, 128);
+         y2 = Clamp(y2 + screenY, screenY, 128);
 
          boxColor(screen, x1, y1, x2, y2, color);
       }
