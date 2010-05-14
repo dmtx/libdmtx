@@ -246,7 +246,8 @@ static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
 static GridRegionGrowth NextGridExpansion(void);
 static DmtxPassFail GridRegionGrow(GridRegion *region, GridRegionGrowth growDir);
-static DmtxPassFail FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid, const DmtxImage *img, SDL_Surface *screen);
+static void DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state);
+static DmtxPassFail FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid, const DmtxImage *img, SDL_Surface *screen, AppState *state);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
 /* Process visualization functions */
@@ -534,7 +535,7 @@ main(int argc, char *argv[])
             SDL_LockSurface(picture);
             DrawNormalizedRegion(screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
             DrawSymbolPreview(screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL3_X);
-            err = FindRegionWithinGrid(&region, &grid, imgFull, screen);
+            err = FindRegionWithinGrid(&region, &grid, imgFull, screen, &state);
             SDL_UnlockSurface(picture);
 
             if(err == DmtxPass) {
@@ -1749,14 +1750,51 @@ HighlightAlignedRegion(SDL_Surface *screen, AlignmentGrid *reg, int screenY, int
 }
 */
 
+/**
+ *
+ *
+ */
 static void
-DrawGridRegion(GridRegion *region, SDL_Surface *screen)
+DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
 {
-   rectangleColor(screen, CTRL_COL1_X + (region->colLeft * 8),
-                          CTRL_ROW5_Y + (region->rowBottom * 8),
-                          CTRL_COL1_X + (region->colRight * 8),
-                          CTRL_ROW5_Y + (region->rowTop * 8),
-                          0xff0000ff);
+   DmtxVector2 pTmp, pCtr;
+   DmtxVector2 gridTest;
+   int shiftX, shiftY;
+   int extent = 128;
+   int modulesToDisplay = 16;
+   int dispModExtent = extent/modulesToDisplay;
+   Sint16 x1, y1, x2, y2;
+   int x, y;
+   int screenX, screenY;
+
+   pTmp.X = pTmp.Y = state->activeExtent/2.0;
+   dmtxMatrix3VMultiply(&pCtr, &pTmp, region->grid.raw2fitActive);
+
+   gridTest.X = pCtr.X * region->grid.colCount * dispModExtent;
+   gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
+   shiftX = 64 - (int)gridTest.X;
+
+   gridTest.Y = pCtr.Y * region->grid.rowCount * dispModExtent;
+   gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
+   shiftY = 64 - (int)gridTest.Y;
+
+   screenX = CTRL_COL1_X;
+   screenY = CTRL_ROW5_Y;
+
+   x = region->colLeft * dispModExtent + shiftX;
+   y = region->rowBottom * dispModExtent + shiftY;
+
+   x1 = x + screenX;
+   y1 = (extent - 1 - y - dispModExtent) + screenY;
+   x2 = x1 + (region->colRight - region->colLeft + 1) * dispModExtent - 1;
+   y2 = y1 + (region->rowBottom - region->rowTop + 1) * dispModExtent - 1;
+
+   x1 = Clamp(x1, screenX, 128);
+   y1 = Clamp(y1, screenY, 128);
+   x2 = Clamp(x2, screenX, 128);
+   y2 = Clamp(y2, screenY, 128);
+
+   rectangleColor(screen, x1, y1, x2, y2, 0xff0000ff);
 }
 
 /**
@@ -1766,9 +1804,9 @@ DrawGridRegion(GridRegion *region, SDL_Surface *screen)
  */
 static DmtxPassFail
 FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid,
-      const DmtxImage *img, SDL_Surface *screen)
+      const DmtxImage *img, SDL_Surface *screen, AppState *state)
 {
-   int tmp = 0;
+   int tmp;
    DmtxPassFail err;
    GridRegionGrowth growDir;
 
@@ -1780,12 +1818,13 @@ FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid,
 
    /* Find 2 initial adjacent modules near center with differing colors */
    /* err = FindAdjacentDifferingModules(); */
-   region->rowBottom = region->grid.rowCount / 2;
-   region->rowTop = region->rowBottom + 1;
-   region->colLeft = region->grid.colCount / 2;
-   region->colRight = region->colLeft + 1;
+   region->colLeft = region->colRight = region->grid.colCount / 2;
+   region->rowBottom = region->rowTop = region->grid.rowCount / 2;
+
+   DrawGridRegion(screen, region, state);
 
    /* Grow region outward until success/failure condition is met */
+   tmp = 0;
    for(;;) {
       growDir = NextGridExpansion();
       if(tmp++ < 10)
@@ -1793,14 +1832,14 @@ FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid,
       else
          tmp = 0;
 
-      DrawGridRegion(region, screen);
-
       if(growDir == GridRegionGrowthComplete || growDir == GridRegionGrowthError)
          break;
 
       err = GridRegionGrow(region, growDir);
       if(err == DmtxFail)
          return DmtxFail;
+
+      DrawGridRegion(screen, region, state);
 
       /* Update region to reflect growth */
       /* err = BuildGridFromTimings(grid, vp0, vp1, NULL); */
