@@ -246,7 +246,6 @@ static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
 static GridRegionGrowth NextGridExpansion(void);
 static DmtxPassFail GridRegionGrow(GridRegion *region, GridRegionGrowth growDir);
-static void DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state);
 static DmtxPassFail FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid, const DmtxImage *img, SDL_Surface *screen, AppState *state);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
@@ -266,6 +265,7 @@ static void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, AlignmentG
 static int ReadModuleColor(DmtxImage *img, AlignmentGrid *region, int symbolRow, int symbolCol, int colorPlane);
 static Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
 static void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *region, AppState *state, int screenY, int screenX);
+static void DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state);
 
 int
 main(int argc, char *argv[])
@@ -1753,50 +1753,6 @@ HighlightAlignedRegion(SDL_Surface *screen, AlignmentGrid *reg, int screenY, int
 */
 
 /**
- *
- *
- */
-static void
-DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
-{
-   DmtxVector2 pTmp, pCtr;
-   DmtxVector2 gridTest;
-   int shiftX, shiftY;
-   int extent = 128;
-   int modulesToDisplay = 16;
-   int dispModExtent = extent/modulesToDisplay;
-   Sint16 x1, y1, x2, y2;
-   const int screenX = CTRL_COL1_X;
-   const int screenY = CTRL_ROW5_Y;
-
-   pTmp.X = pTmp.Y = state->activeExtent/2.0;
-   dmtxMatrix3VMultiply(&pCtr, &pTmp, region->grid.raw2fitActive);
-
-   gridTest.X = pCtr.X * region->grid.colCount * dispModExtent;
-   gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
-   shiftX = 64 - (int)gridTest.X;
-
-   gridTest.Y = pCtr.Y * region->grid.rowCount * dispModExtent;
-   gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
-   shiftY = 64 - (int)gridTest.Y;
-
-   x1 = region->x * dispModExtent + shiftX;
-   y1 = region->y * dispModExtent + shiftY;
-   x2 = x1 + region->width * dispModExtent - 1;
-   y2 = y1 + region->height * dispModExtent - 1;
-
-   y1 = (extent - 1 - y1);
-   y2 = (extent - 1 - y2);
-
-   x1 = Clamp(x1 + screenX, screenX, 128);
-   y1 = Clamp(y1 + screenY, screenY, 128);
-   x2 = Clamp(x2 + screenX, screenX, 128);
-   y2 = Clamp(y2 + screenY, screenY, 128);
-
-   rectangleColor(screen, x1, y1, x2, y2, 0xff0000ff);
-}
-
-/**
  * Next step: start with small 2-layer box and step each edge outward until
  * outer edge is approximately solid and inner edge is either approximately
  * solid-but-opposite or 50% of both colors.
@@ -2568,31 +2524,75 @@ DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *region,
    rowBeg = (shiftY < 0) ? 0 : -shiftY/8 - 1;
    rowEnd = max(rowBeg + 17, region->rowCount);
 
-   for(row = rowBeg; row < rowEnd;row++) {
+   for(row = rowBeg; row < rowEnd; row++) {
 
       y1 = row * dispModExtent + shiftY;
+      y2 = y1 + dispModExtent - 1;
+
+      y1 = (extent - 1 - y1);
+      y2 = (extent - 1 - y2);
+
+      y1 = Clamp(y1 + screenY, screenY, 128);
+      y2 = Clamp(y2 + screenY, screenY, 128);
 
       for(col = colBeg; col < colEnd; col++) {
-
-         x1 = col * dispModExtent + shiftX;
 
          rColor = ReadModuleColor(img, region, row, col, 0);
          gColor = ReadModuleColor(img, region, row, col, 1);
          bColor = ReadModuleColor(img, region, row, col, 2);
          color = (rColor << 24) | (gColor << 16) | (bColor << 8) | 0xff;
 
+         x1 = col * dispModExtent + shiftX;
          x2 = x1 + dispModExtent - 1;
-         y2 = y1 + dispModExtent - 1;
-
-         y1 = (extent - 1 - y1);
-         y2 = (extent - 1 - y2);
 
          x1 = Clamp(x1 + screenX, screenX, 128);
-         y1 = Clamp(y1 + screenY, screenY, 128);
          x2 = Clamp(x2 + screenX, screenX, 128);
-         y2 = Clamp(y2 + screenY, screenY, 128);
 
          boxColor(screen, x1, y1, x2, y2, color);
       }
    }
+}
+
+/**
+ *
+ *
+ */
+static void
+DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
+{
+   DmtxVector2 pTmp, pCtr;
+   DmtxVector2 gridTest;
+   int shiftX, shiftY;
+   int extent = 128;
+   int modulesToDisplay = 16;
+   int dispModExtent = extent/modulesToDisplay;
+   Sint16 x1, y1, x2, y2;
+   const int screenX = CTRL_COL1_X;
+   const int screenY = CTRL_ROW5_Y;
+
+   pTmp.X = pTmp.Y = state->activeExtent/2.0;
+   dmtxMatrix3VMultiply(&pCtr, &pTmp, region->grid.raw2fitActive);
+
+   gridTest.X = pCtr.X * region->grid.colCount * dispModExtent;
+   gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
+   shiftX = 64 - (int)gridTest.X;
+
+   gridTest.Y = pCtr.Y * region->grid.rowCount * dispModExtent;
+   gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
+   shiftY = 64 - (int)gridTest.Y;
+
+   x1 = region->x * dispModExtent + shiftX;
+   y1 = region->y * dispModExtent + shiftY;
+   x2 = x1 + region->width * dispModExtent - 1;
+   y2 = y1 + region->height * dispModExtent - 1;
+
+   y1 = (extent - 1 - y1);
+   y2 = (extent - 1 - y2);
+
+   x1 = Clamp(x1 + screenX, screenX, 128);
+   y1 = Clamp(y1 + screenY, screenY, 128);
+   x2 = Clamp(x2 + screenX, screenX, 128);
+   y2 = Clamp(y2 + screenY, screenY, 128);
+
+   rectangleColor(screen, x1, y1, x2, y2, 0xff0000ff);
 }
