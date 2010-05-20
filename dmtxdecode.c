@@ -400,6 +400,19 @@ dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 
    colorPlane = reg->flowBegin.plane;
 
+   /**
+    * Consider performing a color cube fit here to identify exact RGB of
+    * all 6 "cube-like" corners based on pixels located within region. Then
+    * force each sample pixel to the "cube-like" corner based o which one
+    * is nearest "sqrt(dr^2+dg^2+db^2)" (except sqrt is unnecessary).
+    * colorPlane = reg->flowBegin.plane;
+    *
+    * To find RGB values of primary colors, perform something like a
+    * histogram except instead of going from black to color N, go from
+    * (127,127,127) to color. Use color bins along with distance to
+    * identify value. An additional method will be required to get actual
+    * RGB instead of just a plane in 3D. */
+
    reg->flowBegin.plane = 0; /* kind of a hack */
    rMsg = dmtxDecodeMatrixRegion(dec, reg, fix);
 
