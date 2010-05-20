@@ -244,7 +244,8 @@ static void AddToTimingSort(TimingSort *sort, Timing timing);
 static TimingSort FindGridTiming(HoughCache *hough, VanishPointSort *sort, AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
-static GridRegionGrowth NextGridExpansion(void);
+static DmtxPassFail TestPerimeterValidity(int *validSides);
+static GridRegionGrowth NextGridExpansion(GridRegion *region);
 static DmtxPassFail GridRegionGrow(GridRegion *region, GridRegionGrowth growDir);
 static DmtxPassFail FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid, const DmtxImage *img, SDL_Surface *screen, AppState *state);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
@@ -1599,19 +1600,61 @@ BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *stat
  *
  *
  */
-#ifdef IGNOREMEFORNOW
+/*
 struct JumpTally {
-   int onCount; try evenSum and oddSum instead
+   int onCount; //try evenSum and oddSum instead
    int offCount;
 }
+*/
 
+/**
+ *
+ *
+ */
 static DmtxPassFail
-CheckRegionPerimeter(xyz, int *sides)
+TestPerimeterValidity(int *validSides)
 {
-   struct JumpTally tally[4]; /* up, left, down, right */
+   static int tmp = 0;
 
-   /* Find end colors/contrast using intensity bins? */
-   /* err = FindOnOffColors() -- maybe not necessary */
+   /* Fake implementation */
+   switch(tmp) {
+      case 0:
+      case 1:
+      case 2:
+      case 3:
+         *validSides = 0x01 << tmp;
+         break;
+      case 4:
+         *validSides = DmtxDirLeft;
+         break;
+      case 5:
+         *validSides = (DmtxDirUp | DmtxDirDown);
+         break;
+      case 6:
+         *validSides = (DmtxDirLeft | DmtxDirDown);
+         break;
+      case 7:
+         *validSides = (DmtxDirRight | DmtxDirUp);
+         break;
+      case 8:
+         *validSides = (DmtxDirLeft | DmtxDirDown);
+         break;
+      case 9:
+         *validSides = (DmtxDirLeft | DmtxDirRight| DmtxDirUp);
+         break;
+      case 10:
+         *validSides = (DmtxDirUp | DmtxDirLeft | DmtxDirDown | DmtxDirRight);
+         break;
+   }
+
+   tmp = (tmp == 10) ? 0 : tmp + 1;
+
+   return DmtxPass;
+/*
+   struct JumpTally tally[4]; // up, left, down, right
+
+   // Find end colors/contrast using intensity bins?
+   // err = FindOnOffColors() -- maybe not necessary
 
    if(size is greater than largest single region)
       return DmtxFail;
@@ -1629,8 +1672,8 @@ CheckRegionPerimeter(xyz, int *sides)
       else
          valid[dir] = DmtxTrue;
    }
+*/
 }
-#endif
 
 /**
  * Want to maintain square shape while growing for as long as
@@ -1649,33 +1692,28 @@ CheckRegionPerimeter(xyz, int *sides)
  *    10 - abs(0)  // solid pass perfect
  */
 static GridRegionGrowth
-NextGridExpansion(void)
+NextGridExpansion(GridRegion *region)
 {
-   GridRegionGrowth growDir;
-   static int tmp = 0;
-
-   if(tmp++ < 10) {
-      growDir = tmp % 4;
-   }
-   else {
-      tmp = 0;
-      growDir = GridRegionGrowthComplete;
-   }
-
-   return growDir;
-
-#ifdef IGNOREMEFORNOW
+   int validSides;
+   DmtxPassFail err;
+   DmtxBoolean growVertical, growHorizontal;
 
    /* Determine which region sides might be valid */
-   err = CheckRegionPerimeter(&validSides, xyz);
+   err = TestPerimeterValidity(&validSides);
    if(err == DmtxFail)
       return GridRegionGrowthError;
 
    /* All sides are valid */
    if(validSides == (DmtxDirUp | DmtxDirLeft | DmtxDirDown | DmtxDirRight)) {
-
+      /* skipping over a lot of important stuff here ... see comment block below */
       return GridRegionGrowthComplete;
-/*    sizeIdx = CheckRegionSymbolSize(xyz);
+   }
+
+/*
+   // All sides are valid
+   if(validSides == (DmtxDirUp | DmtxDirLeft | DmtxDirDown | DmtxDirRight)) {
+
+      sizeIdx = CheckRegionSymbolSize(xyz);
 
       // Valid size: Check quiet zone
       if(sizeIdx != DmtxUndefined) {
@@ -1691,16 +1729,16 @@ NextGridExpansion(void)
          // we need to force growth in a direction. be careful to not destroy rectangle
          // possibilities. may need to poll possible directions to find best option.
       }
-*/
    }
+*/
 
-   /* Growth will happen vertically or horizontally */
+   /* Growth will happen either vertically or horizontally */
    growVertical = (validSides & DmtxDirVertical) ? DmtxTrue : DmtxFalse;
    growHorizontal = (validSides & DmtxDirHorizontal) ? DmtxTrue : DmtxFalse;
 
    /* Maintain square shape while growing if possible */
    if(growVertical && growHorizontal) {
-      if(normal.flatCount > normal.steepCount)
+      if(region->height > region->width)
          growVertical = DmtxFalse;
       else
          growHorizontal = DmtxFalse;
@@ -1711,20 +1749,19 @@ NextGridExpansion(void)
 
    /* Decide on final direction */
    if(growVertical == DmtxTrue) {
-      if(validSides & DmtxDirectionUp)
-         return GrowUp;
+      if(validSides & DmtxDirUp)
+         return GridRegionGrowthUp;
       else
-         return GrowDown;
+         return GridRegionGrowthDown;
    }
    else {
-      if(validSides & DmtxDirectionRight)
-         return GrowRight;
+      if(validSides & DmtxDirRight)
+         return GridRegionGrowthRight;
       else
-         return GrowLeft;
+         return GridRegionGrowthLeft;
    }
 
-   return GrowError;
-#endif
+   return GridRegionGrowthError;
 }
 
 /**
@@ -1821,14 +1858,14 @@ FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid,
    /* err = FindAdjacentDifferingModules(); */
    region->x = region->grid.colCount / 2;
    region->y = region->grid.rowCount / 2;
-   region->width = 1;
+   region->width = 2;
    region->height = 2;
 
    DrawGridRegion(screen, region, state);
 
    /* Grow region outward until success/failure condition is met */
    for(;;) {
-      growDir = NextGridExpansion();
+      growDir = NextGridExpansion(region);
 
       if(growDir == GridRegionGrowthComplete || growDir == GridRegionGrowthError)
          break;
