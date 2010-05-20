@@ -1595,6 +1595,44 @@ BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *stat
 }
 
 /**
+ * Determine which sides appear to valid (solid or alternating pattern)
+ *
+ *
+ */
+#ifdef IGNOREMEFORNOW
+struct JumpTally {
+   int onCount; try evenSum and oddSum instead
+   int offCount;
+}
+
+static DmtxPassFail
+CheckRegionPerimeter(xyz, int *sides)
+{
+   struct JumpTally tally[4]; /* up, left, down, right */
+
+   /* Find end colors/contrast using intensity bins? */
+   /* err = FindOnOffColors() -- maybe not necessary */
+
+   if(size is greater than largest single region)
+      return DmtxFail;
+
+   for(dir = 0; dir < 4; dir++) {
+      tally[dir] = TallyJumps(dir, ...);
+
+      devn = N - abs(tally[dir].onCount - tally[dir].offCount);
+
+      assert(tally[dir].onCount + tally[dir].offCount == N);
+
+      if(abs(rowCount - tally[dir].onCount > 2 &&
+            abs(tally[dir].onCount - tally[dir].offCount) > 2))
+         valid[dir] = DmtxFalse;
+      else
+         valid[dir] = DmtxTrue;
+   }
+}
+#endif
+
+/**
  * Want to maintain square shape while growing for as long as
  *    possible to maximize align-while-growing feature
  *
@@ -1611,59 +1649,56 @@ BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *stat
  *    10 - abs(0)  // solid pass perfect
  */
 static GridRegionGrowth
-NextGridExpansion(void) /* maybe should be named something different ... like "DecideNextStep" */
+NextGridExpansion(void)
 {
-#ifdef IGNOREMEFORNOW
-struct JumpTally {
-   int onCount;
-   int offCount;
-}
+   GridRegionGrowth growDir;
+   static int tmp = 0;
 
-   struct JumpTally tally[4]; /* up, left, down, right */
-
-   /* Find end colors/contrast using intensity bins? */
-   /* err = FindOnOffColors() */
-
-   /* Determine which sides are potentially valid */
-   for(dir = 0; dir < 4; dir++) {
-      tally[dir] = TallyJumps(dir, ...);
-
-      devn = N - abs(tally[dir].onCount - tally[dir].offCount);
-
-      assert(tally[dir].onCount + tally[dir].offCount == N);
-
-      if(abs(rowCount - tally[dir].onCount > 2 &&
-            abs(tally[dir].onCount - tally[dir].offCount) > 2))
-         valid[dir] = DmtxFalse;
-      else
-         valid[dir] = DmtxTrue;
+   if(tmp++ < 10) {
+      growDir = tmp % 4;
+   }
+   else {
+      tmp = 0;
+      growDir = GridRegionGrowthComplete;
    }
 
-   /* End condition: All sides are valid -- compare to official symbol sizes */
-   if(valid[0] == valid[1] == valid[2] == valid[3] == DmtxTrue) {
-      /* XXX keep in mind it could be a vertically-oriented rectangle */
-      test current region against known valid Data Matrix sizes
+   return growDir;
 
-      /* Valid size: Check quiet zone */
-      if(is a valid size) {
-         quietZoneStatus = CheckQuietZone(); /* done, up, left, down, right */
+#ifdef IGNOREMEFORNOW
+
+   /* Determine which region sides might be valid */
+   err = CheckRegionPerimeter(&validSides, xyz);
+   if(err == DmtxFail)
+      return GridRegionGrowthError;
+
+   /* All sides are valid */
+   if(validSides == (DmtxDirUp | DmtxDirLeft | DmtxDirDown | DmtxDirRight)) {
+
+      return GridRegionGrowthComplete;
+/*    sizeIdx = CheckRegionSymbolSize(xyz);
+
+      // Valid size: Check quiet zone
+      if(sizeIdx != DmtxUndefined) {
+         quietZoneStatus = CheckRegionQuietZone(); // done, up, left, down, right
          if(quietZoneStatus == done)
             return GridRegionGrowthComplete;
          else
             return growth direction;
       }
-
-      /* Invalid size: Force growth in one direction */
-      /* if all of the sides are valid, but we still aren't an official shape, then
-       * we need to force growth in a direction. be careful to not destroy rectangle
-       * possibilities. may need to poll possible directions to find best option. */
+      // Invalid size: Force growth in one direction
+      else {
+         // if all of the sides are valid, but we still aren't an official shape, then
+         // we need to force growth in a direction. be careful to not destroy rectangle
+         // possibilities. may need to poll possible directions to find best option.
+      }
+*/
    }
 
-   /* Determine whether growth can occur vertically and/or horizontally */
-   growVertical = (valid[up] || valid[down]) ? DmtxTrue : DmtxFalse;
-   growHorizontal = (valid[left] || valid[right]) ? DmtxTrue : DmtxFalse;
+   /* Growth will happen vertically or horizontally */
+   growVertical = (validSides & DmtxDirVertical) ? DmtxTrue : DmtxFalse;
+   growHorizontal = (validSides & DmtxDirHorizontal) ? DmtxTrue : DmtxFalse;
 
-   /* Maintain square shape while growing for incremental alignment feature */
+   /* Maintain square shape while growing if possible */
    if(growVertical && growHorizontal) {
       if(normal.flatCount > normal.steepCount)
          growVertical = DmtxFalse;
@@ -1674,10 +1709,22 @@ struct JumpTally {
    /* Now exactly one of growVertical or growHorizontal should be set */
    assert(growVertical + growHorizontal == DmtxTrue + DmtxFalse);
 
-   /* XXX keep in mind it could be a vertically-oriented rectangle */
-#endif
+   /* Decide on final direction */
+   if(growVertical == DmtxTrue) {
+      if(validSides & DmtxDirectionUp)
+         return GrowUp;
+      else
+         return GrowDown;
+   }
+   else {
+      if(validSides & DmtxDirectionRight)
+         return GrowRight;
+      else
+         return GrowLeft;
+   }
 
-   return GridRegionGrowthComplete;
+   return GrowError;
+#endif
 }
 
 /**
@@ -1761,7 +1808,6 @@ static DmtxPassFail
 FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid,
       const DmtxImage *img, SDL_Surface *screen, AppState *state)
 {
-   int tmp;
    DmtxPassFail err;
    GridRegionGrowth growDir;
 
@@ -1781,13 +1827,8 @@ FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid,
    DrawGridRegion(screen, region, state);
 
    /* Grow region outward until success/failure condition is met */
-   tmp = 0;
    for(;;) {
       growDir = NextGridExpansion();
-      if(tmp++ < 10)
-         growDir = tmp % 4;
-      else
-         tmp = 0;
 
       if(growDir == GridRegionGrowthComplete || growDir == GridRegionGrowthError)
          break;
@@ -2575,7 +2616,7 @@ DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
 
    gridTest.X = pCtr.X * region->grid.colCount * dispModExtent;
    gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
-   shiftX = 64 - (int)gridTest.X;
+   shiftX = 65 - (int)gridTest.X; /* not sure why +1 is needed here */
 
    gridTest.Y = pCtr.Y * region->grid.rowCount * dispModExtent;
    gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
@@ -2583,8 +2624,8 @@ DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
 
    x1 = region->x * dispModExtent + shiftX;
    y1 = region->y * dispModExtent + shiftY;
-   x2 = x1 + region->width * dispModExtent - 1;
-   y2 = y1 + region->height * dispModExtent - 1;
+   x2 = x1 + region->width * dispModExtent;
+   y2 = y1 + region->height * dispModExtent;
 
    y1 = (extent - 1 - y1);
    y2 = (extent - 1 - y2);
