@@ -163,6 +163,7 @@ typedef struct GridRegion_struct {
    int y;
    int width;
    int height;
+   int sizeIdx;
 } GridRegion;
 
 typedef struct RegionLines_struct {
@@ -172,14 +173,32 @@ typedef struct RegionLines_struct {
    DmtxRay2 line[2];
 } RegionLines;
 
+/* All values in GridRegionGrowth should be negative because list
+ * is combined with the positive values of DmtxSymbolSize enum */
 typedef enum {
-   GridRegionGrowthUp,
-   GridRegionGrowthLeft,
-   GridRegionGrowthDown,
-   GridRegionGrowthRight,
-   GridRegionGrowthComplete,
-   GridRegionGrowthError
+   GridRegionGrowthUp       = -5,
+   GridRegionGrowthLeft     = -4,
+   GridRegionGrowthDown     = -3,
+   GridRegionGrowthRight    = -2,
+   GridRegionGrowthError    = -1
 } GridRegionGrowth;
+
+typedef enum {
+   DmtxBarNone     = 0x00,
+   DmtxBarTiming   = 0x01 << 0,
+   DmtxBarFinder   = 0x01 << 1,
+   DmtxBarInterior = 0x01 << 2,
+   DmtxBarExterior = 0x01 << 3
+} DmtxBarType;
+
+typedef struct PerimeterState_struct {
+   int expandDirs;
+   int boundary[4];
+   int finderBarCount;
+   int timingBarCount;
+   int finderBarIdx[2];
+   int timingBarIdx[2];
+} PerimeterState;
 
 /* Scaled unit sin */
 static int uSin128[] = {
@@ -244,8 +263,10 @@ static void AddToTimingSort(TimingSort *sort, Timing timing);
 static TimingSort FindGridTiming(HoughCache *hough, VanishPointSort *sort, AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
-static DmtxPassFail TestPerimeterValidity(int *validSides);
-static GridRegionGrowth NextGridExpansion(GridRegion *region);
+/*static int GetRegionSymbolSize(int validSides[4]);*/
+static PerimeterState GetRegionPerimeterState(const GridRegion *region);
+static int BoundaryTest(DmtxDirection dir);
+static int NextRegionExpansion(const GridRegion *region, PerimeterState ps);
 static DmtxPassFail GridRegionGrow(GridRegion *region, GridRegionGrowth growDir);
 static DmtxPassFail FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid, const DmtxImage *img, SDL_Surface *screen, AppState *state);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
@@ -1611,12 +1632,13 @@ struct JumpTally {
  *
  *
  */
-static DmtxPassFail
-TestPerimeterValidity(int *validSides)
+/*
+static int
+GetRegionSymbolSize(int validSides[4])
 {
    static int tmp = 0;
 
-   /* Fake implementation */
+   // Fake implementation
    switch(tmp) {
       case 0:
       case 1:
@@ -1650,6 +1672,7 @@ TestPerimeterValidity(int *validSides)
    tmp = (tmp == 10) ? 0 : tmp + 1;
 
    return DmtxPass;
+*/
 /*
    struct JumpTally tally[4]; // up, left, down, right
 
@@ -1673,47 +1696,157 @@ TestPerimeterValidity(int *validSides)
          valid[dir] = DmtxTrue;
    }
 */
+
+/**
+ * Populates edge array with bar types (even if returning false)
+ * Returns true if boundaries meet end conditions
+ */
+static PerimeterState
+GetRegionPerimeterState(const GridRegion *region)
+{
+   int i;
+   PerimeterState ps;
+
+   memset(&ps, 0x00, sizeof(PerimeterState));
+
+   /* Test each edge of perimeter */
+   ps.boundary[0] = BoundaryTest(DmtxDirUp);
+   ps.boundary[1] = BoundaryTest(DmtxDirLeft);
+   ps.boundary[2] = BoundaryTest(DmtxDirDown);
+   ps.boundary[3] = BoundaryTest(DmtxDirRight);
+
+   /* XXX will get more complicated; still needs "inner" and "outer" */
+
+   /* Ensure libdmtx still defines directions in the required order */
+   assert(DmtxDirUp    == 0x01 << 0);
+   assert(DmtxDirLeft  == 0x01 << 1);
+   assert(DmtxDirDown  == 0x01 << 2);
+   assert(DmtxDirRight == 0x01 << 3);
+
+   /* For each expansion direction */
+   for(i = 0; i < 4; i++) {
+      /* Count finder and timing bars, or mark direction as expandable */
+      if(ps.boundary[i] & DmtxBarFinder)
+         ps.finderBarIdx[ps.finderBarCount++] = i;
+      else if(ps.boundary[i] & DmtxBarTiming)
+         ps.timingBarIdx[ps.timingBarCount++] = i;
+      else
+         ps.expandDirs |= (0x01 << i); /* DmtxDirUp | DmtxDirLeft | etc... */
+
+      /* Edge can't be both a finder bar AND a timing bar */
+      assert(!((ps.boundary[i] & DmtxBarFinder) && (ps.boundary[i] & DmtxBarTiming)));
+   }
+
+   return ps;
 }
 
 /**
- * Want to maintain square shape while growing for as long as
- *    possible to maximize align-while-growing feature
  *
- *    10 - abs(10) // solid pass perfect
- *    10 - abs(9)  // solid pass okay
- *    10 - abs(8)  // fail
- *    10 - abs(7)  // fail
- *    10 - abs(6)  // timing pass
- *    10 - abs(5)  // timing pass
- *    10 - abs(4)  // timing pass
- *    10 - abs(3)  // fail
- *    10 - abs(2)  // fail
- *    10 - abs(1)  // solid pass okay
- *    10 - abs(0)  // solid pass perfect
+ *
  */
-static GridRegionGrowth
-NextGridExpansion(GridRegion *region)
+static int
+BoundaryTest(DmtxDirection dir)
 {
-   int validSides;
-   DmtxPassFail err;
+   int bar;
+   static int tmp = 0;
+
+   /* Fake implementation */
+   if(tmp < 4)
+      bar = DmtxBarNone;
+   else if(tmp < 6)
+      bar = (DmtxBarFinder | DmtxBarExterior);
+   else
+      bar = (DmtxBarTiming | DmtxBarExterior);
+
+   tmp = (tmp + 1) % 8;
+
+   return bar;
+/*
+ * 1) Sample and hold colors at each module along both inner and outer edges
+ *
+ * 2) Determine contrast
+ *      ContFinderExt = abs(outer_all_avg - inner_all_avg)
+ *      ContFinderInt = abs(outer_evn_avg - outer_odd_avg)
+ *      ContTimingAny = abs(inner_evn_avg - inner_odd_avg)
+ *
+ * 3) Internal Finder Bar test (useful? -- skip initially)
+ *      ContTmpA = abs(inner_all_avg - outer_evn_avg)
+ *      ContTmpB = abs(inner_all_avg - outer_odd_avg)
+ *      If max(ContTmpA, ContTmpB) is similar to ContFinderInt then timing bar likely
+*
+ * 4) Timing bar test (useful? -- skip initially)
+ *      ContTmpC = abs(inner_evn_avg - outer_all_avg)
+ *      ContTmpD = abs(inner_odd_avg - outer_all_avg)
+ *      If max(ContTmpC, ContTmpD) is similar to ContTimingAny then timing bar likely
+ *
+ * 5) Choose best contrast
+ *      Contrast = max(ContFinderExt, ContFinderInt, ContTimingAny)
+ *
+ * 6) Tally jumps
+ *      JumpsInner = TallyJumps(region, row, col, Contrast);
+ *      JumpsOuter = TallyJumps(region, row, col, Contrast);
+ *
+ * 7) AllowedJumpErrors = EdgeLength * 0.2; (or something)
+ *
+ * 8) Test boundary conditions:
+ *
+ *   if(JumpsOuter < AllowedJumpErrors && JumpsInner < AllowedJumpErrors) {
+ *      bar = (DmtxBarFinder | DmtxBarExternal);
+ *   }
+ *   else if(JumpsOuter - EdgeLength/2 < AllowedJumpErrors && JumpsInner < AllowedJumpErrors) {
+ *      bar = (DmtxBarFinder | DmtxBarInternal);
+ *   }
+ *   else if(JumpsInner - EdgeLength/2 < AllowedJumpErrors && JumpsOuter < AllowedJumpErrors) {
+ *      if(inner_evn_avg is same color as outer_all_avg)
+ *         bar = (DmtxBarTiming | DmtxBarExternal);
+ *      else if(inner_odd_avg is same color as outer_all_avg)
+ *         bar = (DmtxBarTiming | DmtxBarInternal);
+ *      else
+ *         bar = DmtxBarNone;
+ *   }
+ *   else {
+ *      bar = DmtxBarNone;
+ *   }
+ *
+ *   return bar;
+ */
+}
+
+/**
+ * This function determines the best direction for expansion. It uses the
+ * boundary status parameter to decide which directions are possible, and
+ * maintains a square shape while growing for as long as possible to
+ * maximize align-while-growing feature.
+ */
+static int
+NextRegionExpansion(const GridRegion *region, PerimeterState ps)
+{
+   int sizeIdx;
    DmtxBoolean growVertical, growHorizontal;
 
-   /* Determine which region sides might be valid */
-   err = TestPerimeterValidity(&validSides);
-   if(err == DmtxFail)
-      return GridRegionGrowthError;
+   /* If region appears complete (i.e., holding 2 adjacent finder bars and
+    * 2 timing bars) then find and return DmtxSymbolSize index */
+   if(ps.finderBarCount == 2 && ps.timingBarCount == 2 &&
+         abs(ps.finderBarIdx[0] - ps.finderBarIdx[1]) != 2) {
 
-   /* All sides are valid */
-   if(validSides == (DmtxDirUp | DmtxDirLeft | DmtxDirDown | DmtxDirRight)) {
-      /* skipping over a lot of important stuff here ... see comment block below */
-      return GridRegionGrowthComplete;
+      assert(abs(ps.timingBarIdx[0] - ps.timingBarIdx[1]) != 2);
+
+      /* Find symbol size (may still return DmtxUndefined if not valid) */
+      sizeIdx = 3; /* GetSizeIdx(x, y); */
+      if(sizeIdx != DmtxUndefined)
+         return sizeIdx; /* Success */
+
+      /* Otherwise force growth in one of the finder bars since timing bars
+       * are probably correctly identified as real boundaries (?) */
+      /* XXX should do this? */
    }
 
-/*
-   // All sides are valid
-   if(validSides == (DmtxDirUp | DmtxDirLeft | DmtxDirDown | DmtxDirRight)) {
+   /* Ensure that expansion is possible without exceeding maximim size */
+   if(region->width >= 26 && region->height >= 26)
+      return GridRegionGrowthError;
 
-      sizeIdx = CheckRegionSymbolSize(xyz);
+/*
+   if(validSides == (DmtxDirUp | DmtxDirLeft | DmtxDirDown | DmtxDirRight)) {
 
       // Valid size: Check quiet zone
       if(sizeIdx != DmtxUndefined) {
@@ -1733,8 +1866,8 @@ NextGridExpansion(GridRegion *region)
 */
 
    /* Growth will happen either vertically or horizontally */
-   growVertical = (validSides & DmtxDirVertical) ? DmtxTrue : DmtxFalse;
-   growHorizontal = (validSides & DmtxDirHorizontal) ? DmtxTrue : DmtxFalse;
+   growVertical = (ps.expandDirs & DmtxDirVertical) ? DmtxTrue : DmtxFalse;
+   growHorizontal = (ps.expandDirs & DmtxDirHorizontal) ? DmtxTrue : DmtxFalse;
 
    /* Maintain square shape while growing if possible */
    if(growVertical && growHorizontal) {
@@ -1749,13 +1882,13 @@ NextGridExpansion(GridRegion *region)
 
    /* Decide on final direction */
    if(growVertical == DmtxTrue) {
-      if(validSides & DmtxDirUp)
+      if(ps.expandDirs & DmtxDirUp)
          return GridRegionGrowthUp;
       else
          return GridRegionGrowthDown;
    }
    else {
-      if(validSides & DmtxDirRight)
+      if(ps.expandDirs & DmtxDirRight)
          return GridRegionGrowthRight;
       else
          return GridRegionGrowthLeft;
@@ -1845,42 +1978,56 @@ static DmtxPassFail
 FindRegionWithinGrid(GridRegion *region, const AlignmentGrid *grid,
       const DmtxImage *img, SDL_Surface *screen, AppState *state)
 {
+   int expand;
+   PerimeterState ps;
    DmtxPassFail err;
-   GridRegionGrowth growDir;
 
-   /* Capture local copy of grid for tweaking */
-   region->grid = *grid;
+   memset(region, 0x00, sizeof(GridRegion));
 
-   /* Poll modules near center to find nominal contrast */
-   /* err = GetContrastOrWhatever(); */
-
-   /* Find 2 initial adjacent modules near center with differing colors */
-   /* err = FindAdjacentDifferingModules(); */
+   region->grid = *grid; /* Capture local copy of grid for tweaking */
    region->x = region->grid.colCount / 2;
    region->y = region->grid.rowCount / 2;
    region->width = 2;
    region->height = 2;
+   region->sizeIdx = DmtxUndefined;
+
+   /* Poll modules near center to find nominal contrast */
+   /* err = GetContrastOrWhatever(); */
 
    DrawGridRegion(screen, region, state);
 
    /* Grow region outward until success/failure condition is met */
    for(;;) {
-      growDir = NextGridExpansion(region);
 
-      if(growDir == GridRegionGrowthComplete || growDir == GridRegionGrowthError)
-         break;
+      /* Test all 4 sides of current region for possible expansion */
+      ps = GetRegionPerimeterState(region);
 
-      err = GridRegionGrow(region, growDir);
+      /* Find best direction for expansion, or symbol size if finished */
+      expand = NextRegionExpansion(region, ps);
+
+      /* Non-negative values of "expand" represent DmtxSymbolSize sizes */
+      if(expand >= 0) {
+         region->sizeIdx = expand;
+         return DmtxPass; /* Success */
+      }
+
+      /* Negative values of "expand" represent GridRegionGrowth meanings */
+      if(expand == GridRegionGrowthError)
+         break; /* Failure */
+
+      /* Attempt to grow in "expand" direction */
+      err = GridRegionGrow(region, expand);
       if(err == DmtxFail)
-         return DmtxFail;
+         break; /* Failure */
 
       DrawGridRegion(screen, region, state);
 
       /* Update region to reflect growth */
       /* err = BuildGridFromTimings(grid, vp0, vp1, NULL); */
+
    }
 
-   return DmtxPass;
+   return DmtxFail;
 }
 
 /**
