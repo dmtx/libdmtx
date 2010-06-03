@@ -264,8 +264,9 @@ static TimingSort FindGridTiming(HoughCache *hough, VanishPointSort *sort, AppSt
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
 static PerimeterState RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region);
-static int PerimeterEdgeTestFake(DmtxDirection dir);
+static int TallyJumps(int colors[], int extent, int contrast);
 static int PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region, DmtxDirection dir);
+static int GetSizeIdx(int a, int b);
 static int RegionGetNextExpansion(const GridRegion *region, const PerimeterState *ps);
 static DmtxPassFail RegionExpand(GridRegion *region, GridRegionGrowth growDir);
 static DmtxPassFail FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, SDL_Surface *screen, AppState *state);
@@ -561,7 +562,20 @@ main(int argc, char *argv[])
             err = FindRegionWithinGrid(&region, imgFull, &grid, screen, &state);
             SDL_UnlockSurface(picture);
 
+            /* A bit ugly for now ... I just want to see it working */
             if(err == DmtxPass) {
+               /* Determine origin */
+
+               /* Update DmtxRegion with detected corners */
+/*
+               err = dmtxRegionUpdateCorners(dec, reg, p00, p10, p11, p01);
+               reg->flowBegin.plane = 0, 1, or 2 (0 = red, 1 = green, etc...)
+               reg->sizeIdx = region.sizeIdx;
+               reg->symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region.sizeIdx);
+               reg->symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region.sizeIdx);
+               reg->mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, region.sizeIdx);
+               reg->mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, region.sizeIdx);
+*/
                regionFound = DmtxTrue;
                break;
             }
@@ -1631,10 +1645,9 @@ RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *r
 
    /* Test each edge of perimeter (e.g., DmtxBarTiming | DmtxBarExterior) */
    ps.boundary[0] = PerimeterEdgeTestReal(img, grid, region, DmtxDirUp);
-   ps.boundary[0] = PerimeterEdgeTestFake(DmtxDirUp);
-   ps.boundary[1] = PerimeterEdgeTestFake(DmtxDirLeft);
-   ps.boundary[2] = PerimeterEdgeTestFake(DmtxDirDown);
-   ps.boundary[3] = PerimeterEdgeTestFake(DmtxDirRight);
+   ps.boundary[1] = PerimeterEdgeTestReal(img, grid, region, DmtxDirLeft);
+   ps.boundary[2] = PerimeterEdgeTestReal(img, grid, region, DmtxDirDown);
+   ps.boundary[3] = PerimeterEdgeTestReal(img, grid, region, DmtxDirRight);
 
    /* Ensure libdmtx still defines directions in the required manner */
    assert(DmtxDirUp   == 0x01 << 0); assert(DmtxDirLeft  == 0x01 << 1);
@@ -1661,45 +1674,33 @@ RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *r
  *
  */
 static int
-PerimeterEdgeTestFake(DmtxDirection dir)
+TallyJumps(int colors[], int extent, int contrast)
 {
-   int bar;
-   static int tmp = 0;
+   int i;
+   int jumpMag;
+   int jumpCount;
+   int jumpThresh;
+   int thisJumpDir, lastJumpDir;
 
-   /* Fake implementation */
-   if(tmp < 4) { /* should go up first */
-      bar = DmtxBarNone;
-   }
-   else if(tmp < 8) { /* should go left second */
-      if(tmp < 6) /* up left */
-         bar = DmtxBarNone;
-      else /* down right */
-         bar = (DmtxBarTiming | DmtxBarExterior);
-   }
-   else if(tmp < 12) { /* should go down third */
-      if(tmp < 10) /* up left */
-         bar = (DmtxBarFinder | DmtxBarExterior);
-      else /* down right */
-         bar = DmtxBarNone;
-   }
-   else if(tmp < 16) { /* should go up third */
-      if(tmp == 12) /* up */
-         bar = DmtxBarNone;
-      else if(tmp == 13)
-         bar = (DmtxBarFinder | DmtxBarExterior);
-      else
-         bar = (DmtxBarTiming | DmtxBarExterior);
-   }
-   else { /* should be done -- no expansion */
-      if(tmp < 18) /* up left */
-         bar = (DmtxBarFinder | DmtxBarExterior);
-      else /* down right */
-         bar = (DmtxBarTiming | DmtxBarExterior);
+   jumpThresh = (contrast * 4)/10;
+
+   jumpCount = 0;
+   lastJumpDir = 0; /* 0 == none / +1 == up / -1 == down */
+
+/* this is actually an oversimplification ...
+ * should take into account that evens need to be same color */
+   for(i = 1; i < extent; i++) {
+      jumpMag = colors[i] - colors[i-1];
+      if(abs(jumpMag) >= jumpThresh) {
+         thisJumpDir = (jumpMag > 0) ? +1 : -1;
+         if(thisJumpDir != lastJumpDir) {
+            lastJumpDir = thisJumpDir;
+            jumpCount++;
+         }
+      }
    }
 
-   tmp = (tmp + 1) % 20;
-
-   return bar;
+   return jumpCount;
 }
 
 /**
@@ -1712,13 +1713,15 @@ PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid,
 {
    int extent;
    int i, row, col;
-   int inner, outer;
+   int inner[26], outer[26];
    int bar;
    int colBeg, rowBeg;
    int colOut, rowOut;
    int innerAllAvg, innerEvnAvg, innerOddAvg;
    int outerAllAvg, outerEvnAvg, outerOddAvg;
    int contrast, contFinderExt, contFinderInt, contTimingAny;
+   int jumpsInner, jumpsOuter;
+   int allowedJumpErrors;
 
    assert(region->width <= 26 && region->height <= 26);
    assert(dir == DmtxDirUp || dir == DmtxDirLeft ||
@@ -1751,6 +1754,7 @@ PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid,
          break;
       default:
          /* error */
+         colBeg = rowBeg = colOut = rowOut = 0;
          break;
    }
 
@@ -1760,28 +1764,33 @@ PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid,
    /* Sample and hold colors at each module along both inner and outer edges */
    col = colBeg;
    row = rowBeg;
-
    for(i = 0; i < extent; i++) {
-      inner = ReadModuleColor(img, grid, row, col, 0);
-      outer = ReadModuleColor(img, grid, row + rowOut, col + colOut, 0);
-
-      innerAllAvg += inner;
-      outerAllAvg += outer;
-
-      if(i & 0x01) {
-         innerOddAvg += inner;
-         outerOddAvg += outer;
-      }
-      else {
-         innerEvnAvg += inner;
-         outerEvnAvg += outer;
-      }
+      inner[i] = ReadModuleColor(img, grid, row, col, 0);
+      outer[i] = ReadModuleColor(img, grid, row + rowOut, col + colOut, 0);
 
       /* Note opposite meaning (DmtxDirUp means "top", extent is horizontal) */
       if(dir & DmtxDirVertical)
          col++;
       else
          row++;
+   }
+
+   /* Calculate averages along inner and outer edges */
+   innerAllAvg = outerAllAvg = 0;
+   innerEvnAvg = outerEvnAvg = 0;
+   innerOddAvg = outerOddAvg = 0;
+   for(i = 0; i < extent; i++) {
+      innerAllAvg += inner[i];
+      outerAllAvg += outer[i];
+
+      if(i & 0x01) {
+         innerOddAvg += inner[i];
+         outerOddAvg += outer[i];
+      }
+      else {
+         innerEvnAvg += inner[i];
+         outerEvnAvg += outer[i];
+      }
    }
 
    innerEvnAvg *= 2;
@@ -1810,38 +1819,53 @@ PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid,
    contrast = max(contTimingAny, max(contFinderExt, contFinderInt));
    contrast /= extent;
 
-/*
- * 6) Tally jumps
- *      JumpsInner = TallyJumps(region, row, col, contrast);
- *      JumpsOuter = TallyJumps(region, row, col, contrast);
- *
- * 7) AllowedJumpErrors = EdgeLength * 0.2; (or something)
- *
- * 8) Test boundary conditions:
- *
- *   if(jumpsOuter < allowedJumpErrors && jumpsInner < allowedJumpErrors) {
- *      bar = (DmtxBarFinder | DmtxBarExternal);
- *   }
- *   else if(jumpsOuter - edgeLength/2 < allowedJumpErrors && jumpsInner < allowedJumpErrors) {
- *      bar = (DmtxBarFinder | DmtxBarInternal);
- *   }
- *   else if(jumpsInner - edgeLength/2 < allowedJumpErrors && jumpsOuter < allowedJumpErrors) {
- *      if(innerEvnAvg is same color as outerAllAvg)
- *         bar = (DmtxBarTiming | DmtxBarExternal);
- *      else if(innerOddAvg is same color as outerAllAvg)
- *         bar = (DmtxBarTiming | DmtxBarInternal);
- *      else
- *         bar = DmtxBarNone;
- *   }
- *   else {
- *      bar = DmtxBarNone;
- *   }
- */
+   /* Tally jumps */
+   jumpsInner = TallyJumps(inner, extent, contrast);
+   jumpsOuter = TallyJumps(outer, extent, contrast);
 
-   /* XXX dummy value until implementation is complete */
-   bar = (DmtxBarFinder | DmtxBarInterior);
+   allowedJumpErrors = max(1, extent/8);
+
+   /* Test boundary conditions */
+   if(jumpsOuter < allowedJumpErrors && jumpsInner < allowedJumpErrors) {
+      bar = (DmtxBarFinder | DmtxBarExterior);
+   }
+   else if(jumpsOuter + 1 - extent < allowedJumpErrors && jumpsInner < allowedJumpErrors) {
+      bar = (DmtxBarFinder | DmtxBarInterior);
+   }
+   else if(jumpsInner + 1 - extent < allowedJumpErrors && jumpsOuter < allowedJumpErrors) {
+/*    if(innerEvnAvg is same color as outerAllAvg) */
+         bar = (DmtxBarTiming | DmtxBarExterior);
+/*    else if(innerOddAvg is same color as outerAllAvg)
+         bar = (DmtxBarTiming | DmtxBarInterior);
+      else
+         bar = DmtxBarNone; */
+   }
+   else {
+      bar = DmtxBarNone;
+   }
 
    return bar;
+}
+
+/**
+ *
+ *
+ */
+static int
+GetSizeIdx(int a, int b)
+{
+   int i, rows, cols;
+   const int totalSymbolSizes = 30; /* better way to determine this? */
+
+   for(i = 0; i < totalSymbolSizes; i++) {
+      rows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, i);
+      cols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, i);
+
+      if((rows == a && cols == b) || (rows == b && cols == a))
+         return i;
+   }
+
+   return DmtxUndefined;
 }
 
 /**
@@ -1861,7 +1885,8 @@ RegionGetNextExpansion(const GridRegion *region, const PerimeterState *ps)
    if(ps->finderBarCount == 2 && ps->timingBarCount == 2 &&
          abs(ps->finderBarIdx[0] - ps->finderBarIdx[1]) != 2) {
 
-      sizeIdx = 3; /* GetSizeIdx(x, y); */
+      sizeIdx = GetSizeIdx(region->width, region->height);
+
       assert(abs(ps->timingBarIdx[0] - ps->timingBarIdx[1]) != 2);
 
       if(sizeIdx != DmtxUndefined)
@@ -2809,11 +2834,11 @@ DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterState *p
 
    gridTest.X = pCtr.X * region->grid.colCount * dispModExtent;
    gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
-   shiftX = 65 - (int)gridTest.X; /* not sure why +1 is needed here */
+   shiftX = 64 - (int)gridTest.X;
 
    gridTest.Y = pCtr.Y * region->grid.rowCount * dispModExtent;
    gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
-   shiftY = 64 - (int)gridTest.Y;
+   shiftY = 63 - (int)gridTest.Y;
 
    /* Calculate corner positions */
    x00 = region->x * dispModExtent + shiftX;
@@ -2838,35 +2863,42 @@ DrawPerimeterSide(SDL_Surface *screen, PerimeterState *ps, int x00, int y00,
    Sint16 xBeg, yBeg;
    Sint16 xEnd, yEnd;
    int extent = 128;
-   const int screenX = CTRL_COL1_X;
+   const int screenX = CTRL_COL3_X;
    const int screenY = CTRL_ROW5_Y;
+   Uint32 color;
+   int boundary;
 
    switch(dir) {
       case DmtxDirUp:
          xBeg = x00;
          xEnd = x11;
          yBeg = yEnd = y11 - dispModExtent/2;
+         boundary = ps->boundary[0];
          break;
       case DmtxDirLeft:
          yBeg = y00;
          yEnd = y11;
          xBeg = xEnd = x00 + dispModExtent/2;
+         boundary = ps->boundary[1];
          break;
       case DmtxDirDown:
          xBeg = x00;
          xEnd = x11;
          yBeg = yEnd = y00 + dispModExtent/2;
+         boundary = ps->boundary[2];
          break;
       case DmtxDirRight:
          yBeg = y00;
          yEnd = y11;
          xBeg = xEnd = x11 - dispModExtent/2;
+         boundary = ps->boundary[3];
          break;
       default:
          xBeg = x00;
          yBeg = y00;
          xEnd = x11;
          yEnd = y11;
+         boundary = 0;
          break;
    }
 
@@ -2879,5 +2911,12 @@ DrawPerimeterSide(SDL_Surface *screen, PerimeterState *ps, int x00, int y00,
    xEnd = Clamp(xEnd + screenX, screenX, 128);
    yEnd = Clamp(yEnd + screenY, screenY, 128);
 
-   lineColor(screen, xBeg, yBeg, xEnd, yEnd, 0xff0000ff);
+   if(boundary & DmtxBarFinder)
+      color = 0x0000ffff;
+   else if(boundary & DmtxBarTiming)
+      color = 0xff0000ff;
+   else
+      color = 0x00ff00ff;
+
+   lineColor(screen, xBeg, yBeg, xEnd, yEnd, color);
 }
