@@ -1636,8 +1636,6 @@ RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *r
    ps.boundary[2] = PerimeterEdgeTestFake(DmtxDirDown);
    ps.boundary[3] = PerimeterEdgeTestFake(DmtxDirRight);
 
-   /* XXX will get more complicated; still needs "inner" and "outer" */
-
    /* Ensure libdmtx still defines directions in the required manner */
    assert(DmtxDirUp   == 0x01 << 0); assert(DmtxDirLeft  == 0x01 << 1);
    assert(DmtxDirDown == 0x01 << 2); assert(DmtxDirRight == 0x01 << 3);
@@ -1651,7 +1649,7 @@ RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *r
       else
          ps.expandDirs |= (0x01 << i); /* DmtxDirUp | DmtxDirLeft | etc... */
 
-      /* Edge can't be a finder bar AND a timing bar */
+      /* Edge can't be both a finder bar AND a timing bar */
       assert(!((ps.boundary[i] & DmtxBarFinder) && (ps.boundary[i] & DmtxBarTiming)));
    }
 
@@ -1714,52 +1712,108 @@ PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid,
 {
    int extent;
    int i, row, col;
-   int inner[26]; /* , outer[26]; */
+   int inner, outer;
    int bar;
+   int colBeg, rowBeg;
+   int colOut, rowOut;
+   int innerAllAvg, innerEvnAvg, innerOddAvg;
+   int outerAllAvg, outerEvnAvg, outerOddAvg;
+   int contrast, contFinderExt, contFinderInt, contTimingAny;
 
    assert(region->width <= 26 && region->height <= 26);
    assert(dir == DmtxDirUp || dir == DmtxDirLeft ||
          dir == DmtxDirDown || dir == DmtxDirRight);
 
-   /* Take opposite meaning since DmtxDirUp actually means "top" (which is horizontal) */
-   extent = (dir & DmtxDirHorizontal) ? region->height : region->width;
-
-   col = region->x;
-   row = region->y;
-   for(i = 0; i < extent; i++) {
-      if(dir & DmtxDirHorizontal)
-         col = region->x + i;
-      else
-         row = region->y + i;
-
-      inner[i] = ReadModuleColor(img, grid, row, col, 0);
+   switch(dir) {
+      case DmtxDirUp:
+         colBeg = region->x;
+         rowBeg = region->y + region->height - 1;
+         colOut =  0;
+         rowOut = +1;
+         break;
+      case DmtxDirLeft:
+         colBeg = region->x;
+         rowBeg = region->y;
+         colOut = -1;
+         rowOut =  0;
+         break;
+      case DmtxDirDown:
+         colBeg = region->x;
+         rowBeg = region->y;
+         colOut =  0;
+         rowOut = -1;
+         break;
+      case DmtxDirRight:
+         colBeg = region->x + region->width - 1;
+         rowBeg = region->y;
+         colOut = +1;
+         rowOut =  0;
+         break;
+      default:
+         /* error */
+         break;
    }
 
-   bar = (DmtxBarFinder | DmtxBarInterior);
+   /* Note opposite meaning (DmtxDirUp means "top", extent is horizontal) */
+   extent = (dir & DmtxDirVertical) ? region->width : region->height;
+
+   /* Sample and hold colors at each module along both inner and outer edges */
+   col = colBeg;
+   row = rowBeg;
+
+   for(i = 0; i < extent; i++) {
+      inner = ReadModuleColor(img, grid, row, col, 0);
+      outer = ReadModuleColor(img, grid, row + rowOut, col + colOut, 0);
+
+      innerAllAvg += inner;
+      outerAllAvg += outer;
+
+      if(i & 0x01) {
+         innerOddAvg += inner;
+         outerOddAvg += outer;
+      }
+      else {
+         innerEvnAvg += inner;
+         outerEvnAvg += outer;
+      }
+
+      /* Note opposite meaning (DmtxDirUp means "top", extent is horizontal) */
+      if(dir & DmtxDirVertical)
+         col++;
+      else
+         row++;
+   }
+
+   innerEvnAvg *= 2;
+   outerEvnAvg *= 2;
+   innerOddAvg *= 2;
+   outerOddAvg *= 2;
+
+   /* Determine contrast */
+   contFinderExt = abs(outerAllAvg - innerAllAvg);
+   contFinderInt = abs(outerEvnAvg - outerOddAvg);
+   contTimingAny = abs(innerEvnAvg - innerOddAvg);
+
 /*
- * 1) Sample and hold colors at each module along both inner and outer edges
- *
- * 2) Determine contrast
- *      ContFinderExt = abs(outer_all_avg - inner_all_avg)
- *      ContFinderInt = abs(outer_evn_avg - outer_odd_avg)
- *      ContTimingAny = abs(inner_evn_avg - inner_odd_avg)
- *
  * 3) Internal Finder Bar test (useful? -- skip initially)
- *      ContTmpA = abs(inner_all_avg - outer_evn_avg)
- *      ContTmpB = abs(inner_all_avg - outer_odd_avg)
- *      If max(ContTmpA, ContTmpB) is similar to ContFinderInt then timing bar likely
-*
+ *      contTmpA = abs(innerAllAvg - outerEvnAvg)
+ *      contTmpB = abs(innerAllAvg - outerOddAvg)
+ *      If max(contTmpA, contTmpB) is similar to contFinderInt then timing bar likely
+ *
  * 4) Timing bar test (useful? -- skip initially)
- *      ContTmpC = abs(inner_evn_avg - outer_all_avg)
- *      ContTmpD = abs(inner_odd_avg - outer_all_avg)
- *      If max(ContTmpC, ContTmpD) is similar to ContTimingAny then timing bar likely
- *
- * 5) Choose best contrast
- *      Contrast = max(ContFinderExt, ContFinderInt, ContTimingAny)
- *
+ *      contTmpC = abs(innerEvnAvg - outerAllAvg)
+ *      contTmpD = abs(innerOddAvg - outerAllAvg)
+ *      If max(contTmpC, contTmpD) is similar to contTimingAny then timing bar likely
+ */
+
+   /* Choose best contrast */
+   contrast = max(contTimingAny, max(contFinderExt, contFinderInt));
+   contrast /= extent;
+
+/*
  * 6) Tally jumps
- *      JumpsInner = TallyJumps(region, row, col, Contrast);
- *      JumpsOuter = TallyJumps(region, row, col, Contrast);
+ *      JumpsInner = TallyJumps(region, row, col, contrast);
+ *      JumpsOuter = TallyJumps(region, row, col, contrast);
  *
  * 7) AllowedJumpErrors = EdgeLength * 0.2; (or something)
  *
@@ -1772,9 +1826,9 @@ PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid,
  *      bar = (DmtxBarFinder | DmtxBarInternal);
  *   }
  *   else if(jumpsInner - edgeLength/2 < allowedJumpErrors && jumpsOuter < allowedJumpErrors) {
- *      if(inner_evn_avg is same color as outer_all_avg)
+ *      if(innerEvnAvg is same color as outerAllAvg)
  *         bar = (DmtxBarTiming | DmtxBarExternal);
- *      else if(inner_odd_avg is same color as outer_all_avg)
+ *      else if(innerOddAvg is same color as outerAllAvg)
  *         bar = (DmtxBarTiming | DmtxBarInternal);
  *      else
  *         bar = DmtxBarNone;
@@ -1783,6 +1837,9 @@ PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid,
  *      bar = DmtxBarNone;
  *   }
  */
+
+   /* XXX dummy value until implementation is complete */
+   bar = (DmtxBarFinder | DmtxBarInterior);
 
    return bar;
 }
@@ -2730,52 +2787,6 @@ DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
       }
    }
 }
-
-/**
- *
- *
- */
-/*
-static void
-DrawRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
-{
-   DmtxVector2 pTmp, pCtr;
-   DmtxVector2 gridTest;
-   int shiftX, shiftY;
-   int extent = 128;
-   int modulesToDisplay = 16;
-   int dispModExtent = extent/modulesToDisplay;
-   Sint16 x1, y1, x2, y2;
-   const int screenX = CTRL_COL1_X;
-   const int screenY = CTRL_ROW5_Y;
-
-   pTmp.X = pTmp.Y = state->activeExtent/2.0;
-   dmtxMatrix3VMultiply(&pCtr, &pTmp, region->grid.raw2fitActive);
-
-   gridTest.X = pCtr.X * region->grid.colCount * dispModExtent;
-   gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
-   shiftX = 65 - (int)gridTest.X; // not sure why +1 is needed here
-
-   gridTest.Y = pCtr.Y * region->grid.rowCount * dispModExtent;
-   gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
-   shiftY = 64 - (int)gridTest.Y;
-
-   x1 = region->x * dispModExtent + shiftX;
-   y1 = region->y * dispModExtent + shiftY;
-   x2 = x1 + region->width * dispModExtent;
-   y2 = y1 + region->height * dispModExtent;
-
-   y1 = (extent - 1 - y1);
-   y2 = (extent - 1 - y2);
-
-   x1 = Clamp(x1 + screenX, screenX, 128);
-   y1 = Clamp(y1 + screenY, screenY, 128);
-   x2 = Clamp(x2 + screenX, screenX, 128);
-   y2 = Clamp(y2 + screenY, screenY, 128);
-
-   rectangleColor(screen, x1, y1, x2, y2, 0xff0000ff);
-}
-*/
 
 /**
  *
