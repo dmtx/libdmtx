@@ -263,7 +263,7 @@ static void AddToTimingSort(TimingSort *sort, Timing timing);
 static TimingSort FindGridTiming(HoughCache *hough, VanishPointSort *sort, AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
-static PerimeterState RegionGetPerimeter(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region);
+static PerimeterState RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region);
 static int PerimeterEdgeTestFake(DmtxDirection dir);
 static int PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region, DmtxDirection dir);
 static int RegionGetNextExpansion(const GridRegion *region, const PerimeterState *ps);
@@ -287,7 +287,8 @@ static void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, AlignmentG
 static int ReadModuleColor(DmtxImage *img, AlignmentGrid *region, int symbolRow, int symbolCol, int colorPlane);
 static Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
 static void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
-static void DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state);
+static void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterState *ps, AppState *state);
+static void DrawPerimeterSide(SDL_Surface *screen, PerimeterState *ps, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection dir);
 
 int
 main(int argc, char *argv[])
@@ -1621,14 +1622,14 @@ BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *stat
  * Returns true if boundaries meet end conditions
  */
 static PerimeterState
-RegionGetPerimeter(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region)
+RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region)
 {
    int i;
    PerimeterState ps;
 
    memset(&ps, 0x00, sizeof(PerimeterState));
 
-   /* Test each edge of perimeter. Example: DmtxBarTiming | DmtxBarExterior */
+   /* Test each edge of perimeter (e.g., DmtxBarTiming | DmtxBarExterior) */
    ps.boundary[0] = PerimeterEdgeTestReal(img, grid, region, DmtxDirUp);
    ps.boundary[0] = PerimeterEdgeTestFake(DmtxDirUp);
    ps.boundary[1] = PerimeterEdgeTestFake(DmtxDirLeft);
@@ -1637,11 +1638,11 @@ RegionGetPerimeter(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region
 
    /* XXX will get more complicated; still needs "inner" and "outer" */
 
-   /* Ensure libdmtx still defines directions in the required order */
+   /* Ensure libdmtx still defines directions in the required manner */
    assert(DmtxDirUp   == 0x01 << 0); assert(DmtxDirLeft  == 0x01 << 1);
    assert(DmtxDirDown == 0x01 << 2); assert(DmtxDirRight == 0x01 << 3);
 
-   /* Count finder and timing bars, or mark "no bar" as expandable direction */
+   /* Count finder and timing bars, or if no bar then mark as expandable */
    for(i = 0; i < 4; i++) {
       if(ps.boundary[i] & DmtxBarFinder)
          ps.finderBarIdx[ps.finderBarCount++] = i;
@@ -1786,7 +1787,6 @@ PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid,
    return bar;
 }
 
-
 /**
  * This function determines the best direction for expansion. It uses the
  * boundary status parameter to decide which directions are possible, and
@@ -1831,7 +1831,7 @@ RegionGetNextExpansion(const GridRegion *region, const PerimeterState *ps)
    if(!(growHorizontal || growVertical))
       return GridRegionGrowthError;
 
-   /* Growth can only occur in one direction -- maintain square shape */
+   /* Can only grow in one direction; maintain square shape if possible */
    if(growVertical && growHorizontal) {
       if(region->height > region->width)
          growVertical = DmtxFalse;
@@ -1951,31 +1951,29 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid,
    region->height = 2;
    region->sizeIdx = DmtxUndefined;
 
-   DrawGridRegion(screen, region, state);
-
    /* Grow region outward until success/failure condition is met */
    for(;;) {
 
-      /* Test all sides of current region perimeter for possible expansion */
-      ps = RegionGetPerimeter(img, grid, region);
+      /* Generate bar-detection statistics for current perimeter */
+      ps = RegionGetPerimeterStats(img, grid, region);
+      DrawPerimeterPatterns(screen, region, &ps, state);
 
-      /* Decide on best direction for expansion, or symbol size if complete */
+      /* Determine best expansion direction, or symbol size if complete */
       expand = RegionGetNextExpansion(region, &ps);
       if(expand == GridRegionGrowthError)
-         break; /* Failure (expansion not possible) */
+         break; /* Failure (further expansion not possible) */
 
-      /* Non-negative return value represents symbol sizes */
+      /* Expansion complete: Perimeter patterns form valid symbol size */
       if(expand >= DmtxSymbol10x10 && expand <= DmtxSymbol16x48) {
          region->sizeIdx = expand;
-         return DmtxPass; /* Success (valid size and bar patterns) */
+         return DmtxPass; /* Success */
       }
+      assert(DmtxSymbol10x10 == 0 && DmtxSymbol16x48 > 0);
 
-      /* Attempt to grow in "expand" direction */
+      /* Attempt to grow in determined direction */
       err = RegionExpand(region, expand);
       if(err == DmtxFail)
          break; /* Failure (error while attempting expansion) */
-
-      DrawGridRegion(screen, region, state);
 
       /* Update region to reflect growth */
       /* err = BuildGridFromTimings(grid, vp0, vp1, NULL); */
@@ -2737,8 +2735,9 @@ DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
  *
  *
  */
+/*
 static void
-DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
+DrawRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
 {
    DmtxVector2 pTmp, pCtr;
    DmtxVector2 gridTest;
@@ -2755,7 +2754,7 @@ DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
 
    gridTest.X = pCtr.X * region->grid.colCount * dispModExtent;
    gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
-   shiftX = 65 - (int)gridTest.X; /* not sure why +1 is needed here */
+   shiftX = 65 - (int)gridTest.X; // not sure why +1 is needed here
 
    gridTest.Y = pCtr.Y * region->grid.rowCount * dispModExtent;
    gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
@@ -2775,4 +2774,99 @@ DrawGridRegion(SDL_Surface *screen, GridRegion *region, AppState *state)
    y2 = Clamp(y2 + screenY, screenY, 128);
 
    rectangleColor(screen, x1, y1, x2, y2, 0xff0000ff);
+}
+*/
+
+/**
+ *
+ *
+ */
+static void
+DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterState *ps, AppState *state)
+{
+   DmtxVector2 pTmp, pCtr;
+   DmtxVector2 gridTest;
+   int shiftX, shiftY;
+   int extent = 128;
+   int modulesToDisplay = 16;
+   int dispModExtent = extent/modulesToDisplay;
+   Sint16 x00, y00;
+   Sint16 x11, y11;
+
+   pTmp.X = pTmp.Y = state->activeExtent/2.0;
+   dmtxMatrix3VMultiply(&pCtr, &pTmp, region->grid.raw2fitActive);
+
+   gridTest.X = pCtr.X * region->grid.colCount * dispModExtent;
+   gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
+   shiftX = 65 - (int)gridTest.X; /* not sure why +1 is needed here */
+
+   gridTest.Y = pCtr.Y * region->grid.rowCount * dispModExtent;
+   gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
+   shiftY = 64 - (int)gridTest.Y;
+
+   /* Calculate corner positions */
+   x00 = region->x * dispModExtent + shiftX;
+   y00 = region->y * dispModExtent + shiftY;
+   x11 = x00 + region->width * dispModExtent;
+   y11 = y00 + region->height * dispModExtent;
+
+   DrawPerimeterSide(screen, ps, x00, y00, x11, y11, dispModExtent, DmtxDirUp);
+   DrawPerimeterSide(screen, ps, x00, y00, x11, y11, dispModExtent, DmtxDirLeft);
+   DrawPerimeterSide(screen, ps, x00, y00, x11, y11, dispModExtent, DmtxDirDown);
+   DrawPerimeterSide(screen, ps, x00, y00, x11, y11, dispModExtent, DmtxDirRight);
+}
+
+/**
+ *
+ *
+ */
+static void
+DrawPerimeterSide(SDL_Surface *screen, PerimeterState *ps, int x00, int y00,
+      int x11, int y11, int dispModExtent, DmtxDirection dir)
+{
+   Sint16 xBeg, yBeg;
+   Sint16 xEnd, yEnd;
+   int extent = 128;
+   const int screenX = CTRL_COL1_X;
+   const int screenY = CTRL_ROW5_Y;
+
+   switch(dir) {
+      case DmtxDirUp:
+         xBeg = x00;
+         xEnd = x11;
+         yBeg = yEnd = y11 - dispModExtent/2;
+         break;
+      case DmtxDirLeft:
+         yBeg = y00;
+         yEnd = y11;
+         xBeg = xEnd = x00 + dispModExtent/2;
+         break;
+      case DmtxDirDown:
+         xBeg = x00;
+         xEnd = x11;
+         yBeg = yEnd = y00 + dispModExtent/2;
+         break;
+      case DmtxDirRight:
+         yBeg = y00;
+         yEnd = y11;
+         xBeg = xEnd = x11 - dispModExtent/2;
+         break;
+      default:
+         xBeg = x00;
+         yBeg = y00;
+         xEnd = x11;
+         yEnd = y11;
+         break;
+   }
+
+   yBeg = (extent - 1 - yBeg);
+   yEnd = (extent - 1 - yEnd);
+
+   xBeg = Clamp(xBeg + screenX, screenX, 128);
+   yBeg = Clamp(yBeg + screenY, screenY, 128);
+
+   xEnd = Clamp(xEnd + screenX, screenX, 128);
+   yEnd = Clamp(yEnd + screenY, screenY, 128);
+
+   lineColor(screen, xBeg, yBeg, xEnd, yEnd, 0xff0000ff);
 }
