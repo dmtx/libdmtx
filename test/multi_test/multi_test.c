@@ -196,8 +196,8 @@ typedef struct PerimeterState_struct {
    int boundary[4];
    int finderBarCount;
    int timingBarCount;
-   int finderBarIdx[2];
-   int timingBarIdx[2];
+   int finderBarDir[2];
+   int timingBarDir[2];
 } PerimeterState;
 
 /* Scaled unit sin */
@@ -265,7 +265,7 @@ static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
 static PerimeterState RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region);
 static int TallyJumps(int colors[], int extent, int contrast);
-static int PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region, DmtxDirection dir);
+static int PerimeterEdgeTest(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region, DmtxDirection dir);
 static int GetSizeIdx(int a, int b);
 static int RegionGetNextExpansion(const GridRegion *region, const PerimeterState *ps);
 static DmtxPassFail RegionExpand(GridRegion *region, GridRegionGrowth growDir);
@@ -279,6 +279,7 @@ static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom,
 static void PlotPixel(SDL_Surface *surface, int x, int y);
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
+static void DecodeSymbol(GridRegion *region, PerimeterState *ps, DmtxImage *img);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
 static void DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale, int screenY, int screenX);
@@ -562,29 +563,15 @@ main(int argc, char *argv[])
             err = FindRegionWithinGrid(&region, imgFull, &grid, screen, &state);
             SDL_UnlockSurface(picture);
 
-            /* A bit ugly for now ... I just want to see it working */
             if(err == DmtxPass) {
-               /* Determine origin */
-
-               /* Update DmtxRegion with detected corners */
-/*
-               err = dmtxRegionUpdateCorners(dec, reg, p00, p10, p11, p01);
-               reg->flowBegin.plane = 0, 1, or 2 (0 = red, 1 = green, etc...)
-               reg->sizeIdx = region.sizeIdx;
-               reg->symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region.sizeIdx);
-               reg->symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region.sizeIdx);
-               reg->mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, region.sizeIdx);
-               reg->mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, region.sizeIdx);
-*/
+               regionFound = DmtxTrue;
+               break;
+            }
+            else {
                regionFound = DmtxTrue;
                break;
             }
          }
-      }
-
-      if(regionFound == DmtxFalse) {
-         SDL_Flip(screen);
-         continue;
       }
 
       if(state.printValues == DmtxTrue) {
@@ -1644,10 +1631,10 @@ RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *r
    memset(&ps, 0x00, sizeof(PerimeterState));
 
    /* Test each edge of perimeter (e.g., DmtxBarTiming | DmtxBarExterior) */
-   ps.boundary[0] = PerimeterEdgeTestReal(img, grid, region, DmtxDirUp);
-   ps.boundary[1] = PerimeterEdgeTestReal(img, grid, region, DmtxDirLeft);
-   ps.boundary[2] = PerimeterEdgeTestReal(img, grid, region, DmtxDirDown);
-   ps.boundary[3] = PerimeterEdgeTestReal(img, grid, region, DmtxDirRight);
+   ps.boundary[0] = PerimeterEdgeTest(img, grid, region, DmtxDirUp);
+   ps.boundary[1] = PerimeterEdgeTest(img, grid, region, DmtxDirLeft);
+   ps.boundary[2] = PerimeterEdgeTest(img, grid, region, DmtxDirDown);
+   ps.boundary[3] = PerimeterEdgeTest(img, grid, region, DmtxDirRight);
 
    /* Ensure libdmtx still defines directions in the required manner */
    assert(DmtxDirUp   == 0x01 << 0); assert(DmtxDirLeft  == 0x01 << 1);
@@ -1656,9 +1643,9 @@ RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *r
    /* Count finder and timing bars, or if no bar then mark as expandable */
    for(i = 0; i < 4; i++) {
       if(ps.boundary[i] & DmtxBarFinder)
-         ps.finderBarIdx[ps.finderBarCount++] = i;
+         ps.finderBarDir[ps.finderBarCount++] = (0x01 << i);
       else if(ps.boundary[i] & DmtxBarTiming)
-         ps.timingBarIdx[ps.timingBarCount++] = i;
+         ps.timingBarDir[ps.timingBarCount++] = (0x01 << i);
       else
          ps.expandDirs |= (0x01 << i); /* DmtxDirUp | DmtxDirLeft | etc... */
 
@@ -1708,7 +1695,7 @@ TallyJumps(int colors[], int extent, int contrast)
  *
  */
 static int
-PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid,
+PerimeterEdgeTest(DmtxImage *img, AlignmentGrid *grid,
       const GridRegion *region, DmtxDirection dir)
 {
    int extent;
@@ -1823,6 +1810,9 @@ PerimeterEdgeTestReal(DmtxImage *img, AlignmentGrid *grid,
    jumpsInner = TallyJumps(inner, extent, contrast);
    jumpsOuter = TallyJumps(outer, extent, contrast);
 
+/* TallyFinderJumps()
+   TallyTimingJumps() */
+
    allowedJumpErrors = max(1, extent/8);
 
    /* Test boundary conditions */
@@ -1883,11 +1873,13 @@ RegionGetNextExpansion(const GridRegion *region, const PerimeterState *ps)
    /* If region appears complete (i.e., holds 2 adjacent finder bars and
     * 2 timing bars) then test for valid size (DmtxSymbolSize enum) */
    if(ps->finderBarCount == 2 && ps->timingBarCount == 2 &&
-         abs(ps->finderBarIdx[0] - ps->finderBarIdx[1]) != 2) {
+         (ps->finderBarDir[0] | ps->finderBarDir[1]) != (DmtxDirLeft | DmtxDirRight) &&
+         (ps->finderBarDir[0] | ps->finderBarDir[1]) != (DmtxDirUp | DmtxDirDown)) {
 
       sizeIdx = GetSizeIdx(region->width, region->height);
 
-      assert(abs(ps->timingBarIdx[0] - ps->timingBarIdx[1]) != 2);
+      assert((ps->timingBarDir[0] | ps->timingBarDir[1]) != (DmtxDirLeft | DmtxDirRight));
+      assert((ps->timingBarDir[0] | ps->timingBarDir[1]) != (DmtxDirUp | DmtxDirDown));
 
       if(sizeIdx != DmtxUndefined)
          return sizeIdx; /* Success */
@@ -2000,18 +1992,6 @@ RegionExpand(GridRegion *region, GridRegionGrowth growDir)
 }
 
 /**
- *
- *
- */
-/*
-static void
-HighlightAlignedRegion(SDL_Surface *screen, AlignmentGrid *reg, int screenY, int screenX)
-{
-   ;
-}
-*/
-
-/**
  * Next step: start with small 2-layer box and step each edge outward until
  * outer edge is approximately solid and inner edge is either approximately
  * solid-but-opposite or 50% of both colors.
@@ -2048,6 +2028,7 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid,
       /* Expansion complete: Perimeter patterns form valid symbol size */
       if(expand >= DmtxSymbol10x10 && expand <= DmtxSymbol16x48) {
          region->sizeIdx = expand;
+         DecodeSymbol(region, &ps, img);
          return DmtxPass; /* Success */
       }
       assert(DmtxSymbol10x10 == 0 && DmtxSymbol16x48 > 0);
@@ -2439,6 +2420,46 @@ IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, Dm
    *p1 = p[1];
 
    return DmtxTrue;
+}
+
+/**
+ *
+ *
+ */
+static void
+DecodeSymbol(GridRegion *region, PerimeterState *ps, DmtxImage *img)
+{
+/* DmtxVector2 p00, p10, p11, p01;
+   DmtxPassFail err;
+   DmtxRegion reg; */
+
+   /* Determine origin */
+   switch(ps->finderBarDir[0] | ps->finderBarDir[1]) {
+      case (DmtxDirUp | DmtxDirLeft):
+         break;
+      case (DmtxDirLeft | DmtxDirDown):
+         break;
+      case (DmtxDirDown | DmtxDirRight):
+         break;
+      case (DmtxDirRight | DmtxDirUp):
+         break;
+   }
+/*
+   dmtxMatrix3VMultiplyBy(&p00, region->fit2raw);
+   dmtxMatrix3VMultiplyBy(&p10, region->fit2raw);
+   dmtxMatrix3VMultiplyBy(&p11, region->fit2raw);
+   dmtxMatrix3VMultiplyBy(&p01, region->fit2raw);
+*/
+   /* Update DmtxRegion with detected corners */
+/*
+   err = dmtxRegionUpdateCorners(dec, reg, p00, p10, p11, p01);
+   reg->flowBegin.plane = 0, 1, or 2 (0 = red, 1 = green, etc...)
+   reg->sizeIdx = region.sizeIdx;
+   reg->symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region.sizeIdx);
+   reg->symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region.sizeIdx);
+   reg->mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, region.sizeIdx);
+   reg->mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, region.sizeIdx);
+*/
 }
 
 /**
