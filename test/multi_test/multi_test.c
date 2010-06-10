@@ -196,8 +196,8 @@ typedef struct PerimeterState_struct {
    int boundary[4];
    int finderBarCount;
    int timingBarCount;
-   int finderBarDir[2];
-   int timingBarDir[2];
+   int finderBarDirs;
+   int timingBarDirs;
 } PerimeterState;
 
 /* Scaled unit sin */
@@ -269,7 +269,7 @@ static int PerimeterEdgeTest(DmtxImage *img, AlignmentGrid *grid, const GridRegi
 static int GetSizeIdx(int a, int b);
 static int RegionGetNextExpansion(const GridRegion *region, const PerimeterState *ps);
 static DmtxPassFail RegionExpand(GridRegion *region, GridRegionGrowth growDir);
-static DmtxPassFail FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, SDL_Surface *screen, AppState *state);
+static DmtxPassFail FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec, SDL_Surface *screen, AppState *state);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
 /* Process visualization functions */
@@ -279,7 +279,7 @@ static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom,
 static void PlotPixel(SDL_Surface *surface, int x, int y);
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
-static void DecodeSymbol(GridRegion *region, PerimeterState *ps, DmtxImage *img);
+static DmtxPassFail DecodeSymbol(GridRegion *region, PerimeterState *ps, DmtxDecode *dec);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
 static void DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale, int screenY, int screenX);
@@ -560,7 +560,7 @@ main(int argc, char *argv[])
             SDL_LockSurface(picture);
             DrawNormalizedRegion(screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
             DrawSymbolPreview(screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL3_X);
-            err = FindRegionWithinGrid(&region, imgFull, &grid, screen, &state);
+            err = FindRegionWithinGrid(&region, imgFull, &grid, dec, screen, &state);
             SDL_UnlockSurface(picture);
 
             if(err == DmtxPass) {
@@ -1570,7 +1570,6 @@ BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *stat
    if(err == DmtxFail)
       return DmtxFail;
 
-   /* XXX temporary fake out -- use DmtxDecode and DmtxRegion for transformations */
    err = RegionUpdateCorners(fit2raw, raw2fit, p00, p10, p11, p01);
    if(err == DmtxFail)
       return DmtxFail;
@@ -1630,6 +1629,12 @@ RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *r
 
    memset(&ps, 0x00, sizeof(PerimeterState));
 
+   ps.expandDirs = DmtxDirNone;
+   ps.finderBarCount = 0;
+   ps.timingBarCount = 0;
+   ps.finderBarDirs = DmtxDirNone;
+   ps.timingBarDirs = DmtxDirNone;
+
    /* Test each edge of perimeter (e.g., DmtxBarTiming | DmtxBarExterior) */
    ps.boundary[0] = PerimeterEdgeTest(img, grid, region, DmtxDirUp);
    ps.boundary[1] = PerimeterEdgeTest(img, grid, region, DmtxDirLeft);
@@ -1642,12 +1647,17 @@ RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *r
 
    /* Count finder and timing bars, or if no bar then mark as expandable */
    for(i = 0; i < 4; i++) {
-      if(ps.boundary[i] & DmtxBarFinder)
-         ps.finderBarDir[ps.finderBarCount++] = (0x01 << i);
-      else if(ps.boundary[i] & DmtxBarTiming)
-         ps.timingBarDir[ps.timingBarCount++] = (0x01 << i);
-      else
+      if(ps.boundary[i] & DmtxBarFinder) {
+         ps.finderBarCount++;
+         ps.finderBarDirs |= (0x01 << i);
+      }
+      else if(ps.boundary[i] & DmtxBarTiming) {
+         ps.timingBarCount++;
+         ps.timingBarDirs |= (0x01 << i);
+      }
+      else {
          ps.expandDirs |= (0x01 << i); /* DmtxDirUp | DmtxDirLeft | etc... */
+      }
 
       /* Edge can't be both a finder bar AND a timing bar */
       assert(!((ps.boundary[i] & DmtxBarFinder) && (ps.boundary[i] & DmtxBarTiming)));
@@ -1873,13 +1883,13 @@ RegionGetNextExpansion(const GridRegion *region, const PerimeterState *ps)
    /* If region appears complete (i.e., holds 2 adjacent finder bars and
     * 2 timing bars) then test for valid size (DmtxSymbolSize enum) */
    if(ps->finderBarCount == 2 && ps->timingBarCount == 2 &&
-         (ps->finderBarDir[0] | ps->finderBarDir[1]) != (DmtxDirLeft | DmtxDirRight) &&
-         (ps->finderBarDir[0] | ps->finderBarDir[1]) != (DmtxDirUp | DmtxDirDown)) {
+         ps->finderBarDirs != (DmtxDirLeft | DmtxDirRight) &&
+         ps->finderBarDirs != (DmtxDirUp | DmtxDirDown)) {
 
       sizeIdx = GetSizeIdx(region->width, region->height);
 
-      assert((ps->timingBarDir[0] | ps->timingBarDir[1]) != (DmtxDirLeft | DmtxDirRight));
-      assert((ps->timingBarDir[0] | ps->timingBarDir[1]) != (DmtxDirUp | DmtxDirDown));
+      assert(ps->timingBarDirs != (DmtxDirLeft | DmtxDirRight));
+      assert(ps->timingBarDirs != (DmtxDirUp | DmtxDirDown));
 
       if(sizeIdx != DmtxUndefined)
          return sizeIdx; /* Success */
@@ -1997,7 +2007,7 @@ RegionExpand(GridRegion *region, GridRegionGrowth growDir)
  * solid-but-opposite or 50% of both colors.
  */
 static DmtxPassFail
-FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid,
+FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec,
       SDL_Surface *screen, AppState *state)
 {
    int expand;
@@ -2028,8 +2038,8 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid,
       /* Expansion complete: Perimeter patterns form valid symbol size */
       if(expand >= DmtxSymbol10x10 && expand <= DmtxSymbol16x48) {
          region->sizeIdx = expand;
-         DecodeSymbol(region, &ps, img);
-         return DmtxPass; /* Success */
+         err = DecodeSymbol(region, &ps, dec);
+         return err; /* Success (unless something unexpected happens) */
       }
       assert(DmtxSymbol10x10 == 0 && DmtxSymbol16x48 > 0);
 
@@ -2426,40 +2436,67 @@ IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, Dm
  *
  *
  */
-static void
-DecodeSymbol(GridRegion *region, PerimeterState *ps, DmtxImage *img)
+static DmtxPassFail
+DecodeSymbol(GridRegion *region, PerimeterState *ps, DmtxDecode *dec)
 {
-/* DmtxVector2 p00, p10, p11, p01;
+   DmtxMatrix3 m, mRot;
+   DmtxVector2 p00, p10, p11, p01;
    DmtxPassFail err;
-   DmtxRegion reg; */
+   DmtxRegion reg;
+   DmtxMessage *msg;
 
    /* Determine origin */
-   switch(ps->finderBarDir[0] | ps->finderBarDir[1]) {
+   switch(ps->finderBarDirs) {
       case (DmtxDirUp | DmtxDirLeft):
+         dmtxMatrix3Rotate(mRot, M_PI/2.0);
          break;
       case (DmtxDirLeft | DmtxDirDown):
+         dmtxMatrix3Rotate(mRot, 0.0);
          break;
       case (DmtxDirDown | DmtxDirRight):
+         dmtxMatrix3Rotate(mRot, -M_PI/2.0);
          break;
       case (DmtxDirRight | DmtxDirUp):
+         dmtxMatrix3Rotate(mRot, M_PI);
          break;
+      default:
+         return DmtxFail;
    }
-/*
-   dmtxMatrix3VMultiplyBy(&p00, region->fit2raw);
-   dmtxMatrix3VMultiplyBy(&p10, region->fit2raw);
-   dmtxMatrix3VMultiplyBy(&p11, region->fit2raw);
-   dmtxMatrix3VMultiplyBy(&p01, region->fit2raw);
-*/
+
+   dmtxMatrix3Multiply(m, mRot, region->grid.fit2rawFull);
+
+   p00.X = p01.X = region->x * (1.0/region->grid.colCount);
+   p10.X = p11.X = (region->x + region->width) * (1.0/region->grid.colCount);
+   p00.Y = p10.Y = region->y * (1.0/region->grid.rowCount);
+   p01.Y = p11.Y = (region->y + region->height) * (1.0/region->grid.rowCount);
+
+   dmtxMatrix3VMultiplyBy(&p00, m);
+   dmtxMatrix3VMultiplyBy(&p10, m);
+   dmtxMatrix3VMultiplyBy(&p11, m);
+   dmtxMatrix3VMultiplyBy(&p01, m);
+
    /* Update DmtxRegion with detected corners */
-/*
-   err = dmtxRegionUpdateCorners(dec, reg, p00, p10, p11, p01);
-   reg->flowBegin.plane = 0, 1, or 2 (0 = red, 1 = green, etc...)
-   reg->sizeIdx = region.sizeIdx;
-   reg->symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region.sizeIdx);
-   reg->symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region.sizeIdx);
-   reg->mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, region.sizeIdx);
-   reg->mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, region.sizeIdx);
-*/
+   err = dmtxRegionUpdateCorners(dec, &reg, p00, p10, p11, p01);
+   if(err == DmtxFail)
+      return err;
+
+   reg.flowBegin.plane = 0; /* or 1, or 2 (0 = red, 1 = green, etc...) */
+   reg.offColor = 120; /* XXX needs to be determined programatically */
+   reg.onColor = 10; /* XXX needs to be determined programatically */
+   reg.sizeIdx = region->sizeIdx;
+   reg.symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
+   reg.symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
+   reg.mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, region->sizeIdx);
+   reg.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, region->sizeIdx);
+
+   msg = dmtxDecodeMatrixRegion(dec, &reg, DmtxUndefined);
+   if(msg == NULL)
+      return DmtxFail;
+
+   fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
+   fputc('\n', stdout);
+
+   return DmtxPass;
 }
 
 /**
