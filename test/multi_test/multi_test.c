@@ -191,14 +191,18 @@ typedef enum {
    DmtxBarExterior = 0x01 << 3
 } DmtxBarType;
 
-typedef struct PerimeterState_struct {
+typedef struct PerimeterStats_struct {
    int expandDirs;
    int boundary[4];
    int finderBarCount;
    int timingBarCount;
    int finderBarDirs;
    int timingBarDirs;
-} PerimeterState;
+   int onColor;
+   int onCount;
+   int offColor;
+   int offCount;
+} PerimeterStats;
 
 /* Scaled unit sin */
 static int uSin128[] = {
@@ -263,11 +267,11 @@ static void AddToTimingSort(TimingSort *sort, Timing timing);
 static TimingSort FindGridTiming(HoughCache *hough, VanishPointSort *sort, AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
-static PerimeterState RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region);
+static PerimeterStats RegionGetPerimeterStats(DmtxImage *img, const GridRegion *region);
 static int TallyJumps(int colors[], int extent, int contrast);
-static int PerimeterEdgeTest(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region, DmtxDirection dir);
+static int PerimeterEdgeTest(DmtxImage *img, const GridRegion *region, DmtxDirection dir, PerimeterStats *ps);
 static int GetSizeIdx(int a, int b);
-static int RegionGetNextExpansion(const GridRegion *region, const PerimeterState *ps);
+static int RegionGetNextExpansion(const GridRegion *region, const PerimeterStats *ps);
 static DmtxPassFail RegionExpand(GridRegion *region, GridRegionGrowth growDir);
 static DmtxPassFail FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec, SDL_Surface *screen, AppState *state);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
@@ -279,18 +283,18 @@ static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom,
 static void PlotPixel(SDL_Surface *surface, int x, int y);
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
-static DmtxPassFail DecodeSymbol(GridRegion *region, PerimeterState *ps, DmtxDecode *dec);
+static DmtxPassFail DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
 static void DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale, int screenY, int screenX);
 static void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort sort, int screenY, int screenX);
 static void DrawTimingDots(SDL_Surface *screen, Timing timing, int screenY, int screenX);
 static void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
-static int ReadModuleColor(DmtxImage *img, AlignmentGrid *region, int symbolRow, int symbolCol, int colorPlane);
+static int ReadModuleColor(DmtxImage *img, const AlignmentGrid *grid, int symbolRow, int symbolCol, int colorPlane);
 static Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
 static void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
-static void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterState *ps, AppState *state);
-static void DrawPerimeterSide(SDL_Surface *screen, PerimeterState *ps, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection dir);
+static void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterStats *ps, AppState *state);
+static void DrawPerimeterSide(SDL_Surface *screen, PerimeterStats *ps, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection dir);
 
 int
 main(int argc, char *argv[])
@@ -1621,25 +1625,27 @@ BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *stat
  * Populates edge array with bar types (even if returning false)
  * Returns true if boundaries meet end conditions
  */
-static PerimeterState
-RegionGetPerimeterStats(DmtxImage *img, AlignmentGrid *grid, const GridRegion *region)
+static PerimeterStats
+RegionGetPerimeterStats(DmtxImage *img, const GridRegion *region)
 {
    int i;
-   PerimeterState ps;
+   PerimeterStats ps;
 
-   memset(&ps, 0x00, sizeof(PerimeterState));
+   memset(&ps, 0x00, sizeof(PerimeterStats));
 
    ps.expandDirs = DmtxDirNone;
    ps.finderBarCount = 0;
    ps.timingBarCount = 0;
    ps.finderBarDirs = DmtxDirNone;
    ps.timingBarDirs = DmtxDirNone;
+   ps.onColor = ps.offColor = 0;
+   ps.onCount = ps.offCount = 0;
 
    /* Test each edge of perimeter (e.g., DmtxBarTiming | DmtxBarExterior) */
-   ps.boundary[0] = PerimeterEdgeTest(img, grid, region, DmtxDirUp);
-   ps.boundary[1] = PerimeterEdgeTest(img, grid, region, DmtxDirLeft);
-   ps.boundary[2] = PerimeterEdgeTest(img, grid, region, DmtxDirDown);
-   ps.boundary[3] = PerimeterEdgeTest(img, grid, region, DmtxDirRight);
+   ps.boundary[0] = PerimeterEdgeTest(img, region, DmtxDirUp, &ps);
+   ps.boundary[1] = PerimeterEdgeTest(img, region, DmtxDirLeft, &ps);
+   ps.boundary[2] = PerimeterEdgeTest(img, region, DmtxDirDown, &ps);
+   ps.boundary[3] = PerimeterEdgeTest(img, region, DmtxDirRight, &ps);
 
    /* Ensure libdmtx still defines directions in the required manner */
    assert(DmtxDirUp   == 0x01 << 0); assert(DmtxDirLeft  == 0x01 << 1);
@@ -1705,8 +1711,7 @@ TallyJumps(int colors[], int extent, int contrast)
  *
  */
 static int
-PerimeterEdgeTest(DmtxImage *img, AlignmentGrid *grid,
-      const GridRegion *region, DmtxDirection dir)
+PerimeterEdgeTest(DmtxImage *img, const GridRegion *region, DmtxDirection dir, PerimeterStats *ps)
 {
    int extent;
    int i, row, col;
@@ -1762,8 +1767,8 @@ PerimeterEdgeTest(DmtxImage *img, AlignmentGrid *grid,
    col = colBeg;
    row = rowBeg;
    for(i = 0; i < extent; i++) {
-      inner[i] = ReadModuleColor(img, grid, row, col, 0);
-      outer[i] = ReadModuleColor(img, grid, row + rowOut, col + colOut, 0);
+      inner[i] = ReadModuleColor(img, &(region->grid), row, col, 0);
+      outer[i] = ReadModuleColor(img, &(region->grid), row + rowOut, col + colOut, 0);
 
       /* Note opposite meaning (DmtxDirUp means "top", extent is horizontal) */
       if(dir & DmtxDirVertical)
@@ -1833,6 +1838,10 @@ PerimeterEdgeTest(DmtxImage *img, AlignmentGrid *grid,
       bar = (DmtxBarFinder | DmtxBarInterior);
    }
    else if(jumpsInner + 1 - extent < allowedJumpErrors && jumpsOuter < allowedJumpErrors) {
+      ps->onCount += (extent/2);
+      ps->offCount += (extent/2);
+      ps->onColor += (innerEvnAvg/2);
+      ps->offColor += (innerOddAvg/2);
 /*    if(innerEvnAvg is same color as outerAllAvg) */
          bar = (DmtxBarTiming | DmtxBarExterior);
 /*    else if(innerOddAvg is same color as outerAllAvg)
@@ -1875,7 +1884,7 @@ GetSizeIdx(int a, int b)
  * maximize align-while-growing feature.
  */
 static int
-RegionGetNextExpansion(const GridRegion *region, const PerimeterState *ps)
+RegionGetNextExpansion(const GridRegion *region, const PerimeterStats *ps)
 {
    int sizeIdx;
    DmtxBoolean growVertical, growHorizontal;
@@ -2011,7 +2020,7 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
       SDL_Surface *screen, AppState *state)
 {
    int expand;
-   PerimeterState ps;
+   PerimeterStats ps;
    DmtxPassFail err;
 
    memset(region, 0x00, sizeof(GridRegion));
@@ -2027,7 +2036,7 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
    for(;;) {
 
       /* Generate bar-detection statistics for current perimeter */
-      ps = RegionGetPerimeterStats(img, grid, region);
+      ps = RegionGetPerimeterStats(img, region);
       DrawPerimeterPatterns(screen, region, &ps, state);
 
       /* Determine best expansion direction, or symbol size if complete */
@@ -2437,7 +2446,7 @@ IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, Dm
  *
  */
 static DmtxPassFail
-DecodeSymbol(GridRegion *region, PerimeterState *ps, DmtxDecode *dec)
+DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec)
 {
    DmtxMatrix3 m, mRot;
    DmtxVector2 p00, p10, p11, p01;
@@ -2481,8 +2490,9 @@ DecodeSymbol(GridRegion *region, PerimeterState *ps, DmtxDecode *dec)
       return err;
 
    reg.flowBegin.plane = 0; /* or 1, or 2 (0 = red, 1 = green, etc...) */
-   reg.offColor = 120; /* XXX needs to be determined programatically */
-   reg.onColor = 10; /* XXX needs to be determined programatically */
+   reg.onColor = ps->onColor/ps->onCount;
+   reg.offColor = ps->offColor/ps->offCount;
+fprintf(stdout, "onCount:%d offCount:%d\n", ps->onColor, ps->offColor);
    reg.sizeIdx = region->sizeIdx;
    reg.symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
    reg.symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
@@ -2759,7 +2769,7 @@ DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
  *
  */
 static int
-ReadModuleColor(DmtxImage *img, AlignmentGrid *region, int symbolRow,
+ReadModuleColor(DmtxImage *img, const AlignmentGrid *grid, int symbolRow,
       int symbolCol, int colorPlane)
 {
    int err;
@@ -2772,10 +2782,10 @@ ReadModuleColor(DmtxImage *img, AlignmentGrid *region, int symbolRow,
    color = 0;
    for(i = 0; i < 5; i++) {
 
-      p.X = (1.0/region->colCount) * (symbolCol + sampleX[i]);
-      p.Y = (1.0/region->rowCount) * (symbolRow + sampleY[i]);
+      p.X = (1.0/grid->colCount) * (symbolCol + sampleX[i]);
+      p.Y = (1.0/grid->rowCount) * (symbolRow + sampleY[i]);
 
-      dmtxMatrix3VMultiplyBy(&p, region->fit2rawFull);
+      dmtxMatrix3VMultiplyBy(&p, grid->fit2rawFull);
 
       /* Should use dmtxDecodeGetPixelValue() later to properly handle pixel skipping */
       err = dmtxImageGetPixelValue(img, p.X, p.Y, colorPlane, &colorTmp);
@@ -2876,7 +2886,7 @@ DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
  *
  */
 static void
-DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterState *ps, AppState *state)
+DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterStats *ps, AppState *state)
 {
    DmtxVector2 pTmp, pCtr;
    DmtxVector2 gridTest;
@@ -2915,7 +2925,7 @@ DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterState *p
  *
  */
 static void
-DrawPerimeterSide(SDL_Surface *screen, PerimeterState *ps, int x00, int y00,
+DrawPerimeterSide(SDL_Surface *screen, PerimeterStats *ps, int x00, int y00,
       int x11, int y11, int dispModExtent, DmtxDirection dir)
 {
    Sint16 xBeg, yBeg;
