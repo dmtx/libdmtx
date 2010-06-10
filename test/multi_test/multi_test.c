@@ -1788,12 +1788,15 @@ PerimeterEdgeTest(DmtxImage *img, const GridRegion *region, DmtxDirection dir, P
       if(i & 0x01) {
          innerOddAvg += inner[i];
          outerOddAvg += outer[i];
+fprintf(stdout, "o:%d\n", inner[i]);
       }
       else {
          innerEvnAvg += inner[i];
          outerEvnAvg += outer[i];
+fprintf(stdout, "e:%d\n", inner[i]);
       }
    }
+fprintf(stdout, "\n");
 
    innerEvnAvg *= 2;
    outerEvnAvg *= 2;
@@ -1842,6 +1845,7 @@ PerimeterEdgeTest(DmtxImage *img, const GridRegion *region, DmtxDirection dir, P
       ps->offCount += (extent/2);
       ps->onColor += (innerEvnAvg/2);
       ps->offColor += (innerOddAvg/2);
+fprintf(stdout, "--> onColor:%d/%d offColor:%d/%d\n", ps->onColor, ps->onCount, ps->offColor, ps->offCount);
 /*    if(innerEvnAvg is same color as outerAllAvg) */
          bar = (DmtxBarTiming | DmtxBarExterior);
 /*    else if(innerOddAvg is same color as outerAllAvg)
@@ -2492,7 +2496,7 @@ DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec)
    reg.flowBegin.plane = 0; /* or 1, or 2 (0 = red, 1 = green, etc...) */
    reg.onColor = ps->onColor/ps->onCount;
    reg.offColor = ps->offColor/ps->offCount;
-fprintf(stdout, "onCount:%d offCount:%d\n", ps->onColor, ps->offColor);
+fprintf(stdout, "onColor:%d/%d offColor:%d/%d\n", ps->onColor, ps->onCount, ps->offColor, ps->offCount);
    reg.sizeIdx = region->sizeIdx;
    reg.symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
    reg.symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
