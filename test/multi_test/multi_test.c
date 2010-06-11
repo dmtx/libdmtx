@@ -164,6 +164,8 @@ typedef struct GridRegion_struct {
    int width;
    int height;
    int sizeIdx;
+   int onColor;
+   int offColor;
 } GridRegion;
 
 typedef struct RegionLines_struct {
@@ -198,11 +200,15 @@ typedef struct PerimeterStats_struct {
    int timingBarCount;
    int finderBarDirs;
    int timingBarDirs;
-   int onColor;
-   int onCount;
-   int offColor;
-   int offCount;
 } PerimeterStats;
+
+/* Only used internally */
+typedef struct ColorTally_struct {
+   int evnCount;
+   int oddCount;
+   int evnColor;
+   int oddColor;
+} ColorTally;
 
 /* Scaled unit sin */
 static int uSin128[] = {
@@ -284,6 +290,8 @@ static void PlotPixel(SDL_Surface *surface, int x, int y);
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static DmtxPassFail DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec);
+static DmtxPassFail GetOnOffColors(const GridRegion *region, const PerimeterStats *ps, const DmtxDecode *dec, int *onColor, int *offColor);
+static ColorTally GetTimingColors(const GridRegion *region, const DmtxDecode *dec, int x, int y, DmtxDirection dir);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
 static void DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale, int screenY, int screenX);
@@ -1638,8 +1646,6 @@ RegionGetPerimeterStats(DmtxImage *img, const GridRegion *region)
    ps.timingBarCount = 0;
    ps.finderBarDirs = DmtxDirNone;
    ps.timingBarDirs = DmtxDirNone;
-   ps.onColor = ps.offColor = 0;
-   ps.onCount = ps.offCount = 0;
 
    /* Test each edge of perimeter (e.g., DmtxBarTiming | DmtxBarExterior) */
    ps.boundary[0] = PerimeterEdgeTest(img, region, DmtxDirUp, &ps);
@@ -1788,15 +1794,12 @@ PerimeterEdgeTest(DmtxImage *img, const GridRegion *region, DmtxDirection dir, P
       if(i & 0x01) {
          innerOddAvg += inner[i];
          outerOddAvg += outer[i];
-fprintf(stdout, "o:%d\n", inner[i]);
       }
       else {
          innerEvnAvg += inner[i];
          outerEvnAvg += outer[i];
-fprintf(stdout, "e:%d\n", inner[i]);
       }
    }
-fprintf(stdout, "\n");
 
    innerEvnAvg *= 2;
    outerEvnAvg *= 2;
@@ -1841,11 +1844,6 @@ fprintf(stdout, "\n");
       bar = (DmtxBarFinder | DmtxBarInterior);
    }
    else if(jumpsInner + 1 - extent < allowedJumpErrors && jumpsOuter < allowedJumpErrors) {
-      ps->onCount += (extent/2);
-      ps->offCount += (extent/2);
-      ps->onColor += (innerEvnAvg/2);
-      ps->offColor += (innerOddAvg/2);
-fprintf(stdout, "--> onColor:%d/%d offColor:%d/%d\n", ps->onColor, ps->onCount, ps->offColor, ps->offCount);
 /*    if(innerEvnAvg is same color as outerAllAvg) */
          bar = (DmtxBarTiming | DmtxBarExterior);
 /*    else if(innerOddAvg is same color as outerAllAvg)
@@ -2035,6 +2033,7 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
    region->width = 2;
    region->height = 2;
    region->sizeIdx = DmtxUndefined;
+   region->onColor = region->offColor = 0;
 
    /* Grow region outward until success/failure condition is met */
    for(;;) {
@@ -2452,6 +2451,7 @@ IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, Dm
 static DmtxPassFail
 DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec)
 {
+   int onColor, offColor;
    DmtxMatrix3 m, mRot;
    DmtxVector2 p00, p10, p11, p01;
    DmtxPassFail err;
@@ -2493,10 +2493,15 @@ DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec)
    if(err == DmtxFail)
       return err;
 
+   /* Since we hold 2 adjacent timing bars, find colors */
+   err = GetOnOffColors(region, ps, dec, &onColor, &offColor);
+   if(err == DmtxFail)
+      return err;
+
+   /* Populate old-style region */
    reg.flowBegin.plane = 0; /* or 1, or 2 (0 = red, 1 = green, etc...) */
-   reg.onColor = ps->onColor/ps->onCount;
-   reg.offColor = ps->offColor/ps->offCount;
-fprintf(stdout, "onColor:%d/%d offColor:%d/%d\n", ps->onColor, ps->onCount, ps->offColor, ps->offCount);
+   reg.onColor = onColor;
+   reg.offColor = offColor;
    reg.sizeIdx = region->sizeIdx;
    reg.symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
    reg.symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
@@ -2511,6 +2516,58 @@ fprintf(stdout, "onColor:%d/%d offColor:%d/%d\n", ps->onColor, ps->onCount, ps->
    fputc('\n', stdout);
 
    return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+static DmtxPassFail
+GetOnOffColors(const GridRegion *region, const PerimeterStats *ps,
+      const DmtxDecode *dec, int *onColor, int *offColor)
+{
+   int x, y;
+   DmtxDirection d0, d1;
+   ColorTally t0, t1;
+
+   x = (ps->finderBarDirs & DmtxDirLeft) ? region->x : region->x + region->width;
+   y = (ps->finderBarDirs & DmtxDirDown) ? region->y : region->y + region->height;
+
+   d0 = (ps->finderBarDirs & DmtxDirLeft) ? DmtxDirRight : DmtxDirLeft;
+   d1 = (ps->finderBarDirs & DmtxDirDown) ? DmtxDirUp : DmtxDirDown;
+
+   t0 = GetTimingColors(region, dec, x, y, d0);
+   t1 = GetTimingColors(region, dec, x, y, d1);
+
+   if(t0.evnCount + t1.evnCount == 0 || t0.oddCount + t1.oddCount == 0)
+      return DmtxFail;
+
+   *onColor = (t0.evnColor + t1.evnColor)/(t0.evnCount + t1.evnCount);
+   *offColor = (t0.oddColor + t1.oddColor)/(t0.oddCount + t1.oddCount);
+
+   return DmtxPass;
+}
+
+/**
+ * starting at (x, y), travel in "dir" capturing even and odds
+ *
+ */
+static ColorTally
+GetTimingColors(const GridRegion *region, const DmtxDecode *dec, int x, int y,
+      DmtxDirection dir)
+{
+   ColorTally colors;
+
+   colors.evnColor = 10;
+   colors.evnCount = 1;
+
+   colors.oddColor = 100;
+   colors.oddCount = 1;
+
+   /* XXX Left off here -- just add logic similar to simplified PerimeterEdgeTest()
+    * ... in fact maybe PerimeterEdgeTest() can call this function when ready? */
+
+   return colors;
 }
 
 /**
