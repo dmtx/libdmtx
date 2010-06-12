@@ -291,7 +291,7 @@ static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 static DmtxPassFail DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec);
 static DmtxPassFail GetOnOffColors(const GridRegion *region, const PerimeterStats *ps, const DmtxDecode *dec, int *onColor, int *offColor);
-static ColorTally GetTimingColors(const GridRegion *region, const DmtxDecode *dec, int x, int y, DmtxDirection dir);
+static ColorTally GetTimingColors(const GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBeg, DmtxDirection dir);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
 static void DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale, int screenY, int screenX);
@@ -2458,6 +2458,11 @@ DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec)
    DmtxRegion reg;
    DmtxMessage *msg;
 
+   /* Since we now hold 2 adjacent timing bars, find colors */
+   err = GetOnOffColors(region, ps, dec, &onColor, &offColor);
+   if(err == DmtxFail)
+      return err;
+
    /* Determine origin */
    switch(ps->finderBarDirs) {
       case (DmtxDirUp | DmtxDirLeft):
@@ -2493,11 +2498,6 @@ DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec)
    if(err == DmtxFail)
       return err;
 
-   /* Since we hold 2 adjacent timing bars, find colors */
-   err = GetOnOffColors(region, ps, dec, &onColor, &offColor);
-   if(err == DmtxFail)
-      return err;
-
    /* Populate old-style region */
    reg.flowBegin.plane = 0; /* or 1, or 2 (0 = red, 1 = green, etc...) */
    reg.onColor = onColor;
@@ -2526,24 +2526,27 @@ static DmtxPassFail
 GetOnOffColors(const GridRegion *region, const PerimeterStats *ps,
       const DmtxDecode *dec, int *onColor, int *offColor)
 {
-   int x, y;
+   int colBeg, rowBeg;
    DmtxDirection d0, d1;
    ColorTally t0, t1;
 
-   x = (ps->finderBarDirs & DmtxDirLeft) ? region->x : region->x + region->width;
-   y = (ps->finderBarDirs & DmtxDirDown) ? region->y : region->y + region->height;
+   /* add assertion to guarantee 2 adjancent timing bars */
 
-   d0 = (ps->finderBarDirs & DmtxDirLeft) ? DmtxDirRight : DmtxDirLeft;
-   d1 = (ps->finderBarDirs & DmtxDirDown) ? DmtxDirUp : DmtxDirDown;
+   /* Start tally at intersection of timing bars */
+   colBeg = (ps->timingBarDirs & DmtxDirLeft) ? region->x : region->x + region->width - 1;
+   rowBeg = (ps->timingBarDirs & DmtxDirDown) ? region->y : region->y + region->height - 1;
 
-   t0 = GetTimingColors(region, dec, x, y, d0);
-   t1 = GetTimingColors(region, dec, x, y, d1);
+   d0 = (ps->timingBarDirs & DmtxDirLeft) ? DmtxDirRight : DmtxDirLeft;
+   d1 = (ps->timingBarDirs & DmtxDirDown) ? DmtxDirUp : DmtxDirDown;
+
+   t0 = GetTimingColors(region, dec, colBeg, rowBeg, d0);
+   t1 = GetTimingColors(region, dec, colBeg, rowBeg, d1);
 
    if(t0.evnCount + t1.evnCount == 0 || t0.oddCount + t1.oddCount == 0)
       return DmtxFail;
 
-   *onColor = (t0.evnColor + t1.evnColor)/(t0.evnCount + t1.evnCount);
-   *offColor = (t0.oddColor + t1.oddColor)/(t0.oddCount + t1.oddCount);
+   *onColor = (t0.oddColor + t1.oddColor)/(t0.oddCount + t1.oddCount);
+   *offColor = (t0.evnColor + t1.evnColor)/(t0.evnCount + t1.evnCount);
 
    return DmtxPass;
 }
@@ -2553,19 +2556,55 @@ GetOnOffColors(const GridRegion *region, const PerimeterStats *ps,
  *
  */
 static ColorTally
-GetTimingColors(const GridRegion *region, const DmtxDecode *dec, int x, int y,
+GetTimingColors(const GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBeg,
       DmtxDirection dir)
 {
+   int i, row, col, extent;
+   int sample;
    ColorTally colors;
 
-   colors.evnColor = 10;
-   colors.evnCount = 1;
+   colors.evnColor = 0;
+   colors.evnCount = 0;
 
-   colors.oddColor = 100;
-   colors.oddCount = 1;
+   colors.oddColor = 0;
+   colors.oddCount = 0;
 
-   /* XXX Left off here -- just add logic similar to simplified PerimeterEdgeTest()
-    * ... in fact maybe PerimeterEdgeTest() can call this function when ready? */
+   /* Note opposite meaning (DmtxDirUp means "top", extent is horizontal) */
+   extent = (dir & DmtxDirVertical) ? region->width : region->height;
+
+   col = colBeg;
+   row = rowBeg;
+   for(i = 0; i < extent; i++) {
+      sample = ReadModuleColor(dec->image, &(region->grid), row, col, 0);
+
+      if(i & 0x01) {
+         colors.oddColor += sample;
+         colors.oddCount++;
+      }
+      else {
+         colors.evnColor += sample;
+         colors.evnCount++;
+      }
+
+      switch(dir) {
+         case DmtxDirUp:
+            row++;
+            break;
+         case DmtxDirLeft:
+            col--;
+            break;
+         case DmtxDirDown:
+            row--;
+            break;
+         case DmtxDirRight:
+            col++;
+            break;
+         default:
+            return colors; /* XXX should be an error condition */
+      }
+   }
+
+    /* consider having PerimeterEdgeTest() call this function when ready? */
 
    return colors;
 }
