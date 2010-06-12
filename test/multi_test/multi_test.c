@@ -2452,7 +2452,6 @@ static DmtxPassFail
 DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec)
 {
    int onColor, offColor;
-   DmtxMatrix3 m, mRot;
    DmtxVector2 p00, p10, p11, p01;
    DmtxPassFail err;
    DmtxRegion reg;
@@ -2463,38 +2462,33 @@ DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec)
    if(err == DmtxFail)
       return err;
 
-   /* Determine origin */
-   switch(ps->finderBarDirs) {
-      case (DmtxDirUp | DmtxDirLeft):
-         dmtxMatrix3Rotate(mRot, M_PI/2.0);
-         break;
-      case (DmtxDirLeft | DmtxDirDown):
-         dmtxMatrix3Rotate(mRot, 0.0);
-         break;
-      case (DmtxDirDown | DmtxDirRight):
-         dmtxMatrix3Rotate(mRot, -M_PI/2.0);
-         break;
-      case (DmtxDirRight | DmtxDirUp):
-         dmtxMatrix3Rotate(mRot, M_PI);
-         break;
-      default:
-         return DmtxFail;
-   }
-
-   dmtxMatrix3Multiply(m, mRot, region->grid.fit2rawFull);
-
    p00.X = p01.X = region->x * (1.0/region->grid.colCount);
    p10.X = p11.X = (region->x + region->width) * (1.0/region->grid.colCount);
    p00.Y = p10.Y = region->y * (1.0/region->grid.rowCount);
    p01.Y = p11.Y = (region->y + region->height) * (1.0/region->grid.rowCount);
 
-   dmtxMatrix3VMultiplyBy(&p00, m);
-   dmtxMatrix3VMultiplyBy(&p10, m);
-   dmtxMatrix3VMultiplyBy(&p11, m);
-   dmtxMatrix3VMultiplyBy(&p01, m);
+   dmtxMatrix3VMultiplyBy(&p00, region->grid.fit2rawFull);
+   dmtxMatrix3VMultiplyBy(&p10, region->grid.fit2rawFull);
+   dmtxMatrix3VMultiplyBy(&p11, region->grid.fit2rawFull);
+   dmtxMatrix3VMultiplyBy(&p01, region->grid.fit2rawFull);
 
    /* Update DmtxRegion with detected corners */
-   err = dmtxRegionUpdateCorners(dec, &reg, p00, p10, p11, p01);
+   switch(ps->finderBarDirs) {
+      case (DmtxDirLeft | DmtxDirDown):
+         err = dmtxRegionUpdateCorners(dec, &reg, p00, p10, p11, p01);
+         break;
+      case (DmtxDirDown | DmtxDirRight):
+         err = dmtxRegionUpdateCorners(dec, &reg, p10, p11, p01, p00);
+         break;
+      case (DmtxDirRight | DmtxDirUp):
+         err = dmtxRegionUpdateCorners(dec, &reg, p11, p01, p00, p10);
+         break;
+      case (DmtxDirUp | DmtxDirLeft):
+         err = dmtxRegionUpdateCorners(dec, &reg, p01, p00, p10, p11);
+         break;
+      default:
+         return DmtxFail;
+   }
    if(err == DmtxFail)
       return err;
 
