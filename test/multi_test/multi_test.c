@@ -285,8 +285,11 @@ static int CountJumps(GridRegion *region, DmtxDirection side, int offset, int co
 static DmtxPassFail RegionExpand(GridRegion *region, DmtxDirection dir);
 static DmtxBoolean IsFinderBar(int innerJumps, int outerJumps, int extent);
 static DmtxBoolean IsTimingBar(int innerJumps, int outerJumps, int extent);
-/*static int GetSizeIdx(int a, int b);*/
+static int GetSizeIdx(int a, int b);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
+static DmtxPassFail DecodeSymbol(GridRegion *region, DmtxDecode *dec);
+static DmtxPassFail GetOnOffColors(const GridRegion *region, const DmtxDecode *dec, int *onColor, int *offColor);
+static ColorTally GetTimingColors(const GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBeg, DmtxDirection dir);
 
 /* Process visualization functions */
 static void BlitFlowCache(SDL_Surface *screen, Flow *flowCache, int maxFlowMag, int screenY, int screenX);
@@ -577,16 +580,19 @@ main(int argc, char *argv[])
             DrawSymbolPreview(screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL3_X);
             /* auto tweak will go here */
             err = FindRegionWithinGrid(&region, imgFull, &grid, dec, screen, &state);
+            regionFound = (err == DmtxPass) ? DmtxTrue : DmtxFalse;
+
+            if(regionFound == DmtxTrue) {
+               region.sizeIdx = GetSizeIdx(region.width, region.height);
+               /* XXX should we introduce dmtxSymbolSizeValid() library function? */
+               if(region.sizeIdx >= DmtxSymbol10x10 && region.sizeIdx <= DmtxSymbol16x48)
+                  DecodeSymbol(&region, dec);
+            }
+
             SDL_UnlockSurface(picture);
 
-            if(err == DmtxPass) {
-               regionFound = DmtxTrue;
-               break;
-            }
-            else {
-               regionFound = DmtxTrue;
-               break;
-            }
+            regionFound = DmtxTrue; /* break out of outer loop */
+            break; /* break out of inner loop */
          }
       }
 
@@ -1852,12 +1858,11 @@ IsTimingBar(int innerJumps, int outerJumps, int extent)
  *
  *
  */
-/*
 static int
 GetSizeIdx(int a, int b)
 {
    int i, rows, cols;
-   const int totalSymbolSizes = 30; // better way to determine this?
+   const int totalSymbolSizes = 30; /* is there a better way to determine this? */
 
    for(i = 0; i < totalSymbolSizes; i++) {
       rows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, i);
@@ -1869,7 +1874,6 @@ GetSizeIdx(int a, int b)
 
    return DmtxUndefined;
 }
-*/
 
 /**
  *
@@ -1972,6 +1976,168 @@ RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00,
    dmtxMatrix3Multiply(fit2raw, m, mtxy);
 
    return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+static DmtxPassFail
+DecodeSymbol(GridRegion *region, DmtxDecode *dec)
+{
+   int onColor, offColor;
+   DmtxVector2 p00, p10, p11, p01;
+   DmtxPassFail err;
+   DmtxRegion reg;
+   DmtxMessage *msg;
+
+   /* Since we now hold 2 adjacent timing bars, find colors */
+   err = GetOnOffColors(region, dec, &onColor, &offColor);
+   if(err == DmtxFail)
+      return err;
+
+   p00.X = p01.X = region->x * (1.0/region->grid.colCount);
+   p10.X = p11.X = (region->x + region->width) * (1.0/region->grid.colCount);
+   p00.Y = p10.Y = region->y * (1.0/region->grid.rowCount);
+   p01.Y = p11.Y = (region->y + region->height) * (1.0/region->grid.rowCount);
+
+   dmtxMatrix3VMultiplyBy(&p00, region->grid.fit2rawFull);
+   dmtxMatrix3VMultiplyBy(&p10, region->grid.fit2rawFull);
+   dmtxMatrix3VMultiplyBy(&p11, region->grid.fit2rawFull);
+   dmtxMatrix3VMultiplyBy(&p01, region->grid.fit2rawFull);
+
+   /* Update DmtxRegion with detected corners */
+   switch(DmtxDirLeft | DmtxDirDown) {
+      case (DmtxDirLeft | DmtxDirDown):
+         err = dmtxRegionUpdateCorners(dec, &reg, p00, p10, p11, p01);
+         break;
+      case (DmtxDirDown | DmtxDirRight):
+         err = dmtxRegionUpdateCorners(dec, &reg, p10, p11, p01, p00);
+         break;
+      case (DmtxDirRight | DmtxDirUp):
+         err = dmtxRegionUpdateCorners(dec, &reg, p11, p01, p00, p10);
+         break;
+      case (DmtxDirUp | DmtxDirLeft):
+         err = dmtxRegionUpdateCorners(dec, &reg, p01, p00, p10, p11);
+         break;
+      default:
+         return DmtxFail;
+   }
+   if(err == DmtxFail)
+      return err;
+
+   /* Populate old-style region */
+   reg.flowBegin.plane = 0; /* or 1, or 2 (0 = red, 1 = green, etc...) */
+   reg.onColor = onColor;
+   reg.offColor = offColor;
+   reg.sizeIdx = region->sizeIdx;
+   reg.symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
+   reg.symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
+   reg.mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, region->sizeIdx);
+   reg.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, region->sizeIdx);
+
+   msg = dmtxDecodeMatrixRegion(dec, &reg, DmtxUndefined);
+   if(msg == NULL)
+      return DmtxFail;
+
+   fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
+   fputc('\n', stdout);
+
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+static DmtxPassFail
+GetOnOffColors(const GridRegion *region, const DmtxDecode *dec, int *onColor, int *offColor)
+{
+   int colBeg, rowBeg;
+   DmtxDirection d0, d1;
+   ColorTally t0, t1;
+
+   /* add assertion to guarantee 2 adjancent timing bars */
+
+   /* Start tally at intersection of timing bars */
+/*
+   colBeg = (ps->timingBarDirs & DmtxDirLeft) ? region->x : region->x + region->width - 1;
+   rowBeg = (ps->timingBarDirs & DmtxDirDown) ? region->y : region->y + region->height - 1;
+*/
+   colBeg = region->x + region->width - 1;
+   rowBeg = region->y + region->height - 1;
+
+   d0 = DmtxDirLeft;
+   d1 = DmtxDirDown;
+
+   t0 = GetTimingColors(region, dec, colBeg, rowBeg, d0);
+   t1 = GetTimingColors(region, dec, colBeg, rowBeg, d1);
+
+   if(t0.evnCount + t1.evnCount == 0 || t0.oddCount + t1.oddCount == 0)
+      return DmtxFail;
+
+   *onColor = (t0.oddColor + t1.oddColor)/(t0.oddCount + t1.oddCount);
+   *offColor = (t0.evnColor + t1.evnColor)/(t0.evnCount + t1.evnCount);
+
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+static ColorTally
+GetTimingColors(const GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBeg,
+      DmtxDirection dir)
+{
+   int i, row, col, extent;
+   int sample;
+   ColorTally colors;
+
+   colors.evnColor = 0;
+   colors.evnCount = 0;
+
+   colors.oddColor = 0;
+   colors.oddCount = 0;
+
+   /* Note opposite meaning (DmtxDirUp means "top", extent is horizontal) */
+   extent = (dir & DmtxDirVertical) ? region->width : region->height;
+
+   col = colBeg;
+   row = rowBeg;
+   for(i = 0; i < extent; i++) {
+      sample = ReadModuleColor(dec->image, &(region->grid), row, col, 0);
+
+      if(i & 0x01) {
+         colors.oddColor += sample;
+         colors.oddCount++;
+      }
+      else {
+         colors.evnColor += sample;
+         colors.evnCount++;
+      }
+
+      switch(dir) {
+         case DmtxDirUp:
+            row++;
+            break;
+         case DmtxDirLeft:
+            col--;
+            break;
+         case DmtxDirDown:
+            row--;
+            break;
+         case DmtxDirRight:
+            col++;
+            break;
+         default:
+            return colors; /* XXX should be an error condition */
+      }
+   }
+
+    /* consider having PerimeterEdgeTest() call this function when ready? */
+
+   return colors;
 }
 
 /**
