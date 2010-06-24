@@ -210,6 +210,13 @@ typedef struct ColorTally_struct {
    int oddColor;
 } ColorTally;
 
+typedef struct JumpCounts_struct {
+   int evnOddUp;
+   int evnOddDn;
+   int oddEvnUp;
+   int oddEvnDn;
+} JumpCounts;
+
 /* Scaled unit sin */
 static int uSin128[] = {
        0,    25,    50,    75,   100,   125,   150,   175,
@@ -273,13 +280,12 @@ static void AddToTimingSort(TimingSort *sort, Timing timing);
 static TimingSort FindGridTiming(HoughCache *hough, VanishPointSort *sort, AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
-static PerimeterStats RegionGetPerimeterStats(DmtxImage *img, const GridRegion *region);
-static int TallyJumps(int colors[], int extent, int contrast);
-static int PerimeterEdgeTest(DmtxImage *img, const GridRegion *region, DmtxDirection dir, PerimeterStats *ps);
-static int GetSizeIdx(int a, int b);
-static int RegionGetNextExpansion(const GridRegion *region, const PerimeterStats *ps);
-static DmtxPassFail RegionExpand(GridRegion *region, GridRegionGrowth growDir);
 static DmtxPassFail FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec, SDL_Surface *screen, AppState *state);
+static int CountJumps(GridRegion *region, DmtxDirection side, int offset, int contrast, DmtxImage *img);
+static DmtxPassFail RegionExpand(GridRegion *region, DmtxDirection dir);
+static DmtxBoolean IsFinderBar(int innerJumps, int outerJumps, int extent);
+static DmtxBoolean IsTimingBar(int innerJumps, int outerJumps, int extent);
+/*static int GetSizeIdx(int a, int b);*/
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 
 /* Process visualization functions */
@@ -289,9 +295,6 @@ static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom,
 static void PlotPixel(SDL_Surface *surface, int x, int y);
 static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
-static DmtxPassFail DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec);
-static DmtxPassFail GetOnOffColors(const GridRegion *region, const PerimeterStats *ps, const DmtxDecode *dec, int *onColor, int *offColor);
-static ColorTally GetTimingColors(const GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBeg, DmtxDirection dir);
 static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
 static void DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale, int screenY, int screenX);
@@ -572,6 +575,7 @@ main(int argc, char *argv[])
             SDL_LockSurface(picture);
             DrawNormalizedRegion(screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
             DrawSymbolPreview(screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL3_X);
+            /* auto tweak will go here */
             err = FindRegionWithinGrid(&region, imgFull, &grid, dec, screen, &state);
             SDL_UnlockSurface(picture);
 
@@ -1630,400 +1634,17 @@ BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *stat
 }
 
 /**
- * Populates edge array with bar types (even if returning false)
- * Returns true if boundaries meet end conditions
- */
-static PerimeterStats
-RegionGetPerimeterStats(DmtxImage *img, const GridRegion *region)
-{
-   int i;
-   PerimeterStats ps;
-
-   memset(&ps, 0x00, sizeof(PerimeterStats));
-
-   ps.expandDirs = DmtxDirNone;
-   ps.finderBarCount = 0;
-   ps.timingBarCount = 0;
-   ps.finderBarDirs = DmtxDirNone;
-   ps.timingBarDirs = DmtxDirNone;
-
-   /* Test each edge of perimeter (e.g., DmtxBarTiming | DmtxBarExterior) */
-   ps.boundary[0] = PerimeterEdgeTest(img, region, DmtxDirUp, &ps);
-   ps.boundary[1] = PerimeterEdgeTest(img, region, DmtxDirLeft, &ps);
-   ps.boundary[2] = PerimeterEdgeTest(img, region, DmtxDirDown, &ps);
-   ps.boundary[3] = PerimeterEdgeTest(img, region, DmtxDirRight, &ps);
-
-   /* Ensure libdmtx still defines directions in the required manner */
-   assert(DmtxDirUp   == 0x01 << 0); assert(DmtxDirLeft  == 0x01 << 1);
-   assert(DmtxDirDown == 0x01 << 2); assert(DmtxDirRight == 0x01 << 3);
-
-   /* Count finder and timing bars, or if no bar then mark as expandable */
-   for(i = 0; i < 4; i++) {
-      if(ps.boundary[i] & DmtxBarFinder) {
-         ps.finderBarCount++;
-         ps.finderBarDirs |= (0x01 << i);
-      }
-      else if(ps.boundary[i] & DmtxBarTiming) {
-         ps.timingBarCount++;
-         ps.timingBarDirs |= (0x01 << i);
-      }
-      else {
-         ps.expandDirs |= (0x01 << i); /* DmtxDirUp | DmtxDirLeft | etc... */
-      }
-
-      /* Edge can't be both a finder bar AND a timing bar */
-      assert(!((ps.boundary[i] & DmtxBarFinder) && (ps.boundary[i] & DmtxBarTiming)));
-   }
-
-   return ps;
-}
-
-/**
  *
  *
- */
-static int
-TallyJumps(int colors[], int extent, int contrast)
-{
-   int i;
-   int jumpMag;
-   int jumpCount;
-   int jumpThresh;
-   int thisJumpDir, lastJumpDir;
-
-   jumpThresh = (contrast * 4)/10;
-
-   jumpCount = 0;
-   lastJumpDir = 0; /* 0 == none / +1 == up / -1 == down */
-
-/* this is actually an oversimplification ...
- * should take into account that evens need to be same color */
-   for(i = 1; i < extent; i++) {
-      jumpMag = colors[i] - colors[i-1];
-      if(abs(jumpMag) >= jumpThresh) {
-         thisJumpDir = (jumpMag > 0) ? +1 : -1;
-         if(thisJumpDir != lastJumpDir) {
-            lastJumpDir = thisJumpDir;
-            jumpCount++;
-         }
-      }
-   }
-
-   return jumpCount;
-}
-
-/**
- *
- *
- */
-static int
-PerimeterEdgeTest(DmtxImage *img, const GridRegion *region, DmtxDirection dir, PerimeterStats *ps)
-{
-   int extent;
-   int i, row, col;
-   int inner[26], outer[26];
-   int bar;
-   int colBeg, rowBeg;
-   int colOut, rowOut;
-   int innerAllAvg, innerEvnAvg, innerOddAvg;
-   int outerAllAvg, outerEvnAvg, outerOddAvg;
-   int contrast, contFinderExt, contFinderInt, contTimingAny;
-   int jumpsInner, jumpsOuter;
-   int allowedJumpErrors;
-
-   assert(region->width <= 26 && region->height <= 26);
-   assert(dir == DmtxDirUp || dir == DmtxDirLeft ||
-         dir == DmtxDirDown || dir == DmtxDirRight);
-
-   switch(dir) {
-      case DmtxDirUp:
-         colBeg = region->x;
-         rowBeg = region->y + region->height - 1;
-         colOut =  0;
-         rowOut = +1;
-         break;
-      case DmtxDirLeft:
-         colBeg = region->x;
-         rowBeg = region->y;
-         colOut = -1;
-         rowOut =  0;
-         break;
-      case DmtxDirDown:
-         colBeg = region->x;
-         rowBeg = region->y;
-         colOut =  0;
-         rowOut = -1;
-         break;
-      case DmtxDirRight:
-         colBeg = region->x + region->width - 1;
-         rowBeg = region->y;
-         colOut = +1;
-         rowOut =  0;
-         break;
-      default:
-         /* error */
-         colBeg = rowBeg = colOut = rowOut = 0;
-         break;
-   }
-
-   /* Note opposite meaning (DmtxDirUp means "top", extent is horizontal) */
-   extent = (dir & DmtxDirVertical) ? region->width : region->height;
-
-   /* Sample and hold colors at each module along both inner and outer edges */
-   col = colBeg;
-   row = rowBeg;
-   for(i = 0; i < extent; i++) {
-      inner[i] = ReadModuleColor(img, &(region->grid), row, col, 0);
-      outer[i] = ReadModuleColor(img, &(region->grid), row + rowOut, col + colOut, 0);
-
-      /* Note opposite meaning (DmtxDirUp means "top", extent is horizontal) */
-      if(dir & DmtxDirVertical)
-         col++;
-      else
-         row++;
-   }
-
-   /* Calculate averages along inner and outer edges */
-   innerAllAvg = outerAllAvg = 0;
-   innerEvnAvg = outerEvnAvg = 0;
-   innerOddAvg = outerOddAvg = 0;
-   for(i = 0; i < extent; i++) {
-      innerAllAvg += inner[i];
-      outerAllAvg += outer[i];
-
-      if(i & 0x01) {
-         innerOddAvg += inner[i];
-         outerOddAvg += outer[i];
-      }
-      else {
-         innerEvnAvg += inner[i];
-         outerEvnAvg += outer[i];
-      }
-   }
-
-   innerEvnAvg *= 2;
-   outerEvnAvg *= 2;
-   innerOddAvg *= 2;
-   outerOddAvg *= 2;
-
-   /* Determine contrast */
-   contFinderExt = abs(outerAllAvg - innerAllAvg);
-   contFinderInt = abs(outerEvnAvg - outerOddAvg);
-   contTimingAny = abs(innerEvnAvg - innerOddAvg);
-
-/*
- * 3) Internal Finder Bar test (useful? -- skip initially)
- *      contTmpA = abs(innerAllAvg - outerEvnAvg)
- *      contTmpB = abs(innerAllAvg - outerOddAvg)
- *      If max(contTmpA, contTmpB) is similar to contFinderInt then timing bar likely
- *
- * 4) Timing bar test (useful? -- skip initially)
- *      contTmpC = abs(innerEvnAvg - outerAllAvg)
- *      contTmpD = abs(innerOddAvg - outerAllAvg)
- *      If max(contTmpC, contTmpD) is similar to contTimingAny then timing bar likely
- */
-
-   /* Choose best contrast */
-   contrast = max(contTimingAny, max(contFinderExt, contFinderInt));
-   contrast /= extent;
-
-   /* Tally jumps */
-   jumpsInner = TallyJumps(inner, extent, contrast);
-   jumpsOuter = TallyJumps(outer, extent, contrast);
-
-/* TallyFinderJumps()
-   TallyTimingJumps() */
-
-   allowedJumpErrors = max(1, extent/8);
-
-   /* Test boundary conditions */
-   if(jumpsOuter < allowedJumpErrors && jumpsInner < allowedJumpErrors) {
-      bar = (DmtxBarFinder | DmtxBarExterior);
-   }
-   else if(jumpsOuter + 1 - extent < allowedJumpErrors && jumpsInner < allowedJumpErrors) {
-      bar = (DmtxBarFinder | DmtxBarInterior);
-   }
-   else if(jumpsInner + 1 - extent < allowedJumpErrors && jumpsOuter < allowedJumpErrors) {
-/*    if(innerEvnAvg is same color as outerAllAvg) */
-         bar = (DmtxBarTiming | DmtxBarExterior);
-/*    else if(innerOddAvg is same color as outerAllAvg)
-         bar = (DmtxBarTiming | DmtxBarInterior);
-      else
-         bar = DmtxBarNone; */
-   }
-   else {
-      bar = DmtxBarNone;
-   }
-
-   return bar;
-}
-
-/**
- *
- *
- */
-static int
-GetSizeIdx(int a, int b)
-{
-   int i, rows, cols;
-   const int totalSymbolSizes = 30; /* better way to determine this? */
-
-   for(i = 0; i < totalSymbolSizes; i++) {
-      rows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, i);
-      cols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, i);
-
-      if((rows == a && cols == b) || (rows == b && cols == a))
-         return i;
-   }
-
-   return DmtxUndefined;
-}
-
-/**
- * This function determines the best direction for expansion. It uses the
- * boundary status parameter to decide which directions are possible, and
- * maintains a square shape while growing for as long as possible to
- * maximize align-while-growing feature.
- */
-static int
-RegionGetNextExpansion(const GridRegion *region, const PerimeterStats *ps)
-{
-   int sizeIdx;
-   DmtxBoolean growVertical, growHorizontal;
-
-   /* If region appears complete (i.e., holds 2 adjacent finder bars and
-    * 2 timing bars) then test for valid size (DmtxSymbolSize enum) */
-   if(ps->finderBarCount == 2 && ps->timingBarCount == 2 &&
-         ps->finderBarDirs != (DmtxDirLeft | DmtxDirRight) &&
-         ps->finderBarDirs != (DmtxDirUp | DmtxDirDown)) {
-
-      sizeIdx = GetSizeIdx(region->width, region->height);
-
-      assert(ps->timingBarDirs != (DmtxDirLeft | DmtxDirRight));
-      assert(ps->timingBarDirs != (DmtxDirUp | DmtxDirDown));
-
-      if(sizeIdx != DmtxUndefined)
-         return sizeIdx; /* Success */
-   }
-
-   /* If all of the sides are valid but region still isn't an official
-    * shape, then we need to force growth in a direction. be careful to not
-    * destroy rectangle possibilities. may need to poll possible directions
-    * to find best option. */
-   /* TODO add this logic */
-
-   growVertical = (ps->expandDirs & DmtxDirVertical) ? DmtxTrue : DmtxFalse;
-   growHorizontal = (ps->expandDirs & DmtxDirHorizontal) ? DmtxTrue : DmtxFalse;
-
-   /* Can't expand beyond largest single region size */
-   if(region->width == 26)
-      growHorizontal = DmtxFalse;
-   if(region->height == 26)
-      growVertical = DmtxFalse;
-   assert(region->width <= 26 && region->height <= 26);
-
-   /* If no expansion opportunities remain, end now */
-   if(!(growHorizontal || growVertical))
-      return GridRegionGrowthError;
-
-   /* Can only grow in one direction; maintain square shape if possible */
-   if(growVertical && growHorizontal) {
-      if(region->height > region->width)
-         growVertical = DmtxFalse;
-      else
-         growHorizontal = DmtxFalse;
-   }
-   assert(growVertical + growHorizontal == DmtxTrue + DmtxFalse);
-
-   /* Decide on final direction */
-   if(growVertical == DmtxTrue) {
-      if(ps->expandDirs & DmtxDirUp)
-         return GridRegionGrowthUp;
-      else
-         return GridRegionGrowthDown;
-   }
-   else {
-      if(ps->expandDirs & DmtxDirRight)
-         return GridRegionGrowthRight;
-      else
-         return GridRegionGrowthLeft;
-   }
-
-   return GridRegionGrowthError;
-}
-
-/**
- *
- *
- */
-static DmtxPassFail
-RegionExpand(GridRegion *region, GridRegionGrowth growDir)
-{
-/* int oldRowCount, oldColCount;
-   DmtxMatrix3 mScale, mTrans, mTmp; */
-
-   switch(growDir) {
-      case GridRegionGrowthDown:
-         region->y--;
-         /* Fall through */
-      case GridRegionGrowthUp:
-         region->height++;
-         break;
-
-      case GridRegionGrowthLeft:
-         region->x--;
-         /* Fall through */
-      case GridRegionGrowthRight:
-         region->width++;
-         break;
-
-      default:
-         return DmtxFail;
-   }
-
-   /* Adjust fit2raw */
-/* dmtxMatrix3Scale(mScale, (double)region->rowCount/oldRowCount,
-         (double)region->colCount/oldColCount);
-
-   dmtxMatrix3Translate(mTrans,
-         (growDir == GridRegionGrowthLeft) ? -1.0/region->colCount : 0.0,
-         (growDir == GridRegionGrowthDown) ? -1.0/region->rowCount : 0.0);
-
-   dmtxMatrix3Multiply(mTmp, region->fit2rawFull, mScale);
-   dmtxMatrix3Multiply(region->fit2rawFull, mTmp, mTrans);
-
-   dmtxMatrix3Multiply(mTmp, region->fit2rawActive, mScale);
-   dmtxMatrix3Multiply(region->fit2rawActive, mTmp, mTrans); */
-
-   /* Adjust raw2fit */
-/* dmtxMatrix3Scale(mScale, (double)oldRowCount/region->rowCount,
-         (double)oldColCount/region->colCount);
-
-   dmtxMatrix3Translate(mTrans,
-         (growDir == GridRegionGrowthLeft) ? 1.0/region->colCount : 0.0,
-         (growDir == GridRegionGrowthDown) ? 1.0/region->rowCount : 0.0);
-
-   dmtxMatrix3Multiply(mTmp, region->raw2fitFull, mTrans);
-   dmtxMatrix3Multiply(region->raw2fitFull, mTmp, mScale);
-
-   dmtxMatrix3Multiply(mTmp, region->raw2fitActive, mTrans);
-   dmtxMatrix3Multiply(region->raw2fitActive, mTmp, mScale); */
-
-   return DmtxPass;
-}
-
-/**
- * Next step: start with small 2-layer box and step each edge outward until
- * outer edge is approximately solid and inner edge is either approximately
- * solid-but-opposite or 50% of both colors.
  */
 static DmtxPassFail
 FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec,
       SDL_Surface *screen, AppState *state)
 {
-   int expand;
-   PerimeterStats ps;
-   DmtxPassFail err;
+   int contrast;
+   int innerJumps, outerJumps;
+   PerimeterStats ps; /* XXX used for display function only */
+   ps.boundary[0] = ps.boundary[1] = ps.boundary[2] = ps.boundary[3] = DmtxBarFinder;
 
    memset(region, 0x00, sizeof(GridRegion));
 
@@ -2035,38 +1656,220 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
    region->sizeIdx = DmtxUndefined;
    region->onColor = region->offColor = 0;
 
-   /* Grow region outward until success/failure condition is met */
-   for(;;) {
+   /* Assume the starting region will be far enough away from any side that
+    * the expansion rules won't need to work at the very smallest sizes */
 
-      /* Generate bar-detection statistics for current perimeter */
-      ps = RegionGetPerimeterStats(img, region);
+   /* Grow region, restarting with first tests when any side moves */
+   for(;;) {
+      if(region->width > 26 || region->height > 26)
+         return DmtxFail;
+
+/*    if contrast does not meet minimum threshold
+         use artificial one for now */
+      contrast = 40;
+
+      /* Test for finder bar along bottom side */
+      innerJumps = CountJumps(region, DmtxDirDown,  0, contrast, img);
+      outerJumps = CountJumps(region, DmtxDirDown, +1, contrast, img);
+      if(IsFinderBar(innerJumps, outerJumps, region->width) == DmtxFalse) {
+         RegionExpand(region, DmtxDirDown);
+         continue;
+      }
+
+      /* Test for finder bar along left side */
+      innerJumps = CountJumps(region, DmtxDirLeft,  0, contrast, img);
+      outerJumps = CountJumps(region, DmtxDirLeft, +1, contrast, img);
+      if(IsFinderBar(innerJumps, outerJumps, region->height) == DmtxFalse) {
+         RegionExpand(region, DmtxDirLeft);
+         continue;
+      }
+
+      /* doesn't matter if left and bottom finders are opposite colors -- winner will prevail */
+      /* "Dashed" test should return positive even if order is flipped */
+
+      /* Test for timing bar along top side */
+      innerJumps = CountJumps(region, DmtxDirUp,  0, contrast, img);
+      outerJumps = CountJumps(region, DmtxDirUp, +1, contrast, img);
+      if(IsTimingBar(innerJumps, outerJumps, region->width) == DmtxFalse) {
+         RegionExpand(region, DmtxDirUp);
+         continue;
+      }
+
+      /* Test for timing bar along right side */
+      innerJumps = CountJumps(region, DmtxDirRight,  0, contrast, img);
+      outerJumps = CountJumps(region, DmtxDirRight, +1, contrast, img);
+      if(IsTimingBar(innerJumps, outerJumps, region->height) == DmtxFalse) {
+         RegionExpand(region, DmtxDirRight);
+         continue;
+      }
+
+      /* Confirm that both finder bars are same color */
       DrawPerimeterPatterns(screen, region, &ps, state);
 
-      /* Determine best expansion direction, or symbol size if complete */
-      expand = RegionGetNextExpansion(region, &ps);
-      if(expand == GridRegionGrowthError)
-         break; /* Failure (further expansion not possible) */
-
-      /* Expansion complete: Perimeter patterns form valid symbol size */
-      if(expand >= DmtxSymbol10x10 && expand <= DmtxSymbol16x48) {
-         region->sizeIdx = expand;
-         err = DecodeSymbol(region, &ps, dec);
-         return err; /* Success (unless something unexpected happens) */
-      }
-      assert(DmtxSymbol10x10 == 0 && DmtxSymbol16x48 > 0);
-
-      /* Attempt to grow in determined direction */
-      err = RegionExpand(region, expand);
-      if(err == DmtxFail)
-         break; /* Failure (error while attempting expansion) */
-
-      /* Update region to reflect growth */
-      /* err = BuildGridFromTimings(grid, vp0, vp1, NULL); */
-
+      break;
    }
 
-   return DmtxFail;
+   return DmtxPass;
 }
+
+/**
+ *
+ *
+ */
+static int
+CountJumps(GridRegion *region, DmtxDirection side, int offset, int contrast, DmtxImage *img)
+{
+   int i;
+   int jumpCount = 0;
+   int col, colBeg;
+   int row, rowBeg;
+   int color, colorPrev;
+   int extent;
+
+   assert(region->width <= 26 && region->height <= 26);
+   assert(side == DmtxDirUp || side == DmtxDirLeft ||
+         side == DmtxDirDown || side == DmtxDirRight);
+
+   switch(side) {
+      case DmtxDirUp:
+         colBeg = region->x;
+         rowBeg = (region->y + region->height - 1) + offset;
+         break;
+      case DmtxDirLeft:
+         colBeg = region->x - offset;
+         rowBeg = region->y;
+         break;
+      case DmtxDirDown:
+         colBeg = region->x;
+         rowBeg = region->y - offset;
+         break;
+      case DmtxDirRight:
+         colBeg = (region->x + region->width - 1) + offset;
+         rowBeg = region->y;
+         break;
+      default:
+         return DmtxUndefined;
+   }
+
+   /* Note opposite meaning (DmtxDirUp means "top", extent is horizontal) */
+   extent = (side & DmtxDirVertical) ? region->width : region->height;
+
+   /* Sample and hold colors at each module along both inner and outer edges */
+   col = colBeg;
+   row = rowBeg;
+   color = ReadModuleColor(img, &(region->grid), row, col, 0);
+
+   for(i = 1; i < extent; i++) {
+      colorPrev = color;
+
+      if(side & DmtxDirVertical)
+         col++;
+      else
+         row++;
+
+      color = ReadModuleColor(img, &(region->grid), row, col, 0);
+
+      /* XXX later track whether previous jump was upward or downward and don't double count */
+      if(abs(color - colorPrev) > contrast)
+         jumpCount++;
+   }
+
+   return jumpCount;
+}
+
+/**
+ *
+ *
+ */
+static DmtxPassFail
+RegionExpand(GridRegion *region, DmtxDirection dir)
+{
+   switch(dir) {
+      case DmtxDirDown:
+         region->y--;
+         /* Fall through */
+      case DmtxDirUp:
+         region->height++;
+         break;
+
+      case DmtxDirLeft:
+         region->x--;
+         /* Fall through */
+      case DmtxDirRight:
+         region->width++;
+         break;
+
+      default:
+         return DmtxFail;
+   }
+
+   return DmtxPass;
+}
+
+/**
+ * Finder bar has solid inner strip with solid or dashed outer strip
+ *
+ */
+static DmtxBoolean
+IsFinderBar(int innerJumps, int outerJumps, int extent)
+{
+   int maxFinderJumps;
+   int minTimingJumps;
+
+   maxFinderJumps = extent/10;
+   if(innerJumps > maxFinderJumps)
+      return DmtxFalse;
+
+   minTimingJumps = extent/2 - extent/10;
+   if(outerJumps > maxFinderJumps && outerJumps < minTimingJumps)
+      return DmtxFalse;
+
+   return DmtxTrue;
+}
+
+/**
+ * Timing bar has dashed inner strip with solid outer strip
+ *
+ */
+static DmtxBoolean
+IsTimingBar(int innerJumps, int outerJumps, int extent)
+{
+   int minTimingJumps;
+   int maxFinderJumps;
+
+   minTimingJumps = extent/2 - extent/10;
+   if(innerJumps < minTimingJumps)
+      return DmtxFalse;
+
+   maxFinderJumps = extent/10;
+   if(outerJumps > maxFinderJumps)
+      return DmtxFalse;
+
+   return DmtxTrue;
+}
+
+/**
+ *
+ *
+ */
+/*
+static int
+GetSizeIdx(int a, int b)
+{
+   int i, rows, cols;
+   const int totalSymbolSizes = 30; // better way to determine this?
+
+   for(i = 0; i < totalSymbolSizes; i++) {
+      rows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, i);
+      cols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, i);
+
+      if((rows == a && cols == b) || (rows == b && cols == a))
+         return i;
+   }
+
+   return DmtxUndefined;
+}
+*/
 
 /**
  *
@@ -2442,165 +2245,6 @@ IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, Dm
    *p1 = p[1];
 
    return DmtxTrue;
-}
-
-/**
- *
- *
- */
-static DmtxPassFail
-DecodeSymbol(GridRegion *region, PerimeterStats *ps, DmtxDecode *dec)
-{
-   int onColor, offColor;
-   DmtxVector2 p00, p10, p11, p01;
-   DmtxPassFail err;
-   DmtxRegion reg;
-   DmtxMessage *msg;
-
-   /* Since we now hold 2 adjacent timing bars, find colors */
-   err = GetOnOffColors(region, ps, dec, &onColor, &offColor);
-   if(err == DmtxFail)
-      return err;
-
-   p00.X = p01.X = region->x * (1.0/region->grid.colCount);
-   p10.X = p11.X = (region->x + region->width) * (1.0/region->grid.colCount);
-   p00.Y = p10.Y = region->y * (1.0/region->grid.rowCount);
-   p01.Y = p11.Y = (region->y + region->height) * (1.0/region->grid.rowCount);
-
-   dmtxMatrix3VMultiplyBy(&p00, region->grid.fit2rawFull);
-   dmtxMatrix3VMultiplyBy(&p10, region->grid.fit2rawFull);
-   dmtxMatrix3VMultiplyBy(&p11, region->grid.fit2rawFull);
-   dmtxMatrix3VMultiplyBy(&p01, region->grid.fit2rawFull);
-
-   /* Update DmtxRegion with detected corners */
-   switch(ps->finderBarDirs) {
-      case (DmtxDirLeft | DmtxDirDown):
-         err = dmtxRegionUpdateCorners(dec, &reg, p00, p10, p11, p01);
-         break;
-      case (DmtxDirDown | DmtxDirRight):
-         err = dmtxRegionUpdateCorners(dec, &reg, p10, p11, p01, p00);
-         break;
-      case (DmtxDirRight | DmtxDirUp):
-         err = dmtxRegionUpdateCorners(dec, &reg, p11, p01, p00, p10);
-         break;
-      case (DmtxDirUp | DmtxDirLeft):
-         err = dmtxRegionUpdateCorners(dec, &reg, p01, p00, p10, p11);
-         break;
-      default:
-         return DmtxFail;
-   }
-   if(err == DmtxFail)
-      return err;
-
-   /* Populate old-style region */
-   reg.flowBegin.plane = 0; /* or 1, or 2 (0 = red, 1 = green, etc...) */
-   reg.onColor = onColor;
-   reg.offColor = offColor;
-   reg.sizeIdx = region->sizeIdx;
-   reg.symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, region->sizeIdx);
-   reg.symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, region->sizeIdx);
-   reg.mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, region->sizeIdx);
-   reg.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, region->sizeIdx);
-
-   msg = dmtxDecodeMatrixRegion(dec, &reg, DmtxUndefined);
-   if(msg == NULL)
-      return DmtxFail;
-
-   fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
-   fputc('\n', stdout);
-
-   return DmtxPass;
-}
-
-/**
- *
- *
- */
-static DmtxPassFail
-GetOnOffColors(const GridRegion *region, const PerimeterStats *ps,
-      const DmtxDecode *dec, int *onColor, int *offColor)
-{
-   int colBeg, rowBeg;
-   DmtxDirection d0, d1;
-   ColorTally t0, t1;
-
-   /* add assertion to guarantee 2 adjancent timing bars */
-
-   /* Start tally at intersection of timing bars */
-   colBeg = (ps->timingBarDirs & DmtxDirLeft) ? region->x : region->x + region->width - 1;
-   rowBeg = (ps->timingBarDirs & DmtxDirDown) ? region->y : region->y + region->height - 1;
-
-   d0 = (ps->timingBarDirs & DmtxDirLeft) ? DmtxDirRight : DmtxDirLeft;
-   d1 = (ps->timingBarDirs & DmtxDirDown) ? DmtxDirUp : DmtxDirDown;
-
-   t0 = GetTimingColors(region, dec, colBeg, rowBeg, d0);
-   t1 = GetTimingColors(region, dec, colBeg, rowBeg, d1);
-
-   if(t0.evnCount + t1.evnCount == 0 || t0.oddCount + t1.oddCount == 0)
-      return DmtxFail;
-
-   *onColor = (t0.oddColor + t1.oddColor)/(t0.oddCount + t1.oddCount);
-   *offColor = (t0.evnColor + t1.evnColor)/(t0.evnCount + t1.evnCount);
-
-   return DmtxPass;
-}
-
-/**
- * starting at (x, y), travel in "dir" capturing even and odds
- *
- */
-static ColorTally
-GetTimingColors(const GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBeg,
-      DmtxDirection dir)
-{
-   int i, row, col, extent;
-   int sample;
-   ColorTally colors;
-
-   colors.evnColor = 0;
-   colors.evnCount = 0;
-
-   colors.oddColor = 0;
-   colors.oddCount = 0;
-
-   /* Note opposite meaning (DmtxDirUp means "top", extent is horizontal) */
-   extent = (dir & DmtxDirVertical) ? region->width : region->height;
-
-   col = colBeg;
-   row = rowBeg;
-   for(i = 0; i < extent; i++) {
-      sample = ReadModuleColor(dec->image, &(region->grid), row, col, 0);
-
-      if(i & 0x01) {
-         colors.oddColor += sample;
-         colors.oddCount++;
-      }
-      else {
-         colors.evnColor += sample;
-         colors.evnCount++;
-      }
-
-      switch(dir) {
-         case DmtxDirUp:
-            row++;
-            break;
-         case DmtxDirLeft:
-            col--;
-            break;
-         case DmtxDirDown:
-            row--;
-            break;
-         case DmtxDirRight:
-            col++;
-            break;
-         default:
-            return colors; /* XXX should be an error condition */
-      }
-   }
-
-    /* consider having PerimeterEdgeTest() call this function when ready? */
-
-   return colors;
 }
 
 /**
