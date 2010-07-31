@@ -638,7 +638,6 @@ EncodeAutoBest(DmtxEncode *enc, unsigned char *buf, unsigned char *codewords, in
 {
    int targetScheme;
    int winnerSize;
-   DmtxPassFail err;
    DmtxChannelGroup optimal, best;
    DmtxChannel *channel, *winner;
 
@@ -646,9 +645,9 @@ EncodeAutoBest(DmtxEncode *enc, unsigned char *buf, unsigned char *codewords, in
    for(targetScheme = DmtxSchemeAscii; targetScheme <= DmtxSchemeBase256; targetScheme++) {
       channel = &(optimal.channel[targetScheme]);
       InitChannel(channel, codewords, length);
-      err = EncodeNextWord(enc, channel, targetScheme);
-      if(err == DmtxFail)
-         return 0;
+      EncodeNextWord(enc, channel, targetScheme);
+      /* EncodeNextWord() may fail here which is okay because messages may
+         begin with characters not supported in all encodation schemes */
    }
 
    /* fprintf(stdout,"\nWinners:"); */
