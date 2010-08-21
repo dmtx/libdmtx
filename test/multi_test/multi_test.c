@@ -280,6 +280,7 @@ static void AddToTimingSort(TimingSort *sort, Timing timing);
 static TimingSort FindGridTiming(HoughCache *hough, VanishPointSort *sort, AppState *state);
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
+/*static DmtxBarType TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side);*/
 static DmtxPassFail FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec, SDL_Surface *screen, AppState *state);
 static int CountJumps(GridRegion *region, DmtxDirection side, int offset, int contrast, DmtxImage *img);
 static DmtxPassFail RegionExpand(GridRegion *region, DmtxDirection dir);
@@ -1639,6 +1640,67 @@ BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *stat
    return DmtxPass;
 }
 
+#ifdef IGNORE_ME_FOR_NOW
+/**
+ * Consider implementing this function outside of this program initially
+ *
+ */
+static XYZ
+GenPatternStats(XYZ)
+{
+   Given a strip of pixels (row or column) of known length, make a single pass
+   over the pixels while gathering statistics:
+
+   * Compare pattern to an ideal alternating pattern
+     - Track twice simultaneously, one assume first loc is light, the other
+       assuming dark. For each track, count how many "surprises" there were
+       (i.e., We were already "dark" and it jumped to "darker", or light to
+       lighter) The track with fewer suprises wins.
+
+   * Count total "light" and "dark" modules (for testing solid pattern)
+
+   * Capture contrast in each light-dark and dark-light jump
+
+   * Longer term: When jump is detected, figure out whether it happened exactly
+     between pixels or not. This will be useful in the calibration portion
+     although I don't have all the details figured out yet.
+}
+#endif
+
+#ifdef IGNORE_ME
+/**
+ *
+ *
+ */
+static DmtxBarType
+TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side)
+{
+   int contrast;
+   int innerJumps, outerJumps;
+   DmtxBarType type;
+
+   /* use artificial contrast for now */
+   contrast = 40;
+
+/* XXX Here's the thing. Instead of calling CountJumps(), which gathers the
+ * simplest and only marginally useful statistics, we need a new function that
+ * gathers useful statistics. See notes in GenPatternStats() */
+
+   /* Test for finder bar along bottom side */
+   innerJumps = CountJumps(region, side,  0, contrast, img);
+   outerJumps = CountJumps(region, side, +1, contrast, img);
+
+   if(IsFinderBar(innerJumps, outerJumps, region->width))
+      type = DmtxBarFinder;
+   else if(IsTimingBar(innerJumps, outerJumps, region->width))
+      type = DmtxBarTiming;
+   else
+      type = DmtxBarNone;
+
+   return type;
+}
+#endif
+
 /**
  *
  *
@@ -1647,7 +1709,7 @@ static DmtxPassFail
 FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec,
       SDL_Surface *screen, AppState *state)
 {
-   int contrast;
+   int contrast = 40;
    int innerJumps, outerJumps;
    PerimeterStats ps; /* XXX used for display function only */
    ps.boundary[0] = ps.boundary[1] = ps.boundary[2] = ps.boundary[3] = DmtxBarFinder;
@@ -1670,9 +1732,26 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
       if(region->width > 26 || region->height > 26)
          return DmtxFail;
 
-/*    if contrast does not meet minimum threshold
-         use artificial one for now */
-      contrast = 40;
+      /* XXX Left off here:
+       * Instead of using the original method (below), instead look for
+       * the patterns on any of the sides. Search sides using a round-robin
+       * fashion, always CW (or CCW, whatever). When any side moves, re-test
+       * previous side before continuing on round-robin search. This
+       * approach will grow the region while maintaining an approximately
+       * square shape. The "one-step-back" approach works because any
+       * movement outward might invalidate the previous side, and also
+       * while moving a side outward it is not tested automatically so no
+       * repeat work is done.
+       *
+       * While expanding sides, also incorporate grid tweaking logic and
+       * track the matching pattern for each side. When entire perimeter
+       * can be traced without moving sides outward then test to make sure
+       * 2 adjacent finder bars and 2 adjacent timing bars were found.
+       *
+       * The benefit to this approach is that we can expand the region
+       * exactly once, and can tweak the grid alignment as we go (also
+       * exactly once).
+       */
 
       /* Test for finder bar along bottom side */
       innerJumps = CountJumps(region, DmtxDirDown,  0, contrast, img);
@@ -1717,6 +1796,81 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
 
    return DmtxPass;
 }
+
+/**
+ *
+ *
+ */
+#ifdef IGNORE_ME
+newer implementation which will remain broken for a while
+static DmtxPassFail
+FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec,
+      SDL_Surface *screen, AppState *state)
+{
+   DmtxDirection side;
+   DmtxBarType type;
+   PerimeterStats ps; /* XXX used for display function only */
+   ps.boundary[0] = ps.boundary[1] = ps.boundary[2] = ps.boundary[3] = DmtxBarFinder;
+
+   memset(region, 0x00, sizeof(GridRegion));
+
+   region->grid = *grid; /* Capture local copy of grid for tweaking */
+   region->x = region->grid.colCount / 2;
+   region->y = region->grid.rowCount / 2;
+   region->width = 2;
+   region->height = 2;
+   region->sizeIdx = DmtxUndefined;
+   region->onColor = region->offColor = 0;
+
+   /* Assume the starting region will be far enough away from any side that
+    * the expansion rules won't need to work at the very smallest sizes */
+
+   /* Grow region, restarting with first tests when any side moves */
+   for(;;) {
+      if(region->width > 26 || region->height > 26)
+         return DmtxFail;
+
+      /* Test for finder bar along bottom side */
+      side = DmtxDirDown;
+      type = TestSideForPattern(region, img, side);
+      if(type == DmtxBarNone) {
+         RegionExpand(region, side);
+         continue;
+      }
+
+      /* Test for finder bar along left side */
+      side = DmtxDirLeft;
+      type = TestSideForPattern(region, img, side);
+      if(type == DmtxBarNone) {
+         RegionExpand(region, side);
+         continue;
+      }
+
+      /* Test for timing bar along top side */
+      side = DmtxDirUp;
+      type = TestSideForPattern(region, img, side);
+      if(type == DmtxBarNone) {
+         RegionExpand(region, side);
+         continue;
+      }
+
+      /* Test for timing bar along right side */
+      side = DmtxDirRight;
+      type = TestSideForPattern(region, img, side);
+      if(type == DmtxBarNone) {
+         RegionExpand(region, side);
+         continue;
+      }
+
+      /* Confirm that both finder bars are same color */
+      DrawPerimeterPatterns(screen, region, &ps, state);
+
+      break;
+   }
+
+   return DmtxPass;
+}
+#endif
 
 /**
  *
