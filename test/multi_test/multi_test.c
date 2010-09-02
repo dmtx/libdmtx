@@ -173,6 +173,7 @@ typedef struct GridRegion_struct {
    int sizeIdx;
    int onColor;
    int offColor;
+   int finderSides;
 } GridRegion;
 
 typedef struct RegionLines_struct {
@@ -1752,6 +1753,7 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
       SDL_Surface *screen, AppState *state)
 {
    int goodCount;
+   int finderSides;
    DmtxDirection side;
    DmtxBarType type;
    PerimeterStats ps; /* XXX used for display function only */
@@ -1772,6 +1774,7 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
 
    /* Grow region */
    goodCount = 0;
+   finderSides = DmtxDirNone;
    side = DmtxDirDown;
    for(;;) {
       if(region->width > 26 || region->height > 26)
@@ -1780,10 +1783,14 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
       type = TestSideForPattern(region, img, side);
       if(type == DmtxBarNone) {
          RegionExpand(region, side);
+         finderSides = DmtxDirNone;
          goodCount = 0;
          side = RotateCCW(side);
       }
       else {
+         if(type == DmtxBarFinder)
+            finderSides |= side;
+
          goodCount++;
          side = RotateCW(side);
       }
@@ -1791,6 +1798,8 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
       if(goodCount == 4)
          break;
    }
+
+   region->finderSides = finderSides;
 
    /* Confirm that both finder bars are same color */
    DrawPerimeterPatterns(screen, region, &ps, state);
@@ -2056,7 +2065,7 @@ DecodeSymbol(GridRegion *region, DmtxDecode *dec)
    dmtxMatrix3VMultiplyBy(&p01, region->grid.fit2rawFull);
 
    /* Update DmtxRegion with detected corners */
-   switch(DmtxDirLeft | DmtxDirDown) {
+   switch(region->finderSides) {
       case (DmtxDirLeft | DmtxDirDown):
          err = dmtxRegionUpdateCorners(dec, &reg, p00, p10, p11, p01);
          break;
@@ -2109,15 +2118,29 @@ GetOnOffColors(GridRegion *region, const DmtxDecode *dec, int *onColor, int *off
    /* add assertion to guarantee 2 adjancent timing bars */
 
    /* Start tally at intersection of timing bars */
-/*
-   colBeg = (ps->timingBarDirs & DmtxDirLeft) ? region->x : region->x + region->width - 1;
-   rowBeg = (ps->timingBarDirs & DmtxDirDown) ? region->y : region->y + region->height - 1;
-*/
-   colBeg = region->x + region->width - 1;
-   rowBeg = region->y + region->height - 1;
+   colBeg = (region->finderSides & DmtxDirLeft) ? region->x + region->width - 1 : region->x;
+   rowBeg = (region->finderSides & DmtxDirDown) ? region->y + region->height - 1 : region->y;
 
-   d0 = DmtxDirLeft;
-   d1 = DmtxDirDown;
+   switch(region->finderSides) {
+      case (DmtxDirLeft | DmtxDirDown):
+         d0 = DmtxDirLeft;
+         d1 = DmtxDirDown;
+         break;
+      case (DmtxDirDown | DmtxDirRight):
+         d0 = DmtxDirDown;
+         d1 = DmtxDirRight;
+         break;
+      case (DmtxDirRight | DmtxDirUp):
+         d0 = DmtxDirRight;
+         d1 = DmtxDirUp;
+         break;
+      case (DmtxDirUp | DmtxDirLeft):
+         d0 = DmtxDirUp;
+         d1 = DmtxDirLeft;
+         break;
+      default:
+         return DmtxFail;
+   }
 
    t0 = GetTimingColors(region, dec, colBeg, rowBeg, d0);
    t1 = GetTimingColors(region, dec, colBeg, rowBeg, d1);
