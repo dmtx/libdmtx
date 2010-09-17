@@ -31,22 +31,9 @@ Contact: mblaughton@users.sourceforge.net
 
 /**
  * Next:
- * x Find grid at +-90 degress
- * x Display normalized view in realtime
- * x Switch back to fitted 0-1 unit region regardless of grid size (maybe?)
- * x Use consistent naming to hold grid lineCount vs. rowCount
- * x Start region growing function
- * o Consider storing FFT results in timing struct so multiple periods can be tried
- *
- * Approach:
- *   1) Calculate s/b/h/v flow caches (edge intensity)
- *   2) Accumulate and normalize Hough cache
- *   3) Detect high contrast vanishing points (skip for now ... assume infinity)
- *   4) Normalize region by shifting vanishing points to infinity (skip for now)
- *   5) Detect N strongest angles within Hough
- *   6) Detect M strongest offsets within each of N angles
- *   7) Find grid pattern for N*M angle/offset combos
- *   8) Test for presence of barcode
+ * o Start separating functionality into separate dmtxregion2.c file
+ * o Rename/refactor functions, types, and variables
+ * o Abstract away the ugly picture/local/screen handling
  */
 
 #include <stdlib.h>
@@ -57,169 +44,9 @@ Contact: mblaughton@users.sourceforge.net
 #include <assert.h>
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
-#include <SDL/SDL_gfxPrimitives.h>
-#include <SDL/SDL_rotozoom.h>
 #include "../../dmtx.h"
+#include "multi_test.h"
 #include "kiss_fftr.h"
-
-#define max(N,M) ((N > M) ? N : M)
-#define min(N,M) ((N < M) ? N : M)
-
-#define LOCAL_SIZE            64
-#define MAXIMA_SORT_MAX_COUNT  8
-#define ANGLE_SORT_MAX_COUNT   8
-#define TIMING_SORT_MAX_COUNT  8
-
-#define NFFT                  64 /* FFT input size */
-#define HOUGH_D_EXTENT        64
-#define HOUGH_PHI_EXTENT     128
-
-/* Layout constants */
-#define CTRL_COL1_X          380
-#define CTRL_COL2_X          445
-#define CTRL_COL3_X          510
-#define CTRL_COL4_X          575
-#define CTRL_ROW1_Y            0
-#define CTRL_ROW2_Y           65
-#define CTRL_ROW3_Y          130
-#define CTRL_ROW4_Y          195
-#define CTRL_ROW5_Y          259
-#define CTRL_ROW6_Y          324
-#define CTRL_ROW7_Y          388
-
-#define MODULE_LOW             0
-#define MODULE_HIGH            1
-#define MODULE_UNKNOWN         2
-
-#define RotateCCW(N) ((N < 8) ? (N << 1) : 1)
-#define RotateCW(N)  ((N > 1) ? (N >> 1) : 8)
-
-typedef struct UserOptions_struct {
-   const char *imagePath;
-} UserOptions;
-
-typedef struct AppState_struct {
-   int         adjust;
-   int         windowWidth;
-   int         windowHeight;
-   int         imageWidth;
-   int         imageHeight;
-   int         activeExtent;
-   DmtxBoolean displayVanish;
-   DmtxBoolean displayTiming;
-   DmtxBoolean printValues;
-   Sint16      imageLocX;
-   Sint16      imageLocY;
-   Uint8       leftButton;
-   Uint8       rightButton;
-   Uint16      pointerX;
-   Uint16      pointerY;
-   DmtxBoolean quit;
-} AppState;
-
-typedef struct Flow_struct {
-   int mag;
-} Flow;
-
-typedef struct HoughCache_struct {
-   int offExtent;
-   int phiExtent;
-   char isMax[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
-   unsigned int mag[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
-} HoughCache;
-
-typedef struct HoughMaximaSort_struct {
-   int count;
-   int mag[MAXIMA_SORT_MAX_COUNT];
-} HoughMaximaSort;
-
-typedef struct VanishPointSum_struct {
-   int phi;
-   int mag;
-} VanishPointSum;
-
-typedef struct VanishPointSort_struct {
-   int count;
-   VanishPointSum vanishSum[ANGLE_SORT_MAX_COUNT];
-} VanishPointSort;
-
-typedef struct Timing_struct {
-   int phi;
-   double shift;
-   double period;
-   double mag;
-} Timing;
-
-typedef struct TimingSort_struct {
-   int count;
-   Timing timing[TIMING_SORT_MAX_COUNT];
-} TimingSort;
-
-typedef struct AlignmentGrid_struct {
-   int rowCount;
-   int colCount;
-   DmtxMatrix3 raw2fitActive;
-   DmtxMatrix3 raw2fitFull;
-   DmtxMatrix3 fit2rawActive;
-   DmtxMatrix3 fit2rawFull;
-} AlignmentGrid;
-
-typedef struct GridRegion_struct {
-   AlignmentGrid grid;
-   int x;
-   int y;
-   int width;
-   int height;
-   int sizeIdx;
-   int onColor;
-   int offColor;
-   int finderSides;
-   int contrast;
-} GridRegion;
-
-typedef struct RegionLines_struct {
-   int gridCount;
-   Timing timing;
-   double dA, dB;
-   DmtxRay2 line[2];
-} RegionLines;
-
-/* All values in GridRegionGrowth should be negative because list
- * is combined with the positive values of DmtxSymbolSize enum */
-typedef enum {
-   GridRegionGrowthUp       = -5,
-   GridRegionGrowthLeft     = -4,
-   GridRegionGrowthDown     = -3,
-   GridRegionGrowthRight    = -2,
-   GridRegionGrowthError    = -1
-} GridRegionGrowth;
-
-typedef enum {
-   DmtxBarNone     = 0x00,
-   DmtxBarTiming   = 0x01 << 0,
-   DmtxBarFinder   = 0x01 << 1,
-   DmtxBarInterior = 0x01 << 2,
-   DmtxBarExterior = 0x01 << 3
-} DmtxBarType;
-
-/* Only used internally */
-typedef struct ColorTally_struct {
-   int evnCount;
-   int oddCount;
-   int evnColor;
-   int oddColor;
-} ColorTally;
-
-struct StripStats_struct {
-   int jumps;
-   int surprises;
-   int finderErrors;
-   int timingErrors;
-   int contrast;
-   int finderBest;
-   int timingBest;
-};
-typedef struct StripStats_struct StripStats;
 
 /* Scaled unit sin */
 static int uSin128[] = {
@@ -259,59 +86,6 @@ static int uCos128[] = {
     -946,  -955,  -964,  -972,  -980,  -987,  -993,  -999,
    -1004, -1009, -1013, -1016, -1019, -1021, -1023, -1024 };
 
-/* Application level functions */
-static UserOptions GetDefaultOptions(void);
-static DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[]);
-static AppState InitAppState(void);
-static SDL_Surface *SetWindowSize(int windowWidth, int windowHeight);
-static DmtxPassFail HandleEvent(SDL_Event *event, AppState *state,
-      SDL_Surface *picture, SDL_Surface **screen);
-static DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
-/*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
-
-/* Image processing functions */
-static void PopulateFlowCache(Flow *sFlow, Flow *bFlow, Flow *hFlow, Flow *vFlow, DmtxImage *img);
-static int GetCompactOffset(int x, int y, int phiIdx, int extent);
-static double UncompactOffset(double d, int phiIdx, int extent);
-static void PopulateHoughCache(HoughCache *hough, Flow *sFlow, Flow *bFlow, Flow *hFlow, Flow *vFlow);
-static void NormalizeHoughCache(HoughCache *hough, Flow *sFlow, Flow *bFlow, Flow *hFlow, Flow *vFlow);
-static void MarkHoughMaxima(HoughCache *hough);
-static void AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum);
-static VanishPointSort FindVanishPoints(HoughCache *hough);
-static void AddToMaximaSort(HoughMaximaSort *sort, int maximaMag);
-static VanishPointSum GetAngleSumAtPhi(HoughCache *hough, int phi);
-static void AddToTimingSort(TimingSort *sort, Timing timing);
-static TimingSort FindGridTiming(HoughCache *hough, VanishPointSort *sort, AppState *state);
-static DmtxRay2 HoughLineToRay2(int phi, double d);
-static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
-static DmtxPassFail FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec, SDL_Surface *screen, AppState *state);
-static DmtxBarType TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side, int offset);
-static DmtxPassFail RegionExpand(GridRegion *region, DmtxDirection dir);
-static int GetSizeIdx(int a, int b);
-static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
-static DmtxPassFail DecodeSymbol(GridRegion *region, DmtxDecode *dec);
-static DmtxPassFail GetOnOffColors(GridRegion *region, const DmtxDecode *dec, int *onColor, int *offColor);
-static ColorTally GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBeg, DmtxDirection dir);
-
-/* Process visualization functions */
-static void BlitFlowCache(SDL_Surface *screen, Flow *flowCache, int maxFlowMag, int screenY, int screenX);
-static void BlitHoughCache(SDL_Surface *screen, HoughCache *hough, int screenY, int screenX);
-static void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
-static void PlotPixel(SDL_Surface *surface, int x, int y);
-static int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
-static int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
-static void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
-static void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
-static void DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale, int screenY, int screenX);
-static void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort sort, int screenY, int screenX);
-static void DrawTimingDots(SDL_Surface *screen, Timing timing, int screenY, int screenX);
-static void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
-static int ReadModuleColor(DmtxImage *img, AlignmentGrid *grid, int symbolRow, int symbolCol, int colorPlane);
-static Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
-static void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
-static void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *state, DmtxDirection side, DmtxBarType type);
-static void DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection side, DmtxBarType type);
-
 int
 main(int argc, char *argv[])
 {
@@ -321,7 +95,7 @@ main(int argc, char *argv[])
    SDL_Surface       *picture;
    SDL_Event          event;
    SDL_Rect           imageLoc;
-   Uint32             bgColorB, bgColorK;
+   Uint32             bgColorB;
    int                i, j;
    int                pixelCount, maxFlowMag;
    DmtxImage         *imgActive, *imgFull;
@@ -373,7 +147,6 @@ main(int argc, char *argv[])
    NudgeImage(state.windowHeight, picture->h, &state.imageLocY);
 
    bgColorB = SDL_MapRGBA(screen->format, 100, 100, 100, 255);
-   bgColorK = SDL_MapRGBA(screen->format, 0, 0, 0, 255);
 
    /* Create surface to hold image pixels to be scanned */
    local = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
@@ -417,69 +190,7 @@ main(int argc, char *argv[])
       imageLoc.x = state.imageLocX;
       imageLoc.y = state.imageLocY;
 
-      /* Capture portion of image that falls within highlighted region */
-      /* Use blitsurface if 1:1, otherwise scale */
-      SDL_FillRect(local, NULL, bgColorK);
-      if(state.activeExtent == 64) {
-         clipRect.x = (screen->w - state.activeExtent)/2 - imageLoc.x;
-         clipRect.y = (screen->h - state.activeExtent)/2 - imageLoc.y;
-         clipRect.w = LOCAL_SIZE;
-         clipRect.h = LOCAL_SIZE;
-         SDL_BlitSurface(picture, &clipRect, local, NULL);
-      }
-      else if(state.activeExtent == 32) {
-         Uint8 localBpp;
-         Uint8 *writePixel, *readTL, *readTR, *readBL, *readBR;
-
-         /* first blit, then expand */
-         clipRect.x = (screen->w - state.activeExtent)/2 - imageLoc.x;
-         clipRect.y = (screen->h - state.activeExtent)/2 - imageLoc.y;
-         clipRect.w = LOCAL_SIZE;
-         clipRect.h = LOCAL_SIZE;
-         SDL_BlitSurface(picture, &clipRect, localTmp, NULL);
-
-         localBpp = local->format->BytesPerPixel;
-         SDL_LockSurface(local);
-         SDL_LockSurface(localTmp);
-         for(i = 0; i < 64; i++) {
-            for(j = 0; j < 64; j++) {
-               readTL = (Uint8 *)localTmp->pixels + ((i/2) * 64 + (j/2)) * localBpp;
-               readTR = readTL + localBpp;
-               readBL = readTL + (64 * localBpp);
-               readBR = readBL + localBpp;
-               writePixel = (Uint8 *)local->pixels + ((i * 64 + j) * localBpp);
-
-               /* memcpy(writePixel, readTL, localBpp); nearest neighbor */
-               if(!(i & 0x01) && !(j & 0x01)) {
-                  memcpy(writePixel, readTL, localBpp);
-               }
-               else if((i & 0x01) && !(j & 0x01)) {
-                  writePixel[0] = ((Uint16)readTL[0] + (Uint16)readBL[0])/2;
-                  writePixel[1] = ((Uint16)readTL[1] + (Uint16)readBL[1])/2;
-                  writePixel[2] = ((Uint16)readTL[2] + (Uint16)readBL[2])/2;
-                  writePixel[3] = ((Uint16)readTL[3] + (Uint16)readBL[3])/2;
-               }
-               else if(!(i & 0x01) && (j & 0x01)) {
-                  writePixel[0] = ((Uint16)readTL[0] + (Uint16)readTR[0])/2;
-                  writePixel[1] = ((Uint16)readTL[1] + (Uint16)readTR[1])/2;
-                  writePixel[2] = ((Uint16)readTL[2] + (Uint16)readTR[2])/2;
-                  writePixel[3] = ((Uint16)readTL[3] + (Uint16)readTR[3])/2;
-               }
-               else {
-                  writePixel[0] = ((Uint16)readTL[0] + (Uint16)readTR[0] +
-                        (Uint16)readBL[0] + (Uint16)readBR[0])/4;
-                  writePixel[1] = ((Uint16)readTL[1] + (Uint16)readTR[1] +
-                        (Uint16)readBL[1] + (Uint16)readBR[1])/4;
-                  writePixel[2] = ((Uint16)readTL[2] + (Uint16)readTR[2] +
-                        (Uint16)readBL[2] + (Uint16)readBR[2])/4;
-                  writePixel[3] = ((Uint16)readTL[3] + (Uint16)readTR[3] +
-                        (Uint16)readBL[3] + (Uint16)readBR[3])/4;
-               }
-            }
-         }
-         SDL_UnlockSurface(localTmp);
-         SDL_UnlockSurface(local);
-      }
+      captureLocalPortion(local, localTmp, picture, screen, &state, imageLoc);
 
       /* Start with blank canvas */
       SDL_FillRect(screen, NULL, bgColorB);
@@ -616,11 +327,86 @@ main(int argc, char *argv[])
    exit(0);
 }
 
+void
+captureLocalPortion(SDL_Surface *local, SDL_Surface *localTmp,
+      SDL_Surface *picture, SDL_Surface *screen, AppState *state, SDL_Rect imageLoc)
+{
+   int      i, j;
+   Uint32   bgColorK;
+   SDL_Rect clipRect;
+
+   bgColorK = SDL_MapRGBA(screen->format, 0, 0, 0, 255);
+
+   /* Capture portion of image that falls within highlighted region */
+   /* Use blitsurface if 1:1, otherwise scale */
+   SDL_FillRect(local, NULL, bgColorK);
+   if(state->activeExtent == 64) {
+      clipRect.x = (screen->w - state->activeExtent)/2 - imageLoc.x;
+      clipRect.y = (screen->h - state->activeExtent)/2 - imageLoc.y;
+      clipRect.w = LOCAL_SIZE;
+      clipRect.h = LOCAL_SIZE;
+      SDL_BlitSurface(picture, &clipRect, local, NULL);
+   }
+   else if(state->activeExtent == 32) {
+      Uint8 localBpp;
+      Uint8 *writePixel, *readTL, *readTR, *readBL, *readBR;
+
+      /* first blit, then expand */
+      clipRect.x = (screen->w - state->activeExtent)/2 - imageLoc.x;
+      clipRect.y = (screen->h - state->activeExtent)/2 - imageLoc.y;
+      clipRect.w = LOCAL_SIZE;
+      clipRect.h = LOCAL_SIZE;
+      SDL_BlitSurface(picture, &clipRect, localTmp, NULL);
+
+      localBpp = local->format->BytesPerPixel;
+      SDL_LockSurface(local);
+      SDL_LockSurface(localTmp);
+      for(i = 0; i < 64; i++) {
+         for(j = 0; j < 64; j++) {
+            readTL = (Uint8 *)localTmp->pixels + ((i/2) * 64 + (j/2)) * localBpp;
+            readTR = readTL + localBpp;
+            readBL = readTL + (64 * localBpp);
+            readBR = readBL + localBpp;
+            writePixel = (Uint8 *)local->pixels + ((i * 64 + j) * localBpp);
+
+            /* memcpy(writePixel, readTL, localBpp); nearest neighbor */
+            if(!(i & 0x01) && !(j & 0x01)) {
+               memcpy(writePixel, readTL, localBpp);
+            }
+            else if((i & 0x01) && !(j & 0x01)) {
+               writePixel[0] = ((Uint16)readTL[0] + (Uint16)readBL[0])/2;
+               writePixel[1] = ((Uint16)readTL[1] + (Uint16)readBL[1])/2;
+               writePixel[2] = ((Uint16)readTL[2] + (Uint16)readBL[2])/2;
+               writePixel[3] = ((Uint16)readTL[3] + (Uint16)readBL[3])/2;
+            }
+            else if(!(i & 0x01) && (j & 0x01)) {
+               writePixel[0] = ((Uint16)readTL[0] + (Uint16)readTR[0])/2;
+               writePixel[1] = ((Uint16)readTL[1] + (Uint16)readTR[1])/2;
+               writePixel[2] = ((Uint16)readTL[2] + (Uint16)readTR[2])/2;
+               writePixel[3] = ((Uint16)readTL[3] + (Uint16)readTR[3])/2;
+            }
+            else {
+               writePixel[0] = ((Uint16)readTL[0] + (Uint16)readTR[0] +
+                     (Uint16)readBL[0] + (Uint16)readBR[0])/4;
+               writePixel[1] = ((Uint16)readTL[1] + (Uint16)readTR[1] +
+                     (Uint16)readBL[1] + (Uint16)readBR[1])/4;
+               writePixel[2] = ((Uint16)readTL[2] + (Uint16)readTR[2] +
+                     (Uint16)readBL[2] + (Uint16)readBR[2])/4;
+               writePixel[3] = ((Uint16)readTL[3] + (Uint16)readTR[3] +
+                     (Uint16)readBL[3] + (Uint16)readBR[3])/4;
+            }
+         }
+      }
+      SDL_UnlockSurface(localTmp);
+      SDL_UnlockSurface(local);
+   }
+}
+
 /**
  *
  *
  */
-static UserOptions
+UserOptions
 GetDefaultOptions(void)
 {
    UserOptions opt;
@@ -635,7 +421,7 @@ GetDefaultOptions(void)
  *
  *
  */
-static DmtxPassFail
+DmtxPassFail
 HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
 {
    if(*argcp < 2) {
@@ -653,7 +439,7 @@ HandleArgs(UserOptions *opt, int *argcp, char **argvp[])
  *
  *
  */
-static AppState
+AppState
 InitAppState(void)
 {
    AppState state;
@@ -682,7 +468,7 @@ InitAppState(void)
  *
  *
  */
-static SDL_Surface *
+SDL_Surface *
 SetWindowSize(int windowWidth, int windowHeight)
 {
    SDL_Surface *screen;
@@ -703,7 +489,7 @@ SetWindowSize(int windowWidth, int windowHeight)
  *
  *
  */
-static DmtxPassFail
+DmtxPassFail
 HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface **screen)
 {
    int nudgeRequired = DmtxFalse;
@@ -818,7 +604,7 @@ HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface
  *
  *
  */
-static DmtxPassFail
+DmtxPassFail
 NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc)
 {
    int minReveal = 16;
@@ -836,7 +622,7 @@ NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc)
  *
  */
 /*
-static void
+void
 WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 {
    int totalBytes, headerBytes;
@@ -864,7 +650,7 @@ WriteDiagnosticImage(DmtxDecode *dec, char *imagePath)
 /**
  * 3x3 Sobel Kernel
  */
-static void
+void
 PopulateFlowCache(Flow *sFlow, Flow *bFlow,
       Flow *hFlow, Flow *vFlow, DmtxImage *img)
 {
@@ -1008,7 +794,7 @@ PopulateFlowCache(Flow *sFlow, Flow *bFlow,
          (tb.sec - ta.sec) + (tb.usec - ta.usec))/1000); */
 }
 
-static int
+int
 GetCompactOffset(int x, int y, int phiIdx, int extent)
 {
    int offset, posMax, negMax;
@@ -1062,7 +848,7 @@ GetCompactOffset(int x, int y, int phiIdx, int extent)
 */
 }
 
-static double
+double
 UncompactOffset(double compactedOffset, int phiIdx, int extent)
 {
    double phiRad;
@@ -1108,7 +894,7 @@ UncompactOffset(double compactedOffset, int phiIdx, int extent)
  *
  *
  */
-static void
+void
 PopulateHoughCache(HoughCache *hough, Flow *sFlow,
       Flow *bFlow, Flow *hFlow, Flow *vFlow)
 {
@@ -1185,7 +971,7 @@ PopulateHoughCache(HoughCache *hough, Flow *sFlow,
  * Normalize hough quadrants in a very slow and inefficient way
  *
  */
-static void
+void
 NormalizeHoughCache(HoughCache *hough,
       Flow *sFlow, Flow *bFlow,
       Flow *hFlow, Flow *vFlow)
@@ -1237,7 +1023,7 @@ NormalizeHoughCache(HoughCache *hough,
  *
  *
  */
-static void
+void
 MarkHoughMaxima(HoughCache *hough)
 {
    int phi, offset;
@@ -1264,7 +1050,7 @@ MarkHoughMaxima(HoughCache *hough)
  *
  *
  */
-static void
+void
 AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum)
 {
    int i, startHere;
@@ -1320,7 +1106,7 @@ AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum)
  *
  *
  */
-static VanishPointSort
+VanishPointSort
 FindVanishPoints(HoughCache *hough)
 {
    int phi;
@@ -1339,7 +1125,7 @@ FindVanishPoints(HoughCache *hough)
  *
  *
  */
-static void
+void
 AddToMaximaSort(HoughMaximaSort *sort, int maximaMag)
 {
    int i;
@@ -1368,7 +1154,7 @@ AddToMaximaSort(HoughMaximaSort *sort, int maximaMag)
  *
  *
  */
-static VanishPointSum
+VanishPointSum
 GetAngleSumAtPhi(HoughCache *hough, int phi)
 {
    int offset, i;
@@ -1395,7 +1181,7 @@ GetAngleSumAtPhi(HoughCache *hough, int phi)
  *
  *
  */
-static void
+void
 AddToTimingSort(TimingSort *sort, Timing timing)
 {
    int i;
@@ -1427,7 +1213,7 @@ AddToTimingSort(TimingSort *sort, Timing timing)
  *
  *
  */
-static TimingSort
+TimingSort
 FindGridTiming(HoughCache *hough, VanishPointSort *vPoints, AppState *state)
 {
    int x, y, fitMag, fitMax, fitOff, attempts, iter;
@@ -1499,7 +1285,7 @@ FindGridTiming(HoughCache *hough, VanishPointSort *vPoints, AppState *state)
  *
  *
  */
-static DmtxRay2
+DmtxRay2
 HoughLineToRay2(int phi, double d)
 {
    double phiRad;
@@ -1531,7 +1317,7 @@ HoughLineToRay2(int phi, double d)
  *
  *
  */
-static DmtxPassFail
+DmtxPassFail
 BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state)
 {
    RegionLines rl0, rl1, *flat, *steep;
@@ -1645,7 +1431,7 @@ BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *stat
  *
  *
  */
-static StripStats
+StripStats
 GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int contrast)
 {
    int i, jumpAmount, jumpThreshold;
@@ -1714,26 +1500,10 @@ GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int 
 }
 
 /**
- * Instead of using the original method (below), instead look for
- * the patterns on any of the sides. Search sides using a round-robin
- * fashion, always CW (or CCW, whatever). When any side moves, re-test
- * previous side before continuing on round-robin search. This
- * approach will grow the region while maintaining an approximately
- * square shape. The "one-step-back" approach works because any
- * movement outward might invalidate the previous side, and also
- * while moving a side outward it is not tested automatically so no
- * repeat work is done.
  *
- * While expanding sides, also incorporate grid tweaking logic and
- * track the matching pattern for each side. When entire perimeter
- * can be traced without moving sides outward then test to make sure
- * 2 adjacent finder bars and 2 adjacent timing bars were found.
  *
- * The benefit to this approach is that we can expand the region
- * exactly once, and can tweak the grid alignment as we go (also
- * exactly once).
  */
-static DmtxPassFail
+DmtxPassFail
 FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec,
       SDL_Surface *screen, AppState *state)
 {
@@ -1767,17 +1537,10 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
       type = TestSideForPattern(region, img, side, 0);
       outer = TestSideForPattern(region, img, side, 1);
 
-      /* This needs to be made smarter ... just having a perimeter made up of
-       * valid patterns isn't good enough. We need to know that there are 2
-       * sets of adjacent finder and timing bars, and that their colors of
-       * them all are consistent.
-       *
-       * But how to deal with outliers? Or more importantly, what do we do
-       * when everything matches perfectly? I see 2 different things we can
-       * check, but I'm not sure in which order we should check them:
-       *
-       * 1) Check that the colors are all consistent
-       * 2) Check that next-farther out strips are consistent
+      /**
+       * Make smarter ... maybe:
+       * 1) Check that next-farther out strips are consistent (easy)
+       * 2) Check that the colors are all consistent (not as easy)
        */
 
       if(type == DmtxBarNone || outer == DmtxBarNone) {
@@ -1797,7 +1560,6 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
 
       /* Potential match ... check outers */
       if(goodCount == 4) {
-         /* make sure there are only 2 finder sides */
          break;
       }
    }
@@ -1811,7 +1573,7 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
  *
  *
  */
-static DmtxBarType
+DmtxBarType
 TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side, int offset)
 {
    int i;
@@ -1890,7 +1652,7 @@ TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side, int o
  *
  *
  */
-static DmtxPassFail
+DmtxPassFail
 RegionExpand(GridRegion *region, DmtxDirection dir)
 {
    switch(dir) {
@@ -1919,7 +1681,7 @@ RegionExpand(GridRegion *region, DmtxDirection dir)
  *
  *
  */
-static int
+int
 GetSizeIdx(int a, int b)
 {
    int i, rows, cols;
@@ -1940,7 +1702,7 @@ GetSizeIdx(int a, int b)
  *
  *
  */
-static DmtxPassFail
+DmtxPassFail
 RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00,
       DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01)
 {
@@ -2043,7 +1805,7 @@ RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00,
  *
  *
  */
-static DmtxPassFail
+DmtxPassFail
 DecodeSymbol(GridRegion *region, DmtxDecode *dec)
 {
    int onColor, offColor;
@@ -2111,7 +1873,7 @@ DecodeSymbol(GridRegion *region, DmtxDecode *dec)
  *
  *
  */
-static DmtxPassFail
+DmtxPassFail
 GetOnOffColors(GridRegion *region, const DmtxDecode *dec, int *onColor, int *offColor)
 {
    int colBeg, rowBeg;
@@ -2161,7 +1923,7 @@ GetOnOffColors(GridRegion *region, const DmtxDecode *dec, int *onColor, int *off
  *
  *
  */
-static ColorTally
+ColorTally
 GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBeg,
       DmtxDirection dir)
 {
@@ -2213,748 +1975,4 @@ GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBe
     /* consider having PerimeterEdgeTest() call this function when ready? */
 
    return colors;
-}
-
-/**
- *
- */
-static void
-BlitFlowCache(SDL_Surface *screen, Flow *flowCache, int maxFlowMag, int screenY, int screenX)
-{
-   int row, col;
-   unsigned char rgb[3];
-   int width, height;
-   int offset;
-   Flow flow;
-   unsigned char pixbuf[12288]; /* 64 * 64 * 3 */
-   SDL_Surface *surface;
-   SDL_Rect clipRect;
-   Uint32 rmask, gmask, bmask, amask;
-
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-   rmask = 0xff000000;
-   gmask = 0x00ff0000;
-   bmask = 0x0000ff00;
-   amask = 0x000000ff;
-#else
-   rmask = 0x000000ff;
-   gmask = 0x0000ff00;
-   bmask = 0x00ff0000;
-   amask = 0xff000000;
-#endif
-
-   width = LOCAL_SIZE;
-   height = LOCAL_SIZE;
-
-   for(row = 0; row < height; row++) {
-      for(col = 0; col < width; col++) {
-         flow = flowCache[row * width + col];
-         if(flow.mag > 0) {
-            rgb[0] = 0;
-            rgb[1] = (int)((abs(flow.mag) * 254.0)/maxFlowMag + 0.5);
-            rgb[2] = 0;
-         }
-         else {
-            rgb[0] = (int)((abs(flow.mag) * 254.0)/maxFlowMag + 0.5);
-            rgb[1] = 0;
-            rgb[2] = 0;
-         }
-
-         offset = ((height - row - 1) * width + col) * 3;
-         pixbuf[offset] = rgb[0];
-         pixbuf[offset+1] = rgb[1];
-         pixbuf[offset+2] = rgb[2];
-      }
-   }
-
-   clipRect.w = LOCAL_SIZE;
-   clipRect.h = LOCAL_SIZE;
-   clipRect.x = screenX;
-   clipRect.y = screenY;
-
-   surface = SDL_CreateRGBSurfaceFrom(pixbuf, width, height, 24, width * 3,
-         rmask, gmask, bmask, 0);
-
-   SDL_BlitSurface(surface, NULL, screen, &clipRect);
-   SDL_FreeSurface(surface);
-}
-
-/**
- *
- *
- */
-static void
-BlitHoughCache(SDL_Surface *screen, HoughCache *hough, int screenY, int screenX)
-{
-   int row, col;
-   int width, height;
-   int maxVal;
-   int rgb[3];
-   unsigned int cache;
-   int offset;
-   unsigned char pixbuf[24576]; /* 128 * 64 * 3 */
-   SDL_Surface *surface;
-   SDL_Rect clipRect;
-   Uint32 rmask, gmask, bmask, amask;
-
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-   rmask = 0xff000000;
-   gmask = 0x00ff0000;
-   bmask = 0x0000ff00;
-   amask = 0x000000ff;
-#else
-   rmask = 0x000000ff;
-   gmask = 0x0000ff00;
-   bmask = 0x00ff0000;
-   amask = 0xff000000;
-#endif
-
-   width = 128;
-   height = LOCAL_SIZE;
-
-   maxVal = 0;
-   for(row = 0; row < height; row++) {
-      for(col = 0; col < width; col++) {
-         if(hough->isMax[row * width + col] == 0)
-            continue;
-
-         if(hough->mag[row * width + col] > maxVal)
-            maxVal = hough->mag[row * width + col];
-      }
-   }
-
-   for(row = 0; row < height; row++) {
-      for(col = 0; col < width; col++) {
-
-         cache = hough->mag[row * width + col];
-
-         if(hough->isMax[row * width + col] > 2) {
-            rgb[0] = 255;
-            rgb[1] = rgb[2] = 0;
-         }
-         else if(hough->isMax[row * width + col] == 1) {
-            rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
-         }
-         else {
-            rgb[0] = rgb[1] = rgb[2] = 0;
-         }
-
-         offset = ((height - row - 1) * width + col) * 3;
-         pixbuf[offset] = rgb[0];
-         pixbuf[offset+1] = rgb[1];
-         pixbuf[offset+2] = rgb[2];
-      }
-   }
-
-   clipRect.w = width;
-   clipRect.h = height;
-   clipRect.x = screenX;
-   clipRect.y = screenY;
-
-   surface = SDL_CreateRGBSurfaceFrom(pixbuf, width, height, 24, width * 3,
-         rmask, gmask, bmask, 0);
-
-   SDL_BlitSurface(surface, NULL, screen, &clipRect);
-   SDL_FreeSurface(surface);
-}
-
-/**
- *
- *
- */
-static void
-BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX)
-{
-   SDL_Surface *src;
-   SDL_Rect clipRect;
-
-   clipRect.w = LOCAL_SIZE;
-   clipRect.h = LOCAL_SIZE;
-   clipRect.x = screenX;
-   clipRect.y = screenY;
-
-   if(zoom == 1) {
-      SDL_BlitSurface(active, NULL, screen, &clipRect);
-   }
-   else {
-      /* DO NOT USE SMOOTHING OPTION -- distorts symbol proportions */
-      src = zoomSurface(active, 2.0, 2.0, 0 /* smoothing */);
-      SDL_BlitSurface(src, NULL, screen, &clipRect);
-      SDL_FreeSurface(src);
-   }
-}
-
-/**
- *
- *
- */
-static void
-PlotPixel(SDL_Surface *surface, int x, int y)
-{
-   char *ptr;
-   Uint32 col;
-
-   ptr = (char *)surface->pixels;
-   col = SDL_MapRGB(surface->format, 255, 0, 0);
-
-   memcpy(ptr + surface->pitch * y + surface->format->BytesPerPixel * x,
-         &col, surface->format->BytesPerPixel);
-}
-
-/**
- *
- *
- */
-static int
-Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1)
-{
-   double numer, denom;
-   DmtxVector2 w;
-
-   denom = dmtxVector2Cross(&(p1.v), &(p0.v));
-   if(fabs(denom) <= 0.000001)
-      return DmtxFail;
-
-   dmtxVector2Sub(&w, &(p1.p), &(p0.p));
-   numer = dmtxVector2Cross(&(p1.v), &w);
-
-   *t = numer/denom;
-
-   return DmtxTrue;
-}
-
-/**
- *
- *
- */
-static int
-IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1)
-{
-   double tTmp, xMin, xMax, yMin, yMax;
-   DmtxVector2 p[2];
-   int tCount = 0;
-   double extent;
-   DmtxRay2 rBtm, rTop, rLft, rRgt;
-   DmtxVector2 unitX = { 1.0, 0.0 };
-   DmtxVector2 unitY = { 0.0, 1.0 };
-
-   if(bb0.X < bb1.X) {
-      xMin = bb0.X;
-      xMax = bb1.X;
-   }
-   else {
-      xMin = bb1.X;
-      xMax = bb0.X;
-   }
-
-   if(bb0.Y < bb1.Y) {
-      yMin = bb0.Y;
-      yMax = bb1.Y;
-   }
-   else {
-      yMin = bb1.Y;
-      yMax = bb0.Y;
-   }
-
-   extent = xMax - xMin;
-
-   rBtm.p.X = rTop.p.X = rLft.p.X = xMin;
-   rRgt.p.X = xMax;
-
-   rBtm.p.Y = rLft.p.Y = rRgt.p.Y = yMin;
-   rTop.p.Y = yMax;
-
-   rBtm.v = rTop.v = unitX;
-   rLft.v = rRgt.v = unitY;
-
-   if(Ray2Intersect(&tTmp, rBtm, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
-      dmtxPointAlongRay2(&(p[tCount++]), &rBtm, tTmp);
-
-   if(Ray2Intersect(&tTmp, rTop, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
-      dmtxPointAlongRay2(&(p[tCount++]), &rTop, tTmp);
-
-   if(Ray2Intersect(&tTmp, rLft, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
-      dmtxPointAlongRay2(&(p[tCount++]), &rLft, tTmp);
-
-   if(Ray2Intersect(&tTmp, rRgt, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
-      dmtxPointAlongRay2(&(p[tCount++]), &rRgt, tTmp);
-
-   if(tCount != 2)
-      return DmtxFail;
-
-   *p0 = p[0];
-   *p1 = p[1];
-
-   return DmtxTrue;
-}
-
-/**
- *
- *
- */
-static void
-DrawActiveBorder(SDL_Surface *screen, int activeExtent)
-{
-   Sint16 x00, y00;
-   Sint16 x10, y10;
-   Sint16 x11, y11;
-   Sint16 x01, y01;
-
-   x01 = (screen->w - activeExtent)/2 - 1;
-   y01 = (screen->h - activeExtent)/2 - 1;
-
-   x00 = x01;
-   y00 = y01 + activeExtent + 1;
-
-   x10 = x00 + activeExtent + 1;
-   y10 = y00;
-
-   x11 = x10;
-   y11 = y01;
-
-   lineColor(screen, x00, y00, x10, y10, 0x0000ffff);
-   lineColor(screen, x10, y10, x11, y11, 0x0000ffff);
-   lineColor(screen, x11, y11, x01, y01, 0x0000ffff);
-   lineColor(screen, x01, y01, x00, y00, 0x0000ffff);
-}
-
-/**
- *
- *
- */
-static void
-DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
-      int phi, double d, int displayScale)
-{
-   int scaledExtent;
-   DmtxVector2 bb0, bb1;
-   DmtxVector2 p0, p1;
-   DmtxRay2 rLine;
-   DmtxPixelLoc d0, d1;
-
-   scaledExtent = baseExtent * displayScale;
-   bb0.X = bb0.Y = 0.0;
-   bb1.X = bb1.Y = scaledExtent - 1;
-
-   rLine = HoughLineToRay2(phi, d);
-   dmtxVector2ScaleBy(&rLine.p, (double)displayScale);
-
-   p0.X = p0.Y = p1.X = p1.Y = 0.0;
-
-   if(IntersectBox(rLine, bb0, bb1, &p0, &p1) == DmtxFalse)
-      return;
-
-   d0.X = (int)(p0.X + 0.5) + screenX;
-   d1.X = (int)(p1.X + 0.5) + screenX;
-
-   d0.Y = screenY + (scaledExtent - (int)(p0.Y + 0.5) - 1);
-   d1.Y = screenY + (scaledExtent - (int)(p1.Y + 0.5) - 1);
-
-   lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
-}
-
-/**
- *
- *
- */
-static void
-DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale,
-      int screenY, int screenX)
-{
-   int i;
-
-   for(i = -64; i <= 64; i++) {
-      DrawLine(screen, 64, screenX, screenY, timing.phi,
-            timing.shift + (timing.period * i), displayScale);
-   }
-}
-
-/**
- *
- *
- */
-static void
-DrawVanishingPoints(SDL_Surface *screen, VanishPointSort sort, int screenY, int screenX)
-{
-   int sortIdx;
-   DmtxPixelLoc d0, d1;
-   Uint32 rgba;
-
-   for(sortIdx = 0; sortIdx < sort.count; sortIdx++) {
-      d0.X = d1.X = screenX + sort.vanishSum[sortIdx].phi;
-      d0.Y = screenY;
-      d1.Y = d0.Y + 64;
-
-      if(sortIdx < 2)
-         rgba = 0xff0000ff;
-      else if(sortIdx < 4)
-         rgba = 0x007700ff;
-      else if(sortIdx < 6)
-         rgba = 0x000077ff;
-      else
-         rgba = 0x000000ff;
-
-      lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, rgba);
-   }
-}
-
-/**
- *
- *
- */
-static void
-DrawTimingDots(SDL_Surface *screen, Timing timing, int screenY, int screenX)
-{
-   int i, d;
-
-   for(i = 0; i < 64; i++) {
-      d = (int)(i * timing.period + timing.shift);
-      if(d >= 64)
-         break;
-
-      PlotPixel(screen, screenX + timing.phi, screenY + 63 - d);
-   }
-}
-
-/**
- *
- *
- */
-static void
-DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
-      AlignmentGrid *region, AppState *state, int screenY, int screenX)
-{
-   unsigned char pixbuf[49152]; /* 128 * 128 * 3 */
-   unsigned char *ptrFit, *ptrRaw;
-   SDL_Rect clipRect;
-   SDL_Surface *surface;
-   Uint32 rmask, gmask, bmask, amask;
-   int x, yImage, yDmtx;
-   int xRaw, yRaw;
-   int extent = 128;
-   int modulesToDisplay = 16;
-   int dispModExtent = extent/modulesToDisplay;
-   int bytesPerRow = extent * 3;
-   DmtxVector2 pFit, pRaw, pRawActive, pTmp, pCtr;
-   DmtxVector2 gridTest;
-   int shiftX, shiftY;
-
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-   rmask = 0xff000000;
-   gmask = 0x00ff0000;
-   bmask = 0x0000ff00;
-   amask = 0x000000ff;
-#else
-   rmask = 0x000000ff;
-   gmask = 0x0000ff00;
-   bmask = 0x00ff0000;
-   amask = 0xff000000;
-#endif
-
-   pTmp.X = pTmp.Y = state->activeExtent/2.0;
-   dmtxMatrix3VMultiply(&pCtr, &pTmp, region->raw2fitActive);
-
-   for(yImage = 0; yImage < extent; yImage++) {
-      for(x = 0; x < extent; x++) {
-
-         yDmtx = (extent - 1) - yImage;
-
-         /* Adjust fitted input so unfitted center is display centered */
-         pFit.X = ((x-extent/2) * (double)modulesToDisplay) /
-               (region->colCount * extent) + pCtr.X;
-
-         pFit.Y = ((yDmtx-extent/2) * (double)modulesToDisplay) /
-               (region->rowCount * extent) + pCtr.Y;
-
-         dmtxMatrix3VMultiply(&pRaw, &pFit, region->fit2rawFull);
-         dmtxMatrix3VMultiply(&pRawActive, &pFit, region->fit2rawActive);
-
-         xRaw = (pRaw.X >= 0.0) ? (int)(pRaw.X + 0.5) : (int)(pRaw.X - 0.5);
-         yRaw = (pRaw.Y >= 0.0) ? (int)(pRaw.Y + 0.5) : (int)(pRaw.Y - 0.5);
-
-         ptrFit = pixbuf + (yImage * bytesPerRow + x * 3);
-         if(xRaw < 0 || xRaw >= img->width || yRaw < 0 || yRaw >= img->height) {
-            ptrFit[0] = 0;
-            ptrFit[1] = 0;
-            ptrFit[2] = 0;
-         }
-         else {
-            ptrRaw = (unsigned char *)img->pxl + dmtxImageGetByteOffset(img, xRaw, yRaw);
-
-            if(pRawActive.X < 0.0 || pRawActive.X >= state->activeExtent - 1 ||
-                  pRawActive.Y < 0.0 || pRawActive.Y >= state->activeExtent - 1) {
-               ptrFit[0] = ptrRaw[0]/2;
-               ptrFit[1] = ptrRaw[1]/2;
-               ptrFit[2] = ptrRaw[2]/2;
-            }
-            else {
-               ptrFit[0] = ptrRaw[0];
-               ptrFit[1] = ptrRaw[1];
-               ptrFit[2] = ptrRaw[2];
-            }
-         }
-      }
-   }
-
-   gridTest.X = pCtr.X * region->colCount * dispModExtent;
-   gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
-   shiftX = (int)gridTest.X % dispModExtent;
-
-   gridTest.Y = pCtr.Y * region->rowCount * dispModExtent;
-   gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
-   shiftY = (int)gridTest.Y % dispModExtent;
-
-   for(yImage = 0; yImage < extent; yImage++) {
-
-      yDmtx = (extent - 1) - yImage;
-
-      for(x = 0; x < extent; x++) {
-
-         if((yDmtx + shiftY) % dispModExtent != 0 &&
-               (x + shiftX) % dispModExtent != 0)
-            continue;
-
-         ptrFit = pixbuf + (yImage * bytesPerRow + x * 3);
-
-         /* If reeaally dark then add brightened grid lines */
-         if(ptrFit[0] + ptrFit[1] + ptrFit[2] < 60) {
-            ptrFit[0] += (255 - ptrFit[0])/8;
-            ptrFit[1] += (255 - ptrFit[1])/8;
-            ptrFit[2] += (255 - ptrFit[2])/8;
-         }
-         /* Otherwise add darkened grid lines */
-         else {
-            ptrFit[0] = (ptrFit[0] * 8)/10;
-            ptrFit[1] = (ptrFit[1] * 8)/10;
-            ptrFit[2] = (ptrFit[2] * 8)/10;
-         }
-      }
-   }
-
-   clipRect.w = extent;
-   clipRect.h = extent;
-   clipRect.x = screenX;
-   clipRect.y = screenY;
-
-   surface = SDL_CreateRGBSurfaceFrom(pixbuf, extent, extent, 24, extent * 3,
-         rmask, gmask, bmask, 0);
-
-   SDL_BlitSurface(surface, NULL, screen, &clipRect);
-   SDL_FreeSurface(surface);
-}
-
-/**
- *
- *
- */
-static int
-ReadModuleColor(DmtxImage *img, AlignmentGrid *grid, int symbolRow,
-      int symbolCol, int colorPlane)
-{
-   int err;
-   int i;
-   int color, colorTmp;
-   double sampleX[] = { 0.5, 0.4, 0.5, 0.6, 0.5 };
-   double sampleY[] = { 0.5, 0.5, 0.4, 0.5, 0.6 };
-   DmtxVector2 p;
-
-   color = 0;
-   for(i = 0; i < 5; i++) {
-
-      p.X = (1.0/grid->colCount) * (symbolCol + sampleX[i]);
-      p.Y = (1.0/grid->rowCount) * (symbolRow + sampleY[i]);
-
-      dmtxMatrix3VMultiplyBy(&p, grid->fit2rawFull);
-
-      /* Should use dmtxDecodeGetPixelValue() later to properly handle pixel skipping */
-      err = dmtxImageGetPixelValue(img, p.X, p.Y, colorPlane, &colorTmp);
-      if(err == DmtxFail)
-         return 0;
-
-      color += colorTmp;
-   }
-
-   return color/5;
-}
-
-/**
- *
- *
- */
-static Sint16
-Clamp(Sint16 x, Sint16 xMin, Sint16 extent)
-{
-   Sint16 xMax;
-
-   if(x < xMin)
-      return xMin;
-
-   xMax = xMin + extent - 1;
-   if(x > xMax)
-      return xMax;
-
-   return x;
-}
-
-/**
- *
- *
- */
-static void
-DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
-      AppState *state, int screenY, int screenX)
-{
-   DmtxVector2 pTmp, pCtr;
-   DmtxVector2 gridTest;
-   int shiftX, shiftY;
-   int rColor, gColor, bColor, color;
-   Sint16 x1, y1, x2, y2;
-   int extent = 128;
-   int modulesToDisplay = 16;
-   int dispModExtent = extent/modulesToDisplay;
-   int row, col;
-   int rowBeg, colBeg;
-   int rowEnd, colEnd;
-
-   pTmp.X = pTmp.Y = state->activeExtent/2.0;
-   dmtxMatrix3VMultiply(&pCtr, &pTmp, grid->raw2fitActive);
-
-   gridTest.X = pCtr.X * grid->colCount * dispModExtent;
-   gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
-   shiftX = 64 - (int)gridTest.X;
-   colBeg = (shiftX < 0) ? 0 : -shiftX/8 - 1;
-   colEnd = max(colBeg + 17, grid->colCount);
-
-   gridTest.Y = pCtr.Y * grid->rowCount * dispModExtent;
-   gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
-   shiftY = 64 - (int)gridTest.Y;
-   rowBeg = (shiftY < 0) ? 0 : -shiftY/8 - 1;
-   rowEnd = max(rowBeg + 17, grid->rowCount);
-
-   for(row = rowBeg; row < rowEnd; row++) {
-
-      y1 = row * dispModExtent + shiftY;
-      y2 = y1 + dispModExtent - 1;
-
-      y1 = (extent - 1 - y1);
-      y2 = (extent - 1 - y2);
-
-      y1 = Clamp(y1 + screenY, screenY, 128);
-      y2 = Clamp(y2 + screenY, screenY, 128);
-
-      for(col = colBeg; col < colEnd; col++) {
-
-         rColor = ReadModuleColor(img, grid, row, col, 0);
-         gColor = ReadModuleColor(img, grid, row, col, 1);
-         bColor = ReadModuleColor(img, grid, row, col, 2);
-         color = (rColor << 24) | (gColor << 16) | (bColor << 8) | 0xff;
-
-         x1 = col * dispModExtent + shiftX;
-         x2 = x1 + dispModExtent - 1;
-
-         x1 = Clamp(x1 + screenX, screenX, 128);
-         x2 = Clamp(x2 + screenX, screenX, 128);
-
-         boxColor(screen, x1, y1, x2, y2, color);
-      }
-   }
-}
-
-/**
- *
- *
- */
-static void
-DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *state, DmtxDirection side, DmtxBarType type)
-{
-   DmtxVector2 pTmp, pCtr;
-   DmtxVector2 gridTest;
-   int shiftX, shiftY;
-   int extent = 128;
-   int modulesToDisplay = 16;
-   int dispModExtent = extent/modulesToDisplay;
-   Sint16 x00, y00;
-   Sint16 x11, y11;
-
-   pTmp.X = pTmp.Y = state->activeExtent/2.0;
-   dmtxMatrix3VMultiply(&pCtr, &pTmp, region->grid.raw2fitActive);
-
-   gridTest.X = pCtr.X * region->grid.colCount * dispModExtent;
-   gridTest.X += (gridTest.X >= 0.0) ? 0.5 : -0.5;
-   shiftX = 64 - (int)gridTest.X;
-
-   gridTest.Y = pCtr.Y * region->grid.rowCount * dispModExtent;
-   gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
-   shiftY = 63 - (int)gridTest.Y;
-
-   /* Calculate corner positions */
-   x00 = region->x * dispModExtent + shiftX;
-   y00 = region->y * dispModExtent + shiftY;
-   x11 = x00 + region->width * dispModExtent;
-   y11 = y00 + region->height * dispModExtent;
-
-   DrawPerimeterSide(screen, x00, y00, x11, y11, dispModExtent, side, type);
-}
-
-/**
- *
- *
- */
-static void
-DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11,
-      int dispModExtent, DmtxDirection side, DmtxBarType type)
-{
-   Sint16 xBeg, yBeg;
-   Sint16 xEnd, yEnd;
-   int extent = 128;
-   const int screenX = CTRL_COL3_X;
-   const int screenY = CTRL_ROW5_Y;
-   Uint32 color;
-
-   switch(side) {
-      case DmtxDirUp:
-         xBeg = x00;
-         xEnd = x11;
-         yBeg = yEnd = y11 - dispModExtent/2;
-         break;
-      case DmtxDirLeft:
-         yBeg = y00;
-         yEnd = y11;
-         xBeg = xEnd = x00 + dispModExtent/2;
-         break;
-      case DmtxDirDown:
-         xBeg = x00;
-         xEnd = x11;
-         yBeg = yEnd = y00 + dispModExtent/2;
-         break;
-      case DmtxDirRight:
-         yBeg = y00;
-         yEnd = y11;
-         xBeg = xEnd = x11 - dispModExtent/2;
-         break;
-      default:
-         xBeg = x00;
-         yBeg = y00;
-         xEnd = x11;
-         yEnd = y11;
-         break;
-   }
-
-   yBeg = (extent - 1 - yBeg);
-   yEnd = (extent - 1 - yEnd);
-
-   xBeg = Clamp(xBeg + screenX, screenX, 128);
-   yBeg = Clamp(yBeg + screenY, screenY, 128);
-
-   xEnd = Clamp(xEnd + screenX, screenX, 128);
-   yEnd = Clamp(yEnd + screenY, screenY, 128);
-
-   if(type & DmtxBarFinder)
-      color = 0x0000ffff;
-   else if(type & DmtxBarTiming)
-      color = 0xff0000ff;
-   else
-      color = 0x00ff00ff;
-
-   lineColor(screen, xBeg, yBeg, xEnd, yEnd, color);
 }
