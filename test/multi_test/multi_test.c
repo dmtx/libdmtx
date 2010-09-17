@@ -174,6 +174,7 @@ typedef struct GridRegion_struct {
    int onColor;
    int offColor;
    int finderSides;
+   int contrast;
 } GridRegion;
 
 typedef struct RegionLines_struct {
@@ -201,15 +202,6 @@ typedef enum {
    DmtxBarExterior = 0x01 << 3
 } DmtxBarType;
 
-typedef struct PerimeterStats_struct {
-   int expandDirs;
-   int boundary[4];
-   int finderBarCount;
-   int timingBarCount;
-   int finderBarDirs;
-   int timingBarDirs;
-} PerimeterStats;
-
 /* Only used internally */
 typedef struct ColorTally_struct {
    int evnCount;
@@ -217,13 +209,6 @@ typedef struct ColorTally_struct {
    int evnColor;
    int oddColor;
 } ColorTally;
-
-typedef struct JumpCounts_struct {
-   int evnOddUp;
-   int evnOddDn;
-   int oddEvnUp;
-   int oddEvnDn;
-} JumpCounts;
 
 struct StripStats_struct {
    int jumps;
@@ -300,7 +285,7 @@ static TimingSort FindGridTiming(HoughCache *hough, VanishPointSort *sort, AppSt
 static DmtxRay2 HoughLineToRay2(int phi, double d);
 static DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
 static DmtxPassFail FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec, SDL_Surface *screen, AppState *state);
-static DmtxBarType TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side);
+static DmtxBarType TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side, int offset);
 static DmtxPassFail RegionExpand(GridRegion *region, DmtxDirection dir);
 static int GetSizeIdx(int a, int b);
 static DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
@@ -324,8 +309,8 @@ static void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, AlignmentG
 static int ReadModuleColor(DmtxImage *img, AlignmentGrid *grid, int symbolRow, int symbolCol, int colorPlane);
 static Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
 static void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
-static void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterStats *ps, AppState *state);
-static void DrawPerimeterSide(SDL_Surface *screen, PerimeterStats *ps, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection dir);
+static void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *state, DmtxDirection side, DmtxBarType type);
+static void DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection side, DmtxBarType type);
 
 int
 main(int argc, char *argv[])
@@ -1661,7 +1646,7 @@ BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *stat
  *
  */
 static StripStats
-GenStripPatternStats(unsigned char *strip, int stripLength, int startState)
+GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int contrast)
 {
    int i, jumpAmount, jumpThreshold;
    int finderLow, finderHigh, timingLow, timingHigh;
@@ -1671,7 +1656,7 @@ GenStripPatternStats(unsigned char *strip, int stripLength, int startState)
 
    assert(startState == MODULE_HIGH || startState == MODULE_LOW);
 
-   jumpThreshold = 50;
+   jumpThreshold = (contrast*40)/100;
    finderLow = finderHigh = timingLow = timingHigh = 0;
    surpriseCount = jumpCount = contrastSum = 0;
    currentState = startState;
@@ -1755,9 +1740,7 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
    int goodCount;
    int finderSides;
    DmtxDirection side;
-   DmtxBarType type;
-   PerimeterStats ps; /* XXX used for display function only */
-   ps.boundary[0] = ps.boundary[1] = ps.boundary[2] = ps.boundary[3] = DmtxBarFinder;
+   DmtxBarType type, outer;
 
    memset(region, 0x00, sizeof(GridRegion));
 
@@ -1768,6 +1751,7 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
    region->height = 2;
    region->sizeIdx = DmtxUndefined;
    region->onColor = region->offColor = 0;
+   region->contrast = 20; /* low initial value */
 
    /* Assume the starting region will be far enough away from any side that
     * the expansion rules won't need to work at the very smallest sizes */
@@ -1780,29 +1764,45 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
       if(region->width > 26 || region->height > 26)
          return DmtxFail;
 
-      type = TestSideForPattern(region, img, side);
-      if(type == DmtxBarNone) {
+      type = TestSideForPattern(region, img, side, 0);
+      outer = TestSideForPattern(region, img, side, 1);
+
+      /* This needs to be made smarter ... just having a perimeter made up of
+       * valid patterns isn't good enough. We need to know that there are 2
+       * sets of adjacent finder and timing bars, and that their colors of
+       * them all are consistent.
+       *
+       * But how to deal with outliers? Or more importantly, what do we do
+       * when everything matches perfectly? I see 2 different things we can
+       * check, but I'm not sure in which order we should check them:
+       *
+       * 1) Check that the colors are all consistent
+       * 2) Check that next-farther out strips are consistent
+       */
+
+      if(type == DmtxBarNone || outer == DmtxBarNone) {
          RegionExpand(region, side);
          finderSides = DmtxDirNone;
          goodCount = 0;
-         side = RotateCCW(side);
       }
       else {
          if(type == DmtxBarFinder)
             finderSides |= side;
 
          goodCount++;
-         side = RotateCW(side);
       }
 
-      if(goodCount == 4)
+      DrawPerimeterPatterns(screen, region, state, side, type);
+      side = RotateCW(side);
+
+      /* Potential match ... check outers */
+      if(goodCount == 4) {
+         /* make sure there are only 2 finder sides */
          break;
+      }
    }
 
    region->finderSides = finderSides;
-
-   /* Confirm that both finder bars are same color */
-   DrawPerimeterPatterns(screen, region, &ps, state);
 
    return DmtxPass;
 }
@@ -1812,14 +1812,13 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
  *
  */
 static DmtxBarType
-TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side)
+TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side, int offset)
 {
    int i;
    int col, colBeg;
    int row, rowBeg;
    int extent;
    unsigned char colorStrip[26] = { 0 };
-   int offset = 0; /* XXX not quite ready to remove this yet */
    StripStats *stats, statsHigh, statsLow;
 
    assert(region->width <= 26 && region->height <= 26);
@@ -1865,9 +1864,13 @@ TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side)
          row++;
    }
 
-   statsHigh = GenStripPatternStats(colorStrip, extent, MODULE_HIGH);
-   statsLow = GenStripPatternStats(colorStrip, extent, MODULE_LOW);
+   statsHigh = GenStripPatternStats(colorStrip, extent, MODULE_HIGH, region->contrast);
+   statsLow = GenStripPatternStats(colorStrip, extent, MODULE_LOW, region->contrast);
    stats = (statsHigh.surprises > statsLow.surprises) ? &statsLow : &statsHigh;
+
+   if(stats->contrast > region->contrast) {
+      region->contrast = stats->contrast;
+   }
 
    if(stats->finderErrors < stats->timingErrors) {
       if(stats->finderErrors < 2) {
@@ -2862,7 +2865,7 @@ DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
  *
  */
 static void
-DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterStats *ps, AppState *state)
+DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *state, DmtxDirection side, DmtxBarType type)
 {
    DmtxVector2 pTmp, pCtr;
    DmtxVector2 gridTest;
@@ -2890,10 +2893,7 @@ DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterStats *p
    x11 = x00 + region->width * dispModExtent;
    y11 = y00 + region->height * dispModExtent;
 
-   DrawPerimeterSide(screen, ps, x00, y00, x11, y11, dispModExtent, DmtxDirUp);
-   DrawPerimeterSide(screen, ps, x00, y00, x11, y11, dispModExtent, DmtxDirLeft);
-   DrawPerimeterSide(screen, ps, x00, y00, x11, y11, dispModExtent, DmtxDirDown);
-   DrawPerimeterSide(screen, ps, x00, y00, x11, y11, dispModExtent, DmtxDirRight);
+   DrawPerimeterSide(screen, x00, y00, x11, y11, dispModExtent, side, type);
 }
 
 /**
@@ -2901,8 +2901,8 @@ DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, PerimeterStats *p
  *
  */
 static void
-DrawPerimeterSide(SDL_Surface *screen, PerimeterStats *ps, int x00, int y00,
-      int x11, int y11, int dispModExtent, DmtxDirection dir)
+DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11,
+      int dispModExtent, DmtxDirection side, DmtxBarType type)
 {
    Sint16 xBeg, yBeg;
    Sint16 xEnd, yEnd;
@@ -2910,39 +2910,33 @@ DrawPerimeterSide(SDL_Surface *screen, PerimeterStats *ps, int x00, int y00,
    const int screenX = CTRL_COL3_X;
    const int screenY = CTRL_ROW5_Y;
    Uint32 color;
-   int boundary;
 
-   switch(dir) {
+   switch(side) {
       case DmtxDirUp:
          xBeg = x00;
          xEnd = x11;
          yBeg = yEnd = y11 - dispModExtent/2;
-         boundary = ps->boundary[0];
          break;
       case DmtxDirLeft:
          yBeg = y00;
          yEnd = y11;
          xBeg = xEnd = x00 + dispModExtent/2;
-         boundary = ps->boundary[1];
          break;
       case DmtxDirDown:
          xBeg = x00;
          xEnd = x11;
          yBeg = yEnd = y00 + dispModExtent/2;
-         boundary = ps->boundary[2];
          break;
       case DmtxDirRight:
          yBeg = y00;
          yEnd = y11;
          xBeg = xEnd = x11 - dispModExtent/2;
-         boundary = ps->boundary[3];
          break;
       default:
          xBeg = x00;
          yBeg = y00;
          xEnd = x11;
          yEnd = y11;
-         boundary = 0;
          break;
    }
 
@@ -2955,9 +2949,9 @@ DrawPerimeterSide(SDL_Surface *screen, PerimeterStats *ps, int x00, int y00,
    xEnd = Clamp(xEnd + screenX, screenX, 128);
    yEnd = Clamp(yEnd + screenY, screenY, 128);
 
-   if(boundary & DmtxBarFinder)
+   if(type & DmtxBarFinder)
       color = 0x0000ffff;
-   else if(boundary & DmtxBarTiming)
+   else if(type & DmtxBarTiming)
       color = 0xff0000ff;
    else
       color = 0x00ff00ff;
