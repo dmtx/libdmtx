@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mblaughton@users.sourceforge.net
 */
 
-/* $Id: multi_test.c 561 2008-12-28 16:28:58Z mblaughton $ */
+/* $Id$ */
 
 #define max(N,M) ((N > M) ? N : M)
 #define min(N,M) ((N < M) ? N : M)
@@ -77,9 +77,19 @@ typedef struct AppState_struct {
    DmtxBoolean quit;
 } AppState;
 
+/*
 typedef struct Flow_struct {
    int mag;
 } Flow;
+*/
+
+struct DmtxEdgeCache_struct {
+   int sDir[4096]; /* 64x64 */
+   int bDir[4096];
+   int hDir[4096];
+   int vDir[4096];
+};
+typedef struct DmtxEdgeCache_struct DmtxEdgeCache;
 
 typedef struct HoughCache_struct {
    int offExtent;
@@ -110,10 +120,11 @@ typedef struct Timing_struct {
    double mag;
 } Timing;
 
-typedef struct TimingSort_struct {
+struct DmtxTimingSort_struct {
    int count;
    Timing timing[TIMING_SORT_MAX_COUNT];
-} TimingSort;
+};
+typedef struct DmtxTimingSort_struct DmtxTimingSort;
 
 typedef struct AlignmentGrid_struct {
    int rowCount;
@@ -181,6 +192,12 @@ struct StripStats_struct {
 };
 typedef struct StripStats_struct StripStats;
 
+struct DmtxCallback_struct {
+   void (*edgeCacheCallback)(DmtxEdgeCache *, int);
+   void (*houghCacheCallback)(DmtxHoughCache *, int);
+};
+typedef struct DmtxCallback_struct DmtxCallback;
+
 /* Application level functions */
 UserOptions GetDefaultOptions(void);
 DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[]);
@@ -194,18 +211,19 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 
 /* Image processing functions */
-void PopulateFlowCache(Flow *sFlow, Flow *bFlow, Flow *hFlow, Flow *vFlow, DmtxImage *img);
+void dmtxScanImage(DmtxImage *img, DmtxCallback *fn);
+DmtxPassFail dmtxBuildEdgeCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
 int GetCompactOffset(int x, int y, int phiIdx, int extent);
 double UncompactOffset(double d, int phiIdx, int extent);
-void PopulateHoughCache(HoughCache *hough, Flow *sFlow, Flow *bFlow, Flow *hFlow, Flow *vFlow);
-void NormalizeHoughCache(HoughCache *hough, Flow *sFlow, Flow *bFlow, Flow *hFlow, Flow *vFlow);
-void MarkHoughMaxima(HoughCache *hough);
+DmtxPassFail dmtxPopulateHoughCache(HoughCache *hough, DmtxEdgeCache *edgeCache);
+DmtxPassFail dmtxNormalizeHoughCache(HoughCache *hough, DmtxEdgeCache *edgeCache);
+void dmtxMarkHoughMaxima(HoughCache *hough);
 void AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum);
 VanishPointSort FindVanishPoints(HoughCache *hough);
 void AddToMaximaSort(HoughMaximaSort *sort, int maximaMag);
 VanishPointSum GetAngleSumAtPhi(HoughCache *hough, int phi);
-void AddToTimingSort(TimingSort *sort, Timing timing);
-TimingSort FindGridTiming(HoughCache *hough, VanishPointSort *sort, AppState *state);
+void AddToTimingSort(DmtxTimingSort *sort, Timing timing);
+DmtxTimingSort dmtxFindGridTiming(HoughCache *hough, VanishPointSort *sort, AppState *state);
 DmtxRay2 HoughLineToRay2(int phi, double d);
 DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
 DmtxPassFail FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec, SDL_Surface *screen, AppState *state);
@@ -218,7 +236,8 @@ DmtxPassFail GetOnOffColors(GridRegion *region, const DmtxDecode *dec, int *onCo
 ColorTally GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBeg, DmtxDirection dir);
 
 /* Process visualization functions */
-void BlitFlowCache(SDL_Surface *screen, Flow *flowCache, int maxFlowMag, int screenY, int screenX);
+int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache);
+void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY, int screenX);
 void BlitHoughCache(SDL_Surface *screen, HoughCache *hough, int screenY, int screenX);
 void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
 void PlotPixel(SDL_Surface *surface, int x, int y);

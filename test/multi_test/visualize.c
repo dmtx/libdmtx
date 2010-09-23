@@ -20,26 +20,52 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mblaughton@users.sourceforge.net
 */
 
-/* $Id: multi_test.c 561 2008-12-28 16:28:58Z mblaughton $ */
+/* $Id$ */
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 #include <SDL/SDL_gfxPrimitives.h>
 #include <SDL/SDL_rotozoom.h>
 #include "../../dmtx.h"
-#include <multi_test.h>
+#include "multi_test.h"
 
 /**
  *
  *
  */
-void BlitFlowCache(SDL_Surface *screen, Flow *flowCache, int maxFlowMag, int screenY, int screenX)
+int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache)
+{
+   int i;
+   int maxValue = abs(edgeCache->hDir[0]);
+
+   for(i = 0; i < 4096; i++) {
+      if(abs(edgeCache->hDir[i]) > maxValue)
+         maxValue = abs(edgeCache->hDir[i]);
+
+      if(abs(edgeCache->vDir[i]) > maxValue)
+         maxValue = abs(edgeCache->vDir[i]);
+
+      if(abs(edgeCache->sDir[i]) > maxValue)
+         maxValue = abs(edgeCache->sDir[i]);
+
+      if(abs(edgeCache->bDir[i]) > maxValue)
+         maxValue = abs(edgeCache->bDir[i]);
+   }
+
+   return maxValue;
+}
+
+/**
+ *
+ *
+ */
+void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY, int screenX)
 {
    int row, col;
    unsigned char rgb[3];
    int width, height;
    int offset;
-   Flow flow;
+   int flow;
    unsigned char pixbuf[12288]; /* 64 * 64 * 3 */
    SDL_Surface *surface;
    SDL_Rect clipRect;
@@ -62,14 +88,14 @@ void BlitFlowCache(SDL_Surface *screen, Flow *flowCache, int maxFlowMag, int scr
 
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
-         flow = flowCache[row * width + col];
-         if(flow.mag > 0) {
+         flow = cache[row * width + col];
+         if(flow > 0) {
             rgb[0] = 0;
-            rgb[1] = (int)((abs(flow.mag) * 254.0)/maxFlowMag + 0.5);
+            rgb[1] = (int)((abs(flow) * 254.0)/maxFlowMag + 0.5);
             rgb[2] = 0;
          }
          else {
-            rgb[0] = (int)((abs(flow.mag) * 254.0)/maxFlowMag + 0.5);
+            rgb[0] = (int)((abs(flow) * 254.0)/maxFlowMag + 0.5);
             rgb[1] = 0;
             rgb[2] = 0;
          }
