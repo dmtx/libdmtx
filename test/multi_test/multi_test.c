@@ -42,32 +42,35 @@ Contact: mblaughton@users.sourceforge.net
 #include "../../dmtx.h"
 #include "multi_test.h"
 
+AppState gAppState;
+
 int
 main(int argc, char *argv[])
 {
    UserOptions        opt;
-   AppState           state;
-   SDL_Surface       *screen;
+/* AppState           state; */
+/* SDL_Surface       *screen; */
    SDL_Surface       *picture;
    SDL_Event          event;
    SDL_Rect           imageLoc;
    Uint32             bgColorB;
-   int                i, j;
-   int                maxIntensity;
+/* int                i, j; */
+/* int                maxIntensity; */
    DmtxImage         *imgActive, *imgFull;
    DmtxDecode        *dec;
-   DmtxEdgeCache      edgeCache;
-   HoughCache         hough;
+/* DmtxEdgeCache      edgeCache; */
+/* SDL_Surface       *local, *localTmp; */
+   SDL_Rect           clipRect;
+/* DmtxHoughCache     hough;
    VanishPointSort    vPoints;
    DmtxTimingSort     timings;
-   SDL_Rect           clipRect;
-   SDL_Surface       *local, *localTmp;
    AlignmentGrid      grid;
    GridRegion         region;
    DmtxPassFail       err;
    DmtxBoolean        regionFound;
    int                phiDiff;
-   double             periodRatio;
+   double             periodRatio; */
+   DmtxCallbacks      callbacks;
 
    opt = GetDefaultOptions();
 
@@ -76,7 +79,7 @@ main(int argc, char *argv[])
 /*    ShowUsage(1); */
    }
 
-   state = InitAppState();
+   gAppState = InitAppState();
 
    /* Load image */
    picture = IMG_Load(opt.imagePath);
@@ -84,8 +87,8 @@ main(int argc, char *argv[])
       fprintf(stderr, "Unable to load image \"%s\": %s\n", opt.imagePath, SDL_GetError());
       exit(1);
    }
-   state.imageWidth = picture->w;
-   state.imageHeight = picture->h;
+   gAppState.imageWidth = picture->w;
+   gAppState.imageHeight = picture->h;
 
    atexit(SDL_Quit);
 
@@ -95,19 +98,19 @@ main(int argc, char *argv[])
       exit(1);
    }
 
-   screen = SetWindowSize(state.windowWidth, state.windowHeight);
-   NudgeImage(CTRL_COL1_X, picture->w, &state.imageLocX);
-   NudgeImage(state.windowHeight, picture->h, &state.imageLocY);
+   gAppState.screen = SetWindowSize(gAppState.windowWidth, gAppState.windowHeight);
+   NudgeImage(CTRL_COL1_X, picture->w, &(gAppState.imageLocX));
+   NudgeImage(gAppState.windowHeight, picture->h, &(gAppState.imageLocY));
 
-   bgColorB = SDL_MapRGBA(screen->format, 100, 100, 100, 255);
+   bgColorB = SDL_MapRGBA(gAppState.screen->format, 100, 100, 100, 255);
 
    /* Create surface to hold image pixels to be scanned */
-   local = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
-   imgActive = dmtxImageCreate(local->pixels, local->w, local->h, DmtxPack32bppXRGB);
+   gAppState.local = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
+   imgActive = dmtxImageCreate(gAppState.local->pixels, gAppState.local->w, gAppState.local->h, DmtxPack32bppXRGB);
    assert(imgActive != NULL);
 
    /* Create another surface for scaling purposes */
-   localTmp = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
+   gAppState.localTmp = SDL_CreateRGBSurface(SDL_SWSURFACE, LOCAL_SIZE, LOCAL_SIZE, 32, 0, 0, 0, 0);
 
    switch(picture->format->BytesPerPixel) {
       case 1:
@@ -135,128 +138,137 @@ main(int argc, char *argv[])
       SDL_Delay(10);
 
       while(SDL_PollEvent(&event))
-         HandleEvent(&event, &state, picture, &screen);
+         HandleEvent(&event, &gAppState, picture, &gAppState.screen);
 
-      if(state.quit == DmtxTrue)
+      if(gAppState.quit == DmtxTrue)
          break;
 
-      imageLoc.x = state.imageLocX;
-      imageLoc.y = state.imageLocY;
+      imageLoc.x = gAppState.imageLocX;
+      imageLoc.y = gAppState.imageLocY;
 
-      captureLocalPortion(local, localTmp, picture, screen, &state, imageLoc);
+      captureLocalPortion(gAppState.local, gAppState.localTmp, picture, gAppState.screen, &gAppState, imageLoc);
 
       /* Start with blank canvas */
-      SDL_FillRect(screen, NULL, bgColorB);
+      SDL_FillRect(gAppState.screen, NULL, bgColorB);
 
       /* Draw image to main canvas area */
       clipRect.w = CTRL_COL1_X - 1;
-      clipRect.h = state.windowHeight;
+      clipRect.h = gAppState.windowHeight;
       clipRect.x = 0;
       clipRect.y = 0;
-      SDL_SetClipRect(screen, &clipRect);
-      SDL_BlitSurface(picture, NULL, screen, &imageLoc);
-      SDL_SetClipRect(screen, NULL);
+      SDL_SetClipRect(gAppState.screen, &clipRect);
+      SDL_BlitSurface(picture, NULL, gAppState.screen, &imageLoc);
+      SDL_SetClipRect(gAppState.screen, NULL);
 
-      DrawActiveBorder(screen, state.activeExtent);
+      DrawActiveBorder(gAppState.screen, gAppState.activeExtent);
 
-      SDL_LockSurface(local);
+      callbacks.edgeCacheCallback = EdgeCacheCallback;
+      callbacks.houghCacheCallback = HoughCacheCallback;
+
+      ShowActiveRegion(gAppState.screen, gAppState.local);
+
+      SDL_LockSurface(gAppState.local);
+      dmtxScanImage(imgActive, &callbacks);
+      SDL_UnlockSurface(gAppState.local);
+/*
+      SDL_LockSurface(gAppState.local);
       dmtxBuildEdgeCache(&edgeCache, imgActive);
-      SDL_UnlockSurface(local);
+      SDL_UnlockSurface(gAppState.local);
 
-      BlitActiveRegion(screen, local, 1, CTRL_ROW1_Y, CTRL_COL1_X);
-      BlitActiveRegion(screen, local, 1, CTRL_ROW1_Y, CTRL_COL2_X);
-      BlitActiveRegion(screen, local, 1, CTRL_ROW1_Y, CTRL_COL3_X);
-      BlitActiveRegion(screen, local, 1, CTRL_ROW1_Y, CTRL_COL4_X);
+      BlitActiveRegion(gAppState.screen, gAppState.local, 1, CTRL_ROW1_Y, CTRL_COL1_X);
+      BlitActiveRegion(gAppState.screen, gAppState.local, 1, CTRL_ROW1_Y, CTRL_COL2_X);
+      BlitActiveRegion(gAppState.screen, gAppState.local, 1, CTRL_ROW1_Y, CTRL_COL3_X);
+      BlitActiveRegion(gAppState.screen, gAppState.local, 1, CTRL_ROW1_Y, CTRL_COL4_X);
 
-      /* Write flow cache images to feedback panes */
+      // Write flow cache images to feedback panes
       maxIntensity = FindMaxEdgeIntensity(&edgeCache);
-      BlitFlowCache(screen, edgeCache.vDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL1_X);
-      BlitFlowCache(screen, edgeCache.bDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL2_X);
-      BlitFlowCache(screen, edgeCache.hDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL3_X);
-      BlitFlowCache(screen, edgeCache.sDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL4_X);
+      BlitFlowCache(gAppState.screen, edgeCache.vDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL1_X);
+      BlitFlowCache(gAppState.screen, edgeCache.bDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL2_X);
+      BlitFlowCache(gAppState.screen, edgeCache.hDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL3_X);
+      BlitFlowCache(gAppState.screen, edgeCache.sDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL4_X);
 
-      /* Find relative size of hough quadrants */
-      dmtxPopulateHoughCache(&hough, &edgeCache);
+      // Find relative size of hough quadrants
+      dmtxBuildHoughCache(&hough, &edgeCache);
       dmtxNormalizeHoughCache(&hough, &edgeCache);
-      BlitHoughCache(screen, &hough, CTRL_ROW3_Y, CTRL_COL1_X + 1);
+      BlitHoughCache(gAppState.screen, &hough, CTRL_ROW3_Y, CTRL_COL1_X + 1);
 
       dmtxMarkHoughMaxima(&hough);
-      BlitHoughCache(screen, &hough, CTRL_ROW4_Y - 1, CTRL_COL1_X + 1);
+      BlitHoughCache(gAppState.screen, &hough, CTRL_ROW4_Y - 1, CTRL_COL1_X + 1);
 
-      /* Find vanishing points */
+      // Find vanishing points
       vPoints = FindVanishPoints(&hough);
       if(state.displayVanish == DmtxTrue)
-         DrawVanishingPoints(screen, vPoints, CTRL_ROW3_Y, CTRL_COL1_X);
+         DrawVanishingPoints(gAppState.screen, vPoints, CTRL_ROW3_Y, CTRL_COL1_X);
 
-      /* Find and rank best timings for vanishing points */
+      // Find and rank best timings for vanishing points
       timings = dmtxFindGridTiming(&hough, &vPoints, &state);
 
-      /* Test timing combinations for potential barcode regions */
+      // Test timing combinations for potential barcode regions
       regionFound = DmtxFalse;
       for(i = 0; regionFound == DmtxFalse && i < timings.count; i++) {
          for(j = i+1; j < timings.count; j++) {
             phiDiff = abs(timings.timing[i].phi - timings.timing[j].phi);
 
-            /* Reject combinations that deviate from right angle (phi == 64) */
-            if(abs(64 - phiDiff) > 28) /* within +- ~40 deg */
+            // Reject combinations that deviate from right angle (phi == 64)
+            if(abs(64 - phiDiff) > 28) // within +- ~40 deg
                continue;
 
-            /* Reject/alter combinations with large period ratio */
+            // Reject/alter combinations with large period ratio
             periodRatio = timings.timing[i].period / timings.timing[j].period;
-/*
-            if(periodRatio < 0.5 || periodRatio > 2.0) {
-               fprintf(stdout, "opp_1 ");
-               fflush(stdout);
-            }
-*/
-            /* XXX Additional criteria go here */
 
-            /* Normalize region based on this angle combination */
+//          if(periodRatio < 0.5 || periodRatio > 2.0) {
+//             fprintf(stdout, "opp_1 ");
+//             fflush(stdout);
+//          }
+
+            // XXX Additional criteria go here
+
+            // Normalize region based on this angle combination
             err = BuildGridFromTimings(&grid, timings.timing[i], timings.timing[j], &state);
             if(err == DmtxFail)
-               continue; /* Keep trying */
+               continue; // Keep trying
 
-            /* Draw timed and untimed region lines */
-            BlitActiveRegion(screen, local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+            // Draw timed and untimed region lines
+            BlitActiveRegion(gAppState.screen, gAppState.local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
             if(state.displayTiming == DmtxTrue) {
-               DrawTimingDots(screen, timings.timing[i], CTRL_ROW3_Y, CTRL_COL1_X);
-               DrawTimingDots(screen, timings.timing[j], CTRL_ROW3_Y, CTRL_COL1_X);
-               DrawTimingLines(screen, timings.timing[i], 2, CTRL_ROW3_Y, CTRL_COL3_X);
-               DrawTimingLines(screen, timings.timing[j], 2, CTRL_ROW3_Y, CTRL_COL3_X);
+               DrawTimingDots(gAppState.screen, timings.timing[i], CTRL_ROW3_Y, CTRL_COL1_X);
+               DrawTimingDots(gAppState.screen, timings.timing[j], CTRL_ROW3_Y, CTRL_COL1_X);
+               DrawTimingLines(gAppState.screen, timings.timing[i], 2, CTRL_ROW3_Y, CTRL_COL3_X);
+               DrawTimingLines(gAppState.screen, timings.timing[j], 2, CTRL_ROW3_Y, CTRL_COL3_X);
             }
 
-            /* Test for timing patterns */
+            // Test for timing patterns
             SDL_LockSurface(picture);
-            DrawNormalizedRegion(screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
-            DrawSymbolPreview(screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL3_X);
-            /* auto tweak will go here */
-            err = FindRegionWithinGrid(&region, imgFull, &grid, dec, screen, &state);
+            DrawNormalizedRegion(gAppState.screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL1_X + 1);
+            DrawSymbolPreview(gAppState.screen, imgFull, &grid, &state, CTRL_ROW5_Y, CTRL_COL3_X);
+            // auto tweak will go here
+            err = FindRegionWithinGrid(&region, imgFull, &grid, dec, gAppState.screen, &state);
             regionFound = (err == DmtxPass) ? DmtxTrue : DmtxFalse;
 
             if(regionFound == DmtxTrue) {
                region.sizeIdx = GetSizeIdx(region.width, region.height);
-               /* XXX should we introduce dmtxSymbolSizeValid() library function? */
+               // XXX should we introduce dmtxSymbolSizeValid() library function?
                if(region.sizeIdx >= DmtxSymbol10x10 && region.sizeIdx <= DmtxSymbol16x48)
                   DecodeSymbol(&region, dec);
             }
 
             SDL_UnlockSurface(picture);
 
-            regionFound = DmtxTrue; /* break out of outer loop */
-            break; /* break out of inner loop */
+            regionFound = DmtxTrue; // break out of outer loop
+            break; // break out of inner loop
          }
       }
 
       if(state.printValues == DmtxTrue) {
-         /* Dump FFT results here */
+         // Dump FFT results here
          state.printValues = DmtxFalse;
       }
-
-      SDL_Flip(screen);
+*/
+      SDL_Flip(gAppState.screen);
    }
 
-   SDL_FreeSurface(localTmp);
-   SDL_FreeSurface(local);
+   SDL_FreeSurface(gAppState.localTmp);
+   SDL_FreeSurface(gAppState.local);
 
    dmtxDecodeDestroy(&dec);
    dmtxImageDestroy(&imgFull);
@@ -398,6 +410,9 @@ InitAppState(void)
    state.pointerX = 0;
    state.pointerY = 0;
    state.quit = DmtxFalse;
+   state.screen = NULL;
+   state.local = NULL;
+   state.localTmp = NULL;
 
    return state;
 }

@@ -29,6 +29,39 @@ Contact: mblaughton@users.sourceforge.net
 #include "../../dmtx.h"
 #include "multi_test.h"
 
+void ShowActiveRegion(SDL_Surface *screen, SDL_Surface *active)
+{
+   BlitActiveRegion(screen, active, 1, CTRL_ROW1_Y, CTRL_COL1_X);
+   BlitActiveRegion(screen, active, 1, CTRL_ROW1_Y, CTRL_COL2_X);
+   BlitActiveRegion(screen, active, 1, CTRL_ROW1_Y, CTRL_COL3_X);
+   BlitActiveRegion(screen, active, 1, CTRL_ROW1_Y, CTRL_COL4_X);
+}
+
+/**
+ *
+ *
+ */
+void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX)
+{
+   SDL_Surface *src;
+   SDL_Rect clipRect;
+
+   clipRect.w = LOCAL_SIZE;
+   clipRect.h = LOCAL_SIZE;
+   clipRect.x = screenX;
+   clipRect.y = screenY;
+
+   if(zoom == 1) {
+      SDL_BlitSurface(active, NULL, screen, &clipRect);
+   }
+   else {
+      /* DO NOT USE SMOOTHING OPTION -- distorts symbol proportions */
+      src = zoomSurface(active, 2.0, 2.0, 0 /* smoothing */);
+      SDL_BlitSurface(src, NULL, screen, &clipRect);
+      SDL_FreeSurface(src);
+   }
+}
+
 /**
  *
  *
@@ -53,6 +86,16 @@ int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache)
    }
 
    return maxValue;
+}
+
+void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id)
+{
+   int maxIntensity = FindMaxEdgeIntensity(edgeCache);
+
+   BlitFlowCache(gAppState.screen, edgeCache->vDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL1_X);
+   BlitFlowCache(gAppState.screen, edgeCache->bDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL2_X);
+   BlitFlowCache(gAppState.screen, edgeCache->hDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL3_X);
+   BlitFlowCache(gAppState.screen, edgeCache->sDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL4_X);
 }
 
 /**
@@ -119,11 +162,23 @@ void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY,
    SDL_FreeSurface(surface);
 }
 
+void HoughCacheCallback(DmtxHoughCache *hough, int id)
+{
+   switch(id) {
+      case 0:
+         BlitHoughCache(gAppState.screen, hough, CTRL_ROW3_Y, CTRL_COL1_X + 1);
+         break;
+      case 1:
+         BlitHoughCache(gAppState.screen, hough, CTRL_ROW4_Y - 1, CTRL_COL1_X + 1);
+         break;
+   }
+}
+
 /**
  *
  *
  */
-void BlitHoughCache(SDL_Surface *screen, HoughCache *hough, int screenY, int screenX)
+void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int screenX)
 {
    int row, col;
    int width, height;
@@ -195,31 +250,6 @@ void BlitHoughCache(SDL_Surface *screen, HoughCache *hough, int screenY, int scr
 
    SDL_BlitSurface(surface, NULL, screen, &clipRect);
    SDL_FreeSurface(surface);
-}
-
-/**
- *
- *
- */
-void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX)
-{
-   SDL_Surface *src;
-   SDL_Rect clipRect;
-
-   clipRect.w = LOCAL_SIZE;
-   clipRect.h = LOCAL_SIZE;
-   clipRect.x = screenX;
-   clipRect.y = screenY;
-
-   if(zoom == 1) {
-      SDL_BlitSurface(active, NULL, screen, &clipRect);
-   }
-   else {
-      /* DO NOT USE SMOOTHING OPTION -- distorts symbol proportions */
-      src = zoomSurface(active, 2.0, 2.0, 0 /* smoothing */);
-      SDL_BlitSurface(src, NULL, screen, &clipRect);
-      SDL_FreeSurface(src);
-   }
 }
 
 /**

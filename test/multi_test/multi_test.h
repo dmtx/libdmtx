@@ -75,6 +75,9 @@ typedef struct AppState_struct {
    Uint16      pointerX;
    Uint16      pointerY;
    DmtxBoolean quit;
+   SDL_Surface *screen;
+   SDL_Surface *local;
+   SDL_Surface *localTmp;
 } AppState;
 
 /*
@@ -91,12 +94,13 @@ struct DmtxEdgeCache_struct {
 };
 typedef struct DmtxEdgeCache_struct DmtxEdgeCache;
 
-typedef struct HoughCache_struct {
+struct DmtxHoughCache_struct {
    int offExtent;
    int phiExtent;
    char isMax[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
    unsigned int mag[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
-} HoughCache;
+};
+typedef struct DmtxHoughCache_struct DmtxHoughCache;
 
 typedef struct HoughMaximaSort_struct {
    int count;
@@ -192,11 +196,11 @@ struct StripStats_struct {
 };
 typedef struct StripStats_struct StripStats;
 
-struct DmtxCallback_struct {
+struct DmtxCallbacks_struct {
    void (*edgeCacheCallback)(DmtxEdgeCache *, int);
    void (*houghCacheCallback)(DmtxHoughCache *, int);
 };
-typedef struct DmtxCallback_struct DmtxCallback;
+typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
 /* Application level functions */
 UserOptions GetDefaultOptions(void);
@@ -211,19 +215,19 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 
 /* Image processing functions */
-void dmtxScanImage(DmtxImage *img, DmtxCallback *fn);
+void dmtxScanImage(DmtxImage *img, DmtxCallbacks *fn);
 DmtxPassFail dmtxBuildEdgeCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
 int GetCompactOffset(int x, int y, int phiIdx, int extent);
 double UncompactOffset(double d, int phiIdx, int extent);
-DmtxPassFail dmtxPopulateHoughCache(HoughCache *hough, DmtxEdgeCache *edgeCache);
-DmtxPassFail dmtxNormalizeHoughCache(HoughCache *hough, DmtxEdgeCache *edgeCache);
-void dmtxMarkHoughMaxima(HoughCache *hough);
+DmtxPassFail dmtxBuildHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache);
+DmtxPassFail dmtxNormalizeHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache);
+void dmtxMarkHoughMaxima(DmtxHoughCache *hough);
 void AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum);
-VanishPointSort FindVanishPoints(HoughCache *hough);
+VanishPointSort FindVanishPoints(DmtxHoughCache *hough);
 void AddToMaximaSort(HoughMaximaSort *sort, int maximaMag);
-VanishPointSum GetAngleSumAtPhi(HoughCache *hough, int phi);
+VanishPointSum GetAngleSumAtPhi(DmtxHoughCache *hough, int phi);
 void AddToTimingSort(DmtxTimingSort *sort, Timing timing);
-DmtxTimingSort dmtxFindGridTiming(HoughCache *hough, VanishPointSort *sort, AppState *state);
+DmtxTimingSort dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *sort, AppState *state);
 DmtxRay2 HoughLineToRay2(int phi, double d);
 DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
 DmtxPassFail FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec, SDL_Surface *screen, AppState *state);
@@ -237,8 +241,11 @@ ColorTally GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg
 
 /* Process visualization functions */
 int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache);
+void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id);
 void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY, int screenX);
-void BlitHoughCache(SDL_Surface *screen, HoughCache *hough, int screenY, int screenX);
+void HoughCacheCallback(DmtxHoughCache *hough, int id);
+void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int screenX);
+void ShowActiveRegion(SDL_Surface *screen, SDL_Surface *active);
 void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
 void PlotPixel(SDL_Surface *surface, int x, int y);
 int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
@@ -254,3 +261,5 @@ Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
 void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
 void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *state, DmtxDirection side, DmtxBarType type);
 void DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection side, DmtxBarType type);
+
+extern AppState gAppState;

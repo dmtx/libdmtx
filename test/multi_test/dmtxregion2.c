@@ -71,22 +71,21 @@ static int uCos128[] = {
    -1004, -1009, -1013, -1016, -1019, -1021, -1023, -1024 };
 
 void
-dmtxScanImage(DmtxImage *img, DmtxCallback *fn)
+dmtxScanImage(DmtxImage *img, DmtxCallbacks *fn)
 {
    DmtxEdgeCache edgeCache;
+   DmtxHoughCache houghCache;
 
    dmtxBuildEdgeCache(&edgeCache, img);
    fn->edgeCacheCallback(&edgeCache, 0);
-/*
-   dmtxPopulateHoughCache(&hough, &edgeCache);
+
+   dmtxBuildHoughCache(&houghCache, &edgeCache);
+   dmtxNormalizeHoughCache(&houghCache, &edgeCache);
    fn->houghCacheCallback(&houghCache, 0);
 
-   dmtxNormalizeHoughCache(&hough, &edgeCache);
+   dmtxMarkHoughMaxima(&houghCache);
    fn->houghCacheCallback(&houghCache, 1);
-
-   dmtxMarkHoughMaxima(&hough);
-   fn->houghCacheCallback(&houghCache, 2);
-
+/*
    FindVanishPoints()
    fn->vanishPointCallback(&vanishPoint, 0);
 
@@ -344,7 +343,7 @@ UncompactOffset(double compactedOffset, int phiIdx, int extent)
  *
  */
 DmtxPassFail
-dmtxPopulateHoughCache(HoughCache *hough, DmtxEdgeCache *edgeCache)
+dmtxBuildHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache)
 {
    int idx, phi, d;
    int angleBase, imgExtent;
@@ -422,7 +421,7 @@ dmtxPopulateHoughCache(HoughCache *hough, DmtxEdgeCache *edgeCache)
  *
  */
 DmtxPassFail
-dmtxNormalizeHoughCache(HoughCache *hough, DmtxEdgeCache *edgeCache)
+dmtxNormalizeHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache)
 {
    int          pixelCount;
    int          i, idx, phi, d;
@@ -474,7 +473,7 @@ dmtxNormalizeHoughCache(HoughCache *hough, DmtxEdgeCache *edgeCache)
  *
  */
 void
-dmtxMarkHoughMaxima(HoughCache *hough)
+dmtxMarkHoughMaxima(DmtxHoughCache *hough)
 {
    int phi, offset;
    int idx0, idx1;
@@ -557,7 +556,7 @@ AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum)
  *
  */
 VanishPointSort
-FindVanishPoints(HoughCache *hough)
+FindVanishPoints(DmtxHoughCache *hough)
 {
    int phi;
    VanishPointSort sort;
@@ -605,7 +604,7 @@ AddToMaximaSort(HoughMaximaSort *sort, int maximaMag)
  *
  */
 VanishPointSum
-GetAngleSumAtPhi(HoughCache *hough, int phi)
+GetAngleSumAtPhi(DmtxHoughCache *hough, int phi)
 {
    int offset, i;
    VanishPointSum vanishSum;
@@ -664,7 +663,7 @@ AddToTimingSort(DmtxTimingSort *sort, Timing timing)
  *
  */
 DmtxTimingSort
-dmtxFindGridTiming(HoughCache *hough, VanishPointSort *vPoints, AppState *state)
+dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *vPoints, AppState *state)
 {
    int x, y, fitMag, fitMax, fitOff, attempts, iter;
    int i, vSortIdx, phi;
