@@ -29,6 +29,63 @@ Contact: mblaughton@users.sourceforge.net
 #include "../../dmtx.h"
 #include "multi_test.h"
 
+void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id)
+{
+   int maxIntensity = FindMaxEdgeIntensity(edgeCache);
+
+   BlitFlowCache(gAppState.screen, edgeCache->vDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL1_X);
+   BlitFlowCache(gAppState.screen, edgeCache->bDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL2_X);
+   BlitFlowCache(gAppState.screen, edgeCache->hDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL3_X);
+   BlitFlowCache(gAppState.screen, edgeCache->sDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL4_X);
+}
+
+void HoughCacheCallback(DmtxHoughCache *hough, int id)
+{
+   switch(id) {
+      case 0:
+         BlitHoughCache(gAppState.screen, hough, CTRL_ROW3_Y, CTRL_COL1_X + 1);
+         break;
+      case 1:
+         BlitHoughCache(gAppState.screen, hough, CTRL_ROW4_Y - 1, CTRL_COL1_X + 1);
+         break;
+   }
+}
+
+void VanishPointCallback(VanishPointSort *vPoints, int id)
+{
+   DrawVanishingPoints(gAppState.screen, vPoints, CTRL_ROW3_Y, CTRL_COL1_X);
+}
+
+void TimingCallback(Timing *timing0, Timing *timing1, int id)
+{
+   /* Should this be called before, as soon as local is captured? */
+   BlitActiveRegion(gAppState.screen, gAppState.local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+
+   /* Draw timed and untimed region lines */
+   if(gAppState.displayTiming == DmtxTrue) {
+      DrawTimingDots(gAppState.screen, timing0, CTRL_ROW3_Y, CTRL_COL1_X);
+      DrawTimingDots(gAppState.screen, timing1, CTRL_ROW3_Y, CTRL_COL1_X);
+      DrawTimingLines(gAppState.screen, timing0, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+      DrawTimingLines(gAppState.screen, timing1, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+   }
+}
+
+void GridCallback(AlignmentGrid *grid, int id)
+{
+   DrawNormalizedRegion(gAppState.screen, gAppState.imgFull, grid, &gAppState,
+         CTRL_ROW5_Y, CTRL_COL1_X + 1);
+
+   DrawSymbolPreview(gAppState.screen, gAppState.imgFull, grid, &gAppState,
+         CTRL_ROW5_Y, CTRL_COL3_X);
+}
+
+void PerimeterCallback(GridRegion *region, DmtxDirection side, DmtxBarType type)
+{
+   DrawPerimeterPatterns(gAppState.screen, region, &gAppState, side, type);
+}
+
+/******************************************************************************/
+
 void ShowActiveRegion(SDL_Surface *screen, SDL_Surface *active)
 {
    BlitActiveRegion(screen, active, 1, CTRL_ROW1_Y, CTRL_COL1_X);
@@ -86,16 +143,6 @@ int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache)
    }
 
    return maxValue;
-}
-
-void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id)
-{
-   int maxIntensity = FindMaxEdgeIntensity(edgeCache);
-
-   BlitFlowCache(gAppState.screen, edgeCache->vDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL1_X);
-   BlitFlowCache(gAppState.screen, edgeCache->bDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL2_X);
-   BlitFlowCache(gAppState.screen, edgeCache->hDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL3_X);
-   BlitFlowCache(gAppState.screen, edgeCache->sDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL4_X);
 }
 
 /**
@@ -160,18 +207,6 @@ void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY,
 
    SDL_BlitSurface(surface, NULL, screen, &clipRect);
    SDL_FreeSurface(surface);
-}
-
-void HoughCacheCallback(DmtxHoughCache *hough, int id)
-{
-   switch(id) {
-      case 0:
-         BlitHoughCache(gAppState.screen, hough, CTRL_ROW3_Y, CTRL_COL1_X + 1);
-         break;
-      case 1:
-         BlitHoughCache(gAppState.screen, hough, CTRL_ROW4_Y - 1, CTRL_COL1_X + 1);
-         break;
-   }
 }
 
 /**
@@ -420,14 +455,14 @@ void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
  *
  *
  */
-void DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale,
+void DrawTimingLines(SDL_Surface *screen, Timing *timing, int displayScale,
       int screenY, int screenX)
 {
    int i;
 
    for(i = -64; i <= 64; i++) {
-      DrawLine(screen, 64, screenX, screenY, timing.phi,
-            timing.shift + (timing.period * i), displayScale);
+      DrawLine(screen, 64, screenX, screenY, timing->phi,
+            timing->shift + (timing->period * i), displayScale);
    }
 }
 
@@ -435,14 +470,14 @@ void DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale,
  *
  *
  */
-void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort sort, int screenY, int screenX)
+void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort *sort, int screenY, int screenX)
 {
    int sortIdx;
    DmtxPixelLoc d0, d1;
    Uint32 rgba;
 
-   for(sortIdx = 0; sortIdx < sort.count; sortIdx++) {
-      d0.X = d1.X = screenX + sort.vanishSum[sortIdx].phi;
+   for(sortIdx = 0; sortIdx < sort->count; sortIdx++) {
+      d0.X = d1.X = screenX + sort->vanishSum[sortIdx].phi;
       d0.Y = screenY;
       d1.Y = d0.Y + 64;
 
@@ -463,16 +498,16 @@ void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort sort, int screenY,
  *
  *
  */
-void DrawTimingDots(SDL_Surface *screen, Timing timing, int screenY, int screenX)
+void DrawTimingDots(SDL_Surface *screen, Timing *timing, int screenY, int screenX)
 {
    int i, d;
 
    for(i = 0; i < 64; i++) {
-      d = (int)(i * timing.period + timing.shift);
+      d = (int)(i * timing->period + timing->shift);
       if(d >= 64)
          break;
 
-      PlotPixel(screen, screenX + timing.phi, screenY + 63 - d);
+      PlotPixel(screen, screenX + timing->phi, screenY + 63 - d);
    }
 }
 
@@ -509,6 +544,8 @@ void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
    bmask = 0x00ff0000;
    amask = 0xff000000;
 #endif
+
+   SDL_LockSurface(state->picture);
 
    pTmp.X = pTmp.Y = state->activeExtent/2.0;
    dmtxMatrix3VMultiply(&pCtr, &pTmp, region->raw2fitActive);
@@ -600,6 +637,8 @@ void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
 
    SDL_BlitSurface(surface, NULL, screen, &clipRect);
    SDL_FreeSurface(surface);
+
+   SDL_UnlockSurface(state->picture);
 }
 
 /**
@@ -672,6 +711,8 @@ void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
    int rowBeg, colBeg;
    int rowEnd, colEnd;
 
+   SDL_LockSurface(state->picture);
+
    pTmp.X = pTmp.Y = state->activeExtent/2.0;
    dmtxMatrix3VMultiply(&pCtr, &pTmp, grid->raw2fitActive);
 
@@ -714,6 +755,8 @@ void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
          boxColor(screen, x1, y1, x2, y2, color);
       }
    }
+
+   SDL_UnlockSurface(state->picture);
 }
 
 /**

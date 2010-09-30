@@ -71,12 +71,20 @@ static int uCos128[] = {
    -1004, -1009, -1013, -1016, -1019, -1021, -1023, -1024 };
 
 void
-dmtxScanImage(DmtxImage *img, DmtxCallbacks *fn)
+dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
 {
-   DmtxEdgeCache edgeCache;
-   DmtxHoughCache houghCache;
+   int i, j;
+   int phiDiff;
+   DmtxBoolean     regionFound;
+   DmtxPassFail    err;
+   DmtxEdgeCache   edgeCache;
+   DmtxHoughCache  houghCache;
+   VanishPointSort vPoints;
+   DmtxTimingSort  timings;
+   AlignmentGrid   grid;
+   GridRegion      region;
 
-   dmtxBuildEdgeCache(&edgeCache, img);
+   dmtxBuildEdgeCache(&edgeCache, imgActive);
    fn->edgeCacheCallback(&edgeCache, 0);
 
    dmtxBuildHoughCache(&houghCache, &edgeCache);
@@ -85,23 +93,44 @@ dmtxScanImage(DmtxImage *img, DmtxCallbacks *fn)
 
    dmtxMarkHoughMaxima(&houghCache);
    fn->houghCacheCallback(&houghCache, 1);
-/*
-   FindVanishPoints()
-   fn->vanishPointCallback(&vanishPoint, 0);
 
-   dmtxFindGridTiming()
-   fn->gridTimingCallback(&gridTiming, 0);
+   vPoints = FindVanishPoints(&houghCache);
+   fn->vanishPointCallback(&vPoints, 0);
 
+   timings = dmtxFindGridTiming(&houghCache, &vPoints);
+
+   regionFound = DmtxFalse;
    for(i = 0; regionFound == DmtxFalse && i < timings.count; i++) {
       for(j = i+1; j < timings.count; j++) {
-         periodRatio = timings.timing[i].period / timings.timing[j].period;
-         err = BuildGridFromTimings(&grid, timings.timing[i], timings.timing[j], &state);
-         err = FindRegionWithinGrid(&region, imgFull, &grid, dec, screen, &state);
+         phiDiff = abs(timings.timing[i].phi - timings.timing[j].phi);
+
+         /* Reject combinations that deviate from right angle (phi == 64) */
+         if(abs(64 - phiDiff) > 28) /* within +- ~40 deg */
+            continue;
+
+         err = BuildGridFromTimings(&grid, timings.timing[i], timings.timing[j]);
+         if(err == DmtxFail)
+            continue; /* Keep trying */
+
+         /* Hack together raw2fitFull and fit2rawFull outside since we need app data */
+         AddFullTransforms(&grid);
+
+         fn->timingCallback(&timings.timing[i], &timings.timing[j], 0);
+         fn->gridCallback(&grid, 0);
+
+         err = FindRegionWithinGrid(&region, &grid, dec, fn);
+            regionFound = (err == DmtxPass) ? DmtxTrue : DmtxFalse;
+
+         if(regionFound == DmtxTrue) {
+            region.sizeIdx = GetSizeIdx(region.width, region.height);
+            if(region.sizeIdx >= DmtxSymbol10x10 && region.sizeIdx <= DmtxSymbol16x48)
+               DecodeSymbol(&region, dec);
+         }
+
+         regionFound = DmtxTrue; /* break out of outer loop */
+         break; /* break out of inner loop */
       }
    }
-
-   DecodeSymbol()
-*/
 }
 
 /**
@@ -663,7 +692,7 @@ AddToTimingSort(DmtxTimingSort *sort, Timing timing)
  *
  */
 DmtxTimingSort
-dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *vPoints, AppState *state)
+dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *vPoints)
 {
    int x, y, fitMag, fitMax, fitOff, attempts, iter;
    int i, vSortIdx, phi;
@@ -767,13 +796,12 @@ HoughLineToRay2(int phi, double d)
  *
  */
 DmtxPassFail
-BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state)
+BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1)
 {
    RegionLines rl0, rl1, *flat, *steep;
    DmtxVector2 p00, p10, p11, p01;
    DmtxPassFail err;
-   DmtxMatrix3 fit2raw, raw2fit;
-   DmtxMatrix3 mScale, mTranslate, mTmp;
+   DmtxMatrix3 fit2raw, raw2fit, mScale;
 
    /* (1) -- later compare all possible combinations for strongest pair */
    rl0.timing = vp0;
@@ -840,38 +868,9 @@ BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *stat
    dmtxMatrix3Identity(mScale);
    dmtxMatrix3Multiply(grid->raw2fitActive, raw2fit, mScale);
 
-   if(state->activeExtent == 64) {
-      dmtxMatrix3Translate(mTranslate, state->imageLocX - 288,
-            518 - (227 + state->imageLocY + state->imageHeight));
-      dmtxMatrix3Multiply(grid->raw2fitFull, mTranslate, grid->raw2fitActive); /* not tested */
-   }
-   else {
-      dmtxMatrix3Scale(mScale, 2.0, 2.0);
-      dmtxMatrix3Multiply(mTmp, mScale, grid->raw2fitActive);
-      dmtxMatrix3Copy(grid->raw2fitActive, mTmp);
-
-      dmtxMatrix3Translate(mTranslate, state->imageLocX - 304,
-            518 - (243 + state->imageLocY + state->imageHeight));
-      dmtxMatrix3Multiply(grid->raw2fitFull, mTranslate, grid->raw2fitActive); /* not tested */
-   }
-
    /* fit2raw: Abstract away display nuances of multi_test application */
    dmtxMatrix3Identity(mScale);
    dmtxMatrix3Multiply(grid->fit2rawActive, mScale, fit2raw);
-
-   if(state->activeExtent == 64) {
-      dmtxMatrix3Translate(mTranslate, 288 - state->imageLocX,
-            227 + state->imageLocY + state->imageHeight - 518);
-   }
-   else {
-      dmtxMatrix3Scale(mScale, 0.5, 0.5);
-      dmtxMatrix3Multiply(mTmp, grid->fit2rawActive, mScale);
-      dmtxMatrix3Copy(grid->fit2rawActive, mTmp);
-
-      dmtxMatrix3Translate(mTranslate, 304 - state->imageLocX,
-            243 + state->imageLocY + state->imageHeight - 518);
-   }
-   dmtxMatrix3Multiply(grid->fit2rawFull, grid->fit2rawActive, mTranslate);
 
    return DmtxPass;
 }
@@ -953,8 +952,7 @@ GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int 
  *
  */
 DmtxPassFail
-FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec,
-      SDL_Surface *screen, AppState *state)
+FindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, DmtxCallbacks *fn)
 {
    int goodCount;
    int finderSides;
@@ -983,8 +981,8 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
       if(region->width > 26 || region->height > 26)
          return DmtxFail;
 
-      type = TestSideForPattern(region, img, side, 0);
-      outer = TestSideForPattern(region, img, side, 1);
+      type = TestSideForPattern(region, dec->image, side, 0);
+      outer = TestSideForPattern(region, dec->image, side, 1);
 
       /**
        * Make smarter ... maybe:
@@ -1004,7 +1002,8 @@ FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, Dm
          goodCount++;
       }
 
-      DrawPerimeterPatterns(screen, region, state, side, type);
+      fn->perimeterCallback(region, side, type);
+
       side = RotateCW(side);
 
       /* Potential match ... check outers */

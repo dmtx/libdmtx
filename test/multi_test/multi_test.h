@@ -65,6 +65,8 @@ typedef struct AppState_struct {
    int         imageWidth;
    int         imageHeight;
    int         activeExtent;
+   DmtxImage   *imgActive;
+   DmtxImage   *imgFull;
    DmtxBoolean displayVanish;
    DmtxBoolean displayTiming;
    DmtxBoolean printValues;
@@ -75,6 +77,7 @@ typedef struct AppState_struct {
    Uint16      pointerX;
    Uint16      pointerY;
    DmtxBoolean quit;
+   SDL_Surface *picture;
    SDL_Surface *screen;
    SDL_Surface *local;
    SDL_Surface *localTmp;
@@ -199,10 +202,15 @@ typedef struct StripStats_struct StripStats;
 struct DmtxCallbacks_struct {
    void (*edgeCacheCallback)(DmtxEdgeCache *, int);
    void (*houghCacheCallback)(DmtxHoughCache *, int);
+   void (*vanishPointCallback)(VanishPointSort *, int);
+   void (*timingCallback)(Timing *, Timing *, int);
+   void (*gridCallback)(AlignmentGrid *, int);
+   void (*perimeterCallback)(GridRegion *, DmtxDirection, DmtxBarType);
 };
 typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
 /* Application level functions */
+void AddFullTransforms(AlignmentGrid *grid);
 UserOptions GetDefaultOptions(void);
 DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[]);
 AppState InitAppState(void);
@@ -215,7 +223,7 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /*static void WriteDiagnosticImage(DmtxDecode *dec, char *imagePath);*/
 
 /* Image processing functions */
-void dmtxScanImage(DmtxImage *img, DmtxCallbacks *fn);
+void dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn);
 DmtxPassFail dmtxBuildEdgeCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
 int GetCompactOffset(int x, int y, int phiIdx, int extent);
 double UncompactOffset(double d, int phiIdx, int extent);
@@ -227,10 +235,10 @@ VanishPointSort FindVanishPoints(DmtxHoughCache *hough);
 void AddToMaximaSort(HoughMaximaSort *sort, int maximaMag);
 VanishPointSum GetAngleSumAtPhi(DmtxHoughCache *hough, int phi);
 void AddToTimingSort(DmtxTimingSort *sort, Timing timing);
-DmtxTimingSort dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *sort, AppState *state);
+DmtxTimingSort dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *sort);
 DmtxRay2 HoughLineToRay2(int phi, double d);
-DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1, AppState *state);
-DmtxPassFail FindRegionWithinGrid(GridRegion *region, DmtxImage *img, AlignmentGrid *grid, DmtxDecode *dec, SDL_Surface *screen, AppState *state);
+DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1);
+DmtxPassFail FindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, DmtxCallbacks *fn);
 DmtxBarType TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side, int offset);
 DmtxPassFail RegionExpand(GridRegion *region, DmtxDirection dir);
 int GetSizeIdx(int a, int b);
@@ -240,10 +248,15 @@ DmtxPassFail GetOnOffColors(GridRegion *region, const DmtxDecode *dec, int *onCo
 ColorTally GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBeg, DmtxDirection dir);
 
 /* Process visualization functions */
-int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache);
 void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id);
-void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY, int screenX);
 void HoughCacheCallback(DmtxHoughCache *hough, int id);
+void VanishPointCallback(VanishPointSort *vPoints, int id);
+void TimingCallback(Timing *timing0, Timing *timing1, int id);
+void GridCallback(AlignmentGrid *grid, int id);
+void PerimeterCallback(GridRegion *region, DmtxDirection side, DmtxBarType type);
+
+int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache);
+void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY, int screenX);
 void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int screenX);
 void ShowActiveRegion(SDL_Surface *screen, SDL_Surface *active);
 void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
@@ -252,9 +265,9 @@ int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
-void DrawTimingLines(SDL_Surface *screen, Timing timing, int displayScale, int screenY, int screenX);
-void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort sort, int screenY, int screenX);
-void DrawTimingDots(SDL_Surface *screen, Timing timing, int screenY, int screenX);
+void DrawTimingLines(SDL_Surface *screen, Timing *timing, int displayScale, int screenY, int screenX);
+void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort *sort, int screenY, int screenX);
+void DrawTimingDots(SDL_Surface *screen, Timing *timing, int screenY, int screenX);
 void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
 int ReadModuleColor(DmtxImage *img, AlignmentGrid *grid, int symbolRow, int symbolCol, int colorPlane);
 Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
