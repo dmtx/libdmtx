@@ -119,7 +119,7 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
          fn->gridCallback(&grid, 0);
 
          err = FindRegionWithinGrid(&region, &grid, dec, fn);
-            regionFound = (err == DmtxPass) ? DmtxTrue : DmtxFalse;
+         regionFound = (err == DmtxPass) ? DmtxTrue : DmtxFalse;
 
          if(regionFound == DmtxTrue) {
             region.sizeIdx = GetSizeIdx(region.width, region.height);
