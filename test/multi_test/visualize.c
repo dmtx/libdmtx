@@ -33,55 +33,61 @@ void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id)
 {
    int maxIntensity = FindMaxEdgeIntensity(edgeCache);
 
-   BlitFlowCache(gAppState.screen, edgeCache->vDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL1_X);
-   BlitFlowCache(gAppState.screen, edgeCache->bDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL2_X);
-   BlitFlowCache(gAppState.screen, edgeCache->hDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL3_X);
-   BlitFlowCache(gAppState.screen, edgeCache->sDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL4_X);
+   BlitFlowCache(gState.screen, edgeCache->vDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL1_X);
+   BlitFlowCache(gState.screen, edgeCache->bDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL2_X);
+   BlitFlowCache(gState.screen, edgeCache->hDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL3_X);
+   BlitFlowCache(gState.screen, edgeCache->sDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL4_X);
 }
 
 void HoughCacheCallback(DmtxHoughCache *hough, int id)
 {
    switch(id) {
       case 0:
-         BlitHoughCache(gAppState.screen, hough, CTRL_ROW3_Y, CTRL_COL1_X + 1);
+         BlitHoughCache(gState.screen, hough, CTRL_ROW3_Y, CTRL_COL1_X + 1);
          break;
       case 1:
-         BlitHoughCache(gAppState.screen, hough, CTRL_ROW4_Y - 1, CTRL_COL1_X + 1);
+         BlitHoughCache(gState.screen, hough, CTRL_ROW4_Y - 1, CTRL_COL1_X + 1);
          break;
    }
 }
 
 void VanishPointCallback(VanishPointSort *vPoints, int id)
 {
-   DrawVanishingPoints(gAppState.screen, vPoints, CTRL_ROW3_Y, CTRL_COL1_X);
+   if(gState.displayVanish == DmtxFalse)
+      return;
+
+   DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW3_Y, CTRL_COL1_X);
 }
 
 void TimingCallback(Timing *timing0, Timing *timing1, int id)
 {
    /* Should this be called before, as soon as local is captured? */
-   BlitActiveRegion(gAppState.screen, gAppState.local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+   BlitActiveRegion(gState.screen, gState.local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+
+   if(gState.displayTiming == DmtxFalse)
+      return;
 
    /* Draw timed and untimed region lines */
-   if(gAppState.displayTiming == DmtxTrue) {
-      DrawTimingDots(gAppState.screen, timing0, CTRL_ROW3_Y, CTRL_COL1_X);
-      DrawTimingDots(gAppState.screen, timing1, CTRL_ROW3_Y, CTRL_COL1_X);
-      DrawTimingLines(gAppState.screen, timing0, 2, CTRL_ROW3_Y, CTRL_COL3_X);
-      DrawTimingLines(gAppState.screen, timing1, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+   if(gState.displayTiming == DmtxTrue) {
+      DrawTimingDots(gState.screen, timing0, CTRL_ROW3_Y, CTRL_COL1_X);
+      DrawTimingDots(gState.screen, timing1, CTRL_ROW3_Y, CTRL_COL1_X);
+      DrawTimingLines(gState.screen, timing0, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+      DrawTimingLines(gState.screen, timing1, 2, CTRL_ROW3_Y, CTRL_COL3_X);
    }
 }
 
 void GridCallback(AlignmentGrid *grid, int id)
 {
-   DrawNormalizedRegion(gAppState.screen, gAppState.imgFull, grid, &gAppState,
+   DrawNormalizedRegion(gState.screen, gState.imgFull, grid, &gState,
          CTRL_ROW5_Y, CTRL_COL1_X + 1);
 
-   DrawSymbolPreview(gAppState.screen, gAppState.imgFull, grid, &gAppState,
+   DrawSymbolPreview(gState.screen, gState.imgFull, grid, &gState,
          CTRL_ROW5_Y, CTRL_COL3_X);
 }
 
 void PerimeterCallback(GridRegion *region, DmtxDirection side, DmtxBarType type)
 {
-   DrawPerimeterPatterns(gAppState.screen, region, &gAppState, side, type);
+   DrawPerimeterPatterns(gState.screen, region, &gState, side, type);
 }
 
 /******************************************************************************/

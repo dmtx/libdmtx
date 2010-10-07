@@ -59,7 +59,6 @@ typedef struct UserOptions_struct {
 } UserOptions;
 
 typedef struct AppState_struct {
-   int         adjust;
    int         windowWidth;
    int         windowHeight;
    int         imageWidth;
@@ -275,4 +274,4 @@ void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
 void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *state, DmtxDirection side, DmtxBarType type);
 void DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection side, DmtxBarType type);
 
-extern AppState gAppState;
+extern AppState gState;
