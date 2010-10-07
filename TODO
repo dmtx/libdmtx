@@ -18,6 +18,9 @@ FOCUS: refactor encoding engine, FNC1, macros
   o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
   o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
+  o libdmtx:   autobest: Consider tracking 3 separate channels for triplets, 4 for quads
+               in order to account for all possibilities. (In case it's not always best
+               to latch into scheme as soon as possible)
   o dmtxread:  Print character values (not just codewords) from --codewords (-c) option
   o dmtxread:  Print out image representing "unstretched" barcode
   o dmtxread:  Print color weights based on direction
