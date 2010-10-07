@@ -66,6 +66,7 @@ typedef struct AppState_struct {
    int         activeExtent;
    DmtxImage   *imgActive;
    DmtxImage   *imgFull;
+   DmtxBoolean autoNudge;
    DmtxBoolean displayVanish;
    DmtxBoolean displayTiming;
    DmtxBoolean printValues;
@@ -237,6 +238,9 @@ void AddToTimingSort(DmtxTimingSort *sort, Timing timing);
 DmtxTimingSort dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *sort);
 DmtxRay2 HoughLineToRay2(int phi, double d);
 DmtxPassFail dmtxBuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1);
+StripStats GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int contrast);
+GridRegion NudgeStripLimits(GridRegion *region, DmtxDirection side, int nudgeStyle);
+
 DmtxPassFail dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, DmtxCallbacks *fn);
 int dmtxReadModuleColor(DmtxImage *img, AlignmentGrid *grid, int symbolRow, int symbolCol, int colorPlane);
 DmtxBarType TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side, int offset);

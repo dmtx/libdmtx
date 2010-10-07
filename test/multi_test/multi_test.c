@@ -20,7 +20,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mblaughton@users.sourceforge.net
 */
 
-/* $Id: multi_test.c 561 2008-12-28 16:28:58Z mblaughton $ */
+/* $Id$ */
 
 /**
  * This "multi_test" program is for experimental algorithms. Please
@@ -338,6 +338,7 @@ InitAppState(void)
    state.activeExtent = 64;
    state.imgActive = NULL;
    state.imgFull = NULL;
+   state.autoNudge = DmtxFalse;
    state.displayVanish = DmtxFalse;
    state.displayTiming = DmtxTrue;
    state.printValues = DmtxFalse;
@@ -392,11 +393,15 @@ HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface
             case SDLK_ESCAPE:
                state->quit = DmtxTrue;
                break;
-            case SDLK_p:
-               state->printValues = (state->printValues == DmtxTrue) ? DmtxFalse : DmtxTrue;
-               break;
             case SDLK_l:
                fprintf(stdout, "Image Location: (%d, %d)\n", state->imageLocX,  state->imageLocY);
+               break;
+            case SDLK_n:
+               state->autoNudge = (state->autoNudge == DmtxTrue) ? DmtxFalse : DmtxTrue;
+               fprintf(stdout, "autoNudge %s\n", (state->autoNudge == DmtxTrue) ? "ON" : "OFF");
+               break;
+            case SDLK_p:
+               state->printValues = (state->printValues == DmtxTrue) ? DmtxFalse : DmtxTrue;
                break;
             case SDLK_t:
                state->displayTiming = (state->displayTiming == DmtxTrue) ? DmtxFalse : DmtxTrue;

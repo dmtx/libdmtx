@@ -22,6 +22,16 @@ Contact: mblaughton@users.sourceforge.net
 
 /* $Id$ */
 
+/**
+ * TODO:
+ * o Autonudge still seems to make things worse, but it would be nice if all the
+ *   display panes would reflect the autonudged grid instead of just the
+ *   perimeter outlines
+ * o Consider removing double pairs of transforms in AlignmentGrid. Instead
+ *   always work with "Full" version. May require changes to multi_test.c image
+ *   position math.
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -951,25 +961,80 @@ GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int 
  *
  *
  */
+GridRegion
+NudgeStripLimits(GridRegion *region, DmtxDirection side, int nudgeStyle)
+{
+   int length;
+   double nudge;
+   GridRegion nudgedRegion = *region;
+   DmtxVector2 p00 = { 0.0, 0.0 };
+   DmtxVector2 p10 = { 1.0, 0.0 };
+   DmtxVector2 p11 = { 1.0, 1.0 };
+   DmtxVector2 p01 = { 0.0, 1.0 };
+   double *pNudge;
+
+   assert(nudgeStyle >= 0 && nudgeStyle <= 3);
+   assert(side == DmtxDirUp || side == DmtxDirLeft || side == DmtxDirDown || side == DmtxDirRight);
+
+   length = (side == DmtxDirUp || side == DmtxDirDown) ? nudgedRegion.width : nudgedRegion.height;
+   nudge = (((double)length + 0.2)/length) - 1.0;
+
+   switch(side) {
+      case DmtxDirUp:
+         pNudge = (nudgeStyle < 2) ? &(p11.X) : &(p01.X);
+         break;
+      case DmtxDirLeft:
+         pNudge = (nudgeStyle < 2) ? &(p01.Y) : &(p00.Y);
+         break;
+      case DmtxDirDown:
+         pNudge = (nudgeStyle < 2) ? &(p00.X) : &(p10.X);
+         break;
+      case DmtxDirRight:
+         pNudge = (nudgeStyle < 2) ? &(p10.Y) : &(p11.Y);
+         break;
+      default:
+         pNudge = NULL;
+         break;
+   }
+
+   if(pNudge != NULL) {
+      *pNudge += (nudgeStyle & 0x01) ? nudge : -nudge;
+
+      dmtxMatrix3VMultiplyBy(&p00, nudgedRegion.grid.fit2rawActive);
+      dmtxMatrix3VMultiplyBy(&p10, nudgedRegion.grid.fit2rawActive);
+      dmtxMatrix3VMultiplyBy(&p11, nudgedRegion.grid.fit2rawActive);
+      dmtxMatrix3VMultiplyBy(&p01, nudgedRegion.grid.fit2rawActive);
+      RegionUpdateCorners(nudgedRegion.grid.fit2rawActive, nudgedRegion.grid.raw2fitActive, p00, p10, p11, p01);
+
+      AddFullTransforms(&(nudgedRegion.grid));
+   }
+
+   return nudgedRegion;
+}
+
+/**
+ *
+ *
+ */
 DmtxPassFail
 dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, DmtxCallbacks *fn)
 {
    int goodCount;
    int finderSides;
    DmtxDirection side;
-   DmtxBarType type, outer;
-/* GridRegion regBest, regNudgeStart, regNudgeEnd; */
+   DmtxBarType sideBest, sideNudgeBeg, sideNudgeEnd, outer;
+   GridRegion regBest, regNudgeBeg, regNudgeEnd;
 
-   memset(region, 0x00, sizeof(GridRegion));
+   memset(&regBest, 0x00, sizeof(GridRegion));
 
-   region->grid = *grid; /* Capture local copy of grid for tweaking */
-   region->x = region->grid.colCount / 2;
-   region->y = region->grid.rowCount / 2;
-   region->width = 2;
-   region->height = 2;
-   region->sizeIdx = DmtxUndefined;
-   region->onColor = region->offColor = 0;
-   region->contrast = 20; /* low initial value */
+   regBest.grid = *grid; /* Capture local copy of grid for tweaking */
+   regBest.x = regBest.grid.colCount / 2;
+   regBest.y = regBest.grid.rowCount / 2;
+   regBest.width = 2;
+   regBest.height = 2;
+   regBest.sizeIdx = DmtxUndefined;
+   regBest.onColor = regBest.offColor = 0;
+   regBest.contrast = 20; /* low initial value */
 
    /* Assume the starting region will be far enough away from any side that
     * the expansion rules won't need to work at the very smallest sizes */
@@ -979,15 +1044,29 @@ dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *de
    finderSides = DmtxDirNone;
    side = DmtxDirDown;
    for(;;) {
-      if(region->width > 26 || region->height > 26)
+      if(regBest.width > 26 || regBest.height > 26)
          return DmtxFail;
 
-/* make copy of region, test */
-/* make copy of region, push starting edge outward, test */
-/* make copy of region, push ending edge outward, test */
-/* take result with best contrast of above 3, test outer */
-      type = TestSideForPattern(region, dec->image, side, 0);
-      outer = TestSideForPattern(region, dec->image, side, 1);
+      sideBest = TestSideForPattern(&regBest, dec->image, side, 0);
+
+      if(gState.autoNudge == DmtxTrue) {
+         regNudgeBeg = NudgeStripLimits(&regBest, side, 0);
+         regNudgeEnd = NudgeStripLimits(&regBest, side, 1);
+
+         sideNudgeBeg = TestSideForPattern(&regNudgeBeg, dec->image, side, 0);
+         sideNudgeEnd = TestSideForPattern(&regNudgeEnd, dec->image, side, 0);
+
+         if(regNudgeBeg.contrast > regBest.contrast) {
+            regBest = regNudgeBeg;
+            sideBest = sideNudgeBeg;
+         }
+         if(regNudgeEnd.contrast > regBest.contrast) {
+            regBest = regNudgeEnd;
+            sideBest = sideNudgeEnd;
+         }
+      }
+
+      outer = TestSideForPattern(&regBest, dec->image, side, 1);
 
       /**
        * Make smarter ... maybe:
@@ -995,19 +1074,19 @@ dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *de
        * 2) Check that the colors are all consistent (not as easy)
        */
 
-      if(type == DmtxBarNone || outer == DmtxBarNone) {
-         RegionExpand(region, side);
+      if(sideBest == DmtxBarNone || outer == DmtxBarNone) {
+         RegionExpand(&regBest, side);
          finderSides = DmtxDirNone;
          goodCount = 0;
       }
       else {
-         if(type == DmtxBarFinder)
+         if(sideBest == DmtxBarFinder)
             finderSides |= side;
 
          goodCount++;
       }
 
-      fn->perimeterCallback(region, side, type);
+      fn->perimeterCallback(&regBest, side, sideBest);
 
       side = RotateCW(side);
 
@@ -1017,7 +1096,8 @@ dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *de
       }
    }
 
-   region->finderSides = finderSides;
+   regBest.finderSides = finderSides;
+   *region = regBest;
 
    return DmtxPass;
 }
