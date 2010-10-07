@@ -94,7 +94,7 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
    dmtxMarkHoughMaxima(&houghCache);
    fn->houghCacheCallback(&houghCache, 1);
 
-   vPoints = FindVanishPoints(&houghCache);
+   vPoints = dmtxFindVanishPoints(&houghCache);
    fn->vanishPointCallback(&vPoints, 0);
 
    timings = dmtxFindGridTiming(&houghCache, &vPoints);
@@ -108,7 +108,7 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
          if(abs(64 - phiDiff) > 28) /* within +- ~40 deg */
             continue;
 
-         err = BuildGridFromTimings(&grid, timings.timing[i], timings.timing[j]);
+         err = dmtxBuildGridFromTimings(&grid, timings.timing[i], timings.timing[j]);
          if(err == DmtxFail)
             continue; /* Keep trying */
 
@@ -118,13 +118,13 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
          fn->timingCallback(&timings.timing[i], &timings.timing[j], 0);
          fn->gridCallback(&grid, 0);
 
-         err = FindRegionWithinGrid(&region, &grid, dec, fn);
+         err = dmtxFindRegionWithinGrid(&region, &grid, dec, fn);
          regionFound = (err == DmtxPass) ? DmtxTrue : DmtxFalse;
 
          if(regionFound == DmtxTrue) {
-            region.sizeIdx = GetSizeIdx(region.width, region.height);
+            region.sizeIdx = dmtxGetSizeIdx(region.width, region.height);
             if(region.sizeIdx >= DmtxSymbol10x10 && region.sizeIdx <= DmtxSymbol16x48)
-               DecodeSymbol(&region, dec);
+               dmtxDecodeSymbol(&region, dec);
          }
 
          regionFound = DmtxTrue; /* break out of outer loop */
@@ -585,7 +585,7 @@ AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum)
  *
  */
 VanishPointSort
-FindVanishPoints(DmtxHoughCache *hough)
+dmtxFindVanishPoints(DmtxHoughCache *hough)
 {
    int phi;
    VanishPointSort sort;
@@ -796,7 +796,7 @@ HoughLineToRay2(int phi, double d)
  *
  */
 DmtxPassFail
-BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1)
+dmtxBuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1)
 {
    RegionLines rl0, rl1, *flat, *steep;
    DmtxVector2 p00, p10, p11, p01;
@@ -952,12 +952,13 @@ GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int 
  *
  */
 DmtxPassFail
-FindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, DmtxCallbacks *fn)
+dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, DmtxCallbacks *fn)
 {
    int goodCount;
    int finderSides;
    DmtxDirection side;
    DmtxBarType type, outer;
+/* GridRegion regBest, regNudgeStart, regNudgeEnd; */
 
    memset(region, 0x00, sizeof(GridRegion));
 
@@ -981,6 +982,10 @@ FindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, D
       if(region->width > 26 || region->height > 26)
          return DmtxFail;
 
+/* make copy of region, test */
+/* make copy of region, push starting edge outward, test */
+/* make copy of region, push ending edge outward, test */
+/* take result with best contrast of above 3, test outer */
       type = TestSideForPattern(region, dec->image, side, 0);
       outer = TestSideForPattern(region, dec->image, side, 1);
 
@@ -1006,7 +1011,7 @@ FindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, D
 
       side = RotateCW(side);
 
-      /* Potential match ... check outers */
+      /* Potential match */
       if(goodCount == 4) {
          break;
       }
@@ -1015,6 +1020,39 @@ FindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, D
    region->finderSides = finderSides;
 
    return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+int dmtxReadModuleColor(DmtxImage *img, AlignmentGrid *grid, int symbolRow,
+      int symbolCol, int colorPlane)
+{
+   int err;
+   int i;
+   int color, colorTmp;
+   double sampleX[] = { 0.5, 0.4, 0.5, 0.6, 0.5 };
+   double sampleY[] = { 0.5, 0.5, 0.4, 0.5, 0.6 };
+   DmtxVector2 p;
+
+   color = 0;
+   for(i = 0; i < 5; i++) {
+
+      p.X = (1.0/grid->colCount) * (symbolCol + sampleX[i]);
+      p.Y = (1.0/grid->rowCount) * (symbolRow + sampleY[i]);
+
+      dmtxMatrix3VMultiplyBy(&p, grid->fit2rawFull);
+
+      /* Should use dmtxDecodeGetPixelValue() later to properly handle pixel skipping */
+      err = dmtxImageGetPixelValue(img, p.X, p.Y, colorPlane, &colorTmp);
+      if(err == DmtxFail)
+         return 0;
+
+      color += colorTmp;
+   }
+
+   return color/5;
 }
 
 /**
@@ -1066,7 +1104,7 @@ TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side, int o
    row = rowBeg;
 
    for(i = 0; i < extent; i++) {
-      colorStrip[i] = ReadModuleColor(img, &(region->grid), row, col, 0);
+      colorStrip[i] = dmtxReadModuleColor(img, &(region->grid), row, col, 0);
 
       if(side & DmtxDirVertical)
          col++;
@@ -1130,7 +1168,7 @@ RegionExpand(GridRegion *region, DmtxDirection dir)
  *
  */
 int
-GetSizeIdx(int a, int b)
+dmtxGetSizeIdx(int a, int b)
 {
    int i, rows, cols;
    const int totalSymbolSizes = 30; /* is there a better way to determine this? */
@@ -1254,7 +1292,7 @@ RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00,
  *
  */
 DmtxPassFail
-DecodeSymbol(GridRegion *region, DmtxDecode *dec)
+dmtxDecodeSymbol(GridRegion *region, DmtxDecode *dec)
 {
    int onColor, offColor;
    DmtxVector2 p00, p10, p11, p01;
@@ -1391,7 +1429,7 @@ GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBe
    col = colBeg;
    row = rowBeg;
    for(i = 0; i < extent; i++) {
-      sample = ReadModuleColor(dec->image, &(region->grid), row, col, 0);
+      sample = dmtxReadModuleColor(dec->image, &(region->grid), row, col, 0);
 
       if(i & 0x01) {
          colors.oddColor += sample;

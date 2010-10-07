@@ -230,19 +230,20 @@ DmtxPassFail dmtxBuildHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache
 DmtxPassFail dmtxNormalizeHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache);
 void dmtxMarkHoughMaxima(DmtxHoughCache *hough);
 void AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum);
-VanishPointSort FindVanishPoints(DmtxHoughCache *hough);
+VanishPointSort dmtxFindVanishPoints(DmtxHoughCache *hough);
 void AddToMaximaSort(HoughMaximaSort *sort, int maximaMag);
 VanishPointSum GetAngleSumAtPhi(DmtxHoughCache *hough, int phi);
 void AddToTimingSort(DmtxTimingSort *sort, Timing timing);
 DmtxTimingSort dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *sort);
 DmtxRay2 HoughLineToRay2(int phi, double d);
-DmtxPassFail BuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1);
-DmtxPassFail FindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, DmtxCallbacks *fn);
+DmtxPassFail dmtxBuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1);
+DmtxPassFail dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, DmtxCallbacks *fn);
+int dmtxReadModuleColor(DmtxImage *img, AlignmentGrid *grid, int symbolRow, int symbolCol, int colorPlane);
 DmtxBarType TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side, int offset);
 DmtxPassFail RegionExpand(GridRegion *region, DmtxDirection dir);
-int GetSizeIdx(int a, int b);
+int dmtxGetSizeIdx(int a, int b);
 DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
-DmtxPassFail DecodeSymbol(GridRegion *region, DmtxDecode *dec);
+DmtxPassFail dmtxDecodeSymbol(GridRegion *region, DmtxDecode *dec);
 DmtxPassFail GetOnOffColors(GridRegion *region, const DmtxDecode *dec, int *onColor, int *offColor);
 ColorTally GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg, int rowBeg, DmtxDirection dir);
 
@@ -268,7 +269,6 @@ void DrawTimingLines(SDL_Surface *screen, Timing *timing, int displayScale, int 
 void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort *sort, int screenY, int screenX);
 void DrawTimingDots(SDL_Surface *screen, Timing *timing, int screenY, int screenX);
 void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
-int ReadModuleColor(DmtxImage *img, AlignmentGrid *grid, int symbolRow, int symbolCol, int colorPlane);
 Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
 void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
 void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *state, DmtxDirection side, DmtxBarType type);

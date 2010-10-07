@@ -651,39 +651,6 @@ void DrawNormalizedRegion(SDL_Surface *screen, DmtxImage *img,
  *
  *
  */
-int ReadModuleColor(DmtxImage *img, AlignmentGrid *grid, int symbolRow,
-      int symbolCol, int colorPlane)
-{
-   int err;
-   int i;
-   int color, colorTmp;
-   double sampleX[] = { 0.5, 0.4, 0.5, 0.6, 0.5 };
-   double sampleY[] = { 0.5, 0.5, 0.4, 0.5, 0.6 };
-   DmtxVector2 p;
-
-   color = 0;
-   for(i = 0; i < 5; i++) {
-
-      p.X = (1.0/grid->colCount) * (symbolCol + sampleX[i]);
-      p.Y = (1.0/grid->rowCount) * (symbolRow + sampleY[i]);
-
-      dmtxMatrix3VMultiplyBy(&p, grid->fit2rawFull);
-
-      /* Should use dmtxDecodeGetPixelValue() later to properly handle pixel skipping */
-      err = dmtxImageGetPixelValue(img, p.X, p.Y, colorPlane, &colorTmp);
-      if(err == DmtxFail)
-         return 0;
-
-      color += colorTmp;
-   }
-
-   return color/5;
-}
-
-/**
- *
- *
- */
 Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent)
 {
    Sint16 xMax;
@@ -747,9 +714,9 @@ void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
 
       for(col = colBeg; col < colEnd; col++) {
 
-         rColor = ReadModuleColor(img, grid, row, col, 0);
-         gColor = ReadModuleColor(img, grid, row, col, 1);
-         bColor = ReadModuleColor(img, grid, row, col, 2);
+         rColor = dmtxReadModuleColor(img, grid, row, col, 0);
+         gColor = dmtxReadModuleColor(img, grid, row, col, 1);
+         bColor = dmtxReadModuleColor(img, grid, row, col, 2);
          color = (rColor << 24) | (gColor << 16) | (bColor << 8) | 0xff;
 
          x1 = col * dispModExtent + shiftX;
