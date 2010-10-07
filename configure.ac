@@ -180,7 +180,7 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_COCOA, [test x$enable_cocoa = xyes])
 
 if test x$enable_cocoa = xyes; then
-   AC_WARN([Building the Cocoa wrapper though the libdmtx build system is not yet supported])
+   AC_MSG_WARN([Building the Cocoa wrapper though the libdmtx build system is not yet supported])
 fi
 
 AC_ARG_ENABLE(
@@ -192,7 +192,7 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_JAVA, [test x$enable_java = xyes])
 
 if test x$enable_java = xyes; then
-   AC_WARN([Building the Java wrapper though the libdmtx build system is not yet supported])
+   AC_MSG_WARN([Building the Java wrapper though the libdmtx build system is not yet supported])
 fi
 
 AC_ARG_ENABLE(
@@ -204,7 +204,7 @@ AC_ARG_ENABLE(
 AM_CONDITIONAL(ENABLE_NET, [test x$enable_net = xyes])
 
 if test x$enable_net = xyes; then
-   AC_WARN([Building the .NET wrapper though the libdmtx build system is not yet supported])
+   AC_MSG_WARN([Building the .NET wrapper though the libdmtx build system is not yet supported])
 fi
 
 AC_ARG_ENABLE(
@@ -221,7 +221,7 @@ if test x$enable_php = xyes; then
       AC_ERROR([phpize is required to generate the PHP bindings.])
    fi
 
-   AC_WARN([Building the PHP wrapper will break make uninstall])
+   AC_MSG_WARN([Building the PHP wrapper will break make uninstall])
 
    dmtx_dir=`pwd`
    cd wrapper/php && \
@@ -240,7 +240,7 @@ AM_CONDITIONAL(ENABLE_PYTHON, [test x$enable_python = xyes])
 
 if test x$enable_python = xyes; then
    AM_PATH_PYTHON
-   AC_WARN([Building the Python wrapper will break make uninstall])
+   AC_MSG_WARN([Building the Python wrapper will break make uninstall])
 fi
 
 AC_ARG_ENABLE(
@@ -257,7 +257,7 @@ if test x$enable_ruby = xyes; then
       AC_ERROR([ruby is required to generate the Ruby bindings.])
    fi
 
-   AC_WARN([Building the Ruby wrapper will break make uninstall])
+   AC_MSG_WARN([Building the Ruby wrapper will break make uninstall])
 
    dmtx_dir=`pwd`
    cd wrapper/ruby && \
@@ -280,7 +280,7 @@ if test x$enable_vala = xyes; then
       [vala-1.0],
       [VALA_VAPIDIR=`$PKG_CONFIG --variable=vapidir vala-1.0`],
       [
-         AC_WARN([Can't find vala development files, guessing where to install vala bindings...])
+         #AC_MSG_WARN([Can't find vala development files, guessing where to install vala bindings...])
          VALA_VAPIDIR='${prefix}/share/vala/vapi'
       ]
    )
