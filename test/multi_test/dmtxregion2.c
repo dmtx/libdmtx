@@ -42,6 +42,8 @@ Contact: mblaughton@users.sourceforge.net
 #include "multi_test.h"
 #include "kiss_fftr.h"
 
+#define RETURN_IF_FAIL(X) if(X == DmtxFail) return DmtxFail
+
 /* Scaled unit sin */
 static int uSin128[] = {
        0,    25,    50,    75,   100,   125,   150,   175,
@@ -127,7 +129,7 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
          /* Hack together raw2fitFull and fit2rawFull outside since we need app data */
          AddFullTransforms(&grid);
 
-         err = dmtxFindRegionWithinGrid(&region, &grid, dec, fn);
+         err = dmtxFindRegionWithinGrid(&region, &grid, &houghCache, dec, fn);
          regionFound = (err == DmtxPass) ? DmtxTrue : DmtxFalse;
 
          fn->gridCallback(&(region.grid), 0);
@@ -812,7 +814,6 @@ dmtxBuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1)
 {
    RegionLines rl0, rl1, *flat, *steep;
    DmtxVector2 p00, p10, p11, p01;
-   DmtxPassFail err;
    DmtxMatrix3 fit2raw, raw2fit, mScale;
 
    /* (1) -- later compare all possible combinations for strongest pair */
@@ -853,25 +854,11 @@ dmtxBuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1)
       steep->line[1] = HoughLineToRay2(steep->timing.phi, steep->dA);
    }
 
-   err = dmtxRay2Intersect(&p00, &(flat->line[0]), &(steep->line[0]));
-   if(err == DmtxFail)
-      return DmtxFail;
-
-   err = dmtxRay2Intersect(&p10, &(flat->line[0]), &(steep->line[1]));
-   if(err == DmtxFail)
-      return DmtxFail;
-
-   err = dmtxRay2Intersect(&p11, &(flat->line[1]), &(steep->line[1]));
-   if(err == DmtxFail)
-      return DmtxFail;
-
-   err = dmtxRay2Intersect(&p01, &(flat->line[1]), &(steep->line[0]));
-   if(err == DmtxFail)
-      return DmtxFail;
-
-   err = RegionUpdateCorners(fit2raw, raw2fit, p00, p10, p11, p01);
-   if(err == DmtxFail)
-      return DmtxFail;
+   RETURN_IF_FAIL(dmtxRay2Intersect(&p00, &(flat->line[0]), &(steep->line[0])));
+   RETURN_IF_FAIL(dmtxRay2Intersect(&p10, &(flat->line[0]), &(steep->line[1])));
+   RETURN_IF_FAIL(dmtxRay2Intersect(&p11, &(flat->line[1]), &(steep->line[1])));
+   RETURN_IF_FAIL(dmtxRay2Intersect(&p01, &(flat->line[1]), &(steep->line[0])));
+   RETURN_IF_FAIL(RegionUpdateCorners(fit2raw, raw2fit, p00, p10, p11, p01));
 
    grid->rowCount = flat->gridCount;
    grid->colCount = steep->gridCount;
@@ -963,112 +950,37 @@ GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int 
  *
  *
  */
-GridRegion
-NudgeStripLimits(GridRegion *region, DmtxDirection side, int nudgeStyle)
-{
-   int length;
-   double nudge;
-   GridRegion nudgedRegion = *region;
-   DmtxVector2 p00 = { 0.0, 0.0 };
-   DmtxVector2 p10 = { 1.0, 0.0 };
-   DmtxVector2 p11 = { 1.0, 1.0 };
-   DmtxVector2 p01 = { 0.0, 1.0 };
-   double *pNudge;
-
-   assert(nudgeStyle >= 0 && nudgeStyle <= 3);
-   assert(side == DmtxDirUp || side == DmtxDirLeft || side == DmtxDirDown || side == DmtxDirRight);
-
-   length = (side == DmtxDirUp || side == DmtxDirDown) ? nudgedRegion.width : nudgedRegion.height;
-   nudge = (((double)length + 0.2)/length) - 1.0;
-
-   switch(side) {
-      case DmtxDirUp:
-         pNudge = (nudgeStyle < 2) ? &(p11.X) : &(p01.X);
-         break;
-      case DmtxDirLeft:
-         pNudge = (nudgeStyle < 2) ? &(p01.Y) : &(p00.Y);
-         break;
-      case DmtxDirDown:
-         pNudge = (nudgeStyle < 2) ? &(p00.X) : &(p10.X);
-         break;
-      case DmtxDirRight:
-         pNudge = (nudgeStyle < 2) ? &(p10.Y) : &(p11.Y);
-         break;
-      default:
-         pNudge = NULL;
-         break;
-   }
-
-   if(pNudge != NULL) {
-      *pNudge += (nudgeStyle & 0x01) ? nudge : -nudge;
-
-      dmtxMatrix3VMultiplyBy(&p00, nudgedRegion.grid.fit2rawActive);
-      dmtxMatrix3VMultiplyBy(&p10, nudgedRegion.grid.fit2rawActive);
-      dmtxMatrix3VMultiplyBy(&p11, nudgedRegion.grid.fit2rawActive);
-      dmtxMatrix3VMultiplyBy(&p01, nudgedRegion.grid.fit2rawActive);
-      RegionUpdateCorners(nudgedRegion.grid.fit2rawActive, nudgedRegion.grid.raw2fitActive, p00, p10, p11, p01);
-
-      AddFullTransforms(&(nudgedRegion.grid));
-   }
-
-   return nudgedRegion;
-}
-
-/**
- *
- *
- */
 DmtxPassFail
-dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, DmtxCallbacks *fn)
+dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxHoughCache *houghCache, DmtxDecode *dec, DmtxCallbacks *fn)
 {
    int goodCount;
    int finderSides;
-   DmtxDirection side;
-   DmtxBarType sideBest, sideNudgeBeg, sideNudgeEnd, outer;
-   GridRegion regBest, regNudgeBeg, regNudgeEnd;
+   DmtxDirection sideDir;
+   DmtxBarType innerType, outerType;
+   GridRegion regGrow;
 
-   memset(&regBest, 0x00, sizeof(GridRegion));
+   memset(&regGrow, 0x00, sizeof(GridRegion));
 
-   regBest.grid = *grid; /* Capture local copy of grid for tweaking */
-   regBest.x = regBest.grid.colCount / 2;
-   regBest.y = regBest.grid.rowCount / 2;
-   regBest.width = 2;
-   regBest.height = 2;
-   regBest.sizeIdx = DmtxUndefined;
-   regBest.onColor = regBest.offColor = 0;
-   regBest.contrast = 20; /* low initial value */
+   regGrow.grid = *grid; /* Capture local copy of grid for tweaking */
+   regGrow.x = regGrow.grid.colCount / 2;
+   regGrow.y = regGrow.grid.rowCount / 2;
+   regGrow.width = 2;
+   regGrow.height = 2;
+   regGrow.sizeIdx = DmtxUndefined;
+   regGrow.onColor = regGrow.offColor = 0;
+   regGrow.contrast = 20; /* low initial value */
 
    /* Assume the starting region will be far enough away from any side that
     * the expansion rules won't need to work at the very smallest sizes */
 
    /* Grow region */
-   goodCount = 0;
    finderSides = DmtxDirNone;
-   side = DmtxDirDown;
-   for(;;) {
-      if(regBest.width > 26 || regBest.height > 26)
+   for(goodCount = 0, sideDir = DmtxDirDown; goodCount < 4; sideDir = RotateCW(sideDir)) {
+      if(regGrow.width > 26 || regGrow.height > 26)
          return DmtxFail;
 
-      sideBest = TestSideForPattern(&regBest, dec->image, side, 0);
-
-      if(gState.autoNudge == DmtxTrue) {
-         regNudgeBeg = NudgeStripLimits(&regBest, side, 0);
-         regNudgeEnd = NudgeStripLimits(&regBest, side, 1);
-
-         sideNudgeBeg = TestSideForPattern(&regNudgeBeg, dec->image, side, 0);
-         sideNudgeEnd = TestSideForPattern(&regNudgeEnd, dec->image, side, 0);
-
-         if(regNudgeBeg.contrast > regBest.contrast) {
-            regBest = regNudgeBeg;
-            sideBest = sideNudgeBeg;
-         }
-         if(regNudgeEnd.contrast > regBest.contrast) {
-            regBest = regNudgeEnd;
-            sideBest = sideNudgeEnd;
-         }
-      }
-
-      outer = TestSideForPattern(&regBest, dec->image, side, 1);
+      innerType = TestSideForPattern(&regGrow, dec->image, sideDir, 0);
+      outerType = TestSideForPattern(&regGrow, dec->image, sideDir, 1);
 
       /**
        * Make smarter ... maybe:
@@ -1076,30 +988,23 @@ dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *de
        * 2) Check that the colors are all consistent (not as easy)
        */
 
-      if(sideBest == DmtxBarNone || outer == DmtxBarNone) {
-         RegionExpand(&regBest, side);
+      if(innerType == DmtxBarNone || outerType == DmtxBarNone) {
+         RegionExpand(&regGrow, sideDir, houghCache);
          finderSides = DmtxDirNone;
          goodCount = 0;
       }
       else {
-         if(sideBest == DmtxBarFinder)
-            finderSides |= side;
+         if(innerType == DmtxBarFinder)
+            finderSides |= sideDir;
 
          goodCount++;
       }
 
-      fn->perimeterCallback(&regBest, side, sideBest);
-
-      side = RotateCW(side);
-
-      /* Potential match */
-      if(goodCount == 4) {
-         break;
-      }
+      fn->perimeterCallback(&regGrow, sideDir, innerType);
    }
 
-   regBest.finderSides = finderSides;
-   *region = regBest;
+   regGrow.finderSides = finderSides;
+   *region = regGrow;
 
    return DmtxPass;
 }
@@ -1216,30 +1121,223 @@ TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side, int o
    return DmtxBarNone;
 }
 
+#define DmtxAlmostZero          0.000001
+
 /**
  *
  *
  */
 DmtxPassFail
-RegionExpand(GridRegion *region, DmtxDirection dir)
+Vector2Norm(DmtxVector2 *v)
 {
-   switch(dir) {
+   double mag;
+
+   mag = dmtxVector2Mag(v);
+
+   if(mag <= DmtxAlmostZero)
+      return DmtxFail;
+
+   dmtxVector2ScaleBy(v, 1/mag);
+
+   return DmtxTrue;
+}
+
+/**
+ *
+ *
+ */
+DmtxPassFail
+Ray2FromPoints(DmtxRay2 *ray, DmtxVector2 p0, DmtxVector2 p1)
+{
+   DmtxRay2 r;
+   DmtxPassFail status;
+
+   r.tMin = 0.0;
+   r.tMax = 1.0;
+   r.p = p0;
+
+   dmtxVector2Sub(&r.v, &p1, &p0);
+   status = Vector2Norm(&r.v);
+
+   if(status == DmtxPass)
+      *ray = r;
+
+   return status;
+}
+
+/**
+ * Not a generic function. Notice that it uses fit2rawActive.
+ *
+ */
+DmtxPassFail
+dmtxRegionToSides(GridRegion *region, DmtxRegionSides *regionSides)
+{
+   DmtxVector2 p00, p10, p11, p01;
+   DmtxRegionSides rs;
+
+   p00.X = p01.X = region->x * (1.0/region->grid.colCount);
+   p10.X = p11.X = (region->x + region->width) * (1.0/region->grid.colCount);
+   p00.Y = p10.Y = region->y * (1.0/region->grid.rowCount);
+   p01.Y = p11.Y = (region->y + region->height) * (1.0/region->grid.rowCount);
+
+   dmtxMatrix3VMultiplyBy(&p00, region->grid.fit2rawActive);
+   dmtxMatrix3VMultiplyBy(&p10, region->grid.fit2rawActive);
+   dmtxMatrix3VMultiplyBy(&p11, region->grid.fit2rawActive);
+   dmtxMatrix3VMultiplyBy(&p01, region->grid.fit2rawActive);
+
+   RETURN_IF_FAIL(Ray2FromPoints(&rs.bottom, p00, p10));
+   RETURN_IF_FAIL(Ray2FromPoints(&rs.right, p10, p11));
+   RETURN_IF_FAIL(Ray2FromPoints(&rs.top, p11, p01));
+   RETURN_IF_FAIL(Ray2FromPoints(&rs.left, p01, p00));
+
+   *regionSides = rs;
+
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+DmtxHoughCompact
+dmtxRayToHoughCompact(DmtxRay2 ray)
+{
+   DmtxHoughCompact houghLine;
+
+   memset(&houghLine, 0x00, sizeof(DmtxHoughCompact));
+
+   /* do a bunch of math here */
+/* OPPOSITE
+   double phiRad;
+   double dScaled;
+   DmtxRay2 rStart, rLine;
+
+   memset(&rStart, 0x00, sizeof(DmtxRay2));
+   memset(&rLine, 0x00, sizeof(DmtxRay2));
+
+   rStart.p.X = rStart.p.Y = 0.0;
+
+   phiRad = phi * M_PI/128.0;
+
+   rStart.v.X = cos(phiRad);
+   rStart.v.Y = sin(phiRad);
+
+   rLine.v.X = -rStart.v.Y;
+   rLine.v.Y = rStart.v.X;
+
+   dScaled = UncompactOffset(d, phi, LOCAL_SIZE);
+
+   dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
+
+   return rLine;
+*/
+
+   return houghLine;
+}
+
+/**
+ *
+ *
+ */
+DmtxBoolean
+dmtxHoughNudgeStronger(DmtxHoughCache *houghCache, DmtxHoughCompact *houghLine)
+{
+   return DmtxTrue;
+}
+
+/**
+ *
+ *
+ */
+DmtxRay2
+dmtxHoughCompactToRay(DmtxHoughCompact houghLine)
+{
+   DmtxRay2 ray;
+
+   memset(&ray, 0x00, sizeof(DmtxRay2));
+/*
+   double phiRad;
+   double dScaled;
+   DmtxRay2 rStart, rLine;
+
+   memset(&rStart, 0x00, sizeof(DmtxRay2));
+   memset(&rLine, 0x00, sizeof(DmtxRay2));
+
+   rStart.p.X = rStart.p.Y = 0.0;
+
+   phiRad = phi * M_PI/128.0;
+
+   rStart.v.X = cos(phiRad);
+   rStart.v.Y = sin(phiRad);
+
+   rLine.v.X = -rStart.v.Y;
+   rLine.v.Y = rStart.v.X;
+
+   dScaled = UncompactOffset(d, phi, LOCAL_SIZE);
+
+   dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
+
+   return rLine;
+*/
+
+   return ray;
+}
+
+/**
+ *
+ *
+ */
+void
+dmtxRegionUpdateFromSides(GridRegion *region, DmtxRegionSides regionSides)
+{
+}
+
+/**
+ *
+ *
+ */
+DmtxPassFail
+RegionExpand(GridRegion *region, DmtxDirection sideDir, DmtxHoughCache *houghCache)
+{
+   DmtxRegionSides regionSides;
+   DmtxRay2 *sideRay;
+   DmtxHoughCompact sideHoughLine;
+
+   switch(sideDir) {
       case DmtxDirDown:
          region->y--;
-         /* Fall through */
+         region->height++;
+         sideRay = &(regionSides.bottom);
+         break;
       case DmtxDirUp:
          region->height++;
+         sideRay = &(regionSides.top);
          break;
-
       case DmtxDirLeft:
          region->x--;
-         /* Fall through */
+         region->width++;
+         sideRay = &(regionSides.left);
+         break;
       case DmtxDirRight:
          region->width++;
+         sideRay = &(regionSides.right);
          break;
-
       default:
          return DmtxFail;
+   }
+
+   /* Nudge expanded side for a better fit */
+   if(gState.autoNudge == DmtxTrue)
+   {
+      RETURN_IF_FAIL(dmtxRegionToSides(region, &regionSides));
+      sideHoughLine = dmtxRayToHoughCompact(*sideRay);
+
+      /* If line is nudged to a stronger location, update region geometry */
+      if(dmtxHoughNudgeStronger(houghCache, &sideHoughLine) == DmtxTrue)
+      {
+         *sideRay = dmtxHoughCompactToRay(sideHoughLine);
+         dmtxRegionUpdateFromSides(region, regionSides);
+      }
    }
 
    return DmtxPass;
@@ -1379,14 +1477,11 @@ dmtxDecodeSymbol(GridRegion *region, DmtxDecode *dec)
    static int prefix = 0;
    int onColor, offColor;
    DmtxVector2 p00, p10, p11, p01;
-   DmtxPassFail err;
    DmtxRegion reg;
    DmtxMessage *msg;
 
    /* Since we now hold 2 adjacent timing bars, find colors */
-   err = GetOnOffColors(region, dec, &onColor, &offColor);
-   if(err == DmtxFail)
-      return err;
+   RETURN_IF_FAIL(GetOnOffColors(region, dec, &onColor, &offColor));
 
    p00.X = p01.X = region->x * (1.0/region->grid.colCount);
    p10.X = p11.X = (region->x + region->width) * (1.0/region->grid.colCount);
@@ -1401,22 +1496,20 @@ dmtxDecodeSymbol(GridRegion *region, DmtxDecode *dec)
    /* Update DmtxRegion with detected corners */
    switch(region->finderSides) {
       case (DmtxDirLeft | DmtxDirDown):
-         err = dmtxRegionUpdateCorners(dec, &reg, p00, p10, p11, p01);
+         RETURN_IF_FAIL(dmtxRegionUpdateCorners(dec, &reg, p00, p10, p11, p01));
          break;
       case (DmtxDirDown | DmtxDirRight):
-         err = dmtxRegionUpdateCorners(dec, &reg, p10, p11, p01, p00);
+         RETURN_IF_FAIL(dmtxRegionUpdateCorners(dec, &reg, p10, p11, p01, p00));
          break;
       case (DmtxDirRight | DmtxDirUp):
-         err = dmtxRegionUpdateCorners(dec, &reg, p11, p01, p00, p10);
+         RETURN_IF_FAIL(dmtxRegionUpdateCorners(dec, &reg, p11, p01, p00, p10));
          break;
       case (DmtxDirUp | DmtxDirLeft):
-         err = dmtxRegionUpdateCorners(dec, &reg, p01, p00, p10, p11);
+         RETURN_IF_FAIL(dmtxRegionUpdateCorners(dec, &reg, p01, p00, p10, p11));
          break;
       default:
          return DmtxFail;
    }
-   if(err == DmtxFail)
-      return err;
 
    /* Populate old-style region */
    reg.flowBegin.plane = 0; /* or 1, or 2 (0 = red, 1 = green, etc...) */

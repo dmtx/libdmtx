@@ -83,12 +83,6 @@ typedef struct AppState_struct {
    SDL_Surface *localTmp;
 } AppState;
 
-/*
-typedef struct Flow_struct {
-   int mag;
-} Flow;
-*/
-
 struct DmtxEdgeCache_struct {
    int sDir[4096]; /* 64x64 */
    int bDir[4096];
@@ -109,6 +103,12 @@ typedef struct HoughMaximaSort_struct {
    int count;
    int mag[MAXIMA_SORT_MAX_COUNT];
 } HoughMaximaSort;
+
+struct DmtxHoughCompact_struct {
+   int phi;
+   int d;
+};
+typedef struct DmtxHoughCompact_struct DmtxHoughCompact;
 
 typedef struct VanishPointSum_struct {
    int phi;
@@ -161,6 +161,15 @@ typedef struct RegionLines_struct {
    double dA, dB;
    DmtxRay2 line[2];
 } RegionLines;
+
+struct DmtxRegionSides_struct {
+   DmtxRay2 top;
+   DmtxRay2 left;
+   DmtxRay2 bottom;
+   DmtxRay2 right;
+};
+typedef struct DmtxRegionSides_struct DmtxRegionSides;
+
 
 /* All values in GridRegionGrowth should be negative because list
  * is combined with the positive values of DmtxSymbolSize enum */
@@ -241,10 +250,10 @@ DmtxPassFail dmtxBuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp
 StripStats GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int contrast);
 GridRegion NudgeStripLimits(GridRegion *region, DmtxDirection side, int nudgeStyle);
 
-DmtxPassFail dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxDecode *dec, DmtxCallbacks *fn);
+DmtxPassFail dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxHoughCache *houghCache, DmtxDecode *dec, DmtxCallbacks *fn);
 int dmtxReadModuleColor(DmtxImage *img, AlignmentGrid *grid, int symbolRow, int symbolCol, int colorPlane);
 DmtxBarType TestSideForPattern(GridRegion *region, DmtxImage *img, DmtxDirection side, int offset);
-DmtxPassFail RegionExpand(GridRegion *region, DmtxDirection dir);
+DmtxPassFail RegionExpand(GridRegion *region, DmtxDirection dir, DmtxHoughCache *houghCache);
 int dmtxGetSizeIdx(int a, int b);
 DmtxPassFail RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00, DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
 DmtxPassFail dmtxDecodeSymbol(GridRegion *region, DmtxDecode *dec);
