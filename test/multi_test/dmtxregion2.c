@@ -122,14 +122,16 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
          if(err == DmtxFail)
             continue; /* Keep trying */
 
+         fn->timingCallback(&timings.timing[i], &timings.timing[j], 0);
+
          /* Hack together raw2fitFull and fit2rawFull outside since we need app data */
          AddFullTransforms(&grid);
 
-         fn->timingCallback(&timings.timing[i], &timings.timing[j], 0);
-         fn->gridCallback(&grid, 0);
-
          err = dmtxFindRegionWithinGrid(&region, &grid, dec, fn);
          regionFound = (err == DmtxPass) ? DmtxTrue : DmtxFalse;
+
+         fn->gridCallback(&(region.grid), 0);
+         fn->gridCallback(&(region.grid), 1);
 
          if(regionFound == DmtxTrue) {
             region.sizeIdx = dmtxGetSizeIdx(region.width, region.height);
@@ -1374,6 +1376,7 @@ RegionUpdateCorners(DmtxMatrix3 fit2raw, DmtxMatrix3 raw2fit, DmtxVector2 p00,
 DmtxPassFail
 dmtxDecodeSymbol(GridRegion *region, DmtxDecode *dec)
 {
+   static int prefix = 0;
    int onColor, offColor;
    DmtxVector2 p00, p10, p11, p01;
    DmtxPassFail err;
@@ -1429,8 +1432,11 @@ dmtxDecodeSymbol(GridRegion *region, DmtxDecode *dec)
    if(msg == NULL)
       return DmtxFail;
 
+   fprintf(stdout, "%d:", prefix);
+   prefix = (prefix == 9) ? 0 : prefix + 1;
    fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
    fputc('\n', stdout);
+   fflush(stdout);
 
    return DmtxPass;
 }

@@ -78,11 +78,16 @@ void TimingCallback(Timing *timing0, Timing *timing1, int id)
 
 void GridCallback(AlignmentGrid *grid, int id)
 {
-   DrawNormalizedRegion(gState.screen, gState.imgFull, grid, &gState,
-         CTRL_ROW5_Y, CTRL_COL1_X + 1);
-
-   DrawSymbolPreview(gState.screen, gState.imgFull, grid, &gState,
-         CTRL_ROW5_Y, CTRL_COL3_X);
+   switch(id) {
+      case 0:
+         DrawSymbolPreview(gState.screen, gState.imgFull, grid, &gState,
+               CTRL_ROW5_Y, CTRL_COL1_X + 1);
+         break;
+      case 1:
+         DrawNormalizedRegion(gState.screen, gState.imgFull, grid, &gState,
+               CTRL_ROW5_Y, CTRL_COL3_X);
+         break;
+   }
 }
 
 void PerimeterCallback(GridRegion *region, DmtxDirection side, DmtxBarType type)
@@ -778,7 +783,7 @@ void DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11,
    Sint16 xBeg, yBeg;
    Sint16 xEnd, yEnd;
    int extent = 128;
-   const int screenX = CTRL_COL3_X;
+   const int screenX = CTRL_COL1_X + 1;
    const int screenY = CTRL_ROW5_Y;
    Uint32 color;
 
