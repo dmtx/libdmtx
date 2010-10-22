@@ -45,6 +45,7 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
   o libdmtx:   Use 100x faster pixel access in PointFlow calculation pass
   o libdmtx:   Use calibration edge alignment to set precise locs for all edges
+  o libdmtx:   Rename math types to drop unnecessary numeral (DmtxVector2, DmtxRay2, etc...)
   o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
   o libdmtx:   Implement structured append symbols
   o libdmtx:   Image quality metric
