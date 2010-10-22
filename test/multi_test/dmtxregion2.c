@@ -778,7 +778,7 @@ dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *vPoints)
  *
  */
 DmtxRay2
-HoughLineToRay2(int phi, double d)
+HoughLineToRay(int phi, double d)
 {
    double phiRad;
    double dScaled;
@@ -842,16 +842,16 @@ dmtxBuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1)
       steep = &rl0;
    }
 
-   flat->line[0] = HoughLineToRay2(flat->timing.phi, flat->dA);
-   flat->line[1] = HoughLineToRay2(flat->timing.phi, flat->dB);
+   flat->line[0] = HoughLineToRay(flat->timing.phi, flat->dA);
+   flat->line[1] = HoughLineToRay(flat->timing.phi, flat->dB);
 
    if(steep->timing.phi < 64) {
-      steep->line[0] = HoughLineToRay2(steep->timing.phi, steep->dA);
-      steep->line[1] = HoughLineToRay2(steep->timing.phi, steep->dB);
+      steep->line[0] = HoughLineToRay(steep->timing.phi, steep->dA);
+      steep->line[1] = HoughLineToRay(steep->timing.phi, steep->dB);
    }
    else {
-      steep->line[0] = HoughLineToRay2(steep->timing.phi, steep->dB);
-      steep->line[1] = HoughLineToRay2(steep->timing.phi, steep->dA);
+      steep->line[0] = HoughLineToRay(steep->timing.phi, steep->dB);
+      steep->line[1] = HoughLineToRay(steep->timing.phi, steep->dA);
    }
 
    RETURN_IF_FAIL(dmtxRay2Intersect(&p00, &(flat->line[0]), &(steep->line[0])));
@@ -1147,22 +1147,20 @@ Vector2Norm(DmtxVector2 *v)
  *
  */
 DmtxPassFail
-Ray2FromPoints(DmtxRay2 *ray, DmtxVector2 p0, DmtxVector2 p1)
+RayFromPoints(DmtxRay2 *ray, DmtxVector2 p0, DmtxVector2 p1)
 {
    DmtxRay2 r;
-   DmtxPassFail status;
 
    r.tMin = 0.0;
    r.tMax = 1.0;
    r.p = p0;
 
    dmtxVector2Sub(&r.v, &p1, &p0);
-   status = Vector2Norm(&r.v);
+   RETURN_IF_FAIL(Vector2Norm(&r.v));
 
-   if(status == DmtxPass)
-      *ray = r;
+   *ray = r;
 
-   return status;
+   return DmtxPass;
 }
 
 /**
@@ -1185,10 +1183,10 @@ dmtxRegionToSides(GridRegion *region, DmtxRegionSides *regionSides)
    dmtxMatrix3VMultiplyBy(&p11, region->grid.fit2rawActive);
    dmtxMatrix3VMultiplyBy(&p01, region->grid.fit2rawActive);
 
-   RETURN_IF_FAIL(Ray2FromPoints(&rs.bottom, p00, p10));
-   RETURN_IF_FAIL(Ray2FromPoints(&rs.right, p10, p11));
-   RETURN_IF_FAIL(Ray2FromPoints(&rs.top, p11, p01));
-   RETURN_IF_FAIL(Ray2FromPoints(&rs.left, p01, p00));
+   RETURN_IF_FAIL(RayFromPoints(&rs.bottom, p00, p10));
+   RETURN_IF_FAIL(RayFromPoints(&rs.right, p10, p11));
+   RETURN_IF_FAIL(RayFromPoints(&rs.top, p11, p01));
+   RETURN_IF_FAIL(RayFromPoints(&rs.left, p01, p00));
 
    *regionSides = rs;
 
@@ -1287,9 +1285,20 @@ dmtxHoughCompactToRay(DmtxHoughCompact houghLine)
  *
  *
  */
-void
+DmtxPassFail
 dmtxRegionUpdateFromSides(GridRegion *region, DmtxRegionSides regionSides)
 {
+   DmtxVector2 p00, p10, p11, p01;
+
+   RETURN_IF_FAIL(dmtxRay2Intersect(&p00, &(regionSides.left), &(regionSides.bottom)));
+   RETURN_IF_FAIL(dmtxRay2Intersect(&p10, &(regionSides.bottom), &(regionSides.right)));
+   RETURN_IF_FAIL(dmtxRay2Intersect(&p11, &(regionSides.right), &(regionSides.top)));
+   RETURN_IF_FAIL(dmtxRay2Intersect(&p01, &(regionSides.top), &(regionSides.left)));
+
+   RETURN_IF_FAIL(RegionUpdateCorners(region->grid.fit2rawActive, region->grid.raw2fitActive, p00, p10, p11, p01));
+   /* need to update fit2rawFull and raw2fitFull here too? */
+
+   return DmtxPass;
 }
 
 /**
@@ -1525,7 +1534,7 @@ dmtxDecodeSymbol(GridRegion *region, DmtxDecode *dec)
    if(msg == NULL)
       return DmtxFail;
 
-   fprintf(stdout, "%d:", prefix);
+   fprintf(stdout, "%d: ", prefix);
    prefix = (prefix == 9) ? 0 : prefix + 1;
    fwrite(msg->output, sizeof(char), msg->outputIdx, stdout);
    fputc('\n', stdout);
