@@ -318,7 +318,7 @@ void PlotPixel(SDL_Surface *surface, int x, int y)
  *
  *
  */
-int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1)
+int RayIntersect(double *t, DmtxRay2 p0, DmtxRay2 p1)
 {
    double numer, denom;
    DmtxVector2 w;
@@ -378,16 +378,16 @@ int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0
    rBtm.v = rTop.v = unitX;
    rLft.v = rRgt.v = unitY;
 
-   if(Ray2Intersect(&tTmp, rBtm, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
+   if(RayIntersect(&tTmp, rBtm, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
       dmtxPointAlongRay2(&(p[tCount++]), &rBtm, tTmp);
 
-   if(Ray2Intersect(&tTmp, rTop, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
+   if(RayIntersect(&tTmp, rTop, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
       dmtxPointAlongRay2(&(p[tCount++]), &rTop, tTmp);
 
-   if(Ray2Intersect(&tTmp, rLft, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
+   if(RayIntersect(&tTmp, rLft, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
       dmtxPointAlongRay2(&(p[tCount++]), &rLft, tTmp);
 
-   if(Ray2Intersect(&tTmp, rRgt, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
+   if(RayIntersect(&tTmp, rRgt, ray) == DmtxPass && tTmp >= 0.0 && tTmp < extent)
       dmtxPointAlongRay2(&(p[tCount++]), &rRgt, tTmp);
 
    if(tCount != 2)
@@ -445,7 +445,7 @@ void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
    bb0.X = bb0.Y = 0.0;
    bb1.X = bb1.Y = scaledExtent - 1;
 
-   rLine = HoughLineToRay2(phi, d);
+   rLine = HoughLineToRay(phi, d);
    dmtxVector2ScaleBy(&rLine.p, (double)displayScale);
 
    p0.X = p0.Y = p1.X = p1.Y = 0.0;
@@ -699,7 +699,9 @@ void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
    shiftX = 64 - (int)gridTest.X;
    colBeg = (shiftX < 0) ? 0 : -shiftX/8 - 1;
    colEnd = max(colBeg + 17, grid->colCount);
+/* fprintf(stdout, "colBeg:%d colEnd:%d\n", colBeg, colEnd); fflush(stdout); XXX Problem: something is unitialized here */
 
+/*
    gridTest.Y = pCtr.Y * grid->rowCount * dispModExtent;
    gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
    shiftY = 64 - (int)gridTest.Y;
@@ -718,7 +720,6 @@ void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
       y2 = Clamp(y2 + screenY, screenY, 128);
 
       for(col = colBeg; col < colEnd; col++) {
-
          rColor = dmtxReadModuleColor(img, grid, row, col, 0);
          gColor = dmtxReadModuleColor(img, grid, row, col, 1);
          bColor = dmtxReadModuleColor(img, grid, row, col, 2);
@@ -733,6 +734,7 @@ void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
          boxColor(screen, x1, y1, x2, y2, color);
       }
    }
+*/
 
    SDL_UnlockSurface(state->picture);
 }
