@@ -245,7 +245,7 @@ void AddToMaximaSort(HoughMaximaSort *sort, int maximaMag);
 VanishPointSum GetAngleSumAtPhi(DmtxHoughCache *hough, int phi);
 void AddToTimingSort(DmtxTimingSort *sort, Timing timing);
 DmtxTimingSort dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *sort);
-DmtxRay2 HoughLineToRay2(int phi, double d);
+DmtxRay2 HoughLineToRay(int phi, double d);
 DmtxPassFail dmtxBuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1);
 StripStats GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int contrast);
 GridRegion NudgeStripLimits(GridRegion *region, DmtxDirection side, int nudgeStyle);
@@ -274,7 +274,7 @@ void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int
 void ShowActiveRegion(SDL_Surface *screen, SDL_Surface *active);
 void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
 void PlotPixel(SDL_Surface *surface, int x, int y);
-int Ray2Intersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
+int RayIntersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 void DrawActiveBorder(SDL_Surface *screen, int activeExtent);
 void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY, int phi, double d, int displayScale);
