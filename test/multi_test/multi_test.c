@@ -121,6 +121,7 @@ main(int argc, char *argv[])
 
    callbacks.edgeCacheCallback = EdgeCacheCallback;
    callbacks.houghCacheCallback = HoughCacheCallback;
+   callbacks.houghCompactCallback = HoughCompactCallback;
    callbacks.vanishPointCallback = VanishPointCallback;
    callbacks.timingCallback = TimingCallback;
    callbacks.gridCallback = GridCallback;

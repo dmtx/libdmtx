@@ -51,6 +51,16 @@ void HoughCacheCallback(DmtxHoughCache *hough, int id)
    }
 }
 
+void HoughCompactCallback(DmtxHoughCompact h, int id)
+{
+   switch(id) {
+      case 0:
+         PlotPixel(gState.screen, CTRL_COL1_X + h.phi, CTRL_ROW3_Y + 63 - h.d, 0, 255, 0);
+         DrawLine(gState.screen, 64, CTRL_COL3_X, CTRL_ROW3_Y, h.phi, h.d, 2, 0x00ff00ff);
+         break;
+   }
+}
+
 void VanishPointCallback(VanishPointSort *vPoints, int id)
 {
    if(gState.displayVanish == DmtxFalse)
@@ -61,6 +71,8 @@ void VanishPointCallback(VanishPointSort *vPoints, int id)
 
 void TimingCallback(Timing *timing0, Timing *timing1, int id)
 {
+   int i;
+
    /* Should this be called before, as soon as local is captured? */
    BlitActiveRegion(gState.screen, gState.local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
 
@@ -71,8 +83,13 @@ void TimingCallback(Timing *timing0, Timing *timing1, int id)
    if(gState.displayTiming == DmtxTrue) {
       DrawTimingDots(gState.screen, timing0, CTRL_ROW3_Y, CTRL_COL1_X);
       DrawTimingDots(gState.screen, timing1, CTRL_ROW3_Y, CTRL_COL1_X);
-      DrawTimingLines(gState.screen, timing0, 2, CTRL_ROW3_Y, CTRL_COL3_X);
-      DrawTimingLines(gState.screen, timing1, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+
+      for(i = -64; i <= 64; i++) {
+         DrawLine(gState.screen, 64, CTRL_COL3_X, CTRL_ROW3_Y, timing0->phi,
+               timing0->shift + (timing0->period * i), 2, 0xff0000ff);
+         DrawLine(gState.screen, 64, CTRL_COL3_X, CTRL_ROW3_Y, timing1->phi,
+               timing1->shift + (timing1->period * i), 2, 0xff0000ff);
+      }
    }
 }
 
@@ -302,13 +319,13 @@ void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int
  *
  *
  */
-void PlotPixel(SDL_Surface *surface, int x, int y)
+void PlotPixel(SDL_Surface *surface, int x, int y, Uint8 R, Uint8 G, Uint8 B)
 {
    char *ptr;
    Uint32 col;
 
    ptr = (char *)surface->pixels;
-   col = SDL_MapRGB(surface->format, 255, 0, 0);
+   col = SDL_MapRGB(surface->format, R, G, B);
 
    memcpy(ptr + surface->pitch * y + surface->format->BytesPerPixel * x,
          &col, surface->format->BytesPerPixel);
@@ -433,7 +450,7 @@ void DrawActiveBorder(SDL_Surface *screen, int activeExtent)
  *
  */
 void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
-      int phi, double d, int displayScale)
+      int phi, double d, int displayScale, Uint32 color)
 {
    int scaledExtent;
    DmtxVector2 bb0, bb1;
@@ -445,7 +462,7 @@ void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
    bb0.X = bb0.Y = 0.0;
    bb1.X = bb1.Y = scaledExtent - 1;
 
-   rLine = HoughLineToRay(phi, d);
+   rLine = HoughCompactToRay(phi, d);
    dmtxVector2ScaleBy(&rLine.p, (double)displayScale);
 
    p0.X = p0.Y = p1.X = p1.Y = 0.0;
@@ -459,22 +476,7 @@ void DrawLine(SDL_Surface *screen, int baseExtent, int screenX, int screenY,
    d0.Y = screenY + (scaledExtent - (int)(p0.Y + 0.5) - 1);
    d1.Y = screenY + (scaledExtent - (int)(p1.Y + 0.5) - 1);
 
-   lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, 0xff0000ff);
-}
-
-/**
- *
- *
- */
-void DrawTimingLines(SDL_Surface *screen, Timing *timing, int displayScale,
-      int screenY, int screenX)
-{
-   int i;
-
-   for(i = -64; i <= 64; i++) {
-      DrawLine(screen, 64, screenX, screenY, timing->phi,
-            timing->shift + (timing->period * i), displayScale);
-   }
+   lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, color);
 }
 
 /**
@@ -518,7 +520,7 @@ void DrawTimingDots(SDL_Surface *screen, Timing *timing, int screenY, int screen
       if(d >= 64)
          break;
 
-      PlotPixel(screen, screenX + timing->phi, screenY + 63 - d);
+      PlotPixel(screen, screenX + timing->phi, screenY + 63 - d, 255, 0, 0);
    }
 }
 
@@ -699,9 +701,10 @@ void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
    shiftX = 64 - (int)gridTest.X;
    colBeg = (shiftX < 0) ? 0 : -shiftX/8 - 1;
    colEnd = max(colBeg + 17, grid->colCount);
-/* fprintf(stdout, "colBeg:%d colEnd:%d\n", colBeg, colEnd); fflush(stdout); XXX Problem: something is unitialized here */
 
-/*
+/* something is uninitialized ... verify in cygwin
+   fprintf(stdout, "colBeg:%d colEnd:%d\n", colBeg, colEnd); fflush(stdout);
+
    gridTest.Y = pCtr.Y * grid->rowCount * dispModExtent;
    gridTest.Y += (gridTest.Y >= 0.0) ? 0.5 : -0.5;
    shiftY = 64 - (int)gridTest.Y;

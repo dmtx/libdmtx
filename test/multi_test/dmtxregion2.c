@@ -305,38 +305,7 @@ GetCompactOffset(int x, int y, int phiIdx, int extent)
 
    offset = (int)((x * uCos128[phiIdx] + y * uSin128[phiIdx] - negMax) * scale + 0.5);
 
-   assert(offset >= 0);
-   assert(offset <= 64);
-
    return offset;
-
-/**
- * original floating point version follows:
- *
-   int offset;
-   double phiRad;
-   double scale;
-   double posMax, negMax;
-
-   phiRad = M_PI * phiIdx / 128.0;
-
-   if(phiIdx < 64) {
-      posMax = extent * (cos(phiRad) + sin(phiRad));
-      negMax = 0.0;
-   }
-   else {
-      posMax = extent * sin(phiRad);
-      negMax = extent * cos(phiRad);
-   }
-
-   assert(fabs(posMax - negMax) > 0.00001);
-   scale = extent / (posMax - negMax);
-
-   offset = (int)((x * cos(phiRad) + y * sin(phiRad) - negMax) * scale + 0.5);
-   assert(offset <= 64);
-
-   return offset;
-*/
 }
 
 double
@@ -778,7 +747,7 @@ dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *vPoints)
  *
  */
 DmtxRay2
-HoughLineToRay(int phi, double d)
+HoughCompactToRay(int phi, double d)
 {
    double phiRad;
    double dScaled;
@@ -842,16 +811,16 @@ dmtxBuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1)
       steep = &rl0;
    }
 
-   flat->line[0] = HoughLineToRay(flat->timing.phi, flat->dA);
-   flat->line[1] = HoughLineToRay(flat->timing.phi, flat->dB);
+   flat->line[0] = HoughCompactToRay(flat->timing.phi, flat->dA);
+   flat->line[1] = HoughCompactToRay(flat->timing.phi, flat->dB);
 
    if(steep->timing.phi < 64) {
-      steep->line[0] = HoughLineToRay(steep->timing.phi, steep->dA);
-      steep->line[1] = HoughLineToRay(steep->timing.phi, steep->dB);
+      steep->line[0] = HoughCompactToRay(steep->timing.phi, steep->dA);
+      steep->line[1] = HoughCompactToRay(steep->timing.phi, steep->dB);
    }
    else {
-      steep->line[0] = HoughLineToRay(steep->timing.phi, steep->dB);
-      steep->line[1] = HoughLineToRay(steep->timing.phi, steep->dA);
+      steep->line[0] = HoughCompactToRay(steep->timing.phi, steep->dB);
+      steep->line[1] = HoughCompactToRay(steep->timing.phi, steep->dA);
    }
 
    RETURN_IF_FAIL(dmtxRay2Intersect(&p00, &(flat->line[0]), &(steep->line[0])));
@@ -989,7 +958,7 @@ dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxHoughCache
        */
 
       if(innerType == DmtxBarNone || outerType == DmtxBarNone) {
-         RegionExpand(&regGrow, sideDir, houghCache);
+         RegionExpand(&regGrow, sideDir, houghCache, fn);
          finderSides = DmtxDirNone;
          goodCount = 0;
       }
@@ -1200,37 +1169,22 @@ dmtxRegionToSides(GridRegion *region, DmtxRegionSides *regionSides)
 DmtxHoughCompact
 dmtxRayToHoughCompact(DmtxRay2 ray)
 {
-   DmtxHoughCompact houghLine;
-
-   memset(&houghLine, 0x00, sizeof(DmtxHoughCompact));
-
-   /* do a bunch of math here */
-/* OPPOSITE
    double phiRad;
-   double dScaled;
-   DmtxRay2 rStart, rLine;
+   DmtxHoughCompact houghCompact;
 
-   memset(&rStart, 0x00, sizeof(DmtxRay2));
-   memset(&rLine, 0x00, sizeof(DmtxRay2));
+   if(ray.v.X > 0.0)
+      phiRad = atan2(ray.v.Y, ray.v.X) + M_PI_2;
+   else
+      phiRad = atan2(-ray.v.Y, -ray.v.X) + M_PI_2;
 
-   rStart.p.X = rStart.p.Y = 0.0;
+   houghCompact.phi = (int)(phiRad/M_PI * 128.0 + 0.5);
 
-   phiRad = phi * M_PI/128.0;
+   assert(houghCompact.phi >= 0);
+   assert(houghCompact.phi <= 128);
 
-   rStart.v.X = cos(phiRad);
-   rStart.v.Y = sin(phiRad);
+   houghCompact.d = GetCompactOffset((int)(ray.p.X + 0.5), (int)(ray.p.Y + 0.5), houghCompact.phi, 64);
 
-   rLine.v.X = -rStart.v.Y;
-   rLine.v.Y = rStart.v.X;
-
-   dScaled = UncompactOffset(d, phi, LOCAL_SIZE);
-
-   dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
-
-   return rLine;
-*/
-
-   return houghLine;
+   return houghCompact;
 }
 
 /**
@@ -1238,47 +1192,9 @@ dmtxRayToHoughCompact(DmtxRay2 ray)
  *
  */
 DmtxBoolean
-dmtxHoughNudgeStronger(DmtxHoughCache *houghCache, DmtxHoughCompact *houghLine)
+dmtxHoughNudgeStronger(DmtxHoughCache *houghCache, DmtxHoughCompact *houghCompact)
 {
    return DmtxTrue;
-}
-
-/**
- *
- *
- */
-DmtxRay2
-dmtxHoughCompactToRay(DmtxHoughCompact houghLine)
-{
-   DmtxRay2 ray;
-
-   memset(&ray, 0x00, sizeof(DmtxRay2));
-/*
-   double phiRad;
-   double dScaled;
-   DmtxRay2 rStart, rLine;
-
-   memset(&rStart, 0x00, sizeof(DmtxRay2));
-   memset(&rLine, 0x00, sizeof(DmtxRay2));
-
-   rStart.p.X = rStart.p.Y = 0.0;
-
-   phiRad = phi * M_PI/128.0;
-
-   rStart.v.X = cos(phiRad);
-   rStart.v.Y = sin(phiRad);
-
-   rLine.v.X = -rStart.v.Y;
-   rLine.v.Y = rStart.v.X;
-
-   dScaled = UncompactOffset(d, phi, LOCAL_SIZE);
-
-   dmtxPointAlongRay2(&(rLine.p), &rStart, dScaled);
-
-   return rLine;
-*/
-
-   return ray;
 }
 
 /**
@@ -1306,11 +1222,11 @@ dmtxRegionUpdateFromSides(GridRegion *region, DmtxRegionSides regionSides)
  *
  */
 DmtxPassFail
-RegionExpand(GridRegion *region, DmtxDirection sideDir, DmtxHoughCache *houghCache)
+RegionExpand(GridRegion *region, DmtxDirection sideDir, DmtxHoughCache *houghCache, DmtxCallbacks *fn)
 {
    DmtxRegionSides regionSides;
    DmtxRay2 *sideRay;
-   DmtxHoughCompact sideHoughLine;
+   DmtxHoughCompact sideHoughCompact;
 
    switch(sideDir) {
       case DmtxDirDown:
@@ -1339,13 +1255,20 @@ RegionExpand(GridRegion *region, DmtxDirection sideDir, DmtxHoughCache *houghCac
    if(gState.autoNudge == DmtxTrue)
    {
       RETURN_IF_FAIL(dmtxRegionToSides(region, &regionSides));
-      sideHoughLine = dmtxRayToHoughCompact(*sideRay);
+      sideHoughCompact = dmtxRayToHoughCompact(*sideRay);
 
-      /* If line is nudged to a stronger location, update region geometry */
-      if(dmtxHoughNudgeStronger(houghCache, &sideHoughLine) == DmtxTrue)
+      if(sideHoughCompact.d >= 0 && sideHoughCompact.d < 64)
       {
-         *sideRay = dmtxHoughCompactToRay(sideHoughLine);
-         dmtxRegionUpdateFromSides(region, regionSides);
+         fn->houghCompactCallback(sideHoughCompact, 0);
+
+         /* If line is nudged to a stronger location, update region geometry */
+         if(dmtxHoughNudgeStronger(houghCache, &sideHoughCompact) == DmtxTrue)
+         {
+            *sideRay = HoughCompactToRay(sideHoughCompact.phi, sideHoughCompact.d);
+/*
+            dmtxRegionUpdateFromSides(region, regionSides);
+*/
+         }
       }
    }
 
