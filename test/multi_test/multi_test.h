@@ -82,21 +82,22 @@ typedef struct AppState_struct {
    SDL_Surface *localTmp;
 } AppState;
 
-struct SobelCache_struct {
+/* Use this for Sobel, AccelV, and AccelH -- named struct ResultCache or CrunchCache ? */
+struct PixelEdgeCache_struct {
    int width;
    int height;
-   int *vData;
-   int *hData;
-   int *sData;
-   int *bData;
+   int *v;
+   int *b;
+   int *h;
+   int *s;
 };
-typedef struct SobelCache_struct SobelCache;
+typedef struct PixelEdgeCache_struct PixelEdgeCache;
 
 struct DmtxEdgeCache_struct {
-   int sDir[4096]; /* 64x64 */
+   int vDir[4096];
    int bDir[4096];
    int hDir[4096];
-   int vDir[4096];
+   int sDir[4096]; /* 64x64 */
 };
 typedef struct DmtxEdgeCache_struct DmtxEdgeCache;
 
@@ -225,7 +226,7 @@ typedef struct StripStats_struct StripStats;
 
 struct DmtxCallbacks_struct {
    void (*edgeCacheCallback)(DmtxEdgeCache *, int);
-   void (*sobelCacheCallback)(SobelCache *, int);
+   void (*sobelCacheCallback)(PixelEdgeCache *, int);
    void (*houghCacheCallback)(DmtxHoughCache *, int);
    void (*houghCompactCallback)(DmtxHoughCompact, int);
    void (*vanishPointCallback)(VanishPointSort *, int);
@@ -281,7 +282,7 @@ ColorTally GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg
 
 /* Process visualization functions */
 void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id);
-void SobelCacheCallback(SobelCache *cache, int id);
+void SobelCacheCallback(PixelEdgeCache *cache, int id);
 void HoughCacheCallback(DmtxHoughCache *hough, int id);
 void HoughCompactCallback(DmtxHoughCompact h, int id);
 void VanishPointCallback(VanishPointSort *vPoints, int id);
@@ -291,7 +292,7 @@ void PerimeterCallback(GridRegion *region, DmtxDirection side, DmtxBarType type)
 
 int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache);
 void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY, int screenX);
-void BlitSobelCache(SDL_Surface *screen, SobelCache *cache, DmtxSobelDir dir, int x, int y, int screenY, int screenX);
+void BlitSobelCache(SDL_Surface *screen, PixelEdgeCache *cache, DmtxSobelDir dir, int x, int y, int screenY, int screenX);
 void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int screenX);
 void ShowActiveRegion(SDL_Surface *screen, SDL_Surface *active);
 void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
@@ -309,13 +310,14 @@ void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *st
 void DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection side, DmtxBarType type);
 
 /* sobelcache.c */
-SobelCache *SobelCacheCreate(int width, int height);
-SobelCache *SobelCacheFromImage(DmtxImage *img);
-SobelCache *PrimeCacheFromSobel(SobelCache *sobel);
-DmtxPassFail SobelCacheDestroy(SobelCache **sobel);
-int SobelCacheGetWidth(SobelCache *sobel);
-int SobelCacheGetHeight(SobelCache *sobel);
-int SobelCacheGetValue(SobelCache *sobel, DmtxSobelDir dir, int x, int y);
-DmtxPassFail SobelCachePopulate(SobelCache *sobel, DmtxImage *img);
+PixelEdgeCache *PixelEdgeCacheCreate(int cacheWidth, int cacheHeight);
+DmtxPassFail PixelEdgeCacheDestroy(PixelEdgeCache **sobel);
+int PixelEdgeCacheGetWidth(PixelEdgeCache *sobel);
+int PixelEdgeCacheGetHeight(PixelEdgeCache *sobel);
+int PixelEdgeCacheGetValue(PixelEdgeCache *sobel, DmtxSobelDir dir, int x, int y);
+
+PixelEdgeCache *SobelCacheCreate(DmtxImage *img);
+DmtxPassFail SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img);
+PixelEdgeCache *AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType);
 
 extern AppState gState;

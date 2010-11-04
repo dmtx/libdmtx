@@ -152,7 +152,7 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
    }
 }
 
-#define CLEAN_RETURN_IF(A, B, C, D) if(A){SobelCacheDestroy(B); SobelCacheDestroy(C); return DmtxFail;}
+#define CLEAN_RETURN_IF(C) if(C) { PixelEdgeCacheDestroy(&sobel); PixelEdgeCacheDestroy(&accelV); PixelEdgeCacheDestroy(&accelH); return DmtxFail; }
 /**
  *
  *
@@ -160,31 +160,37 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
 DmtxPassFail
 dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
 {
-   SobelCache *sobel;
-   SobelCache *prime;
+   PixelEdgeCache *sobel = NULL;
+   PixelEdgeCache *accelV = NULL;
+   PixelEdgeCache *accelH = NULL;
 
-   sobel = SobelCacheFromImage(dmtxImage);
-   CLEAN_RETURN_IF((sobel == NULL), &sobel, NULL, NULL);
+   sobel = SobelCacheCreate(dmtxImage);
+   CLEAN_RETURN_IF(sobel == NULL);
    fn->sobelCacheCallback(sobel, 0);
 
-   prime = PrimeCacheFromSobel(sobel);
-   CLEAN_RETURN_IF(prime == NULL, &sobel, &prime, NULL);
-   fn->sobelCacheCallback(prime, 1);
+   accelV = AccelCacheCreate(sobel, DmtxDirVertical);
+   CLEAN_RETURN_IF(accelV == NULL);
+/* fn->accelCacheCallback(accelV, 0); */
+
+   accelH = AccelCacheCreate(sobel, DmtxDirHorizontal);
+   CLEAN_RETURN_IF(accelH == NULL);
+/* fn->accelCacheCallback(accelH, 1); */
+
 /*
    ZeroCrossingCache zeroCrossingV = ZeroCrossingCacheCreate(sobelV, sobelPrimeV);
    ZeroCrossingCache zeroCrossingH = ZeroCrossingCacheCreate(sobelH, sobelPrimeH);
    ZeroCrossingCache zeroCrossingS = ZeroCrossingCacheCreate(sobelS, sobelPrimeS);
    ZeroCrossingCache zeroCrossingB = ZeroCrossingCacheCreate(sobelB, sobelPrimeB);
 
-
-
    ZeroCrossingCacheDestroy(&zeroCrossingB);
    ZeroCrossingCacheDestroy(&zeroCrossingS);
    ZeroCrossingCacheDestroy(&zeroCrossingH);
    ZeroCrossingCacheDestroy(&zeroCrossingV);
 */
-   SobelCacheDestroy(&prime);
-   SobelCacheDestroy(&sobel);
+
+   PixelEdgeCacheDestroy(&accelH);
+   PixelEdgeCacheDestroy(&accelV);
+   PixelEdgeCacheDestroy(&sobel);
 
    return DmtxPass;
 }

@@ -46,12 +46,17 @@ void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id)
    }
 }
 
-void SobelCacheCallback(SobelCache *cache, int id)
+void SobelCacheCallback(PixelEdgeCache *cache, int id)
 {
    int x, y;
+   int imageFlipY;
+   int imageHeight;
+
+   imageHeight = dmtxImageGetProp(gState.dmtxImage, DmtxPropHeight);
+   imageFlipY = gState.screen->h - (gState.imageLocY + imageHeight) - 1;
 
    x = (gState.screen->w - gState.activeExtent)/2 - gState.imageLocX;
-   y = (gState.screen->h - gState.activeExtent)/2 - gState.imageLocY;
+   y = (gState.screen->h - gState.activeExtent)/2 - imageFlipY;
 
    switch(id) {
       case 0:
@@ -267,7 +272,7 @@ void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY,
  *
  *
  */
-void BlitSobelCache(SDL_Surface *screen, SobelCache *cache, DmtxSobelDir dir, int x, int y, int screenY, int screenX)
+void BlitSobelCache(SDL_Surface *screen, PixelEdgeCache *cache, DmtxSobelDir dir, int x, int y, int screenY, int screenX)
 {
    int row, col;
    unsigned char rgb[3];
@@ -299,7 +304,7 @@ void BlitSobelCache(SDL_Surface *screen, SobelCache *cache, DmtxSobelDir dir, in
    {
       for(col = 0; col < 64; col++)
       {
-         flow = SobelCacheGetValue(cache, dir, col + x, row + y);
+         flow = PixelEdgeCacheGetValue(cache, dir, col + x, row + y);
          if(flow > 0) {
             rgb[0] = 0;
             rgb[1] = (int)((abs(flow) * 254.0)/maxFlowMag + 0.5);

@@ -1,5 +1,6 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
+#include <assert.h>
 #include "../../dmtx.h"
 #include "multi_test.h"
 
@@ -7,72 +8,31 @@
  *
  *
  */
-SobelCache *
-SobelCacheCreate(int width, int height)
+PixelEdgeCache *
+PixelEdgeCacheCreate(int cacheWidth, int cacheHeight)
 {
-   SobelCache *sobel;
+   PixelEdgeCache *cache;
    int dataSizeBytes;
 
-   sobel = (SobelCache *)malloc(sizeof(SobelCache));
-   if(sobel == NULL)
+   cache = (PixelEdgeCache *)malloc(sizeof(PixelEdgeCache));
+   if(cache == NULL)
       return NULL;
 
-   sobel->width = width;
-   sobel->height = height;
+   cache->width = cacheWidth;
+   cache->height = cacheHeight;
 
-   dataSizeBytes = sizeof(int) * sobel->width * sobel->height;
-   sobel->vData = (int *)malloc(dataSizeBytes);
-   sobel->hData = (int *)malloc(dataSizeBytes);
-   sobel->sData = (int *)malloc(dataSizeBytes);
-   sobel->bData = (int *)malloc(dataSizeBytes);
+   dataSizeBytes = sizeof(int) * cache->width * cache->height;
+   cache->v = (int *)malloc(dataSizeBytes);
+   cache->b = (int *)malloc(dataSizeBytes);
+   cache->h = (int *)malloc(dataSizeBytes);
+   cache->s = (int *)malloc(dataSizeBytes);
 
-   if(sobel->vData == NULL || sobel->hData == NULL ||
-         sobel->sData == NULL || sobel->bData == NULL) {
-      SobelCacheDestroy(&sobel);
+   if(cache->v == NULL || cache->h == NULL || cache->s == NULL || cache->b == NULL) {
+      PixelEdgeCacheDestroy(&cache);
       return NULL;
    }
 
-   return sobel;
-}
-
-/**
- *
- *
- */
-SobelCache *
-SobelCacheFromImage(DmtxImage *image)
-{
-   int imageWidth = dmtxImageGetProp(image, DmtxPropWidth);
-   int imageHeight = dmtxImageGetProp(image, DmtxPropHeight);
-   SobelCache *sobel;
-
-   sobel = SobelCacheCreate(imageWidth - 2, imageHeight - 2);
-   if(sobel == NULL)
-      return NULL;
-
-   SobelCachePopulate(sobel, image);
-
-   return sobel;
-}
-
-/**
- *
- *
- */
-SobelCache *
-PrimeCacheFromSobel(SobelCache *sobel)
-{
-   int sobelWidth = SobelCacheGetWidth(sobel);
-   int sobelHeight = SobelCacheGetHeight(sobel);
-   SobelCache *prime;
-
-   prime = SobelCacheCreate(sobelWidth - 1, sobelHeight - 1);
-   if(prime == NULL)
-      return NULL;
-
-/* SobelCachePopulate(sobel, image); */
-
-   return prime;
+   return cache;
 }
 
 /**
@@ -80,25 +40,25 @@ PrimeCacheFromSobel(SobelCache *sobel)
  *
  */
 DmtxPassFail
-SobelCacheDestroy(SobelCache **sobel)
+PixelEdgeCacheDestroy(PixelEdgeCache **cache)
 {
-   if(*sobel == NULL)
+   if(*cache == NULL)
       return DmtxFail;
 
-   if((*sobel)->vData != NULL)
-      free((*sobel)->vData);
+   if((*cache)->v != NULL)
+      free((*cache)->v);
 
-   if((*sobel)->hData != NULL)
-      free((*sobel)->hData);
+   if((*cache)->b != NULL)
+      free((*cache)->b);
 
-   if((*sobel)->sData != NULL)
-      free((*sobel)->sData);
+   if((*cache)->h != NULL)
+      free((*cache)->h);
 
-   if((*sobel)->bData != NULL)
-      free((*sobel)->bData);
+   if((*cache)->s != NULL)
+      free((*cache)->s);
 
-   free(*sobel);
-   *sobel = NULL;
+   free(*cache);
+   *cache = NULL;
 
    return DmtxPass;
 }
@@ -108,12 +68,12 @@ SobelCacheDestroy(SobelCache **sobel)
  *
  */
 int
-SobelCacheGetWidth(SobelCache *sobel)
+PixelEdgeCacheGetWidth(PixelEdgeCache *cache)
 {
-   if(sobel == NULL)
+   if(cache == NULL)
       return DmtxUndefined;
 
-   return sobel->width;
+   return cache->width;
 }
 
 /**
@@ -121,12 +81,12 @@ SobelCacheGetWidth(SobelCache *sobel)
  *
  */
 int
-SobelCacheGetHeight(SobelCache *sobel)
+PixelEdgeCacheGetHeight(PixelEdgeCache *cache)
 {
-   if(sobel == NULL)
+   if(cache == NULL)
       return DmtxUndefined;
 
-   return sobel->height;
+   return cache->height;
 }
 
 /**
@@ -134,41 +94,63 @@ SobelCacheGetHeight(SobelCache *sobel)
  *
  */
 int
-SobelCacheGetValue(SobelCache *sobel, DmtxSobelDir dir, int x, int y)
+PixelEdgeCacheGetValue(PixelEdgeCache *cache, DmtxSobelDir dir, int x, int y)
 {
    int idx;
 
-   if(sobel == NULL)
+   if(cache == NULL)
       return DmtxUndefined;
 
    /* bounds checking could go here */
 
-   idx = y * sobel->width + x;
+   idx = y * cache->width + x;
 
    switch(dir) {
       case DmtxSobelDirVertical:
-         return sobel->vData[idx];
-      case DmtxSobelDirHorizontal:
-         return sobel->hData[idx];
-      case DmtxSobelDirSlash:
-         return sobel->sData[idx];
+         return cache->v[idx];
       case DmtxSobelDirBackslash:
-         return sobel->bData[idx];
+         return cache->b[idx];
+      case DmtxSobelDirHorizontal:
+         return cache->h[idx];
+      case DmtxSobelDirSlash:
+         return cache->s[idx];
    }
 
    return DmtxUndefined;
 }
 
 /**
+ *
+ *
+ */
+PixelEdgeCache *
+SobelCacheCreate(DmtxImage *img)
+{
+   int sobelWidth, sobelHeight;
+   PixelEdgeCache *sobel;
+
+   sobelWidth = dmtxImageGetProp(img, DmtxPropWidth) - 2;
+   sobelHeight = dmtxImageGetProp(img, DmtxPropHeight) - 2;
+
+   sobel = PixelEdgeCacheCreate(sobelWidth, sobelHeight);
+   if(sobel == NULL)
+      return NULL;
+
+   SobelCachePopulate(sobel, img);
+
+   return sobel;
+}
+
+/**
  * 3x3 Sobel Kernel
  */
 DmtxPassFail
-SobelCachePopulate(SobelCache *sobel, DmtxImage *img)
+SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img)
 {
    int bytesPerPixel, rowSizeBytes, colorPlane;
    int sx, sy;
    int py, pOffset;
-   int hMag, vMag, sMag, bMag;
+   int vMag, bMag, hMag, sMag;
    int colorLoLf, colorLoMd, colorLoRt;
    int colorMdRt, colorHiRt, colorHiMd;
    int colorHiLf, colorMdLf, colorMdMd;
@@ -200,18 +182,6 @@ SobelCachePopulate(SobelCache *sobel, DmtxImage *img)
       for(sx = 0; sx < sobel->width; sx++)
       {
          /**
-          *   1  2  1
-          *   0  0  0
-          *  -1 -2 -1
-          */
-         hMag  = colorHiLf;
-         hMag += colorHiMd * 2;
-         hMag += colorHiRt;
-         hMag -= colorLoLf;
-         hMag -= colorLoMd * 2;
-         hMag -= colorLoRt;
-
-         /**
           *  -1  0  1
           *  -2  0  2
           *  -1  0  1
@@ -222,18 +192,6 @@ SobelCachePopulate(SobelCache *sobel, DmtxImage *img)
          vMag -= colorHiLf;
          vMag -= colorMdLf * 2;
          vMag -= colorLoLf;
-
-         /**
-          *  -2 -1  0
-          *  -1  0  1
-          *   0  1  2
-          */
-         sMag  = colorLoMd;
-         sMag += colorLoRt * 2;
-         sMag += colorMdRt;
-         sMag -= colorHiMd;
-         sMag -= colorHiLf * 2;
-         sMag -= colorMdLf;
 
          /**
           *   0  1  2
@@ -248,15 +206,39 @@ SobelCachePopulate(SobelCache *sobel, DmtxImage *img)
          bMag -= colorHiMd;
 
          /**
+          *   1  2  1
+          *   0  0  0
+          *  -1 -2 -1
+          */
+         hMag  = colorHiLf;
+         hMag += colorHiMd * 2;
+         hMag += colorHiRt;
+         hMag -= colorLoLf;
+         hMag -= colorLoMd * 2;
+         hMag -= colorLoRt;
+
+         /**
+          *  -2 -1  0
+          *  -1  0  1
+          *   0  1  2
+          */
+         sMag  = colorLoMd;
+         sMag += colorLoRt * 2;
+         sMag += colorMdRt;
+         sMag -= colorHiMd;
+         sMag -= colorHiLf * 2;
+         sMag -= colorMdLf;
+
+         /**
           * If implementing these operations using MMX, can load 2
           * registers with 4 doubleword values and subtract (PSUBD).
           */
 
          idx = sy * sobel->width + sx;
-         sobel->hData[idx] = hMag;
-         sobel->vData[idx] = vMag;
-         sobel->sData[idx] = sMag;
-         sobel->bData[idx] = bMag;
+         sobel->v[idx] = vMag;
+         sobel->b[idx] = bMag;
+         sobel->h[idx] = hMag;
+         sobel->s[idx] = sMag;
 
          colorHiLf = colorHiMd;
          colorMdLf = colorMdMd;
@@ -274,4 +256,34 @@ SobelCachePopulate(SobelCache *sobel, DmtxImage *img)
    }
 
    return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+PixelEdgeCache *
+AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType)
+{
+   int accelWidth, accelHeight;
+   PixelEdgeCache *accel;
+
+   assert(edgeType == DmtxDirVertical || edgeType == DmtxDirHorizontal);
+
+   if(edgeType == DmtxDirVertical) {
+      accelWidth = PixelEdgeCacheGetWidth(sobel) - 1;
+      accelHeight = PixelEdgeCacheGetHeight(sobel);
+   }
+   else {
+      accelWidth = PixelEdgeCacheGetWidth(sobel);
+      accelHeight = PixelEdgeCacheGetHeight(sobel) - 1;
+   }
+
+   accel = PixelEdgeCacheCreate(accelWidth, accelHeight);
+   if(accel == NULL)
+      return NULL;
+
+   /* populate cache here */
+
+   return accel;
 }
