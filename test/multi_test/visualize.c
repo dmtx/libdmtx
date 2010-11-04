@@ -31,12 +31,38 @@ Contact: mblaughton@users.sourceforge.net
 
 void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id)
 {
-   int maxIntensity = FindMaxEdgeIntensity(edgeCache);
+   int maxIntensity;
 
-   BlitFlowCache(gState.screen, edgeCache->vDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL1_X);
-   BlitFlowCache(gState.screen, edgeCache->bDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL2_X);
-   BlitFlowCache(gState.screen, edgeCache->hDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL3_X);
-   BlitFlowCache(gState.screen, edgeCache->sDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL4_X);
+   switch(id) {
+      case 0:
+         maxIntensity = FindMaxEdgeIntensity(edgeCache);
+         BlitFlowCache(gState.screen, edgeCache->vDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL1_X);
+         BlitFlowCache(gState.screen, edgeCache->bDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL2_X);
+         BlitFlowCache(gState.screen, edgeCache->hDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL3_X);
+         BlitFlowCache(gState.screen, edgeCache->sDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL4_X);
+         break;
+      case 1:
+         break;
+   }
+}
+
+void SobelCacheCallback(SobelCache *cache, int id)
+{
+   int x, y;
+
+   x = (gState.screen->w - gState.activeExtent)/2 - gState.imageLocX;
+   y = (gState.screen->h - gState.activeExtent)/2 - gState.imageLocY;
+
+   switch(id) {
+      case 0:
+         BlitSobelCache(gState.screen, cache, DmtxSobelDirVertical,   x, y, CTRL_ROW2_Y, CTRL_COL1_X);
+         BlitSobelCache(gState.screen, cache, DmtxSobelDirHorizontal, x, y, CTRL_ROW2_Y, CTRL_COL2_X);
+         BlitSobelCache(gState.screen, cache, DmtxSobelDirSlash,      x, y, CTRL_ROW2_Y, CTRL_COL3_X);
+         BlitSobelCache(gState.screen, cache, DmtxSobelDirBackslash,  x, y, CTRL_ROW2_Y, CTRL_COL4_X);
+         break;
+      case 1:
+         break;
+   }
 }
 
 void HoughCacheCallback(DmtxHoughCache *hough, int id)
@@ -207,6 +233,73 @@ void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY,
    for(row = 0; row < height; row++) {
       for(col = 0; col < width; col++) {
          flow = cache[row * width + col];
+         if(flow > 0) {
+            rgb[0] = 0;
+            rgb[1] = (int)((abs(flow) * 254.0)/maxFlowMag + 0.5);
+            rgb[2] = 0;
+         }
+         else {
+            rgb[0] = (int)((abs(flow) * 254.0)/maxFlowMag + 0.5);
+            rgb[1] = 0;
+            rgb[2] = 0;
+         }
+
+         offset = ((height - row - 1) * width + col) * 3;
+         pixbuf[offset] = rgb[0];
+         pixbuf[offset+1] = rgb[1];
+         pixbuf[offset+2] = rgb[2];
+      }
+   }
+
+   clipRect.w = LOCAL_SIZE;
+   clipRect.h = LOCAL_SIZE;
+   clipRect.x = screenX;
+   clipRect.y = screenY;
+
+   surface = SDL_CreateRGBSurfaceFrom(pixbuf, width, height, 24, width * 3,
+         rmask, gmask, bmask, 0);
+
+   SDL_BlitSurface(surface, NULL, screen, &clipRect);
+   SDL_FreeSurface(surface);
+}
+
+/**
+ *
+ *
+ */
+void BlitSobelCache(SDL_Surface *screen, SobelCache *cache, DmtxSobelDir dir, int x, int y, int screenY, int screenX)
+{
+   int row, col;
+   unsigned char rgb[3];
+   int width, height;
+   int offset;
+   int flow;
+   unsigned char pixbuf[12288]; /* 64 * 64 * 3 */
+   int maxFlowMag = 1020;
+
+   SDL_Surface *surface;
+   SDL_Rect clipRect;
+   Uint32 rmask, gmask, bmask, amask;
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+   rmask = 0xff000000;
+   gmask = 0x00ff0000;
+   bmask = 0x0000ff00;
+   amask = 0x000000ff;
+#else
+   rmask = 0x000000ff;
+   gmask = 0x0000ff00;
+   bmask = 0x00ff0000;
+   amask = 0xff000000;
+#endif
+
+   width = height = 64;
+
+   for(row = 0; row < 64; row++)
+   {
+      for(col = 0; col < 64; col++)
+      {
+         flow = SobelCacheGetValue(cache, dir, col + x, row + y);
          if(flow > 0) {
             rgb[0] = 0;
             rgb[1] = (int)((abs(flow) * 254.0)/maxFlowMag + 0.5);
@@ -681,15 +774,15 @@ void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
 {
    DmtxVector2 pTmp, pCtr;
    DmtxVector2 gridTest;
-   int shiftX, shiftY;
-   int rColor, gColor, bColor, color;
-   Sint16 x1, y1, x2, y2;
+   int shiftX /*, shiftY*/;
+/* int rColor, gColor, bColor, color; */
+/* Sint16 x1, y1, x2, y2; */
    int extent = 128;
    int modulesToDisplay = 16;
    int dispModExtent = extent/modulesToDisplay;
-   int row, col;
-   int rowBeg, colBeg;
-   int rowEnd, colEnd;
+/* int row, col; */
+   int /*rowBeg,*/ colBeg;
+   int /*rowEnd,*/ colEnd;
 
    SDL_LockSurface(state->picture);
 

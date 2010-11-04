@@ -61,11 +61,10 @@ typedef struct UserOptions_struct {
 typedef struct AppState_struct {
    int         windowWidth;
    int         windowHeight;
-   int         imageWidth;
-   int         imageHeight;
    int         activeExtent;
    DmtxImage   *imgActive;
    DmtxImage   *imgFull;
+   DmtxImage   *dmtxImage;
    DmtxBoolean autoNudge;
    DmtxBoolean displayVanish;
    DmtxBoolean displayTiming;
@@ -82,6 +81,16 @@ typedef struct AppState_struct {
    SDL_Surface *local;
    SDL_Surface *localTmp;
 } AppState;
+
+struct SobelCache_struct {
+   int width;
+   int height;
+   int *vData;
+   int *hData;
+   int *sData;
+   int *bData;
+};
+typedef struct SobelCache_struct SobelCache;
 
 struct DmtxEdgeCache_struct {
    int sDir[4096]; /* 64x64 */
@@ -170,7 +179,6 @@ struct DmtxRegionSides_struct {
 };
 typedef struct DmtxRegionSides_struct DmtxRegionSides;
 
-
 /* All values in GridRegionGrowth should be negative because list
  * is combined with the positive values of DmtxSymbolSize enum */
 typedef enum {
@@ -188,6 +196,13 @@ typedef enum {
    DmtxBarInterior = 0x01 << 2,
    DmtxBarExterior = 0x01 << 3
 } DmtxBarType;
+
+typedef enum {
+   DmtxSobelDirVertical,
+   DmtxSobelDirHorizontal,
+   DmtxSobelDirSlash,
+   DmtxSobelDirBackslash
+} DmtxSobelDir;
 
 /* Only used internally */
 typedef struct ColorTally_struct {
@@ -210,6 +225,7 @@ typedef struct StripStats_struct StripStats;
 
 struct DmtxCallbacks_struct {
    void (*edgeCacheCallback)(DmtxEdgeCache *, int);
+   void (*sobelCacheCallback)(SobelCache *, int);
    void (*houghCacheCallback)(DmtxHoughCache *, int);
    void (*houghCompactCallback)(DmtxHoughCompact, int);
    void (*vanishPointCallback)(VanishPointSort *, int);
@@ -220,10 +236,10 @@ struct DmtxCallbacks_struct {
 typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
 /* Application level functions */
-void AddFullTransforms(AlignmentGrid *grid);
-UserOptions GetDefaultOptions(void);
 DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[]);
 AppState InitAppState(void);
+DmtxImage *CreateDmtxImage(SDL_Surface *sdlImage);
+void AddFullTransforms(AlignmentGrid *grid);
 SDL_Surface *SetWindowSize(int windowWidth, int windowHeight);
 void captureLocalPortion(SDL_Surface *local, SDL_Surface *localTmp,
       SDL_Surface *picture, SDL_Surface *screen, AppState *state, SDL_Rect imageLoc);
@@ -234,7 +250,9 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 
 /* Image processing functions */
 void dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn);
-DmtxPassFail dmtxBuildEdgeCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
+DmtxPassFail dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn);
+DmtxPassFail dmtxBuildSobelCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
+DmtxPassFail dmtxBuildCrossingCache(DmtxEdgeCache *crossingCache, DmtxEdgeCache *sobelCache);
 int GetCompactOffset(int x, int y, int phiIdx, int extent);
 double UncompactOffset(double d, int phiIdx, int extent);
 DmtxPassFail dmtxBuildHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache);
@@ -263,6 +281,7 @@ ColorTally GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg
 
 /* Process visualization functions */
 void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id);
+void SobelCacheCallback(SobelCache *cache, int id);
 void HoughCacheCallback(DmtxHoughCache *hough, int id);
 void HoughCompactCallback(DmtxHoughCompact h, int id);
 void VanishPointCallback(VanishPointSort *vPoints, int id);
@@ -272,6 +291,7 @@ void PerimeterCallback(GridRegion *region, DmtxDirection side, DmtxBarType type)
 
 int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache);
 void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY, int screenX);
+void BlitSobelCache(SDL_Surface *screen, SobelCache *cache, DmtxSobelDir dir, int x, int y, int screenY, int screenX);
 void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int screenX);
 void ShowActiveRegion(SDL_Surface *screen, SDL_Surface *active);
 void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
@@ -287,5 +307,15 @@ Sint16 Clamp(Sint16 x, Sint16 xMin, Sint16 extent);
 void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid, AppState *state, int screenY, int screenX);
 void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *state, DmtxDirection side, DmtxBarType type);
 void DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection side, DmtxBarType type);
+
+/* sobelcache.c */
+SobelCache *SobelCacheCreate(int width, int height);
+SobelCache *SobelCacheFromImage(DmtxImage *img);
+SobelCache *PrimeCacheFromSobel(SobelCache *sobel);
+DmtxPassFail SobelCacheDestroy(SobelCache **sobel);
+int SobelCacheGetWidth(SobelCache *sobel);
+int SobelCacheGetHeight(SobelCache *sobel);
+int SobelCacheGetValue(SobelCache *sobel, DmtxSobelDir dir, int x, int y);
+DmtxPassFail SobelCachePopulate(SobelCache *sobel, DmtxImage *img);
 
 extern AppState gState;

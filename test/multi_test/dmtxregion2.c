@@ -89,18 +89,23 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
    int phiDiff;
    DmtxBoolean     regionFound;
    DmtxPassFail    err;
-   DmtxEdgeCache   edgeCache;
+   DmtxEdgeCache   sobelCache;
+   DmtxEdgeCache   crossingCache;
    DmtxHoughCache  houghCache;
    VanishPointSort vPoints;
    DmtxTimingSort  timings;
    AlignmentGrid   grid;
    GridRegion      region;
 
-   dmtxBuildEdgeCache(&edgeCache, imgActive);
-   fn->edgeCacheCallback(&edgeCache, 0);
+   /* XXX change DmtxEdgeCache into DmtxSobelCache? */
+   dmtxBuildSobelCache(&sobelCache, imgActive);
+   fn->edgeCacheCallback(&sobelCache, 0);
 
-   dmtxBuildHoughCache(&houghCache, &edgeCache);
-   dmtxNormalizeHoughCache(&houghCache, &edgeCache);
+   dmtxBuildCrossingCache(&crossingCache, &sobelCache);
+   fn->edgeCacheCallback(&crossingCache, 1);
+
+   dmtxBuildHoughCache(&houghCache, &sobelCache);
+   dmtxNormalizeHoughCache(&houghCache, &sobelCache);
    fn->houghCacheCallback(&houghCache, 0);
 
    dmtxMarkHoughMaxima(&houghCache);
@@ -147,11 +152,48 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
    }
 }
 
+#define CLEAN_RETURN_IF(A, B, C, D) if(A){SobelCacheDestroy(B); SobelCacheDestroy(C); return DmtxFail;}
+/**
+ *
+ *
+ */
+DmtxPassFail
+dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
+{
+   SobelCache *sobel;
+   SobelCache *prime;
+
+   sobel = SobelCacheFromImage(dmtxImage);
+   CLEAN_RETURN_IF((sobel == NULL), &sobel, NULL, NULL);
+   fn->sobelCacheCallback(sobel, 0);
+
+   prime = PrimeCacheFromSobel(sobel);
+   CLEAN_RETURN_IF(prime == NULL, &sobel, &prime, NULL);
+   fn->sobelCacheCallback(prime, 1);
+/*
+   ZeroCrossingCache zeroCrossingV = ZeroCrossingCacheCreate(sobelV, sobelPrimeV);
+   ZeroCrossingCache zeroCrossingH = ZeroCrossingCacheCreate(sobelH, sobelPrimeH);
+   ZeroCrossingCache zeroCrossingS = ZeroCrossingCacheCreate(sobelS, sobelPrimeS);
+   ZeroCrossingCache zeroCrossingB = ZeroCrossingCacheCreate(sobelB, sobelPrimeB);
+
+
+
+   ZeroCrossingCacheDestroy(&zeroCrossingB);
+   ZeroCrossingCacheDestroy(&zeroCrossingS);
+   ZeroCrossingCacheDestroy(&zeroCrossingH);
+   ZeroCrossingCacheDestroy(&zeroCrossingV);
+*/
+   SobelCacheDestroy(&prime);
+   SobelCacheDestroy(&sobel);
+
+   return DmtxPass;
+}
+
 /**
  * 3x3 Sobel Kernel
  */
 DmtxPassFail
-dmtxBuildEdgeCache(DmtxEdgeCache *edgeCache, DmtxImage *img)
+dmtxBuildSobelCache(DmtxEdgeCache *sobelCache, DmtxImage *img)
 {
    int width, height;
    int bytesPerPixel, rowSizeBytes, colorPlane;
@@ -164,7 +206,7 @@ dmtxBuildEdgeCache(DmtxEdgeCache *edgeCache, DmtxImage *img)
    int offset, offsetLo, offsetMd, offsetHi;
    int idx;
 
-   memset(edgeCache, 0x00, sizeof(DmtxEdgeCache));
+   memset(sobelCache, 0x00, sizeof(DmtxEdgeCache));
 
    width = dmtxImageGetProp(img, DmtxPropWidth);
    height = dmtxImageGetProp(img, DmtxPropHeight);
@@ -261,10 +303,10 @@ dmtxBuildEdgeCache(DmtxEdgeCache *edgeCache, DmtxImage *img)
           * registers with 4 doubleword values and subtract (PSUBD).
           */
 
-         edgeCache->hDir[idx] = hMag;
-         edgeCache->vDir[idx] = vMag;
-         edgeCache->sDir[idx] = sMag;
-         edgeCache->bDir[idx] = bMag;
+         sobelCache->hDir[idx] = hMag;
+         sobelCache->vDir[idx] = vMag;
+         sobelCache->sDir[idx] = sMag;
+         sobelCache->bDir[idx] = bMag;
 
          colorHiLf = colorHiMd;
          colorMdLf = colorMdMd;
@@ -285,6 +327,33 @@ dmtxBuildEdgeCache(DmtxEdgeCache *edgeCache, DmtxImage *img)
    return DmtxPass;
 }
 
+/**
+ *
+ */
+DmtxPassFail
+dmtxBuildCrossingCache(DmtxEdgeCache *crossingCache, DmtxEdgeCache *sobelCache)
+{
+   /* In reality if this works we will skip this step entirely and instead just
+    * add the crossings directly into the Hough cache without ever storing an
+    * actual crossing cache. But let's see it working first before taking the
+    * plunge. */
+
+   int x, y;
+
+   memset(crossingCache, 0x00, sizeof(DmtxEdgeCache));
+
+   for(y = 0; y < 64; y++) {
+      for(x = 0; x < 64; x++) {
+         ;
+      }
+   }
+
+   return DmtxPass;
+}
+
+/**
+ *
+ */
 int
 GetCompactOffset(int x, int y, int phiIdx, int extent)
 {
@@ -355,7 +424,7 @@ UncompactOffset(double compactedOffset, int phiIdx, int extent)
  *
  */
 DmtxPassFail
-dmtxBuildHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache)
+dmtxBuildHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *sobelCache)
 {
    int idx, phi, d;
    int angleBase, imgExtent;
@@ -386,40 +455,40 @@ dmtxBuildHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache)
           *
           * That should provide a huge speedup.
           */
-         if(abs(edgeCache->vDir[idx]) > 0) {
+         if(abs(sobelCache->vDir[idx]) > 0) {
             for(phi = 0; phi < 16; phi++) {
                d = GetCompactOffset(x, y, phi, imgExtent);
                if(d == -1) continue;
-               hough->mag[d * angleBase + phi] += abs(edgeCache->vDir[idx]);
+               hough->mag[d * angleBase + phi] += abs(sobelCache->vDir[idx]);
             }
             for(phi = 112; phi < angleBase; phi++) {
                d = GetCompactOffset(x, y, phi, imgExtent);
                if(d == -1) continue;
-               hough->mag[d * angleBase + phi] += abs(edgeCache->vDir[idx]);
+               hough->mag[d * angleBase + phi] += abs(sobelCache->vDir[idx]);
             }
          }
 
-         if(abs(edgeCache->bDir[idx]) > 0) {
+         if(abs(sobelCache->bDir[idx]) > 0) {
             for(phi = 16; phi < 48; phi++) {
                d = GetCompactOffset(x, y, phi, imgExtent);
                if(d == -1) continue;
-               hough->mag[d * angleBase + phi] += abs(edgeCache->bDir[idx]);
+               hough->mag[d * angleBase + phi] += abs(sobelCache->bDir[idx]);
             }
          }
 
-         if(abs(edgeCache->hDir[idx]) > 0) {
+         if(abs(sobelCache->hDir[idx]) > 0) {
             for(phi = 48; phi < 80; phi++) {
                d = GetCompactOffset(x, y, phi, imgExtent);
                if(d == -1) continue;
-               hough->mag[d * angleBase + phi] += abs(edgeCache->hDir[idx]);
+               hough->mag[d * angleBase + phi] += abs(sobelCache->hDir[idx]);
             }
          }
 
-         if(abs(edgeCache->sDir[idx]) > 0) {
+         if(abs(sobelCache->sDir[idx]) > 0) {
             for(phi = 80; phi < 112; phi++) {
                d = GetCompactOffset(x, y, phi, imgExtent);
                if(d == -1) continue;
-               hough->mag[d * angleBase + phi] += abs(edgeCache->sDir[idx]);
+               hough->mag[d * angleBase + phi] += abs(sobelCache->sDir[idx]);
             }
          }
       }
@@ -433,7 +502,7 @@ dmtxBuildHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache)
  *
  */
 DmtxPassFail
-dmtxNormalizeHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache)
+dmtxNormalizeHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *sobelCache)
 {
    int          pixelCount;
    int          i, idx, phi, d;
@@ -446,10 +515,10 @@ dmtxNormalizeHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache)
    pixelCount = hough->offExtent * hough->offExtent;
 
    for(i = 0; i < pixelCount; i++) {
-      hFlowSum += abs(edgeCache->hDir[i]);
-      vFlowSum += abs(edgeCache->vDir[i]);
-      sFlowSum += abs(edgeCache->sDir[i]);
-      bFlowSum += abs(edgeCache->bDir[i]);
+      hFlowSum += abs(sobelCache->hDir[i]);
+      vFlowSum += abs(sobelCache->vDir[i]);
+      sFlowSum += abs(sobelCache->sDir[i]);
+      bFlowSum += abs(sobelCache->bDir[i]);
    }
 
    hFlowScale = (double)65536/hFlowSum;
