@@ -61,9 +61,9 @@ void SobelCacheCallback(PixelEdgeCache *cache, int id)
    switch(id) {
       case 0:
          BlitSobelCache(gState.screen, cache, DmtxSobelDirVertical,   x, y, CTRL_ROW2_Y, CTRL_COL1_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirHorizontal, x, y, CTRL_ROW2_Y, CTRL_COL2_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirSlash,      x, y, CTRL_ROW2_Y, CTRL_COL3_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirBackslash,  x, y, CTRL_ROW2_Y, CTRL_COL4_X);
+         BlitSobelCache(gState.screen, cache, DmtxSobelDirBackslash,  x, y, CTRL_ROW2_Y, CTRL_COL2_X);
+         BlitSobelCache(gState.screen, cache, DmtxSobelDirHorizontal, x, y, CTRL_ROW2_Y, CTRL_COL3_X);
+         BlitSobelCache(gState.screen, cache, DmtxSobelDirSlash,      x, y, CTRL_ROW2_Y, CTRL_COL4_X);
          break;
       case 1:
          break;
