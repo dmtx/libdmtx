@@ -226,7 +226,7 @@ typedef struct StripStats_struct StripStats;
 
 struct DmtxCallbacks_struct {
    void (*edgeCacheCallback)(DmtxEdgeCache *, int);
-   void (*sobelCacheCallback)(PixelEdgeCache *, int);
+   void (*pixelEdgeCacheCallback)(PixelEdgeCache *, int);
    void (*houghCacheCallback)(DmtxHoughCache *, int);
    void (*houghCompactCallback)(DmtxHoughCompact, int);
    void (*vanishPointCallback)(VanishPointSort *, int);
@@ -282,7 +282,7 @@ ColorTally GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg
 
 /* Process visualization functions */
 void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id);
-void SobelCacheCallback(PixelEdgeCache *cache, int id);
+void PixelEdgeCacheCallback(PixelEdgeCache *cache, int id);
 void HoughCacheCallback(DmtxHoughCache *hough, int id);
 void HoughCompactCallback(DmtxHoughCompact h, int id);
 void VanishPointCallback(VanishPointSort *vPoints, int id);

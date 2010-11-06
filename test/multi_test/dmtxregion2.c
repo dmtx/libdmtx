@@ -163,31 +163,27 @@ dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
    PixelEdgeCache *sobel = NULL;
    PixelEdgeCache *accelV = NULL;
    PixelEdgeCache *accelH = NULL;
+   PixelEdgeCache *zXingV = NULL;
+   PixelEdgeCache *zXingH = NULL;
 
    sobel = SobelCacheCreate(dmtxImage);
    CLEAN_RETURN_IF(sobel == NULL);
-   fn->sobelCacheCallback(sobel, 0);
+   fn->pixelEdgeCacheCallback(sobel, 0);
 
    accelV = AccelCacheCreate(sobel, DmtxDirVertical);
    CLEAN_RETURN_IF(accelV == NULL);
-/* fn->accelCacheCallback(accelV, 0); */
+   fn->pixelEdgeCacheCallback(accelV, 1);
 
    accelH = AccelCacheCreate(sobel, DmtxDirHorizontal);
    CLEAN_RETURN_IF(accelH == NULL);
-/* fn->accelCacheCallback(accelH, 1); */
-
+   fn->pixelEdgeCacheCallback(accelH, 2);
 /*
    ZeroCrossingCache zeroCrossingV = ZeroCrossingCacheCreate(sobelV, sobelPrimeV);
    ZeroCrossingCache zeroCrossingH = ZeroCrossingCacheCreate(sobelH, sobelPrimeH);
-   ZeroCrossingCache zeroCrossingS = ZeroCrossingCacheCreate(sobelS, sobelPrimeS);
-   ZeroCrossingCache zeroCrossingB = ZeroCrossingCacheCreate(sobelB, sobelPrimeB);
-
-   ZeroCrossingCacheDestroy(&zeroCrossingB);
-   ZeroCrossingCacheDestroy(&zeroCrossingS);
-   ZeroCrossingCacheDestroy(&zeroCrossingH);
-   ZeroCrossingCacheDestroy(&zeroCrossingV);
 */
 
+   PixelEdgeCacheDestroy(&zXingH);
+   PixelEdgeCacheDestroy(&zXingV);
    PixelEdgeCacheDestroy(&accelH);
    PixelEdgeCacheDestroy(&accelV);
    PixelEdgeCacheDestroy(&sobel);

@@ -265,71 +265,51 @@ SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img)
 PixelEdgeCache *
 AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType)
 {
-   int sobelWidth, sobelHeight;
-   int accelWidth, accelHeight;
+   int x, y;
+   int sIdx, aIdx, sInc;
+   int sWidth, sHeight;
+   int aWidth, aHeight;
    PixelEdgeCache *accel;
 
-   assert(edgeType == DmtxDirVertical || edgeType == DmtxDirHorizontal);
+   sWidth = PixelEdgeCacheGetWidth(sobel);
+   sHeight = PixelEdgeCacheGetHeight(sobel);
 
-   sobelWidth = PixelEdgeCacheGetWidth(sobel);
-   sobelHeight = PixelEdgeCacheGetHeight(sobel);
-
-   if(edgeType == DmtxDirVertical) {
-      accelWidth = PixelEdgeCacheGetWidth(sobel) - 1;
-      accelHeight = PixelEdgeCacheGetHeight(sobel);
+   if(edgeType == DmtxDirVertical)
+   {
+      aWidth = sWidth - 1;
+      aHeight = sHeight;
+      sInc = 1;
    }
-   else {
-      accelWidth = PixelEdgeCacheGetWidth(sobel);
-      accelHeight = PixelEdgeCacheGetHeight(sobel) - 1;
+   else if(edgeType == DmtxDirHorizontal)
+   {
+      aWidth = sWidth;
+      aHeight = sHeight - 1;
+      sInc = sWidth;
+   }
+   else
+   {
+      return NULL;
    }
 
-   accel = PixelEdgeCacheCreate(accelWidth, accelHeight);
+   accel = PixelEdgeCacheCreate(aWidth, aHeight);
    if(accel == NULL)
       return NULL;
-/*
-   for(y = 0; y < accelHeight; y++)
-   {
-      rowBeg = y * sobelWidth;
-      svPtr = &(sobel->v[rowBeg]);
-      sbPtr = &(sobel->b[rowBeg]);
-      shPtr = &(sobel->h[rowBeg]);
-      ssPtr = &(sobel->s[rowBeg]);
 
-      for(x = 0; x < accelWidth; x++)
+   for(y = 0; y < aHeight; y++)
+   {
+      sIdx = y * sWidth;
+      aIdx = y * aWidth;
+
+      for(x = 0; x < aWidth; x++)
       {
-         avsv = *svPtr - *(++svPtr); // sign is backwords
-         avsb = *sbPtr - *(++sbPtr); // sign is backwords
-         avsh = *shPtr - *(++shPtr); // sign is backwords
-         avss = *ssPtr - *(++ssPtr); // sign is backwords
+         accel->v[aIdx] = sobel->v[sIdx+sInc] - sobel->v[sIdx];
+         accel->s[aIdx] = sobel->s[sIdx+sInc] - sobel->s[sIdx];
+         accel->h[aIdx] = sobel->h[sIdx+sInc] - sobel->h[sIdx];
+         accel->b[aIdx] = sobel->b[sIdx+sInc] - sobel->b[sIdx];
+         aIdx++;
+         sIdx++;
       }
    }
-
-   for(y = 0; y < accelHeight; y++)
-   {
-      int rowBeg = img + (y * bytesPerRow);
-
-      for(x = 1; x < 63; x++)
-      {
-         groupBeg = rowBeg + (x * bytesPerPixel);
-
-         s[0] = groupBeg;
-         s[1] = groupBeg + bytesPerPixel;
-         s[2] = groupBeg + bytesPerPixel;
-
-         a[0] = s[1] - s[0];
-         a[1] = s[2] - s[1];
-
-         if(a[0] * a[1] <= 0) {
-            if(a[0] == a[1])
-               continue;
-
-            delta = abs(a[1] - a[0]);
-
-            interpolate zero crossing
-         }
-      }
-   }
-*/
 
    return accel;
 }
