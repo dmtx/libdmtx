@@ -177,10 +177,16 @@ dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
    accelH = AccelCacheCreate(sobel, DmtxDirHorizontal);
    CLEAN_RETURN_IF(accelH == NULL);
    fn->pixelEdgeCacheCallback(accelH, 2);
-/*
-   ZeroCrossingCache zeroCrossingV = ZeroCrossingCacheCreate(sobelV, sobelPrimeV);
-   ZeroCrossingCache zeroCrossingH = ZeroCrossingCacheCreate(sobelH, sobelPrimeH);
-*/
+
+   zXingV = ZeroCrossingCacheCreate(accelV, DmtxDirVertical);
+   CLEAN_RETURN_IF(zXingV == NULL);
+   fn->pixelEdgeCacheCallback(zXingV, 3);
+
+   zXingH = ZeroCrossingCacheCreate(accelH, DmtxDirVertical);
+   CLEAN_RETURN_IF(zXingH == NULL);
+   fn->pixelEdgeCacheCallback(zXingH, 4);
+
+   /* find barcode here */
 
    PixelEdgeCacheDestroy(&zXingH);
    PixelEdgeCacheDestroy(&zXingV);

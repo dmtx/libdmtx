@@ -319,5 +319,6 @@ int PixelEdgeCacheGetValue(PixelEdgeCache *sobel, DmtxSobelDir dir, int x, int y
 PixelEdgeCache *SobelCacheCreate(DmtxImage *img);
 DmtxPassFail SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img);
 PixelEdgeCache *AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType);
+PixelEdgeCache *ZeroCrossingCacheCreate(PixelEdgeCache *zXing, DmtxDirection edgeType);
 
 extern AppState gState;

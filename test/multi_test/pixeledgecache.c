@@ -313,3 +313,63 @@ AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType)
 
    return accel;
 }
+
+/**
+ *
+ *
+ */
+PixelEdgeCache *
+ZeroCrossingCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType)
+{
+/*
+   int x, y;
+   int sIdx, aIdx, sInc;
+   int sWidth, sHeight;
+   int aWidth, aHeight;
+*/
+   PixelEdgeCache *zXing;
+
+zXing = NULL;
+/*
+   sWidth = PixelEdgeCacheGetWidth(sobel);
+   sHeight = PixelEdgeCacheGetHeight(sobel);
+
+   if(edgeType == DmtxDirVertical)
+   {
+      aWidth = sWidth - 1;
+      aHeight = sHeight;
+      sInc = 1;
+   }
+   else if(edgeType == DmtxDirHorizontal)
+   {
+      aWidth = sWidth;
+      aHeight = sHeight - 1;
+      sInc = sWidth;
+   }
+   else
+   {
+      return NULL;
+   }
+
+   accel = PixelEdgeCacheCreate(aWidth, aHeight);
+   if(accel == NULL)
+      return NULL;
+
+   for(y = 0; y < aHeight; y++)
+   {
+      sIdx = y * sWidth;
+      aIdx = y * aWidth;
+
+      for(x = 0; x < aWidth; x++)
+      {
+         accel->v[aIdx] = sobel->v[sIdx+sInc] - sobel->v[sIdx];
+         accel->s[aIdx] = sobel->s[sIdx+sInc] - sobel->s[sIdx];
+         accel->h[aIdx] = sobel->h[sIdx+sInc] - sobel->h[sIdx];
+         accel->b[aIdx] = sobel->b[sIdx+sInc] - sobel->b[sIdx];
+         aIdx++;
+         sIdx++;
+      }
+   }
+*/
+   return zXing;
+}
