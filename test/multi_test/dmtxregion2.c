@@ -22,16 +22,6 @@ Contact: mblaughton@users.sourceforge.net
 
 /* $Id$ */
 
-/**
- * TODO:
- * o Autonudge still seems to make things worse, but it would be nice if all the
- *   display panes would reflect the autonudged grid instead of just the
- *   perimeter outlines
- * o Consider removing double pairs of transforms in AlignmentGrid. Instead
- *   always work with "Full" version. May require changes to multi_test.c image
- *   position math.
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -152,7 +142,7 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
    }
 }
 
-#define CLEAN_RETURN_IF(C) if(C) { PixelEdgeCacheDestroy(&sobel); PixelEdgeCacheDestroy(&accelV); PixelEdgeCacheDestroy(&accelH); return DmtxFail; }
+#define RETURN_FAIL_IF(C) if(C) { PixelEdgeCacheDestroy(&sobel); PixelEdgeCacheDestroy(&accelV); PixelEdgeCacheDestroy(&accelH); return DmtxFail; }
 /**
  *
  *
@@ -163,38 +153,96 @@ dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
    PixelEdgeCache *sobel = NULL;
    PixelEdgeCache *accelV = NULL;
    PixelEdgeCache *accelH = NULL;
-   PixelEdgeCache *zXingV = NULL;
-   PixelEdgeCache *zXingH = NULL;
+
+  /* perform bulk operations on entire image, regardless of position in window */
 
    sobel = SobelCacheCreate(dmtxImage);
-   CLEAN_RETURN_IF(sobel == NULL);
+   RETURN_FAIL_IF(sobel == NULL);
    fn->pixelEdgeCacheCallback(sobel, 0);
 
    accelV = AccelCacheCreate(sobel, DmtxDirVertical);
-   CLEAN_RETURN_IF(accelV == NULL);
+   RETURN_FAIL_IF(accelV == NULL);
    fn->pixelEdgeCacheCallback(accelV, 1);
 
    accelH = AccelCacheCreate(sobel, DmtxDirHorizontal);
-   CLEAN_RETURN_IF(accelH == NULL);
+   RETURN_FAIL_IF(accelH == NULL);
    fn->pixelEdgeCacheCallback(accelH, 2);
 
-   zXingV = ZeroCrossingCacheCreate(accelV, DmtxDirVertical);
-   CLEAN_RETURN_IF(zXingV == NULL);
-   fn->pixelEdgeCacheCallback(zXingV, 3);
+   /* XXX Implementation strategy:
+    * 1) Change "local" area calculate to occur every time image position moves,
+    *    and store local offset in gAppState
+    * 2) Calculate zero crossings and plot results to main image
+    * 3) Calculate zero crossings and add to Hough accumulator
+    */
 
-   zXingH = ZeroCrossingCacheCreate(accelH, DmtxDirVertical);
-   CLEAN_RETURN_IF(zXingH == NULL);
-   fn->pixelEdgeCacheCallback(zXingH, 4);
+   /* initialize hough accumulator */
+
+   /* later FindZeroCrossings will also receive a hough cache to receive zero crossing hits */
+   FindZeroCrossings(accelV, sobel, DmtxDirVertical, fn);
+   FindZeroCrossings(accelH, sobel, DmtxDirHorizontal, fn);
 
    /* find barcode here */
 
-   PixelEdgeCacheDestroy(&zXingH);
-   PixelEdgeCacheDestroy(&zXingV);
    PixelEdgeCacheDestroy(&accelH);
    PixelEdgeCacheDestroy(&accelV);
    PixelEdgeCacheDestroy(&sobel);
 
    return DmtxPass;
+}
+
+/**
+ * accel holds acceleration values (vertical or horizontal) that will determine zero crossing locations.
+ * sobel contains the actual edge strength, and will only be used if a zero crossing is found
+ */
+void
+FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn)
+{
+/*
+   accel->v
+   accel->b
+   accel->h
+   accel->s
+
+   sobel->v
+   sobel->b
+   sobel->h
+   sobel->s
+
+   aWidth = PixelEdgeCacheGetWidth(accel);
+   aHeight = PixelEdgeCacheGetHeight(accel);
+
+   if(edgeType == DmtxDirVertical)
+   {
+      aInc = 1;
+   }
+   else if(edgeType == DmtxDirHorizontal)
+   {
+      aInc = aWidth;
+   }
+   else
+   {
+      return NULL;
+   }
+
+   for(y = 0; y < aHeight; y++)
+   {
+      aIdx = y * aWidth;
+
+      for(x = 0; x < aWidth; x++)
+      {
+         two different "zero crossing is here" conditions here:
+           -10   0 +10
+           -10 +10
+
+         accel->v[aIdx] = sobel->v[sIdx+sInc] - sobel->v[sIdx];
+         accel->s[aIdx] = sobel->s[sIdx+sInc] - sobel->s[sIdx];
+         accel->h[aIdx] = sobel->h[sIdx+sInc] - sobel->h[sIdx];
+         accel->b[aIdx] = sobel->b[sIdx+sInc] - sobel->b[sIdx];
+
+         aIdx++;
+      }
+   }
+*/
 }
 
 /**
