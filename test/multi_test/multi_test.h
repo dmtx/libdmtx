@@ -24,6 +24,7 @@ Contact: mblaughton@users.sourceforge.net
 
 #define max(N,M) ((N > M) ? N : M)
 #define min(N,M) ((N < M) ? N : M)
+#define OPPOSITE_SIGNS(a,b) (a != 0 && b != 0 && ((a > 0) != (b > 0)))
 
 #define LOCAL_SIZE            64
 #define MAXIMA_SORT_MAX_COUNT  8
@@ -252,7 +253,7 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /* Image processing functions */
 void dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn);
 DmtxPassFail dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn);
-void FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn);
+DmtxPassFail FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn);
 DmtxPassFail dmtxBuildSobelCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
 DmtxPassFail dmtxBuildCrossingCache(DmtxEdgeCache *crossingCache, DmtxEdgeCache *sobelCache);
 int GetCompactOffset(int x, int y, int phiIdx, int extent);

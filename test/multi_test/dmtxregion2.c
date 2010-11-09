@@ -194,55 +194,68 @@ dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
  * accel holds acceleration values (vertical or horizontal) that will determine zero crossing locations.
  * sobel contains the actual edge strength, and will only be used if a zero crossing is found
  */
-void
+DmtxPassFail
 FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn)
 {
-/*
-   accel->v
-   accel->b
-   accel->h
-   accel->s
-
-   sobel->v
-   sobel->b
-   sobel->h
-   sobel->s
+   int x, y;
+   int aIdx, aInc;
+   int aWidth, aHeight;
+   int zWidth, zHeight;
+   int aPrev, aHere, aNext;
 
    aWidth = PixelEdgeCacheGetWidth(accel);
    aHeight = PixelEdgeCacheGetHeight(accel);
 
    if(edgeType == DmtxDirVertical)
    {
+      zWidth = aWidth - 1;
+      zHeight = aHeight;
       aInc = 1;
    }
    else if(edgeType == DmtxDirHorizontal)
    {
+      zWidth = aWidth;
+      zHeight = aHeight - 1;
       aInc = aWidth;
    }
    else
    {
-      return NULL;
+      return DmtxFail;
    }
 
-   for(y = 0; y < aHeight; y++)
+   for(y = 0; y < zHeight; y++)
    {
       aIdx = y * aWidth;
 
-      for(x = 0; x < aWidth; x++)
+      for(x = 0; x < zWidth; x++, aIdx++)
       {
-         two different "zero crossing is here" conditions here:
-           -10   0 +10
-           -10 +10
+         aHere = accel->v[aIdx];
+         aNext = accel->v[aIdx+aInc];
 
-         accel->v[aIdx] = sobel->v[sIdx+sInc] - sobel->v[sIdx];
-         accel->s[aIdx] = sobel->s[sIdx+sInc] - sobel->s[sIdx];
-         accel->h[aIdx] = sobel->h[sIdx+sInc] - sobel->h[sIdx];
-         accel->b[aIdx] = sobel->b[sIdx+sInc] - sobel->b[sIdx];
+         if(OPPOSITE_SIGNS(aHere, aNext))
+         {
+            /* Zero crossing: Neighbors with opposite signs [-10,+10] */
+            ; /* XXX crossing falls somewhere between aHere and aNext */
+         }
+         else if(aHere == 0 && aNext != 0)
+         {
+            /* Previous value not available (beginning of row/col) */
+            if((edgeType == DmtxDirVertical && x == 0) || (edgeType == DmtxDirHorizontal && y == 0))
+               continue;
 
-         aIdx++;
+            assert(1==1); /* XXX assert that index remains within bounds */
+
+            aPrev = accel->v[aIdx-aInc];
+            if(OPPOSITE_SIGNS(aPrev, aNext))
+            {
+               /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */
+               ; /* XXX crossing falls exactly at aHere */
+            }
+         }
       }
    }
-*/
+
+   return DmtxPass;
 }
 
 /**
