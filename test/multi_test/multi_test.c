@@ -73,6 +73,7 @@ main(int argc, char *argv[])
    /* Set up callback functions */
    callbacks.edgeCacheCallback = EdgeCacheCallback;
    callbacks.pixelEdgeCacheCallback = PixelEdgeCacheCallback;
+   callbacks.zeroCrossingCallback = ZeroCrossingCallback;
    callbacks.houghCacheCallback = HoughCacheCallback;
    callbacks.houghCompactCallback = HoughCompactCallback;
    callbacks.vanishPointCallback = VanishPointCallback;

@@ -191,6 +191,35 @@ dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
 }
 
 /**
+ *
+ *
+ */
+DmtxPassFail
+RegisterZeroCrossing(int x, int y, double fudgeFactor, DmtxDirection edgeType, DmtxCallbacks *fn)
+{
+   double xImg, yImg;
+
+   if(edgeType == DmtxDirVertical)
+   {
+      xImg = (double)x + 2.0 + fudgeFactor;
+      yImg = (double)y + 1.5;
+   }
+   else if(edgeType == DmtxDirHorizontal)
+   {
+      xImg = (double)x + 1.5;
+      yImg = (double)y + 2.0 + fudgeFactor;
+   }
+   else
+   {
+      return DmtxFail;
+   }
+
+   fn->zeroCrossingCallback(xImg, yImg, 0);
+
+   return DmtxPass;
+}
+
+/**
  * accel holds acceleration values (vertical or horizontal) that will determine zero crossing locations.
  * sobel contains the actual edge strength, and will only be used if a zero crossing is found
  */
@@ -202,6 +231,7 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
    int aWidth, aHeight;
    int zWidth, zHeight;
    int aPrev, aHere, aNext;
+   double fudgeFactor;
 
    aWidth = PixelEdgeCacheGetWidth(accel);
    aHeight = PixelEdgeCacheGetHeight(accel);
@@ -235,7 +265,8 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
          if(OPPOSITE_SIGNS(aHere, aNext))
          {
             /* Zero crossing: Neighbors with opposite signs [-10,+10] */
-            ; /* XXX crossing falls somewhere between aHere and aNext */
+            fudgeFactor = abs(aHere) / abs(aHere - aNext);
+            RegisterZeroCrossing(x, y, fudgeFactor, edgeType, fn);
          }
          else if(aHere == 0 && aNext != 0)
          {
@@ -249,7 +280,8 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
             if(OPPOSITE_SIGNS(aPrev, aNext))
             {
                /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */
-               ; /* XXX crossing falls exactly at aHere */
+               fudgeFactor = 0.0;
+               RegisterZeroCrossing(x, y, fudgeFactor, edgeType, fn);
             }
          }
       }

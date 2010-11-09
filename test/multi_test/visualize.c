@@ -94,6 +94,17 @@ void PixelEdgeCacheCallback(PixelEdgeCache *cache, int id)
    }
 }
 
+void ZeroCrossingCallback(double xImg, double yImg, int id)
+{
+   switch(id) {
+      case 0:
+         /* PlotPixel(gState.screen, CTRL_COL1_X + h.phi, CTRL_ROW3_Y + 63 - h.d, 0, 255, 0); */
+         break;
+      case 1:
+         break;
+   }
+}
+
 void HoughCacheCallback(DmtxHoughCache *hough, int id)
 {
    switch(id) {
