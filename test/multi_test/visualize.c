@@ -94,13 +94,21 @@ void PixelEdgeCacheCallback(PixelEdgeCache *cache, int id)
    }
 }
 
-void ZeroCrossingCallback(double xImg, double yImg, int id)
+void ZeroCrossingCallback(double xImg, double yImg, int sValue, int id)
 {
+   int xInt, yInt;
+
+   if(xImg < 0 || xImg > 200 || yImg < 0 || yImg > 200)
+      return;
+
+   xInt = (int)(xImg + 0.5);
+   yInt = gState.screen->h - (int)(yImg + 0.5) - 1;
+
    switch(id) {
       case 0:
-         /* PlotPixel(gState.screen, CTRL_COL1_X + h.phi, CTRL_ROW3_Y + 63 - h.d, 0, 255, 0); */
+         PlotPixel(gState.screen, xInt, yInt, 255, 0, 0);
          break;
-      case 1:
+      default:
          break;
    }
 }

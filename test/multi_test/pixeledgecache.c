@@ -266,7 +266,7 @@ PixelEdgeCache *
 AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType)
 {
    int x, y;
-   int sIdx, aIdx, sInc;
+   int aIdx, sInc, sIdx, sIdxNext;
    int sWidth, sHeight;
    int aWidth, aHeight;
    PixelEdgeCache *accel;
@@ -302,14 +302,70 @@ AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType)
 
       for(x = 0; x < aWidth; x++)
       {
-         accel->v[aIdx] = sobel->v[sIdx+sInc] - sobel->v[sIdx];
-         accel->s[aIdx] = sobel->s[sIdx+sInc] - sobel->s[sIdx];
-         accel->h[aIdx] = sobel->h[sIdx+sInc] - sobel->h[sIdx];
-         accel->b[aIdx] = sobel->b[sIdx+sInc] - sobel->b[sIdx];
+         sIdxNext = sIdx + sInc;
+         accel->v[aIdx] = sobel->v[sIdxNext] - sobel->v[sIdx];
+         accel->s[aIdx] = sobel->s[sIdxNext] - sobel->s[sIdx];
+         accel->h[aIdx] = sobel->h[sIdxNext] - sobel->h[sIdx];
+         accel->b[aIdx] = sobel->b[sIdxNext] - sobel->b[sIdx];
          aIdx++;
          sIdx++;
       }
    }
 
    return accel;
+}
+
+/**
+ *
+ *
+ */
+int
+SobelCacheGetValue(PixelEdgeCache *sobel, int sobelType, int sIdx)
+{
+   int sValue;
+
+   switch(sobelType) {
+      case 0 /* SobelTypeVertical */:
+         sValue = sobel->v[sIdx];
+         break;
+      case 1 /* SobelTypeBackslash */:
+         sValue = sobel->b[sIdx];
+         break;
+      case 2 /* SobelTypeHorizontal */:
+         sValue = sobel->h[sIdx];
+         break;
+      case 3 /* SobelTypeSlash */:
+         sValue = sobel->s[sIdx];
+         break;
+      default:
+         sValue = DmtxUndefined;
+         break;
+   }
+
+   return sValue;
+}
+
+/**
+ *
+ *
+ */
+int
+SobelGetIndexFromZeroCrossing(PixelEdgeCache *sobel, DmtxDirection edgeType, int zCol, int zRow)
+{
+   int sRow, sCol;
+
+   switch(edgeType) {
+      case DmtxDirVertical:
+         sRow = zRow;
+         sCol = zCol - 1;
+         break;
+      case DmtxDirHorizontal:
+         sRow = zRow - 1;
+         sCol = zCol;
+         break;
+      default:
+         return DmtxUndefined;
+   }
+
+   return sRow * PixelEdgeCacheGetWidth(sobel) + sCol;
 }

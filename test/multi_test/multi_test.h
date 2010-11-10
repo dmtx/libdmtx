@@ -83,7 +83,6 @@ typedef struct AppState_struct {
    SDL_Surface *localTmp;
 } AppState;
 
-/* Use this for Sobel, AccelV, and AccelH -- named struct ResultCache or CrunchCache ? */
 struct PixelEdgeCache_struct {
    int width;
    int height;
@@ -93,6 +92,13 @@ struct PixelEdgeCache_struct {
    int *s;
 };
 typedef struct PixelEdgeCache_struct PixelEdgeCache;
+
+typedef enum {
+   SobelEdgeVertical,
+   SobelEdgeBackslash,
+   SobelEdgeHorizontal,
+   SobelEdgeSlash
+} SobelEdgeType;
 
 struct DmtxEdgeCache_struct {
    int vDir[4096];
@@ -228,7 +234,7 @@ typedef struct StripStats_struct StripStats;
 struct DmtxCallbacks_struct {
    void (*edgeCacheCallback)(DmtxEdgeCache *, int);
    void (*pixelEdgeCacheCallback)(PixelEdgeCache *, int);
-   void (*zeroCrossingCallback)(double, double, int);
+   void (*zeroCrossingCallback)(double, double, int, int);
    void (*houghCacheCallback)(DmtxHoughCache *, int);
    void (*houghCompactCallback)(DmtxHoughCompact, int);
    void (*vanishPointCallback)(VanishPointSort *, int);
@@ -254,7 +260,8 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /* Image processing functions */
 void dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn);
 DmtxPassFail dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn);
-DmtxPassFail RegisterZeroCrossing(int x, int y, double fudgeFactor, DmtxDirection edgeType, DmtxCallbacks *fn);
+DmtxPassFail RegisterZeroCrossing(DmtxDirection edgeType, int x, int y,
+      double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
 DmtxPassFail FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn);
 DmtxPassFail dmtxBuildSobelCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
 DmtxPassFail dmtxBuildCrossingCache(DmtxEdgeCache *crossingCache, DmtxEdgeCache *sobelCache);
@@ -287,7 +294,7 @@ ColorTally GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg
 /* Process visualization functions */
 void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id);
 void PixelEdgeCacheCallback(PixelEdgeCache *cache, int id);
-void ZeroCrossingCallback(double xImg, double yImg, int id);
+void ZeroCrossingCallback(double xImg, double yImg, int sValue, int id);
 void HoughCacheCallback(DmtxHoughCache *hough, int id);
 void HoughCompactCallback(DmtxHoughCompact h, int id);
 void VanishPointCallback(VanishPointSort *vPoints, int id);
