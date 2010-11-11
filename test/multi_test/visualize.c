@@ -55,8 +55,8 @@ void PixelEdgeCacheCallback(PixelEdgeCache *cache, int id)
    imageHeight = dmtxImageGetProp(gState.dmtxImage, DmtxPropHeight);
    imageFlipY = gState.screen->h - (gState.imageLocY + imageHeight) - 1;
 
-   x = (gState.screen->w - gState.activeExtent)/2 - gState.imageLocX;
-   y = (gState.screen->h - gState.activeExtent)/2 - imageFlipY;
+   x = gState.localOffsetX - 1; /* not sure why it needs -1 to align */
+   y = gState.localOffsetY;
 
    switch(id) {
       case 0:
@@ -98,7 +98,7 @@ void ZeroCrossingCallback(double xImg, double yImg, int sValue, int id)
 {
    int xInt, yInt;
 
-   if(sValue < 50)
+   if(abs(sValue) < 50)
       return;
 
    xInt = gState.imageOffsetX + (int)xImg;
@@ -460,6 +460,10 @@ void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int
    SDL_FreeSurface(surface);
 }
 
+/**
+ *
+ *
+ */
 Uint32
 GetPixel(SDL_Surface *surface, int x, int y)
 {
@@ -610,8 +614,10 @@ void DrawActiveBorder(SDL_Surface *screen, int activeExtent)
    Sint16 x11, y11;
    Sint16 x01, y01;
 
-   x01 = (screen->w - activeExtent)/2 - 1;
-   y01 = (screen->h - activeExtent)/2 - 1;
+/* x01 = (screen->w - activeExtent)/2 - 1;
+   y01 = (screen->h - activeExtent)/2 - 1; */
+   x01 = 157;
+   y01 = 225;
 
    x00 = x01;
    y00 = y01 + activeExtent + 1;

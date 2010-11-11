@@ -204,6 +204,7 @@ InitAppState(void)
    state.imgActive = NULL;
    state.imgFull = NULL;
    state.autoNudge = DmtxFalse;
+   state.displayEdge = DmtxUndefined;
    state.displayVanish = DmtxFalse;
    state.displayTiming = DmtxTrue;
    state.displayZXings = DmtxFalse;
@@ -212,6 +213,8 @@ InitAppState(void)
    state.imageLocY = 0;
    state.imageOffsetX = 0;
    state.imageOffsetY = 0;
+   state.localOffsetX = 0;
+   state.localOffsetY = 0;
    state.leftButton = SDL_RELEASED;
    state.rightButton = SDL_RELEASED;
    state.pointerX = 0;
@@ -312,8 +315,8 @@ captureLocalPortion(SDL_Surface *local, SDL_Surface *localTmp,
    /* Use blitsurface if 1:1, otherwise scale */
    SDL_FillRect(local, NULL, bgColorK);
    if(state->activeExtent == 64) {
-      clipRect.x = (screen->w - state->activeExtent)/2 - imageLoc.x;
-      clipRect.y = (screen->h - state->activeExtent)/2 - imageLoc.y;
+      clipRect.x = state->localOffsetX;
+      clipRect.y = picture->h - (state->localOffsetY + 64) - 1;
       clipRect.w = LOCAL_SIZE;
       clipRect.h = LOCAL_SIZE;
       SDL_BlitSurface(picture, &clipRect, local, NULL);
@@ -408,6 +411,21 @@ HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface
          switch(event->key.keysym.sym) {
             case SDLK_ESCAPE:
                state->quit = DmtxTrue;
+               break;
+            case SDLK_0:
+               state->displayEdge = DmtxUndefined;
+               break;
+            case SDLK_1:
+               state->displayEdge = 0;
+               break;
+            case SDLK_2:
+               state->displayEdge = 1;
+               break;
+            case SDLK_3:
+               state->displayEdge = 2;
+               break;
+            case SDLK_4:
+               state->displayEdge = 3;
                break;
             case SDLK_l:
                fprintf(stdout, "Image Location: (%d, %d)\n", state->imageLocX,  state->imageLocY);
@@ -510,8 +528,21 @@ HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface
       NudgeImage(state->windowHeight, picture->h, &(state->imageLocY));
    }
 
+   /* Offset from bottom left corner of screen to bottom left corner of image */
    state->imageOffsetX = state->imageLocX;
    state->imageOffsetY = (state->screen->h - state->picture->h) - state->imageLocY;
+
+   /* Location of active area relative to bottom left corner of picture */
+   if(gState.activeExtent == 64)
+   {
+      state->localOffsetX = 158 - state->imageOffsetX;
+      state->localOffsetY = 227 - state->imageOffsetY;
+   }
+   else
+   {
+      state->localOffsetX = 174 - state->imageOffsetX;
+      state->localOffsetY = 243 - state->imageOffsetY;
+   }
 
    return DmtxPass;
 }

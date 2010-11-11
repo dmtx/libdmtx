@@ -87,7 +87,6 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
    DmtxBoolean     regionFound;
    DmtxPassFail    err;
    DmtxEdgeCache   sobelCache;
-   DmtxEdgeCache   crossingCache;
    DmtxHoughCache  houghCache;
    VanishPointSort vPoints;
    DmtxTimingSort  timings;
@@ -97,9 +96,6 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
    /* XXX change DmtxEdgeCache into DmtxSobelCache? */
    dmtxBuildSobelCache(&sobelCache, imgActive);
    fn->edgeCacheCallback(&sobelCache, 0);
-
-   dmtxBuildCrossingCache(&crossingCache, &sobelCache);
-   fn->edgeCacheCallback(&crossingCache, 1);
 
    dmtxBuildHoughCache(&houghCache, &sobelCache);
    dmtxNormalizeHoughCache(&houghCache, &sobelCache);
@@ -149,7 +145,13 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
    }
 }
 
-#define RETURN_FAIL_IF(C) if(C) { PixelEdgeCacheDestroy(&sobel); PixelEdgeCacheDestroy(&accelV); PixelEdgeCacheDestroy(&accelH); return DmtxFail; }
+#define RETURN_FAIL_IF(C) \
+   if(C) { \
+      PixelEdgeCacheDestroy(&sobel); \
+      PixelEdgeCacheDestroy(&accelV); \
+      PixelEdgeCacheDestroy(&accelH); \
+      return DmtxFail; \
+   }
 /**
  *
  *
@@ -160,8 +162,7 @@ dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
    PixelEdgeCache *sobel = NULL;
    PixelEdgeCache *accelV = NULL;
    PixelEdgeCache *accelH = NULL;
-
-  /* perform bulk operations on entire image, regardless of position in window */
+   DmtxHoughCache  hough;
 
    sobel = SobelCacheCreate(dmtxImage);
    RETURN_FAIL_IF(sobel == NULL);
@@ -175,20 +176,9 @@ dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
    RETURN_FAIL_IF(accelH == NULL);
    fn->pixelEdgeCacheCallback(accelH, 2);
 
-   /* XXX Implementation strategy:
-    * 1) Change "local" area calculate to occur every time image position moves,
-    *    and store local offset in gAppState
-    * 2) Calculate zero crossings and plot results to main image
-    * 3) Calculate zero crossings and add to Hough accumulator
-    */
-
-   /* initialize hough accumulator */
-
-   /* later FindZeroCrossings will also receive a hough cache to receive zero crossing hits */
-   FindZeroCrossings(accelV, sobel, DmtxDirVertical, fn);
-   FindZeroCrossings(accelH, sobel, DmtxDirHorizontal, fn);
-
-   /* find barcode here */
+   InitHoughCache(&hough);
+   FindZeroCrossings(&hough, accelV, sobel, DmtxDirVertical, fn);
+   FindZeroCrossings(&hough, accelH, sobel, DmtxDirHorizontal, fn);
 
    PixelEdgeCacheDestroy(&accelH);
    PixelEdgeCacheDestroy(&accelV);
@@ -201,9 +191,10 @@ dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
  * 0 < smidge < 1
  */
 DmtxPassFail
-RegisterZeroCrossing(DmtxDirection edgeType, int zCol, int zRow, double smidge,
-      int sValue, DmtxCallbacks *fn)
+RegisterZeroCrossing(DmtxHoughCache *hough, DmtxDirection edgeType, int zCol,
+      int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn)
 {
+   int sIdx, sValue;
    double xImg, yImg;
 
    if(edgeType == DmtxDirVertical)
@@ -221,7 +212,11 @@ RegisterZeroCrossing(DmtxDirection edgeType, int zCol, int zRow, double smidge,
       return DmtxFail;
    }
 
-   fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
+   sIdx = SobelCacheGetIndexFromZXing(sobel, edgeType, zCol, zRow);
+   sValue = SobelCacheGetValue(sobel, s, sIdx);
+
+   if(gState.displayEdge == DmtxUndefined || gState.displayEdge == s)
+      fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
 
    /* This is where we will accumulate sample into a local hough cache */
 
@@ -233,15 +228,15 @@ RegisterZeroCrossing(DmtxDirection edgeType, int zCol, int zRow, double smidge,
  * sobel contains the actual edge strength, and will only be used if a zero crossing is found
  */
 DmtxPassFail
-FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn)
+FindZeroCrossings(DmtxHoughCache *hough, PixelEdgeCache *accel,
+      PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn)
 {
    int zCol, zRow, s;
-   int aInc, aIdx, aIdxNext, sIdx;
+   int aInc, aIdx, aIdxNext;
    int aWidth, aHeight;
    int zWidth, zHeight;
    int aPrev, aHere, aNext;
    int *accelPtr;
-   int sValue;
    double smidge;
 
    aWidth = PixelEdgeCacheGetWidth(accel);
@@ -297,12 +292,7 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
             {
                /* Zero crossing: Neighbors with opposite signs [-10,+10] */
                smidge = abs(aHere/(aHere - aNext));
-               sIdx = SobelCacheGetIndexFromZXing(sobel, edgeType, zCol, zRow);
-               if(sIdx != DmtxUndefined)
-               {
-                  sValue = SobelCacheGetValue(sobel, s, sIdx);
-                  RegisterZeroCrossing(edgeType, zCol, zRow, smidge, sValue, fn);
-               }
+               RegisterZeroCrossing(hough, edgeType, zCol, zRow, smidge, sobel, s, fn);
             }
             else if(aHere == 0 && aNext != 0)
             {
@@ -315,12 +305,7 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
                {
                   /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */
                   smidge = 0.0;
-                  sIdx = SobelCacheGetIndexFromZXing(sobel, edgeType, zCol, zRow);
-                  if(sIdx != DmtxUndefined)
-                  {
-                     sValue = SobelCacheGetValue(sobel, s, sIdx);
-                     RegisterZeroCrossing(edgeType, zCol, zRow, smidge, sValue, fn);
-                  }
+                  RegisterZeroCrossing(hough, edgeType, zCol, zRow, smidge, sobel, s, fn);
                }
             }
          }
@@ -328,6 +313,19 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
    }
 
    return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+void
+InitHoughCache(DmtxHoughCache *hough)
+{
+   hough->offExtent = HOUGH_D_EXTENT;
+   hough->phiExtent = HOUGH_PHI_EXTENT;
+   memset(hough->isMax, 0x01, sizeof(char) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
+   memset(hough->mag, 0x00, sizeof(int) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
 }
 
 /**
@@ -462,30 +460,6 @@ dmtxBuildSobelCache(DmtxEdgeCache *sobelCache, DmtxImage *img)
          colorHiRt = img->pxl[offsetHi + offset];
          colorMdRt = img->pxl[offsetMd + offset];
          colorLoRt = img->pxl[offsetLo + offset];
-      }
-   }
-
-   return DmtxPass;
-}
-
-/**
- *
- */
-DmtxPassFail
-dmtxBuildCrossingCache(DmtxEdgeCache *crossingCache, DmtxEdgeCache *sobelCache)
-{
-   /* In reality if this works we will skip this step entirely and instead just
-    * add the crossings directly into the Hough cache without ever storing an
-    * actual crossing cache. But let's see it working first before taking the
-    * plunge. */
-
-   int x, y;
-
-   memset(crossingCache, 0x00, sizeof(DmtxEdgeCache));
-
-   for(y = 0; y < 64; y++) {
-      for(x = 0; x < 64; x++) {
-         ;
       }
    }
 

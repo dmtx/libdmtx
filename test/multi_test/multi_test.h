@@ -67,6 +67,7 @@ typedef struct AppState_struct {
    DmtxImage   *imgFull;
    DmtxImage   *dmtxImage;
    DmtxBoolean autoNudge;
+   int         displayEdge;
    DmtxBoolean displayVanish;
    DmtxBoolean displayTiming;
    DmtxBoolean displayZXings;
@@ -75,6 +76,8 @@ typedef struct AppState_struct {
    Sint16      imageLocY;
    Sint16      imageOffsetX; /* X offset of right-handed image origin from screen origin */
    Sint16      imageOffsetY; /* Y offset of right-handed image origin from screen origin */
+   Sint16      localOffsetX; /* X offset of active area */
+   Sint16      localOffsetY; /* Y offset of active area */
    Uint8       leftButton;
    Uint8       rightButton;
    Uint16      pointerX;
@@ -263,11 +266,12 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /* Image processing functions */
 void dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn);
 DmtxPassFail dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn);
-DmtxPassFail RegisterZeroCrossing(DmtxDirection edgeType, int zCol, int zRow,
-      double smidge, int sValue, DmtxCallbacks *fn);
-DmtxPassFail FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn);
+DmtxPassFail RegisterZeroCrossing(DmtxHoughCache *hough, DmtxDirection edgeType,
+      int zCol, int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
+DmtxPassFail FindZeroCrossings(DmtxHoughCache *hough, PixelEdgeCache *accel,
+      PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn);
+void InitHoughCache(DmtxHoughCache *hough);
 DmtxPassFail dmtxBuildSobelCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
-DmtxPassFail dmtxBuildCrossingCache(DmtxEdgeCache *crossingCache, DmtxEdgeCache *sobelCache);
 int GetCompactOffset(int x, int y, int phiIdx, int extent);
 double UncompactOffset(double d, int phiIdx, int extent);
 DmtxPassFail dmtxBuildHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeCache);
