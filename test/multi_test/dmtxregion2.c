@@ -202,48 +202,23 @@ dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
  */
 DmtxPassFail
 RegisterZeroCrossing(DmtxDirection edgeType, int zCol, int zRow, double smidge,
-      PixelEdgeCache *sobel, int s, DmtxCallbacks *fn)
+      int sValue, DmtxCallbacks *fn)
 {
-   int sCol, sRow, sIdx;
-   int sValue;
    double xImg, yImg;
 
    if(edgeType == DmtxDirVertical)
    {
       xImg = (double)zCol + 2.0 + smidge;
       yImg = (double)zRow + 1.5;
-      sCol = zCol - 1;
-      sRow = zRow;
    }
    else if(edgeType == DmtxDirHorizontal)
    {
       xImg = (double)zCol + 1.5;
       yImg = (double)zRow + 2.0 + smidge;
-      sCol = zCol;
-      sRow = zRow - 1;
    }
    else
    {
       return DmtxFail;
-   }
-
-   sIdx = sRow * PixelEdgeCacheGetWidth(sobel) + sCol;
-
-   switch(s) {
-      case 0:
-         sValue = sobel->v[sIdx];
-         break;
-      case 1:
-         sValue = sobel->b[sIdx];
-         break;
-      case 2:
-         sValue = sobel->h[sIdx];
-         break;
-      case 3:
-         sValue = sobel->s[sIdx];
-         break;
-      default:
-         return DmtxFail;
    }
 
    /* Need sobel value here too ? */
@@ -262,10 +237,11 @@ DmtxPassFail
 FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn)
 {
    int zCol, zRow, s;
-   int aInc, aIdx, aIdxNext;
+   int aInc, aIdx, aIdxNext, sIdx;
    int aWidth, aHeight;
    int zWidth, zHeight;
    int aPrev, aHere, aNext;
+   int sValue;
    double smidge;
 
    aWidth = PixelEdgeCacheGetWidth(accel);
@@ -295,7 +271,6 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
       for(zCol = 0; zCol < zWidth; zCol++, aIdx++)
       {
          aIdxNext = aIdx + aInc;
-/*       sIdx = SobelGetIndexFromZeroCrossing(sobel, edgeType, zCol, zRow); */
 
          for(s = 0; s < 4; s++)
          {
@@ -320,15 +295,16 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
                   return DmtxFail;
             }
 
-            /* XXX might simplify things to calculate sIdx or sValue here and pass instead of sobel & s */
-
             if(OPPOSITE_SIGNS(aHere, aNext))
             {
                /* Zero crossing: Neighbors with opposite signs [-10,+10] */
                smidge = abs(aHere/(aHere - aNext));
-/*             sValue = SobelCacheGetValue(sobel, s, sIdx); */
-/*             RegisterZeroCrossing(edgeType, zCol, zRow, smidge, sValue, fn); */
-               RegisterZeroCrossing(edgeType, zCol, zRow, smidge, sobel, s, fn);
+               sIdx = SobelCacheGetIndexFromZXing(sobel, edgeType, zCol, zRow);
+               if(sIdx != DmtxUndefined)
+               {
+                  sValue = SobelCacheGetValue(sobel, s, sIdx);
+                  RegisterZeroCrossing(edgeType, zCol, zRow, smidge, sValue, fn);
+               }
             }
             else if(aHere == 0 && aNext != 0)
             {
@@ -341,9 +317,12 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
                {
                   /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */
                   smidge = 0.0;
-/*                sValue = SobelCacheGetValue(sobel, s, sIdx); */
-/*                RegisterZeroCrossing(edgeType, zCol, zRow, smidge, sValue, fn); */
-                  RegisterZeroCrossing(edgeType, zCol, zRow, smidge, sobel, s, fn);
+                  sIdx = SobelCacheGetIndexFromZXing(sobel, edgeType, zCol, zRow);
+                  if(sIdx != DmtxUndefined)
+                  {
+                     sValue = SobelCacheGetValue(sobel, s, sIdx);
+                     RegisterZeroCrossing(edgeType, zCol, zRow, smidge, sValue, fn);
+                  }
                }
             }
          }

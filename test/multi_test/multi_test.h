@@ -260,8 +260,8 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /* Image processing functions */
 void dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn);
 DmtxPassFail dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn);
-DmtxPassFail RegisterZeroCrossing(DmtxDirection edgeType, int x, int y,
-      double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
+DmtxPassFail RegisterZeroCrossing(DmtxDirection edgeType, int zCol, int zRow,
+      double smidge, int sValue, DmtxCallbacks *fn);
 DmtxPassFail FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn);
 DmtxPassFail dmtxBuildSobelCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
 DmtxPassFail dmtxBuildCrossingCache(DmtxEdgeCache *crossingCache, DmtxEdgeCache *sobelCache);
@@ -332,5 +332,7 @@ PixelEdgeCache *SobelCacheCreate(DmtxImage *img);
 DmtxPassFail SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img);
 PixelEdgeCache *AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType);
 PixelEdgeCache *ZeroCrossingCacheCreate(PixelEdgeCache *zXing, DmtxDirection edgeType);
+int SobelCacheGetValue(PixelEdgeCache *sobel, int sobelType, int sIdx);
+int SobelCacheGetIndexFromZXing(PixelEdgeCache *sobel, DmtxDirection edgeType, int zCol, int zRow);
 
 extern AppState gState;

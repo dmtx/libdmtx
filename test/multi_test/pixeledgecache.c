@@ -350,22 +350,25 @@ SobelCacheGetValue(PixelEdgeCache *sobel, int sobelType, int sIdx)
  *
  */
 int
-SobelGetIndexFromZeroCrossing(PixelEdgeCache *sobel, DmtxDirection edgeType, int zCol, int zRow)
+SobelCacheGetIndexFromZXing(PixelEdgeCache *sobel, DmtxDirection edgeType, int zCol, int zRow)
 {
    int sRow, sCol;
 
    switch(edgeType) {
       case DmtxDirVertical:
          sRow = zRow;
-         sCol = zCol - 1;
+         sCol = zCol + 1;
          break;
       case DmtxDirHorizontal:
-         sRow = zRow - 1;
+         sRow = zRow + 1;
          sCol = zCol;
          break;
       default:
          return DmtxUndefined;
    }
+
+   assert(sRow >= 0);
+   assert(sCol >= 0);
 
    return sRow * PixelEdgeCacheGetWidth(sobel) + sCol;
 }
