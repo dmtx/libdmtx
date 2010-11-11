@@ -209,6 +209,8 @@ InitAppState(void)
    state.printValues = DmtxFalse;
    state.imageLocX = 0;
    state.imageLocY = 0;
+   state.imageOffsetX = 0;
+   state.imageOffsetY = 0;
    state.leftButton = SDL_RELEASED;
    state.rightButton = SDL_RELEASED;
    state.pointerX = 0;
@@ -503,6 +505,9 @@ HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface
       NudgeImage(CTRL_COL1_X, picture->w, &(state->imageLocX));
       NudgeImage(state->windowHeight, picture->h, &(state->imageLocY));
    }
+
+   state->imageOffsetX = state->imageLocX;
+   state->imageOffsetY = (state->screen->h - state->picture->h) - state->imageLocY;
 
    return DmtxPass;
 }

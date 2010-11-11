@@ -221,7 +221,6 @@ RegisterZeroCrossing(DmtxDirection edgeType, int zCol, int zRow, double smidge,
       return DmtxFail;
    }
 
-   /* Need sobel value here too ? */
    fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
 
    /* This is where we will accumulate sample into a local hough cache */

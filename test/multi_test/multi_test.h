@@ -72,6 +72,8 @@ typedef struct AppState_struct {
    DmtxBoolean printValues;
    Sint16      imageLocX;
    Sint16      imageLocY;
+   Sint16      imageOffsetX; /* X offset of right-handed image origin from screen origin */
+   Sint16      imageOffsetY; /* Y offset of right-handed image origin from screen origin */
    Uint8       leftButton;
    Uint8       rightButton;
    Uint16      pointerX;
