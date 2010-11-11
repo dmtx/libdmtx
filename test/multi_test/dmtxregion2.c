@@ -240,6 +240,7 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
    int aWidth, aHeight;
    int zWidth, zHeight;
    int aPrev, aHere, aNext;
+   int *accelPtr;
    int sValue;
    double smidge;
 
@@ -275,24 +276,22 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
          {
             switch(s) {
                case 0:
-                  aHere = accel->v[aIdx];
-                  aNext = accel->v[aIdxNext];
+                  accelPtr = accel->v;
                   break;
                case 1:
-                  aHere = accel->b[aIdx];
-                  aNext = accel->b[aIdxNext];
+                  accelPtr = accel->b;
                   break;
                case 2:
-                  aHere = accel->h[aIdx];
-                  aNext = accel->h[aIdxNext];
+                  accelPtr = accel->h;
                   break;
                case 3:
-                  aHere = accel->s[aIdx];
-                  aNext = accel->s[aIdxNext];
+                  accelPtr = accel->s;
                   break;
                default:
                   return DmtxFail;
             }
+            aHere = accelPtr[aIdx];
+            aNext = accelPtr[aIdxNext];
 
             if(OPPOSITE_SIGNS(aHere, aNext))
             {
@@ -311,7 +310,7 @@ FindZeroCrossings(PixelEdgeCache *accel, PixelEdgeCache *sobel, DmtxDirection ed
                if(aIdx < aInc)
                   continue;
 
-               aPrev = accel->v[aIdx-aInc];
+               aPrev = accelPtr[aIdx-aInc];
                if(OPPOSITE_SIGNS(aPrev, aNext))
                {
                   /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */

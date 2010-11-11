@@ -206,6 +206,7 @@ InitAppState(void)
    state.autoNudge = DmtxFalse;
    state.displayVanish = DmtxFalse;
    state.displayTiming = DmtxTrue;
+   state.displayZXings = DmtxFalse;
    state.printValues = DmtxFalse;
    state.imageLocX = 0;
    state.imageLocY = 0;
@@ -423,6 +424,9 @@ HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface
                break;
             case SDLK_v:
                state->displayVanish = (state->displayVanish == DmtxTrue) ? DmtxFalse : DmtxTrue;
+               break;
+            case SDLK_z:
+               state->displayZXings = (state->displayZXings == DmtxTrue) ? DmtxFalse : DmtxTrue;
                break;
             case SDLK_UP:
                state->imageLocY--;

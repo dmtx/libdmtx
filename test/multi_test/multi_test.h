@@ -69,6 +69,7 @@ typedef struct AppState_struct {
    DmtxBoolean autoNudge;
    DmtxBoolean displayVanish;
    DmtxBoolean displayTiming;
+   DmtxBoolean displayZXings;
    DmtxBoolean printValues;
    Sint16      imageLocX;
    Sint16      imageLocY;
@@ -310,7 +311,8 @@ void BlitSobelCache(SDL_Surface *screen, PixelEdgeCache *cache, DmtxSobelDir dir
 void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int screenX);
 void ShowActiveRegion(SDL_Surface *screen, SDL_Surface *active);
 void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
-void PlotPixel(SDL_Surface *surface, int x, int y, Uint8 R, Uint8 G, Uint8 B);
+Uint32 GetPixel(SDL_Surface *surface, int x, int y);
+void PutPixel(SDL_Surface *surface, int x, int y, Uint32 color);
 int RayIntersect(double *t, DmtxRay2 p0, DmtxRay2 p1);
 int IntersectBox(DmtxRay2 ray, DmtxVector2 bb0, DmtxVector2 bb1, DmtxVector2 *p0, DmtxVector2 *p1);
 void DrawActiveBorder(SDL_Surface *screen, int activeExtent);

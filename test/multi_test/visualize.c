@@ -98,7 +98,7 @@ void ZeroCrossingCallback(double xImg, double yImg, int sValue, int id)
 {
    int xInt, yInt;
 
-   if(sValue < 100)
+   if(sValue < 50)
       return;
 
    xInt = gState.imageOffsetX + (int)xImg;
@@ -109,7 +109,8 @@ void ZeroCrossingCallback(double xImg, double yImg, int sValue, int id)
 
    switch(id) {
       case 0:
-         PlotPixel(gState.screen, xInt, yInt, 255, 0, 0);
+         if(gState.displayZXings == DmtxTrue)
+            PutPixel(gState.screen, xInt, yInt, 0x00ff0000);
          break;
       default:
          break;
@@ -132,7 +133,7 @@ void HoughCompactCallback(DmtxHoughCompact h, int id)
 {
    switch(id) {
       case 0:
-         PlotPixel(gState.screen, CTRL_COL1_X + h.phi, CTRL_ROW3_Y + 63 - h.d, 0, 255, 0);
+         PutPixel(gState.screen, CTRL_COL1_X + h.phi, CTRL_ROW3_Y + 63 - h.d, 0x0000ff00);
          DrawLine(gState.screen, 64, CTRL_COL3_X, CTRL_ROW3_Y, h.phi, h.d, 2, 0x00ff00ff);
          break;
    }
@@ -459,20 +460,58 @@ void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int
    SDL_FreeSurface(surface);
 }
 
-/**
- *
- *
- */
-void PlotPixel(SDL_Surface *surface, int x, int y, Uint8 R, Uint8 G, Uint8 B)
+Uint32
+GetPixel(SDL_Surface *surface, int x, int y)
 {
-   char *ptr;
-   Uint32 col;
+   int bpp = surface->format->BytesPerPixel;
+   Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
 
-   ptr = (char *)surface->pixels;
-   col = SDL_MapRGB(surface->format, R, G, B);
+   switch(bpp) {
+      case 1:
+         return *p;
+      case 2:
+         return *(Uint16 *)p;
+      case 3:
+         if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
+            return (p[0] << 16) | (p[1] << 8) | p[2];
+         else
+            return p[0] | (p[1] << 8) | (p[2] << 16);
+      case 4:
+         return *(Uint32 *)p;
+      default:
+         return 0;
+   }
+}
 
-   memcpy(ptr + surface->pitch * y + surface->format->BytesPerPixel * x,
-         &col, surface->format->BytesPerPixel);
+void
+PutPixel(SDL_Surface *surface, int x, int y, Uint32 color)
+{
+   int bpp = surface->format->BytesPerPixel;
+   Uint8 *p = (Uint8 *)surface->pixels + y * surface->pitch + x * bpp;
+
+   switch(bpp) {
+   case 1:
+      *p = color;
+      break;
+   case 2:
+      *(Uint16 *)p = color;
+      break;
+   case 3:
+      if(SDL_BYTEORDER == SDL_BIG_ENDIAN) {
+         p[0] = (color >> 16) & 0xff;
+         p[1] = (color >> 8) & 0xff;
+         p[2] = color & 0xff;
+      }
+      else {
+         p[0] = color & 0xff;
+         p[1] = (color >> 8) & 0xff;
+         p[2] = (color >> 16) & 0xff;
+      }
+      break;
+   case 4:
+      *(Uint32 *)p = color;
+      break;
+   }
 }
 
 /**
@@ -664,7 +703,7 @@ void DrawTimingDots(SDL_Surface *screen, Timing *timing, int screenY, int screen
       if(d >= 64)
          break;
 
-      PlotPixel(screen, screenX + timing->phi, screenY + 63 - d, 255, 0, 0);
+      PutPixel(screen, screenX + timing->phi, screenY + 63 - d, 0x00ff0000);
    }
 }
 
