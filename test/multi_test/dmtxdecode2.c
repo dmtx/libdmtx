@@ -73,6 +73,8 @@ dmtxDecode2Destroy(DmtxDecode2 **dec)
 DmtxPassFail
 dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
 {
+   int houghCol, houghRow;
+
    if(dec == NULL)
       return DmtxFail;
 
@@ -97,12 +99,11 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
    also set correct number of local hough caches
    initialize hough cache offsets
 */
-/*
-   for(each hough region) {
-      FindZeroCrossings(dec, houghCol, houghRow, DmtxDirVertical);
-      FindZeroCrossings(dec, houghCol, houghRow, DmtxDirHorizontal);
-   }
-*/
+
+   houghCol = houghRow = 0; /* XXX jimmy crack corn */
+
+   FindZeroCrossings(dec, houghCol, houghRow, DmtxDirVertical);
+   FindZeroCrossings(dec, houghCol, houghRow, DmtxDirHorizontal);
 
    return DmtxPass;
 }

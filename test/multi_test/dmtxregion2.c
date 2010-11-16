@@ -156,7 +156,7 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
  * 0 < smidge < 1
  */
 DmtxPassFail
-RegisterZeroCrossing(DmtxHoughCache *hough, DmtxDirection edgeType, int zCol,
+RegisterZeroCrossing(DmtxHoughCache2 *hough, DmtxDirection edgeType, int zCol,
       int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn)
 {
    int sIdx, sValue;
@@ -195,9 +195,12 @@ if(edgeType == DmtxDirHorizontal) {
  * sobel contains the actual edge strength, and will only be used if a zero crossing is found
  */
 DmtxPassFail
-FindZeroCrossings(DmtxHoughCache *hough, PixelEdgeCache *accel,
-      PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn)
+FindZeroCrossings(DmtxDecode2 *dec, int houghCol, int houghRow, DmtxDirection edgeType)
 {
+   PixelEdgeCache *sobel = dec->sobel;
+   PixelEdgeCache *accel = dec->accelV;
+   DmtxHoughCache2 *hough = &(dec->hough);
+   DmtxCallbacks *fn = &(dec->fn);
    int zCol, zRow, s;
    int aInc, aIdx, aIdxNext;
    int aWidth, aHeight;

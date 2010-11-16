@@ -289,10 +289,9 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /* Image processing functions */
 void dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn);
 DmtxPassFail dmtxRegion2FindNext(DmtxDecode2 *dec);
-DmtxPassFail RegisterZeroCrossing(DmtxHoughCache *hough, DmtxDirection edgeType,
+DmtxPassFail RegisterZeroCrossing(DmtxHoughCache2 *hough, DmtxDirection edgeType,
       int zCol, int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
-DmtxPassFail FindZeroCrossings(DmtxHoughCache *hough, PixelEdgeCache *accel,
-      PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn);
+DmtxPassFail FindZeroCrossings(DmtxDecode2 *dec, int houghCol, int houghRow, DmtxDirection edgeType);
 void InitHoughCache2(DmtxHoughCache2 *hough);
 DmtxPassFail dmtxBuildSobelCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
 int GetCompactOffset(int x, int y, int phiIdx, int extent);
