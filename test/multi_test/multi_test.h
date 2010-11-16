@@ -22,6 +22,8 @@ Contact: mblaughton@users.sourceforge.net
 
 /* $Id$ */
 
+#include <SDL/SDL.h>
+
 #define max(N,M) ((N > M) ? N : M)
 #define min(N,M) ((N < M) ? N : M)
 #define OPPOSITE_SIGNS(a,b) (a != 0 && b != 0 && ((a > 0) != (b > 0)))
@@ -121,6 +123,15 @@ struct DmtxHoughCache_struct {
    unsigned int mag[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
 };
 typedef struct DmtxHoughCache_struct DmtxHoughCache;
+
+struct DmtxHoughCache2_struct {
+/* int offExtent;
+   int phiExtent; */
+   unsigned int mag[65 * 128];
+   unsigned int dGlobalOffset[128];
+/* will need floating point local offset too */
+};
+typedef struct DmtxHoughCache2_struct DmtxHoughCache2;
 
 typedef struct HoughMaximaSort_struct {
    int count;
@@ -250,6 +261,18 @@ struct DmtxCallbacks_struct {
 };
 typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
+struct DmtxDecode2_struct {
+   PixelEdgeCache  *sobel;
+   PixelEdgeCache  *accelV;
+   PixelEdgeCache  *accelH;
+   DmtxImage       *image;
+   DmtxHoughCache2  hough; /* for now just one -- later a pointer to many */
+   int              houghRows;
+   int              houghCols;
+   DmtxCallbacks    fn;
+};
+typedef struct DmtxDecode2_struct DmtxDecode2;
+
 /* Application level functions */
 DmtxPassFail HandleArgs(UserOptions *opt, int *argcp, char **argvp[]);
 AppState InitAppState(void);
@@ -265,12 +288,12 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 
 /* Image processing functions */
 void dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn);
-DmtxPassFail dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn);
+DmtxPassFail dmtxScanImage2(DmtxDecode2 *dec, DmtxCallbacks *fn);
 DmtxPassFail RegisterZeroCrossing(DmtxHoughCache *hough, DmtxDirection edgeType,
       int zCol, int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
 DmtxPassFail FindZeroCrossings(DmtxHoughCache *hough, PixelEdgeCache *accel,
       PixelEdgeCache *sobel, DmtxDirection edgeType, DmtxCallbacks *fn);
-void InitHoughCache(DmtxHoughCache *hough);
+void InitHoughCache2(DmtxHoughCache2 *hough);
 DmtxPassFail dmtxBuildSobelCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
 int GetCompactOffset(int x, int y, int phiIdx, int extent);
 double UncompactOffset(double d, int phiIdx, int extent);
@@ -342,5 +365,8 @@ PixelEdgeCache *AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType);
 PixelEdgeCache *ZeroCrossingCacheCreate(PixelEdgeCache *zXing, DmtxDirection edgeType);
 int SobelCacheGetValue(PixelEdgeCache *sobel, int sobelType, int sIdx);
 int SobelCacheGetIndexFromZXing(PixelEdgeCache *sobel, DmtxDirection edgeType, int zCol, int zRow);
+
+DmtxDecode2 *dmtxDecode2Create(DmtxImage *img);
+DmtxPassFail dmtxDecode2Destroy(DmtxDecode2 **dec);
 
 extern AppState gState;

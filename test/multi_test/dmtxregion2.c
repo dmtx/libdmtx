@@ -29,12 +29,9 @@ Contact: mblaughton@users.sourceforge.net
  * o Consider switching PixelEdgeCache to use [4] instead of ->v, ->h, etc...
  */
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <math.h>
 #include <assert.h>
-#include <SDL/SDL.h>
 #include "../../dmtx.h"
 #include "multi_test.h"
 #include "kiss_fftr.h"
@@ -152,19 +149,19 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
       PixelEdgeCacheDestroy(&accelH); \
       return DmtxFail; \
    }
+
 /**
  *
  *
  */
 DmtxPassFail
-dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
+dmtxScanImage2(DmtxDecode2 *dec, DmtxCallbacks *fn)
 {
    PixelEdgeCache *sobel = NULL;
    PixelEdgeCache *accelV = NULL;
    PixelEdgeCache *accelH = NULL;
-   DmtxHoughCache  hough;
 
-   sobel = SobelCacheCreate(dmtxImage);
+   sobel = SobelCacheCreate(dec->image);
    RETURN_FAIL_IF(sobel == NULL);
    fn->pixelEdgeCacheCallback(sobel, 0);
 
@@ -175,10 +172,24 @@ dmtxScanImage2(DmtxImage *dmtxImage, DmtxCallbacks *fn)
    accelH = AccelCacheCreate(sobel, DmtxDirHorizontal);
    RETURN_FAIL_IF(accelH == NULL);
    fn->pixelEdgeCacheCallback(accelH, 2);
-
-   InitHoughCache(&hough);
+/*
+* PixelEdgeCache data will actually be stored in the Decode struct, along with the Hough caches
+* Before reaching this function the Decode struct will have initialized the hough regions, including
+  setting their offsets
+* Should callback functions be stored in the DmtxDecode object?
+*/
+/*
+   for(each hough region) {
+next step, change prototype of FindZeroCrossings() to use new DmtxDecode2 members
+//    FindZeroCrossings(dec, houghCol, houghRow, DmtxDirVertical);
+//    FindZeroCrossings(dec, houghCol, houghRow, DmtxDirHorizontal);
+   }
+*/
+/*
+   InitHoughCache2(&hough);
    FindZeroCrossings(&hough, accelV, sobel, DmtxDirVertical, fn);
    FindZeroCrossings(&hough, accelH, sobel, DmtxDirHorizontal, fn);
+*/
 
    PixelEdgeCacheDestroy(&accelH);
    PixelEdgeCacheDestroy(&accelV);
@@ -215,8 +226,10 @@ RegisterZeroCrossing(DmtxHoughCache *hough, DmtxDirection edgeType, int zCol,
    sIdx = SobelCacheGetIndexFromZXing(sobel, edgeType, zCol, zRow);
    sValue = SobelCacheGetValue(sobel, s, sIdx);
 
+if(edgeType == DmtxDirHorizontal) {
    if(gState.displayEdge == DmtxUndefined || gState.displayEdge == s)
       fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
+}
 
    /* This is where we will accumulate sample into a local hough cache */
 
@@ -320,12 +333,12 @@ FindZeroCrossings(DmtxHoughCache *hough, PixelEdgeCache *accel,
  *
  */
 void
-InitHoughCache(DmtxHoughCache *hough)
+InitHoughCache2(DmtxHoughCache2 *hough)
 {
-   hough->offExtent = HOUGH_D_EXTENT;
+/* hough->offExtent = HOUGH_D_EXTENT;
    hough->phiExtent = HOUGH_PHI_EXTENT;
-   memset(hough->isMax, 0x01, sizeof(char) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
-   memset(hough->mag, 0x00, sizeof(int) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
+   memset(hough->isMax, 0x01, sizeof(char) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT); */
+   memset(hough->mag, 0x00, sizeof(int) * 63 * 128);
 }
 
 /**

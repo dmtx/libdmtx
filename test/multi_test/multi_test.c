@@ -54,6 +54,7 @@ main(int argc, char *argv[])
    SDL_Rect           imageLoc;
    Uint32             bgColorB;
    DmtxDecode        *dec;
+   DmtxDecode2       *dec2;
    SDL_Rect           clipRect;
    DmtxCallbacks      callbacks;
 
@@ -113,6 +114,19 @@ main(int argc, char *argv[])
    dec = dmtxDecodeCreate(gState.imgFull, 1);
    assert(dec != NULL);
 
+   dec2 = dmtxDecode2Create(gState.dmtxImage);
+   assert(dec2 != NULL);
+
+   dec2->fn.edgeCacheCallback = EdgeCacheCallback;
+   dec2->fn.pixelEdgeCacheCallback = PixelEdgeCacheCallback;
+   dec2->fn.zeroCrossingCallback = ZeroCrossingCallback;
+   dec2->fn.houghCacheCallback = HoughCacheCallback;
+   dec2->fn.houghCompactCallback = HoughCompactCallback;
+   dec2->fn.vanishPointCallback = VanishPointCallback;
+   dec2->fn.timingCallback = TimingCallback;
+   dec2->fn.gridCallback = GridCallback;
+   dec2->fn.perimeterCallback = PerimeterCallback;
+
    for(;;) {
       SDL_Delay(10);
 
@@ -145,7 +159,7 @@ main(int argc, char *argv[])
 
       SDL_LockSurface(gState.local);
 /*    dmtxScanImage(dec, gState.imgActive, &callbacks); */
-      dmtxScanImage2(gState.dmtxImage, &callbacks);
+      dmtxScanImage2(dec2, &callbacks);
       SDL_UnlockSurface(gState.local);
 
       /* Dump FFT results */
@@ -158,7 +172,9 @@ main(int argc, char *argv[])
    SDL_FreeSurface(gState.localTmp);
    SDL_FreeSurface(gState.local);
 
+   dmtxDecode2Destroy(&dec2);
    dmtxDecodeDestroy(&dec);
+   dmtxImageDestroy(&gState.dmtxImage);
    dmtxImageDestroy(&gState.imgFull);
    dmtxImageDestroy(&gState.imgActive);
 
