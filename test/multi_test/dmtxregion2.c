@@ -142,59 +142,13 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
    }
 }
 
-#define RETURN_FAIL_IF(C) \
-   if(C) { \
-      PixelEdgeCacheDestroy(&sobel); \
-      PixelEdgeCacheDestroy(&accelV); \
-      PixelEdgeCacheDestroy(&accelH); \
-      return DmtxFail; \
-   }
-
 /**
  *
  *
  */
 DmtxPassFail
-dmtxScanImage2(DmtxDecode2 *dec, DmtxCallbacks *fn)
+dmtxRegion2FindNext(DmtxDecode2 *dec)
 {
-   PixelEdgeCache *sobel = NULL;
-   PixelEdgeCache *accelV = NULL;
-   PixelEdgeCache *accelH = NULL;
-
-   sobel = SobelCacheCreate(dec->image);
-   RETURN_FAIL_IF(sobel == NULL);
-   fn->pixelEdgeCacheCallback(sobel, 0);
-
-   accelV = AccelCacheCreate(sobel, DmtxDirVertical);
-   RETURN_FAIL_IF(accelV == NULL);
-   fn->pixelEdgeCacheCallback(accelV, 1);
-
-   accelH = AccelCacheCreate(sobel, DmtxDirHorizontal);
-   RETURN_FAIL_IF(accelH == NULL);
-   fn->pixelEdgeCacheCallback(accelH, 2);
-/*
-* PixelEdgeCache data will actually be stored in the Decode struct, along with the Hough caches
-* Before reaching this function the Decode struct will have initialized the hough regions, including
-  setting their offsets
-* Should callback functions be stored in the DmtxDecode object?
-*/
-/*
-   for(each hough region) {
-next step, change prototype of FindZeroCrossings() to use new DmtxDecode2 members
-//    FindZeroCrossings(dec, houghCol, houghRow, DmtxDirVertical);
-//    FindZeroCrossings(dec, houghCol, houghRow, DmtxDirHorizontal);
-   }
-*/
-/*
-   InitHoughCache2(&hough);
-   FindZeroCrossings(&hough, accelV, sobel, DmtxDirVertical, fn);
-   FindZeroCrossings(&hough, accelH, sobel, DmtxDirHorizontal, fn);
-*/
-
-   PixelEdgeCacheDestroy(&accelH);
-   PixelEdgeCacheDestroy(&accelV);
-   PixelEdgeCacheDestroy(&sobel);
-
    return DmtxPass;
 }
 

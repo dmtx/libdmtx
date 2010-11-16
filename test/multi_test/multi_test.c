@@ -56,7 +56,6 @@ main(int argc, char *argv[])
    DmtxDecode        *dec;
    DmtxDecode2       *dec2;
    SDL_Rect           clipRect;
-   DmtxCallbacks      callbacks;
 
    if(HandleArgs(&opt, &argc, &argv) == DmtxFail) {
       exit(1);
@@ -70,17 +69,6 @@ main(int argc, char *argv[])
       fprintf(stderr, "Unable to load image \"%s\": %s\n", opt.imagePath, SDL_GetError());
       exit(1);
    }
-
-   /* Set up callback functions */
-   callbacks.edgeCacheCallback = EdgeCacheCallback;
-   callbacks.pixelEdgeCacheCallback = PixelEdgeCacheCallback;
-   callbacks.zeroCrossingCallback = ZeroCrossingCallback;
-   callbacks.houghCacheCallback = HoughCacheCallback;
-   callbacks.houghCompactCallback = HoughCompactCallback;
-   callbacks.vanishPointCallback = VanishPointCallback;
-   callbacks.timingCallback = TimingCallback;
-   callbacks.gridCallback = GridCallback;
-   callbacks.perimeterCallback = PerimeterCallback;
 
    atexit(SDL_Quit);
 
@@ -114,9 +102,13 @@ main(int argc, char *argv[])
    dec = dmtxDecodeCreate(gState.imgFull, 1);
    assert(dec != NULL);
 
-   dec2 = dmtxDecode2Create(gState.dmtxImage);
+   dec2 = dmtxDecode2Create();
    assert(dec2 != NULL);
 
+/* dmtxDecode2SetScale(dec2); */
+
+   /* Set up callback functions */
+   /* TODO: Should we use a setter here? */
    dec2->fn.edgeCacheCallback = EdgeCacheCallback;
    dec2->fn.pixelEdgeCacheCallback = PixelEdgeCacheCallback;
    dec2->fn.zeroCrossingCallback = ZeroCrossingCallback;
@@ -158,8 +150,8 @@ main(int argc, char *argv[])
       ShowActiveRegion(gState.screen, gState.local);
 
       SDL_LockSurface(gState.local);
-/*    dmtxScanImage(dec, gState.imgActive, &callbacks); */
-      dmtxScanImage2(dec2, &callbacks);
+      dmtxDecode2SetImage(dec2, gState.dmtxImage);
+      dmtxRegion2FindNext(dec2);
       SDL_UnlockSurface(gState.local);
 
       /* Dump FFT results */

@@ -20,14 +20,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 Contact: mblaughton@users.sourceforge.net
 */
 
-/* $Id: dmtxregion2.c 1065 2010-11-11 08:12:30Z mblaughton $ */
+/* $Id$ */
 
+#include <assert.h>
 #include "../../dmtx.h"
 #include "multi_test.h"
-
-/*
-#include "kiss_fftr.h"
-*/
 
 /**
  *
@@ -42,14 +39,6 @@ dmtxDecode2Create(DmtxImage *img)
    if(dec == NULL)
       return NULL;
 
-   dec->image = img;
-
-   InitHoughCache2(&(dec->hough));
-/*
-   also set correct number of local hough caches
-   initialize hough cache offsets
-*/
-
    return dec;
 }
 
@@ -63,8 +52,77 @@ dmtxDecode2Destroy(DmtxDecode2 **dec)
    if(dec == NULL || *dec == NULL)
       return DmtxFail;
 
+   decode2ReleaseCacheMemory(*dec);
+
    free(*dec);
    *dec = NULL;
 
    return DmtxPass;
 }
+
+#define RETURN_FAIL_IF(C) \
+   if(C) { \
+      decode2ReleaseCacheMemory(dec); \
+      return DmtxFail; \
+   }
+
+/**
+ *
+ *
+ */
+DmtxPassFail
+dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
+{
+   if(dec == NULL)
+      return DmtxFail;
+
+   dec->image = img;
+
+   decode2ReleaseCacheMemory(dec);
+
+   dec->sobel = SobelCacheCreate(dec->image);
+   RETURN_FAIL_IF(dec->sobel == NULL);
+   dec->fn.pixelEdgeCacheCallback(dec->sobel, 0);
+
+   dec->accelV = AccelCacheCreate(dec->sobel, DmtxDirVertical);
+   RETURN_FAIL_IF(dec->accelV == NULL);
+   dec->fn.pixelEdgeCacheCallback(dec->accelV, 1);
+
+   dec->accelH = AccelCacheCreate(dec->sobel, DmtxDirHorizontal);
+   RETURN_FAIL_IF(dec->accelH == NULL);
+   dec->fn.pixelEdgeCacheCallback(dec->accelH, 2);
+
+/*
+   InitHoughCache2(&(dec->hough));
+   also set correct number of local hough caches
+   initialize hough cache offsets
+*/
+/*
+   for(each hough region) {
+      FindZeroCrossings(dec, houghCol, houghRow, DmtxDirVertical);
+      FindZeroCrossings(dec, houghCol, houghRow, DmtxDirHorizontal);
+   }
+*/
+
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+DmtxPassFail
+decode2ReleaseCacheMemory(DmtxDecode2 *dec)
+{
+   if(dec == NULL)
+      return DmtxFail;
+
+   /* XXX release hough cache too */
+   PixelEdgeCacheDestroy(&(dec->sobel));
+   PixelEdgeCacheDestroy(&(dec->accelV));
+   PixelEdgeCacheDestroy(&(dec->accelH));
+
+   return DmtxPass;
+}
+
+

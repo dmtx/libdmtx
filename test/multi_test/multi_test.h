@@ -262,10 +262,10 @@ struct DmtxCallbacks_struct {
 typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
 struct DmtxDecode2_struct {
+   DmtxImage       *image;
    PixelEdgeCache  *sobel;
    PixelEdgeCache  *accelV;
    PixelEdgeCache  *accelH;
-   DmtxImage       *image;
    DmtxHoughCache2  hough; /* for now just one -- later a pointer to many */
    int              houghRows;
    int              houghCols;
@@ -288,7 +288,7 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 
 /* Image processing functions */
 void dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn);
-DmtxPassFail dmtxScanImage2(DmtxDecode2 *dec, DmtxCallbacks *fn);
+DmtxPassFail dmtxRegion2FindNext(DmtxDecode2 *dec);
 DmtxPassFail RegisterZeroCrossing(DmtxHoughCache *hough, DmtxDirection edgeType,
       int zCol, int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
 DmtxPassFail FindZeroCrossings(DmtxHoughCache *hough, PixelEdgeCache *accel,
@@ -366,7 +366,9 @@ PixelEdgeCache *ZeroCrossingCacheCreate(PixelEdgeCache *zXing, DmtxDirection edg
 int SobelCacheGetValue(PixelEdgeCache *sobel, int sobelType, int sIdx);
 int SobelCacheGetIndexFromZXing(PixelEdgeCache *sobel, DmtxDirection edgeType, int zCol, int zRow);
 
-DmtxDecode2 *dmtxDecode2Create(DmtxImage *img);
+DmtxDecode2 *dmtxDecode2Create();
 DmtxPassFail dmtxDecode2Destroy(DmtxDecode2 **dec);
+DmtxPassFail dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img);
+DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 
 extern AppState gState;
