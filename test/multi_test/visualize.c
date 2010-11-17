@@ -98,9 +98,6 @@ void ZeroCrossingCallback(double xImg, double yImg, int sValue, int id)
 {
    int xInt, yInt;
 
-   if(abs(sValue) < 50)
-      return;
-
    xInt = gState.imageOffsetX + (int)xImg;
    yInt = gState.screen->h - (gState.imageOffsetY + (int)yImg) - 1;
 

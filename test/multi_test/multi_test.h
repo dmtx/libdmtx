@@ -378,8 +378,8 @@ DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 DmtxHoughGrid *HoughGridCreate(DmtxDecode2 *dec);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
 void InitHoughLocal(DmtxHoughLocal *local, int xOrigin, int yOrigin);
-DmtxPassFail RegisterZeroCrossing(DmtxHoughLocal *hough, DmtxDirection edgeType,
-      int zCol, int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
 DmtxPassFail FindZeroCrossings(DmtxDecode2 *dec, DmtxHoughLocal *local, DmtxDirection edgeType);
+DmtxPassFail HoughAccumulateEdge(DmtxHoughLocal *hough, DmtxDirection edgeType,
+      int zCol, int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
 
 extern AppState gState;

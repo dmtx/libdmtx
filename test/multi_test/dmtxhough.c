@@ -22,13 +22,8 @@ Contact: mblaughton@users.sourceforge.net
 
 /* $Id$ */
 
-/*
 #include <string.h>
-#include <math.h>
 #include <assert.h>
-#include "kiss_fftr.h"
-#include "../../dmtx.h"
-*/
 #include "multi_test.h"
 
 /**
@@ -99,47 +94,6 @@ InitHoughLocal(DmtxHoughLocal *local, int xOrigin, int yOrigin)
    local->yOrigin = xOrigin;
 
    /* calculate dOffset */
-}
-
-/**
- * 0 < smidge < 1
- */
-DmtxPassFail
-RegisterZeroCrossing(DmtxHoughLocal *hough, DmtxDirection edgeType, int zCol,
-      int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn)
-{
-   int sIdx, sValue;
-   double xImg, yImg;
-
-   if(edgeType == DmtxDirVertical)
-   {
-      xImg = (double)zCol + 2.0 + smidge;
-      yImg = (double)zRow + 1.5;
-   }
-   else if(edgeType == DmtxDirHorizontal)
-   {
-      xImg = (double)zCol + 1.5;
-      yImg = (double)zRow + 2.0 + smidge;
-   }
-   else
-   {
-      return DmtxFail;
-   }
-
-   sIdx = SobelCacheGetIndexFromZXing(sobel, edgeType, zCol, zRow);
-   sValue = SobelCacheGetValue(sobel, s, sIdx);
-
-   if(gState.displayEdge == DmtxUndefined || gState.displayEdge == s)
-   {
-      if(edgeType == DmtxDirVertical && (s == 0 || s == 1))
-         fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
-      else if(edgeType == DmtxDirHorizontal && (s == 2 || s == 3))
-         fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
-   }
-
-   /* This is where we will accumulate sample into a local hough cache */
-
-   return DmtxPass;
 }
 
 /**
@@ -216,7 +170,7 @@ FindZeroCrossings(DmtxDecode2 *dec, DmtxHoughLocal *local, DmtxDirection edgeTyp
             {
                /* Zero crossing: Neighbors with opposite signs [-10,+10] */
                smidge = abs(aHere/(aHere - aNext));
-               RegisterZeroCrossing(local, edgeType, zCol, zRow, smidge, sobel, s, fn);
+               HoughAccumulateEdge(local, edgeType, zCol, zRow, smidge, sobel, s, fn);
             }
             else if(aHere == 0 && aNext != 0)
             {
@@ -229,12 +183,61 @@ FindZeroCrossings(DmtxDecode2 *dec, DmtxHoughLocal *local, DmtxDirection edgeTyp
                {
                   /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */
                   smidge = 0.0;
-                  RegisterZeroCrossing(local, edgeType, zCol, zRow, smidge, sobel, s, fn);
+                  HoughAccumulateEdge(local, edgeType, zCol, zRow, smidge, sobel, s, fn);
                }
             }
          }
       }
    }
+
+   return DmtxPass;
+}
+
+/**
+ * 0 < smidge < 1
+ */
+DmtxPassFail
+HoughAccumulateEdge(DmtxHoughLocal *hough, DmtxDirection edgeType, int zCol,
+      int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn)
+{
+   int sIdx, sValue;
+   double xImg, yImg;
+
+   if(edgeType == DmtxDirVertical)
+   {
+      xImg = (double)zCol + 2.0 + smidge;
+      yImg = (double)zRow + 1.5;
+   }
+   else if(edgeType == DmtxDirHorizontal)
+   {
+      xImg = (double)zCol + 1.5;
+      yImg = (double)zRow + 2.0 + smidge;
+   }
+   else
+   {
+      return DmtxFail;
+   }
+
+   sIdx = SobelCacheGetIndexFromZXing(sobel, edgeType, zCol, zRow);
+   sValue = SobelCacheGetValue(sobel, s, sIdx);
+
+   if(abs(sValue) < 50)
+      return DmtxPass; /* XXX not sure what to do with this ... */
+
+   if(gState.displayEdge == DmtxUndefined || gState.displayEdge == s)
+   {
+      if(edgeType == DmtxDirVertical && (s == 0 || s == 1))
+         fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
+      else if(edgeType == DmtxDirHorizontal && (s == 2 || s == 3))
+         fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
+   }
+
+/*
+   xLoc = xImg - hough->xOrigin;
+   yLoc = yImg - hough->yOrigin;
+
+   hough, xImg, yImg
+*/
 
    return DmtxPass;
 }
