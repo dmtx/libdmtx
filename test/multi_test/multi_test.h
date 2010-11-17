@@ -23,6 +23,7 @@ Contact: mblaughton@users.sourceforge.net
 /* $Id$ */
 
 #include <SDL/SDL.h>
+#include "../../dmtx.h"
 
 #define max(N,M) ((N > M) ? N : M)
 #define min(N,M) ((N < M) ? N : M)
@@ -124,14 +125,21 @@ struct DmtxHoughCache_struct {
 };
 typedef struct DmtxHoughCache_struct DmtxHoughCache;
 
-struct DmtxHoughCache2_struct {
+struct DmtxHoughLocal_struct {
    int xOrigin;
    int yOrigin;
    unsigned int dOrigin[128];
    unsigned int bucket[65][128]; /* [rows][cols] */
-/* XXX may need floating point local offset too */
 };
-typedef struct DmtxHoughCache2_struct DmtxHoughCache2;
+typedef struct DmtxHoughLocal_struct DmtxHoughLocal;
+
+struct DmtxHoughGrid_struct {
+   int rows;
+   int cols;
+   int count;
+   DmtxHoughLocal *local;
+};
+typedef struct DmtxHoughGrid_struct DmtxHoughGrid;
 
 typedef struct HoughMaximaSort_struct {
    int count;
@@ -266,9 +274,7 @@ struct DmtxDecode2_struct {
    PixelEdgeCache  *sobel;
    PixelEdgeCache  *accelV;
    PixelEdgeCache  *accelH;
-   DmtxHoughCache2  hough; /* for now just one -- later a pointer to many */
-   int              houghRows;
-   int              houghCols;
+   DmtxHoughGrid   *houghGrid;
    DmtxCallbacks    fn;
 };
 typedef struct DmtxDecode2_struct DmtxDecode2;
@@ -289,10 +295,6 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 /* Image processing functions */
 void dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn);
 DmtxPassFail dmtxRegion2FindNext(DmtxDecode2 *dec);
-DmtxPassFail RegisterZeroCrossing(DmtxHoughCache2 *hough, DmtxDirection edgeType,
-      int zCol, int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
-DmtxPassFail FindZeroCrossings(DmtxDecode2 *dec, int houghCol, int houghRow, DmtxDirection edgeType);
-void InitHoughCache2(DmtxHoughCache2 *hough, int xOrigin, int yOrigin);
 DmtxPassFail dmtxBuildSobelCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
 int GetCompactOffset(int x, int y, int phiIdx, int extent);
 double UncompactOffset(double d, int phiIdx, int extent);
@@ -358,6 +360,7 @@ int PixelEdgeCacheGetWidth(PixelEdgeCache *sobel);
 int PixelEdgeCacheGetHeight(PixelEdgeCache *sobel);
 int PixelEdgeCacheGetValue(PixelEdgeCache *sobel, DmtxSobelDir dir, int x, int y);
 
+/* pixeledgecache.c */
 PixelEdgeCache *SobelCacheCreate(DmtxImage *img);
 DmtxPassFail SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img);
 PixelEdgeCache *AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType);
@@ -365,9 +368,18 @@ PixelEdgeCache *ZeroCrossingCacheCreate(PixelEdgeCache *zXing, DmtxDirection edg
 int SobelCacheGetValue(PixelEdgeCache *sobel, int sobelType, int sIdx);
 int SobelCacheGetIndexFromZXing(PixelEdgeCache *sobel, DmtxDirection edgeType, int zCol, int zRow);
 
+/* dmtxdecode2.c */
 DmtxDecode2 *dmtxDecode2Create();
 DmtxPassFail dmtxDecode2Destroy(DmtxDecode2 **dec);
 DmtxPassFail dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img);
 DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
+
+/* dmtxhough.c */
+DmtxHoughGrid *HoughGridCreate(DmtxDecode2 *dec);
+DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
+void InitHoughLocal(DmtxHoughLocal *local, int xOrigin, int yOrigin);
+DmtxPassFail RegisterZeroCrossing(DmtxHoughLocal *hough, DmtxDirection edgeType,
+      int zCol, int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
+DmtxPassFail FindZeroCrossings(DmtxDecode2 *dec, DmtxHoughLocal *local, DmtxDirection edgeType);
 
 extern AppState gState;

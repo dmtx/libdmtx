@@ -73,8 +73,6 @@ dmtxDecode2Destroy(DmtxDecode2 **dec)
 DmtxPassFail
 dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
 {
-   int houghCol, houghRow;
-
    if(dec == NULL)
       return DmtxFail;
 
@@ -94,12 +92,8 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
    RETURN_FAIL_IF(dec->accelH == NULL);
    dec->fn.pixelEdgeCacheCallback(dec->accelH, 2);
 
-   InitHoughCache2(&(dec->hough), 100, 100);
-
-   houghCol = houghRow = 0; /* XXX jimmy crack corn */
-
-   FindZeroCrossings(dec, houghCol, houghRow, DmtxDirVertical);
-   FindZeroCrossings(dec, houghCol, houghRow, DmtxDirHorizontal);
+   dec->houghGrid = HoughGridCreate(dec);
+   RETURN_FAIL_IF(dec->houghGrid == NULL);
 
    return DmtxPass;
 }
@@ -114,12 +108,10 @@ decode2ReleaseCacheMemory(DmtxDecode2 *dec)
    if(dec == NULL)
       return DmtxFail;
 
-   /* XXX release hough cache too */
+   HoughGridDestroy(&(dec->houghGrid));
    PixelEdgeCacheDestroy(&(dec->sobel));
    PixelEdgeCacheDestroy(&(dec->accelV));
    PixelEdgeCacheDestroy(&(dec->accelH));
 
    return DmtxPass;
 }
-
-

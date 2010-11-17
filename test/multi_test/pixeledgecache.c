@@ -42,7 +42,7 @@ PixelEdgeCacheCreate(int cacheWidth, int cacheHeight)
 DmtxPassFail
 PixelEdgeCacheDestroy(PixelEdgeCache **cache)
 {
-   if(*cache == NULL)
+   if(cache == NULL || *cache == NULL)
       return DmtxFail;
 
    if((*cache)->v != NULL)
