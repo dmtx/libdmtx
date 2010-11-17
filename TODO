@@ -61,6 +61,7 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   x dmtxwrite: Fixed: Not waiting for EOF on standard input (Bug 2988977)
   o dmtxquery: Write XML for dmtxquery consumption
   o dmtxquery: Initial working version (parses XML)
+  o wrapper:   Fix php-dmtx license (re-confirm with Christian) (or remove wrapper)
   o project:   Consider --disable-magick, while providing native PNM support to utils
   o project:   Clean up source file permissions (write script to detect outliers?)
   o project:   Any way to ask Magick to filter out GS (and other) warnings?
