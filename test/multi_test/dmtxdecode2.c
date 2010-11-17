@@ -94,11 +94,7 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
    RETURN_FAIL_IF(dec->accelH == NULL);
    dec->fn.pixelEdgeCacheCallback(dec->accelH, 2);
 
-/*
-   InitHoughCache2(&(dec->hough));
-   also set correct number of local hough caches
-   initialize hough cache offsets
-*/
+   InitHoughCache2(&(dec->hough), 100, 100);
 
    houghCol = houghRow = 0; /* XXX jimmy crack corn */
 

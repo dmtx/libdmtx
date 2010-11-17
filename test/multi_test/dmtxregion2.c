@@ -180,10 +180,13 @@ RegisterZeroCrossing(DmtxHoughCache2 *hough, DmtxDirection edgeType, int zCol,
    sIdx = SobelCacheGetIndexFromZXing(sobel, edgeType, zCol, zRow);
    sValue = SobelCacheGetValue(sobel, s, sIdx);
 
-if(edgeType == DmtxDirHorizontal) {
    if(gState.displayEdge == DmtxUndefined || gState.displayEdge == s)
-      fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
-}
+   {
+      if(edgeType == DmtxDirVertical && (s == 0 || s == 1))
+         fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
+      else if(edgeType == DmtxDirHorizontal && (s == 2 || s == 3))
+         fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
+   }
 
    /* This is where we will accumulate sample into a local hough cache */
 
@@ -198,7 +201,7 @@ DmtxPassFail
 FindZeroCrossings(DmtxDecode2 *dec, int houghCol, int houghRow, DmtxDirection edgeType)
 {
    PixelEdgeCache *sobel = dec->sobel;
-   PixelEdgeCache *accel = dec->accelV;
+   PixelEdgeCache *accel;
    DmtxHoughCache2 *hough = &(dec->hough);
    DmtxCallbacks *fn = &(dec->fn);
    int zCol, zRow, s;
@@ -209,17 +212,20 @@ FindZeroCrossings(DmtxDecode2 *dec, int houghCol, int houghRow, DmtxDirection ed
    int *accelPtr;
    double smidge;
 
-   aWidth = PixelEdgeCacheGetWidth(accel);
-   aHeight = PixelEdgeCacheGetHeight(accel);
-
    if(edgeType == DmtxDirVertical)
    {
+      accel = dec->accelV;
+      aWidth = PixelEdgeCacheGetWidth(accel);
+      aHeight = PixelEdgeCacheGetHeight(accel);
       zWidth = aWidth - 1;
       zHeight = aHeight;
       aInc = 1;
    }
    else if(edgeType == DmtxDirHorizontal)
    {
+      accel = dec->accelH;
+      aWidth = PixelEdgeCacheGetWidth(accel);
+      aHeight = PixelEdgeCacheGetHeight(accel);
       zWidth = aWidth;
       zHeight = aHeight - 1;
       aInc = aWidth;
@@ -290,12 +296,14 @@ FindZeroCrossings(DmtxDecode2 *dec, int houghCol, int houghRow, DmtxDirection ed
  *
  */
 void
-InitHoughCache2(DmtxHoughCache2 *hough)
+InitHoughCache2(DmtxHoughCache2 *hough, int xOrigin, int yOrigin)
 {
-/* hough->offExtent = HOUGH_D_EXTENT;
-   hough->phiExtent = HOUGH_PHI_EXTENT;
-   memset(hough->isMax, 0x01, sizeof(char) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT); */
-   memset(hough->mag, 0x00, sizeof(int) * 63 * 128);
+   memset(hough, 0x00, sizeof(DmtxHoughCache2));
+
+   hough->xOrigin = xOrigin;
+   hough->yOrigin = xOrigin;
+
+   /* calculate dOffset */
 }
 
 /**

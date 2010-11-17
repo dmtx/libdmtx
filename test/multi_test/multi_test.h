@@ -125,11 +125,11 @@ struct DmtxHoughCache_struct {
 typedef struct DmtxHoughCache_struct DmtxHoughCache;
 
 struct DmtxHoughCache2_struct {
-/* int offExtent;
-   int phiExtent; */
-   unsigned int mag[65 * 128];
-   unsigned int dGlobalOffset[128];
-/* will need floating point local offset too */
+   int xOrigin;
+   int yOrigin;
+   unsigned int dOrigin[128];
+   unsigned int bucket[65][128]; /* [rows][cols] */
+/* XXX may need floating point local offset too */
 };
 typedef struct DmtxHoughCache2_struct DmtxHoughCache2;
 
@@ -292,7 +292,7 @@ DmtxPassFail dmtxRegion2FindNext(DmtxDecode2 *dec);
 DmtxPassFail RegisterZeroCrossing(DmtxHoughCache2 *hough, DmtxDirection edgeType,
       int zCol, int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
 DmtxPassFail FindZeroCrossings(DmtxDecode2 *dec, int houghCol, int houghRow, DmtxDirection edgeType);
-void InitHoughCache2(DmtxHoughCache2 *hough);
+void InitHoughCache2(DmtxHoughCache2 *hough, int xOrigin, int yOrigin);
 DmtxPassFail dmtxBuildSobelCache(DmtxEdgeCache *edgeCache, DmtxImage *img);
 int GetCompactOffset(int x, int y, int phiIdx, int extent);
 double UncompactOffset(double d, int phiIdx, int extent);
