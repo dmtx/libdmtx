@@ -24,6 +24,7 @@ Contact: mblaughton@users.sourceforge.net
 
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 #include "multi_test.h"
 
 /**
@@ -33,33 +34,31 @@ Contact: mblaughton@users.sourceforge.net
 DmtxHoughGrid *
 HoughGridCreate(DmtxDecode2 *dec)
 {
-   int row, col;
-   DmtxHoughGrid *grid;
-   DmtxHoughLocal *local;
+   int hRow, hCol;
+   DmtxHoughGrid *hGrid;
+   DmtxHoughLocal *hLocal;
 
-   grid = (DmtxHoughGrid *)calloc(1, sizeof(DmtxHoughGrid));
-   if(grid == NULL)
+   hGrid = (DmtxHoughGrid *)calloc(1, sizeof(DmtxHoughGrid));
+   if(hGrid == NULL)
       return NULL;
 
-   grid->rows = 1; /* for now */
-   grid->cols = 1; /* for now */
-   grid->count = grid->rows * grid->cols;
+   hGrid->rows = 1; /* for now */
+   hGrid->cols = 1; /* for now */
+   hGrid->count = hGrid->rows * hGrid->cols;
 
-   grid->local = (DmtxHoughLocal *)malloc(grid->count * sizeof(DmtxHoughLocal));
+   hGrid->local = (DmtxHoughLocal *)malloc(hGrid->count * sizeof(DmtxHoughLocal));
 
-   for(row = 0; row < grid->rows; row++)
+   for(hRow = 0; hRow < hGrid->rows; hRow++)
    {
-      for(col = 0; col < grid->cols; col++)
+      for(hCol = 0; hCol < hGrid->cols; hCol++)
       {
-         local = &(grid->local[row * grid->cols + col]);
-         InitHoughLocal(local, 100, 100);
-
-         FindZeroCrossings(dec, local, DmtxDirVertical);
-         FindZeroCrossings(dec, local, DmtxDirHorizontal);
+         hLocal = &(hGrid->local[hRow * hGrid->cols + hCol]);
+         InitHoughLocal(hLocal, 100, 100);
+         HoughLocalAccumulate(hLocal, dec);
       }
    }
 
-   return grid;
+   return hGrid;
 }
 
 /**
@@ -93,100 +92,63 @@ InitHoughLocal(DmtxHoughLocal *local, int xOrigin, int yOrigin)
    local->xOrigin = xOrigin;
    local->yOrigin = xOrigin;
 
-   /* calculate dOffset */
+   /* calculate dOffset ? */
 }
 
 /**
- * accel holds acceleration values (vertical or horizontal) that will determine zero crossing locations.
- * sobel contains the actual edge strength, and will only be used if a zero crossing is found
+ *
+ *
  */
 DmtxPassFail
-FindZeroCrossings(DmtxDecode2 *dec, DmtxHoughLocal *local, DmtxDirection edgeType)
+HoughLocalAccumulate(DmtxHoughLocal *local, DmtxDecode2 *dec)
 {
-   PixelEdgeCache *sobel = dec->sobel;
-   PixelEdgeCache *accel;
-   DmtxCallbacks *fn = &(dec->fn);
-   int zCol, zRow, s;
-   int aInc, aIdx, aIdxNext;
-   int aWidth, aHeight;
-   int zWidth, zHeight;
-   int aPrev, aHere, aNext;
-   int *accelPtr;
-   double smidge;
+   int row, col;
+   int iRow, iCol;
+   int phi;
+   ZeroCrossing hhZXing, hsZXing, vsZXing, vvZXing, vbZXing, hbZXing;
 
-   if(edgeType == DmtxDirVertical)
+   for(row = 0; row < 64; row++)
    {
-      accel = dec->accelV;
-      aWidth = PixelEdgeCacheGetWidth(accel);
-      aHeight = PixelEdgeCacheGetHeight(accel);
-      zWidth = aWidth - 1;
-      zHeight = aHeight;
-      aInc = 1;
-   }
-   else if(edgeType == DmtxDirHorizontal)
-   {
-      accel = dec->accelH;
-      aWidth = PixelEdgeCacheGetWidth(accel);
-      aHeight = PixelEdgeCacheGetHeight(accel);
-      zWidth = aWidth;
-      zHeight = aHeight - 1;
-      aInc = aWidth;
-   }
-   else
-   {
-      return DmtxFail;
-   }
+      iRow = local->yOrigin + row;
 
-   for(zRow = 0; zRow < zHeight; zRow++)
-   {
-      aIdx = zRow * aWidth;
-
-      for(zCol = 0; zCol < zWidth; zCol++, aIdx++)
+      for(col = 0; col < 64; col++)
       {
-         aIdxNext = aIdx + aInc;
+         iCol = local->xOrigin + col;
 
-         for(s = 0; s < 4; s++)
+         hhZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirHorizontal, DmtxDirHorizontal);
+         hsZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirSlash, DmtxDirHorizontal);
+         vsZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirSlash, DmtxDirVertical);
+         vvZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirVertical, DmtxDirVertical);
+         vbZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirBackslash, DmtxDirVertical);
+         hbZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirBackslash, DmtxDirHorizontal);
+
+         if(hhZXing.mag > 0)
          {
-            switch(s) {
-               case 0:
-                  accelPtr = accel->v;
-                  break;
-               case 1:
-                  accelPtr = accel->b;
-                  break;
-               case 2:
-                  accelPtr = accel->h;
-                  break;
-               case 3:
-                  accelPtr = accel->s;
-                  break;
-               default:
-                  return DmtxFail;
-            }
-            aHere = accelPtr[aIdx];
-            aNext = accelPtr[aIdxNext];
-
-            if(OPPOSITE_SIGNS(aHere, aNext))
-            {
-               /* Zero crossing: Neighbors with opposite signs [-10,+10] */
-               smidge = abs(aHere/(aHere - aNext));
-               HoughAccumulateEdge(local, edgeType, zCol, zRow, smidge, sobel, s, fn);
-            }
-            else if(aHere == 0 && aNext != 0)
-            {
-               /* No previous value for comparison (beginning of row/col) */
-               if(aIdx < aInc)
-                  continue;
-
-               aPrev = accelPtr[aIdx-aInc];
-               if(OPPOSITE_SIGNS(aPrev, aNext))
-               {
-                  /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */
-                  smidge = 0.0;
-                  HoughAccumulateEdge(local, edgeType, zCol, zRow, smidge, sobel, s, fn);
-               }
-            }
+            for(phi = 0; phi < 16; phi++)
+               HoughLocalAccumulateEdge(local, phi, hhZXing);
+            for(phi = 112; phi < 128; phi++)
+               HoughLocalAccumulateEdge(local, phi, hhZXing);
          }
+
+         if(hsZXing.mag > 0)
+            for(phi = 16; phi < 32; phi++)
+               HoughLocalAccumulateEdge(local, phi, hsZXing);
+
+         if(vsZXing.mag > 0)
+            for(phi = 32; phi < 48; phi++)
+               HoughLocalAccumulateEdge(local, phi, vsZXing);
+
+         if(vvZXing.mag > 0)
+            for(phi = 48; phi < 80; phi++)
+               HoughLocalAccumulateEdge(local, phi, vvZXing);
+
+         if(vbZXing.mag > 0)
+            for(phi = 80; phi < 96; phi++)
+               HoughLocalAccumulateEdge(local, phi, vbZXing);
+
+         if(hbZXing.mag > 0)
+            for(phi = 96; phi < 112; phi++)
+               HoughLocalAccumulateEdge(local, phi, hbZXing);
       }
    }
 
@@ -194,50 +156,162 @@ FindZeroCrossings(DmtxDecode2 *dec, DmtxHoughLocal *local, DmtxDirection edgeTyp
 }
 
 /**
- * 0 < smidge < 1
+ *
+ *
  */
-DmtxPassFail
-HoughAccumulateEdge(DmtxHoughLocal *hough, DmtxDirection edgeType, int zCol,
-      int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn)
+ZeroCrossing
+GetZeroCrossing(DmtxDecode2 *dec, int iCol, int iRow, SobelDirection sobelDir, DmtxDirection edgeDir)
 {
-   int sIdx, sValue;
-   double xImg, yImg;
+   int aInc, aIdx, aIdxNext;
+   int aRow, aCol;
+   int aWidth, aHeight;
+   int aHere, aNext, aPrev;
+   int *accelPtr;
+   double smidge;
+   PixelEdgeCache *accel;
+   ZeroCrossing edge = { 0, 0.0, 0.0 };
 
-   if(edgeType == DmtxDirVertical)
+   assert(edgeDir == DmtxDirVertical || edgeDir == DmtxDirHorizontal);
+
+   if(edgeDir == DmtxDirVertical)
    {
-      xImg = (double)zCol + 2.0 + smidge;
-      yImg = (double)zRow + 1.5;
-   }
-   else if(edgeType == DmtxDirHorizontal)
-   {
-      xImg = (double)zCol + 1.5;
-      yImg = (double)zRow + 2.0 + smidge;
+      accel = dec->accelV;
+      aInc = 1;
    }
    else
    {
-      return DmtxFail;
+      accel = dec->accelH;
+      aInc = aWidth;
    }
 
-   sIdx = SobelCacheGetIndexFromZXing(sobel, edgeType, zCol, zRow);
-   sValue = SobelCacheGetValue(sobel, s, sIdx);
+   aWidth = PixelEdgeCacheGetWidth(accel);
+   aHeight = PixelEdgeCacheGetHeight(accel);
+   aRow = iRow - 1;
+   aCol = iCol - 1;
+   aIdx = aRow * aWidth + aCol;
+   aIdxNext = aIdx + aInc;
 
-   if(abs(sValue) < 50)
-      return DmtxPass; /* XXX not sure what to do with this ... */
+   switch(sobelDir) {
+      case SobelDirVertical:
+         accelPtr = accel->v;
+         break;
+      case SobelDirBackslash:
+         accelPtr = accel->b;
+         break;
+      case SobelDirHorizontal:
+         accelPtr = accel->h;
+         break;
+      case SobelDirSlash:
+         accelPtr = accel->s;
+         break;
+      default:
+         return edge;
+   }
 
-   if(gState.displayEdge == DmtxUndefined || gState.displayEdge == s)
+   aHere = accelPtr[aIdx];
+   aNext = accelPtr[aIdxNext];
+
+   if(OPPOSITE_SIGNS(aHere, aNext))
    {
-      if(edgeType == DmtxDirVertical && (s == 0 || s == 1))
-         fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
-      else if(edgeType == DmtxDirHorizontal && (s == 2 || s == 3))
-         fn->zeroCrossingCallback(xImg, yImg, sValue, 0);
+      /* Zero crossing: Neighbors with opposite signs [-10,+10] */
+      smidge = abs(aHere/(aHere - aNext));
+      edge = SetZeroCrossingFromIndex(dec, aCol, aRow, smidge, sobelDir, edgeDir);
+   }
+   else if(aHere == 0 && aNext != 0)
+   {
+      /* No previous value for comparison (beginning of row/col) */
+      if(aIdx < aInc)
+         return edge;
+
+      aPrev = accelPtr[aIdx-aInc];
+      if(OPPOSITE_SIGNS(aPrev, aNext))
+      {
+         /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */
+         edge = SetZeroCrossingFromIndex(dec, aCol, aRow, 0.0, sobelDir, edgeDir);
+      }
    }
 
-/*
-   xLoc = xImg - hough->xOrigin;
-   yLoc = yImg - hough->yOrigin;
+   if(gState.displayEdge == DmtxUndefined || gState.displayEdge == sobelDir)
+   {
+      if(edgeDir == DmtxDirVertical && (sobelDir == SobelDirVertical || sobelDir == SobelDirBackslash))
+         dec->fn.zeroCrossingCallback(iCol, iRow, edge.mag, 0);
+      else if(edgeDir == DmtxDirHorizontal && (sobelDir == SobelDirHorizontal || sobelDir == SobelDirSlash))
+         dec->fn.zeroCrossingCallback(iCol, iRow, edge.mag, 0);
+   }
 
-   hough, xImg, yImg
-*/
+   return edge;
+}
+
+/**
+ * 0 < smidge < 1
+ *
+ */
+ZeroCrossing
+SetZeroCrossingFromIndex(DmtxDecode2 *dec, int aCol, int aRow, double smidge,
+      SobelDirection sobelDir, DmtxDirection edgeDir)
+{
+   int sIdx;
+   ZeroCrossing edge;
+
+   assert(edgeDir == DmtxDirVertical || edgeDir == DmtxDirHorizontal);
+
+   if(edgeDir == DmtxDirVertical)
+   {
+      edge.x = (double)aCol + 2.0 + smidge;
+      edge.y = (double)aRow + 1.5;
+   }
+   else
+   {
+      edge.x = (double)aCol + 1.5;
+      edge.y = (double)aRow + 2.0 + smidge;
+   }
+
+   sIdx = SobelCacheGetIndexFromZXing(dec->sobel, edgeDir, aCol, aRow);
+   edge.mag = abs(SobelCacheGetValue(dec->sobel, sobelDir, sIdx));
+
+   return edge;
+}
+
+/**
+ *
+ *
+ */
+DmtxPassFail
+HoughLocalAccumulateEdge(DmtxHoughLocal *local, int phi, ZeroCrossing edge)
+{
+   double d;
+
+   d = HoughGetLocalOffset(edge.x, edge.y, phi);
+
+/* local->bucket[(int)d][phi] += edge.mag; */
 
    return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+double
+HoughGetLocalOffset(double xLoc, double yLoc, int phi)
+{
+   double phiRad, sinPhi, cosPhi;
+   double scale, d;
+
+   phiRad = (phi * M_PI)/128.0;
+   sinPhi = sin(phiRad);
+   cosPhi = cos(phiRad);
+
+   if(phi <= 64)
+   {
+      scale = 64.0 / (sinPhi + cosPhi);
+      d = (xLoc * cosPhi + yLoc * sinPhi) * scale;
+   }
+   else
+   {
+      scale = 64.0 / (sinPhi - cosPhi);
+      d = ((xLoc * cosPhi + yLoc * sinPhi) - cosPhi) * scale;
+   }
+
+   return d;
 }

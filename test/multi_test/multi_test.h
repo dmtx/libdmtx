@@ -103,11 +103,18 @@ struct PixelEdgeCache_struct {
 typedef struct PixelEdgeCache_struct PixelEdgeCache;
 
 typedef enum {
-   SobelEdgeVertical,
-   SobelEdgeBackslash,
-   SobelEdgeHorizontal,
-   SobelEdgeSlash
-} SobelEdgeType;
+   SobelDirVertical,
+   SobelDirBackslash,
+   SobelDirHorizontal,
+   SobelDirSlash
+} SobelDirection;
+
+struct ZeroCrossing_struct {
+   int mag;
+   double x;
+   double y;
+};
+typedef struct ZeroCrossing_struct ZeroCrossing;
 
 struct DmtxEdgeCache_struct {
    int vDir[4096];
@@ -129,7 +136,7 @@ struct DmtxHoughLocal_struct {
    int xOrigin;
    int yOrigin;
    unsigned int dOrigin[128];
-   unsigned int bucket[65][128]; /* [rows][cols] */
+   unsigned int bucket[64][128]; /* [rows][cols] */ /* later change to 65 */
 };
 typedef struct DmtxHoughLocal_struct DmtxHoughLocal;
 
@@ -365,7 +372,7 @@ PixelEdgeCache *SobelCacheCreate(DmtxImage *img);
 DmtxPassFail SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img);
 PixelEdgeCache *AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType);
 PixelEdgeCache *ZeroCrossingCacheCreate(PixelEdgeCache *zXing, DmtxDirection edgeType);
-int SobelCacheGetValue(PixelEdgeCache *sobel, int sobelType, int sIdx);
+int SobelCacheGetValue(PixelEdgeCache *sobel, SobelDirection sobelDir, int sIdx);
 int SobelCacheGetIndexFromZXing(PixelEdgeCache *sobel, DmtxDirection edgeType, int zCol, int zRow);
 
 /* dmtxdecode2.c */
@@ -378,8 +385,12 @@ DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 DmtxHoughGrid *HoughGridCreate(DmtxDecode2 *dec);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
 void InitHoughLocal(DmtxHoughLocal *local, int xOrigin, int yOrigin);
-DmtxPassFail FindZeroCrossings(DmtxDecode2 *dec, DmtxHoughLocal *local, DmtxDirection edgeType);
-DmtxPassFail HoughAccumulateEdge(DmtxHoughLocal *hough, DmtxDirection edgeType,
-      int zCol, int zRow, double smidge, PixelEdgeCache *sobel, int s, DmtxCallbacks *fn);
+DmtxPassFail HoughLocalAccumulate(DmtxHoughLocal *local, DmtxDecode2 *dec);
+ZeroCrossing GetZeroCrossing(DmtxDecode2 *dec, int iCol, int iRow,
+      SobelDirection sobelDir, DmtxDirection edgeDir);
+ZeroCrossing SetZeroCrossingFromIndex(DmtxDecode2 *dec, int aCol, int aRow,
+      double smidge, SobelDirection sobelDir, DmtxDirection edgeDir);
+DmtxPassFail HoughLocalAccumulateEdge(DmtxHoughLocal *local, int phi, ZeroCrossing edge);
+double HoughGetLocalOffset(double xLoc, double yLoc, int phi);
 
 extern AppState gState;

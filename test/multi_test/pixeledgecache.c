@@ -320,21 +320,21 @@ AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType)
  *
  */
 int
-SobelCacheGetValue(PixelEdgeCache *sobel, int sobelType, int sIdx)
+SobelCacheGetValue(PixelEdgeCache *sobel, SobelDirection sobelDir, int sIdx)
 {
    int sValue;
 
-   switch(sobelType) {
-      case 0 /* SobelTypeVertical */:
+   switch(sobelDir) {
+      case SobelDirVertical:
          sValue = sobel->v[sIdx];
          break;
-      case 1 /* SobelTypeBackslash */:
+      case SobelDirBackslash:
          sValue = sobel->b[sIdx];
          break;
-      case 2 /* SobelTypeHorizontal */:
+      case SobelDirHorizontal:
          sValue = sobel->h[sIdx];
          break;
-      case 3 /* SobelTypeSlash */:
+      case SobelDirSlash:
          sValue = sobel->s[sIdx];
          break;
       default:
