@@ -31,8 +31,9 @@ Contact: mblaughton@users.sourceforge.net
  *
  *
  */
+/*
 DmtxHoughGrid *
-HoughGridCreate(DmtxDecode2 *dec)
+HoughGridCreate(DmtxValueGrid *sobel, AccelCache *accelV, AccelCache *accelH)
 {
    int hRow, hCol;
    DmtxHoughGrid *hGrid;
@@ -42,8 +43,8 @@ HoughGridCreate(DmtxDecode2 *dec)
    if(hGrid == NULL)
       return NULL;
 
-   hGrid->rows = 1; /* for now */
-   hGrid->cols = 1; /* for now */
+   hGrid->rows = 1;
+   hGrid->cols = 1;
    hGrid->count = hGrid->rows * hGrid->cols;
 
    hGrid->local = (DmtxHoughLocal *)malloc(hGrid->count * sizeof(DmtxHoughLocal));
@@ -54,12 +55,13 @@ HoughGridCreate(DmtxDecode2 *dec)
       {
          hLocal = &(hGrid->local[hRow * hGrid->cols + hCol]);
          InitHoughLocal(hLocal, 100, 100);
-         HoughLocalAccumulate(hLocal, dec);
+         HoughLocalAccumulate(hLocal, sobel, accelV, accelH);
       }
    }
 
    return hGrid;
 }
+*/
 
 /**
  *
@@ -100,7 +102,8 @@ InitHoughLocal(DmtxHoughLocal *local, int xOrigin, int yOrigin)
  *
  */
 DmtxPassFail
-HoughLocalAccumulate(DmtxHoughLocal *local, DmtxDecode2 *dec)
+HoughLocalAccumulate(DmtxHoughLocal *local, DmtxValueGrid *hhAccel, DmtxValueGrid *hsAccel,
+      DmtxValueGrid *vsAccel, DmtxValueGrid *vvAccel, DmtxValueGrid *vbAccel, DmtxValueGrid *hbAccel)
 {
    int row, col;
    int iRow, iCol;
@@ -115,12 +118,12 @@ HoughLocalAccumulate(DmtxHoughLocal *local, DmtxDecode2 *dec)
       {
          iCol = local->xOrigin + col;
 
-         hhZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirHorizontal, DmtxDirHorizontal);
-         hsZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirSlash, DmtxDirHorizontal);
-         vsZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirSlash, DmtxDirVertical);
-         vvZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirVertical, DmtxDirVertical);
-         vbZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirBackslash, DmtxDirVertical);
-         hbZXing = GetZeroCrossing(dec, iCol, iRow, SobelDirBackslash, DmtxDirHorizontal);
+         hhZXing = GetZeroCrossing(hhAccel, iCol, iRow);
+         hsZXing = GetZeroCrossing(hsAccel, iCol, iRow);
+         vsZXing = GetZeroCrossing(vsAccel, iCol, iRow);
+         vvZXing = GetZeroCrossing(vvAccel, iCol, iRow);
+         vbZXing = GetZeroCrossing(vbAccel, iCol, iRow);
+         hbZXing = GetZeroCrossing(hbAccel, iCol, iRow);
 
          if(hhZXing.mag > 0)
          {
@@ -160,62 +163,31 @@ HoughLocalAccumulate(DmtxHoughLocal *local, DmtxDecode2 *dec)
  *
  */
 ZeroCrossing
-GetZeroCrossing(DmtxDecode2 *dec, int iCol, int iRow, SobelDirection sobelDir, DmtxDirection edgeDir)
+GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
 {
    int aInc, aIdx, aIdxNext;
    int aRow, aCol;
    int aWidth, aHeight;
    int aHere, aNext, aPrev;
-   int *accelPtr;
    double smidge;
-   PixelEdgeCache *accel;
    ZeroCrossing edge = { 0, 0.0, 0.0 };
 
-   assert(edgeDir == DmtxDirVertical || edgeDir == DmtxDirHorizontal);
-
-   if(edgeDir == DmtxDirVertical)
-   {
-      accel = dec->accelV;
-      aInc = 1;
-   }
-   else
-   {
-      accel = dec->accelH;
-      aInc = aWidth;
-   }
-
-   aWidth = PixelEdgeCacheGetWidth(accel);
-   aHeight = PixelEdgeCacheGetHeight(accel);
+   aWidth = dmtxValueGridGetWidth(accel);
+   aHeight = dmtxValueGridGetHeight(accel);
    aRow = iRow - 1;
    aCol = iCol - 1;
    aIdx = aRow * aWidth + aCol;
+   aInc = (accel->type == AccelEdgeVertical) ? 1 : aWidth;
    aIdxNext = aIdx + aInc;
 
-   switch(sobelDir) {
-      case SobelDirVertical:
-         accelPtr = accel->v;
-         break;
-      case SobelDirBackslash:
-         accelPtr = accel->b;
-         break;
-      case SobelDirHorizontal:
-         accelPtr = accel->h;
-         break;
-      case SobelDirSlash:
-         accelPtr = accel->s;
-         break;
-      default:
-         return edge;
-   }
-
-   aHere = accelPtr[aIdx];
-   aNext = accelPtr[aIdxNext];
+   aHere = accel->value[aIdx];
+   aNext = accel->value[aIdxNext];
 
    if(OPPOSITE_SIGNS(aHere, aNext))
    {
       /* Zero crossing: Neighbors with opposite signs [-10,+10] */
       smidge = abs(aHere/(aHere - aNext));
-      edge = SetZeroCrossingFromIndex(dec, aCol, aRow, smidge, sobelDir, edgeDir);
+      edge = SetZeroCrossingFromIndex(accel, aCol, aRow, smidge);
    }
    else if(aHere == 0 && aNext != 0)
    {
@@ -223,14 +195,14 @@ GetZeroCrossing(DmtxDecode2 *dec, int iCol, int iRow, SobelDirection sobelDir, D
       if(aIdx < aInc)
          return edge;
 
-      aPrev = accelPtr[aIdx-aInc];
+      aPrev = accel->value[aIdx-aInc];
       if(OPPOSITE_SIGNS(aPrev, aNext))
       {
          /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */
-         edge = SetZeroCrossingFromIndex(dec, aCol, aRow, 0.0, sobelDir, edgeDir);
+         edge = SetZeroCrossingFromIndex(accel, aCol, aRow, 0.0);
       }
    }
-
+/*
    if(gState.displayEdge == DmtxUndefined || gState.displayEdge == sobelDir)
    {
       if(edgeDir == DmtxDirVertical && (sobelDir == SobelDirVertical || sobelDir == SobelDirBackslash))
@@ -238,6 +210,7 @@ GetZeroCrossing(DmtxDecode2 *dec, int iCol, int iRow, SobelDirection sobelDir, D
       else if(edgeDir == DmtxDirHorizontal && (sobelDir == SobelDirHorizontal || sobelDir == SobelDirSlash))
          dec->fn.zeroCrossingCallback(iCol, iRow, edge.mag, 0);
    }
+*/
 
    return edge;
 }
@@ -247,15 +220,13 @@ GetZeroCrossing(DmtxDecode2 *dec, int iCol, int iRow, SobelDirection sobelDir, D
  *
  */
 ZeroCrossing
-SetZeroCrossingFromIndex(DmtxDecode2 *dec, int aCol, int aRow, double smidge,
-      SobelDirection sobelDir, DmtxDirection edgeDir)
+SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge)
 {
    int sIdx;
    ZeroCrossing edge;
+   DmtxValueGrid *sobel = accel->ref;
 
-   assert(edgeDir == DmtxDirVertical || edgeDir == DmtxDirHorizontal);
-
-   if(edgeDir == DmtxDirVertical)
+   if(accel->type == AccelEdgeVertical)
    {
       edge.x = (double)aCol + 2.0 + smidge;
       edge.y = (double)aRow + 1.5;
@@ -266,8 +237,8 @@ SetZeroCrossingFromIndex(DmtxDecode2 *dec, int aCol, int aRow, double smidge,
       edge.y = (double)aRow + 2.0 + smidge;
    }
 
-   sIdx = SobelCacheGetIndexFromZXing(dec->sobel, edgeDir, aCol, aRow);
-   edge.mag = abs(SobelCacheGetValue(dec->sobel, sobelDir, sIdx));
+   sIdx = SobelCacheGetIndexFromZXing(sobel, accel->type, aCol, aRow);
+   edge.mag = abs(SobelCacheGetValue(sobel, sIdx));
 
    return edge;
 }

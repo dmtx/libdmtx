@@ -8,31 +8,29 @@
  *
  *
  */
-PixelEdgeCache *
-PixelEdgeCacheCreate(int cacheWidth, int cacheHeight)
+DmtxValueGrid *
+dmtxValueGridCreate(int width, int height, int type)
 {
-   PixelEdgeCache *cache;
-   int dataSizeBytes;
+   DmtxValueGrid *valueGrid;
 
-   cache = (PixelEdgeCache *)malloc(sizeof(PixelEdgeCache));
-   if(cache == NULL)
+   valueGrid = (DmtxValueGrid *)malloc(sizeof(DmtxValueGrid));
+   if(valueGrid == NULL)
       return NULL;
 
-   cache->width = cacheWidth;
-   cache->height = cacheHeight;
+   valueGrid->width = width;
+   valueGrid->height = height;
+   valueGrid->type = type;
 
-   dataSizeBytes = sizeof(int) * cache->width * cache->height;
-   cache->v = (int *)malloc(dataSizeBytes);
-   cache->b = (int *)malloc(dataSizeBytes);
-   cache->h = (int *)malloc(dataSizeBytes);
-   cache->s = (int *)malloc(dataSizeBytes);
-
-   if(cache->v == NULL || cache->h == NULL || cache->s == NULL || cache->b == NULL) {
-      PixelEdgeCacheDestroy(&cache);
+   valueGrid->value = (int *)malloc(width * height * sizeof(int));
+   if(valueGrid->value == NULL)
+   {
+      dmtxValueGridDestroy(&valueGrid);
       return NULL;
    }
 
-   return cache;
+   valueGrid->ref = NULL;
+
+   return valueGrid;
 }
 
 /**
@@ -40,25 +38,16 @@ PixelEdgeCacheCreate(int cacheWidth, int cacheHeight)
  *
  */
 DmtxPassFail
-PixelEdgeCacheDestroy(PixelEdgeCache **cache)
+dmtxValueGridDestroy(DmtxValueGrid **valueGrid)
 {
-   if(cache == NULL || *cache == NULL)
+   if(valueGrid == NULL || *valueGrid == NULL)
       return DmtxFail;
 
-   if((*cache)->v != NULL)
-      free((*cache)->v);
+   if((*valueGrid)->value != NULL)
+      free((*valueGrid)->value);
 
-   if((*cache)->b != NULL)
-      free((*cache)->b);
-
-   if((*cache)->h != NULL)
-      free((*cache)->h);
-
-   if((*cache)->s != NULL)
-      free((*cache)->s);
-
-   free(*cache);
-   *cache = NULL;
+   free(*valueGrid);
+   *valueGrid = NULL;
 
    return DmtxPass;
 }
@@ -68,12 +57,12 @@ PixelEdgeCacheDestroy(PixelEdgeCache **cache)
  *
  */
 int
-PixelEdgeCacheGetWidth(PixelEdgeCache *cache)
+dmtxValueGridGetWidth(DmtxValueGrid *valueGrid)
 {
-   if(cache == NULL)
+   if(valueGrid == NULL)
       return DmtxUndefined;
 
-   return cache->width;
+   return valueGrid->width;
 }
 
 /**
@@ -81,12 +70,12 @@ PixelEdgeCacheGetWidth(PixelEdgeCache *cache)
  *
  */
 int
-PixelEdgeCacheGetHeight(PixelEdgeCache *cache)
+dmtxValueGridGetHeight(DmtxValueGrid *valueGrid)
 {
-   if(cache == NULL)
+   if(valueGrid == NULL)
       return DmtxUndefined;
 
-   return cache->height;
+   return valueGrid->height;
 }
 
 /**
@@ -94,58 +83,24 @@ PixelEdgeCacheGetHeight(PixelEdgeCache *cache)
  *
  */
 int
-PixelEdgeCacheGetValue(PixelEdgeCache *cache, DmtxSobelDir dir, int x, int y)
+dmtxValueGridGetValue(DmtxValueGrid *valueGrid, int x, int y)
 {
    int idx;
 
-   if(cache == NULL)
+   if(valueGrid == NULL)
       return DmtxUndefined;
 
    /* bounds checking could go here */
+   idx = y * valueGrid->width + x;
 
-   idx = y * cache->width + x;
-
-   switch(dir) {
-      case DmtxSobelDirVertical:
-         return cache->v[idx];
-      case DmtxSobelDirBackslash:
-         return cache->b[idx];
-      case DmtxSobelDirHorizontal:
-         return cache->h[idx];
-      case DmtxSobelDirSlash:
-         return cache->s[idx];
-   }
-
-   return DmtxUndefined;
-}
-
-/**
- *
- *
- */
-PixelEdgeCache *
-SobelCacheCreate(DmtxImage *img)
-{
-   int sobelWidth, sobelHeight;
-   PixelEdgeCache *sobel;
-
-   sobelWidth = dmtxImageGetProp(img, DmtxPropWidth) - 2;
-   sobelHeight = dmtxImageGetProp(img, DmtxPropHeight) - 2;
-
-   sobel = PixelEdgeCacheCreate(sobelWidth, sobelHeight);
-   if(sobel == NULL)
-      return NULL;
-
-   SobelCachePopulate(sobel, img);
-
-   return sobel;
+   return valueGrid->value[idx];
 }
 
 /**
  * 3x3 Sobel Kernel
  */
 DmtxPassFail
-SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img)
+SobelCachePopulate(DmtxDecode2 *dec, DmtxImage *img)
 {
    int bytesPerPixel, rowSizeBytes, colorPlane;
    int sx, sy;
@@ -155,14 +110,25 @@ SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img)
    int colorMdRt, colorHiRt, colorHiMd;
    int colorHiLf, colorMdLf, colorMdMd;
    int idx;
+   int sWidth, sHeight;
+
+   sWidth = dmtxImageGetProp(img, DmtxPropWidth) - 2;
+   sHeight = dmtxImageGetProp(img, DmtxPropHeight) - 2;
+
+   dec->vSobel = dmtxValueGridCreate(sWidth, sHeight, SobelEdgeVertical);
+   dec->bSobel = dmtxValueGridCreate(sWidth, sHeight, SobelEdgeBackslash);
+   dec->hSobel = dmtxValueGridCreate(sWidth, sHeight, SobelEdgeHorizontal);
+   dec->sSobel = dmtxValueGridCreate(sWidth, sHeight, SobelEdgeSlash);
+   if(dec->vSobel == NULL || dec->bSobel == NULL || dec->hSobel == NULL || dec->sSobel == NULL)
+      return DmtxFail; /* Cleanup will be handled by caller */
 
    rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
    bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
    colorPlane = 1; /* XXX need to make some decisions here */
 
-   for(sy = 0; sy < sobel->height; sy++)
+   for(sy = 0; sy < sHeight; sy++)
    {
-      py = sobel->height - sy;
+      py = sHeight - sy;
 
       pOffset = py * rowSizeBytes + colorPlane;
       colorHiLf = img->pxl[pOffset - rowSizeBytes];
@@ -179,7 +145,7 @@ SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img)
       colorMdRt = img->pxl[pOffset];
       colorLoRt = img->pxl[pOffset + rowSizeBytes];
 
-      for(sx = 0; sx < sobel->width; sx++)
+      for(sx = 0; sx < sWidth; sx++)
       {
          /**
           *  -1  0  1
@@ -234,11 +200,11 @@ SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img)
           * registers with 4 doubleword values and subtract (PSUBD).
           */
 
-         idx = sy * sobel->width + sx;
-         sobel->v[idx] = vMag;
-         sobel->b[idx] = bMag;
-         sobel->h[idx] = hMag;
-         sobel->s[idx] = sMag;
+         idx = sy * sWidth + sx;
+         dec->vSobel->value[idx] = vMag;
+         dec->bSobel->value[idx] = bMag;
+         dec->hSobel->value[idx] = hMag;
+         dec->sSobel->value[idx] = sMag;
 
          colorHiLf = colorHiMd;
          colorMdLf = colorMdMd;
@@ -262,38 +228,35 @@ SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img)
  *
  *
  */
-PixelEdgeCache *
-AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType)
+DmtxValueGrid *
+AccelCacheCreate(DmtxValueGrid *sobel, AccelEdgeType accelEdgeType)
 {
    int x, y;
    int aIdx, sInc, sIdx, sIdxNext;
    int sWidth, sHeight;
    int aWidth, aHeight;
-   PixelEdgeCache *accel;
+   DmtxValueGrid *accel;
 
-   sWidth = PixelEdgeCacheGetWidth(sobel);
-   sHeight = PixelEdgeCacheGetHeight(sobel);
+   sWidth = dmtxValueGridGetWidth(sobel);
+   sHeight = dmtxValueGridGetHeight(sobel);
 
-   if(edgeType == DmtxDirVertical)
+   if(accelEdgeType == AccelEdgeVertical)
    {
       aWidth = sWidth - 1;
       aHeight = sHeight;
       sInc = 1;
    }
-   else if(edgeType == DmtxDirHorizontal)
+   else
    {
       aWidth = sWidth;
       aHeight = sHeight - 1;
       sInc = sWidth;
    }
-   else
-   {
-      return NULL;
-   }
 
-   accel = PixelEdgeCacheCreate(aWidth, aHeight);
-   if(accel == NULL)
-      return NULL;
+   accel = dmtxValueGridCreate(aWidth, aHeight, accelEdgeType);
+   assert(accel != NULL); /* XXX error handling here */
+
+   accel->ref = sobel;
 
    for(y = 0; y < aHeight; y++)
    {
@@ -303,10 +266,7 @@ AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType)
       for(x = 0; x < aWidth; x++)
       {
          sIdxNext = sIdx + sInc;
-         accel->v[aIdx] = sobel->v[sIdxNext] - sobel->v[sIdx];
-         accel->s[aIdx] = sobel->s[sIdxNext] - sobel->s[sIdx];
-         accel->h[aIdx] = sobel->h[sIdxNext] - sobel->h[sIdx];
-         accel->b[aIdx] = sobel->b[sIdxNext] - sobel->b[sIdx];
+         accel->value[aIdx] = sobel->value[sIdxNext] - sobel->value[sIdx];
          aIdx++;
          sIdx++;
       }
@@ -320,27 +280,11 @@ AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType)
  *
  */
 int
-SobelCacheGetValue(PixelEdgeCache *sobel, SobelDirection sobelDir, int sIdx)
+SobelCacheGetValue(DmtxValueGrid *sobel, int sIdx)
 {
    int sValue;
 
-   switch(sobelDir) {
-      case SobelDirVertical:
-         sValue = sobel->v[sIdx];
-         break;
-      case SobelDirBackslash:
-         sValue = sobel->b[sIdx];
-         break;
-      case SobelDirHorizontal:
-         sValue = sobel->h[sIdx];
-         break;
-      case SobelDirSlash:
-         sValue = sobel->s[sIdx];
-         break;
-      default:
-         sValue = DmtxUndefined;
-         break;
-   }
+   sValue = sobel->value[sIdx];
 
    return sValue;
 }
@@ -350,7 +294,7 @@ SobelCacheGetValue(PixelEdgeCache *sobel, SobelDirection sobelDir, int sIdx)
  *
  */
 int
-SobelCacheGetIndexFromZXing(PixelEdgeCache *sobel, DmtxDirection edgeType, int zCol, int zRow)
+SobelCacheGetIndexFromZXing(DmtxValueGrid *sobel, AccelEdgeType edgeType, int zCol, int zRow)
 {
    int sRow, sCol;
 
@@ -370,5 +314,5 @@ SobelCacheGetIndexFromZXing(PixelEdgeCache *sobel, DmtxDirection edgeType, int z
    assert(sRow >= 0);
    assert(sCol >= 0);
 
-   return sRow * PixelEdgeCacheGetWidth(sobel) + sCol;
+   return sRow * dmtxValueGridGetWidth(sobel) + sCol;
 }

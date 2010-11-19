@@ -110,7 +110,7 @@ main(int argc, char *argv[])
    /* Set up callback functions */
    /* TODO: Should we use a setter here? */
    dec2->fn.edgeCacheCallback = EdgeCacheCallback;
-   dec2->fn.pixelEdgeCacheCallback = PixelEdgeCacheCallback;
+   dec2->fn.dmtxValueGridCallback = ValueGridCallback;
    dec2->fn.zeroCrossingCallback = ZeroCrossingCallback;
    dec2->fn.houghCacheCallback = HoughCacheCallback;
    dec2->fn.houghCompactCallback = HoughCompactCallback;

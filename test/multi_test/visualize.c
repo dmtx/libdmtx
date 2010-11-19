@@ -46,7 +46,7 @@ void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id)
    }
 }
 
-void PixelEdgeCacheCallback(PixelEdgeCache *cache, int id)
+void ValueGridCallback(DmtxValueGrid *valueGrid, int id)
 {
    int x, y;
    int imageFlipY;
@@ -60,34 +60,34 @@ void PixelEdgeCacheCallback(PixelEdgeCache *cache, int id)
 
    switch(id) {
       case 0:
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirVertical,   x, y, CTRL_ROW2_Y, CTRL_COL1_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirBackslash,  x, y, CTRL_ROW2_Y, CTRL_COL2_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirHorizontal, x, y, CTRL_ROW2_Y, CTRL_COL3_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirSlash,      x, y, CTRL_ROW2_Y, CTRL_COL4_X);
+         BlitSobelCache(gState.screen, valueGrid, x, y, CTRL_ROW2_Y, CTRL_COL1_X);
          break;
       case 1:
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirVertical,   x, y, CTRL_ROW3_Y, CTRL_COL1_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirBackslash,  x, y, CTRL_ROW3_Y, CTRL_COL2_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirHorizontal, x, y, CTRL_ROW3_Y, CTRL_COL3_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirSlash,      x, y, CTRL_ROW3_Y, CTRL_COL4_X);
+         BlitSobelCache(gState.screen, valueGrid, x, y, CTRL_ROW2_Y, CTRL_COL2_X);
          break;
       case 2:
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirVertical,   x, y, CTRL_ROW4_Y, CTRL_COL1_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirBackslash,  x, y, CTRL_ROW4_Y, CTRL_COL2_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirHorizontal, x, y, CTRL_ROW4_Y, CTRL_COL3_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirSlash,      x, y, CTRL_ROW4_Y, CTRL_COL4_X);
+         BlitSobelCache(gState.screen, valueGrid, x, y, CTRL_ROW2_Y, CTRL_COL3_X);
          break;
       case 3:
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirVertical,   x, y, CTRL_ROW5_Y, CTRL_COL1_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirBackslash,  x, y, CTRL_ROW5_Y, CTRL_COL2_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirHorizontal, x, y, CTRL_ROW5_Y, CTRL_COL3_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirSlash,      x, y, CTRL_ROW5_Y, CTRL_COL4_X);
+         BlitSobelCache(gState.screen, valueGrid, x, y, CTRL_ROW2_Y, CTRL_COL4_X);
          break;
       case 4:
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirVertical,   x, y, CTRL_ROW6_Y, CTRL_COL1_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirBackslash,  x, y, CTRL_ROW6_Y, CTRL_COL2_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirHorizontal, x, y, CTRL_ROW6_Y, CTRL_COL3_X);
-         BlitSobelCache(gState.screen, cache, DmtxSobelDirSlash,      x, y, CTRL_ROW6_Y, CTRL_COL4_X);
+         BlitSobelCache(gState.screen, valueGrid, x, y, CTRL_ROW3_Y, CTRL_COL1_X);
+         break;
+      case 5:
+         BlitSobelCache(gState.screen, valueGrid, x, y, CTRL_ROW3_Y, CTRL_COL2_X);
+         break;
+      case 6:
+         BlitSobelCache(gState.screen, valueGrid, x, y, CTRL_ROW3_Y, CTRL_COL4_X);
+         break;
+      case 7:
+         BlitSobelCache(gState.screen, valueGrid, x, y, CTRL_ROW4_Y, CTRL_COL2_X);
+         break;
+      case 8:
+         BlitSobelCache(gState.screen, valueGrid, x, y, CTRL_ROW4_Y, CTRL_COL3_X);
+         break;
+      case 9:
+         BlitSobelCache(gState.screen, valueGrid, x, y, CTRL_ROW4_Y, CTRL_COL4_X);
          break;
       default:
          break;
@@ -316,7 +316,7 @@ void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY,
  *
  *
  */
-void BlitSobelCache(SDL_Surface *screen, PixelEdgeCache *cache, DmtxSobelDir dir, int x, int y, int screenY, int screenX)
+void BlitSobelCache(SDL_Surface *screen, DmtxValueGrid *cache, int x, int y, int screenY, int screenX)
 {
    int row, col;
    unsigned char rgb[3];
@@ -348,7 +348,7 @@ void BlitSobelCache(SDL_Surface *screen, PixelEdgeCache *cache, DmtxSobelDir dir
    {
       for(col = 0; col < 64; col++)
       {
-         flow = PixelEdgeCacheGetValue(cache, dir, col + x, row + y);
+         flow = dmtxValueGridGetValue(cache, col + x, row + y);
          if(flow > 0) {
             rgb[0] = 0;
             rgb[1] = (int)((abs(flow) * 254.0)/maxFlowMag + 0.5);

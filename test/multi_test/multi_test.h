@@ -92,22 +92,28 @@ typedef struct AppState_struct {
    SDL_Surface *localTmp;
 } AppState;
 
-struct PixelEdgeCache_struct {
-   int width;
-   int height;
-   int *v;
-   int *b;
-   int *h;
-   int *s;
-};
-typedef struct PixelEdgeCache_struct PixelEdgeCache;
+typedef enum {
+   AccelEdgeVertical   = 0x01 << 0,
+   AccelEdgeHorizontal = 0x01 << 1,
+   AccelEdgeMask   = (AccelEdgeVertical | AccelEdgeHorizontal)
+} AccelEdgeType;
 
 typedef enum {
-   SobelDirVertical,
-   SobelDirBackslash,
-   SobelDirHorizontal,
-   SobelDirSlash
-} SobelDirection;
+   SobelEdgeVertical   = 0x01 << 2,
+   SobelEdgeBackslash  = 0x01 << 3,
+   SobelEdgeHorizontal = 0x01 << 4,
+   SobelEdgeSlash      = 0x01 << 5,
+   SobelEdgeMask   = (SobelEdgeVertical | SobelEdgeBackslash | SobelEdgeHorizontal | SobelEdgeSlash)
+} SobelEdgeType;
+
+typedef struct DmtxValueGrid_struct DmtxValueGrid;
+struct DmtxValueGrid_struct {
+   int width;
+   int height;
+   int type;
+   int *value;
+   DmtxValueGrid *ref;
+};
 
 struct ZeroCrossing_struct {
    int mag;
@@ -265,7 +271,7 @@ typedef struct StripStats_struct StripStats;
 
 struct DmtxCallbacks_struct {
    void (*edgeCacheCallback)(DmtxEdgeCache *, int);
-   void (*pixelEdgeCacheCallback)(PixelEdgeCache *, int);
+   void (*dmtxValueGridCallback)(DmtxValueGrid *, int);
    void (*zeroCrossingCallback)(double, double, int, int);
    void (*houghCacheCallback)(DmtxHoughCache *, int);
    void (*houghCompactCallback)(DmtxHoughCompact, int);
@@ -277,12 +283,19 @@ struct DmtxCallbacks_struct {
 typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
 struct DmtxDecode2_struct {
-   DmtxImage       *image;
-   PixelEdgeCache  *sobel;
-   PixelEdgeCache  *accelV;
-   PixelEdgeCache  *accelH;
-   DmtxHoughGrid   *houghGrid;
-   DmtxCallbacks    fn;
+   DmtxImage     *image;
+   DmtxValueGrid *vSobel; /* later split the DmtxValueGrids and DmtxHoughGrid into separate stats struct ? */
+   DmtxValueGrid *bSobel;
+   DmtxValueGrid *hSobel;
+   DmtxValueGrid *sSobel;
+   DmtxValueGrid *vvAccel;
+   DmtxValueGrid *vbAccel;
+   DmtxValueGrid *vsAccel;
+   DmtxValueGrid *hbAccel;
+   DmtxValueGrid *hhAccel;
+   DmtxValueGrid *hsAccel;
+   DmtxHoughGrid *houghGrid;
+   DmtxCallbacks  fn;
 };
 typedef struct DmtxDecode2_struct DmtxDecode2;
 
@@ -331,7 +344,7 @@ ColorTally GetTimingColors(GridRegion *region, const DmtxDecode *dec, int colBeg
 
 /* Process visualization functions */
 void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id);
-void PixelEdgeCacheCallback(PixelEdgeCache *cache, int id);
+void ValueGridCallback(DmtxValueGrid *valueGrid, int id);
 void ZeroCrossingCallback(double xImg, double yImg, int sValue, int id);
 void HoughCacheCallback(DmtxHoughCache *hough, int id);
 void HoughCompactCallback(DmtxHoughCompact h, int id);
@@ -342,7 +355,7 @@ void PerimeterCallback(GridRegion *region, DmtxDirection side, DmtxBarType type)
 
 int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache);
 void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY, int screenX);
-void BlitSobelCache(SDL_Surface *screen, PixelEdgeCache *cache, DmtxSobelDir dir, int x, int y, int screenY, int screenX);
+void BlitSobelCache(SDL_Surface *screen, DmtxValueGrid *cache, int x, int y, int screenY, int screenX);
 void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int screenX);
 void ShowActiveRegion(SDL_Surface *screen, SDL_Surface *active);
 void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
@@ -361,19 +374,17 @@ void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *st
 void DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection side, DmtxBarType type);
 
 /* sobelcache.c */
-PixelEdgeCache *PixelEdgeCacheCreate(int cacheWidth, int cacheHeight);
-DmtxPassFail PixelEdgeCacheDestroy(PixelEdgeCache **sobel);
-int PixelEdgeCacheGetWidth(PixelEdgeCache *sobel);
-int PixelEdgeCacheGetHeight(PixelEdgeCache *sobel);
-int PixelEdgeCacheGetValue(PixelEdgeCache *sobel, DmtxSobelDir dir, int x, int y);
+DmtxValueGrid *dmtxValueGridCreate(int width, int height, int type);
+DmtxPassFail dmtxValueGridDestroy(DmtxValueGrid **valueGrid);
+int dmtxValueGridGetWidth(DmtxValueGrid *valueGrid);
+int dmtxValueGridGetHeight(DmtxValueGrid *valueGrid);
+int dmtxValueGridGetValue(DmtxValueGrid *valueGrid, int x, int y);
 
-/* pixeledgecache.c */
-PixelEdgeCache *SobelCacheCreate(DmtxImage *img);
-DmtxPassFail SobelCachePopulate(PixelEdgeCache *sobel, DmtxImage *img);
-PixelEdgeCache *AccelCacheCreate(PixelEdgeCache *sobel, DmtxDirection edgeType);
-PixelEdgeCache *ZeroCrossingCacheCreate(PixelEdgeCache *zXing, DmtxDirection edgeType);
-int SobelCacheGetValue(PixelEdgeCache *sobel, SobelDirection sobelDir, int sIdx);
-int SobelCacheGetIndexFromZXing(PixelEdgeCache *sobel, DmtxDirection edgeType, int zCol, int zRow);
+/* dmtxvaluegrid.c */
+DmtxPassFail SobelCachePopulate(DmtxDecode2 *dec, DmtxImage *img);
+DmtxValueGrid *AccelCacheCreate(DmtxValueGrid *sobel, AccelEdgeType edgeType);
+int SobelCacheGetValue(DmtxValueGrid *sobel, int sIdx);
+int SobelCacheGetIndexFromZXing(DmtxValueGrid *sobel, AccelEdgeType edgeType, int zCol, int zRow);
 
 /* dmtxdecode2.c */
 DmtxDecode2 *dmtxDecode2Create();
@@ -382,14 +393,13 @@ DmtxPassFail dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img);
 DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 
 /* dmtxhough.c */
-DmtxHoughGrid *HoughGridCreate(DmtxDecode2 *dec);
+/*DmtxHoughGrid *HoughGridCreate(DmtxValueGrid *sobel, AccelCache *accelV, AccelCache *accelH);*/
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
 void InitHoughLocal(DmtxHoughLocal *local, int xOrigin, int yOrigin);
-DmtxPassFail HoughLocalAccumulate(DmtxHoughLocal *local, DmtxDecode2 *dec);
-ZeroCrossing GetZeroCrossing(DmtxDecode2 *dec, int iCol, int iRow,
-      SobelDirection sobelDir, DmtxDirection edgeDir);
-ZeroCrossing SetZeroCrossingFromIndex(DmtxDecode2 *dec, int aCol, int aRow,
-      double smidge, SobelDirection sobelDir, DmtxDirection edgeDir);
+DmtxPassFail HoughLocalAccumulate(DmtxHoughLocal *local, DmtxValueGrid *hhAccel, DmtxValueGrid *hsAccel,
+      DmtxValueGrid *vsAccel, DmtxValueGrid *vvAccel, DmtxValueGrid *vbAccel, DmtxValueGrid *hbAccel);
+ZeroCrossing GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow);
+ZeroCrossing SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge);
 DmtxPassFail HoughLocalAccumulateEdge(DmtxHoughLocal *local, int phi, ZeroCrossing edge);
 double HoughGetLocalOffset(double xLoc, double yLoc, int phi);
 
