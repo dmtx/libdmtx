@@ -93,18 +93,11 @@ typedef struct AppState_struct {
 } AppState;
 
 typedef enum {
-   AccelEdgeVertical   = 0x01 << 0,
-   AccelEdgeHorizontal = 0x01 << 1,
-   AccelEdgeMask   = (AccelEdgeVertical | AccelEdgeHorizontal)
-} AccelEdgeType;
-
-typedef enum {
-   SobelEdgeVertical   = 0x01 << 2,
-   SobelEdgeBackslash  = 0x01 << 3,
-   SobelEdgeHorizontal = 0x01 << 4,
-   SobelEdgeSlash      = 0x01 << 5,
-   SobelEdgeMask   = (SobelEdgeVertical | SobelEdgeBackslash | SobelEdgeHorizontal | SobelEdgeSlash)
-} SobelEdgeType;
+   DmtxEdgeVertical,
+   DmtxEdgeBackslash,
+   DmtxEdgeHorizontal,
+   DmtxEdgeSlash
+} DmtxEdgeType;
 
 typedef struct DmtxValueGrid_struct DmtxValueGrid;
 struct DmtxValueGrid_struct {
@@ -355,7 +348,7 @@ void PerimeterCallback(GridRegion *region, DmtxDirection side, DmtxBarType type)
 
 int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache);
 void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY, int screenX);
-void BlitSobelCache(SDL_Surface *screen, DmtxValueGrid *cache, int x, int y, int screenY, int screenX);
+void BlitSobelGrid(SDL_Surface *screen, DmtxValueGrid *cache, int x, int y, int screenY, int screenX);
 void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int screenX);
 void ShowActiveRegion(SDL_Surface *screen, SDL_Surface *active);
 void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
@@ -380,11 +373,10 @@ int dmtxValueGridGetWidth(DmtxValueGrid *valueGrid);
 int dmtxValueGridGetHeight(DmtxValueGrid *valueGrid);
 int dmtxValueGridGetValue(DmtxValueGrid *valueGrid, int x, int y);
 
-DmtxPassFail SobelCachePopulate(DmtxDecode2 *dec);
-DmtxPassFail AccelCachePopulate(DmtxDecode2 *dec);
-DmtxValueGrid *AccelCacheCreate(DmtxValueGrid *sobel, AccelEdgeType edgeType);
-int SobelCacheGetValue(DmtxValueGrid *sobel, int sIdx);
-int SobelCacheGetIndexFromZXing(DmtxValueGrid *sobel, AccelEdgeType edgeType, int zCol, int zRow);
+DmtxPassFail SobelGridPopulate(DmtxDecode2 *dec);
+DmtxPassFail AccelGridPopulate(DmtxDecode2 *dec);
+DmtxValueGrid *AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType edgeType);
+int SobelGridGetIndexFromZXing(DmtxValueGrid *sobel, DmtxEdgeType edgeType, int zCol, int zRow);
 
 /* dmtxdecode2.c */
 DmtxDecode2 *dmtxDecode2Create();
@@ -393,7 +385,7 @@ DmtxPassFail dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img);
 DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 
 /* dmtxhough.c */
-/*DmtxHoughGrid *HoughGridCreate(DmtxValueGrid *sobel, AccelCache *accelV, AccelCache *accelH);*/
+DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
 void InitHoughLocal(DmtxHoughLocal *local, int xOrigin, int yOrigin);
 DmtxPassFail HoughLocalAccumulate(DmtxHoughLocal *local, DmtxValueGrid *hhAccel, DmtxValueGrid *hsAccel,

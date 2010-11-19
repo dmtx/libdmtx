@@ -82,7 +82,7 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
 
    decode2ReleaseCacheMemory(dec);
 
-   status = SobelCachePopulate(dec);
+   status = SobelGridPopulate(dec);
    RETURN_FAIL_IF(status == DmtxFail);
 
    dec->fn.dmtxValueGridCallback(dec->vSobel, 0);
@@ -90,7 +90,7 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
    dec->fn.dmtxValueGridCallback(dec->hSobel, 2);
    dec->fn.dmtxValueGridCallback(dec->sSobel, 3);
 
-   status = AccelCachePopulate(dec);
+   status = AccelGridPopulate(dec);
    RETURN_FAIL_IF(status == DmtxFail);
 
    dec->fn.dmtxValueGridCallback(dec->vvAccel, 4);
@@ -100,10 +100,8 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
    dec->fn.dmtxValueGridCallback(dec->hhAccel, 8);
    dec->fn.dmtxValueGridCallback(dec->hsAccel, 9);
 
-/*
-   dec->houghGrid = HoughGridCreate(dec);
-   RETURN_FAIL_IF(dec->houghGrid == NULL);
-*/
+   status = HoughGridPopulate(dec);
+   RETURN_FAIL_IF(status == DmtxFail);
 
    return DmtxPass;
 }

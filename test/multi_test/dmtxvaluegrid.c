@@ -13,13 +13,14 @@ dmtxValueGridCreate(int width, int height, int type)
 {
    DmtxValueGrid *valueGrid;
 
-   valueGrid = (DmtxValueGrid *)malloc(sizeof(DmtxValueGrid));
+   valueGrid = (DmtxValueGrid *)calloc(1, sizeof(DmtxValueGrid));
    if(valueGrid == NULL)
       return NULL;
 
    valueGrid->width = width;
    valueGrid->height = height;
    valueGrid->type = type;
+   valueGrid->ref = NULL;
 
    valueGrid->value = (int *)malloc(width * height * sizeof(int));
    if(valueGrid->value == NULL)
@@ -27,8 +28,6 @@ dmtxValueGridCreate(int width, int height, int type)
       dmtxValueGridDestroy(&valueGrid);
       return NULL;
    }
-
-   valueGrid->ref = NULL;
 
    return valueGrid;
 }
@@ -100,7 +99,7 @@ dmtxValueGridGetValue(DmtxValueGrid *valueGrid, int x, int y)
  * 3x3 Sobel Kernel
  */
 DmtxPassFail
-SobelCachePopulate(DmtxDecode2 *dec)
+SobelGridPopulate(DmtxDecode2 *dec)
 {
    int bytesPerPixel, rowSizeBytes, colorPlane;
    int sx, sy;
@@ -116,10 +115,10 @@ SobelCachePopulate(DmtxDecode2 *dec)
    sWidth = dmtxImageGetProp(img, DmtxPropWidth) - 2;
    sHeight = dmtxImageGetProp(img, DmtxPropHeight) - 2;
 
-   dec->vSobel = dmtxValueGridCreate(sWidth, sHeight, SobelEdgeVertical);
-   dec->bSobel = dmtxValueGridCreate(sWidth, sHeight, SobelEdgeBackslash);
-   dec->hSobel = dmtxValueGridCreate(sWidth, sHeight, SobelEdgeHorizontal);
-   dec->sSobel = dmtxValueGridCreate(sWidth, sHeight, SobelEdgeSlash);
+   dec->vSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeVertical);
+   dec->bSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeBackslash);
+   dec->hSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeHorizontal);
+   dec->sSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeSlash);
 
    if(dec->vSobel == NULL || dec->bSobel == NULL || dec->hSobel == NULL || dec->sSobel == NULL)
       return DmtxFail; /* Memory cleanup will be handled by caller */
@@ -231,16 +230,17 @@ SobelCachePopulate(DmtxDecode2 *dec)
  *
  */
 DmtxPassFail
-AccelCachePopulate(DmtxDecode2 *dec)
+AccelGridPopulate(DmtxDecode2 *dec)
 {
-   dec->vvAccel = AccelCacheCreate(dec->vSobel, AccelEdgeVertical);
-   dec->vbAccel = AccelCacheCreate(dec->bSobel, AccelEdgeVertical);
-   dec->vsAccel = AccelCacheCreate(dec->sSobel, AccelEdgeVertical);
-   dec->hbAccel = AccelCacheCreate(dec->bSobel, AccelEdgeHorizontal);
-   dec->hhAccel = AccelCacheCreate(dec->hSobel, AccelEdgeHorizontal);
-   dec->hsAccel = AccelCacheCreate(dec->sSobel, AccelEdgeHorizontal);
+   dec->vvAccel = AccelGridCreate(dec->vSobel, DmtxEdgeVertical);
+   dec->vbAccel = AccelGridCreate(dec->bSobel, DmtxEdgeVertical);
+   dec->vsAccel = AccelGridCreate(dec->sSobel, DmtxEdgeVertical);
+   dec->hbAccel = AccelGridCreate(dec->bSobel, DmtxEdgeHorizontal);
+   dec->hhAccel = AccelGridCreate(dec->hSobel, DmtxEdgeHorizontal);
+   dec->hsAccel = AccelGridCreate(dec->sSobel, DmtxEdgeHorizontal);
 
-   if(dec->vSobel == NULL || dec->bSobel == NULL || dec->hSobel == NULL || dec->sSobel == NULL)
+   if(dec->vvAccel == NULL || dec->vbAccel == NULL || dec->vsAccel == NULL ||
+      dec->hbAccel == NULL || dec->hhAccel == NULL || dec->hsAccel == NULL)
       return DmtxFail; /* Memory cleanup will be handled by caller */
 
    return DmtxPass;
@@ -251,7 +251,7 @@ AccelCachePopulate(DmtxDecode2 *dec)
  *
  */
 DmtxValueGrid *
-AccelCacheCreate(DmtxValueGrid *sobel, AccelEdgeType accelEdgeType)
+AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
 {
    int x, y;
    int aIdx, sInc, sIdx, sIdxNext;
@@ -262,7 +262,7 @@ AccelCacheCreate(DmtxValueGrid *sobel, AccelEdgeType accelEdgeType)
    sWidth = dmtxValueGridGetWidth(sobel);
    sHeight = dmtxValueGridGetHeight(sobel);
 
-   if(accelEdgeType == AccelEdgeVertical)
+   if(accelEdgeType == DmtxEdgeVertical)
    {
       aWidth = sWidth - 1;
       aHeight = sHeight;
@@ -276,7 +276,8 @@ AccelCacheCreate(DmtxValueGrid *sobel, AccelEdgeType accelEdgeType)
    }
 
    accel = dmtxValueGridCreate(aWidth, aHeight, accelEdgeType);
-   assert(accel != NULL); /* XXX error handling here */
+   if(accel == NULL)
+      return NULL;
 
    accel->ref = sobel;
 
@@ -302,21 +303,7 @@ AccelCacheCreate(DmtxValueGrid *sobel, AccelEdgeType accelEdgeType)
  *
  */
 int
-SobelCacheGetValue(DmtxValueGrid *sobel, int sIdx)
-{
-   int sValue;
-
-   sValue = sobel->value[sIdx];
-
-   return sValue;
-}
-
-/**
- *
- *
- */
-int
-SobelCacheGetIndexFromZXing(DmtxValueGrid *sobel, AccelEdgeType edgeType, int zCol, int zRow)
+SobelGridGetIndexFromZXing(DmtxValueGrid *sobel, DmtxEdgeType edgeType, int zCol, int zRow)
 {
    int sRow, sCol;
 
