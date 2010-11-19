@@ -100,7 +100,7 @@ dmtxValueGridGetValue(DmtxValueGrid *valueGrid, int x, int y)
  * 3x3 Sobel Kernel
  */
 DmtxPassFail
-SobelCachePopulate(DmtxDecode2 *dec, DmtxImage *img)
+SobelCachePopulate(DmtxDecode2 *dec)
 {
    int bytesPerPixel, rowSizeBytes, colorPlane;
    int sx, sy;
@@ -111,6 +111,7 @@ SobelCachePopulate(DmtxDecode2 *dec, DmtxImage *img)
    int colorHiLf, colorMdLf, colorMdMd;
    int idx;
    int sWidth, sHeight;
+   DmtxImage *img = dec->image;
 
    sWidth = dmtxImageGetProp(img, DmtxPropWidth) - 2;
    sHeight = dmtxImageGetProp(img, DmtxPropHeight) - 2;
@@ -119,8 +120,9 @@ SobelCachePopulate(DmtxDecode2 *dec, DmtxImage *img)
    dec->bSobel = dmtxValueGridCreate(sWidth, sHeight, SobelEdgeBackslash);
    dec->hSobel = dmtxValueGridCreate(sWidth, sHeight, SobelEdgeHorizontal);
    dec->sSobel = dmtxValueGridCreate(sWidth, sHeight, SobelEdgeSlash);
+
    if(dec->vSobel == NULL || dec->bSobel == NULL || dec->hSobel == NULL || dec->sSobel == NULL)
-      return DmtxFail; /* Cleanup will be handled by caller */
+      return DmtxFail; /* Memory cleanup will be handled by caller */
 
    rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
    bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
@@ -220,6 +222,26 @@ SobelCachePopulate(DmtxDecode2 *dec, DmtxImage *img)
          colorLoRt = img->pxl[pOffset + rowSizeBytes];
       }
    }
+
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+DmtxPassFail
+AccelCachePopulate(DmtxDecode2 *dec)
+{
+   dec->vvAccel = AccelCacheCreate(dec->vSobel, AccelEdgeVertical);
+   dec->vbAccel = AccelCacheCreate(dec->bSobel, AccelEdgeVertical);
+   dec->vsAccel = AccelCacheCreate(dec->sSobel, AccelEdgeVertical);
+   dec->hbAccel = AccelCacheCreate(dec->bSobel, AccelEdgeHorizontal);
+   dec->hhAccel = AccelCacheCreate(dec->hSobel, AccelEdgeHorizontal);
+   dec->hsAccel = AccelCacheCreate(dec->sSobel, AccelEdgeHorizontal);
+
+   if(dec->vSobel == NULL || dec->bSobel == NULL || dec->hSobel == NULL || dec->sSobel == NULL)
+      return DmtxFail; /* Memory cleanup will be handled by caller */
 
    return DmtxPass;
 }

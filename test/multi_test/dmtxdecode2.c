@@ -82,7 +82,7 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
 
    decode2ReleaseCacheMemory(dec);
 
-   status = SobelCachePopulate(dec, img);
+   status = SobelCachePopulate(dec);
    RETURN_FAIL_IF(status == DmtxFail);
 
    dec->fn.dmtxValueGridCallback(dec->vSobel, 0);
@@ -90,32 +90,17 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
    dec->fn.dmtxValueGridCallback(dec->hSobel, 2);
    dec->fn.dmtxValueGridCallback(dec->sSobel, 3);
 
-   dec->vvAccel = AccelCacheCreate(dec->vSobel, AccelEdgeVertical);
-   RETURN_FAIL_IF(dec->vvAccel == NULL);
+   status = AccelCachePopulate(dec);
+   RETURN_FAIL_IF(status == DmtxFail);
+
    dec->fn.dmtxValueGridCallback(dec->vvAccel, 4);
-
-   dec->vbAccel = AccelCacheCreate(dec->bSobel, AccelEdgeVertical);
-   RETURN_FAIL_IF(dec->vbAccel == NULL);
    dec->fn.dmtxValueGridCallback(dec->vbAccel, 5);
-
-   dec->vsAccel = AccelCacheCreate(dec->sSobel, AccelEdgeVertical);
-   RETURN_FAIL_IF(dec->vsAccel == NULL);
    dec->fn.dmtxValueGridCallback(dec->vsAccel, 6);
-
-   dec->hbAccel = AccelCacheCreate(dec->bSobel, AccelEdgeHorizontal);
-   RETURN_FAIL_IF(dec->hbAccel == NULL);
    dec->fn.dmtxValueGridCallback(dec->hbAccel, 7);
-
-   dec->hhAccel = AccelCacheCreate(dec->hSobel, AccelEdgeHorizontal);
-   RETURN_FAIL_IF(dec->hhAccel == NULL);
    dec->fn.dmtxValueGridCallback(dec->hhAccel, 8);
-
-   dec->hsAccel = AccelCacheCreate(dec->sSobel, AccelEdgeHorizontal);
-   RETURN_FAIL_IF(dec->hsAccel == NULL);
    dec->fn.dmtxValueGridCallback(dec->hsAccel, 9);
 
 /*
-   dec->houghGrid = HoughGridCreate(dec->sobel, dec->accelV, dec->accelH);
    dec->houghGrid = HoughGridCreate(dec);
    RETURN_FAIL_IF(dec->houghGrid == NULL);
 */

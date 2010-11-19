@@ -373,15 +373,15 @@ void DrawSymbolPreview(SDL_Surface *screen, DmtxImage *img, AlignmentGrid *grid,
 void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *state, DmtxDirection side, DmtxBarType type);
 void DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection side, DmtxBarType type);
 
-/* sobelcache.c */
+/* dmtxvaluegrid.c */
 DmtxValueGrid *dmtxValueGridCreate(int width, int height, int type);
 DmtxPassFail dmtxValueGridDestroy(DmtxValueGrid **valueGrid);
 int dmtxValueGridGetWidth(DmtxValueGrid *valueGrid);
 int dmtxValueGridGetHeight(DmtxValueGrid *valueGrid);
 int dmtxValueGridGetValue(DmtxValueGrid *valueGrid, int x, int y);
 
-/* dmtxvaluegrid.c */
-DmtxPassFail SobelCachePopulate(DmtxDecode2 *dec, DmtxImage *img);
+DmtxPassFail SobelCachePopulate(DmtxDecode2 *dec);
+DmtxPassFail AccelCachePopulate(DmtxDecode2 *dec);
 DmtxValueGrid *AccelCacheCreate(DmtxValueGrid *sobel, AccelEdgeType edgeType);
 int SobelCacheGetValue(DmtxValueGrid *sobel, int sIdx);
 int SobelCacheGetIndexFromZXing(DmtxValueGrid *sobel, AccelEdgeType edgeType, int zCol, int zRow);
