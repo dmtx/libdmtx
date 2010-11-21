@@ -131,8 +131,8 @@ struct DmtxHoughCache_struct {
    unsigned int mag[HOUGH_D_EXTENT * HOUGH_PHI_EXTENT];
 };
 
-typedef struct DmtxHoughRegion_struct DmtxHoughRegion;
-struct DmtxHoughRegion_struct {
+typedef struct DmtxHoughLocal_struct DmtxHoughLocal;
+struct DmtxHoughLocal_struct {
    int xOrigin;
    int yOrigin;
    unsigned int dOrigin[128];
@@ -144,7 +144,7 @@ struct DmtxHoughGrid_struct {
    int rows;
    int cols;
    int count;
-   DmtxHoughRegion *local;
+   DmtxHoughLocal *local;
 };
 
 typedef struct HoughMaximaSort_struct {
@@ -267,7 +267,7 @@ struct DmtxCallbacks_struct {
    void (*dmtxValueGridCallback)(DmtxValueGrid *, int);
    void (*zeroCrossingCallback)(double, double, int, int);
    void (*houghCacheCallback)(DmtxHoughCache *, int); /* deprecated */
-   void (*dmtxHoughRegionCallback)(DmtxHoughRegion *, int);
+   void (*dmtxHoughLocalCallback)(DmtxHoughLocal *, int);
    void (*houghCompactCallback)(DmtxHoughCompact, int);
    void (*vanishPointCallback)(VanishPointSort *, int);
    void (*timingCallback)(Timing *, Timing *, int);
@@ -341,7 +341,7 @@ void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id);
 void ValueGridCallback(DmtxValueGrid *valueGrid, int id);
 void ZeroCrossingCallback(double xImg, double yImg, int sValue, int id);
 void HoughCacheCallback(DmtxHoughCache *hough, int id);
-void HoughRegionCallback(DmtxHoughRegion *hough, int id);
+void HoughLocalCallback(DmtxHoughLocal *hough, int id);
 void HoughCompactCallback(DmtxHoughCompact h, int id);
 void VanishPointCallback(VanishPointSort *vPoints, int id);
 void TimingCallback(Timing *timing0, Timing *timing1, int id);
@@ -352,7 +352,7 @@ int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache);
 void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY, int screenX);
 void BlitSobelGrid(SDL_Surface *screen, DmtxValueGrid *cache, int x, int y, int screenY, int screenX);
 void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int screenX);
-void BlitHoughRegion(SDL_Surface *screen, DmtxHoughRegion *hough, int screenY, int screenX);
+void BlitHoughLocal(SDL_Surface *screen, DmtxHoughLocal *hough, int screenY, int screenX);
 void ShowActiveRegion(SDL_Surface *screen, SDL_Surface *active);
 void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int screenY, int screenX);
 Uint32 GetPixel(SDL_Surface *surface, int x, int y);
@@ -390,10 +390,10 @@ DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 /* dmtxhough.c */
 DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
-DmtxPassFail HoughRegionAccumulate(DmtxDecode2 *dec, int hCol, int hRow);
+DmtxPassFail HoughLocalAccumulate(DmtxDecode2 *dec, int hCol, int hRow);
 ZeroCrossing GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow);
 ZeroCrossing SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge);
-DmtxPassFail HoughRegionAccumulateEdge(DmtxHoughRegion *local, int phi, ZeroCrossing edge);
+DmtxPassFail HoughLocalAccumulateEdge(DmtxHoughLocal *local, int phi, ZeroCrossing edge);
 double HoughGetLocalOffset(double xLoc, double yLoc, int phi);
 
 extern AppState gState;

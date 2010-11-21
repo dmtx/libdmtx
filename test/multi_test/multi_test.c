@@ -113,7 +113,7 @@ main(int argc, char *argv[])
    dec2->fn.dmtxValueGridCallback = ValueGridCallback;
    dec2->fn.zeroCrossingCallback = ZeroCrossingCallback;
    dec2->fn.houghCacheCallback = HoughCacheCallback;
-   dec2->fn.dmtxHoughRegionCallback = HoughRegionCallback;
+   dec2->fn.dmtxHoughLocalCallback = HoughLocalCallback;
    dec2->fn.houghCompactCallback = HoughCompactCallback;
    dec2->fn.vanishPointCallback = VanishPointCallback;
    dec2->fn.timingCallback = TimingCallback;

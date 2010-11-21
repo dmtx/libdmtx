@@ -126,14 +126,14 @@ void HoughCacheCallback(DmtxHoughCache *hough, int id)
    }
 }
 
-void HoughRegionCallback(DmtxHoughRegion *hough, int id)
+void HoughLocalCallback(DmtxHoughLocal *hough, int id)
 {
    switch(id) {
       case 0:
-         BlitHoughRegion(gState.screen, hough, CTRL_ROW5_Y, CTRL_COL1_X + 1);
+         BlitHoughLocal(gState.screen, hough, CTRL_ROW5_Y, CTRL_COL1_X + 1);
          break;
       case 1:
-         BlitHoughRegion(gState.screen, hough, CTRL_ROW6_Y - 1, CTRL_COL1_X + 1);
+         BlitHoughLocal(gState.screen, hough, CTRL_ROW6_Y - 1, CTRL_COL1_X + 1);
          break;
    }
 }
@@ -395,7 +395,7 @@ void BlitSobelGrid(SDL_Surface *screen, DmtxValueGrid *cache, int x, int y, int 
  *
  *
  */
-void BlitHoughRegion(SDL_Surface *screen, DmtxHoughRegion *hough, int screenY, int screenX)
+void BlitHoughLocal(SDL_Surface *screen, DmtxHoughLocal *hough, int screenY, int screenX)
 {
    int row, col;
    int width, height;
