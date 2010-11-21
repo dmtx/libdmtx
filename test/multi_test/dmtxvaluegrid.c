@@ -222,6 +222,11 @@ SobelGridPopulate(DmtxDecode2 *dec)
       }
    }
 
+   dec->fn.dmtxValueGridCallback(dec->vSobel, 0);
+   dec->fn.dmtxValueGridCallback(dec->bSobel, 1);
+   dec->fn.dmtxValueGridCallback(dec->hSobel, 2);
+   dec->fn.dmtxValueGridCallback(dec->sSobel, 3);
+
    return DmtxPass;
 }
 
@@ -242,6 +247,13 @@ AccelGridPopulate(DmtxDecode2 *dec)
    if(dec->vvAccel == NULL || dec->vbAccel == NULL || dec->vsAccel == NULL ||
       dec->hbAccel == NULL || dec->hhAccel == NULL || dec->hsAccel == NULL)
       return DmtxFail; /* Memory cleanup will be handled by caller */
+
+   dec->fn.dmtxValueGridCallback(dec->vvAccel, 4);
+   dec->fn.dmtxValueGridCallback(dec->vbAccel, 5);
+   dec->fn.dmtxValueGridCallback(dec->vsAccel, 6);
+   dec->fn.dmtxValueGridCallback(dec->hbAccel, 7);
+   dec->fn.dmtxValueGridCallback(dec->hhAccel, 8);
+   dec->fn.dmtxValueGridCallback(dec->hsAccel, 9);
 
    return DmtxPass;
 }
@@ -308,11 +320,11 @@ SobelGridGetIndexFromZXing(DmtxValueGrid *sobel, DmtxEdgeType edgeType, int zCol
    int sRow, sCol;
 
    switch(edgeType) {
-      case DmtxDirVertical:
+      case DmtxEdgeVertical:
          sRow = zRow;
          sCol = zCol + 1;
          break;
-      case DmtxDirHorizontal:
+      case DmtxEdgeHorizontal:
          sRow = zRow + 1;
          sCol = zCol;
          break;

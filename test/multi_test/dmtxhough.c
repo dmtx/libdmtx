@@ -34,29 +34,37 @@ Contact: mblaughton@users.sourceforge.net
 DmtxPassFail
 HoughGridPopulate(DmtxDecode2 *dec)
 {
-   int hRow, hCol;
-   DmtxHoughGrid *hGrid;
-   DmtxHoughLocal *hLocal;
+   int row, col;
+   DmtxHoughGrid *grid;
+   DmtxHoughRegion *hLocal;
 
-   hGrid = (DmtxHoughGrid *)calloc(1, sizeof(DmtxHoughGrid));
-   if(hGrid == NULL)
+   dec->houghGrid = (DmtxHoughGrid *)calloc(1, sizeof(DmtxHoughGrid));
+   if(dec->houghGrid == NULL)
       return DmtxFail;
 
-   hGrid->rows = 1;
-   hGrid->cols = 1;
-   hGrid->count = hGrid->rows * hGrid->cols;
-
-   hGrid->local = (DmtxHoughLocal *)malloc(hGrid->count * sizeof(DmtxHoughLocal));
-
-   for(hRow = 0; hRow < hGrid->rows; hRow++)
+   grid = dec->houghGrid;
+   grid->rows = 1;
+   grid->cols = 1;
+   grid->count = grid->rows * grid->cols;
+   grid->local = (DmtxHoughRegion *)malloc(grid->count * sizeof(DmtxHoughRegion));
+   if(grid->local == NULL)
    {
-      for(hCol = 0; hCol < hGrid->cols; hCol++)
+      free(dec->houghGrid);
+      dec->houghGrid = NULL;
+      return DmtxFail;
+   }
+
+   for(row = 0; row < grid->rows; row++)
+   {
+      for(col = 0; col < grid->cols; col++)
       {
-         hLocal = &(hGrid->local[hRow * hGrid->cols + hCol]);
-         InitHoughLocal(hLocal, 100, 100);
-         HoughLocalAccumulate(hLocal, dec->hhAccel, dec->hsAccel, dec->vsAccel, dec->vvAccel, dec->vbAccel, dec->hbAccel);
+         hLocal = &(grid->local[row * grid->cols + col]);
+         InitHoughRegion(hLocal, 100, 100);
+         HoughRegionAccumulate(hLocal, dec->hhAccel, dec->hsAccel, dec->vsAccel, dec->vvAccel, dec->vbAccel, dec->hbAccel);
       }
    }
+
+   dec->fn.dmtxHoughRegionCallback(dec->houghGrid->local, 0);
 
    return DmtxPass;
 }
@@ -85,9 +93,9 @@ HoughGridDestroy(DmtxHoughGrid **grid)
  *
  */
 void
-InitHoughLocal(DmtxHoughLocal *local, int xOrigin, int yOrigin)
+InitHoughRegion(DmtxHoughRegion *local, int xOrigin, int yOrigin)
 {
-   memset(local, 0x00, sizeof(DmtxHoughLocal));
+   memset(local, 0x00, sizeof(DmtxHoughRegion));
 
    local->xOrigin = xOrigin;
    local->yOrigin = xOrigin;
@@ -100,7 +108,7 @@ InitHoughLocal(DmtxHoughLocal *local, int xOrigin, int yOrigin)
  *
  */
 DmtxPassFail
-HoughLocalAccumulate(DmtxHoughLocal *local, DmtxValueGrid *hhAccel, DmtxValueGrid *hsAccel,
+HoughRegionAccumulate(DmtxHoughRegion *local, DmtxValueGrid *hhAccel, DmtxValueGrid *hsAccel,
       DmtxValueGrid *vsAccel, DmtxValueGrid *vvAccel, DmtxValueGrid *vbAccel, DmtxValueGrid *hbAccel)
 {
    int row, col;
@@ -134,30 +142,30 @@ HoughLocalAccumulate(DmtxHoughLocal *local, DmtxValueGrid *hhAccel, DmtxValueGri
          if(hhZXing.mag > 0)
          {
             for(phi = 0; phi < 16; phi++)
-               HoughLocalAccumulateEdge(local, phi, hhZXing);
+               HoughRegionAccumulateEdge(local, phi, hhZXing);
             for(phi = 112; phi < 128; phi++)
-               HoughLocalAccumulateEdge(local, phi, hhZXing);
+               HoughRegionAccumulateEdge(local, phi, hhZXing);
          }
 
          if(hsZXing.mag > 0)
             for(phi = 16; phi < 32; phi++)
-               HoughLocalAccumulateEdge(local, phi, hsZXing);
+               HoughRegionAccumulateEdge(local, phi, hsZXing);
 
          if(vsZXing.mag > 0)
             for(phi = 32; phi < 48; phi++)
-               HoughLocalAccumulateEdge(local, phi, vsZXing);
+               HoughRegionAccumulateEdge(local, phi, vsZXing);
 
          if(vvZXing.mag > 0)
             for(phi = 48; phi < 80; phi++)
-               HoughLocalAccumulateEdge(local, phi, vvZXing);
+               HoughRegionAccumulateEdge(local, phi, vvZXing);
 
          if(vbZXing.mag > 0)
             for(phi = 80; phi < 96; phi++)
-               HoughLocalAccumulateEdge(local, phi, vbZXing);
+               HoughRegionAccumulateEdge(local, phi, vbZXing);
 
          if(hbZXing.mag > 0)
             for(phi = 96; phi < 112; phi++)
-               HoughLocalAccumulateEdge(local, phi, hbZXing);
+               HoughRegionAccumulateEdge(local, phi, hbZXing);
       }
    }
 
@@ -245,7 +253,7 @@ SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge
  *
  */
 DmtxPassFail
-HoughLocalAccumulateEdge(DmtxHoughLocal *local, int phi, ZeroCrossing edge)
+HoughRegionAccumulateEdge(DmtxHoughRegion *local, int phi, ZeroCrossing edge)
 {
    double d;
 

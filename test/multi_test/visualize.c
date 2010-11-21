@@ -126,6 +126,18 @@ void HoughCacheCallback(DmtxHoughCache *hough, int id)
    }
 }
 
+void HoughRegionCallback(DmtxHoughRegion *hough, int id)
+{
+   switch(id) {
+      case 0:
+         BlitHoughRegion(gState.screen, hough, CTRL_ROW5_Y, CTRL_COL1_X + 1);
+         break;
+      case 1:
+         BlitHoughRegion(gState.screen, hough, CTRL_ROW6_Y - 1, CTRL_COL1_X + 1);
+         break;
+   }
+}
+
 void HoughCompactCallback(DmtxHoughCompact h, int id)
 {
    switch(id) {
@@ -369,6 +381,86 @@ void BlitSobelGrid(SDL_Surface *screen, DmtxValueGrid *cache, int x, int y, int 
 
    clipRect.w = LOCAL_SIZE;
    clipRect.h = LOCAL_SIZE;
+   clipRect.x = screenX;
+   clipRect.y = screenY;
+
+   surface = SDL_CreateRGBSurfaceFrom(pixbuf, width, height, 24, width * 3,
+         rmask, gmask, bmask, 0);
+
+   SDL_BlitSurface(surface, NULL, screen, &clipRect);
+   SDL_FreeSurface(surface);
+}
+
+/**
+ *
+ *
+ */
+void BlitHoughRegion(SDL_Surface *screen, DmtxHoughRegion *hough, int screenY, int screenX)
+{
+   int row, col;
+   int width, height;
+   int maxVal;
+   int rgb[3];
+   unsigned int cache;
+   int offset;
+   unsigned char pixbuf[24576]; /* 128 * 64 * 3 */
+   SDL_Surface *surface;
+   SDL_Rect clipRect;
+   Uint32 rmask, gmask, bmask, amask;
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+   rmask = 0xff000000;
+   gmask = 0x00ff0000;
+   bmask = 0x0000ff00;
+   amask = 0x000000ff;
+#else
+   rmask = 0x000000ff;
+   gmask = 0x0000ff00;
+   bmask = 0x00ff0000;
+   amask = 0xff000000;
+#endif
+
+   width = 128;
+   height = LOCAL_SIZE;
+
+   maxVal = 0;
+   for(row = 0; row < height; row++) {
+      for(col = 0; col < width; col++) {
+/*       if(hough->isMax[row * width + col] == 0)
+            continue; */
+
+         if(hough->bucket[row][col] > maxVal)
+            maxVal = hough->bucket[row][col];
+      }
+   }
+
+   for(row = 0; row < height; row++) {
+      for(col = 0; col < width; col++) {
+
+         cache = hough->bucket[row][col];
+
+/*       if(hough->isMax[row * width + col] > 2) {
+            rgb[0] = 255;
+            rgb[1] = rgb[2] = 0;
+         }
+         else if(hough->isMax[row * width + col] == 1) {
+            rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
+         }
+         else {
+            rgb[0] = rgb[1] = rgb[2] = 0;
+         }
+*/
+         rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
+
+         offset = ((height - row - 1) * width + col) * 3;
+         pixbuf[offset] = rgb[0];
+         pixbuf[offset+1] = rgb[1];
+         pixbuf[offset+2] = rgb[2];
+      }
+   }
+
+   clipRect.w = width;
+   clipRect.h = height;
    clipRect.x = screenX;
    clipRect.y = screenY;
 
