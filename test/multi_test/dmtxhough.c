@@ -36,7 +36,6 @@ HoughGridPopulate(DmtxDecode2 *dec)
 {
    int row, col;
    DmtxHoughGrid *grid;
-   DmtxHoughRegion *hLocal;
 
    dec->houghGrid = (DmtxHoughGrid *)calloc(1, sizeof(DmtxHoughGrid));
    if(dec->houghGrid == NULL)
@@ -58,9 +57,7 @@ HoughGridPopulate(DmtxDecode2 *dec)
    {
       for(col = 0; col < grid->cols; col++)
       {
-         hLocal = &(grid->local[row * grid->cols + col]);
-         InitHoughRegion(hLocal, 100, 100);
-         HoughRegionAccumulate(hLocal, dec->hhAccel, dec->hsAccel, dec->vsAccel, dec->vvAccel, dec->vbAccel, dec->hbAccel);
+         HoughRegionAccumulate(dec, col, row);
       }
    }
 
@@ -92,49 +89,46 @@ HoughGridDestroy(DmtxHoughGrid **grid)
  *
  *
  */
-void
-InitHoughRegion(DmtxHoughRegion *local, int xOrigin, int yOrigin)
-{
-   memset(local, 0x00, sizeof(DmtxHoughRegion));
-
-   local->xOrigin = xOrigin;
-   local->yOrigin = xOrigin;
-
-   /* calculate dOffset ? */
-}
-
-/**
- *
- *
- */
 DmtxPassFail
-HoughRegionAccumulate(DmtxHoughRegion *local, DmtxValueGrid *hhAccel, DmtxValueGrid *hsAccel,
-      DmtxValueGrid *vsAccel, DmtxValueGrid *vvAccel, DmtxValueGrid *vbAccel, DmtxValueGrid *hbAccel)
+HoughRegionAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
 {
-   int row, col;
+   int rRow, rCol;
    int iRow, iCol;
    int phi;
+   DmtxHoughRegion *hRegion;
    ZeroCrossing hhZXing, hsZXing, vsZXing, vvZXing, vbZXing, hbZXing;
 
-   for(row = 0; row < 64; row++)
+   hRegion = &(dec->houghGrid->local[0]); /* [hCol * width + hRol]; */
+
+   memset(hRegion, 0x00, sizeof(DmtxHoughRegion));
+
+   hRegion->xOrigin = 100;
+   hRegion->yOrigin = 100;
+
+   /* calculate dOffset ? */
+
+   for(rRow = 0; rRow < 64; rRow++)
    {
-      iRow = local->yOrigin + row;
+      iRow = hRegion->yOrigin + rRow;
 
-      for(col = 0; col < 64; col++)
+      for(rCol = 0; rCol < 64; rCol++)
       {
-         iCol = local->xOrigin + col;
+         iCol = hRegion->xOrigin + rCol;
 
-         hhZXing = GetZeroCrossing(hhAccel, iCol, iRow);
-         hsZXing = GetZeroCrossing(hsAccel, iCol, iRow);
-         vsZXing = GetZeroCrossing(vsAccel, iCol, iRow);
-         vvZXing = GetZeroCrossing(vvAccel, iCol, iRow);
-         vbZXing = GetZeroCrossing(vbAccel, iCol, iRow);
-         hbZXing = GetZeroCrossing(hbAccel, iCol, iRow);
+         hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow);
+         hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow);
+         vsZXing = GetZeroCrossing(dec->vsAccel, iCol, iRow);
+         vvZXing = GetZeroCrossing(dec->vvAccel, iCol, iRow);
+         vbZXing = GetZeroCrossing(dec->vbAccel, iCol, iRow);
+         hbZXing = GetZeroCrossing(dec->hbAccel, iCol, iRow);
 /*
    if(gState.displayEdge == DmtxUndefined || gState.displayEdge == sobelDir)
    {
       if(edgeDir == DmtxEdgeVertical && (sobelDir == DmtxEdgeVertical || sobelDir == DmtxEdgeBackslash))
-         dec->fn.zeroCrossingCallback(iCol, iRow, edge.mag, 0);
+*/
+      if(vvZXing.mag > 50)
+         dec->fn.zeroCrossingCallback(iCol, iRow, 255, 0);
+/*
       else if(edgeDir == DmtxEdgeHorizontal && (sobelDir == SobelEdgeHorizontal || sobelDir == DmtxEdgeSlash))
          dec->fn.zeroCrossingCallback(iCol, iRow, edge.mag, 0);
    }
@@ -142,30 +136,30 @@ HoughRegionAccumulate(DmtxHoughRegion *local, DmtxValueGrid *hhAccel, DmtxValueG
          if(hhZXing.mag > 0)
          {
             for(phi = 0; phi < 16; phi++)
-               HoughRegionAccumulateEdge(local, phi, hhZXing);
+               HoughRegionAccumulateEdge(hRegion, phi, hhZXing);
             for(phi = 112; phi < 128; phi++)
-               HoughRegionAccumulateEdge(local, phi, hhZXing);
+               HoughRegionAccumulateEdge(hRegion, phi, hhZXing);
          }
 
          if(hsZXing.mag > 0)
             for(phi = 16; phi < 32; phi++)
-               HoughRegionAccumulateEdge(local, phi, hsZXing);
+               HoughRegionAccumulateEdge(hRegion, phi, hsZXing);
 
          if(vsZXing.mag > 0)
             for(phi = 32; phi < 48; phi++)
-               HoughRegionAccumulateEdge(local, phi, vsZXing);
+               HoughRegionAccumulateEdge(hRegion, phi, vsZXing);
 
          if(vvZXing.mag > 0)
             for(phi = 48; phi < 80; phi++)
-               HoughRegionAccumulateEdge(local, phi, vvZXing);
+               HoughRegionAccumulateEdge(hRegion, phi, vvZXing);
 
          if(vbZXing.mag > 0)
             for(phi = 80; phi < 96; phi++)
-               HoughRegionAccumulateEdge(local, phi, vbZXing);
+               HoughRegionAccumulateEdge(hRegion, phi, vbZXing);
 
          if(hbZXing.mag > 0)
             for(phi = 96; phi < 112; phi++)
-               HoughRegionAccumulateEdge(local, phi, hbZXing);
+               HoughRegionAccumulateEdge(hRegion, phi, hbZXing);
       }
    }
 

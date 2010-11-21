@@ -390,9 +390,7 @@ DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 /* dmtxhough.c */
 DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
-void InitHoughRegion(DmtxHoughRegion *local, int xOrigin, int yOrigin);
-DmtxPassFail HoughRegionAccumulate(DmtxHoughRegion *local, DmtxValueGrid *hhAccel, DmtxValueGrid *hsAccel,
-      DmtxValueGrid *vsAccel, DmtxValueGrid *vvAccel, DmtxValueGrid *vbAccel, DmtxValueGrid *hbAccel);
+DmtxPassFail HoughRegionAccumulate(DmtxDecode2 *dec, int hCol, int hRow);
 ZeroCrossing GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow);
 ZeroCrossing SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge);
 DmtxPassFail HoughRegionAccumulateEdge(DmtxHoughRegion *local, int phi, ZeroCrossing edge);
