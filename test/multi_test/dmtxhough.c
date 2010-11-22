@@ -102,8 +102,9 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
 
    memset(hRegion, 0x00, sizeof(DmtxHoughLocal));
 
-   hRegion->xOrigin = 100;
-   hRegion->yOrigin = 100;
+   /* Global coordinate system */
+   hRegion->xOrigin = 40;
+   hRegion->yOrigin = 360;
 
    /* calculate dOffset ? */
 
@@ -126,40 +127,40 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
    {
       if(edgeDir == DmtxEdgeVertical && (sobelDir == DmtxEdgeVertical || sobelDir == DmtxEdgeBackslash))
 */
-      if(vvZXing.mag > 50)
+      if(hsZXing.mag > 50)
          dec->fn.zeroCrossingCallback(iCol, iRow, 255, 0);
 /*
       else if(edgeDir == DmtxEdgeHorizontal && (sobelDir == SobelEdgeHorizontal || sobelDir == DmtxEdgeSlash))
          dec->fn.zeroCrossingCallback(iCol, iRow, edge.mag, 0);
    }
 */
-         if(hhZXing.mag > 0)
+         if(vvZXing.mag > 0)
          {
             for(phi = 0; phi < 16; phi++)
-               HoughLocalAccumulateEdge(hRegion, phi, hhZXing);
+               HoughLocalAccumulateEdge(hRegion, phi, vvZXing);
             for(phi = 112; phi < 128; phi++)
-               HoughLocalAccumulateEdge(hRegion, phi, hhZXing);
+               HoughLocalAccumulateEdge(hRegion, phi, vvZXing);
          }
 
-         if(hsZXing.mag > 0)
-            for(phi = 16; phi < 32; phi++)
-               HoughLocalAccumulateEdge(hRegion, phi, hsZXing);
-
-         if(vsZXing.mag > 0)
-            for(phi = 32; phi < 48; phi++)
-               HoughLocalAccumulateEdge(hRegion, phi, vsZXing);
-
-         if(vvZXing.mag > 0)
-            for(phi = 48; phi < 80; phi++)
-               HoughLocalAccumulateEdge(hRegion, phi, vvZXing);
-
          if(vbZXing.mag > 0)
-            for(phi = 80; phi < 96; phi++)
+            for(phi = 16; phi < 32; phi++)
                HoughLocalAccumulateEdge(hRegion, phi, vbZXing);
 
          if(hbZXing.mag > 0)
-            for(phi = 96; phi < 112; phi++)
+            for(phi = 32; phi < 48; phi++)
                HoughLocalAccumulateEdge(hRegion, phi, hbZXing);
+
+         if(hhZXing.mag > 0)
+            for(phi = 48; phi < 80; phi++)
+               HoughLocalAccumulateEdge(hRegion, phi, hhZXing);
+
+         if(hsZXing.mag > 0)
+            for(phi = 80; phi < 96; phi++)
+               HoughLocalAccumulateEdge(hRegion, phi, hsZXing);
+
+         if(vsZXing.mag > 0)
+            for(phi = 96; phi < 112; phi++)
+               HoughLocalAccumulateEdge(hRegion, phi, vsZXing);
       }
    }
 
@@ -252,13 +253,15 @@ HoughLocalAccumulateEdge(DmtxHoughLocal *local, int phi, ZeroCrossing edge)
    double d;
    int dInt;
 
-   d = HoughGetLocalOffset(edge.x, edge.y, phi);
+   d = HoughGetLocalOffset(edge.x - local->xOrigin, edge.y - local->yOrigin, phi);
    dInt = (int)d;
 
-if(dInt < 0 || dInt > 63)
+if(dInt > 63)
    return DmtxFail;
-if(phi < 0 || phi > 127)
-   return DmtxFail;
+
+   assert(dInt >= 0);
+   assert(dInt < 64);
+   assert(phi >= 0 && phi < 128);
 
    local->bucket[dInt][phi] += edge.mag;
 
@@ -281,13 +284,13 @@ HoughGetLocalOffset(double xLoc, double yLoc, int phi)
 
    if(phi <= 64)
    {
-      scale = 64.0 / (sinPhi + cosPhi);
+      scale = 1.0 / (sinPhi + cosPhi);
       d = (xLoc * cosPhi + yLoc * sinPhi) * scale;
    }
    else
    {
-      scale = 64.0 / (sinPhi - cosPhi);
-      d = ((xLoc * cosPhi + yLoc * sinPhi) - cosPhi) * scale;
+      scale = 1.0 / (sinPhi - cosPhi);
+      d = ((xLoc * cosPhi + yLoc * sinPhi) - (cosPhi * 64.0)) * scale;
    }
 
    return d;
