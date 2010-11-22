@@ -103,8 +103,8 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
    memset(hRegion, 0x00, sizeof(DmtxHoughLocal));
 
    /* Global coordinate system */
-   hRegion->xOrigin = 40;
-   hRegion->yOrigin = 360;
+   hRegion->xOrigin = gState.localOffsetX;
+   hRegion->yOrigin = gState.localOffsetY;
 
    /* calculate dOffset ? */
 
@@ -127,7 +127,7 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
    {
       if(edgeDir == DmtxEdgeVertical && (sobelDir == DmtxEdgeVertical || sobelDir == DmtxEdgeBackslash))
 */
-      if(hsZXing.mag > 50)
+      if(vvZXing.mag > 50)
          dec->fn.zeroCrossingCallback(iCol, iRow, 255, 0);
 /*
       else if(edgeDir == DmtxEdgeHorizontal && (sobelDir == SobelEdgeHorizontal || sobelDir == DmtxEdgeSlash))
