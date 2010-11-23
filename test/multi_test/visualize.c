@@ -94,20 +94,22 @@ void ValueGridCallback(DmtxValueGrid *valueGrid, int id)
    }
 }
 
-void ZeroCrossingCallback(double xImg, double yImg, int sValue, int id)
+void ZeroCrossingCallback(ZeroCrossing zXing, int id)
 {
    int xInt, yInt;
 
-   xInt = gState.imageOffsetX + (int)xImg;
-   yInt = gState.screen->h - (gState.imageOffsetY + (int)yImg) - 1;
+   if(zXing.mag < 50)
+      return;
+
+   xInt = gState.imageOffsetX + (int)zXing.x;
+   yInt = gState.screen->h - (gState.imageOffsetY + (int)zXing.y) - 1;
 
    if(xInt < 0 || xInt > CTRL_COL1_X - 2 || yInt < 0 || yInt > gState.screen->h - 1)
       return;
 
    switch(id) {
       case 0:
-         if(gState.displayZXings == DmtxTrue)
-            PutPixel(gState.screen, xInt, yInt, 0x00ff0000);
+         PutPixel(gState.screen, xInt, yInt, 0x00ff0000);
          break;
       default:
          break;

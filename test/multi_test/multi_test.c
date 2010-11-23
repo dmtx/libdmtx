@@ -213,10 +213,9 @@ InitAppState(void)
    state.imgActive = NULL;
    state.imgFull = NULL;
    state.autoNudge = DmtxFalse;
-   state.displayEdge = DmtxUndefined;
+   state.displayEdge = 0;
    state.displayVanish = DmtxFalse;
    state.displayTiming = DmtxTrue;
-   state.displayZXings = DmtxFalse;
    state.printValues = DmtxFalse;
    state.imageLocX = 0;
    state.imageLocY = 0;
@@ -422,19 +421,25 @@ HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface
                state->quit = DmtxTrue;
                break;
             case SDLK_0:
-               state->displayEdge = DmtxUndefined;
-               break;
-            case SDLK_1:
                state->displayEdge = 0;
                break;
-            case SDLK_2:
+            case SDLK_1:
                state->displayEdge = 1;
                break;
-            case SDLK_3:
+            case SDLK_2:
                state->displayEdge = 2;
                break;
-            case SDLK_4:
+            case SDLK_3:
                state->displayEdge = 3;
+               break;
+            case SDLK_4:
+               state->displayEdge = 4;
+               break;
+            case SDLK_5:
+               state->displayEdge = 5;
+               break;
+            case SDLK_6:
+               state->displayEdge = 6;
                break;
             case SDLK_l:
                fprintf(stdout, "Image Location: (%d, %d)\n", state->imageLocX,  state->imageLocY);
@@ -451,9 +456,6 @@ HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface
                break;
             case SDLK_v:
                state->displayVanish = (state->displayVanish == DmtxTrue) ? DmtxFalse : DmtxTrue;
-               break;
-            case SDLK_z:
-               state->displayZXings = (state->displayZXings == DmtxTrue) ? DmtxFalse : DmtxTrue;
                break;
             case SDLK_UP:
                state->imageLocY--;

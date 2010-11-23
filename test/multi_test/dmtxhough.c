@@ -125,20 +125,31 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
          if(iCol >= iWidth)
             continue;
 
-         hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow);
-         hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow);
-         vsZXing = GetZeroCrossing(dec->vsAccel, iCol, iRow);
          vvZXing = GetZeroCrossing(dec->vvAccel, iCol, iRow);
          vbZXing = GetZeroCrossing(dec->vbAccel, iCol, iRow);
          hbZXing = GetZeroCrossing(dec->hbAccel, iCol, iRow);
+         hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow);
+         hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow);
+         vsZXing = GetZeroCrossing(dec->vsAccel, iCol, iRow);
+
+         if(gState.displayEdge == 1)
+            dec->fn.zeroCrossingCallback(vvZXing, 0);
+         else if(gState.displayEdge == 2)
+            dec->fn.zeroCrossingCallback(vbZXing, 0);
+         else if(gState.displayEdge == 3)
+            dec->fn.zeroCrossingCallback(hbZXing, 0);
+         else if(gState.displayEdge == 4)
+            dec->fn.zeroCrossingCallback(hhZXing, 0);
+         else if(gState.displayEdge == 5)
+            dec->fn.zeroCrossingCallback(hsZXing, 0);
+         else if(gState.displayEdge == 6)
+            dec->fn.zeroCrossingCallback(vsZXing, 0);
 /*
    if(gState.displayEdge == DmtxUndefined || gState.displayEdge == sobelDir)
    {
       if(edgeDir == DmtxEdgeVertical && (sobelDir == DmtxEdgeVertical || sobelDir == DmtxEdgeBackslash))
-*/
       if(vvZXing.mag > 50)
          dec->fn.zeroCrossingCallback(vvZXing.x, vvZXing.y, 255, 0);
-/*
       else if(edgeDir == DmtxEdgeHorizontal && (sobelDir == SobelEdgeHorizontal || sobelDir == DmtxEdgeSlash))
          dec->fn.zeroCrossingCallback(iCol, iRow, edge.mag, 0);
    }
