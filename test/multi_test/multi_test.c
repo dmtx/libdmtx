@@ -29,13 +29,6 @@ Contact: mblaughton@users.sourceforge.net
  * only after being properly written, tuned, and tested.
  */
 
-/**
- * Next:
- * x Move main() scanning logic into "dmtxScanImage()" function and use callbacks
- * o Clean up gState usage in main()
- * o Add "Dmtx" prefix to remaining core types (and review names)
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -151,6 +144,7 @@ main(int argc, char *argv[])
       ShowActiveRegion(gState.screen, gState.local);
 
       SDL_LockSurface(gState.local);
+      dmtxScanImage(dec, gState.imgActive, &(dec2->fn));
       dmtxDecode2SetImage(dec2, gState.dmtxImage);
       dmtxRegion2FindNext(dec2);
       SDL_UnlockSurface(gState.local);

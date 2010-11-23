@@ -120,10 +120,10 @@ void HoughCacheCallback(DmtxHoughCache *hough, int id)
 {
    switch(id) {
       case 0:
-         BlitHoughCache(gState.screen, hough, CTRL_ROW3_Y, CTRL_COL1_X + 1);
+         BlitHoughCache(gState.screen, hough, CTRL_ROW6_Y, CTRL_COL1_X + 1);
          break;
       case 1:
-         BlitHoughCache(gState.screen, hough, CTRL_ROW4_Y - 1, CTRL_COL1_X + 1);
+/*       BlitHoughCache(gState.screen, hough, CTRL_ROW7_Y - 1, CTRL_COL1_X + 1); */
          break;
    }
 }
@@ -155,7 +155,7 @@ void VanishPointCallback(VanishPointSort *vPoints, int id)
    if(gState.displayVanish == DmtxFalse)
       return;
 
-   DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW3_Y, CTRL_COL1_X);
+   DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW5_Y, CTRL_COL1_X);
 }
 
 void TimingCallback(Timing *timing0, Timing *timing1, int id)
@@ -163,20 +163,20 @@ void TimingCallback(Timing *timing0, Timing *timing1, int id)
    int i;
 
    /* Should this be called before, as soon as local is captured? */
-   BlitActiveRegion(gState.screen, gState.local, 2, CTRL_ROW3_Y, CTRL_COL3_X);
+   BlitActiveRegion(gState.screen, gState.local, 2, CTRL_ROW5_Y, CTRL_COL3_X);
 
    if(gState.displayTiming == DmtxFalse)
       return;
 
    /* Draw timed and untimed region lines */
    if(gState.displayTiming == DmtxTrue) {
-      DrawTimingDots(gState.screen, timing0, CTRL_ROW3_Y, CTRL_COL1_X);
-      DrawTimingDots(gState.screen, timing1, CTRL_ROW3_Y, CTRL_COL1_X);
+      DrawTimingDots(gState.screen, timing0, CTRL_ROW5_Y, CTRL_COL1_X);
+      DrawTimingDots(gState.screen, timing1, CTRL_ROW5_Y, CTRL_COL1_X);
 
       for(i = -64; i <= 64; i++) {
-         DrawLine(gState.screen, 64, CTRL_COL3_X, CTRL_ROW3_Y, timing0->phi,
+         DrawLine(gState.screen, 64, CTRL_COL3_X, CTRL_ROW5_Y, timing0->phi,
                timing0->shift + (timing0->period * i), 2, 0xff0000ff);
-         DrawLine(gState.screen, 64, CTRL_COL3_X, CTRL_ROW3_Y, timing1->phi,
+         DrawLine(gState.screen, 64, CTRL_COL3_X, CTRL_ROW5_Y, timing1->phi,
                timing1->shift + (timing1->period * i), 2, 0xff0000ff);
       }
    }

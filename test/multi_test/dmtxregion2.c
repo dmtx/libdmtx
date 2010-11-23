@@ -26,7 +26,6 @@ Contact: mblaughton@users.sourceforge.net
  * o Refactor new code to use iRow, iCol, sRow, sCol, aRow, aCol, zRow, and
  *   zCol for index like values and x,y for coordinates (and iIdx, aIdx, etc...)
  * o Create functions to convert between index schemes (accel -> sobel, etc...)
- * o Consider switching PixelEdgeCache to use [4] instead of ->v, ->h, etc...
  */
 
 #include <string.h>
@@ -92,14 +91,14 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
 
    /* XXX change DmtxEdgeCache into DmtxSobelCache? */
    dmtxBuildSobelCache(&sobelCache, imgActive);
-   fn->edgeCacheCallback(&sobelCache, 0);
+/* fn->edgeCacheCallback(&sobelCache, 0); */
 
    dmtxBuildHoughCache(&houghCache, &sobelCache);
    dmtxNormalizeHoughCache(&houghCache, &sobelCache);
    fn->houghCacheCallback(&houghCache, 0);
 
    dmtxMarkHoughMaxima(&houghCache);
-   fn->houghCacheCallback(&houghCache, 1);
+/* fn->houghCacheCallback(&houghCache, 1); */
 
    vPoints = dmtxFindVanishPoints(&houghCache);
    fn->vanishPointCallback(&vPoints, 0);
@@ -126,10 +125,10 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
 
          err = dmtxFindRegionWithinGrid(&region, &grid, &houghCache, dec, fn);
          regionFound = (err == DmtxPass) ? DmtxTrue : DmtxFalse;
-
+/*
          fn->gridCallback(&(region.grid), 0);
          fn->gridCallback(&(region.grid), 1);
-
+*/
          if(regionFound == DmtxTrue) {
             region.sizeIdx = dmtxGetSizeIdx(region.width, region.height);
             if(region.sizeIdx >= DmtxSymbol10x10 && region.sizeIdx <= DmtxSymbol16x48)
@@ -620,8 +619,8 @@ AddToMaximaSort(HoughMaximaSort *sort, int maximaMag)
 }
 
 /**
- *
- *
+ * Return sum of top 8 maximum points (hmmm)
+ * btw, can we skip this step entirely?
  */
 VanishPointSum
 GetAngleSumAtPhi(DmtxHoughCache *hough, int phi)
@@ -977,7 +976,7 @@ dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxHoughCache
          goodCount++;
       }
 
-      fn->perimeterCallback(&regGrow, sideDir, innerType);
+/*    fn->perimeterCallback(&regGrow, sideDir, innerType); */
    }
 
    regGrow.finderSides = finderSides;
@@ -1267,7 +1266,7 @@ RegionExpand(GridRegion *region, DmtxDirection sideDir, DmtxHoughCache *houghCac
 
       if(sideHoughCompact.d >= 0 && sideHoughCompact.d < 64)
       {
-         fn->houghCompactCallback(sideHoughCompact, 0);
+/*       fn->houghCompactCallback(sideHoughCompact, 0); */
 
          /* If line is nudged to a stronger location, update region geometry */
          if(dmtxHoughNudgeStronger(houghCache, &sideHoughCompact) == DmtxTrue)
