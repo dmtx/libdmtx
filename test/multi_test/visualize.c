@@ -703,10 +703,8 @@ void DrawActiveBorder(SDL_Surface *screen, int activeExtent)
    Sint16 x11, y11;
    Sint16 x01, y01;
 
-/* x01 = (screen->w - activeExtent)/2 - 1;
-   y01 = (screen->h - activeExtent)/2 - 1; */
-   x01 = 157;
-   y01 = 225;
+   x01 = 158;
+   y01 = 226;
 
    x00 = x01;
    y00 = y01 + activeExtent + 1;

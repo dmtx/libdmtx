@@ -94,15 +94,18 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
 {
    int rRow, rCol;
    int iRow, iCol;
+   int iWidth, iHeight;
    int phi;
    DmtxHoughLocal *hRegion;
    ZeroCrossing hhZXing, hsZXing, vsZXing, vvZXing, vbZXing, hbZXing;
 
    hRegion = &(dec->houghGrid->local[0]); /* [hCol * width + hRol]; */
-
    memset(hRegion, 0x00, sizeof(DmtxHoughLocal));
 
    /* Global coordinate system */
+   iWidth = dmtxImageGetProp(dec->image, DmtxPropWidth);
+   iHeight = dmtxImageGetProp(dec->image, DmtxPropHeight);
+
    hRegion->xOrigin = gState.localOffsetX;
    hRegion->yOrigin = gState.localOffsetY;
 
@@ -112,9 +115,15 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
    {
       iRow = hRegion->yOrigin + rRow;
 
+      if(iRow >= iHeight)
+         continue;
+
       for(rCol = 0; rCol < 64; rCol++)
       {
          iCol = hRegion->xOrigin + rCol;
+
+         if(iCol >= iWidth)
+            continue;
 
          hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow);
          hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow);
@@ -128,7 +137,7 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
       if(edgeDir == DmtxEdgeVertical && (sobelDir == DmtxEdgeVertical || sobelDir == DmtxEdgeBackslash))
 */
       if(vvZXing.mag > 50)
-         dec->fn.zeroCrossingCallback(iCol, iRow, 255, 0);
+         dec->fn.zeroCrossingCallback(vvZXing.x, vvZXing.y, 255, 0);
 /*
       else if(edgeDir == DmtxEdgeHorizontal && (sobelDir == SobelEdgeHorizontal || sobelDir == DmtxEdgeSlash))
          dec->fn.zeroCrossingCallback(iCol, iRow, edge.mag, 0);
