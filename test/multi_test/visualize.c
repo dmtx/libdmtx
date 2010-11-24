@@ -170,8 +170,8 @@ void TimingCallback(Timing *timing0, Timing *timing1, int id)
 
    /* Draw timed and untimed region lines */
    if(gState.displayTiming == DmtxTrue) {
-      DrawTimingDots(gState.screen, timing0, CTRL_ROW5_Y, CTRL_COL1_X);
-      DrawTimingDots(gState.screen, timing1, CTRL_ROW5_Y, CTRL_COL1_X);
+      DrawTimingDots(gState.screen, timing0, CTRL_ROW6_Y, CTRL_COL1_X);
+      DrawTimingDots(gState.screen, timing1, CTRL_ROW6_Y, CTRL_COL1_X);
 
       for(i = -64; i <= 64; i++) {
          DrawLine(gState.screen, 64, CTRL_COL3_X, CTRL_ROW5_Y, timing0->phi,
