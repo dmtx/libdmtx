@@ -29,23 +29,6 @@ Contact: mblaughton@users.sourceforge.net
 #include "../../dmtx.h"
 #include "multi_test.h"
 
-void EdgeCacheCallback(DmtxEdgeCache *edgeCache, int id)
-{
-   int maxIntensity;
-
-   switch(id) {
-      case 0:
-         maxIntensity = FindMaxEdgeIntensity(edgeCache);
-         BlitFlowCache(gState.screen, edgeCache->vDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL1_X);
-         BlitFlowCache(gState.screen, edgeCache->bDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL2_X);
-         BlitFlowCache(gState.screen, edgeCache->hDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL3_X);
-         BlitFlowCache(gState.screen, edgeCache->sDir, maxIntensity, CTRL_ROW2_Y, CTRL_COL4_X);
-         break;
-      case 1:
-         break;
-   }
-}
-
 void ValueGridCallback(DmtxValueGrid *valueGrid, int id)
 {
    int x, y;
@@ -116,18 +99,6 @@ void ZeroCrossingCallback(ZeroCrossing zXing, int id)
    }
 }
 
-void HoughCacheCallback(DmtxHoughCache *hough, int id)
-{
-   switch(id) {
-      case 0:
-         BlitHoughCache(gState.screen, hough, CTRL_ROW6_Y, CTRL_COL1_X + 1);
-         break;
-      case 1:
-/*       BlitHoughCache(gState.screen, hough, CTRL_ROW7_Y - 1, CTRL_COL1_X + 1); */
-         break;
-   }
-}
-
 void HoughLocalCallback(DmtxHoughLocal *hough, int id)
 {
    switch(id) {
@@ -136,16 +107,6 @@ void HoughLocalCallback(DmtxHoughLocal *hough, int id)
          break;
       case 1:
          BlitHoughLocal(gState.screen, hough, CTRL_ROW6_Y - 1, CTRL_COL1_X + 1);
-         break;
-   }
-}
-
-void HoughCompactCallback(DmtxHoughCompact h, int id)
-{
-   switch(id) {
-      case 0:
-         PutPixel(gState.screen, CTRL_COL1_X + h.phi, CTRL_ROW3_Y + 63 - h.d, 0x0000ff00);
-         DrawLine(gState.screen, 64, CTRL_COL3_X, CTRL_ROW3_Y, h.phi, h.d, 2, 0x00ff00ff);
          break;
    }
 }
@@ -250,96 +211,6 @@ void BlitActiveRegion(SDL_Surface *screen, SDL_Surface *active, int zoom, int sc
  *
  *
  */
-int FindMaxEdgeIntensity(DmtxEdgeCache *edgeCache)
-{
-   int i;
-   int maxValue = abs(edgeCache->hDir[0]);
-
-   for(i = 0; i < 4096; i++) {
-      if(abs(edgeCache->hDir[i]) > maxValue)
-         maxValue = abs(edgeCache->hDir[i]);
-
-      if(abs(edgeCache->vDir[i]) > maxValue)
-         maxValue = abs(edgeCache->vDir[i]);
-
-      if(abs(edgeCache->sDir[i]) > maxValue)
-         maxValue = abs(edgeCache->sDir[i]);
-
-      if(abs(edgeCache->bDir[i]) > maxValue)
-         maxValue = abs(edgeCache->bDir[i]);
-   }
-
-   return maxValue;
-}
-
-/**
- *
- *
- */
-void BlitFlowCache(SDL_Surface *screen, int *cache, int maxFlowMag, int screenY, int screenX)
-{
-   int row, col;
-   unsigned char rgb[3];
-   int width, height;
-   int offset;
-   int flow;
-   unsigned char pixbuf[12288]; /* 64 * 64 * 3 */
-   SDL_Surface *surface;
-   SDL_Rect clipRect;
-   Uint32 rmask, gmask, bmask, amask;
-
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-   rmask = 0xff000000;
-   gmask = 0x00ff0000;
-   bmask = 0x0000ff00;
-   amask = 0x000000ff;
-#else
-   rmask = 0x000000ff;
-   gmask = 0x0000ff00;
-   bmask = 0x00ff0000;
-   amask = 0xff000000;
-#endif
-
-   width = LOCAL_SIZE;
-   height = LOCAL_SIZE;
-
-   for(row = 0; row < height; row++) {
-      for(col = 0; col < width; col++) {
-         flow = cache[row * width + col];
-         if(flow > 0) {
-            rgb[0] = 0;
-            rgb[1] = (int)((abs(flow) * 254.0)/maxFlowMag + 0.5);
-            rgb[2] = 0;
-         }
-         else {
-            rgb[0] = (int)((abs(flow) * 254.0)/maxFlowMag + 0.5);
-            rgb[1] = 0;
-            rgb[2] = 0;
-         }
-
-         offset = ((height - row - 1) * width + col) * 3;
-         pixbuf[offset] = rgb[0];
-         pixbuf[offset+1] = rgb[1];
-         pixbuf[offset+2] = rgb[2];
-      }
-   }
-
-   clipRect.w = LOCAL_SIZE;
-   clipRect.h = LOCAL_SIZE;
-   clipRect.x = screenX;
-   clipRect.y = screenY;
-
-   surface = SDL_CreateRGBSurfaceFrom(pixbuf, width, height, 24, width * 3,
-         rmask, gmask, bmask, 0);
-
-   SDL_BlitSurface(surface, NULL, screen, &clipRect);
-   SDL_FreeSurface(surface);
-}
-
-/**
- *
- *
- */
 void BlitSobelGrid(SDL_Surface *screen, DmtxValueGrid *cache, int x, int y, int screenY, int screenX)
 {
    int row, col;
@@ -436,111 +307,22 @@ void BlitHoughLocal(SDL_Surface *screen, DmtxHoughLocal *hough, int screenY, int
    height = LOCAL_SIZE;
 
    maxVal = 0;
-   for(row = 0; row < height; row++) {
-      for(col = 0; col < width; col++) {
-/*       if(hough->isMax[row * width + col] == 0)
-            continue; */
-
+   for(row = 0; row < height; row++)
+   {
+      for(col = 0; col < width; col++)
+      {
          if(hough->bucket[row][col] > maxVal)
             maxVal = hough->bucket[row][col];
       }
    }
 
-   for(row = 0; row < height; row++) {
-      for(col = 0; col < width; col++) {
-
+   for(row = 0; row < height; row++)
+   {
+      for(col = 0; col < width; col++)
+      {
          cache = hough->bucket[row][col];
 
-/*       if(hough->isMax[row * width + col] > 2) {
-            rgb[0] = 255;
-            rgb[1] = rgb[2] = 0;
-         }
-         else if(hough->isMax[row * width + col] == 1) {
-            rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
-         }
-         else {
-            rgb[0] = rgb[1] = rgb[2] = 0;
-         }
-*/
          rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
-
-         offset = ((height - row - 1) * width + col) * 3;
-         pixbuf[offset] = rgb[0];
-         pixbuf[offset+1] = rgb[1];
-         pixbuf[offset+2] = rgb[2];
-      }
-   }
-
-   clipRect.w = width;
-   clipRect.h = height;
-   clipRect.x = screenX;
-   clipRect.y = screenY;
-
-   surface = SDL_CreateRGBSurfaceFrom(pixbuf, width, height, 24, width * 3,
-         rmask, gmask, bmask, 0);
-
-   SDL_BlitSurface(surface, NULL, screen, &clipRect);
-   SDL_FreeSurface(surface);
-}
-
-/**
- *
- *
- */
-void BlitHoughCache(SDL_Surface *screen, DmtxHoughCache *hough, int screenY, int screenX)
-{
-   int row, col;
-   int width, height;
-   int maxVal;
-   int rgb[3];
-   unsigned int cache;
-   int offset;
-   unsigned char pixbuf[24576]; /* 128 * 64 * 3 */
-   SDL_Surface *surface;
-   SDL_Rect clipRect;
-   Uint32 rmask, gmask, bmask, amask;
-
-#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-   rmask = 0xff000000;
-   gmask = 0x00ff0000;
-   bmask = 0x0000ff00;
-   amask = 0x000000ff;
-#else
-   rmask = 0x000000ff;
-   gmask = 0x0000ff00;
-   bmask = 0x00ff0000;
-   amask = 0xff000000;
-#endif
-
-   width = 128;
-   height = LOCAL_SIZE;
-
-   maxVal = 0;
-   for(row = 0; row < height; row++) {
-      for(col = 0; col < width; col++) {
-         if(hough->isMax[row * width + col] == 0)
-            continue;
-
-         if(hough->mag[row * width + col] > maxVal)
-            maxVal = hough->mag[row * width + col];
-      }
-   }
-
-   for(row = 0; row < height; row++) {
-      for(col = 0; col < width; col++) {
-
-         cache = hough->mag[row * width + col];
-
-         if(hough->isMax[row * width + col] > 2) {
-            rgb[0] = 255;
-            rgb[1] = rgb[2] = 0;
-         }
-         else if(hough->isMax[row * width + col] == 1) {
-            rgb[0] = rgb[1] = rgb[2] = (int)((cache * 254.0)/maxVal + 0.5);
-         }
-         else {
-            rgb[0] = rgb[1] = rgb[2] = 0;
-         }
 
          offset = ((height - row - 1) * width + col) * 3;
          pixbuf[offset] = rgb[0];

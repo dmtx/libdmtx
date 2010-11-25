@@ -144,16 +144,7 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
             dec->fn.zeroCrossingCallback(hsZXing, 0);
          else if(gState.displayEdge == 6)
             dec->fn.zeroCrossingCallback(vsZXing, 0);
-/*
-   if(gState.displayEdge == DmtxUndefined || gState.displayEdge == sobelDir)
-   {
-      if(edgeDir == DmtxEdgeVertical && (sobelDir == DmtxEdgeVertical || sobelDir == DmtxEdgeBackslash))
-      if(vvZXing.mag > 50)
-         dec->fn.zeroCrossingCallback(vvZXing.x, vvZXing.y, 255, 0);
-      else if(edgeDir == DmtxEdgeHorizontal && (sobelDir == SobelEdgeHorizontal || sobelDir == DmtxEdgeSlash))
-         dec->fn.zeroCrossingCallback(iCol, iRow, edge.mag, 0);
-   }
-*/
+
          if(vvZXing.mag > 0)
          {
             for(phi = 0; phi < 16; phi++)

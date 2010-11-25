@@ -102,12 +102,9 @@ main(int argc, char *argv[])
 
    /* Set up callback functions */
    /* TODO: Should we use a setter here? */
-   dec2->fn.edgeCacheCallback = EdgeCacheCallback;
    dec2->fn.dmtxValueGridCallback = ValueGridCallback;
    dec2->fn.zeroCrossingCallback = ZeroCrossingCallback;
-   dec2->fn.houghCacheCallback = HoughCacheCallback;
    dec2->fn.dmtxHoughLocalCallback = HoughLocalCallback;
-   dec2->fn.houghCompactCallback = HoughCompactCallback;
    dec2->fn.vanishPointCallback = VanishPointCallback;
    dec2->fn.timingCallback = TimingCallback;
    dec2->fn.gridCallback = GridCallback;
@@ -144,7 +141,6 @@ main(int argc, char *argv[])
       ShowActiveRegion(gState.screen, gState.local);
 
       SDL_LockSurface(gState.local);
-      dmtxScanImage(dec, gState.imgActive, &(dec2->fn));
       dmtxDecode2SetImage(dec2, gState.dmtxImage);
       dmtxRegion2FindNext(dec2);
       SDL_UnlockSurface(gState.local);
@@ -200,7 +196,6 @@ InitAppState(void)
    memset(&state, 0x00, sizeof(AppState));
 
    state.picture = NULL;
-/*-----------*/
    state.windowWidth = 640;
    state.windowHeight = 518;
    state.activeExtent = 64;

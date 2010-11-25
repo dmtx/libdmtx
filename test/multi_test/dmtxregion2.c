@@ -37,110 +37,6 @@ Contact: mblaughton@users.sourceforge.net
 
 #define RETURN_IF_FAIL(X) if(X == DmtxFail) return DmtxFail
 
-/* Scaled unit sin */
-static int uSin128[] = {
-       0,    25,    50,    75,   100,   125,   150,   175,
-     200,   224,   249,   273,   297,   321,   345,   369,
-     392,   415,   438,   460,   483,   505,   526,   548,
-     569,   590,   610,   630,   650,   669,   688,   706,
-     724,   742,   759,   775,   792,   807,   822,   837,
-     851,   865,   878,   891,   903,   915,   926,   936,
-     946,   955,   964,   972,   980,   987,   993,   999,
-    1004,  1009,  1013,  1016,  1019,  1021,  1023,  1024,
-    1024,  1024,  1023,  1021,  1019,  1016,  1013,  1009,
-    1004,   999,   993,   987,   980,   972,   964,   955,
-     946,   936,   926,   915,   903,   891,   878,   865,
-     851,   837,   822,   807,   792,   775,   759,   742,
-     724,   706,   688,   669,   650,   630,   610,   590,
-     569,   548,   526,   505,   483,   460,   438,   415,
-     392,   369,   345,   321,   297,   273,   249,   224,
-     200,   175,   150,   125,   100,    75,    50,    25 };
-
-/* Scaled unit cos */
-static int uCos128[] = {
-    1024,  1024,  1023,  1021,  1019,  1016,  1013,  1009,
-    1004,   999,   993,   987,   980,   972,   964,   955,
-     946,   936,   926,   915,   903,   891,   878,   865,
-     851,   837,   822,   807,   792,   775,   759,   742,
-     724,   706,   688,   669,   650,   630,   610,   590,
-     569,   548,   526,   505,   483,   460,   438,   415,
-     392,   369,   345,   321,   297,   273,   249,   224,
-     200,   175,   150,   125,   100,    75,    50,    25,
-       0,   -25,   -50,   -75,  -100,  -125,  -150,  -175,
-    -200,  -224,  -249,  -273,  -297,  -321,  -345,  -369,
-    -392,  -415,  -438,  -460,  -483,  -505,  -526,  -548,
-    -569,  -590,  -610,  -630,  -650,  -669,  -688,  -706,
-    -724,  -742,  -759,  -775,  -792,  -807,  -822,  -837,
-    -851,  -865,  -878,  -891,  -903,  -915,  -926,  -936,
-    -946,  -955,  -964,  -972,  -980,  -987,  -993,  -999,
-   -1004, -1009, -1013, -1016, -1019, -1021, -1023, -1024 };
-
-void
-dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
-{
-   int i, j;
-   int phiDiff;
-   DmtxBoolean     regionFound;
-   DmtxPassFail    err;
-   DmtxEdgeCache   sobelCache;
-   DmtxHoughCache  houghCache;
-   VanishPointSort vPoints;
-   DmtxTimingSort  timings;
-   AlignmentGrid   grid;
-   GridRegion      region;
-
-   /* XXX change DmtxEdgeCache into DmtxSobelCache? */
-   dmtxBuildSobelCache(&sobelCache, imgActive);
-/* fn->edgeCacheCallback(&sobelCache, 0); */
-
-   dmtxBuildHoughCache(&houghCache, &sobelCache);
-   dmtxNormalizeHoughCache(&houghCache, &sobelCache);
-   fn->houghCacheCallback(&houghCache, 0);
-
-   dmtxMarkHoughMaxima(&houghCache);
-/* fn->houghCacheCallback(&houghCache, 1); */
-
-   vPoints = dmtxFindVanishPoints(&houghCache);
-   fn->vanishPointCallback(&vPoints, 0);
-
-   timings = dmtxFindGridTiming(&houghCache, &vPoints);
-
-   regionFound = DmtxFalse;
-   for(i = 0; regionFound == DmtxFalse && i < timings.count; i++) {
-      for(j = i+1; j < timings.count; j++) {
-         phiDiff = abs(timings.timing[i].phi - timings.timing[j].phi);
-
-         /* Reject combinations that deviate from right angle (phi == 64) */
-         if(abs(64 - phiDiff) > 28) /* within +- ~40 deg */
-            continue;
-
-         err = dmtxBuildGridFromTimings(&grid, timings.timing[i], timings.timing[j]);
-         if(err == DmtxFail)
-            continue; /* Keep trying */
-
-         fn->timingCallback(&timings.timing[i], &timings.timing[j], 0);
-
-         /* Hack together raw2fitFull and fit2rawFull outside since we need app data */
-         AddFullTransforms(&grid);
-
-         err = dmtxFindRegionWithinGrid(&region, &grid, &houghCache, dec, fn);
-         regionFound = (err == DmtxPass) ? DmtxTrue : DmtxFalse;
-/*
-         fn->gridCallback(&(region.grid), 0);
-         fn->gridCallback(&(region.grid), 1);
-*/
-         if(regionFound == DmtxTrue) {
-            region.sizeIdx = dmtxGetSizeIdx(region.width, region.height);
-            if(region.sizeIdx >= DmtxSymbol10x10 && region.sizeIdx <= DmtxSymbol16x48)
-               dmtxDecodeSymbol(&region, dec);
-         }
-
-         regionFound = DmtxTrue; /* break out of outer loop */
-         break; /* break out of inner loop */
-      }
-   }
-}
-
 /**
  *
  *
@@ -156,10 +52,10 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
    DmtxTimingSort timings;
    AlignmentGrid grid;
 
-   vPoints = dmtxFindVanishPoints2(dec->houghGrid->local);
+   vPoints = dmtxFindVanishPoints(dec->houghGrid->local);
    dec->fn.vanishPointCallback(&vPoints, 1);
 
-   timings = dmtxFindGridTiming2(dec->houghGrid->local, &vPoints);
+   timings = dmtxFindGridTiming(dec->houghGrid->local, &vPoints);
 
    regionFound = DmtxFalse;
    for(i = 0; regionFound == DmtxFalse && i < timings.count; i++)
@@ -199,170 +95,6 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
    return DmtxPass;
 }
 
-/**
- * 3x3 Sobel Kernel
- */
-DmtxPassFail
-dmtxBuildSobelCache(DmtxEdgeCache *sobelCache, DmtxImage *img)
-{
-   int width, height;
-   int bytesPerPixel, rowSizeBytes, colorPlane;
-   int x, xBeg, xEnd;
-   int y, yBeg, yEnd;
-   int hMag, vMag, sMag, bMag;
-   int colorLoLf, colorLoMd, colorLoRt;
-   int colorMdRt, colorHiRt, colorHiMd;
-   int colorHiLf, colorMdLf, colorMdMd;
-   int offset, offsetLo, offsetMd, offsetHi;
-   int idx;
-
-   memset(sobelCache, 0x00, sizeof(DmtxEdgeCache));
-
-   width = dmtxImageGetProp(img, DmtxPropWidth);
-   height = dmtxImageGetProp(img, DmtxPropHeight);
-   rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
-   bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);
-   colorPlane = 1; /* XXX need to make some decisions here */
-
-   xBeg = 1;
-   xEnd = width - 2;
-   yBeg = 1;
-   yEnd = height - 2;
-
-   for(y = yBeg; y <= yEnd; y++) {
-
-      /* Pixel data first pixel = top-left; everything else bottom-left */
-      offsetMd = ((height - y - 1) * rowSizeBytes) + colorPlane;
-      offsetHi = offsetMd - rowSizeBytes;
-      offsetLo = offsetMd + rowSizeBytes;
-
-      colorHiLf = img->pxl[offsetHi];
-      colorMdLf = img->pxl[offsetMd];
-      colorLoLf = img->pxl[offsetLo];
-
-      offset = bytesPerPixel;
-
-      colorHiMd = img->pxl[offsetHi + offset];
-      colorMdMd = img->pxl[offsetMd + offset];
-      colorLoMd = img->pxl[offsetLo + offset];
-
-      offset += bytesPerPixel;
-
-      colorHiRt = img->pxl[offsetHi + offset];
-      colorMdRt = img->pxl[offsetMd + offset];
-      colorLoRt = img->pxl[offsetLo + offset];
-
-      for(x = xBeg; x <= xEnd; x++) {
-
-         idx = y * width + x;
-
-         /**
-          * Calculate horizontal edge flow
-          *   1  2  1
-          *   0  0  0
-          *  -1 -2 -1
-          */
-         hMag  =  colorHiLf;
-         hMag += (colorHiMd << 1);
-         hMag +=  colorHiRt;
-         hMag -=  colorLoLf;
-         hMag -= (colorLoMd << 1);
-         hMag -=  colorLoRt;
-
-         /**
-          * Calculate vertical edge flow
-          *  -1  0  1
-          *  -2  0  2
-          *  -1  0  1
-          */
-         vMag  =  colorHiRt;
-         vMag += (colorMdRt << 1);
-         vMag +=  colorLoRt;
-         vMag -=  colorHiLf;
-         vMag -= (colorMdLf << 1);
-         vMag -=  colorLoLf;
-
-         /**
-          * Calculate "slash" edge flow
-          *  -2 -1  0
-          *  -1  0  1
-          *   0  1  2
-          */
-         sMag  =  colorLoMd;
-         sMag += (colorLoRt << 1);
-         sMag +=  colorMdRt;
-         sMag -=  colorHiMd;
-         sMag -= (colorHiLf << 1);
-         sMag -=  colorMdLf;
-
-         /**
-          * Calculate "backslash" edge flow
-          *   0  1  2
-          *  -1  0  1
-          *  -2 -1  0
-          */
-         bMag  =  colorMdLf;
-         bMag += (colorLoLf << 1);
-         bMag +=  colorLoMd;
-         bMag -=  colorMdRt;
-         bMag -= (colorHiRt << 1);
-         bMag -=  colorHiMd;
-
-         /**
-          * If implementing these operations using MMX, can load 2
-          * registers with 4 doubleword values and subtract (PSUBD).
-          */
-
-         sobelCache->hDir[idx] = hMag;
-         sobelCache->vDir[idx] = vMag;
-         sobelCache->sDir[idx] = sMag;
-         sobelCache->bDir[idx] = bMag;
-
-         colorHiLf = colorHiMd;
-         colorMdLf = colorMdMd;
-         colorLoLf = colorLoMd;
-
-         colorHiMd = colorHiRt;
-         colorMdMd = colorMdRt;
-         colorLoMd = colorLoRt;
-
-         offset += bytesPerPixel;
-
-         colorHiRt = img->pxl[offsetHi + offset];
-         colorMdRt = img->pxl[offsetMd + offset];
-         colorLoRt = img->pxl[offsetLo + offset];
-      }
-   }
-
-   return DmtxPass;
-}
-
-/**
- *
- */
-int
-GetCompactOffset(int x, int y, int phiIdx, int extent)
-{
-   int offset, posMax, negMax;
-   double scale;
-
-   if(phiIdx < 64) {
-      posMax = extent * (uCos128[phiIdx] + uSin128[phiIdx]);
-      negMax = 0;
-   }
-   else {
-      posMax = extent * uSin128[phiIdx];
-      negMax = extent * uCos128[phiIdx];
-   }
-
-   assert(abs(posMax - negMax) > 0);
-   scale = (double)extent / (posMax - negMax);
-
-   offset = (int)((x * uCos128[phiIdx] + y * uSin128[phiIdx] - negMax) * scale + 0.5);
-
-   return offset;
-}
-
 double
 UncompactOffset(double compactedOffset, int phiIdx, int extent)
 {
@@ -385,181 +117,6 @@ UncompactOffset(double compactedOffset, int phiIdx, int extent)
    scale = (posMax - negMax) / extent;
 
    return (compactedOffset * scale) + negMax;
-
-/* fixed point version:
-   int posMax, negMax;
-   double scale;
-
-   if(phiIdx < 64) {
-      posMax = extent * (uCos128[phiIdx] + uSin128[phiIdx]);
-      negMax = 0;
-   }
-   else {
-      posMax = extent * uSin128[phiIdx];
-      negMax = extent * uCos128[phiIdx];
-   }
-
-   scale = (double)(posMax - negMax) / extent;
-
-   return (d * scale + negMax)/1024.0;
-*/
-}
-
-/**
- *
- *
- */
-DmtxPassFail
-dmtxBuildHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *sobelCache)
-{
-   int idx, phi, d;
-   int angleBase, imgExtent;
-   int x, xBeg, xEnd;
-   int y, yBeg, yEnd;
-
-   hough->offExtent = HOUGH_D_EXTENT;
-   hough->phiExtent = HOUGH_PHI_EXTENT;
-   memset(hough->isMax, 0x01, sizeof(char) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
-   memset(&(hough->mag), 0x00, sizeof(int) * HOUGH_D_EXTENT * HOUGH_PHI_EXTENT);
-
-   imgExtent = hough->offExtent;
-   angleBase = hough->phiExtent;
-
-   xBeg = 2;
-   xEnd = imgExtent - 3;
-   yBeg = 2;
-   yEnd = imgExtent - 3;
-
-   for(y = yBeg; y <= yEnd; y++) {
-      for(x = xBeg; x <= xEnd; x++) {
-
-         idx = y * imgExtent + x;
-
-         /* After finalizing algorithm, precalculate for 32x32 square:
-          *   each product (x*uCos[phi]) and (y*uSin[phi]) (FAST) (8kB)
-          *   or, map each (x,y,phi) to its (d,phi) location (FASTER) (262kB)
-          *
-          * That should provide a huge speedup.
-          */
-         if(abs(sobelCache->vDir[idx]) > 0) {
-            for(phi = 0; phi < 16; phi++) {
-               d = GetCompactOffset(x, y, phi, imgExtent);
-               if(d == -1) continue;
-               hough->mag[d * angleBase + phi] += abs(sobelCache->vDir[idx]);
-            }
-            for(phi = 112; phi < angleBase; phi++) {
-               d = GetCompactOffset(x, y, phi, imgExtent);
-               if(d == -1) continue;
-               hough->mag[d * angleBase + phi] += abs(sobelCache->vDir[idx]);
-            }
-         }
-
-         if(abs(sobelCache->bDir[idx]) > 0) {
-            for(phi = 16; phi < 48; phi++) {
-               d = GetCompactOffset(x, y, phi, imgExtent);
-               if(d == -1) continue;
-               hough->mag[d * angleBase + phi] += abs(sobelCache->bDir[idx]);
-            }
-         }
-
-         if(abs(sobelCache->hDir[idx]) > 0) {
-            for(phi = 48; phi < 80; phi++) {
-               d = GetCompactOffset(x, y, phi, imgExtent);
-               if(d == -1) continue;
-               hough->mag[d * angleBase + phi] += abs(sobelCache->hDir[idx]);
-            }
-         }
-
-         if(abs(sobelCache->sDir[idx]) > 0) {
-            for(phi = 80; phi < 112; phi++) {
-               d = GetCompactOffset(x, y, phi, imgExtent);
-               if(d == -1) continue;
-               hough->mag[d * angleBase + phi] += abs(sobelCache->sDir[idx]);
-            }
-         }
-      }
-   }
-
-   return DmtxPass;
-}
-
-/**
- * Normalize hough quadrants in a very slow and inefficient way
- *
- */
-DmtxPassFail
-dmtxNormalizeHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *sobelCache)
-{
-   int          pixelCount;
-   int          i, idx, phi, d;
-   unsigned int sFlowSum, bFlowSum, hFlowSum, vFlowSum;
-   double       sFlowScale, bFlowScale, hFlowScale, vFlowScale;
-   double       normScale, phiScale;
-
-   hFlowSum = vFlowSum = sFlowSum = bFlowSum = 0;
-
-   pixelCount = hough->offExtent * hough->offExtent;
-
-   for(i = 0; i < pixelCount; i++) {
-      hFlowSum += abs(sobelCache->hDir[i]);
-      vFlowSum += abs(sobelCache->vDir[i]);
-      sFlowSum += abs(sobelCache->sDir[i]);
-      bFlowSum += abs(sobelCache->bDir[i]);
-   }
-
-   hFlowScale = (double)65536/hFlowSum;
-   vFlowScale = (double)65536/vFlowSum;
-   sFlowScale = (double)65536/sFlowSum;
-   bFlowScale = (double)65536/bFlowSum;
-
-   for(phi = 0; phi < 128; phi++) {
-      for(d = 0; d < LOCAL_SIZE; d++) {
-         idx = d * 128 + phi;
-         if(phi < 16 || phi >= 112)
-            normScale = vFlowScale;
-         else if(phi < 48)
-            normScale = bFlowScale;
-         else if(phi < 80)
-            normScale = hFlowScale;
-         else if(phi < 112)
-            normScale = sFlowScale;
-         else
-            normScale = 1;
-
-         phiScale = ((phi < 32 || phi >= 96) ? abs(uCos128[phi]) : uSin128[phi])/1024.0;
-
-         hough->mag[idx] = (int)(hough->mag[idx] * normScale * phiScale + 0.5);
-      }
-   }
-
-   return DmtxPass;
-}
-
-/**
- *
- *
- */
-void
-dmtxMarkHoughMaxima(DmtxHoughCache *hough)
-{
-   int phi, offset;
-   int idx0, idx1;
-
-   /* Find local maxima for each angle */
-   for(phi = 0; phi < hough->phiExtent; phi++) {
-      for(offset = 0; offset < hough->offExtent - 1; offset++) {
-
-         idx0 = offset * hough->phiExtent + phi;
-         idx1 = idx0 + hough->phiExtent;
-
-         if(hough->mag[idx0] == 0)
-            hough->isMax[idx0] = 0;
-         else if(hough->mag[idx0] > hough->mag[idx1])
-            hough->isMax[idx1] = 0;
-         else if(hough->mag[idx1] > hough->mag[idx0])
-            hough->isMax[idx0] = 0;
-      }
-   }
 }
 
 /**
@@ -623,26 +180,7 @@ AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum)
  *
  */
 VanishPointSort
-dmtxFindVanishPoints(DmtxHoughCache *hough)
-{
-   int phi;
-   VanishPointSort sort;
-
-   memset(&sort, 0x00, sizeof(VanishPointSort));
-
-   /* Add strongest line at each angle to sort */
-   for(phi = 0; phi < hough->phiExtent; phi++)
-      AddToVanishPointSort(&sort, GetAngleSumAtPhi(hough, phi));
-
-   return sort;
-}
-
-/**
- *
- *
- */
-VanishPointSort
-dmtxFindVanishPoints2(DmtxHoughLocal *hough)
+dmtxFindVanishPoints(DmtxHoughLocal *hough)
 {
    int phi;
    VanishPointSort sort;
@@ -651,7 +189,7 @@ dmtxFindVanishPoints2(DmtxHoughLocal *hough)
 
    /* Add strongest line at each angle to sort */
    for(phi = 0; phi < 128; phi++)
-      AddToVanishPointSort(&sort, GetAngleSumAtPhi2(hough, phi));
+      AddToVanishPointSort(&sort, GetAngleSumAtPhi(hough, phi));
 
    return sort;
 }
@@ -690,34 +228,7 @@ AddToMaximaSort(HoughMaximaSort *sort, int maximaMag)
  * btw, can we skip this step entirely?
  */
 VanishPointSum
-GetAngleSumAtPhi(DmtxHoughCache *hough, int phi)
-{
-   int offset, i;
-   VanishPointSum vanishSum;
-   HoughMaximaSort sort;
-
-   memset(&sort, 0x00, sizeof(HoughMaximaSort));
-
-   for(offset = 0; offset < hough->offExtent; offset++) {
-      i = offset * hough->phiExtent + phi;
-      if(hough->isMax[i])
-         AddToMaximaSort(&sort, hough->mag[i]);
-   }
-
-   vanishSum.phi = phi;
-   vanishSum.mag = 0;
-   for(i = 0; i < 8; i++)
-      vanishSum.mag += sort.mag[i];
-
-   return vanishSum;
-}
-
-/**
- * Return sum of top 8 maximum points (hmmm)
- * btw, can we skip this step entirely?
- */
-VanishPointSum
-GetAngleSumAtPhi2(DmtxHoughLocal *local, int phi)
+GetAngleSumAtPhi(DmtxHoughLocal *local, int phi)
 {
    int i, d;
    int prev, here, next;
@@ -794,79 +305,7 @@ AddToTimingSort(DmtxTimingSort *sort, Timing timing)
  *
  */
 DmtxTimingSort
-dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *vPoints)
-{
-   int x, y, fitMag, fitMax, fitOff, attempts, iter;
-   int i, vSortIdx, phi;
-   kiss_fftr_cfg   cfg = NULL;
-   kiss_fft_scalar rin[NFFT];
-   kiss_fft_cpx    sout[NFFT/2+1];
-   kiss_fft_scalar mag[NFFT/2+1];
-   int maxIdx;
-   Timing timing;
-   DmtxTimingSort timings;
-
-   memset(&timings, 0x00, sizeof(DmtxTimingSort));
-
-   for(vSortIdx = 0; vSortIdx < vPoints->count; vSortIdx++) {
-
-      phi = vPoints->vanishSum[vSortIdx].phi;
-
-      /* Load FFT input array */
-      for(i = 0; i < NFFT; i++) {
-         rin[i] = (i < 64) ? hough->mag[i * hough->phiExtent + phi] : 0;
-      }
-
-      /* Execute FFT */
-      memset(sout, 0x00, sizeof(kiss_fft_cpx) * (NFFT/2 + 1));
-      cfg = kiss_fftr_alloc(NFFT, 0, 0, 0);
-      kiss_fftr(cfg, rin, sout);
-      free(cfg);
-
-      /* Select best result */
-      maxIdx = NFFT/9-1;
-      for(i = 0; i < NFFT/9-1; i++)
-         mag[i] = 0.0;
-      for(i = NFFT/9-1; i < NFFT/2+1; i++) {
-         mag[i] = sout[i].r * sout[i].r + sout[i].i * sout[i].i;
-         if(mag[i] > mag[maxIdx])
-            maxIdx = i;
-      }
-
-      timing.phi = phi;
-      timing.period = NFFT / (double)maxIdx;
-      timing.mag = mag[maxIdx];
-
-      /* Find best offset */
-      fitOff = fitMax = 0;
-      attempts = (int)timing.period + 1;
-      for(x = 0; x < attempts; x++) {
-         fitMag = 0;
-         for(iter = 0; ; iter++) {
-            y = x + (int)(iter * timing.period);
-            if(y >= 64)
-               break;
-            fitMag += hough->mag[y * hough->phiExtent + timing.phi];
-         }
-         if(x == 0 || fitMag > fitMax) {
-            fitMax = fitMag;
-            fitOff = x;
-         }
-      }
-      timing.shift = fitOff;
-
-      AddToTimingSort(&timings, timing);
-   }
-
-   return timings;
-}
-
-/**
- *
- *
- */
-DmtxTimingSort
-dmtxFindGridTiming2(DmtxHoughLocal *local, VanishPointSort *vPoints)
+dmtxFindGridTiming(DmtxHoughLocal *local, VanishPointSort *vPoints)
 {
    int x, y, fitMag, fitMax, fitOff, attempts, iter;
    int i, vSortIdx, phi;
@@ -1111,7 +550,7 @@ GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int 
  *
  */
 DmtxPassFail
-dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxHoughCache *houghCache, DmtxDecode *dec, DmtxCallbacks *fn)
+dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxHoughLocal *local, DmtxDecode *dec, DmtxCallbacks *fn)
 {
    int goodCount;
    int finderSides;
@@ -1149,7 +588,7 @@ dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxHoughCache
        */
 
       if(innerType == DmtxBarNone || outerType == DmtxBarNone) {
-         RegionExpand(&regGrow, sideDir, houghCache, fn);
+/*       RegionExpand(&regGrow, sideDir, local, fn); */
          finderSides = DmtxDirNone;
          goodCount = 0;
       }
@@ -1357,41 +796,6 @@ dmtxRegionToSides(GridRegion *region, DmtxRegionSides *regionSides)
  *
  *
  */
-DmtxHoughCompact
-dmtxRayToHoughCompact(DmtxRay2 ray)
-{
-   double phiRad;
-   DmtxHoughCompact houghCompact;
-
-   if(ray.v.X > 0.0)
-      phiRad = atan2(ray.v.Y, ray.v.X) + M_PI_2;
-   else
-      phiRad = atan2(-ray.v.Y, -ray.v.X) + M_PI_2;
-
-   houghCompact.phi = (int)(phiRad/M_PI * 128.0 + 0.5);
-
-   assert(houghCompact.phi >= 0);
-   assert(houghCompact.phi <= 128);
-
-   houghCompact.d = GetCompactOffset((int)(ray.p.X + 0.5), (int)(ray.p.Y + 0.5), houghCompact.phi, 64);
-
-   return houghCompact;
-}
-
-/**
- *
- *
- */
-DmtxBoolean
-dmtxHoughNudgeStronger(DmtxHoughCache *houghCache, DmtxHoughCompact *houghCompact)
-{
-   return DmtxTrue;
-}
-
-/**
- *
- *
- */
 DmtxPassFail
 dmtxRegionUpdateFromSides(GridRegion *region, DmtxRegionSides regionSides)
 {
@@ -1413,11 +817,10 @@ dmtxRegionUpdateFromSides(GridRegion *region, DmtxRegionSides regionSides)
  *
  */
 DmtxPassFail
-RegionExpand(GridRegion *region, DmtxDirection sideDir, DmtxHoughCache *houghCache, DmtxCallbacks *fn)
+RegionExpand(GridRegion *region, DmtxDirection sideDir, DmtxHoughLocal *local, DmtxCallbacks *fn)
 {
    DmtxRegionSides regionSides;
    DmtxRay2 *sideRay;
-   DmtxHoughCompact sideHoughCompact;
 
    switch(sideDir) {
       case DmtxDirDown:
@@ -1440,27 +843,6 @@ RegionExpand(GridRegion *region, DmtxDirection sideDir, DmtxHoughCache *houghCac
          break;
       default:
          return DmtxFail;
-   }
-
-   /* Nudge expanded side for a better fit */
-   if(gState.autoNudge == DmtxTrue)
-   {
-      RETURN_IF_FAIL(dmtxRegionToSides(region, &regionSides));
-      sideHoughCompact = dmtxRayToHoughCompact(*sideRay);
-
-      if(sideHoughCompact.d >= 0 && sideHoughCompact.d < 64)
-      {
-/*       fn->houghCompactCallback(sideHoughCompact, 0); */
-
-         /* If line is nudged to a stronger location, update region geometry */
-         if(dmtxHoughNudgeStronger(houghCache, &sideHoughCompact) == DmtxTrue)
-         {
-            *sideRay = HoughCompactToRay(sideHoughCompact.phi, sideHoughCompact.d);
-/*
-            dmtxRegionUpdateFromSides(region, regionSides);
-*/
-         }
-      }
    }
 
    return DmtxPass;
