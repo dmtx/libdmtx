@@ -148,6 +148,54 @@ dmtxScanImage(DmtxDecode *dec, DmtxImage *imgActive, DmtxCallbacks *fn)
 DmtxPassFail
 dmtxRegion2FindNext(DmtxDecode2 *dec)
 {
+   int i, j;
+   int phiDiff;
+   DmtxBoolean regionFound;
+   DmtxPassFail err;
+   VanishPointSort vPoints;
+   DmtxTimingSort timings;
+   AlignmentGrid grid;
+
+   vPoints = dmtxFindVanishPoints2(dec->houghGrid->local);
+   dec->fn.vanishPointCallback(&vPoints, 1);
+
+   timings = dmtxFindGridTiming2(dec->houghGrid->local, &vPoints);
+
+   regionFound = DmtxFalse;
+   for(i = 0; regionFound == DmtxFalse && i < timings.count; i++)
+   {
+      for(j = i+1; j < timings.count; j++)
+      {
+         phiDiff = abs(timings.timing[i].phi - timings.timing[j].phi);
+
+         /* Reject combinations that deviate from right angle (phi == 64) */
+         if(abs(64 - phiDiff) > 28) /* within +- ~40 deg */
+            continue;
+
+         err = dmtxBuildGridFromTimings(&grid, timings.timing[i], timings.timing[j]);
+         if(err == DmtxFail)
+            continue; /* Keep trying */
+
+         dec->fn.timingCallback(&timings.timing[i], &timings.timing[j], 1);
+
+         /* Hack together raw2fitFull and fit2rawFull outside since we need app data */
+/*
+         AddFullTransforms(&grid);
+
+         err = dmtxFindRegionWithinGrid(&region, &grid, &houghCache, dec, fn);
+         regionFound = (err == DmtxPass) ? DmtxTrue : DmtxFalse;
+
+         if(regionFound == DmtxTrue) {
+            region.sizeIdx = dmtxGetSizeIdx(region.width, region.height);
+            if(region.sizeIdx >= DmtxSymbol10x10 && region.sizeIdx <= DmtxSymbol16x48)
+               dmtxDecodeSymbol(&region, dec);
+         }
+*/
+         regionFound = DmtxTrue; /* break out of outer loop */
+         break; /* break out of inner loop */
+      }
+   }
+
    return DmtxPass;
 }
 
@@ -593,6 +641,25 @@ dmtxFindVanishPoints(DmtxHoughCache *hough)
  *
  *
  */
+VanishPointSort
+dmtxFindVanishPoints2(DmtxHoughLocal *hough)
+{
+   int phi;
+   VanishPointSort sort;
+
+   memset(&sort, 0x00, sizeof(VanishPointSort));
+
+   /* Add strongest line at each angle to sort */
+   for(phi = 0; phi < 128; phi++)
+      AddToVanishPointSort(&sort, GetAngleSumAtPhi2(hough, phi));
+
+   return sort;
+}
+
+/**
+ *
+ *
+ */
 void
 AddToMaximaSort(HoughMaximaSort *sort, int maximaMag)
 {
@@ -635,6 +702,51 @@ GetAngleSumAtPhi(DmtxHoughCache *hough, int phi)
       i = offset * hough->phiExtent + phi;
       if(hough->isMax[i])
          AddToMaximaSort(&sort, hough->mag[i]);
+   }
+
+   vanishSum.phi = phi;
+   vanishSum.mag = 0;
+   for(i = 0; i < 8; i++)
+      vanishSum.mag += sort.mag[i];
+
+   return vanishSum;
+}
+
+/**
+ * Return sum of top 8 maximum points (hmmm)
+ * btw, can we skip this step entirely?
+ */
+VanishPointSum
+GetAngleSumAtPhi2(DmtxHoughLocal *local, int phi)
+{
+   int i, d;
+   int prev, here, next;
+   VanishPointSum vanishSum;
+   HoughMaximaSort sort;
+
+   memset(&sort, 0x00, sizeof(HoughMaximaSort));
+
+   /* Handle last condition separately; one sided comparison */
+   prev = local->bucket[62][phi];
+   here = local->bucket[63][phi];
+   if(here > prev)
+      AddToMaximaSort(&sort, here);
+
+   /* Handle first condition separately; one sided comparison */
+   here = local->bucket[0][phi];
+   next = local->bucket[1][phi];
+   if(here > next)
+      AddToMaximaSort(&sort, here);
+
+   /* Handle remaining conditions as two sided comparisons */
+   for(d = 2; d < 64; d++)
+   {
+      prev = here;
+      here = next;
+      next = local->bucket[d][phi];
+
+      if(here > 0 && here >= prev && here >= next)
+         AddToMaximaSort(&sort, here);
    }
 
    vanishSum.phi = phi;
@@ -735,6 +847,78 @@ dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *vPoints)
             if(y >= 64)
                break;
             fitMag += hough->mag[y * hough->phiExtent + timing.phi];
+         }
+         if(x == 0 || fitMag > fitMax) {
+            fitMax = fitMag;
+            fitOff = x;
+         }
+      }
+      timing.shift = fitOff;
+
+      AddToTimingSort(&timings, timing);
+   }
+
+   return timings;
+}
+
+/**
+ *
+ *
+ */
+DmtxTimingSort
+dmtxFindGridTiming2(DmtxHoughLocal *local, VanishPointSort *vPoints)
+{
+   int x, y, fitMag, fitMax, fitOff, attempts, iter;
+   int i, vSortIdx, phi;
+   kiss_fftr_cfg   cfg = NULL;
+   kiss_fft_scalar rin[NFFT];
+   kiss_fft_cpx    sout[NFFT/2+1];
+   kiss_fft_scalar mag[NFFT/2+1];
+   int maxIdx;
+   Timing timing;
+   DmtxTimingSort timings;
+
+   memset(&timings, 0x00, sizeof(DmtxTimingSort));
+
+   for(vSortIdx = 0; vSortIdx < vPoints->count; vSortIdx++) {
+
+      phi = vPoints->vanishSum[vSortIdx].phi;
+
+      /* Load FFT input array */
+      for(i = 0; i < NFFT; i++) {
+         rin[i] = (i < 64) ? local->bucket[i][phi] : 0;
+      }
+
+      /* Execute FFT */
+      memset(sout, 0x00, sizeof(kiss_fft_cpx) * (NFFT/2 + 1));
+      cfg = kiss_fftr_alloc(NFFT, 0, 0, 0);
+      kiss_fftr(cfg, rin, sout);
+      free(cfg);
+
+      /* Select best result */
+      maxIdx = NFFT/9-1;
+      for(i = 0; i < NFFT/9-1; i++)
+         mag[i] = 0.0;
+      for(i = NFFT/9-1; i < NFFT/2+1; i++) {
+         mag[i] = sout[i].r * sout[i].r + sout[i].i * sout[i].i;
+         if(mag[i] > mag[maxIdx])
+            maxIdx = i;
+      }
+
+      timing.phi = phi;
+      timing.period = NFFT / (double)maxIdx;
+      timing.mag = mag[maxIdx];
+
+      /* Find best offset */
+      fitOff = fitMax = 0;
+      attempts = (int)timing.period + 1;
+      for(x = 0; x < attempts; x++) {
+         fitMag = 0;
+         for(iter = 0; ; iter++) {
+            y = x + (int)(iter * timing.period);
+            if(y >= 64)
+               break;
+            fitMag += local->bucket[y][timing.phi];
          }
          if(x == 0 || fitMag > fitMax) {
             fitMax = fitMag;

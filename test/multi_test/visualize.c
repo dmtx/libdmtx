@@ -155,12 +155,22 @@ void VanishPointCallback(VanishPointSort *vPoints, int id)
    if(gState.displayVanish == DmtxFalse)
       return;
 
-   DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW5_Y, CTRL_COL1_X);
+   switch(id) {
+      case 0:
+         DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW5_Y, CTRL_COL1_X);
+         break;
+      case 1:
+/*       DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW5_Y, CTRL_COL1_X); */
+         break;
+   }
 }
 
 void TimingCallback(Timing *timing0, Timing *timing1, int id)
 {
    int i;
+   int rowNum;
+
+   rowNum = (id == 0) ? CTRL_ROW6_Y : CTRL_ROW5_Y;
 
    /* Should this be called before, as soon as local is captured? */
    BlitActiveRegion(gState.screen, gState.local, 2, CTRL_ROW5_Y, CTRL_COL3_X);
@@ -170,8 +180,8 @@ void TimingCallback(Timing *timing0, Timing *timing1, int id)
 
    /* Draw timed and untimed region lines */
    if(gState.displayTiming == DmtxTrue) {
-      DrawTimingDots(gState.screen, timing0, CTRL_ROW6_Y, CTRL_COL1_X);
-      DrawTimingDots(gState.screen, timing1, CTRL_ROW6_Y, CTRL_COL1_X);
+      DrawTimingDots(gState.screen, timing0, rowNum, CTRL_COL1_X);
+      DrawTimingDots(gState.screen, timing1, rowNum, CTRL_COL1_X);
 
       for(i = -64; i <= 64; i++) {
          DrawLine(gState.screen, 64, CTRL_COL3_X, CTRL_ROW5_Y, timing0->phi,

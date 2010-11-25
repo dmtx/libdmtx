@@ -317,10 +317,13 @@ DmtxPassFail dmtxNormalizeHoughCache(DmtxHoughCache *hough, DmtxEdgeCache *edgeC
 void dmtxMarkHoughMaxima(DmtxHoughCache *hough);
 void AddToVanishPointSort(VanishPointSort *sort, VanishPointSum vanishSum);
 VanishPointSort dmtxFindVanishPoints(DmtxHoughCache *hough);
+VanishPointSort dmtxFindVanishPoints2(DmtxHoughLocal *hough);
 void AddToMaximaSort(HoughMaximaSort *sort, int maximaMag);
 VanishPointSum GetAngleSumAtPhi(DmtxHoughCache *hough, int phi);
+VanishPointSum GetAngleSumAtPhi2(DmtxHoughLocal *local, int phi);
 void AddToTimingSort(DmtxTimingSort *sort, Timing timing);
 DmtxTimingSort dmtxFindGridTiming(DmtxHoughCache *hough, VanishPointSort *sort);
+DmtxTimingSort dmtxFindGridTiming2(DmtxHoughLocal *local, VanishPointSort *sort);
 DmtxRay2 HoughCompactToRay(int phi, double d);
 DmtxPassFail dmtxBuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1);
 StripStats GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int contrast);
