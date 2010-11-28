@@ -106,11 +106,9 @@ decode2ReleaseCacheMemory(DmtxDecode2 *dec)
       return DmtxFail;
 
    HoughGridDestroy(&(dec->houghGrid));
-   dmtxValueGridDestroy(&(dec->hsAccel));
+   dmtxValueGridDestroy(&(dec->ssAccel));
    dmtxValueGridDestroy(&(dec->hhAccel));
-   dmtxValueGridDestroy(&(dec->hbAccel));
-   dmtxValueGridDestroy(&(dec->vsAccel));
-   dmtxValueGridDestroy(&(dec->vbAccel));
+   dmtxValueGridDestroy(&(dec->bbAccel));
    dmtxValueGridDestroy(&(dec->vvAccel));
    dmtxValueGridDestroy(&(dec->sSobel));
    dmtxValueGridDestroy(&(dec->hSobel));

@@ -240,22 +240,18 @@ DmtxPassFail
 AccelGridPopulate(DmtxDecode2 *dec)
 {
    dec->vvAccel = AccelGridCreate(dec->vSobel, DmtxEdgeVertical);
-   dec->vbAccel = AccelGridCreate(dec->bSobel, DmtxEdgeVertical);
-   dec->vsAccel = AccelGridCreate(dec->sSobel, DmtxEdgeVertical);
-   dec->hbAccel = AccelGridCreate(dec->bSobel, DmtxEdgeHorizontal);
+   dec->bbAccel = AccelGridCreate(dec->bSobel, DmtxEdgeBackslash);
    dec->hhAccel = AccelGridCreate(dec->hSobel, DmtxEdgeHorizontal);
-   dec->hsAccel = AccelGridCreate(dec->sSobel, DmtxEdgeHorizontal);
+   dec->ssAccel = AccelGridCreate(dec->sSobel, DmtxEdgeSlash);
 
-   if(dec->vvAccel == NULL || dec->vbAccel == NULL || dec->vsAccel == NULL ||
-      dec->hbAccel == NULL || dec->hhAccel == NULL || dec->hsAccel == NULL)
+   if(dec->vvAccel == NULL || dec->bbAccel == NULL ||
+         dec->hhAccel == NULL || dec->ssAccel == NULL)
       return DmtxFail; /* Memory cleanup will be handled by caller */
 
    dec->fn.dmtxValueGridCallback(dec->vvAccel, 4);
-   dec->fn.dmtxValueGridCallback(dec->vbAccel, 5);
-   dec->fn.dmtxValueGridCallback(dec->vsAccel, 6);
-   dec->fn.dmtxValueGridCallback(dec->hbAccel, 7);
-   dec->fn.dmtxValueGridCallback(dec->hhAccel, 8);
-   dec->fn.dmtxValueGridCallback(dec->hsAccel, 9);
+   dec->fn.dmtxValueGridCallback(dec->bbAccel, 5);
+   dec->fn.dmtxValueGridCallback(dec->hhAccel, 6);
+   dec->fn.dmtxValueGridCallback(dec->ssAccel, 7);
 
    return DmtxPass;
 }
@@ -276,17 +272,33 @@ AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
    sWidth = dmtxValueGridGetWidth(sobel);
    sHeight = dmtxValueGridGetHeight(sobel);
 
-   if(accelEdgeType == DmtxEdgeVertical)
-   {
-      aWidth = sWidth - 1;
-      aHeight = sHeight;
-      sInc = 1;
-   }
-   else
-   {
-      aWidth = sWidth;
-      aHeight = sHeight - 1;
-      sInc = sWidth;
+   switch(accelEdgeType) {
+      case DmtxEdgeVertical:
+         aWidth = sWidth - 1;
+         aHeight = sHeight;
+         sInc = 1;
+         break;
+
+      case DmtxEdgeBackslash:
+         aWidth = sWidth - 1;
+         aHeight = sHeight - 1;
+         sInc = sWidth + 1;
+         break;
+
+      case DmtxEdgeHorizontal:
+         aWidth = sWidth;
+         aHeight = sHeight - 1;
+         sInc = sWidth;
+         break;
+
+      case DmtxEdgeSlash:
+         aWidth = sWidth - 1;
+         aHeight = sHeight - 1;
+         sInc = sWidth - 1;
+         break;
+
+      default:
+         return NULL;
    }
 
    accel = dmtxValueGridCreate(aWidth, aHeight, accelEdgeType);
@@ -321,6 +333,9 @@ SobelGridGetIndexFromZXing(DmtxValueGrid *sobel, DmtxEdgeType edgeType, int aCol
 {
    int sRow, sCol;
 
+   assert(edgeType == DmtxEdgeVertical || edgeType == DmtxEdgeBackslash ||
+         edgeType == DmtxEdgeHorizontal || edgeType == DmtxEdgeSlash);
+
 /* XXX this doesn't make immediate sense to me when I look at it again ... why is sCol = aCol + 1 ? */
    switch(edgeType) {
       case DmtxEdgeVertical:
@@ -332,7 +347,8 @@ SobelGridGetIndexFromZXing(DmtxValueGrid *sobel, DmtxEdgeType edgeType, int aCol
          sCol = aCol;
          break;
       default:
-         return DmtxUndefined;
+         sRow = aRow + 1;
+         sCol = aCol + 1;
    }
 
    if(sCol < 0 || sCol >= sobel->width || sRow < 0 || sRow >= sobel->height)

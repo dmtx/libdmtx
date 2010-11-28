@@ -258,11 +258,9 @@ struct DmtxDecode2_struct {
    DmtxValueGrid *hSobel;
    DmtxValueGrid *sSobel;
    DmtxValueGrid *vvAccel;
-   DmtxValueGrid *vbAccel;
-   DmtxValueGrid *vsAccel;
-   DmtxValueGrid *hbAccel;
+   DmtxValueGrid *bbAccel;
    DmtxValueGrid *hhAccel;
-   DmtxValueGrid *hsAccel;
+   DmtxValueGrid *ssAccel;
    DmtxHoughGrid *houghGrid;
    DmtxCallbacks  fn;
 };
