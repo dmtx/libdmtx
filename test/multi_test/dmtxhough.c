@@ -187,6 +187,7 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
    assert(accel->type == DmtxEdgeVertical || accel->type == DmtxEdgeBackslash ||
          accel->type == DmtxEdgeHorizontal || accel->type == DmtxEdgeSlash);
 
+/* XXX add better bounds checking of aIdxNext now that we're comparing diagonals */
    if(accel->type == DmtxEdgeVertical)
       aInc = 1;
    else if(accel->type == DmtxEdgeBackslash)
@@ -243,18 +244,25 @@ SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge
          edge.x = (double)aCol + 2.0 + smidge;
          edge.y = (double)aRow + 1.5;
          break;
+      case DmtxEdgeBackslash:
+         edge.x = (double)aCol + 2.0 + smidge; /* XXX need sqrt(2) here */
+         edge.y = (double)aRow + 2.0 + smidge; /* XXX need sqrt(2) here */
+         break;
       case DmtxEdgeHorizontal:
          edge.x = (double)aCol + 1.5;
          edge.y = (double)aRow + 2.0 + smidge;
          break;
-      default:
-         edge.x = (double)aCol + 2.0 + smidge; /* XXX this is wrong */
-         edge.y = (double)aRow + 2.0 + smidge; /* XXX this is wrong */
+      case DmtxEdgeSlash:
+         edge.x = (double)aCol + 2.0 - smidge; /* XXX need sqrt(2) here */
+         edge.y = (double)aRow + 2.0 + smidge; /* XXX need sqrt(2) here */
          break;
+      default:
+         return edge; /* XXX ugly -- return DmtxFail or NULL instead */
    }
 
+   /* XXX this is broken ... should be interpolating Sobel value instead? */
    sIdx = SobelGridGetIndexFromZXing(sobel, accel->type, aCol, aRow);
-   edge.mag = abs(sobel->value[sIdx]);
+   edge.mag = abs(sobel->value[sIdx]); /* XXX I think this is grabbing from the wrong spot */
 
    return edge;
 }

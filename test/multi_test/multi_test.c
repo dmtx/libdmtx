@@ -29,6 +29,18 @@ Contact: mblaughton@users.sourceforge.net
  * only after being properly written, tuned, and tested.
  */
 
+/**
+ * TODO
+ * o Should we use a setter for dmtx callback functions?
+ * o Rename new code to use iRow, iCol, sRow, sCol, aRow, aCol, zRow, and zCol
+ *   for index like values and x,y for coordinates (and iIdx, aIdx, etc...)
+ * o Create functions to convert between index schemes (accel -> sobel, etc...)
+ * o Replace SobelGridGetIndexFromZXing() and surrounding call with better way
+ *   of approximating Sobel value for edge strength
+ * o Add dynamic compensation adjustment for 45 deg Sobels based on sum of
+ *   buckets in leading and trailing phi, compared to next orthagonal ones
+ */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -101,7 +113,6 @@ main(int argc, char *argv[])
 /* dmtxDecode2SetScale(dec2); */
 
    /* Set up callback functions */
-   /* TODO: Should we use a setter here? */
    dec2->fn.dmtxValueGridCallback = ValueGridCallback;
    dec2->fn.zeroCrossingCallback = ZeroCrossingCallback;
    dec2->fn.dmtxHoughLocalCallback = HoughLocalCallback;

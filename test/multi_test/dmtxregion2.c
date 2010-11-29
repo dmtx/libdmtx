@@ -22,12 +22,6 @@ Contact: mblaughton@users.sourceforge.net
 
 /* $Id$ */
 
-/** TODO
- * o Refactor new code to use iRow, iCol, sRow, sCol, aRow, aCol, zRow, and
- *   zCol for index like values and x,y for coordinates (and iIdx, aIdx, etc...)
- * o Create functions to convert between index schemes (accel -> sobel, etc...)
- */
-
 #include <string.h>
 #include <math.h>
 #include <assert.h>

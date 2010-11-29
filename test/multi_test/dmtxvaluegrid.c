@@ -291,7 +291,7 @@ AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
          sInc = sWidth;
          break;
 
-      case DmtxEdgeSlash:
+      case DmtxEdgeSlash: /* this is wrong */
          aWidth = sWidth - 1;
          aHeight = sHeight - 1;
          sInc = sWidth - 1;
@@ -311,6 +311,10 @@ AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
    {
       sIdx = y * sWidth;
       aIdx = y * aWidth;
+
+      /* Special case: "Slash" direction starts with bottom-right pixel */
+      if(accelEdgeType == DmtxEdgeSlash)
+         sIdx++;
 
       for(x = 0; x < aWidth; x++)
       {
@@ -342,13 +346,20 @@ SobelGridGetIndexFromZXing(DmtxValueGrid *sobel, DmtxEdgeType edgeType, int aCol
          sRow = aRow;
          sCol = aCol + 1;
          break;
+      case DmtxEdgeBackslash:
+         sRow = aRow + 1;
+         sCol = aCol + 1;
+         break;
       case DmtxEdgeHorizontal:
          sRow = aRow + 1;
          sCol = aCol;
          break;
+      case DmtxEdgeSlash:
+         sRow = aRow + 2;
+         sCol = aCol + 2;
+         break;
       default:
-         sRow = aRow + 1;
-         sCol = aCol + 1;
+         return DmtxUndefined;
    }
 
    if(sCol < 0 || sCol >= sobel->width || sRow < 0 || sRow >= sobel->height)
