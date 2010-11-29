@@ -351,8 +351,8 @@ DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
 DmtxPassFail HoughLocalAccumulate(DmtxDecode2 *dec, int hCol, int hRow);
-ZeroCrossing GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow);
-ZeroCrossing SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge);
+ZeroCrossing GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow, DmtxPassFail *passFail);
+ZeroCrossing SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge, DmtxPassFail *passFail);
 DmtxPassFail HoughLocalAccumulateEdge(DmtxHoughLocal *local, int phi, ZeroCrossing edge);
 double HoughGetLocalOffset(double xLoc, double yLoc, int phi);
 

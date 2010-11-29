@@ -35,10 +35,9 @@ Contact: mblaughton@users.sourceforge.net
  * o Rename new code to use iRow, iCol, sRow, sCol, aRow, aCol, zRow, and zCol
  *   for index like values and x,y for coordinates (and iIdx, aIdx, etc...)
  * o Create functions to convert between index schemes (accel -> sobel, etc...)
- * o Replace SobelGridGetIndexFromZXing() and surrounding call with better way
- *   of approximating Sobel value for edge strength
  * o Add dynamic compensation adjustment for 45 deg Sobels based on sum of
  *   buckets in leading and trailing phi, compared to next orthagonal ones
+ * o Add sqrt(2.0) to zero crossing calculation
  */
 
 #include <stdlib.h>
@@ -434,12 +433,6 @@ HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface
                break;
             case SDLK_4:
                state->displayEdge = 4;
-               break;
-            case SDLK_5:
-               state->displayEdge = 5;
-               break;
-            case SDLK_6:
-               state->displayEdge = 6;
                break;
             case SDLK_l:
                fprintf(stdout, "Image Location: (%d, %d)\n", state->imageLocX,  state->imageLocY);

@@ -98,6 +98,7 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
    int phi;
    DmtxHoughLocal *hRegion;
    ZeroCrossing vvZXing, bbZXing, hhZXing, ssZXing;
+   DmtxPassFail vvPassFail, bbPassFail, hhPassFail, ssPassFail;
 
    hRegion = &(dec->houghGrid->local[0]); /* [hCol * width + hRol]; */
    memset(hRegion, 0x00, sizeof(DmtxHoughLocal));
@@ -125,39 +126,48 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
          if(iCol >= iWidth)
             continue;
 
-         vvZXing = GetZeroCrossing(dec->vvAccel, iCol, iRow);
-         bbZXing = GetZeroCrossing(dec->bbAccel, iCol, iRow);
-         hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow);
-         ssZXing = GetZeroCrossing(dec->ssAccel, iCol, iRow);
+         vvZXing = GetZeroCrossing(dec->vvAccel, iCol, iRow, &vvPassFail);
+         bbZXing = GetZeroCrossing(dec->bbAccel, iCol, iRow, &bbPassFail);
+         hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow, &hhPassFail);
+         ssZXing = GetZeroCrossing(dec->ssAccel, iCol, iRow, &ssPassFail);
 
-         if(gState.displayEdge == 1)
-            dec->fn.zeroCrossingCallback(vvZXing, 0);
-         else if(gState.displayEdge == 2)
-            dec->fn.zeroCrossingCallback(bbZXing, 0);
-         else if(gState.displayEdge == 3)
-            dec->fn.zeroCrossingCallback(hhZXing, 0);
-         else if(gState.displayEdge == 4)
-            dec->fn.zeroCrossingCallback(ssZXing, 0);
-
-         if(vvZXing.mag > 0)
+         if(vvZXing.mag > 0 && vvPassFail == DmtxPass)
          {
             for(phi = 0; phi < 16; phi++)
                HoughLocalAccumulateEdge(hRegion, phi, vvZXing);
             for(phi = 112; phi < 128; phi++)
                HoughLocalAccumulateEdge(hRegion, phi, vvZXing);
+
+            if(gState.displayEdge == 1)
+               dec->fn.zeroCrossingCallback(vvZXing, 0);
          }
 
-         if(bbZXing.mag > 0)
+         if(bbZXing.mag > 0 && bbPassFail == DmtxPass)
+         {
             for(phi = 16; phi < 48; phi++)
                HoughLocalAccumulateEdge(hRegion, phi, bbZXing);
 
-         if(hhZXing.mag > 0)
+            if(gState.displayEdge == 2)
+               dec->fn.zeroCrossingCallback(bbZXing, 0);
+         }
+
+         if(hhZXing.mag > 0 && hhPassFail == DmtxPass)
+         {
             for(phi = 48; phi < 80; phi++)
                HoughLocalAccumulateEdge(hRegion, phi, hhZXing);
 
-         if(ssZXing.mag > 0)
+            if(gState.displayEdge == 3)
+               dec->fn.zeroCrossingCallback(hhZXing, 0);
+         }
+
+         if(ssZXing.mag > 0 && ssPassFail == DmtxPass)
+         {
             for(phi = 80; phi < 112; phi++)
                HoughLocalAccumulateEdge(hRegion, phi, ssZXing);
+
+            if(gState.displayEdge == 4)
+               dec->fn.zeroCrossingCallback(ssZXing, 0);
+         }
       }
    }
 
@@ -169,7 +179,7 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
  *
  */
 ZeroCrossing
-GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
+GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow, DmtxPassFail *passFail)
 {
    int aInc, aIdx, aIdxNext;
    int aRow, aCol;
@@ -177,6 +187,9 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
    int aHere, aNext, aPrev;
    double smidge;
    ZeroCrossing edge = { 0, 0.0, 0.0 };
+   DmtxPassFail childPassFail;
+
+   *passFail = DmtxFail;
 
    aWidth = dmtxValueGridGetWidth(accel);
    aHeight = dmtxValueGridGetHeight(accel);
@@ -200,7 +213,7 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
          aInc = aWidth - 1;
          break;
       default:
-         return edge; /* XXX ugly - return DmtxFail or NULL instead */
+         return edge; /* Fail: Illegal edge direction */
    }
 
    aIdx = aRow * aWidth + aCol;
@@ -213,7 +226,7 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
    {
       /* Zero crossing: Neighbors with opposite signs [-10,+10] */
       smidge = abs(aHere/(aHere - aNext));
-      edge = SetZeroCrossingFromIndex(accel, aCol, aRow, smidge);
+      edge = SetZeroCrossingFromIndex(accel, aCol, aRow, smidge, &childPassFail);
    }
    else if(aHere == 0 && aNext != 0)
    {
@@ -225,10 +238,11 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
       if(OPPOSITE_SIGNS(aPrev, aNext))
       {
          /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */
-         edge = SetZeroCrossingFromIndex(accel, aCol, aRow, 0.0);
+         edge = SetZeroCrossingFromIndex(accel, aCol, aRow, 0.0, &childPassFail);
       }
    }
 
+   *passFail = childPassFail;
    return edge;
 }
 
@@ -237,14 +251,14 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
  *
  */
 ZeroCrossing
-SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge)
+SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge, DmtxPassFail *passFail)
 {
    int sCol, sRow, sIdx;
-   ZeroCrossing edge = { 0, 0.0, 0.0 };
+   const ZeroCrossing emptyEdge = { 0, 0.0, 0.0 };
+   ZeroCrossing edge;
    DmtxValueGrid *sobel = accel->ref;
 
-   assert(accel->type == DmtxEdgeVertical || accel->type == DmtxEdgeBackslash ||
-         accel->type == DmtxEdgeHorizontal || accel->type == DmtxEdgeSlash);
+   *passFail = DmtxFail;
 
    switch(accel->type) {
       case DmtxEdgeVertical:
@@ -277,16 +291,18 @@ SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge
          break;
 
       default:
-         return edge; /* XXX ugly -- return DmtxFail or NULL instead */
+         return emptyEdge; /* Fail: Illegal edge type */
    }
 
+   /* Fail:  Sobel location out of bounds */
    if(sCol < 0 || sCol >= sobel->width || sRow < 0 || sRow >= sobel->height)
-      return edge; /* XXX ugly -- return DmtxFail or NULL instead */
+      return emptyEdge;
 
    /* Use Sobel value that falls directly between 2 accel locations */
    sIdx = sRow * dmtxValueGridGetWidth(sobel) + sCol;
    edge.mag = abs(sobel->value[sIdx]);
 
+   *passFail = DmtxPass;
    return edge;
 }
 
