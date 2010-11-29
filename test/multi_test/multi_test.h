@@ -340,7 +340,6 @@ int dmtxValueGridGetValue(DmtxValueGrid *valueGrid, int x, int y);
 DmtxPassFail SobelGridPopulate(DmtxDecode2 *dec);
 DmtxPassFail AccelGridPopulate(DmtxDecode2 *dec);
 DmtxValueGrid *AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType edgeType);
-int SobelGridGetIndexFromZXing(DmtxValueGrid *sobel, DmtxEdgeType edgeType, int zCol, int zRow);
 
 /* dmtxdecode2.c */
 DmtxDecode2 *dmtxDecode2Create();

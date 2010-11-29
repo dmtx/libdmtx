@@ -180,23 +180,30 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
 
    aWidth = dmtxValueGridGetWidth(accel);
    aHeight = dmtxValueGridGetHeight(accel);
-   aRow = iRow - 1; /* XXX double check this */
-   aCol = iCol - 1; /* XXX double check this */
+   aRow = iRow - 1;
+   aCol = iCol - 1;
+
+   /* XXX add better bounds checking of aIdxNext now that we're comparing diagonals */
+
+   switch(accel->type) {
+      case DmtxEdgeVertical:
+         aInc = 1;
+         break;
+      case DmtxEdgeBackslash:
+         aInc = aWidth + 1;
+         break;
+      case DmtxEdgeHorizontal:
+         aInc = aWidth;
+         break;
+      case DmtxEdgeSlash:
+         aCol++; /* Special case: "Slash" comparison starts at bottom-right */
+         aInc = aWidth - 1;
+         break;
+      default:
+         return edge; /* XXX ugly - return DmtxFail or NULL instead */
+   }
+
    aIdx = aRow * aWidth + aCol;
-
-   assert(accel->type == DmtxEdgeVertical || accel->type == DmtxEdgeBackslash ||
-         accel->type == DmtxEdgeHorizontal || accel->type == DmtxEdgeSlash);
-
-/* XXX add better bounds checking of aIdxNext now that we're comparing diagonals */
-   if(accel->type == DmtxEdgeVertical)
-      aInc = 1;
-   else if(accel->type == DmtxEdgeBackslash)
-      aInc = aWidth + 1;
-   else if(accel->type == DmtxEdgeHorizontal)
-      aInc = aWidth;
-   else /* accel->type == DmtxEdgeSlash */
-      aInc = aWidth - 1;
-
    aIdxNext = aIdx + aInc;
 
    aHere = accel->value[aIdx];
@@ -232,7 +239,7 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
 ZeroCrossing
 SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge)
 {
-   int sIdx;
+   int sCol, sRow, sIdx;
    ZeroCrossing edge = { 0, 0.0, 0.0 };
    DmtxValueGrid *sobel = accel->ref;
 
@@ -243,26 +250,42 @@ SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge
       case DmtxEdgeVertical:
          edge.x = (double)aCol + 2.0 + smidge;
          edge.y = (double)aRow + 1.5;
+         sRow = aRow;
+         sCol = aCol + 1;
          break;
+
       case DmtxEdgeBackslash:
          edge.x = (double)aCol + 2.0 + smidge; /* XXX need sqrt(2) here */
          edge.y = (double)aRow + 2.0 + smidge; /* XXX need sqrt(2) here */
+         sRow = aRow + 1;
+         sCol = aCol + 1;
          break;
+
       case DmtxEdgeHorizontal:
          edge.x = (double)aCol + 1.5;
          edge.y = (double)aRow + 2.0 + smidge;
+         sRow = aRow + 1;
+         sCol = aCol;
          break;
+
       case DmtxEdgeSlash:
-         edge.x = (double)aCol + 2.0 - smidge; /* XXX need sqrt(2) here */
+         /* Special case: Slash accel comparison starts at bottom right */
+         edge.x = (double)aCol + 1.0 - smidge; /* XXX need sqrt(2) here */
          edge.y = (double)aRow + 2.0 + smidge; /* XXX need sqrt(2) here */
+         sRow = aRow + 1;
+         sCol = aCol;
          break;
+
       default:
          return edge; /* XXX ugly -- return DmtxFail or NULL instead */
    }
 
-   /* XXX this is broken ... should be interpolating Sobel value instead? */
-   sIdx = SobelGridGetIndexFromZXing(sobel, accel->type, aCol, aRow);
-   edge.mag = abs(sobel->value[sIdx]); /* XXX I think this is grabbing from the wrong spot */
+   if(sCol < 0 || sCol >= sobel->width || sRow < 0 || sRow >= sobel->height)
+      return edge; /* XXX ugly -- return DmtxFail or NULL instead */
+
+   /* Use Sobel value that falls directly between 2 accel locations */
+   sIdx = sRow * dmtxValueGridGetWidth(sobel) + sCol;
+   edge.mag = abs(sobel->value[sIdx]);
 
    return edge;
 }

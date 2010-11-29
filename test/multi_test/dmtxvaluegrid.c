@@ -291,7 +291,7 @@ AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
          sInc = sWidth;
          break;
 
-      case DmtxEdgeSlash: /* this is wrong */
+      case DmtxEdgeSlash:
          aWidth = sWidth - 1;
          aHeight = sHeight - 1;
          sInc = sWidth - 1;
@@ -326,44 +326,4 @@ AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
    }
 
    return accel;
-}
-
-/**
- *
- *
- */
-int
-SobelGridGetIndexFromZXing(DmtxValueGrid *sobel, DmtxEdgeType edgeType, int aCol, int aRow)
-{
-   int sRow, sCol;
-
-   assert(edgeType == DmtxEdgeVertical || edgeType == DmtxEdgeBackslash ||
-         edgeType == DmtxEdgeHorizontal || edgeType == DmtxEdgeSlash);
-
-/* XXX this doesn't make immediate sense to me when I look at it again ... why is sCol = aCol + 1 ? */
-   switch(edgeType) {
-      case DmtxEdgeVertical:
-         sRow = aRow;
-         sCol = aCol + 1;
-         break;
-      case DmtxEdgeBackslash:
-         sRow = aRow + 1;
-         sCol = aCol + 1;
-         break;
-      case DmtxEdgeHorizontal:
-         sRow = aRow + 1;
-         sCol = aCol;
-         break;
-      case DmtxEdgeSlash:
-         sRow = aRow + 2;
-         sCol = aCol + 2;
-         break;
-      default:
-         return DmtxUndefined;
-   }
-
-   if(sCol < 0 || sCol >= sobel->width || sRow < 0 || sRow >= sobel->height)
-      return 0;
-
-   return sRow * dmtxValueGridGetWidth(sobel) + sCol;
 }
