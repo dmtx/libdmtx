@@ -186,34 +186,40 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow, DmtxPassFail *passFail
    int aWidth, aHeight;
    int aHere, aNext, aPrev;
    double smidge;
-   ZeroCrossing edge = { 0, 0.0, 0.0 };
+   const ZeroCrossing emptyEdge = { 0, 0.0, 0.0 };
+   ZeroCrossing edge = emptyEdge;
    DmtxPassFail childPassFail;
 
    *passFail = DmtxFail;
 
    aWidth = dmtxValueGridGetWidth(accel);
    aHeight = dmtxValueGridGetHeight(accel);
-   aRow = iRow - 1;
-   aCol = iCol - 1;
 
    /* XXX add better bounds checking of aIdxNext now that we're comparing diagonals */
 
    switch(accel->type) {
       case DmtxEdgeVertical:
+         aRow = iRow - 1;
+         aCol = iCol - 2;
          aInc = 1;
          break;
       case DmtxEdgeBackslash:
+         aRow = iRow - 2;
+         aCol = iCol - 2;
          aInc = aWidth + 1;
          break;
       case DmtxEdgeHorizontal:
+         aRow = iRow - 2;
+         aCol = iCol - 1;
          aInc = aWidth;
          break;
       case DmtxEdgeSlash:
-         aCol++; /* Special case: "Slash" comparison starts at bottom-right */
+         aRow = iRow - 2;
+         aCol = iCol - 1;
          aInc = aWidth - 1;
          break;
       default:
-         return edge; /* Fail: Illegal edge direction */
+         return emptyEdge; /* Fail: Illegal edge direction */
    }
 
    aIdx = aRow * aWidth + aCol;
@@ -230,9 +236,8 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow, DmtxPassFail *passFail
    }
    else if(aHere == 0 && aNext != 0)
    {
-      /* No previous value for comparison (beginning of row/col) */
       if(aIdx < aInc)
-         return edge;
+         return emptyEdge; /* Fail: No previous value for comparison (beginning of row/col) */
 
       aPrev = accel->value[aIdx-aInc];
       if(OPPOSITE_SIGNS(aPrev, aNext))
@@ -241,6 +246,9 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow, DmtxPassFail *passFail
          edge = SetZeroCrossingFromIndex(accel, aCol, aRow, 0.0, &childPassFail);
       }
    }
+
+   /* XXX I'm not crazy about handling of edge here ... maybe should use passFail
+      to allow parent to determine if edge was detected instead of relying on edge.mag > 0.0 */
 
    *passFail = childPassFail;
    return edge;
