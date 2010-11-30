@@ -240,18 +240,22 @@ DmtxPassFail
 AccelGridPopulate(DmtxDecode2 *dec)
 {
    dec->vvAccel = AccelGridCreate(dec->vSobel, DmtxEdgeVertical);
-   dec->bbAccel = AccelGridCreate(dec->bSobel, DmtxEdgeBackslash);
+   dec->vbAccel = AccelGridCreate(dec->bSobel, DmtxEdgeVertical);
+   dec->vsAccel = AccelGridCreate(dec->sSobel, DmtxEdgeVertical);
+   dec->hbAccel = AccelGridCreate(dec->bSobel, DmtxEdgeHorizontal);
    dec->hhAccel = AccelGridCreate(dec->hSobel, DmtxEdgeHorizontal);
-   dec->ssAccel = AccelGridCreate(dec->sSobel, DmtxEdgeSlash);
+   dec->hsAccel = AccelGridCreate(dec->sSobel, DmtxEdgeHorizontal);
 
-   if(dec->vvAccel == NULL || dec->bbAccel == NULL ||
-         dec->hhAccel == NULL || dec->ssAccel == NULL)
+   if(dec->vvAccel == NULL || dec->vbAccel == NULL || dec->vsAccel == NULL ||
+      dec->hbAccel == NULL || dec->hhAccel == NULL || dec->hsAccel == NULL)
       return DmtxFail; /* Memory cleanup will be handled by caller */
 
    dec->fn.dmtxValueGridCallback(dec->vvAccel, 4);
-   dec->fn.dmtxValueGridCallback(dec->bbAccel, 5);
-   dec->fn.dmtxValueGridCallback(dec->hhAccel, 6);
-   dec->fn.dmtxValueGridCallback(dec->ssAccel, 7);
+   dec->fn.dmtxValueGridCallback(dec->vbAccel, 5);
+   dec->fn.dmtxValueGridCallback(dec->vsAccel, 6);
+   dec->fn.dmtxValueGridCallback(dec->hbAccel, 7);
+   dec->fn.dmtxValueGridCallback(dec->hhAccel, 8);
+   dec->fn.dmtxValueGridCallback(dec->hsAccel, 9);
 
    return DmtxPass;
 }
@@ -279,22 +283,10 @@ AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
          sInc = 1;
          break;
 
-      case DmtxEdgeBackslash:
-         aWidth = sWidth - 1;
-         aHeight = sHeight - 1;
-         sInc = sWidth + 1;
-         break;
-
       case DmtxEdgeHorizontal:
          aWidth = sWidth;
          aHeight = sHeight - 1;
          sInc = sWidth;
-         break;
-
-      case DmtxEdgeSlash:
-         aWidth = sWidth - 1;
-         aHeight = sHeight - 1;
-         sInc = sWidth - 1;
          break;
 
       default:
@@ -311,10 +303,6 @@ AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
    {
       sIdx = y * sWidth;
       aIdx = y * aWidth;
-
-      /* Special case: "Slash" direction starts with bottom-right pixel */
-      if(accelEdgeType == DmtxEdgeSlash)
-         sIdx++;
 
       for(x = 0; x < aWidth; x++)
       {

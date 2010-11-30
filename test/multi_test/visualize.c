@@ -61,10 +61,16 @@ void ValueGridCallback(DmtxValueGrid *valueGrid, int id)
          BlitSobelGrid(gState.screen, valueGrid, x, y, CTRL_ROW3_Y, CTRL_COL2_X);
          break;
       case 6:
-         BlitSobelGrid(gState.screen, valueGrid, x, y, CTRL_ROW3_Y, CTRL_COL3_X);
+         BlitSobelGrid(gState.screen, valueGrid, x, y, CTRL_ROW3_Y, CTRL_COL4_X);
          break;
       case 7:
-         BlitSobelGrid(gState.screen, valueGrid, x, y, CTRL_ROW3_Y, CTRL_COL4_X);
+         BlitSobelGrid(gState.screen, valueGrid, x, y, CTRL_ROW4_Y, CTRL_COL2_X);
+         break;
+      case 8:
+         BlitSobelGrid(gState.screen, valueGrid, x, y, CTRL_ROW4_Y, CTRL_COL3_X);
+         break;
+      case 9:
+         BlitSobelGrid(gState.screen, valueGrid, x, y, CTRL_ROW4_Y, CTRL_COL4_X);
          break;
       default:
          break;

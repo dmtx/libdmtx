@@ -97,8 +97,8 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
    int iWidth, iHeight;
    int phi;
    DmtxHoughLocal *hRegion;
-   ZeroCrossing vvZXing, bbZXing, hhZXing, ssZXing;
-   DmtxPassFail vvPassFail, bbPassFail, hhPassFail, ssPassFail;
+   ZeroCrossing vvZXing, vbZXing, hbZXing, hhZXing, hsZXing, vsZXing;
+   DmtxPassFail vvPassFail, vbPassFail, hbPassFail, hhPassFail, hsPassFail, vsPassFail;
 
    hRegion = &(dec->houghGrid->local[0]); /* [hCol * width + hRol]; */
    memset(hRegion, 0x00, sizeof(DmtxHoughLocal));
@@ -127,9 +127,24 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
             continue;
 
          vvZXing = GetZeroCrossing(dec->vvAccel, iCol, iRow, &vvPassFail);
-         bbZXing = GetZeroCrossing(dec->bbAccel, iCol, iRow, &bbPassFail);
+         vbZXing = GetZeroCrossing(dec->vbAccel, iCol, iRow, &vbPassFail);
+         hbZXing = GetZeroCrossing(dec->hbAccel, iCol, iRow, &hbPassFail);
          hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow, &hhPassFail);
-         ssZXing = GetZeroCrossing(dec->ssAccel, iCol, iRow, &ssPassFail);
+         hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow, &hsPassFail);
+         vsZXing = GetZeroCrossing(dec->vsAccel, iCol, iRow, &vsPassFail);
+
+         if(gState.displayEdge == 1)
+            dec->fn.zeroCrossingCallback(vvZXing, 0);
+         else if(gState.displayEdge == 2)
+            dec->fn.zeroCrossingCallback(vbZXing, 0);
+         else if(gState.displayEdge == 3)
+            dec->fn.zeroCrossingCallback(hbZXing, 0);
+         else if(gState.displayEdge == 4)
+            dec->fn.zeroCrossingCallback(hhZXing, 0);
+         else if(gState.displayEdge == 5)
+            dec->fn.zeroCrossingCallback(hsZXing, 0);
+         else if(gState.displayEdge == 6)
+            dec->fn.zeroCrossingCallback(vsZXing, 0);
 
          if(vvZXing.mag > 0 && vvPassFail == DmtxPass)
          {
@@ -137,37 +152,27 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
                HoughLocalAccumulateEdge(hRegion, phi, vvZXing);
             for(phi = 112; phi < 128; phi++)
                HoughLocalAccumulateEdge(hRegion, phi, vvZXing);
-
-            if(gState.displayEdge == 1)
-               dec->fn.zeroCrossingCallback(vvZXing, 0);
          }
 
-         if(bbZXing.mag > 0 && bbPassFail == DmtxPass)
-         {
-            for(phi = 16; phi < 48; phi++)
-               HoughLocalAccumulateEdge(hRegion, phi, bbZXing);
+         if(vbZXing.mag > 0 && vbPassFail == DmtxPass)
+            for(phi = 16; phi < 32; phi++)
+               HoughLocalAccumulateEdge(hRegion, phi, vbZXing);
 
-            if(gState.displayEdge == 2)
-               dec->fn.zeroCrossingCallback(bbZXing, 0);
-         }
+         if(hbZXing.mag > 0 && hbPassFail == DmtxPass)
+            for(phi = 32; phi < 48; phi++)
+               HoughLocalAccumulateEdge(hRegion, phi, hbZXing);
 
          if(hhZXing.mag > 0 && hhPassFail == DmtxPass)
-         {
             for(phi = 48; phi < 80; phi++)
                HoughLocalAccumulateEdge(hRegion, phi, hhZXing);
 
-            if(gState.displayEdge == 3)
-               dec->fn.zeroCrossingCallback(hhZXing, 0);
-         }
+         if(hsZXing.mag > 0 && hsPassFail == DmtxPass)
+            for(phi = 80; phi < 96; phi++)
+               HoughLocalAccumulateEdge(hRegion, phi, hsZXing);
 
-         if(ssZXing.mag > 0 && ssPassFail == DmtxPass)
-         {
-            for(phi = 80; phi < 112; phi++)
-               HoughLocalAccumulateEdge(hRegion, phi, ssZXing);
-
-            if(gState.displayEdge == 4)
-               dec->fn.zeroCrossingCallback(ssZXing, 0);
-         }
+         if(vsZXing.mag > 0 && vsPassFail == DmtxPass)
+            for(phi = 96; phi < 112; phi++)
+               HoughLocalAccumulateEdge(hRegion, phi, vsZXing);
       }
    }
 
@@ -203,21 +208,13 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow, DmtxPassFail *passFail
          aCol = iCol - 2;
          aInc = 1;
          break;
-      case DmtxEdgeBackslash:
-         aRow = iRow - 2;
-         aCol = iCol - 2;
-         aInc = aWidth + 1;
-         break;
+
       case DmtxEdgeHorizontal:
          aRow = iRow - 2;
          aCol = iCol - 1;
          aInc = aWidth;
          break;
-      case DmtxEdgeSlash:
-         aRow = iRow - 2;
-         aCol = iCol - 1;
-         aInc = aWidth - 1;
-         break;
+
       default:
          return emptyEdge; /* Fail: Illegal edge direction */
    }
@@ -276,24 +273,9 @@ SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge
          sCol = aCol + 1;
          break;
 
-      case DmtxEdgeBackslash:
-         edge.x = (double)aCol + 2.0 + smidge; /* XXX need sqrt(2) here */
-         edge.y = (double)aRow + 2.0 + smidge; /* XXX need sqrt(2) here */
-         sRow = aRow + 1;
-         sCol = aCol + 1;
-         break;
-
       case DmtxEdgeHorizontal:
          edge.x = (double)aCol + 1.5;
          edge.y = (double)aRow + 2.0 + smidge;
-         sRow = aRow + 1;
-         sCol = aCol;
-         break;
-
-      case DmtxEdgeSlash:
-         /* Special case: Slash accel comparison starts at bottom right */
-         edge.x = (double)aCol + 1.0 - smidge; /* XXX need sqrt(2) here */
-         edge.y = (double)aRow + 2.0 + smidge; /* XXX need sqrt(2) here */
          sRow = aRow + 1;
          sCol = aCol;
          break;

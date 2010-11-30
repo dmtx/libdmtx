@@ -434,6 +434,12 @@ HandleEvent(SDL_Event *event, AppState *state, SDL_Surface *picture, SDL_Surface
             case SDLK_4:
                state->displayEdge = 4;
                break;
+            case SDLK_5:
+               state->displayEdge = 5;
+               break;
+            case SDLK_6:
+               state->displayEdge = 6;
+               break;
             case SDLK_l:
                fprintf(stdout, "Image Location: (%d, %d)\n", state->imageLocX,  state->imageLocY);
                break;
