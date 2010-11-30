@@ -46,10 +46,10 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
    DmtxTimingSort timings;
    AlignmentGrid grid;
 
-   vPoints = dmtxFindVanishPoints(dec->houghGrid->local);
+   vPoints = dmtxFindVanishPoints(dec->houghGrid->line);
    dec->fn.vanishPointCallback(&vPoints, 1);
 
-   timings = dmtxFindGridTiming(dec->houghGrid->local, &vPoints);
+   timings = dmtxFindGridTiming(dec->houghGrid->line, &vPoints);
 
    regionFound = DmtxFalse;
    for(i = 0; regionFound == DmtxFalse && i < timings.count; i++)
@@ -222,7 +222,7 @@ AddToMaximaSort(HoughMaximaSort *sort, int maximaMag)
  * btw, can we skip this step entirely?
  */
 VanishPointSum
-GetAngleSumAtPhi(DmtxHoughLocal *local, int phi)
+GetAngleSumAtPhi(DmtxHoughLocal *line, int phi)
 {
    int i, d;
    int prev, here, next;
@@ -232,14 +232,14 @@ GetAngleSumAtPhi(DmtxHoughLocal *local, int phi)
    memset(&sort, 0x00, sizeof(HoughMaximaSort));
 
    /* Handle last condition separately; one sided comparison */
-   prev = local->bucket[62][phi];
-   here = local->bucket[63][phi];
+   prev = line->bucket[62][phi];
+   here = line->bucket[63][phi];
    if(here > prev)
       AddToMaximaSort(&sort, here);
 
    /* Handle first condition separately; one sided comparison */
-   here = local->bucket[0][phi];
-   next = local->bucket[1][phi];
+   here = line->bucket[0][phi];
+   next = line->bucket[1][phi];
    if(here > next)
       AddToMaximaSort(&sort, here);
 
@@ -248,7 +248,7 @@ GetAngleSumAtPhi(DmtxHoughLocal *local, int phi)
    {
       prev = here;
       here = next;
-      next = local->bucket[d][phi];
+      next = line->bucket[d][phi];
 
       if(here > 0 && here >= prev && here >= next)
          AddToMaximaSort(&sort, here);
@@ -299,7 +299,7 @@ AddToTimingSort(DmtxTimingSort *sort, Timing timing)
  *
  */
 DmtxTimingSort
-dmtxFindGridTiming(DmtxHoughLocal *local, VanishPointSort *vPoints)
+dmtxFindGridTiming(DmtxHoughLocal *line, VanishPointSort *vPoints)
 {
    int x, y, fitMag, fitMax, fitOff, attempts, iter;
    int i, vSortIdx, phi;
@@ -319,7 +319,7 @@ dmtxFindGridTiming(DmtxHoughLocal *local, VanishPointSort *vPoints)
 
       /* Load FFT input array */
       for(i = 0; i < NFFT; i++) {
-         rin[i] = (i < 64) ? local->bucket[i][phi] : 0;
+         rin[i] = (i < 64) ? line->bucket[i][phi] : 0;
       }
 
       /* Execute FFT */
@@ -351,7 +351,7 @@ dmtxFindGridTiming(DmtxHoughLocal *local, VanishPointSort *vPoints)
             y = x + (int)(iter * timing.period);
             if(y >= 64)
                break;
-            fitMag += local->bucket[y][timing.phi];
+            fitMag += line->bucket[y][timing.phi];
          }
          if(x == 0 || fitMag > fitMax) {
             fitMax = fitMag;
@@ -544,7 +544,7 @@ GenStripPatternStats(unsigned char *strip, int stripLength, int startState, int 
  *
  */
 DmtxPassFail
-dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxHoughLocal *local, DmtxDecode *dec, DmtxCallbacks *fn)
+dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxHoughLocal *line, DmtxDecode *dec, DmtxCallbacks *fn)
 {
    int goodCount;
    int finderSides;
@@ -582,7 +582,7 @@ dmtxFindRegionWithinGrid(GridRegion *region, AlignmentGrid *grid, DmtxHoughLocal
        */
 
       if(innerType == DmtxBarNone || outerType == DmtxBarNone) {
-/*       RegionExpand(&regGrow, sideDir, local, fn); */
+/*       RegionExpand(&regGrow, sideDir, line, fn); */
          finderSides = DmtxDirNone;
          goodCount = 0;
       }
@@ -811,7 +811,7 @@ dmtxRegionUpdateFromSides(GridRegion *region, DmtxRegionSides regionSides)
  *
  */
 DmtxPassFail
-RegionExpand(GridRegion *region, DmtxDirection sideDir, DmtxHoughLocal *local, DmtxCallbacks *fn)
+RegionExpand(GridRegion *region, DmtxDirection sideDir, DmtxHoughLocal *line, DmtxCallbacks *fn)
 {
    DmtxRegionSides regionSides;
    DmtxRay2 *sideRay;

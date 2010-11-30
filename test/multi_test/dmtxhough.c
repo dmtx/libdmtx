@@ -35,33 +35,34 @@ DmtxPassFail
 HoughGridPopulate(DmtxDecode2 *dec)
 {
    int row, col;
-   DmtxHoughGrid *grid;
 
    dec->houghGrid = (DmtxHoughGrid *)calloc(1, sizeof(DmtxHoughGrid));
    if(dec->houghGrid == NULL)
       return DmtxFail;
 
-   grid = dec->houghGrid;
-   grid->rows = 1;
-   grid->cols = 1;
-   grid->count = grid->rows * grid->cols;
-   grid->local = (DmtxHoughLocal *)malloc(grid->count * sizeof(DmtxHoughLocal));
-   if(grid->local == NULL)
+   dec->houghGrid->rows = 1;
+   dec->houghGrid->cols = 1;
+   dec->houghGrid->count = dec->houghGrid->rows * dec->houghGrid->cols;
+   dec->houghGrid->line = (DmtxHoughLocal *)malloc(dec->houghGrid->count * sizeof(DmtxHoughLocal));
+   dec->houghGrid->vanish = (DmtxHoughLocal *)malloc(dec->houghGrid->count * sizeof(DmtxHoughLocal));
+
+   if(dec->houghGrid->line == NULL || dec->houghGrid->vanish == NULL)
    {
-      free(dec->houghGrid);
-      dec->houghGrid = NULL;
+      HoughGridDestroy(&(dec->houghGrid));
       return DmtxFail;
    }
 
-   for(row = 0; row < grid->rows; row++)
+   for(row = 0; row < dec->houghGrid->rows; row++)
    {
-      for(col = 0; col < grid->cols; col++)
+      for(col = 0; col < dec->houghGrid->cols; col++)
       {
-         HoughLocalAccumulate(dec, col, row);
+         /* XXX trap failures returned from these functions */
+         LineHoughAccumulate(dec, col, row);
+         VanishHoughAccumulate(dec, col, row);
       }
    }
 
-   dec->fn.dmtxHoughLocalCallback(dec->houghGrid->local, 0);
+   dec->fn.dmtxHoughLocalCallback(dec->houghGrid->line, 0);
 
    return DmtxPass;
 }
@@ -76,8 +77,11 @@ HoughGridDestroy(DmtxHoughGrid **grid)
    if(grid == NULL || *grid == NULL)
       return DmtxFail;
 
-   if((*grid)->local != NULL)
-      free((*grid)->local);
+   if((*grid)->vanish != NULL)
+      free((*grid)->vanish);
+
+   if((*grid)->line != NULL)
+      free((*grid)->line);
 
    free(*grid);
    *grid = NULL;
@@ -90,7 +94,7 @@ HoughGridDestroy(DmtxHoughGrid **grid)
  *
  */
 DmtxPassFail
-HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
+LineHoughAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
 {
    int rRow, rCol;
    int iRow, iCol;
@@ -100,7 +104,7 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
    ZeroCrossing vvZXing, vbZXing, hbZXing, hhZXing, hsZXing, vsZXing;
    DmtxPassFail vvPassFail, vbPassFail, hbPassFail, hhPassFail, hsPassFail, vsPassFail;
 
-   hRegion = &(dec->houghGrid->local[0]); /* [hCol * width + hRol]; */
+   hRegion = &(dec->houghGrid->line[0]); /* [hCol * width + hRol]; */
    memset(hRegion, 0x00, sizeof(DmtxHoughLocal));
 
    /* Global coordinate system */
@@ -176,6 +180,35 @@ HoughLocalAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
       }
    }
 
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+DmtxPassFail
+VanishHoughAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
+{
+/*
+   lhRegion = &(dec->houghGrid->line[0]); // [hCol * width + hRol];
+   vhRegion = &(dec->houghGrid->line[0]); // [hCol * width + hRol];
+
+   for(lhRow = 0; lhRow < 64; lhRow++)
+   {
+      for(lhCol = 0; lhCol < 64; lhCol++)
+      {
+         if(lhRegion->bucket[lhRow][lhCol] is not a local maxima)
+            continue;
+
+         for(phi = 0; phi < 128; phi++)
+         {
+            d = calculate which tapered bucket this line uses
+            vhRegion[d][phi] += lhRegion->bucket[lhRow][lhCol]; // check [1][2] vs [2][1]
+         }
+      }
+   }
+*/
    return DmtxPass;
 }
 
@@ -301,12 +334,12 @@ SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge
  *
  */
 DmtxPassFail
-HoughLocalAccumulateEdge(DmtxHoughLocal *local, int phi, ZeroCrossing edge)
+HoughLocalAccumulateEdge(DmtxHoughLocal *line, int phi, ZeroCrossing edge)
 {
    double d;
    int dInt;
 
-   d = HoughGetLocalOffset(edge.x - local->xOrigin, edge.y - local->yOrigin, phi);
+   d = HoughGetLocalOffset(edge.x - line->xOrigin, edge.y - line->yOrigin, phi);
    dInt = (int)d;
 
 if(dInt > 63)
@@ -316,7 +349,7 @@ if(dInt > 63)
    assert(dInt < 64);
    assert(phi >= 0 && phi < 128);
 
-   local->bucket[dInt][phi] += edge.mag;
+   line->bucket[dInt][phi] += edge.mag;
 
    return DmtxPass;
 }

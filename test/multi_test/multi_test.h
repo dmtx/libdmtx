@@ -128,7 +128,8 @@ struct DmtxHoughGrid_struct {
    int rows;
    int cols;
    int count;
-   DmtxHoughLocal *local;
+   DmtxHoughLocal *line;
+   DmtxHoughLocal *vanish;
 };
 
 typedef struct HoughMaximaSort_struct {
@@ -352,7 +353,8 @@ DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 /* dmtxhough.c */
 DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
-DmtxPassFail HoughLocalAccumulate(DmtxDecode2 *dec, int hCol, int hRow);
+DmtxPassFail LineHoughAccumulate(DmtxDecode2 *dec, int hCol, int hRow);
+DmtxPassFail VanishHoughAccumulate(DmtxDecode2 *dec, int hCol, int hRow);
 ZeroCrossing GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow, DmtxPassFail *passFail);
 ZeroCrossing SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge, DmtxPassFail *passFail);
 DmtxPassFail HoughLocalAccumulateEdge(DmtxHoughLocal *local, int phi, ZeroCrossing edge);
