@@ -31,13 +31,16 @@ Contact: mblaughton@users.sourceforge.net
 
 /**
  * TODO
- * o Should we use a setter for dmtx callback functions?
- * o Rename new code to use iRow, iCol, sRow, sCol, aRow, aCol, zRow, and zCol
- *   for index like values and x,y for coordinates (and iIdx, aIdx, etc...)
- * o Create functions to convert between index schemes (accel -> sobel, etc...)
- * o Add dynamic compensation adjustment for 45 deg Sobels based on sum of
- *   buckets in leading and trailing phi, compared to next orthagonal ones
- * o Add sqrt(2.0) to zero crossing calculation
+ * o Implement tapered bucket calculation
+ * o Display and evaluate tapered buckets
+ * o FFT for grid alignment
+ * o Outward stepping
+ * o All grid locations (not just one)
+ * o Region spanning hough alignment
+ * o Multiscale hough
+ * o Integrate w/ libdmtx proper as experimental option
+ * o Release 0.7.4
+ * o Bug fixes and site changes
  */
 
 #include <stdlib.h>

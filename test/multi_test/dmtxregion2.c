@@ -29,7 +29,10 @@ Contact: mblaughton@users.sourceforge.net
 #include "multi_test.h"
 #include "kiss_fftr.h"
 
-#define RETURN_IF_FAIL(X) if(X == DmtxFail) return DmtxFail
+#define RETURN_FAIL_IF(C) \
+   if(C) { \
+      return DmtxFail; \
+   }
 
 /**
  *
@@ -447,11 +450,11 @@ dmtxBuildGridFromTimings(AlignmentGrid *grid, Timing vp0, Timing vp1)
       steep->line[1] = HoughCompactToRay(steep->timing.phi, steep->dA);
    }
 
-   RETURN_IF_FAIL(dmtxRay2Intersect(&p00, &(flat->line[0]), &(steep->line[0])));
-   RETURN_IF_FAIL(dmtxRay2Intersect(&p10, &(flat->line[0]), &(steep->line[1])));
-   RETURN_IF_FAIL(dmtxRay2Intersect(&p11, &(flat->line[1]), &(steep->line[1])));
-   RETURN_IF_FAIL(dmtxRay2Intersect(&p01, &(flat->line[1]), &(steep->line[0])));
-   RETURN_IF_FAIL(RegionUpdateCorners(fit2raw, raw2fit, p00, p10, p11, p01));
+   RETURN_FAIL_IF(dmtxRay2Intersect(&p00, &(flat->line[0]), &(steep->line[0])) == DmtxFail);
+   RETURN_FAIL_IF(dmtxRay2Intersect(&p10, &(flat->line[0]), &(steep->line[1])) == DmtxFail);
+   RETURN_FAIL_IF(dmtxRay2Intersect(&p11, &(flat->line[1]), &(steep->line[1])) == DmtxFail);
+   RETURN_FAIL_IF(dmtxRay2Intersect(&p01, &(flat->line[1]), &(steep->line[0])) == DmtxFail);
+   RETURN_FAIL_IF(RegionUpdateCorners(fit2raw, raw2fit, p00, p10, p11, p01) == DmtxFail);
 
    grid->rowCount = flat->gridCount;
    grid->colCount = steep->gridCount;
@@ -749,7 +752,7 @@ RayFromPoints(DmtxRay2 *ray, DmtxVector2 p0, DmtxVector2 p1)
    r.p = p0;
 
    dmtxVector2Sub(&r.v, &p1, &p0);
-   RETURN_IF_FAIL(Vector2Norm(&r.v));
+   RETURN_FAIL_IF(Vector2Norm(&r.v) == DmtxFail);
 
    *ray = r;
 
@@ -776,10 +779,10 @@ dmtxRegionToSides(GridRegion *region, DmtxRegionSides *regionSides)
    dmtxMatrix3VMultiplyBy(&p11, region->grid.fit2rawActive);
    dmtxMatrix3VMultiplyBy(&p01, region->grid.fit2rawActive);
 
-   RETURN_IF_FAIL(RayFromPoints(&rs.bottom, p00, p10));
-   RETURN_IF_FAIL(RayFromPoints(&rs.right, p10, p11));
-   RETURN_IF_FAIL(RayFromPoints(&rs.top, p11, p01));
-   RETURN_IF_FAIL(RayFromPoints(&rs.left, p01, p00));
+   RETURN_FAIL_IF(RayFromPoints(&rs.bottom, p00, p10) == DmtxFail);
+   RETURN_FAIL_IF(RayFromPoints(&rs.right, p10, p11) == DmtxFail);
+   RETURN_FAIL_IF(RayFromPoints(&rs.top, p11, p01) == DmtxFail);
+   RETURN_FAIL_IF(RayFromPoints(&rs.left, p01, p00) == DmtxFail);
 
    *regionSides = rs;
 
@@ -795,12 +798,12 @@ dmtxRegionUpdateFromSides(GridRegion *region, DmtxRegionSides regionSides)
 {
    DmtxVector2 p00, p10, p11, p01;
 
-   RETURN_IF_FAIL(dmtxRay2Intersect(&p00, &(regionSides.left), &(regionSides.bottom)));
-   RETURN_IF_FAIL(dmtxRay2Intersect(&p10, &(regionSides.bottom), &(regionSides.right)));
-   RETURN_IF_FAIL(dmtxRay2Intersect(&p11, &(regionSides.right), &(regionSides.top)));
-   RETURN_IF_FAIL(dmtxRay2Intersect(&p01, &(regionSides.top), &(regionSides.left)));
+   RETURN_FAIL_IF(dmtxRay2Intersect(&p00, &(regionSides.left), &(regionSides.bottom)) == DmtxFail);
+   RETURN_FAIL_IF(dmtxRay2Intersect(&p10, &(regionSides.bottom), &(regionSides.right)) == DmtxFail);
+   RETURN_FAIL_IF(dmtxRay2Intersect(&p11, &(regionSides.right), &(regionSides.top)) == DmtxFail);
+   RETURN_FAIL_IF(dmtxRay2Intersect(&p01, &(regionSides.top), &(regionSides.left)) == DmtxFail);
 
-   RETURN_IF_FAIL(RegionUpdateCorners(region->grid.fit2rawActive, region->grid.raw2fitActive, p00, p10, p11, p01));
+   RETURN_FAIL_IF(RegionUpdateCorners(region->grid.fit2rawActive, region->grid.raw2fitActive, p00, p10, p11, p01) == DmtxFail);
    /* need to update fit2rawFull and raw2fitFull here too? */
 
    return DmtxPass;
@@ -980,7 +983,7 @@ dmtxDecodeSymbol(GridRegion *region, DmtxDecode *dec)
    DmtxMessage *msg;
 
    /* Since we now hold 2 adjacent timing bars, find colors */
-   RETURN_IF_FAIL(GetOnOffColors(region, dec, &onColor, &offColor));
+   RETURN_FAIL_IF(GetOnOffColors(region, dec, &onColor, &offColor) == DmtxFail);
 
    p00.X = p01.X = region->x * (1.0/region->grid.colCount);
    p10.X = p11.X = (region->x + region->width) * (1.0/region->grid.colCount);
@@ -995,16 +998,16 @@ dmtxDecodeSymbol(GridRegion *region, DmtxDecode *dec)
    /* Update DmtxRegion with detected corners */
    switch(region->finderSides) {
       case (DmtxDirLeft | DmtxDirDown):
-         RETURN_IF_FAIL(dmtxRegionUpdateCorners(dec, &reg, p00, p10, p11, p01));
+         RETURN_FAIL_IF(dmtxRegionUpdateCorners(dec, &reg, p00, p10, p11, p01) == DmtxFail);
          break;
       case (DmtxDirDown | DmtxDirRight):
-         RETURN_IF_FAIL(dmtxRegionUpdateCorners(dec, &reg, p10, p11, p01, p00));
+         RETURN_FAIL_IF(dmtxRegionUpdateCorners(dec, &reg, p10, p11, p01, p00) == DmtxFail);
          break;
       case (DmtxDirRight | DmtxDirUp):
-         RETURN_IF_FAIL(dmtxRegionUpdateCorners(dec, &reg, p11, p01, p00, p10));
+         RETURN_FAIL_IF(dmtxRegionUpdateCorners(dec, &reg, p11, p01, p00, p10) == DmtxFail);
          break;
       case (DmtxDirUp | DmtxDirLeft):
-         RETURN_IF_FAIL(dmtxRegionUpdateCorners(dec, &reg, p01, p00, p10, p11));
+         RETURN_FAIL_IF(dmtxRegionUpdateCorners(dec, &reg, p01, p00, p10, p11) == DmtxFail);
          break;
       default:
          return DmtxFail;

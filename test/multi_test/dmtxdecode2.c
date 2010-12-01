@@ -95,6 +95,8 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
    return DmtxPass;
 }
 
+#undef RETURN_FAIL_IF
+
 /**
  *
  *
