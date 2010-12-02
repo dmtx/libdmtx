@@ -49,8 +49,8 @@ HoughGridPopulate(DmtxDecode2 *dec)
    dec->houghGrid->rows = 1;
    dec->houghGrid->cols = 1;
    dec->houghGrid->count = dec->houghGrid->rows * dec->houghGrid->cols;
-   dec->houghGrid->line = (DmtxHoughLocal *)malloc(dec->houghGrid->count * sizeof(DmtxHoughLocal));
-   dec->houghGrid->vanish = (DmtxHoughLocal *)malloc(dec->houghGrid->count * sizeof(DmtxHoughLocal));
+   dec->houghGrid->line = (DmtxHoughLocal *)calloc(dec->houghGrid->count, sizeof(DmtxHoughLocal));
+   dec->houghGrid->vanish = (DmtxHoughLocal *)calloc(dec->houghGrid->count, sizeof(DmtxHoughLocal));
 
    RETURN_FAIL_IF(dec->houghGrid->line == NULL || dec->houghGrid->vanish == NULL);
 
@@ -62,6 +62,7 @@ HoughGridPopulate(DmtxDecode2 *dec)
          RETURN_FAIL_IF(VanishHoughAccumulate(dec, col, row) == DmtxFail);
 
          dec->fn.dmtxHoughLocalCallback(dec->houghGrid->line, 0);
+         dec->fn.dmtxHoughLocalCallback(dec->houghGrid->vanish, 1);
       }
    }
 
@@ -193,28 +194,85 @@ LineHoughAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
 DmtxPassFail
 VanishHoughAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
 {
-/*
-   lhRegion = &(dec->houghGrid->line[0]); // will eventually be [hCol * width + hRol];
-   vhRegion = &(dec->houghGrid->vanish[0]); // will eventually be [hCol * width + hRol];
+   int lhRow, lhCol;
+   int phi, d;
+   DmtxHoughLocal *lhRegion, *vhRegion;
+
+   lhRegion = &(dec->houghGrid->line[0]); /* will eventually be [hCol * width + hRol]; */
+   vhRegion = &(dec->houghGrid->vanish[0]); /* will eventually be [hCol * width + hRol]; */
 
    for(lhRow = 0; lhRow < 64; lhRow++)
    {
       for(lhCol = 0; lhCol < 128; lhCol++)
       {
-         // be sure to flip d in comparisons across 0/127 boundary
-         if(lhRegion->bucket[lhRow][lhCol] is not a local maxima)
+         /* XXX later be sure to flip d in comparisons across 0/127 boundary */
+         /* XXX this actually overextends array boundaries I but don't care yet */
+         if(lhRegion->bucket[lhRow][lhCol] < lhRegion->bucket[lhRow + 1][lhCol] ||
+               lhRegion->bucket[lhRow][lhCol] < lhRegion->bucket[lhRow - 1][lhCol])
             continue;
 
          for(phi = 0; phi < 128; phi++)
          {
-            d = calculate which tapered bucket this line uses
-            vhRegion[d][phi] += lhRegion->bucket[lhRow][lhCol]; // check [1][2] vs [2][1]
+            d = GetVanishBucket(phi, lhCol, lhRow);
+            if(d == DmtxUndefined)
+               continue;
+            vhRegion->bucket[d][phi] += lhRegion->bucket[lhRow][lhCol];
          }
       }
    }
-*/
 
    return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+int
+GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
+{
+   int bucket;
+   double d;
+   double numer, denom;
+   double phiBucketRad, phiCompareRad, bucketRad;
+   double sinPhiCompare, cosPhiCompare;
+   DmtxVector2 w;
+   DmtxRay2 p0, p1;
+
+   /* phiBucket is the actual ray direction, not the hough index */
+   p0.p.X = p0.p.Y = 32.0;
+   phiBucketRad = phiBucket * (M_PI/128.0);
+   p0.v.X = cos(phiBucketRad);
+   p0.v.Y = sin(phiBucketRad);
+
+   /* XXX later make helper function to convert lineHough point to DmtxRay2 */
+   phiCompareRad = phiCompare * (M_PI/128.0);
+   sinPhiCompare = sin(phiCompareRad);
+   cosPhiCompare = cos(phiCompareRad);
+
+   d = UncompactOffset(dCompare, phiCompare, 64);
+   p1.p.X = d * cosPhiCompare;
+   p1.p.Y = d * sinPhiCompare;
+   p1.v.X = sinPhiCompare;
+   p1.v.Y = -cosPhiCompare;
+
+   denom = dmtxVector2Cross(&(p1.v), &(p0.v));
+   if(fabs(denom) <= 0.000001)
+      return 0; /* Lines are parallel: bucket 0 */
+
+   dmtxVector2Sub(&w, &(p1.p), &(p0.p));
+   numer = dmtxVector2Cross(&(p1.v), &w);
+
+   bucketRad = atan2(32, numer/denom);
+   bucket = (int)(bucketRad * (128.0/M_PI));
+
+   /* XXX can legitimately be < 0, but don't worry about that yet */
+   if(bucket < 0)
+      bucket = DmtxUndefined;
+   else if(bucket > 63)
+      bucket = DmtxUndefined;
+
+   return bucket;
 }
 
 /**
@@ -285,9 +343,6 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow, DmtxPassFail *passFail
          edge = SetZeroCrossingFromIndex(accel, aCol, aRow, 0.0, &childPassFail);
       }
    }
-
-   /* XXX I'm not crazy about handling of edge here ... maybe should use passFail
-      to allow parent to determine if edge was detected instead of relying on edge.mag > 0.0 */
 
    *passFail = childPassFail;
    return edge;

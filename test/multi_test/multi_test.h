@@ -48,7 +48,7 @@ Contact: mblaughton@users.sourceforge.net
 #define CTRL_ROW3_Y          130
 #define CTRL_ROW4_Y          195
 #define CTRL_ROW5_Y          260
-#define CTRL_ROW6_Y          324
+#define CTRL_ROW6_Y          325
 #define CTRL_ROW7_Y          388
 
 #define MODULE_LOW             0
@@ -355,6 +355,7 @@ DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
 DmtxPassFail LineHoughAccumulate(DmtxDecode2 *dec, int hCol, int hRow);
 DmtxPassFail VanishHoughAccumulate(DmtxDecode2 *dec, int hCol, int hRow);
+int GetVanishBucket(int phiBucket, int phiCompare, int dCompare);
 ZeroCrossing GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow, DmtxPassFail *passFail);
 ZeroCrossing SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge, DmtxPassFail *passFail);
 DmtxPassFail HoughLocalAccumulateEdge(DmtxHoughLocal *local, int phi, ZeroCrossing edge);
