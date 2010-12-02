@@ -30,17 +30,18 @@ Contact: mblaughton@users.sourceforge.net
  */
 
 /**
+ * PLAN
+ *   o [due 22-Dec]  Tapered bucket calculation (3 wks)
+ *   o [due 29-Dec]  FFT for grid alignment (1 wk)
+ *   o [due 05-Jan]  Outward stepping (1 wk)
+ *   o [due 19-Jan]  All grid locations (not just one) (2 wks)
+ *   o [due 02-Feb]  Region spanning hough alignment (2 wks)
+ *   o [due 16-Feb]  Multiscale hough (2 wks)
+ *   o [due 02-Mar]  Integrate w/ libdmtx proper as experimental option (2 wks)
+ *   o  [mid March]  Release 0.7.4 (1 wk)
+ *   o   [stablize]  Bug fixes and site changes
+ *
  * TODO
- * o Implement tapered bucket calculation
- * o Display and evaluate tapered buckets
- * o FFT for grid alignment
- * o Outward stepping
- * o All grid locations (not just one)
- * o Region spanning hough alignment
- * o Multiscale hough
- * o Integrate w/ libdmtx proper as experimental option
- * o Release 0.7.4
- * o Bug fixes and site changes
  */
 
 #include <stdlib.h>

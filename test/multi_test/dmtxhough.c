@@ -232,14 +232,28 @@ int
 GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
 {
    int bucket;
+   int phiDelta;
    double d;
    double numer, denom;
    double phiBucketRad, phiCompareRad, bucketRad;
-   double sinPhiCompare, cosPhiCompare;
+   double sinPhiCompare, cosPhiCompare, phiTan;
    DmtxVector2 w;
    DmtxRay2 p0, p1;
 
-   /* phiBucket is the actual ray direction, not the hough index */
+   if(phiBucket == phiCompare)
+      return 32; /* Infinity */
+
+   phiDelta = phiBucket - phiCompare;
+   if(phiDelta < -64)
+      phiDelta += 128;
+   else if(phiDelta > 64)
+      phiDelta -= 128;
+
+   if(abs(phiDelta) > 32)
+      return DmtxUndefined; /* Too far from parallel */
+
+   phiTan = tan(phiDelta * (M_PI/128.0));
+
    p0.p.X = p0.p.Y = 32.0;
    phiBucketRad = phiBucket * (M_PI/128.0);
    p0.v.X = cos(phiBucketRad);
@@ -257,16 +271,20 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    p1.v.Y = -cosPhiCompare;
 
    denom = dmtxVector2Cross(&(p1.v), &(p0.v));
-   if(fabs(denom) <= 0.000001)
-      return 0; /* Lines are parallel: bucket 0 */
+   assert(fabs(denom) > 0.000001); /* We only compare nearly-parallel converging lines */
 
    dmtxVector2Sub(&w, &(p1.p), &(p0.p));
    numer = dmtxVector2Cross(&(p1.v), &w);
 
-   bucketRad = atan2(32, numer/denom);
-   bucket = (int)(bucketRad * (128.0/M_PI));
+   bucketRad = atan2(32, (numer/denom)/phiTan);
+   if(bucketRad > M_PI_2)
+      bucketRad -= M_PI;
+   else if(bucketRad < -M_PI_2)
+      bucketRad += M_PI;
 
-   /* XXX can legitimately be < 0, but don't worry about that yet */
+   /* map -pi/4 -> pi/4 to 0 -> 63 */
+   bucket = (int)(bucketRad * (128.0/M_PI)) + 32;
+
    if(bucket < 0)
       bucket = DmtxUndefined;
    else if(bucket > 63)
