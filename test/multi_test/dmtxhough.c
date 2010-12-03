@@ -233,12 +233,8 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
 {
    int bucket;
    int phiDelta;
-   double d;
-   double numer, denom;
-   double phiBucketRad, phiCompareRad, bucketRad;
-   double sinPhiCompare, cosPhiCompare, phiTan;
-   DmtxVector2 w;
-   DmtxRay2 p0, p1;
+   double d, u, x;
+   double bucketRad, phiDeltaRad, phiCompareRad;
 
    if(phiBucket == phiCompare)
       return 32; /* Infinity */
@@ -252,38 +248,25 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    if(abs(phiDelta) > 32)
       return DmtxUndefined; /* Too far from parallel */
 
-   phiTan = tan(phiDelta * (M_PI/128.0));
-
-   p0.p.X = p0.p.Y = 32.0;
-   phiBucketRad = phiBucket * (M_PI/128.0);
-   p0.v.X = cos(phiBucketRad);
-   p0.v.Y = sin(phiBucketRad);
-
-   /* XXX later make helper function to convert lineHough point to DmtxRay2 */
-   phiCompareRad = phiCompare * (M_PI/128.0);
-   sinPhiCompare = sin(phiCompareRad);
-   cosPhiCompare = cos(phiCompareRad);
+   phiCompareRad = phiCompare * (128.0/M_PI);
+   phiDeltaRad = phiDelta * (128.0/M_PI);
 
    d = UncompactOffset(dCompare, phiCompare, 64);
-   p1.p.X = d * cosPhiCompare;
-   p1.p.Y = d * sinPhiCompare;
-   p1.v.X = sinPhiCompare;
-   p1.v.Y = -cosPhiCompare;
+   u = 32.0 * (cos(phiCompareRad) + sin(phiCompareRad));
+   x = fabs((d - u)/sin(phiDeltaRad));
 
-   denom = dmtxVector2Cross(&(p1.v), &(p0.v));
-   assert(fabs(denom) > 0.000001); /* We only compare nearly-parallel converging lines */
+   if(x < 0.0001)
+      return DmtxUndefined;
 
-   dmtxVector2Sub(&w, &(p1.p), &(p0.p));
-   numer = dmtxVector2Cross(&(p1.v), &w);
+   bucketRad = atan(32.0/x);
 
-   bucketRad = atan2(32, (numer/denom)/phiTan);
-   if(bucketRad > M_PI_2)
-      bucketRad -= M_PI;
-   else if(bucketRad < -M_PI_2)
-      bucketRad += M_PI;
+   /* map 0 -> pi/2 to 0 -> 64 */
+   bucket = (int)(bucketRad * (64.0/M_PI));
 
-   /* map -pi/4 -> pi/4 to 0 -> 63 */
-   bucket = (int)(bucketRad * (128.0/M_PI)) + 32;
+   if(phiDelta * (d - u) < 0.0)
+      bucket = -bucket;
+
+   bucket += 32;
 
    if(bucket < 0)
       bucket = DmtxUndefined;
