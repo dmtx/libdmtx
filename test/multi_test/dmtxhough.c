@@ -284,9 +284,8 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    assert(bucketRad > 0.0);
 
    /* map 0 -> pi/2 to 0 -> 64 */
-/* bucket = (int)(bucketRad * (64.0/M_PI)); */
-   bucketF = (bucketRad * (64.0/M_PI));
-/* bucketF *= (0.2 * (64.0 - bucketF))/32.0; */
+   bucketF = bucketRad * (64.0/M_PI);
+   bucketF *= (bucketF + 30.0)/62.0;
    bucket = (int)bucketF;
 
    if(phiDelta * (d - u) < 0.0)
