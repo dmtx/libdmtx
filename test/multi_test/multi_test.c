@@ -42,6 +42,12 @@ Contact: mblaughton@users.sourceforge.net
  *   o   [stablize]  Bug fixes and site changes
  *
  * TODO
+ *   o Tweak shaped bucket weighting to not overcount parallel condition
+ *   o Make BlitHoughCache not dynamic lighting
+ *   o Display local maxima
+ *   o Create better method of isolating true maxima
+ *     - Use delta max-min for weight?
+ *     - Add filter based on more rules?
  */
 
 #include <stdlib.h>

@@ -237,7 +237,9 @@ VanishHoughAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
             d = GetVanishBucket(phi, lhCol, lhRow);
             if(d == DmtxUndefined)
                continue;
-            vhRegion->bucket[d][phi] += (val - valMin);
+/*          vhRegion->bucket[d][phi] += (val - valMin); */
+            vhRegion->bucket[d][phi] += (2 * val - (valCompare[1] + valCompare[6]));
+/*          might also try reaching farther upward and downward (?) */
          }
       }
    }
