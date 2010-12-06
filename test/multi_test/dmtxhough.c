@@ -195,7 +195,8 @@ DmtxPassFail
 VanishHoughAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
 {
    int lhRow, lhCol;
-   int phi, d;
+   int phi, d, i;
+   int val, valCompare[8], valMin;
    DmtxHoughLocal *lhRegion, *vhRegion;
 
    lhRegion = &(dec->houghGrid->line[0]); /* will eventually be [hCol * width + hRol]; */
@@ -207,8 +208,28 @@ VanishHoughAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
       {
          /* XXX later be sure to flip d in comparisons across 0/127 boundary */
          /* XXX this actually overextends array boundaries I but don't care yet */
-         if(lhRegion->bucket[lhRow][lhCol] < lhRegion->bucket[lhRow + 1][lhCol] ||
-               lhRegion->bucket[lhRow][lhCol] < lhRegion->bucket[lhRow - 1][lhCol])
+         val = lhRegion->bucket[lhRow][lhCol];
+         valCompare[0] = lhRegion->bucket[lhRow+1][lhCol-1];
+         valCompare[1] = lhRegion->bucket[lhRow+1][lhCol  ];
+         valCompare[2] = lhRegion->bucket[lhRow+1][lhCol+1];
+         valCompare[3] = lhRegion->bucket[lhRow  ][lhCol-1];
+         valCompare[4] = lhRegion->bucket[lhRow  ][lhCol+1];
+         valCompare[5] = lhRegion->bucket[lhRow-1][lhCol-1];
+         valCompare[6] = lhRegion->bucket[lhRow-1][lhCol  ];
+         valCompare[7] = lhRegion->bucket[lhRow-1][lhCol+1];
+
+         valMin = val;
+         for(i = 0; i < 8; i++)
+         {
+            if(valCompare[i] >= val)
+            {
+               val = DmtxUndefined;
+               break;
+            }
+            if(valCompare[i] < valMin)
+               valMin = valCompare[i];
+         }
+         if(val == DmtxUndefined)
             continue;
 
          for(phi = 0; phi < 128; phi++)
@@ -216,7 +237,7 @@ VanishHoughAccumulate(DmtxDecode2 *dec, int gCol, int gRow)
             d = GetVanishBucket(phi, lhCol, lhRow);
             if(d == DmtxUndefined)
                continue;
-            vhRegion->bucket[d][phi] += lhRegion->bucket[lhRow][lhCol];
+            vhRegion->bucket[d][phi] += (val - valMin);
          }
       }
    }
@@ -235,9 +256,10 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    int phiDelta;
    double d, u, x;
    double bucketRad, phiDeltaRad, phiCompareRad;
+   double bucketF;
 
    if(phiBucket == phiCompare)
-      return 32; /* Infinity */
+      return DmtxUndefined; /* 32; */ /* Infinity */
 
    phiDelta = phiBucket - phiCompare;
    if(phiDelta < -64)
@@ -248,8 +270,8 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    if(abs(phiDelta) > 32)
       return DmtxUndefined; /* Too far from parallel */
 
-   phiCompareRad = phiCompare * (128.0/M_PI);
-   phiDeltaRad = phiDelta * (128.0/M_PI);
+   phiCompareRad = phiCompare * (M_PI/128.0);
+   phiDeltaRad = phiDelta * (M_PI/128.0);
 
    d = UncompactOffset(dCompare, phiCompare, 64);
    u = 32.0 * (cos(phiCompareRad) + sin(phiCompareRad));
@@ -259,9 +281,13 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
       return DmtxUndefined;
 
    bucketRad = atan(32.0/x);
+   assert(bucketRad > 0.0);
 
    /* map 0 -> pi/2 to 0 -> 64 */
-   bucket = (int)(bucketRad * (64.0/M_PI));
+/* bucket = (int)(bucketRad * (64.0/M_PI)); */
+   bucketF = (bucketRad * (64.0/M_PI));
+/* bucketF *= (0.2 * (64.0 - bucketF))/32.0; */
+   bucket = (int)bucketF;
 
    if(phiDelta * (d - u) < 0.0)
       bucket = -bucket;
