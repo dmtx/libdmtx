@@ -129,6 +129,7 @@ struct DmtxHoughGrid_struct {
    int cols;
    int count;
    DmtxHoughLocal *line;
+   DmtxHoughLocal *maxima;
    DmtxHoughLocal *vanish;
 };
 
@@ -353,8 +354,9 @@ DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 /* dmtxhough.c */
 DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
-DmtxPassFail LineHoughAccumulate(DmtxDecode2 *dec, int hCol, int hRow);
-DmtxPassFail VanishHoughAccumulate(DmtxDecode2 *dec, int hCol, int hRow);
+DmtxPassFail LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec);
+DmtxPassFail MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion);
+DmtxPassFail VanishHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxHoughLocal *vhRegion);
 int GetVanishBucket(int phiBucket, int phiCompare, int dCompare);
 ZeroCrossing GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow, DmtxPassFail *passFail);
 ZeroCrossing SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge, DmtxPassFail *passFail);

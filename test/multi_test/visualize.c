@@ -108,6 +108,9 @@ void HoughLocalCallback(DmtxHoughLocal *hough, int id)
       case 1:
          BlitHoughLocal(gState.screen, hough, CTRL_ROW6_Y, CTRL_COL1_X + 1);
          break;
+      case 2:
+         BlitHoughLocal(gState.screen, hough, CTRL_ROW7_Y, CTRL_COL1_X + 1);
+         break;
    }
 }
 

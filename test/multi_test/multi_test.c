@@ -161,7 +161,9 @@ main(int argc, char *argv[])
       ShowActiveRegion(gState.screen, gState.local);
 
       SDL_LockSurface(gState.local);
-      dmtxDecode2SetImage(dec2, gState.dmtxImage);
+      if(dmtxDecode2SetImage(dec2, gState.dmtxImage) == DmtxFail)
+         break;
+
       dmtxRegion2FindNext(dec2);
       SDL_UnlockSurface(gState.local);
 
