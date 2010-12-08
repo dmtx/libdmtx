@@ -355,7 +355,7 @@ DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
 DmtxPassFail LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec);
-DmtxPassFail MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion);
+DmtxPassFail MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDecode2 *dec);
 DmtxPassFail VanishHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxHoughLocal *vhRegion);
 int GetVanishBucket(int phiBucket, int phiCompare, int dCompare);
 ZeroCrossing GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow, DmtxPassFail *passFail);

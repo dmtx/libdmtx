@@ -62,16 +62,18 @@ HoughGridPopulate(DmtxDecode2 *dec)
       for(col = 0; col < dec->houghGrid->cols; col++)
       {
          idx = 0; /* will eventually be [hCol * width + hRol]; */
+
          line = &(dec->houghGrid->line[idx]);
          maxima = &(dec->houghGrid->maxima[idx]);
          vanish = &(dec->houghGrid->vanish[idx]);
 
          RETURN_FAIL_IF(LineHoughAccumulate(line, dec) == DmtxFail);
-         RETURN_FAIL_IF(MaximaHoughAccumulate(maxima, line) == DmtxFail);
-         RETURN_FAIL_IF(VanishHoughAccumulate(vanish, line) == DmtxFail); /* later c/line/maxima/ */
-
          dec->fn.dmtxHoughLocalCallback(line, 0);
+
+         RETURN_FAIL_IF(MaximaHoughAccumulate(maxima, line, dec) == DmtxFail);
          dec->fn.dmtxHoughLocalCallback(maxima, 1);
+
+         RETURN_FAIL_IF(VanishHoughAccumulate(vanish, maxima) == DmtxFail);
          dec->fn.dmtxHoughLocalCallback(vanish, 2);
       }
    }
@@ -203,9 +205,39 @@ LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
  *
  */
 DmtxPassFail
-MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion)
+MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
 {
-   memcpy(mhRegion, lhRegion, sizeof(DmtxHoughLocal));
+   int rRow, rCol;
+   int phi, maxPhi;
+   int d, maxD;
+   int val, maxVal;
+
+   for(rRow = 0; rRow < 64; rRow++)
+   {
+      for(rCol = 0; rCol < 64; rCol++)
+      {
+         maxD = DmtxUndefined;
+         maxPhi = DmtxUndefined;
+         maxVal = 0;
+
+         for(phi = 0; phi < 128; phi++)
+         {
+            d = (int)(HoughGetLocalOffset(rCol, rRow, phi) + 0.5);
+            val = lhRegion->bucket[d][phi];
+            if(val > maxVal)
+            {
+               maxD = d;
+               maxPhi = phi;
+               maxVal = val;
+		      }
+		   }
+
+         if(maxD != DmtxUndefined && maxPhi != DmtxUndefined)
+         {
+            mhRegion->bucket[maxD][maxPhi] += maxVal;
+		   }
+		}
+   }
 
    return DmtxPass;
 }
