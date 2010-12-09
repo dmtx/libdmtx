@@ -208,33 +208,34 @@ DmtxPassFail
 MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
 {
    int rRow, rCol;
-   int phi, maxPhi;
-   int d, maxD;
-   int val, maxVal;
+   int phi, phiMax;
+   int d, dMax;
+   int val, valMax;
 
    for(rRow = 0; rRow < 64; rRow++)
    {
       for(rCol = 0; rCol < 64; rCol++)
       {
-         maxD = DmtxUndefined;
-         maxPhi = DmtxUndefined;
-         maxVal = 0;
+         dMax = DmtxUndefined;
+         phiMax = DmtxUndefined;
+         valMax = 0;
 
          for(phi = 0; phi < 128; phi++)
          {
             d = (int)(HoughGetLocalOffset(rCol, rRow, phi) + 0.5);
+
             val = lhRegion->bucket[d][phi];
-            if(val > maxVal)
+            if(val > valMax)
             {
-               maxD = d;
-               maxPhi = phi;
-               maxVal = val;
+               dMax = d;
+               phiMax = phi;
+               valMax = val;
             }
          }
 
-         if(maxD != DmtxUndefined && maxPhi != DmtxUndefined)
+         if(dMax != DmtxUndefined && phiMax != DmtxUndefined)
          {
-            mhRegion->bucket[maxD][maxPhi] += maxVal;
+            mhRegion->bucket[dMax][phiMax] += 1;
          }
       }
    }

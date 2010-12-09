@@ -216,13 +216,6 @@ typedef enum {
    DmtxBarExterior = 0x01 << 3
 } DmtxBarType;
 
-typedef enum {
-   DmtxSobelDirVertical,
-   DmtxSobelDirHorizontal,
-   DmtxSobelDirSlash,
-   DmtxSobelDirBackslash
-} DmtxSobelDir;
-
 /* Only used internally */
 typedef struct ColorTally_struct {
    int evnCount;
