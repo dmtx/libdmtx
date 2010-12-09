@@ -229,14 +229,14 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
                maxD = d;
                maxPhi = phi;
                maxVal = val;
-		      }
-		   }
+            }
+         }
 
          if(maxD != DmtxUndefined && maxPhi != DmtxUndefined)
          {
             mhRegion->bucket[maxD][maxPhi] += maxVal;
-		   }
-		}
+         }
+      }
    }
 
    return DmtxPass;
@@ -288,9 +288,7 @@ VanishHoughAccumulate(DmtxHoughLocal *vhRegion, DmtxHoughLocal *lhRegion)
             d = GetVanishBucket(phi, lhCol, lhRow);
             if(d == DmtxUndefined)
                continue;
-/*          vhRegion->bucket[d][phi] += (val - valMin); */
-            vhRegion->bucket[d][phi] += (2 * val - (valCompare[1] + valCompare[6]));
-/*          might also try reaching farther upward and downward (?) */
+            vhRegion->bucket[d][phi] += val;
          }
       }
    }
@@ -312,7 +310,7 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    double bucketF;
 
    if(phiBucket == phiCompare)
-      return DmtxUndefined; /* 32; */ /* Infinity */
+      return 32; /* Infinity */
 
    phiDelta = phiBucket - phiCompare;
    if(phiDelta < -64)
