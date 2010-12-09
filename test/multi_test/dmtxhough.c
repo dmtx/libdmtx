@@ -203,40 +203,18 @@ LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
 /**
  *
  *
+ *
  */
 DmtxPassFail
 MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
 {
-   int rRow, rCol;
-   int phi, phiMax;
-   int d, dMax;
-   int val, valMax;
+   int phi, d;
 
-   for(rRow = 0; rRow < 64; rRow++)
+   for(phi = 0; phi < 128; phi++)
    {
-      for(rCol = 0; rCol < 64; rCol++)
+      for(d = 0; d < 64; d++)
       {
-         dMax = DmtxUndefined;
-         phiMax = DmtxUndefined;
-         valMax = 0;
-
-         for(phi = 0; phi < 128; phi++)
-         {
-            d = (int)(HoughGetLocalOffset(rCol, rRow, phi) + 0.5);
-
-            val = lhRegion->bucket[d][phi];
-            if(val > valMax)
-            {
-               dMax = d;
-               phiMax = phi;
-               valMax = val;
-            }
-         }
-
-         if(dMax != DmtxUndefined && phiMax != DmtxUndefined)
-         {
-            mhRegion->bucket[dMax][phiMax] += 1;
-         }
+         mhRegion->bucket[d][phi] = GetMaximaWeight(lhRegion, phi, d);
       }
    }
 
@@ -247,8 +225,33 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
  *
  *
  */
+int
+GetMaximaWeight(DmtxHoughLocal *lhRegion, int phi, int d)
+{
+   int valDnDn, valDn, val, valUp, valUpUp;
+   int weight;
+
+   val = lhRegion->bucket[d][phi];
+   valDn = (d >= 1) ? lhRegion->bucket[d - 1][phi] : 0;
+   valUp = (d <= 62) ? lhRegion->bucket[d + 1][phi] : 0;
+
+   if(valDn > val || valUp > val)
+      return 0;
+
+   valDnDn = (d >= 2) ? lhRegion->bucket[d - 2][phi] : 0;
+   valUpUp = (d <= 61) ? lhRegion->bucket[d + 2][phi] : 0;
+
+   weight = (6 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn);
+
+   return (weight > 0) ? weight : 0;
+}
+
+/**
+ *
+ *
+ */
 DmtxPassFail
-VanishHoughAccumulate(DmtxHoughLocal *vhRegion, DmtxHoughLocal *lhRegion)
+VanishHoughAccumulate(DmtxHoughLocal *vhRegion, DmtxHoughLocal *line)
 {
    int lhRow, lhCol;
    int phi, d, i;
@@ -260,15 +263,15 @@ VanishHoughAccumulate(DmtxHoughLocal *vhRegion, DmtxHoughLocal *lhRegion)
       {
          /* XXX later be sure to flip d in comparisons across 0/127 boundary */
          /* XXX this actually overextends array boundaries I but don't care yet */
-         val = lhRegion->bucket[lhRow][lhCol];
-         valCompare[0] = lhRegion->bucket[lhRow+1][lhCol-1];
-         valCompare[1] = lhRegion->bucket[lhRow+1][lhCol  ];
-         valCompare[2] = lhRegion->bucket[lhRow+1][lhCol+1];
-         valCompare[3] = lhRegion->bucket[lhRow  ][lhCol-1];
-         valCompare[4] = lhRegion->bucket[lhRow  ][lhCol+1];
-         valCompare[5] = lhRegion->bucket[lhRow-1][lhCol-1];
-         valCompare[6] = lhRegion->bucket[lhRow-1][lhCol  ];
-         valCompare[7] = lhRegion->bucket[lhRow-1][lhCol+1];
+         val = line->bucket[lhRow][lhCol];
+         valCompare[0] = line->bucket[lhRow+1][lhCol-1];
+         valCompare[1] = line->bucket[lhRow+1][lhCol  ];
+         valCompare[2] = line->bucket[lhRow+1][lhCol+1];
+         valCompare[3] = line->bucket[lhRow  ][lhCol-1];
+         valCompare[4] = line->bucket[lhRow  ][lhCol+1];
+         valCompare[5] = line->bucket[lhRow-1][lhCol-1];
+         valCompare[6] = line->bucket[lhRow-1][lhCol  ];
+         valCompare[7] = line->bucket[lhRow-1][lhCol+1];
 
          valMin = val;
          for(i = 0; i < 8; i++)
