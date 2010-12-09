@@ -226,20 +226,57 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
  *
  */
 int
-GetMaximaWeight(DmtxHoughLocal *lhRegion, int phi, int d)
+GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
 {
-   int valDnDn, valDn, val, valUp, valUpUp;
    int weight;
+   int valDnDn, valDn, val, valUp, valUpUp;
+/*
+   int valSide[6];
+   int i, dPrev, dNext;
+   int phiPrev, phiNext;
+*/
 
-   val = lhRegion->bucket[d][phi];
-   valDn = (d >= 1) ? lhRegion->bucket[d - 1][phi] : 0;
-   valUp = (d <= 62) ? lhRegion->bucket[d + 1][phi] : 0;
+   val = line->bucket[d][phi];
+   valDn = (d >= 1) ? line->bucket[d - 1][phi] : 0;
+   valUp = (d <= 62) ? line->bucket[d + 1][phi] : 0;
 
+   /* Line is outranked by immediate neigbor in same direction (not maxima) */
    if(valDn > val || valUp > val)
       return 0;
 
-   valDnDn = (d >= 2) ? lhRegion->bucket[d - 2][phi] : 0;
-   valUpUp = (d <= 61) ? lhRegion->bucket[d + 2][phi] : 0;
+   /* Filter out lines with a stronger side neighbor */
+/* XXX I'm leaving this out even though I just wrote it
+   dPrev = dNext = d;
+   phiPrev = phi - 1;
+   phiNext = phi + 1;
+
+   if(phiPrev == -1)
+   {
+      phiPrev = 127;
+      dPrev = 63 - d;
+   }
+   else if(phiNext == 128)
+   {
+      phiNext = 0;
+      dNext = 63 - d;
+   }
+
+   valSide[0] = (dPrev >= 1) ? line->bucket[dPrev - 1][phiPrev] : 0;
+   valSide[1] = line->bucket[dPrev][phiPrev];
+   valSide[2] = (dPrev <= 62) ? line->bucket[dPrev + 1][phiPrev] : 0;
+   valSide[3] = (dNext >= 1) ? line->bucket[dNext - 1][phiNext] : 0;
+   valSide[4] = line->bucket[dNext][phiNext];
+   valSide[5] = (dNext <= 62) ? line->bucket[dNext + 1][phiNext] : 0;
+
+   for(i = 0; i < 6; i++)
+   {
+      if(valSide[i] > val)
+         return 0;
+   }
+*/
+
+   valDnDn = (d >= 2) ? line->bucket[d - 2][phi] : 0;
+   valUpUp = (d <= 61) ? line->bucket[d + 2][phi] : 0;
 
    weight = (6 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn);
 
@@ -254,37 +291,14 @@ DmtxPassFail
 VanishHoughAccumulate(DmtxHoughLocal *vhRegion, DmtxHoughLocal *line)
 {
    int lhRow, lhCol;
-   int phi, d, i;
-   int val, valCompare[8], valMin;
+   int phi, d, val;
 
    for(lhRow = 0; lhRow < 64; lhRow++)
    {
       for(lhCol = 0; lhCol < 128; lhCol++)
       {
-         /* XXX later be sure to flip d in comparisons across 0/127 boundary */
-         /* XXX this actually overextends array boundaries I but don't care yet */
          val = line->bucket[lhRow][lhCol];
-         valCompare[0] = line->bucket[lhRow+1][lhCol-1];
-         valCompare[1] = line->bucket[lhRow+1][lhCol  ];
-         valCompare[2] = line->bucket[lhRow+1][lhCol+1];
-         valCompare[3] = line->bucket[lhRow  ][lhCol-1];
-         valCompare[4] = line->bucket[lhRow  ][lhCol+1];
-         valCompare[5] = line->bucket[lhRow-1][lhCol-1];
-         valCompare[6] = line->bucket[lhRow-1][lhCol  ];
-         valCompare[7] = line->bucket[lhRow-1][lhCol+1];
-
-         valMin = val;
-         for(i = 0; i < 8; i++)
-         {
-            if(valCompare[i] >= val)
-            {
-               val = DmtxUndefined;
-               break;
-            }
-            if(valCompare[i] < valMin)
-               valMin = valCompare[i];
-         }
-         if(val == DmtxUndefined)
+         if(val == 0)
             continue;
 
          for(phi = 0; phi < 128; phi++)
