@@ -228,13 +228,8 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
 int
 GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
 {
+   int val, valDn, valUp, valDnDn, valUpUp;
    int weight;
-   int valDnDn, valDn, val, valUp, valUpUp;
-/*
-   int valSide[6];
-   int i, dPrev, dNext;
-   int phiPrev, phiNext;
-*/
 
    val = line->bucket[d][phi];
    valDn = (d >= 1) ? line->bucket[d - 1][phi] : 0;
@@ -243,37 +238,6 @@ GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
    /* Line is outranked by immediate neigbor in same direction (not maxima) */
    if(valDn > val || valUp > val)
       return 0;
-
-   /* Filter out lines with a stronger side neighbor */
-/* XXX I'm leaving this out even though I just wrote it
-   dPrev = dNext = d;
-   phiPrev = phi - 1;
-   phiNext = phi + 1;
-
-   if(phiPrev == -1)
-   {
-      phiPrev = 127;
-      dPrev = 63 - d;
-   }
-   else if(phiNext == 128)
-   {
-      phiNext = 0;
-      dNext = 63 - d;
-   }
-
-   valSide[0] = (dPrev >= 1) ? line->bucket[dPrev - 1][phiPrev] : 0;
-   valSide[1] = line->bucket[dPrev][phiPrev];
-   valSide[2] = (dPrev <= 62) ? line->bucket[dPrev + 1][phiPrev] : 0;
-   valSide[3] = (dNext >= 1) ? line->bucket[dNext - 1][phiNext] : 0;
-   valSide[4] = line->bucket[dNext][phiNext];
-   valSide[5] = (dNext <= 62) ? line->bucket[dNext + 1][phiNext] : 0;
-
-   for(i = 0; i < 6; i++)
-   {
-      if(valSide[i] > val)
-         return 0;
-   }
-*/
 
    valDnDn = (d >= 2) ? line->bucket[d - 2][phi] : 0;
    valUpUp = (d <= 61) ? line->bucket[d + 2][phi] : 0;
