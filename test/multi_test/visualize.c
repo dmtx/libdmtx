@@ -124,7 +124,7 @@ void VanishPointCallback(VanishPointSort *vPoints, int id)
          DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW5_Y, CTRL_COL1_X);
          break;
       case 1:
-/*       DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW5_Y, CTRL_COL1_X); */
+         DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW6_Y, CTRL_COL1_X);
          break;
    }
 }

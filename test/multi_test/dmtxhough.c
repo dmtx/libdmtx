@@ -292,7 +292,7 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    double bucketF;
 
    if(phiBucket == phiCompare)
-      return 32; /* Infinity */
+      return DmtxUndefined; /* 32 */ /* Infinity */
 
    phiDelta = phiBucket - phiCompare;
    if(phiDelta < -64)
@@ -317,7 +317,7 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    assert(bucketRad > 0.0);
 
    /* map 0 -> pi/2 to 0 -> 64 */
-   bucketF = bucketRad * (64.0/M_PI);
+   bucketF = bucketRad * (100.0/M_PI); /* XXX arbitrary */
    bucketF *= (bucketF + 30.0)/62.0;
    bucket = (int)bucketF;
 
