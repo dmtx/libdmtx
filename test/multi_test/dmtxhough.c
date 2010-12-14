@@ -228,6 +228,9 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
 int
 GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
 {
+   int i;
+   int phiLf, phiRt;
+   int valLf[3], valRt[3], valLfSum, valRtSum;
    int val, valDn, valUp, valDnDn, valUpUp;
    int weight;
 
@@ -235,14 +238,44 @@ GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
    valDn = (d >= 1) ? line->bucket[d - 1][phi] : 0;
    valUp = (d <= 62) ? line->bucket[d + 1][phi] : 0;
 
-   /* Line is outranked by immediate neigbor in same direction (not maxima) */
+   /* Line is outranked by immediate neigbor in same direction (not a maxima) */
    if(valDn > val || valUp > val)
       return 0;
+
+   phiLf = (phi == 0) ? 127 : phi - 1;
+   phiRt = (phi == 127) ? 0 : phi + 1;
+
+   valLf[0] = (d > 0) ? line->bucket[d-1][phiLf] : 0;
+   valLf[1] = line->bucket[d][phiLf];
+   valLf[2] = (d < 63) ? line->bucket[d+1][phiLf] : 0;
+
+   valRt[0] = (d > 0) ? line->bucket[d-1][phiRt] : 0;
+   valRt[1] = line->bucket[d][phiRt];
+   valRt[2] = (d < 63) ? line->bucket[d+1][phiRt] : 0;
+
+   valLfSum = 0;
+   for(i = 0; i < 3; i++)
+   {
+      if(valLf[i] > val)
+         return 0;
+
+      valLfSum += valLf[i];
+   }
+
+   valRtSum = 0;
+   for(i = 0; i < 3; i++)
+   {
+      if(valRt[i] > val)
+         return 0;
+
+      valRtSum += valRt[i];
+   }
 
    valDnDn = (d >= 2) ? line->bucket[d - 2][phi] : 0;
    valUpUp = (d <= 61) ? line->bucket[d + 2][phi] : 0;
 
-   weight = (6 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn);
+/* weight = (6 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn); */
+   weight = (8 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn) - (valLfSum + valRtSum);
 
    return (weight > 0) ? weight : 0;
 }
@@ -292,7 +325,7 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    double bucketF;
 
    if(phiBucket == phiCompare)
-      return DmtxUndefined; /* 32 */ /* Infinity */
+      return 32; /* Infinity */
 
    phiDelta = phiBucket - phiCompare;
    if(phiDelta < -64)
@@ -300,7 +333,7 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    else if(phiDelta > 64)
       phiDelta -= 128;
 
-   if(abs(phiDelta) > 32)
+   if(abs(phiDelta) > 20)
       return DmtxUndefined; /* Too far from parallel */
 
    phiCompareRad = phiCompare * (M_PI/128.0);
@@ -317,9 +350,9 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    assert(bucketRad > 0.0);
 
    /* map 0 -> pi/2 to 0 -> 64 */
-   bucketF = bucketRad * (100.0/M_PI); /* XXX arbitrary */
-   bucketF *= (bucketF + 30.0)/62.0;
-   bucket = (int)bucketF;
+   bucketF = bucketRad * (64.0/M_PI);
+/* bucketF *= (bucketF + 30.0)/62.0; */
+   bucket = (bucketF > 0.0) ? (int)(bucketF + 0.5) : (int)(bucketF - 0.5);
 
    if(phiDelta * (d - u) < 0.0)
       bucket = -bucket;
