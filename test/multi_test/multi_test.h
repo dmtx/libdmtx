@@ -49,7 +49,7 @@ Contact: mblaughton@users.sourceforge.net
 #define CTRL_ROW4_Y          195
 #define CTRL_ROW5_Y          260
 #define CTRL_ROW6_Y          325
-#define CTRL_ROW7_Y          388
+#define CTRL_ROW7_Y          390
 
 #define MODULE_LOW             0
 #define MODULE_HIGH            1

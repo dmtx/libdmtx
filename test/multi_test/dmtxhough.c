@@ -274,7 +274,6 @@ GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
    valDnDn = (d >= 2) ? line->bucket[d - 2][phi] : 0;
    valUpUp = (d <= 61) ? line->bucket[d + 2][phi] : 0;
 
-/* weight = (6 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn); */
    weight = (8 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn) - (valLfSum + valRtSum);
 
    return (weight > 0) ? weight : 0;
@@ -288,7 +287,9 @@ DmtxPassFail
 VanishHoughAccumulate(DmtxHoughLocal *vhRegion, DmtxHoughLocal *line)
 {
    int lhRow, lhCol;
-   int phi, d, val;
+   int val;
+   int phi, phiPrev;
+   int d, dHere, dPrev;
 
    for(lhRow = 0; lhRow < 64; lhRow++)
    {
@@ -298,12 +299,33 @@ VanishHoughAccumulate(DmtxHoughLocal *vhRegion, DmtxHoughLocal *line)
          if(val == 0)
             continue;
 
+         dPrev = phiPrev = DmtxUndefined;
          for(phi = 0; phi < 128; phi++)
          {
-            d = GetVanishBucket(phi, lhCol, lhRow);
-            if(d == DmtxUndefined)
+            dHere = GetVanishBucket(phi, lhCol, lhRow);
+            if(dHere == DmtxUndefined)
                continue;
-            vhRegion->bucket[d][phi] += val;
+
+            if(phi - phiPrev > 1)
+               dPrev = phiPrev = DmtxUndefined;
+
+            if(dPrev == dHere || dPrev == DmtxUndefined)
+            {
+               vhRegion->bucket[dHere][phi] += val;
+            }
+            else if(dPrev < dHere)
+            {
+               for(d = dPrev + 1; d <= dHere; d++)
+                  vhRegion->bucket[d][phi] += val;
+            }
+            else
+            {
+               for(d = dPrev - 1; d >= dHere; d--)
+                  vhRegion->bucket[d][phi] += val;
+            }
+
+            dPrev = dHere;
+            phiPrev = phi;
          }
       }
    }
@@ -350,8 +372,7 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    assert(bucketRad > 0.0);
 
    /* map 0 -> pi/2 to 0 -> 64 */
-   bucketF = bucketRad * (64.0/M_PI);
-/* bucketF *= (bucketF + 30.0)/62.0; */
+   bucketF = bucketRad * (96.0/M_PI);
    bucket = (bucketF > 0.0) ? (int)(bucketF + 0.5) : (int)(bucketF - 0.5);
 
    if(phiDelta * (d - u) < 0.0)
