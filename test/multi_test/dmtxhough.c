@@ -228,9 +228,8 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
 int
 GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
 {
-   int i;
    int phiLf, phiRt;
-   int valLf[3], valRt[3], valLfSum, valRtSum;
+   int valLfSum, valRtSum;
    int val, valDn, valUp, valDnDn, valUpUp;
    int weight;
 
@@ -245,36 +244,20 @@ GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
    phiLf = (phi == 0) ? 127 : phi - 1;
    phiRt = (phi == 127) ? 0 : phi + 1;
 
-   valLf[0] = (d > 0) ? line->bucket[d-1][phiLf] : 0;
-   valLf[1] = line->bucket[d][phiLf];
-   valLf[2] = (d < 63) ? line->bucket[d+1][phiLf] : 0;
+   /* XXX still need to flip d when spanning across 0-127 */
 
-   valRt[0] = (d > 0) ? line->bucket[d-1][phiRt] : 0;
-   valRt[1] = line->bucket[d][phiRt];
-   valRt[2] = (d < 63) ? line->bucket[d+1][phiRt] : 0;
+   valLfSum  = (d > 0) ? line->bucket[d-1][phiLf] : 0;
+   valLfSum += line->bucket[d][phiLf];
+   valLfSum += (d < 63) ? line->bucket[d+1][phiLf] : 0;
 
-   valLfSum = 0;
-   for(i = 0; i < 3; i++)
-   {
-      if(valLf[i] > val)
-         return 0;
-
-      valLfSum += valLf[i];
-   }
-
-   valRtSum = 0;
-   for(i = 0; i < 3; i++)
-   {
-      if(valRt[i] > val)
-         return 0;
-
-      valRtSum += valRt[i];
-   }
+   valRtSum  = (d > 0) ? line->bucket[d-1][phiRt] : 0;
+   valRtSum += line->bucket[d][phiRt];
+   valRtSum += (d < 63) ? line->bucket[d+1][phiRt] : 0;
 
    valDnDn = (d >= 2) ? line->bucket[d - 2][phi] : 0;
    valUpUp = (d <= 61) ? line->bucket[d + 2][phi] : 0;
 
-   weight = (8 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn) - (valLfSum + valRtSum);
+   weight = (6 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn) - (valLfSum + valRtSum);
 
    return (weight > 0) ? weight : 0;
 }
