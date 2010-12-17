@@ -213,7 +213,7 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
    ZeroCrossing hhZXing; /* vvZXing, vbZXing, hbZXing, hhZXing, hsZXing, vsZXing; */
    DmtxHoughBucket hBest;
 
-   memset(lhRegion, 0x00, sizeof(DmtxHoughLocal));
+   memset(mhRegion, 0x00, sizeof(DmtxHoughLocal));
 
    /* Global coordinate system */
    iWidth = dmtxImageGetProp(dec->image, DmtxPropWidth);
@@ -236,6 +236,7 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
          if(iCol >= iWidth)
             continue;
 
+
 /*
          vvZXing = GetZeroCrossing(dec->vvAccel, iCol, iRow);
          vBest = GetStrongestLine(lhRegion, iCol, iRow, DmtxEdgeVertical);
@@ -247,10 +248,16 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
          mhRegion->bucket[bBest.d][bBest.phi] += GetSobelStrength(b);
 */
          hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow);
-         hBest = GetStrongestLine(lhRegion, hhZXing.x, hhZXing.y, DmtxEdgeHorizontal);
-         if(hBest.phi != DmtxUndefined && hBest.d != DmtxUndefined)
-            mhRegion->bucket[hBest.d][hBest.phi] += dmtxValueGridGetValue(dec->hSobel, iCol - 1, iRow - 1);
-
+         if(hhZXing.mag > 0)
+         {
+            hBest = GetStrongestLine(lhRegion, hhZXing.x, hhZXing.y, DmtxEdgeHorizontal);
+            if(hBest.phi != DmtxUndefined && hBest.d != DmtxUndefined)
+            {
+               int val = dmtxValueGridGetValue(dec->hSobel, iCol - 1, iRow - 1);
+               mhRegion->bucket[hBest.d][hBest.phi] += abs(val);
+/*             mhRegion->bucket[hBest.d][hBest.phi] += hhZXing.mag; */
+            }
+         }
 /*
          hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow);
          vsZXing = GetZeroCrossing(dec->vsAccel, iCol, iRow);
@@ -325,7 +332,6 @@ GetStrongestLine(DmtxHoughLocal *lhRegion, double x, double y, DmtxEdgeType edge
    for(phi = phiBeg; phi < phiEnd; phi++)
    {
       d = HoughGetLocalOffset((int)(x - lhRegion->xOrigin + 0.5), (int)(y - lhRegion->yOrigin + 0.5), phi);
-fprintf(stdout, "d:%d\n", d);
       if(d < 0 || d > 63)
          continue;
 
