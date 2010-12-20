@@ -153,21 +153,11 @@ LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
          hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow);
          vsZXing = GetZeroCrossing(dec->vsAccel, iCol, iRow);
 
-         if(vvZXing.mag > 0 && gState.displayEdge == 1)
-            dec->fn.zeroCrossingCallback(vvZXing, 0);
-         else if(vbZXing.mag > 0 && gState.displayEdge == 2)
-            dec->fn.zeroCrossingCallback(vbZXing, 0);
-         else if(hbZXing.mag > 0 && gState.displayEdge == 3)
-            dec->fn.zeroCrossingCallback(hbZXing, 0);
-         else if(hhZXing.mag > 0 && gState.displayEdge == 4)
-            dec->fn.zeroCrossingCallback(hhZXing, 0);
-         else if(hsZXing.mag > 0 && gState.displayEdge == 5)
-            dec->fn.zeroCrossingCallback(hsZXing, 0);
-         else if(vsZXing.mag > 0 && gState.displayEdge == 6)
-            dec->fn.zeroCrossingCallback(vsZXing, 0);
-
          if(vvZXing.mag > 0)
          {
+            if(gState.displayEdge == 1)
+               dec->fn.zeroCrossingCallback(vvZXing, 0);
+
             for(phi = 0; phi < 16; phi++)
                HoughLocalAccumulateEdge(lhRegion, phi, vvZXing);
             for(phi = 112; phi < 128; phi++)
@@ -175,24 +165,49 @@ LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
          }
 
          if(vbZXing.mag > 0)
+         {
+            if(gState.displayEdge == 2)
+               dec->fn.zeroCrossingCallback(vbZXing, 0);
+
             for(phi = 16; phi < 32; phi++)
                HoughLocalAccumulateEdge(lhRegion, phi, vbZXing);
+         }
 
          if(hbZXing.mag > 0)
+         {
+            if(gState.displayEdge == 3)
+               dec->fn.zeroCrossingCallback(hbZXing, 0);
+
             for(phi = 32; phi < 48; phi++)
                HoughLocalAccumulateEdge(lhRegion, phi, hbZXing);
+         }
 
          if(hhZXing.mag > 0)
+         {
+            if(gState.displayEdge == 4)
+               dec->fn.zeroCrossingCallback(hhZXing, 0);
+
             for(phi = 48; phi < 80; phi++)
                HoughLocalAccumulateEdge(lhRegion, phi, hhZXing);
+         }
 
          if(hsZXing.mag > 0)
+         {
+            if(gState.displayEdge == 5)
+               dec->fn.zeroCrossingCallback(hsZXing, 0);
+
             for(phi = 80; phi < 96; phi++)
                HoughLocalAccumulateEdge(lhRegion, phi, hsZXing);
+         }
 
          if(vsZXing.mag > 0)
+         {
+            if(gState.displayEdge == 6)
+               dec->fn.zeroCrossingCallback(vsZXing, 0);
+
             for(phi = 96; phi < 112; phi++)
                HoughLocalAccumulateEdge(lhRegion, phi, vsZXing);
+         }
       }
    }
 
@@ -211,7 +226,7 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
    int iRow, iCol;
    int iWidth, iHeight;
    ZeroCrossing hhZXing; /* vvZXing, vbZXing, hbZXing, hhZXing, hsZXing, vsZXing; */
-   DmtxHoughBucket hBest;
+/* DmtxHoughBucket hBest; */
 
    memset(mhRegion, 0x00, sizeof(DmtxHoughLocal));
 
@@ -236,7 +251,6 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
          if(iCol >= iWidth)
             continue;
 
-
 /*
          vvZXing = GetZeroCrossing(dec->vvAccel, iCol, iRow);
          vBest = GetStrongestLine(lhRegion, iCol, iRow, DmtxEdgeVertical);
@@ -248,18 +262,8 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
          mhRegion->bucket[bBest.d][bBest.phi] += GetSobelStrength(b);
 */
          hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow);
-         if(hhZXing.mag > 0)
-         {
-            hBest = GetStrongestLine(lhRegion, hhZXing.x, hhZXing.y, DmtxEdgeHorizontal);
-            if(hBest.phi != DmtxUndefined && hBest.d != DmtxUndefined)
-            {
-               int val = dmtxValueGridGetValue(dec->hSobel, iCol - 1, iRow - 1);
-               mhRegion->bucket[hBest.d][hBest.phi] += abs(val);
-/*             mhRegion->bucket[hBest.d][hBest.phi] += hhZXing.mag; */
-            }
-         }
+         myfunc(mhRegion, lhRegion, &hhZXing);
 /*
-         hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow);
          vsZXing = GetZeroCrossing(dec->vsAccel, iCol, iRow);
          sBest = GetStrongestLine();
          mhRegion->bucket[sBest.d][sBest.phi] += GetSobelStrength(s);
@@ -312,6 +316,25 @@ change LineHoughAccumulate() to build 2D array of zerocrossing edges, which is l
  *
  *
  */
+void
+myfunc(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, ZeroCrossing *zXing)
+{
+   int val;
+   DmtxHoughBucket hBest;
+
+   val = abs(zXing->mag);
+   if(val > 0)
+   {
+      hBest = GetStrongestLine(lhRegion, zXing->x, zXing->y, zXing->type);
+      if(hBest.phi != DmtxUndefined && hBest.d != DmtxUndefined)
+         mhRegion->bucket[hBest.d][hBest.phi] += val;
+   }
+}
+
+/**
+ *
+ *
+ */
 DmtxHoughBucket
 GetStrongestLine(DmtxHoughLocal *lhRegion, double x, double y, DmtxEdgeType edgeType)
 {
@@ -325,6 +348,7 @@ GetStrongestLine(DmtxHoughLocal *lhRegion, double x, double y, DmtxEdgeType edge
          phiBeg = 48;
          phiEnd = 80;
          break;
+
       default:
          return best;
    }
@@ -510,9 +534,8 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
    int aWidth, aHeight;
    int aHere, aNext, aPrev;
    double smidge;
-   const ZeroCrossing emptyEdge = { 0, 0.0, 0.0 };
-   ZeroCrossing edge = emptyEdge;
-   DmtxPassFail childPassFail;
+   const ZeroCrossing emptyEdge = { 0, 0, 0, 0, 0.0, 0.0 };
+   ZeroCrossing edge;
 
    assert(accel->type == DmtxEdgeVertical || accel->type == DmtxEdgeHorizontal);
 
@@ -535,30 +558,28 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
 
    aIdx = aRow * aWidth + aCol;
    aIdxNext = aIdx + aInc;
-
    aHere = accel->value[aIdx];
    aNext = accel->value[aIdxNext];
+
+   edge = emptyEdge;
 
    if(OPPOSITE_SIGNS(aHere, aNext))
    {
       /* Zero crossing: Neighbors with opposite signs [-10,+10] */
       smidge = abs(aHere/(aHere - aNext));
-      edge = SetZeroCrossingFromIndex(accel, aCol, aRow, smidge, &childPassFail);
+      edge = SetZeroCrossingFromIndex(accel, iCol, iRow, smidge);
    }
    else if(aHere == 0 && aNext != 0)
    {
-      if((accel->type == DmtxEdgeVertical && aCol == 0) ||
-            (accel->type == DmtxEdgeHorizontal && aRow == 0))
+      if(aIdx >= aInc)
       {
-         /* No previous value for comparison (beginning of row/col) */
-         return emptyEdge;
-      }
-
-      aPrev = accel->value[aIdx-aInc];
-      if(OPPOSITE_SIGNS(aPrev, aNext))
-      {
-         /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */
-         edge = SetZeroCrossingFromIndex(accel, aCol, aRow, 0.0, &childPassFail);
+         aPrev = accel->value[aIdx-aInc];
+         if(OPPOSITE_SIGNS(aPrev, aNext))
+         {
+            /* Zero crossing: Opposite signs separated by zero [-10,0,+10] */
+            smidge = 0.0;
+            edge = SetZeroCrossingFromIndex(accel, iCol, iRow, smidge);
+         }
       }
    }
 
@@ -570,46 +591,42 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
  *
  */
 ZeroCrossing
-SetZeroCrossingFromIndex(DmtxValueGrid *accel, int aCol, int aRow, double smidge, DmtxPassFail *passFail)
+SetZeroCrossingFromIndex(DmtxValueGrid *accel, int iCol, int iRow, double smidge)
 {
    int sCol, sRow, sIdx;
-   const ZeroCrossing emptyEdge = { 0, 0.0, 0.0 };
    ZeroCrossing edge;
    DmtxValueGrid *sobel = accel->ref;
 
-   switch(accel->type) {
-      case DmtxEdgeVertical:
-         edge.x = (double)aCol + 2.0 + smidge;
-         edge.y = (double)aRow + 1.5;
-         sRow = aRow;
-         sCol = aCol + 1;
-         break;
+   edge.type = accel->type;
+   edge.iCol = iCol;
+   edge.iRow = iRow;
 
-      case DmtxEdgeHorizontal:
-         edge.x = (double)aCol + 1.5;
-         edge.y = (double)aRow + 2.0 + smidge;
-         sRow = aRow + 1;
-         sCol = aCol;
-         break;
-
-      default:
-         /* Illegal edge type */
-         *passFail = DmtxFail;
-         return emptyEdge;
+   if(accel->type == DmtxEdgeVertical)
+   {
+      edge.x = (double)iCol + smidge;
+      edge.y = (double)iRow + 0.5;
+   }
+   else /* DmtxEdgeHorizontal */
+   {
+      edge.x = (double)iCol + 0.5;
+      edge.y = (double)iRow + smidge;
    }
 
-   /* Fail:  Sobel location out of bounds */
+   sRow = iRow - 1;
+   sCol = iCol - 1;
+
    if(sCol < 0 || sCol >= sobel->width || sRow < 0 || sRow >= sobel->height)
    {
-      *passFail = DmtxFail;
-      return emptyEdge;
+      /* Sobel location out of bounds */
+      edge.mag = 0;
+   }
+   else
+   {
+      /* Use Sobel value that falls directly between 2 accel locations */
+      sIdx = sRow * dmtxValueGridGetWidth(sobel) + sCol;
+      edge.mag = abs(sobel->value[sIdx]);
    }
 
-   /* Use Sobel value that falls directly between 2 accel locations */
-   sIdx = sRow * dmtxValueGridGetWidth(sobel) + sCol;
-   edge.mag = abs(sobel->value[sIdx]);
-
-   *passFail = DmtxPass;
    return edge;
 }
 
