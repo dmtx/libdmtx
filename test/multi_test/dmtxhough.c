@@ -313,7 +313,7 @@ GetStrongestLine(DmtxHoughLocal *lhRegion, double x, double y, DmtxEdgeType edge
    switch(edgeType)
    {
       case DmtxEdgeVertical:
-         phiBeg = 0;
+         phiBeg = 112;
          phiEnd = 16;
          break;
 
@@ -336,7 +336,7 @@ GetStrongestLine(DmtxHoughLocal *lhRegion, double x, double y, DmtxEdgeType edge
          return best;
    }
 
-   for(phi = phiBeg; phi < phiEnd; phi++)
+   for(phi = phiBeg; phi != phiEnd; phi = (phi == 127) ? 0 : phi + 1)
    {
       d = HoughGetLocalOffset((int)(x - lhRegion->xOrigin + 0.5), (int)(y - lhRegion->yOrigin + 0.5), phi);
       if(d < 0 || d > 63)
