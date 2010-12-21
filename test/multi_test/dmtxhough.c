@@ -225,8 +225,7 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
    int rRow, rCol;
    int iRow, iCol;
    int iWidth, iHeight;
-   ZeroCrossing hhZXing; /* vvZXing, vbZXing, hbZXing, hhZXing, hsZXing, vsZXing; */
-/* DmtxHoughBucket hBest; */
+   ZeroCrossing vvZXing, vbZXing, hbZXing, hhZXing, hsZXing, vsZXing;
 
    memset(mhRegion, 0x00, sizeof(DmtxHoughLocal));
 
@@ -251,53 +250,23 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
          if(iCol >= iWidth)
             continue;
 
-/*
          vvZXing = GetZeroCrossing(dec->vvAccel, iCol, iRow);
-         vBest = GetStrongestLine(lhRegion, iCol, iRow, DmtxEdgeVertical);
-         mhRegion->bucket[vBest.d][vBest.phi] += dmtxValueGridGetValue(dec->vSobel, iCol - 1, iRow - 1);
-
          vbZXing = GetZeroCrossing(dec->vbAccel, iCol, iRow);
          hbZXing = GetZeroCrossing(dec->hbAccel, iCol, iRow);
-         bBest = GetStrongestLine();
-         mhRegion->bucket[bBest.d][bBest.phi] += GetSobelStrength(b);
-*/
          hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow);
-         myfunc(mhRegion, lhRegion, &hhZXing);
-/*
+         hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow);
          vsZXing = GetZeroCrossing(dec->vsAccel, iCol, iRow);
-         sBest = GetStrongestLine();
-         mhRegion->bucket[sBest.d][sBest.phi] += GetSobelStrength(s);
-*/
+
+         myfunc(mhRegion, lhRegion, &vvZXing, DmtxEdgeVertical);
+         myfunc(mhRegion, lhRegion, &vbZXing, DmtxEdgeBackslash);
+         myfunc(mhRegion, lhRegion, &hbZXing, DmtxEdgeBackslash);
+         myfunc(mhRegion, lhRegion, &hhZXing, DmtxEdgeHorizontal);
+         myfunc(mhRegion, lhRegion, &vsZXing, DmtxEdgeSlash);
       }
    }
 
 /*
-re-execute edge finding logic used to populate hough initially
-for each edge found
-   for each "sobel quadrant" find the strongest line intersection
-      apply appropriate sobel strength to strongest intersection location
-
-maybe don't even apply the maxima vertical strip convolutional thing (?)
-
-change LineHoughAccumulate() to build 2D array of zerocrossing edges, which is looped through here also
-
-   for(each edge found in the zerocrossing process)
-   {
-      vBest = GetStrongestLine();
-      mhRegion->bucket[vBest.d][vBest.phi] += GetSobelStrength(v);
-
-      bBest = GetStrongestLine();
-      mhRegion->bucket[bBest.d][bBest.phi] += GetSobelStrength(b);
-
-      hBest = GetStrongestLine();
-      mhRegion->bucket[hBest.d][hBest.phi] += GetSobelStrength(h);
-
-      sBest = GetStrongestLine();
-      mhRegion->bucket[sBest.d][sBest.phi] += GetSobelStrength(s);
-   }
-
-*/
-/*
+XXX next: do this before the myfunc process:
    int phi, d;
 
    for(phi = 0; phi < 128; phi++)
@@ -317,7 +286,7 @@ change LineHoughAccumulate() to build 2D array of zerocrossing edges, which is l
  *
  */
 void
-myfunc(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, ZeroCrossing *zXing)
+myfunc(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, ZeroCrossing *zXing, DmtxEdgeType edgeType)
 {
    int val;
    DmtxHoughBucket hBest;
@@ -325,7 +294,7 @@ myfunc(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, ZeroCrossing *zXing)
    val = abs(zXing->mag);
    if(val > 0)
    {
-      hBest = GetStrongestLine(lhRegion, zXing->x, zXing->y, zXing->type);
+      hBest = GetStrongestLine(lhRegion, zXing->x, zXing->y, edgeType);
       if(hBest.phi != DmtxUndefined && hBest.d != DmtxUndefined)
          mhRegion->bucket[hBest.d][hBest.phi] += val;
    }
@@ -344,9 +313,24 @@ GetStrongestLine(DmtxHoughLocal *lhRegion, double x, double y, DmtxEdgeType edge
 
    switch(edgeType)
    {
+      case DmtxEdgeVertical:
+         phiBeg = 0;
+         phiEnd = 16;
+         break;
+
+      case DmtxEdgeBackslash:
+         phiBeg = 16;
+         phiEnd = 48;
+         break;
+
       case DmtxEdgeHorizontal:
          phiBeg = 48;
          phiEnd = 80;
+         break;
+
+      case DmtxEdgeSlash:
+         phiBeg = 80;
+         phiEnd = 112;
          break;
 
       default:
@@ -534,7 +518,7 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
    int aWidth, aHeight;
    int aHere, aNext, aPrev;
    double smidge;
-   const ZeroCrossing emptyEdge = { 0, 0, 0, 0, 0.0, 0.0 };
+   const ZeroCrossing emptyEdge = { 0, 0, 0, 0.0, 0.0 };
    ZeroCrossing edge;
 
    assert(accel->type == DmtxEdgeVertical || accel->type == DmtxEdgeHorizontal);
@@ -597,7 +581,6 @@ SetZeroCrossingFromIndex(DmtxValueGrid *accel, int iCol, int iRow, double smidge
    ZeroCrossing edge;
    DmtxValueGrid *sobel = accel->ref;
 
-   edge.type = accel->type;
    edge.iCol = iCol;
    edge.iRow = iRow;
 
