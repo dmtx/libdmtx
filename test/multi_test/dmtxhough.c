@@ -222,19 +222,30 @@ LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
 DmtxPassFail
 MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
 {
+   int phi, d;
    int rRow, rCol;
    int iRow, iCol;
    int iWidth, iHeight;
    ZeroCrossing vvZXing, vbZXing, hbZXing, hhZXing, hsZXing, vsZXing;
+   DmtxHoughLocal tmpHough;
+
+   /* XXX Neither of the following DmtxHoughLocal initializations are also
+          initializing the non-bucket portions */
 
    memset(mhRegion, 0x00, sizeof(DmtxHoughLocal));
+
+   /* Capture first filter pass in tmpHough */
+   for(phi = 0; phi < 128; phi++)
+      for(d = 0; d < 64; d++)
+         tmpHough.bucket[d][phi] = GetMaximaWeight(lhRegion, phi, d);
 
    /* Global coordinate system */
    iWidth = dmtxImageGetProp(dec->image, DmtxPropWidth);
    iHeight = dmtxImageGetProp(dec->image, DmtxPropHeight);
 
-   lhRegion->xOrigin = gState.localOffsetX;
-   lhRegion->yOrigin = gState.localOffsetY;
+   /* XXX this is kinda weird ... shouldn't this be set before now? */
+   tmpHough.xOrigin = lhRegion->xOrigin = gState.localOffsetX;
+   tmpHough.yOrigin = lhRegion->yOrigin = gState.localOffsetY;
 
    for(rRow = 0; rRow < 64; rRow++)
    {
@@ -257,26 +268,14 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
          hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow);
          vsZXing = GetZeroCrossing(dec->vsAccel, iCol, iRow);
 
-         myfunc(mhRegion, lhRegion, &vvZXing, DmtxEdgeVertical);
-         myfunc(mhRegion, lhRegion, &vbZXing, DmtxEdgeBackslash);
-         myfunc(mhRegion, lhRegion, &hbZXing, DmtxEdgeBackslash);
-         myfunc(mhRegion, lhRegion, &hhZXing, DmtxEdgeHorizontal);
-         myfunc(mhRegion, lhRegion, &vsZXing, DmtxEdgeSlash);
+         InstantRunoff(mhRegion, &tmpHough, &vvZXing, DmtxEdgeVertical);
+         InstantRunoff(mhRegion, &tmpHough, &vbZXing, DmtxEdgeBackslash);
+         InstantRunoff(mhRegion, &tmpHough, &hbZXing, DmtxEdgeBackslash);
+         InstantRunoff(mhRegion, &tmpHough, &hhZXing, DmtxEdgeHorizontal);
+         InstantRunoff(mhRegion, &tmpHough, &hsZXing, DmtxEdgeSlash);
+         InstantRunoff(mhRegion, &tmpHough, &vsZXing, DmtxEdgeSlash);
       }
    }
-
-/*
-XXX next: do this before the myfunc process:
-   int phi, d;
-
-   for(phi = 0; phi < 128; phi++)
-   {
-      for(d = 0; d < 64; d++)
-      {
-         mhRegion->bucket[d][phi] = GetMaximaWeight(lhRegion, phi, d);
-      }
-   }
-*/
 
    return DmtxPass;
 }
@@ -286,7 +285,7 @@ XXX next: do this before the myfunc process:
  *
  */
 void
-myfunc(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, ZeroCrossing *zXing, DmtxEdgeType edgeType)
+InstantRunoff(DmtxHoughLocal *maxLineHough, DmtxHoughLocal *lineHough, ZeroCrossing *zXing, DmtxEdgeType edgeType)
 {
    int val;
    DmtxHoughBucket hBest;
@@ -294,9 +293,9 @@ myfunc(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, ZeroCrossing *zXing, 
    val = abs(zXing->mag);
    if(val > 0)
    {
-      hBest = GetStrongestLine(lhRegion, zXing->x, zXing->y, edgeType);
+      hBest = GetStrongestLine(lineHough, zXing->x, zXing->y, edgeType);
       if(hBest.phi != DmtxUndefined && hBest.d != DmtxUndefined)
-         mhRegion->bucket[hBest.d][hBest.phi] += val;
+         maxLineHough->bucket[hBest.d][hBest.phi] += val;
    }
 }
 
@@ -364,7 +363,6 @@ int
 GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
 {
    int phiLf, phiRt;
-   int valLfSum, valRtSum;
    int val, valDn, valUp, valDnDn, valUpUp;
    int weight;
 
@@ -381,18 +379,10 @@ GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
 
    /* XXX still need to flip d when spanning across 0-127 */
 
-   valLfSum  = (d > 0) ? line->bucket[d-1][phiLf] : 0;
-   valLfSum += line->bucket[d][phiLf];
-   valLfSum += (d < 63) ? line->bucket[d+1][phiLf] : 0;
-
-   valRtSum  = (d > 0) ? line->bucket[d-1][phiRt] : 0;
-   valRtSum += line->bucket[d][phiRt];
-   valRtSum += (d < 63) ? line->bucket[d+1][phiRt] : 0;
-
    valDnDn = (d >= 2) ? line->bucket[d - 2][phi] : 0;
    valUpUp = (d <= 61) ? line->bucket[d + 2][phi] : 0;
 
-   weight = (6 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn) - (valLfSum + valRtSum);
+   weight = (6 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn);
 
    return (weight > 0) ? weight : 0;
 }
@@ -555,7 +545,9 @@ GetZeroCrossing(DmtxValueGrid *accel, int iCol, int iRow)
    }
    else if(aHere == 0 && aNext != 0)
    {
-      if(aIdx >= aInc)
+
+      if(!(accel->type == DmtxEdgeVertical && aCol == 0) &&
+            !(accel->type == DmtxEdgeHorizontal && aRow == 0))
       {
          aPrev = accel->value[aIdx-aInc];
          if(OPPOSITE_SIGNS(aPrev, aNext))

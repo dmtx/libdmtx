@@ -354,7 +354,7 @@ DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
 DmtxPassFail LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec);
 DmtxPassFail MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDecode2 *dec);
-void myfunc(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, ZeroCrossing *zXing, DmtxEdgeType edgeType);
+void InstantRunoff(DmtxHoughLocal *maxLineHough, DmtxHoughLocal *lineHough, ZeroCrossing *zXing, DmtxEdgeType edgeType);
 DmtxHoughBucket GetStrongestLine(DmtxHoughLocal *lhRegion, double x, double y, DmtxEdgeType edgeType);
 int GetMaximaWeight(DmtxHoughLocal *lhRegion, int phi, int d);
 DmtxPassFail VanishHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxHoughLocal *vhRegion);
