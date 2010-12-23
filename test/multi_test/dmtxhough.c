@@ -238,6 +238,8 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
    for(phi = 0; phi < 128; phi++)
       for(d = 0; d < 64; d++)
          tmpHough.bucket[d][phi] = GetMaximaWeight(lhRegion, phi, d);
+*mhRegion = tmpHough;
+return DmtxPass; /* XXX keep it this way until you figure out what the artifact is */
 
    /* Global coordinate system */
    iWidth = dmtxImageGetProp(dec->image, DmtxPropWidth);
@@ -285,64 +287,26 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
  *
  */
 void
-InstantRunoff(DmtxHoughLocal *maxLineHough, DmtxHoughLocal *lineHough, ZeroCrossing *zXing, DmtxEdgeType edgeType)
+InstantRunoff(DmtxHoughLocal *maxLineHough, DmtxHoughLocal *lineHough,
+      ZeroCrossing *zXing, DmtxEdgeType edgeType)
 {
-   int val;
-   DmtxHoughBucket hBest;
-
-   val = abs(zXing->mag);
-   if(val > 0)
-   {
-      hBest = GetStrongestLine(lineHough, zXing->x, zXing->y, edgeType);
-      if(hBest.phi != DmtxUndefined && hBest.d != DmtxUndefined)
-         maxLineHough->bucket[hBest.d][hBest.phi] += val;
-   }
-}
-
-/**
- *
- *
- */
-DmtxHoughBucket
-GetStrongestLine(DmtxHoughLocal *lhRegion, double x, double y, DmtxEdgeType edgeType)
-{
-   int d, val;
-   int phi, phiBeg, phiEnd;
+   int x, y;
+   int d, phi, val;
    DmtxHoughBucket best = { DmtxUndefined, DmtxUndefined, 0 };
 
-   switch(edgeType)
+   if(zXing->mag == 0)
+      return;
+
+   x = (int)(zXing->x - lineHough->xOrigin + 0.5);
+   y = (int)(zXing->y - lineHough->yOrigin + 0.5);
+
+   for(phi = 0; phi < 128; phi++)
    {
-      case DmtxEdgeVertical:
-         phiBeg = 112;
-         phiEnd = 16;
-         break;
-
-      case DmtxEdgeBackslash:
-         phiBeg = 16;
-         phiEnd = 48;
-         break;
-
-      case DmtxEdgeHorizontal:
-         phiBeg = 48;
-         phiEnd = 80;
-         break;
-
-      case DmtxEdgeSlash:
-         phiBeg = 80;
-         phiEnd = 112;
-         break;
-
-      default:
-         return best;
-   }
-
-   for(phi = phiBeg; phi != phiEnd; phi = (phi == 127) ? 0 : phi + 1)
-   {
-      d = HoughGetLocalOffset((int)(x - lhRegion->xOrigin + 0.5), (int)(y - lhRegion->yOrigin + 0.5), phi);
+      d = HoughGetLocalOffset(x, y, phi);
       if(d < 0 || d > 63)
          continue;
 
-      val = lhRegion->bucket[d][phi];
+      val = lineHough->bucket[d][phi];
 
       if(val > best.val)
       {
@@ -352,7 +316,8 @@ GetStrongestLine(DmtxHoughLocal *lhRegion, double x, double y, DmtxEdgeType edge
       }
    }
 
-   return best;
+   if(best.phi != DmtxUndefined && best.d != DmtxUndefined)
+      maxLineHough->bucket[best.d][best.phi] += best.val;
 }
 
 /**
@@ -392,48 +357,57 @@ GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
  *
  */
 DmtxPassFail
-VanishHoughAccumulate(DmtxHoughLocal *vhRegion, DmtxHoughLocal *line)
+VanishHoughAccumulate(DmtxHoughLocal *vanish, DmtxHoughLocal *line)
 {
-   int lhRow, lhCol;
-   int val;
-   int phi, phiPrev;
-   int d, dHere, dPrev;
+   int i, d, phi, val;
+   int dLine, phiLine;
+   int phi128, phiBeg, phiEnd;
+   int dPrev, phiPrev;
 
-   for(lhRow = 0; lhRow < 64; lhRow++)
+   for(dLine = 0; dLine < 64; dLine++)
    {
-      for(lhCol = 0; lhCol < 128; lhCol++)
+      for(phiLine = 0; phiLine < 128; phiLine++)
       {
-         val = line->bucket[lhRow][lhCol];
+         val = line->bucket[dLine][phiLine];
          if(val == 0)
             continue;
 
-         dPrev = phiPrev = DmtxUndefined;
-         for(phi = 0; phi < 128; phi++)
+         phiBeg = phiLine - 16;
+         phiEnd = phiLine + 16;
+
+         phiPrev = dPrev = DmtxUndefined;
+
+         for(phi = phiBeg; phi <= phiEnd; phi++)
          {
-            dHere = GetVanishBucket(phi, lhCol, lhRow);
-            if(dHere == DmtxUndefined)
+            phi128 = ((phi + 128) & 0x7f);
+
+            d = GetVanishBucket(phi128, phiLine, dLine);
+            if(d == DmtxUndefined)
                continue;
 
-            if(phi - phiPrev > 1)
-               dPrev = phiPrev = DmtxUndefined;
+            if(phi < 0 || phi > 127)
+               d = 63 - d;
 
-            if(dPrev == dHere || dPrev == DmtxUndefined)
+            if(dPrev == DmtxUndefined || phiPrev == DmtxUndefined || phiPrev != phi - 1)
+               dPrev = d;
+
+            if(dPrev == d)
             {
-               vhRegion->bucket[dHere][phi] += val;
+               vanish->bucket[d][phi128] += val;
             }
-            else if(dPrev < dHere)
+            else if(dPrev < d)
             {
-               for(d = dPrev + 1; d <= dHere; d++)
-                  vhRegion->bucket[d][phi] += val;
+               for(i = dPrev + 1; i <= d; i++)
+                  vanish->bucket[i][phi128] += val;
             }
             else
             {
-               for(d = dPrev - 1; d >= dHere; d--)
-                  vhRegion->bucket[d][phi] += val;
+               for(i = dPrev - 1; i >= d; i--)
+                  vanish->bucket[i][phi128] += val;
             }
 
-            dPrev = dHere;
             phiPrev = phi;
+            dPrev = d;
          }
       }
    }
@@ -462,9 +436,6 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
       phiDelta += 128;
    else if(phiDelta > 64)
       phiDelta -= 128;
-
-   if(abs(phiDelta) > 20)
-      return DmtxUndefined; /* Too far from parallel */
 
    phiCompareRad = phiCompare * (M_PI/128.0);
    phiDeltaRad = phiDelta * (M_PI/128.0);

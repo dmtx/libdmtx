@@ -42,17 +42,16 @@ Contact: mblaughton@users.sourceforge.net
  *   o   [stablize]  Bug fixes and site changes
  *
  * TODO
- *   o Tweak shaped bucket weighting to not overcount parallel condition
- *   o Make BlitHoughCache not dynamic lighting
+ *   x Eliminate maxima candidates based on all 8 neighbors
+ *   x Populate maxima weight as sum of center and all 8 neighbors (?)
+ *   x Add interpolation to skipped d values on steep vanish points
+ *   x Tweak shaped bucket weighting to not overcount parallel condition
+ *   - Make BlitHoughCache not dynamic lighting
  *   o Display local maxima
  *   o Work on nonlinearity of hough points presented by dot peen symbols
  *   o Create better method of isolating true maxima
  *     - Use delta max-min for weight?
  *     - Add filter based on more rules?
- *
- *   x Eliminate maxima candidates based on all 8 neighbors
- *   x Populate maxima weight as sum of center and all 8 neighbors (?)
- *   o Add interpolation to skipped d values on steep vanish points
  */
 
 #include <stdlib.h>
