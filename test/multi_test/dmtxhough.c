@@ -253,7 +253,11 @@ GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
    valDnDn = (d >= 2) ? line->bucket[d - 2][phi] : 0;
    valUpUp = (d <= 61) ? line->bucket[d + 2][phi] : 0;
 
-   weight = (6 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn);
+/* weight = (6 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn); */
+/* weight = (5 * val) - 2 * (valUp + valDn) - (valUpUp + valDnDn); */
+   weight = (5 * val) - (valUp + valDn) - 2 * (valUpUp + valDnDn);
+/* weight = (3 * val) - (valUp + valDn + valUpUp + valDnDn); */
+/* weight = (3 * val) - 2 * (valUp + valDn); */
 
    return (weight > 0) ? weight : 0;
 }
