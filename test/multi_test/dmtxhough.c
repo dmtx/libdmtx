@@ -238,8 +238,9 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
    for(phi = 0; phi < 128; phi++)
       for(d = 0; d < 64; d++)
          tmpHough.bucket[d][phi] = GetMaximaWeight(lhRegion, phi, d);
+
 *mhRegion = tmpHough;
-return DmtxPass; /* XXX keep it this way until you figure out what the artifact is */
+return DmtxPass;
 
    /* Global coordinate system */
    iWidth = dmtxImageGetProp(dec->image, DmtxPropWidth);
@@ -327,7 +328,6 @@ InstantRunoff(DmtxHoughLocal *maxLineHough, DmtxHoughLocal *lineHough,
 int
 GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
 {
-   int phiLf, phiRt;
    int val, valDn, valUp, valDnDn, valUpUp;
    int weight;
 
@@ -338,11 +338,6 @@ GetMaximaWeight(DmtxHoughLocal *line, int phi, int d)
    /* Line is outranked by immediate neigbor in same direction (not a maxima) */
    if(valDn > val || valUp > val)
       return 0;
-
-   phiLf = (phi == 0) ? 127 : phi - 1;
-   phiRt = (phi == 127) ? 0 : phi + 1;
-
-   /* XXX still need to flip d when spanning across 0-127 */
 
    valDnDn = (d >= 2) ? line->bucket[d - 2][phi] : 0;
    valUpUp = (d <= 61) ? line->bucket[d + 2][phi] : 0;
@@ -362,7 +357,7 @@ VanishHoughAccumulate(DmtxHoughLocal *vanish, DmtxHoughLocal *line)
    int i, d, phi, val;
    int dLine, phiLine;
    int phi128, phiBeg, phiEnd;
-   int dPrev, phiPrev;
+   int dPrev;
 
    for(dLine = 0; dLine < 64; dLine++)
    {
@@ -374,8 +369,7 @@ VanishHoughAccumulate(DmtxHoughLocal *vanish, DmtxHoughLocal *line)
 
          phiBeg = phiLine - 16;
          phiEnd = phiLine + 16;
-
-         phiPrev = dPrev = DmtxUndefined;
+         dPrev = DmtxUndefined;
 
          for(phi = phiBeg; phi <= phiEnd; phi++)
          {
@@ -383,15 +377,17 @@ VanishHoughAccumulate(DmtxHoughLocal *vanish, DmtxHoughLocal *line)
 
             d = GetVanishBucket(phi128, phiLine, dLine);
             if(d == DmtxUndefined)
-               continue;
+               continue; /* break instead ? */
 
+            /* Flip current d value if in opposite range of phiLine */
             if(phi < 0 || phi > 127)
                d = 63 - d;
 
-            if(dPrev == DmtxUndefined || phiPrev == DmtxUndefined || phiPrev != phi - 1)
-               dPrev = d;
+            /* Flip previous d value if crossing max phi */
+            if(dPrev != DmtxUndefined && phi128 == 0)
+               dPrev = 63 - dPrev;
 
-            if(dPrev == d)
+            if(dPrev == DmtxUndefined || dPrev == d)
             {
                vanish->bucket[d][phi128] += val;
             }
@@ -406,7 +402,6 @@ VanishHoughAccumulate(DmtxHoughLocal *vanish, DmtxHoughLocal *line)
                   vanish->bucket[i][phi128] += val;
             }
 
-            phiPrev = phi;
             dPrev = d;
          }
       }
