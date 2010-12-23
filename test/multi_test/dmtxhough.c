@@ -223,102 +223,13 @@ DmtxPassFail
 MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
 {
    int phi, d;
-   int rRow, rCol;
-   int iRow, iCol;
-   int iWidth, iHeight;
-   ZeroCrossing vvZXing, vbZXing, hbZXing, hhZXing, hsZXing, vsZXing;
-   DmtxHoughLocal tmpHough;
-
-   /* XXX Neither of the following DmtxHoughLocal initializations are also
-          initializing the non-bucket portions */
-
-   memset(mhRegion, 0x00, sizeof(DmtxHoughLocal));
 
    /* Capture first filter pass in tmpHough */
    for(phi = 0; phi < 128; phi++)
       for(d = 0; d < 64; d++)
-         tmpHough.bucket[d][phi] = GetMaximaWeight(lhRegion, phi, d);
-
-*mhRegion = tmpHough;
-return DmtxPass;
-
-   /* Global coordinate system */
-   iWidth = dmtxImageGetProp(dec->image, DmtxPropWidth);
-   iHeight = dmtxImageGetProp(dec->image, DmtxPropHeight);
-
-   /* XXX this is kinda weird ... shouldn't this be set before now? */
-   tmpHough.xOrigin = lhRegion->xOrigin = gState.localOffsetX;
-   tmpHough.yOrigin = lhRegion->yOrigin = gState.localOffsetY;
-
-   for(rRow = 0; rRow < 64; rRow++)
-   {
-      iRow = lhRegion->yOrigin + rRow;
-
-      if(iRow >= iHeight)
-         continue;
-
-      for(rCol = 0; rCol < 64; rCol++)
-      {
-         iCol = lhRegion->xOrigin + rCol;
-
-         if(iCol >= iWidth)
-            continue;
-
-         vvZXing = GetZeroCrossing(dec->vvAccel, iCol, iRow);
-         vbZXing = GetZeroCrossing(dec->vbAccel, iCol, iRow);
-         hbZXing = GetZeroCrossing(dec->hbAccel, iCol, iRow);
-         hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow);
-         hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow);
-         vsZXing = GetZeroCrossing(dec->vsAccel, iCol, iRow);
-
-         InstantRunoff(mhRegion, &tmpHough, &vvZXing, DmtxEdgeVertical);
-         InstantRunoff(mhRegion, &tmpHough, &vbZXing, DmtxEdgeBackslash);
-         InstantRunoff(mhRegion, &tmpHough, &hbZXing, DmtxEdgeBackslash);
-         InstantRunoff(mhRegion, &tmpHough, &hhZXing, DmtxEdgeHorizontal);
-         InstantRunoff(mhRegion, &tmpHough, &hsZXing, DmtxEdgeSlash);
-         InstantRunoff(mhRegion, &tmpHough, &vsZXing, DmtxEdgeSlash);
-      }
-   }
+         mhRegion->bucket[d][phi] = GetMaximaWeight(lhRegion, phi, d);
 
    return DmtxPass;
-}
-
-/**
- *
- *
- */
-void
-InstantRunoff(DmtxHoughLocal *maxLineHough, DmtxHoughLocal *lineHough,
-      ZeroCrossing *zXing, DmtxEdgeType edgeType)
-{
-   int x, y;
-   int d, phi, val;
-   DmtxHoughBucket best = { DmtxUndefined, DmtxUndefined, 0 };
-
-   if(zXing->mag == 0)
-      return;
-
-   x = (int)(zXing->x - lineHough->xOrigin + 0.5);
-   y = (int)(zXing->y - lineHough->yOrigin + 0.5);
-
-   for(phi = 0; phi < 128; phi++)
-   {
-      d = HoughGetLocalOffset(x, y, phi);
-      if(d < 0 || d > 63)
-         continue;
-
-      val = lineHough->bucket[d][phi];
-
-      if(val > best.val)
-      {
-         best.phi = phi;
-         best.d = d;
-         best.val = val;
-      }
-   }
-
-   if(best.phi != DmtxUndefined && best.d != DmtxUndefined)
-      maxLineHough->bucket[best.d][best.phi] += best.val;
 }
 
 /**
@@ -367,8 +278,8 @@ VanishHoughAccumulate(DmtxHoughLocal *vanish, DmtxHoughLocal *line)
          if(val == 0)
             continue;
 
-         phiBeg = phiLine - 16;
-         phiEnd = phiLine + 16;
+         phiBeg = phiLine - 20;
+         phiEnd = phiLine + 20;
          dPrev = DmtxUndefined;
 
          for(phi = phiBeg; phi <= phiEnd; phi++)
