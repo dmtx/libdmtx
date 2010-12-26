@@ -284,7 +284,6 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 DmtxPassFail dmtxRegion2FindNext(DmtxDecode2 *dec);
 double UncompactOffset(double d, int phiIdx, int extent);
 void AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum);
-VanishPointSort dmtxFindVanishPoints(DmtxHoughLocal *hough);
 VanishPointSort dmtxFindVanishPoints2(DmtxHoughLocal *vHough);
 void AddToMaximaSort(HoughMaximaSort *sort, int maximaMag);
 DmtxHoughBucket GetAngleSumAtPhi(DmtxHoughLocal *local, int phi);

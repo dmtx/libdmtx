@@ -224,7 +224,6 @@ MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDe
 {
    int phi, d;
 
-   /* Capture first filter pass in tmpHough */
    for(phi = 0; phi < 128; phi++)
       for(d = 0; d < 64; d++)
          mhRegion->bucket[d][phi] = GetMaximaWeight(lhRegion, phi, d);
@@ -292,9 +291,9 @@ VanishHoughAccumulate(DmtxHoughLocal *vanish, DmtxHoughLocal *line)
 
             d = GetVanishBucket(phi128, phiLine, dLine);
             if(d == DmtxUndefined)
-               continue; /* break instead ? */
+               continue;
 
-            /* Flip current d value if in opposite range of phiLine */
+            /* Flip current d value if opposite range from phiLine */
             if(phi < 0 || phi > 127)
                d = 63 - d;
 
@@ -499,8 +498,7 @@ HoughLocalAccumulateEdge(DmtxHoughLocal *line, int phi, ZeroCrossing edge)
    d = HoughGetLocalOffset(edge.x - line->xOrigin, edge.y - line->yOrigin, phi);
    dInt = (int)d;
 
-if(dInt > 63)
-   return DmtxFail;
+   assert(dInt < 64);
 
    assert(dInt >= 0);
    assert(dInt < 64);

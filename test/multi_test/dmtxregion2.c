@@ -46,17 +46,13 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
    DmtxBoolean regionFound;
    DmtxPassFail err;
    VanishPointSort vPoints;
-   VanishPointSort vPoints2;
    DmtxTimingSort timings;
    AlignmentGrid grid;
 
-   vPoints = dmtxFindVanishPoints(dec->houghGrid->line);
-   dec->fn.vanishPointCallback(&vPoints, 0);
+   vPoints = dmtxFindVanishPoints2(dec->houghGrid->vanish);
+   dec->fn.vanishPointCallback(&vPoints, 1);
 
-   vPoints2 = dmtxFindVanishPoints2(dec->houghGrid->vanish);
-   dec->fn.vanishPointCallback(&vPoints2, 1);
-
-   timings = dmtxFindGridTiming(dec->houghGrid->line, &vPoints2);
+   timings = dmtxFindGridTiming(dec->houghGrid->line, &vPoints);
 
    regionFound = DmtxFalse;
    for(i = 0; regionFound == DmtxFalse && i < timings.count; i++)
@@ -128,12 +124,19 @@ void
 AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
 {
    int i, startHere;
-   int phiDiff;
+   int phiDiff, phiDiffTmp;
    DmtxBoolean willGrow;
 
    /* Special case: first addition */
-   if(sort->count == 0) {
+   if(sort->count == 0)
+   {
       sort->vanishSum[sort->count++] = vanishSum;
+      return;
+   }
+   /* Array is full and incoming bucket is immediately weakest */
+   else if(sort->count == ANGLE_SORT_MAX_COUNT &&
+         vanishSum.val < sort->vanishSum[ANGLE_SORT_MAX_COUNT - 1].val)
+   {
       return;
    }
 
@@ -144,16 +147,21 @@ AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
     *   a) Overwrite the old one without shifting (if stronger), or
     *   b) Reject the new one completely (if weaker)
     */
-   for(i = 0; i < sort->count; i++) {
-      phiDiff = abs(vanishSum.phi - sort->vanishSum[i].phi);
+   for(i = 0; i < sort->count; i++)
+   {
+      phiDiffTmp = abs(vanishSum.phi - sort->vanishSum[i].phi);
+      phiDiff = (phiDiffTmp < 64) ? phiDiffTmp : 128 - phiDiffTmp;
 
-      if(phiDiff < 8 || phiDiff > 119) {
+      if(phiDiff < 10)
+      {
          /* Similar angle is already represented with stronger magnitude */
-         if(vanishSum.val < sort->vanishSum[i].val) {
+         if(vanishSum.val < sort->vanishSum[i].val)
+         {
             return;
          }
          /* Found similar-but-weaker angle that will be overwritten */
-         else {
+         else
+         {
             sort->vanishSum[i] = vanishSum;
             willGrow = DmtxFalse; /* Non-growing re-sort required */
             startHere = i - 1;
@@ -163,10 +171,14 @@ AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
    }
 
    /* Shift weak entries downward */
-   for(i = startHere; i >= 0; i--) {
-      if(vanishSum.val > sort->vanishSum[i].val) {
+   for(i = startHere; i >= 0; i--)
+   {
+      if(vanishSum.val > sort->vanishSum[i].val)
+      {
          if(i + 1 < ANGLE_SORT_MAX_COUNT)
+         {
             sort->vanishSum[i+1] = sort->vanishSum[i];
+         }
          sort->vanishSum[i] = vanishSum;
       }
    }
@@ -181,45 +193,19 @@ AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
  *
  */
 VanishPointSort
-dmtxFindVanishPoints(DmtxHoughLocal *hough)
-{
-   int phi;
-   VanishPointSort sort;
-
-   memset(&sort, 0x00, sizeof(VanishPointSort));
-
-   /* Add strongest line at each angle to sort */
-   for(phi = 0; phi < 128; phi++)
-      AddToVanishPointSort(&sort, GetAngleSumAtPhi(hough, phi));
-
-   return sort;
-}
-
-/**
- *
- *
- */
-VanishPointSort
 dmtxFindVanishPoints2(DmtxHoughLocal *vHough)
 {
-   int phi, d, val;
-   DmtxHoughBucket maxBucket = { 0, 0, 0 };
+   DmtxHoughBucket bucket;
    VanishPointSort sort;
 
    memset(&sort, 0x00, sizeof(VanishPointSort));
 
-   for(phi = 0; phi < 128; phi++)
+   for(bucket.phi = 0; bucket.phi < 128; bucket.phi++)
    {
-      for(d = 0; d < 64; d++)
+      for(bucket.d = 0; bucket.d < 64; bucket.d++)
       {
-         val = vHough->bucket[d][phi];
-         if(val > maxBucket.val)
-         {
-            maxBucket.phi = phi;
-            maxBucket.d = d;
-            maxBucket.val = val;
-            AddToVanishPointSort(&sort, maxBucket);
-         }
+         bucket.val = vHough->bucket[bucket.d][bucket.phi];
+         AddToVanishPointSort(&sort, bucket);
       }
    }
 
