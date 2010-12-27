@@ -498,10 +498,7 @@ HoughLocalAccumulateEdge(DmtxHoughLocal *line, int phi, ZeroCrossing edge)
    d = HoughGetLocalOffset(edge.x - line->xOrigin, edge.y - line->yOrigin, phi);
    dInt = (int)d;
 
-   assert(dInt < 64);
-
-   assert(dInt >= 0);
-   assert(dInt < 64);
+   assert(dInt >= 0 && dInt < 64);
    assert(phi >= 0 && phi < 128);
 
    line->bucket[dInt][phi] += edge.mag;

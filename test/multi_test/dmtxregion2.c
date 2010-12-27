@@ -42,37 +42,63 @@ DmtxPassFail
 dmtxRegion2FindNext(DmtxDecode2 *dec)
 {
    int i, j;
-   int phiDiff;
-   DmtxBoolean regionFound;
-   DmtxPassFail err;
+   int phiDiff, phiDiffTmp;
    VanishPointSort vPoints;
-   DmtxTimingSort timings;
-   AlignmentGrid grid;
+   DmtxBoolean regionFound;
 
-   vPoints = dmtxFindVanishPoints2(dec->houghGrid->vanish);
+   vPoints = dmtxFindVanishPoints(dec->houghGrid->vanish);
    dec->fn.vanishPointCallback(&vPoints, 1);
 
-   timings = dmtxFindGridTiming(dec->houghGrid->line, &vPoints);
-
-   regionFound = DmtxFalse;
-   for(i = 0; regionFound == DmtxFalse && i < timings.count; i++)
+   for(i = 0, regionFound = DmtxFalse; i < vPoints.count && regionFound == DmtxFalse; i++)
    {
-      for(j = i+1; j < timings.count; j++)
+      for(j = i + 1; j < vPoints.count; j++)
       {
-         phiDiff = abs(timings.timing[i].phi - timings.timing[j].phi);
+         phiDiffTmp = abs(vPoints.vanishSum[i].phi - vPoints.vanishSum[j].phi);
+         phiDiff = (phiDiffTmp < 64) ? phiDiffTmp : 128 - phiDiffTmp;
 
-         /* Reject combinations that deviate from right angle (phi == 64) */
-         if(abs(64 - phiDiff) > 28) /* within +- ~40 deg */
+         /* Reject angle combinations that are too close */
+         if(phiDiff < 36)
             continue;
+
+         /* Build untimed grid from vanish points */
+/*       deskew = BuildDeskewedAlignment(vPoints.vanishSum[i], vPoints.vanishSum[j], &passFail);
+         if(passFail == DmtxFail)
+            continue;
+*/
+
+         /* Build timed grid from untimed grid and line hough */
+/*       align = BuildTimedAlignment(deskew, vHough, &passFail);
+         if(passFail == DmtxFail)
+            continue;
+
+struct Deskew {
+   DmtxMatrix3 fit2raw;
+   DmtxMatrix3 raw2fit;
+}
+
+struct Timing {
+   double shift;
+   double period;
+}
+
+struct AlignmentGrid {
+   Deskew align;
+   Timing vTiming;
+   Timing hTiming;
+}
+
+*/
+
+/*
+         // timings = dmtxFindGridTiming(dec->houghGrid->line, &vPoints);
 
          err = dmtxBuildGridFromTimings(&grid, timings.timing[i], timings.timing[j]);
          if(err == DmtxFail)
-            continue; /* Keep trying */
+            continue; // Keep trying
 
          dec->fn.timingCallback(&timings.timing[i], &timings.timing[j], 1);
 
-         /* Hack together raw2fitFull and fit2rawFull outside since we need app data */
-/*
+         // Hack together raw2fitFull and fit2rawFull outside since we need app data
          AddFullTransforms(&grid);
 
          err = dmtxFindRegionWithinGrid(&region, &grid, &houghCache, dec, fn);
@@ -83,9 +109,10 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
             if(region.sizeIdx >= DmtxSymbol10x10 && region.sizeIdx <= DmtxSymbol16x48)
                dmtxDecodeSymbol(&region, dec);
          }
+
+         regionFound = DmtxTrue; // break out of outer loop
+         break; // break out of inner loop
 */
-         regionFound = DmtxTrue; /* break out of outer loop */
-         break; /* break out of inner loop */
       }
    }
 
@@ -193,7 +220,7 @@ AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
  *
  */
 VanishPointSort
-dmtxFindVanishPoints2(DmtxHoughLocal *vHough)
+dmtxFindVanishPoints(DmtxHoughLocal *vHough)
 {
    DmtxHoughBucket bucket;
    VanishPointSort sort;
