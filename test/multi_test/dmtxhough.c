@@ -37,12 +37,37 @@ Contact: mblaughton@users.sourceforge.net
  *
  *
  */
+/*
+DmtxHoughGrid *
+HoughGridCreate()
+{
+   dec->houghGrid = (DmtxHoughGrid *)calloc(1, sizeof(DmtxHoughGrid));
+   if(dec->houghGrid == NULL)
+      return DmtxFail;
+
+   dec->houghGrid->rows = 1;
+   dec->houghGrid->cols = 1;
+   dec->houghGrid->count = dec->houghGrid->rows * dec->houghGrid->cols;
+   dec->houghGrid->line = (DmtxHoughLocal *)calloc(dec->houghGrid->count, sizeof(DmtxHoughLocal));
+   dec->houghGrid->maxima = (DmtxHoughLocal *)calloc(dec->houghGrid->count, sizeof(DmtxHoughLocal));
+   dec->houghGrid->vanish = (DmtxHoughLocal *)calloc(dec->houghGrid->count, sizeof(DmtxHoughLocal));
+
+   RETURN_FAIL_IF(dec->houghGrid->line == NULL ||
+         dec->houghGrid->maxima == NULL || dec->houghGrid->vanish == NULL);
+}
+*/
+
+/**
+ *
+ *
+ */
 DmtxPassFail
 HoughGridPopulate(DmtxDecode2 *dec)
 {
    int row, col, idx;
    DmtxHoughLocal *line, *maxima, *vanish;
 
+/* dec->houghGrid = HoughGridCreate(); */
    dec->houghGrid = (DmtxHoughGrid *)calloc(1, sizeof(DmtxHoughGrid));
    if(dec->houghGrid == NULL)
       return DmtxFail;
