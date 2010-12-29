@@ -117,6 +117,8 @@ SobelGridPopulate(DmtxDecode2 *dec)
    sWidth = dmtxImageGetProp(img, DmtxPropWidth) - 2;
    sHeight = dmtxImageGetProp(img, DmtxPropHeight) - 2;
 
+   assert(dec->vSobel == NULL && dec->bSobel == NULL && dec->hSobel == NULL && dec->sSobel == NULL);
+
    dec->vSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeVertical);
    dec->bSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeBackslash);
    dec->hSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeHorizontal);
@@ -239,6 +241,9 @@ SobelGridPopulate(DmtxDecode2 *dec)
 DmtxPassFail
 AccelGridPopulate(DmtxDecode2 *dec)
 {
+   assert(dec->vvAccel == NULL && dec->vbAccel == NULL && dec->vsAccel == NULL &&
+         dec->hbAccel == NULL && dec->hhAccel == NULL && dec->hsAccel == NULL);
+
    dec->vvAccel = AccelGridCreate(dec->vSobel, DmtxEdgeVertical);
    dec->vbAccel = AccelGridCreate(dec->bSobel, DmtxEdgeVertical);
    dec->vsAccel = AccelGridCreate(dec->sSobel, DmtxEdgeVertical);
@@ -247,7 +252,7 @@ AccelGridPopulate(DmtxDecode2 *dec)
    dec->hsAccel = AccelGridCreate(dec->sSobel, DmtxEdgeHorizontal);
 
    if(dec->vvAccel == NULL || dec->vbAccel == NULL || dec->vsAccel == NULL ||
-      dec->hbAccel == NULL || dec->hhAccel == NULL || dec->hsAccel == NULL)
+         dec->hbAccel == NULL || dec->hhAccel == NULL || dec->hsAccel == NULL)
       return DmtxFail; /* Memory cleanup will be handled by caller */
 
    dec->fn.dmtxValueGridCallback(dec->vvAccel, 4);
