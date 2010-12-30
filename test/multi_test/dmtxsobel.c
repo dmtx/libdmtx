@@ -8,31 +8,31 @@
  *
  *
  */
-DmtxSobelList *
-SobelListCreate(DmtxImage *img)
+DmtxSobel *
+SobelCreate(DmtxImage *img)
 {
    int sWidth, sHeight;
-   DmtxSobelList *list;
+   DmtxSobel *sobel;
 
-   list = (DmtxSobelList *)malloc(sizeof(DmtxSobelList));
-   if(list == NULL)
+   sobel = (DmtxSobel *)malloc(sizeof(DmtxSobel));
+   if(sobel == NULL)
       return NULL;
 
    sWidth = dmtxImageGetProp(img, DmtxPropWidth) - 2;
    sHeight = dmtxImageGetProp(img, DmtxPropHeight) - 2;
 
-   list->vSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeVertical);
-   list->bSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeBackslash);
-   list->hSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeHorizontal);
-   list->sSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeSlash);
+   sobel->v = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeVertical);
+   sobel->b = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeBackslash);
+   sobel->h = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeHorizontal);
+   sobel->s = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeSlash);
 
-   if(list->vSobel == NULL || list->bSobel == NULL || list->hSobel == NULL || list->sSobel == NULL)
+   if(sobel->v == NULL || sobel->b == NULL || sobel->h == NULL || sobel->s == NULL)
    {
-      SobelListDestroy(&list);
+      SobelDestroy(&sobel);
       return NULL;
    }
 
-   return list;
+   return sobel;
 }
 
 /**
@@ -40,18 +40,18 @@ SobelListCreate(DmtxImage *img)
  *
  */
 DmtxPassFail
-SobelListDestroy(DmtxSobelList **list)
+SobelDestroy(DmtxSobel **sobel)
 {
-   if(list == NULL || *list == NULL)
+   if(sobel == NULL || *sobel == NULL)
       return DmtxFail;
 
-   dmtxValueGridDestroy(&((*list)->sSobel));
-   dmtxValueGridDestroy(&((*list)->hSobel));
-   dmtxValueGridDestroy(&((*list)->bSobel));
-   dmtxValueGridDestroy(&((*list)->vSobel));
+   dmtxValueGridDestroy(&((*sobel)->s));
+   dmtxValueGridDestroy(&((*sobel)->h));
+   dmtxValueGridDestroy(&((*sobel)->b));
+   dmtxValueGridDestroy(&((*sobel)->v));
 
-   free(*list);
-   *list = NULL;
+   free(*sobel);
+   *sobel = NULL;
 
    return DmtxPass;
 }
@@ -61,7 +61,7 @@ SobelListDestroy(DmtxSobelList **list)
  *
  */
 DmtxPassFail
-SobelListPopulate(DmtxDecode2 *dec)
+SobelPopulate(DmtxDecode2 *dec)
 {
    int bytesPerPixel, rowSizeBytes, colorPlane;
    int sx, sy;
@@ -72,15 +72,15 @@ SobelListPopulate(DmtxDecode2 *dec)
    int colorHiLf, colorMdLf, colorMdMd;
    int idx;
    int sWidth, sHeight;
-   DmtxSobelList *list = dec->sobel;
+   DmtxSobel *sobel = dec->sobel;
    DmtxImage *img = dec->image;
 
    assert(dec != NULL);
 
-   list = dec->sobel;
+   sobel = dec->sobel;
    img = dec->image;
 
-   assert(list != NULL && img != NULL);
+   assert(sobel != NULL && img != NULL);
 
    sWidth = dmtxImageGetProp(img, DmtxPropWidth) - 2;
    sHeight = dmtxImageGetProp(img, DmtxPropHeight) - 2;
@@ -164,10 +164,10 @@ SobelListPopulate(DmtxDecode2 *dec)
           */
 
          idx = sy * sWidth + sx;
-         list->vSobel->value[idx] = vMag;
-         list->bSobel->value[idx] = bMag;
-         list->hSobel->value[idx] = hMag;
-         list->sSobel->value[idx] = sMag;
+         sobel->v->value[idx] = vMag;
+         sobel->b->value[idx] = bMag;
+         sobel->h->value[idx] = hMag;
+         sobel->s->value[idx] = sMag;
 
          colorHiLf = colorHiMd;
          colorMdLf = colorMdMd;
@@ -184,10 +184,10 @@ SobelListPopulate(DmtxDecode2 *dec)
       }
    }
 
-   dec->fn.dmtxValueGridCallback(list->vSobel, 0);
-   dec->fn.dmtxValueGridCallback(list->bSobel, 1);
-   dec->fn.dmtxValueGridCallback(list->hSobel, 2);
-   dec->fn.dmtxValueGridCallback(list->sSobel, 3);
+   dec->fn.dmtxValueGridCallback(sobel->v, 0);
+   dec->fn.dmtxValueGridCallback(sobel->b, 1);
+   dec->fn.dmtxValueGridCallback(sobel->h, 2);
+   dec->fn.dmtxValueGridCallback(sobel->s, 3);
 
    return DmtxPass;
 }

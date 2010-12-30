@@ -8,6 +8,39 @@
  *
  *
  */
+DmtxPassFail
+AccelPopulate(DmtxDecode2 *dec)
+{
+   DmtxSobel *sobel;
+
+   assert(dec != NULL);
+   sobel = dec->sobel;
+
+   dec->vvAccel = AccelGridCreate(sobel->v, DmtxEdgeVertical);
+   dec->vbAccel = AccelGridCreate(sobel->b, DmtxEdgeVertical);
+   dec->vsAccel = AccelGridCreate(sobel->s, DmtxEdgeVertical);
+   dec->hbAccel = AccelGridCreate(sobel->b, DmtxEdgeHorizontal);
+   dec->hhAccel = AccelGridCreate(sobel->h, DmtxEdgeHorizontal);
+   dec->hsAccel = AccelGridCreate(sobel->s, DmtxEdgeHorizontal);
+
+   if(dec->vvAccel == NULL || dec->vbAccel == NULL || dec->vsAccel == NULL ||
+         dec->hbAccel == NULL || dec->hhAccel == NULL || dec->hsAccel == NULL)
+      return DmtxFail; /* Memory cleanup will be handled by caller */
+
+   dec->fn.dmtxValueGridCallback(dec->vvAccel, 4);
+   dec->fn.dmtxValueGridCallback(dec->vbAccel, 5);
+   dec->fn.dmtxValueGridCallback(dec->vsAccel, 6);
+   dec->fn.dmtxValueGridCallback(dec->hbAccel, 7);
+   dec->fn.dmtxValueGridCallback(dec->hhAccel, 8);
+   dec->fn.dmtxValueGridCallback(dec->hsAccel, 9);
+
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
 DmtxValueGrid *
 AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
 {
@@ -60,37 +93,4 @@ AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
    }
 
    return accel;
-}
-
-/**
- *
- *
- */
-DmtxPassFail
-AccelGridPopulate(DmtxDecode2 *dec)
-{
-   DmtxSobelList *sobel;
-
-   assert(dec != NULL);
-   sobel = dec->sobel;
-
-   dec->vvAccel = AccelGridCreate(sobel->vSobel, DmtxEdgeVertical);
-   dec->vbAccel = AccelGridCreate(sobel->bSobel, DmtxEdgeVertical);
-   dec->vsAccel = AccelGridCreate(sobel->sSobel, DmtxEdgeVertical);
-   dec->hbAccel = AccelGridCreate(sobel->bSobel, DmtxEdgeHorizontal);
-   dec->hhAccel = AccelGridCreate(sobel->hSobel, DmtxEdgeHorizontal);
-   dec->hsAccel = AccelGridCreate(sobel->sSobel, DmtxEdgeHorizontal);
-
-   if(dec->vvAccel == NULL || dec->vbAccel == NULL || dec->vsAccel == NULL ||
-         dec->hbAccel == NULL || dec->hhAccel == NULL || dec->hsAccel == NULL)
-      return DmtxFail; /* Memory cleanup will be handled by caller */
-
-   dec->fn.dmtxValueGridCallback(dec->vvAccel, 4);
-   dec->fn.dmtxValueGridCallback(dec->vbAccel, 5);
-   dec->fn.dmtxValueGridCallback(dec->vsAccel, 6);
-   dec->fn.dmtxValueGridCallback(dec->hbAccel, 7);
-   dec->fn.dmtxValueGridCallback(dec->hhAccel, 8);
-   dec->fn.dmtxValueGridCallback(dec->hsAccel, 9);
-
-   return DmtxPass;
 }

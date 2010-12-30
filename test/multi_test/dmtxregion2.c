@@ -46,7 +46,7 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
    VanishPointSort vPoints;
    DmtxBoolean regionFound;
 
-   vPoints = dmtxFindVanishPoints(dec->houghGrid->vanish);
+   vPoints = dmtxFindVanishPoints(dec->hough->vanish);
    dec->fn.vanishPointCallback(&vPoints, 0);
 
    for(i = 0, regionFound = DmtxFalse; i < vPoints.count && regionFound == DmtxFalse; i++)
@@ -90,7 +90,7 @@ struct AlignmentGrid {
 */
 
 /*
-         // timings = dmtxFindGridTiming(dec->houghGrid->line, &vPoints);
+         // timings = dmtxFindGridTiming(dec->hough->line, &vPoints);
 
          err = dmtxBuildGridFromTimings(&grid, timings.timing[i], timings.timing[j]);
          if(err == DmtxFail)

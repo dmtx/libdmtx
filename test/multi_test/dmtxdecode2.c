@@ -78,26 +78,26 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
 
    dec->image = img;
 
-   /* Free existing buffers if sized incorrectly
-   if(buffers are allocated but sized incorrectly) */
+   /* Free existing buffers if sized incorrectly */
+   /* if(buffers are allocated but sized incorrectly) */
    RETURN_FAIL_IF(decode2ReleaseCacheMemory(dec) == DmtxFail);
 
-   /* Allocate new buffers if necessary
-   if(buffers are not allocated) */
-   dec->sobel = SobelListCreate(dec->image);
+   /* Allocate new buffers if necessary */
+   /* if(buffers are not allocated) */
+   dec->sobel = SobelCreate(dec->image);
    RETURN_FAIL_IF(dec->sobel == NULL);
 /*
-   dec->accelList = AccelGridCreate(dec);
-   RETURN_FAIL_IF(dec->accelList == NULL);
+   dec->accel = AccelCreate(dec);
+   RETURN_FAIL_IF(dec->accel == NULL);
 */
-   dec->houghGrid = HoughGridCreate(1,1);
-   RETURN_FAIL_IF(dec->houghGrid == NULL);
+   dec->hough = HoughCreate(1,1);
+   RETURN_FAIL_IF(dec->hough == NULL);
 
    /* Necessary to zero out buffers? */
 
-   RETURN_FAIL_IF(SobelListPopulate(dec) == DmtxFail);
-   RETURN_FAIL_IF(AccelGridPopulate(dec) == DmtxFail);
-   RETURN_FAIL_IF(HoughGridPopulate(dec) == DmtxFail);
+   RETURN_FAIL_IF(SobelPopulate(dec) == DmtxFail);
+   RETURN_FAIL_IF(AccelPopulate(dec) == DmtxFail);
+   RETURN_FAIL_IF(HoughPopulate(dec) == DmtxFail);
 
    return DmtxPass;
 }
@@ -114,23 +114,17 @@ decode2ReleaseCacheMemory(DmtxDecode2 *dec)
    if(dec == NULL)
       return DmtxFail;
 
-   HoughGridDestroy(&(dec->houghGrid));
-/*
-   AccelListDestroy(&(dec->accel));
-*/
-   SobelListDestroy(&(dec->sobel));
+   HoughDestroy(&(dec->hough));
+
    dmtxValueGridDestroy(&(dec->hsAccel));
    dmtxValueGridDestroy(&(dec->hhAccel));
    dmtxValueGridDestroy(&(dec->hbAccel));
    dmtxValueGridDestroy(&(dec->vsAccel));
    dmtxValueGridDestroy(&(dec->vbAccel));
    dmtxValueGridDestroy(&(dec->vvAccel));
-/*
-   dmtxValueGridDestroy(&(dec->sSobel));
-   dmtxValueGridDestroy(&(dec->hSobel));
-   dmtxValueGridDestroy(&(dec->bSobel));
-   dmtxValueGridDestroy(&(dec->vSobel));
-*/
+/* AccelDestroy(&(dec->accel)); */
+
+   SobelDestroy(&(dec->sobel));
 
    return DmtxPass;
 }

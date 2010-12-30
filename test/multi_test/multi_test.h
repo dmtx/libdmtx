@@ -108,12 +108,12 @@ struct DmtxValueGrid_struct {
    DmtxValueGrid *ref;
 };
 
-typedef struct DmtxSobelList_struct DmtxSobelList;
-struct DmtxSobelList_struct {
-   DmtxValueGrid *vSobel;
-   DmtxValueGrid *bSobel;
-   DmtxValueGrid *hSobel;
-   DmtxValueGrid *sSobel;
+typedef struct DmtxSobel_struct DmtxSobel;
+struct DmtxSobel_struct {
+   DmtxValueGrid *v;
+   DmtxValueGrid *b;
+   DmtxValueGrid *h;
+   DmtxValueGrid *s;
 };
 
 struct ZeroCrossing_struct {
@@ -140,8 +140,8 @@ struct DmtxHoughLocal_struct {
    int bucket[64][128]; /* [rows][cols] */ /* later change to 65 */
 };
 
-typedef struct DmtxHoughGrid_struct DmtxHoughGrid;
-struct DmtxHoughGrid_struct {
+typedef struct DmtxHough_struct DmtxHough;
+struct DmtxHough_struct {
    int rows;
    int cols;
    int count;
@@ -260,15 +260,9 @@ typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
 struct DmtxDecode2_struct {
    DmtxImage     *image;
-   DmtxSobelList *sobel;
+   DmtxSobel     *sobel;
 /*
-   DmtxAccelList *accel;
-*/
-/*
-   DmtxValueGrid *vSobel;
-   DmtxValueGrid *bSobel;
-   DmtxValueGrid *hSobel;
-   DmtxValueGrid *sSobel;
+   DmtxAccel     *accel;
 */
    DmtxValueGrid *vvAccel;
    DmtxValueGrid *vbAccel;
@@ -276,7 +270,7 @@ struct DmtxDecode2_struct {
    DmtxValueGrid *hbAccel;
    DmtxValueGrid *hhAccel;
    DmtxValueGrid *hsAccel;
-   DmtxHoughGrid *houghGrid;
+   DmtxHough     *hough;
    DmtxCallbacks  fn;
 };
 typedef struct DmtxDecode2_struct DmtxDecode2;
@@ -353,11 +347,11 @@ int dmtxValueGridGetHeight(DmtxValueGrid *valueGrid);
 int dmtxValueGridGetValue(DmtxValueGrid *valueGrid, int x, int y);
 
 /* dmtxsobel.c */
-DmtxSobelList *SobelListCreate(DmtxImage *img);
-DmtxPassFail SobelListDestroy(DmtxSobelList **list);
-DmtxPassFail SobelListPopulate(DmtxDecode2 *dec);
+DmtxSobel *SobelCreate(DmtxImage *img);
+DmtxPassFail SobelDestroy(DmtxSobel **sobel);
+DmtxPassFail SobelPopulate(DmtxDecode2 *dec);
 
-DmtxPassFail AccelGridPopulate(DmtxDecode2 *dec);
+DmtxPassFail AccelPopulate(DmtxDecode2 *dec);
 DmtxValueGrid *AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType edgeType);
 
 /* dmtxdecode2.c */
@@ -367,9 +361,9 @@ DmtxPassFail dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img);
 DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 
 /* dmtxhough.c */
-DmtxHoughGrid *HoughGridCreate(int cols, int rows);
-DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
-DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
+DmtxHough *HoughCreate(int cols, int rows);
+DmtxPassFail HoughDestroy(DmtxHough **grid);
+DmtxPassFail HoughPopulate(DmtxDecode2 *dec);
 DmtxPassFail LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec);
 DmtxPassFail MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDecode2 *dec);
 int GetMaximaWeight(DmtxHoughLocal *lhRegion, int phi, int d);
