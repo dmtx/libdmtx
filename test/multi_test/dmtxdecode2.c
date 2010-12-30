@@ -86,10 +86,10 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
    /* if(buffers are not allocated) */
    dec->sobel = SobelCreate(dec->image);
    RETURN_FAIL_IF(dec->sobel == NULL);
-/*
-   dec->accel = AccelCreate(dec);
+
+   dec->accel = AccelCreate(dec->sobel);
    RETURN_FAIL_IF(dec->accel == NULL);
-*/
+
    dec->hough = HoughCreate(1,1);
    RETURN_FAIL_IF(dec->hough == NULL);
 
@@ -115,15 +115,7 @@ decode2ReleaseCacheMemory(DmtxDecode2 *dec)
       return DmtxFail;
 
    HoughDestroy(&(dec->hough));
-
-   dmtxValueGridDestroy(&(dec->hsAccel));
-   dmtxValueGridDestroy(&(dec->hhAccel));
-   dmtxValueGridDestroy(&(dec->hbAccel));
-   dmtxValueGridDestroy(&(dec->vsAccel));
-   dmtxValueGridDestroy(&(dec->vbAccel));
-   dmtxValueGridDestroy(&(dec->vvAccel));
-/* AccelDestroy(&(dec->accel)); */
-
+   AccelDestroy(&(dec->accel));
    SobelDestroy(&(dec->sobel));
 
    return DmtxPass;

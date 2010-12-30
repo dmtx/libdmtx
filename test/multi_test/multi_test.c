@@ -31,27 +31,27 @@ Contact: mblaughton@users.sourceforge.net
 
 /**
  * PLAN
- *   o [due 22-Dec]  Tapered bucket calculation (3 wks)
- *   o [due 29-Dec]  FFT for grid alignment (1 wk)
- *   o [due 05-Jan]  Outward stepping (1 wk)
- *   o [due 19-Jan]  All grid locations (not just one) (2 wks)
- *   o [due 02-Feb]  Region spanning hough alignment (2 wks)
- *   o [due 16-Feb]  Multiscale hough (2 wks)
- *   o [due 02-Mar]  Integrate w/ libdmtx proper as experimental option (2 wks)
- *   o  [mid March]  Release 0.7.4 (1 wk)
- *   o   [stablize]  Bug fixes and site changes
+ *   o [ done ] Tapered bucket calculation (4 wks)
+ *   o [05-Jan] Save scan progress between calls (1 wk)
+ *   o [12-Jan] Build orientation from new vanish point info (1 wk)
+ *   o [19-Jan] FFT for grid alignment (1 wk)
+ *   o [26-Jan] Outward stepping (1 wk)
+ *   o [09-Feb] All grid locations (not just one) (2 wks)
+ *   o [23-Feb] Region spanning hough alignment (2 wks)
+ *   o [09-Mar] Multiscale hough (2 wks)
+ *   o [23-Mar] Integrate w/ libdmtx proper as experimental option (2 wks)
+ *   o [30-Mar] Release 0.7.4 (1 wk)
+ *   o [ next ] Bug fixes and site changes
  *
  * TODO
  *   x Eliminate maxima candidates based on all 8 neighbors
  *   x Populate maxima weight as sum of center and all 8 neighbors (?)
  *   x Add interpolation to skipped d values on steep vanish points
  *   x Tweak shaped bucket weighting to not overcount parallel condition
- *   - Make BlitHoughCache not dynamic lighting
- *   o Display local maxima
+ *   x Display local maxima
+ *   x Create better method of isolating true maxima
+ *   o Create mechanism to save scan progress between calls
  *   o Work on nonlinearity of hough points presented by dot peen symbols
- *   o Create better method of isolating true maxima
- *     - Use delta max-min for weight?
- *     - Add filter based on more rules?
  */
 
 #include <stdlib.h>

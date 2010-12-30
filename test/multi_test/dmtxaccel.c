@@ -8,54 +8,123 @@
  *
  *
  */
-DmtxPassFail
-AccelPopulate(DmtxDecode2 *dec)
+DmtxAccel *
+AccelCreate(DmtxSobel *sobel)
 {
-   DmtxSobel *sobel;
+   int sWidth, sHeight;
+   int vWidth, vHeight;
+   int hWidth, hHeight;
+   DmtxAccel *accel;
 
-   assert(dec != NULL);
-   sobel = dec->sobel;
+   accel = (DmtxAccel *)calloc(1, sizeof(DmtxAccel));
+   if(accel == NULL)
+      return NULL;
 
-   dec->vvAccel = AccelGridCreate(sobel->v, DmtxEdgeVertical);
-   dec->vbAccel = AccelGridCreate(sobel->b, DmtxEdgeVertical);
-   dec->vsAccel = AccelGridCreate(sobel->s, DmtxEdgeVertical);
-   dec->hbAccel = AccelGridCreate(sobel->b, DmtxEdgeHorizontal);
-   dec->hhAccel = AccelGridCreate(sobel->h, DmtxEdgeHorizontal);
-   dec->hsAccel = AccelGridCreate(sobel->s, DmtxEdgeHorizontal);
+   sWidth = dmtxValueGridGetWidth(sobel->v);
+   sHeight = dmtxValueGridGetHeight(sobel->v);
 
-   if(dec->vvAccel == NULL || dec->vbAccel == NULL || dec->vsAccel == NULL ||
-         dec->hbAccel == NULL || dec->hhAccel == NULL || dec->hsAccel == NULL)
-      return DmtxFail; /* Memory cleanup will be handled by caller */
+   vWidth = sWidth - 1;
+   vHeight = sHeight;
 
-   dec->fn.dmtxValueGridCallback(dec->vvAccel, 4);
-   dec->fn.dmtxValueGridCallback(dec->vbAccel, 5);
-   dec->fn.dmtxValueGridCallback(dec->vsAccel, 6);
-   dec->fn.dmtxValueGridCallback(dec->hbAccel, 7);
-   dec->fn.dmtxValueGridCallback(dec->hhAccel, 8);
-   dec->fn.dmtxValueGridCallback(dec->hsAccel, 9);
+   hWidth = sWidth;
+   hHeight = sHeight - 1;
 
-   return DmtxPass;
+   accel->vv = dmtxValueGridCreate(vWidth, vHeight, DmtxEdgeVertical, sobel->v);
+   accel->vb = dmtxValueGridCreate(vWidth, vHeight, DmtxEdgeVertical, sobel->b);
+   accel->vs = dmtxValueGridCreate(vWidth, vHeight, DmtxEdgeVertical, sobel->s);
+   accel->hb = dmtxValueGridCreate(hWidth, hHeight, DmtxEdgeHorizontal, sobel->b);
+   accel->hh = dmtxValueGridCreate(hWidth, hHeight, DmtxEdgeHorizontal, sobel->h);
+   accel->hs = dmtxValueGridCreate(hWidth, hHeight, DmtxEdgeHorizontal, sobel->s);
+
+   if(accel->vv == NULL || accel->vb == NULL || accel->vs == NULL ||
+         accel->hb == NULL || accel->hh == NULL || accel->hs == NULL)
+   {
+      AccelDestroy(&accel);
+      return NULL;
+   }
+
+   return accel;
 }
 
 /**
  *
  *
  */
-DmtxValueGrid *
-AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
+DmtxPassFail
+AccelDestroy(DmtxAccel **accel)
 {
-   int x, y;
-   int aIdx, sInc, sIdx, sIdxNext;
+   if(accel == NULL || *accel == NULL)
+      return DmtxFail;
+
+   dmtxValueGridDestroy(&((*accel)->vs));
+   dmtxValueGridDestroy(&((*accel)->hs));
+   dmtxValueGridDestroy(&((*accel)->hh));
+   dmtxValueGridDestroy(&((*accel)->hb));
+   dmtxValueGridDestroy(&((*accel)->vb));
+   dmtxValueGridDestroy(&((*accel)->vv));
+
+   free(*accel);
+   *accel = NULL;
+
+   return DmtxPass;
+}
+
+#define RETURN_FAIL_IF(C) \
+   if(C) { \
+      return DmtxFail; \
+   }
+
+/**
+ *
+ *
+ */
+DmtxPassFail
+AccelPopulate(DmtxDecode2 *dec)
+{
+   DmtxAccel *accel;
+
+   assert(dec != NULL && dec->accel != NULL);
+
+   accel = dec->accel;
+
+   RETURN_FAIL_IF(AccelPopulateLocal(accel->vv) == DmtxFail);
+   RETURN_FAIL_IF(AccelPopulateLocal(accel->vb) == DmtxFail);
+   RETURN_FAIL_IF(AccelPopulateLocal(accel->hb) == DmtxFail);
+   RETURN_FAIL_IF(AccelPopulateLocal(accel->hh) == DmtxFail);
+   RETURN_FAIL_IF(AccelPopulateLocal(accel->hs) == DmtxFail);
+   RETURN_FAIL_IF(AccelPopulateLocal(accel->vs) == DmtxFail);
+
+   dec->fn.dmtxValueGridCallback(accel->vv, 4);
+   dec->fn.dmtxValueGridCallback(accel->vb, 5);
+   dec->fn.dmtxValueGridCallback(accel->hb, 7);
+   dec->fn.dmtxValueGridCallback(accel->hh, 8);
+   dec->fn.dmtxValueGridCallback(accel->hs, 9);
+   dec->fn.dmtxValueGridCallback(accel->vs, 6);
+
+   return DmtxPass;
+}
+
+#undef RETURN_FAIL_IF
+
+/**
+ *
+ *
+ */
+DmtxPassFail
+AccelPopulateLocal(DmtxValueGrid *acc)
+{
    int sWidth, sHeight;
    int aWidth, aHeight;
-   DmtxValueGrid *accel;
+   int sIdx, sIdxNext, sInc, aIdx;
+   int x, y;
+   DmtxValueGrid *sob;
 
-   assert(sobel != NULL);
+   sob = acc->ref;
 
-   sWidth = dmtxValueGridGetWidth(sobel);
-   sHeight = dmtxValueGridGetHeight(sobel);
+   sWidth = dmtxValueGridGetWidth(sob);
+   sHeight = dmtxValueGridGetHeight(sob);
 
-   switch(accelEdgeType) {
+   switch(acc->type) {
       case DmtxEdgeVertical:
          aWidth = sWidth - 1;
          aHeight = sHeight;
@@ -69,14 +138,8 @@ AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
          break;
 
       default:
-         return NULL;
+         return DmtxFail;
    }
-
-   accel = dmtxValueGridCreate(aWidth, aHeight, accelEdgeType);
-   if(accel == NULL)
-      return NULL;
-
-   accel->ref = sobel;
 
    for(y = 0; y < aHeight; y++)
    {
@@ -86,11 +149,11 @@ AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType accelEdgeType)
       for(x = 0; x < aWidth; x++)
       {
          sIdxNext = sIdx + sInc;
-         accel->value[aIdx] = sobel->value[sIdxNext] - sobel->value[sIdx];
+         acc->value[aIdx] = sob->value[sIdxNext] - sob->value[sIdx];
          aIdx++;
          sIdx++;
       }
    }
 
-   return accel;
+   return DmtxPass;
 }

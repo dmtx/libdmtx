@@ -167,8 +167,12 @@ LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
    int iWidth, iHeight;
    int phi;
    ZeroCrossing vvZXing, vbZXing, hbZXing, hhZXing, hsZXing, vsZXing;
+   DmtxAccel *accel;
 
    memset(lhRegion, 0x00, sizeof(DmtxHoughLocal));
+
+   assert(dec != NULL && dec->accel != NULL);
+   accel = dec->accel;
 
    /* Global coordinate system */
    iWidth = dmtxImageGetProp(dec->image, DmtxPropWidth);
@@ -193,12 +197,12 @@ LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec)
          if(iCol >= iWidth)
             continue;
 
-         vvZXing = GetZeroCrossing(dec->vvAccel, iCol, iRow);
-         vbZXing = GetZeroCrossing(dec->vbAccel, iCol, iRow);
-         hbZXing = GetZeroCrossing(dec->hbAccel, iCol, iRow);
-         hhZXing = GetZeroCrossing(dec->hhAccel, iCol, iRow);
-         hsZXing = GetZeroCrossing(dec->hsAccel, iCol, iRow);
-         vsZXing = GetZeroCrossing(dec->vsAccel, iCol, iRow);
+         vvZXing = GetZeroCrossing(accel->vv, iCol, iRow);
+         vbZXing = GetZeroCrossing(accel->vb, iCol, iRow);
+         hbZXing = GetZeroCrossing(accel->hb, iCol, iRow);
+         hhZXing = GetZeroCrossing(accel->hh, iCol, iRow);
+         hsZXing = GetZeroCrossing(accel->hs, iCol, iRow);
+         vsZXing = GetZeroCrossing(accel->vs, iCol, iRow);
 
          if(vvZXing.mag > 0)
          {

@@ -116,6 +116,16 @@ struct DmtxSobel_struct {
    DmtxValueGrid *s;
 };
 
+typedef struct DmtxAccel_struct DmtxAccel;
+struct DmtxAccel_struct {
+   DmtxValueGrid *vv;
+   DmtxValueGrid *vb;
+   DmtxValueGrid *hb;
+   DmtxValueGrid *hh;
+   DmtxValueGrid *hs;
+   DmtxValueGrid *vs;
+};
+
 struct ZeroCrossing_struct {
    int iCol;
    int iRow;
@@ -261,15 +271,7 @@ typedef struct DmtxCallbacks_struct DmtxCallbacks;
 struct DmtxDecode2_struct {
    DmtxImage     *image;
    DmtxSobel     *sobel;
-/*
    DmtxAccel     *accel;
-*/
-   DmtxValueGrid *vvAccel;
-   DmtxValueGrid *vbAccel;
-   DmtxValueGrid *vsAccel;
-   DmtxValueGrid *hbAccel;
-   DmtxValueGrid *hhAccel;
-   DmtxValueGrid *hsAccel;
    DmtxHough     *hough;
    DmtxCallbacks  fn;
 };
@@ -340,7 +342,7 @@ void DrawPerimeterPatterns(SDL_Surface *screen, GridRegion *region, AppState *st
 void DrawPerimeterSide(SDL_Surface *screen, int x00, int y00, int x11, int y11, int dispModExtent, DmtxDirection side, DmtxBarType type);
 
 /* dmtxvaluegrid.c */
-DmtxValueGrid *dmtxValueGridCreate(int width, int height, int type);
+DmtxValueGrid *dmtxValueGridCreate(int width, int height, int type, DmtxValueGrid *ref);
 DmtxPassFail dmtxValueGridDestroy(DmtxValueGrid **valueGrid);
 int dmtxValueGridGetWidth(DmtxValueGrid *valueGrid);
 int dmtxValueGridGetHeight(DmtxValueGrid *valueGrid);
@@ -351,8 +353,10 @@ DmtxSobel *SobelCreate(DmtxImage *img);
 DmtxPassFail SobelDestroy(DmtxSobel **sobel);
 DmtxPassFail SobelPopulate(DmtxDecode2 *dec);
 
+DmtxAccel *AccelCreate(DmtxSobel *sobel);
+DmtxPassFail AccelDestroy(DmtxAccel **accel);
 DmtxPassFail AccelPopulate(DmtxDecode2 *dec);
-DmtxValueGrid *AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType edgeType);
+DmtxPassFail AccelPopulateLocal(DmtxValueGrid *acc);
 
 /* dmtxdecode2.c */
 DmtxDecode2 *dmtxDecode2Create();

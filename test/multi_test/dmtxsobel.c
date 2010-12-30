@@ -14,17 +14,17 @@ SobelCreate(DmtxImage *img)
    int sWidth, sHeight;
    DmtxSobel *sobel;
 
-   sobel = (DmtxSobel *)malloc(sizeof(DmtxSobel));
+   sobel = (DmtxSobel *)calloc(1, sizeof(DmtxSobel));
    if(sobel == NULL)
       return NULL;
 
    sWidth = dmtxImageGetProp(img, DmtxPropWidth) - 2;
    sHeight = dmtxImageGetProp(img, DmtxPropHeight) - 2;
 
-   sobel->v = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeVertical);
-   sobel->b = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeBackslash);
-   sobel->h = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeHorizontal);
-   sobel->s = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeSlash);
+   sobel->v = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeVertical, NULL);
+   sobel->b = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeBackslash, NULL);
+   sobel->h = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeHorizontal, NULL);
+   sobel->s = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeSlash, NULL);
 
    if(sobel->v == NULL || sobel->b == NULL || sobel->h == NULL || sobel->s == NULL)
    {

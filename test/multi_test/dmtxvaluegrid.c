@@ -9,7 +9,7 @@
  *
  */
 DmtxValueGrid *
-dmtxValueGridCreate(int width, int height, int type)
+dmtxValueGridCreate(int width, int height, int type, DmtxValueGrid *ref)
 {
    DmtxValueGrid *valueGrid;
 
@@ -20,7 +20,7 @@ dmtxValueGridCreate(int width, int height, int type)
    valueGrid->width = width;
    valueGrid->height = height;
    valueGrid->type = type;
-   valueGrid->ref = NULL;
+   valueGrid->ref = ref;
 
    valueGrid->value = (int *)malloc(width * height * sizeof(int));
    if(valueGrid->value == NULL)
