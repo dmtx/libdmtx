@@ -61,13 +61,13 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
             continue;
 
          /* Build untimed grid from vanish points */
-/*       deskew = BuildDeskewedAlignment(vPoints.vanishSum[i], vPoints.vanishSum[j], &passFail);
+/*       orient = OrientRegion(vPoints.vanishSum[i], vPoints.vanishSum[j], &passFail);
          if(passFail == DmtxFail)
             continue;
 */
 
          /* Build timed grid from untimed grid and line hough */
-/*       align = BuildTimedAlignment(deskew, vHough, &passFail);
+/*       align = AlignRegion(deskew, vHough, &passFail);
          if(passFail == DmtxFail)
             continue;
 
@@ -119,6 +119,61 @@ struct AlignmentGrid {
    return DmtxPass;
 }
 
+/**
+ * Some thoughts on how this might look
+ *
+ * TODO:
+ * o Is there a way to name HoughGridPopulate() and HoughGridMerge() to show they are sister functions?
+ *
+ * hough lines, hough line maxima, and hough vanish can be calculated for entire image at once
+ * for each local:
+ *    for each combination of vpoint pairs:
+ *       step outward
+ *          if step takes us into adjacent local
+ *              add maxima from adjacent local into existing vpoint hough accumulator
+ *              rescan for updated vpoints (using original centerline, adding only portion of region?)
+ *              get new timing (?)
+ *              continue stepping path where we left off?
+ */
+/*
+dmtxRegion2FindNext()
+{
+   if(starting new level other than the first)
+      HoughGridMerge();
+
+   for(new each local) <-- need way to save state between calls to dmtxRegion2FindNext()
+   {
+      for(each valid combination of vanish points)
+      {
+         while(perimeter condition not met)
+         {
+            stepOutward()
+
+            if(first step in new local, including first)
+            {
+               add new region to central vanish hough
+               update vanish points (shouldn't move too far)
+               record that new local was added to stats
+               redo timing
+            }
+
+            test perimeter for known strip patterns
+            if(perimeter says that barcode region is found) {
+               save current progress ("?")
+               return region;
+            }
+         }
+      }
+   }
+
+   return NULL;
+}
+*/
+
+/**
+ *
+ *
+ */
 double
 UncompactOffset(double compactedOffset, int phiIdx, int extent)
 {

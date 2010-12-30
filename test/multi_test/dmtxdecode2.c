@@ -80,16 +80,28 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
 
    dec->image = img;
 
+/*
+   // Free existing buffers if sized incorrectly
+   if(buffers are allocated but sized incorrectly)
+      free buffers;
+
+   // Allocate new buffers if necessary
+   if(buffers are not allocated)
+      allocate buffers;
+
+   zero out buffers; // (is necessary?)
+*/
+
    status = decode2ReleaseCacheMemory(dec);
    RETURN_FAIL_IF(status == DmtxFail);
 
-   status = SobelGridPopulate(dec);
+   status = SobelGridPopulate(dec); /* change this so it doesn't allocate memory here */
    RETURN_FAIL_IF(status == DmtxFail);
 
-   status = AccelGridPopulate(dec);
+   status = AccelGridPopulate(dec); /* change this so it doesn't allocate memory here */
    RETURN_FAIL_IF(status == DmtxFail);
 
-   status = HoughGridPopulate(dec);
+   status = HoughGridPopulate(dec); /* change this so it doesn't allocate memory here */
    RETURN_FAIL_IF(status == DmtxFail);
 
    return DmtxPass;

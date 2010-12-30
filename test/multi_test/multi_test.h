@@ -349,8 +349,9 @@ DmtxPassFail dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img);
 DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 
 /* dmtxhough.c */
-DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
+DmtxHoughGrid *HoughGridCreate(int cols, int rows);
 DmtxPassFail HoughGridDestroy(DmtxHoughGrid **grid);
+DmtxPassFail HoughGridPopulate(DmtxDecode2 *dec);
 DmtxPassFail LineHoughAccumulate(DmtxHoughLocal *lhRegion, DmtxDecode2 *dec);
 DmtxPassFail MaximaHoughAccumulate(DmtxHoughLocal *mhRegion, DmtxHoughLocal *lhRegion, DmtxDecode2 *dec);
 int GetMaximaWeight(DmtxHoughLocal *lhRegion, int phi, int d);

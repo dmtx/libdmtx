@@ -119,13 +119,14 @@ SobelGridPopulate(DmtxDecode2 *dec)
 
    assert(dec->vSobel == NULL && dec->bSobel == NULL && dec->hSobel == NULL && dec->sSobel == NULL);
 
+   /* XXX change this to reuse existing buffer if sized properly */
    dec->vSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeVertical);
    dec->bSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeBackslash);
    dec->hSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeHorizontal);
    dec->sSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeSlash);
 
    if(dec->vSobel == NULL || dec->bSobel == NULL || dec->hSobel == NULL || dec->sSobel == NULL)
-      return DmtxFail; /* Memory cleanup will be handled by caller */
+      return DmtxFail; /* Memory cleanup will be handled by caller */ /* not good enough -- do it here */
 
    rowSizeBytes = dmtxImageGetProp(img, DmtxPropRowSizeBytes);
    bytesPerPixel = dmtxImageGetProp(img, DmtxPropBytesPerPixel);

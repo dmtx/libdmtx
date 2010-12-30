@@ -27,35 +27,65 @@ Contact: mblaughton@users.sourceforge.net
 #include <math.h>
 #include "multi_test.h"
 
-#define RETURN_FAIL_IF(C) \
-   if(C) { \
-      HoughGridDestroy(&(dec->houghGrid)); \
-      return DmtxFail; \
+/**
+ *
+ *
+ */
+DmtxHoughGrid *
+HoughGridCreate(int cols, int rows)
+{
+   DmtxHoughGrid *houghGrid;
+
+   houghGrid = (DmtxHoughGrid *)calloc(1, sizeof(DmtxHoughGrid));
+   if(houghGrid == NULL)
+      return NULL;
+
+   houghGrid->cols = cols;
+   houghGrid->rows = rows;
+   houghGrid->count = houghGrid->rows * houghGrid->cols;
+   houghGrid->line = (DmtxHoughLocal *)calloc(houghGrid->count, sizeof(DmtxHoughLocal));
+   houghGrid->maxima = (DmtxHoughLocal *)calloc(houghGrid->count, sizeof(DmtxHoughLocal));
+   houghGrid->vanish = (DmtxHoughLocal *)calloc(houghGrid->count, sizeof(DmtxHoughLocal));
+
+   if(houghGrid->line == NULL || houghGrid->maxima == NULL || houghGrid->vanish == NULL)
+   {
+      HoughGridDestroy(&houghGrid);
+      return NULL;
    }
+
+   return houghGrid;
+}
 
 /**
  *
  *
  */
-/*
-DmtxHoughGrid *
-HoughGridCreate()
+DmtxPassFail
+HoughGridDestroy(DmtxHoughGrid **grid)
 {
-   dec->houghGrid = (DmtxHoughGrid *)calloc(1, sizeof(DmtxHoughGrid));
-   if(dec->houghGrid == NULL)
+   if(grid == NULL || *grid == NULL)
       return DmtxFail;
 
-   dec->houghGrid->rows = 1;
-   dec->houghGrid->cols = 1;
-   dec->houghGrid->count = dec->houghGrid->rows * dec->houghGrid->cols;
-   dec->houghGrid->line = (DmtxHoughLocal *)calloc(dec->houghGrid->count, sizeof(DmtxHoughLocal));
-   dec->houghGrid->maxima = (DmtxHoughLocal *)calloc(dec->houghGrid->count, sizeof(DmtxHoughLocal));
-   dec->houghGrid->vanish = (DmtxHoughLocal *)calloc(dec->houghGrid->count, sizeof(DmtxHoughLocal));
+   if((*grid)->vanish != NULL)
+      free((*grid)->vanish);
 
-   RETURN_FAIL_IF(dec->houghGrid->line == NULL ||
-         dec->houghGrid->maxima == NULL || dec->houghGrid->vanish == NULL);
+   if((*grid)->maxima != NULL)
+      free((*grid)->maxima);
+
+   if((*grid)->line != NULL)
+      free((*grid)->line);
+
+   free(*grid);
+   *grid = NULL;
+
+   return DmtxPass;
 }
-*/
+
+#define RETURN_FAIL_IF(C) \
+   if(C) { \
+      HoughGridDestroy(&(dec->houghGrid)); \
+      return DmtxFail; \
+   }
 
 /**
  *
@@ -67,20 +97,8 @@ HoughGridPopulate(DmtxDecode2 *dec)
    int row, col, idx;
    DmtxHoughLocal *line, *maxima, *vanish;
 
-/* dec->houghGrid = HoughGridCreate(); */
-   dec->houghGrid = (DmtxHoughGrid *)calloc(1, sizeof(DmtxHoughGrid));
-   if(dec->houghGrid == NULL)
-      return DmtxFail;
-
-   dec->houghGrid->rows = 1;
-   dec->houghGrid->cols = 1;
-   dec->houghGrid->count = dec->houghGrid->rows * dec->houghGrid->cols;
-   dec->houghGrid->line = (DmtxHoughLocal *)calloc(dec->houghGrid->count, sizeof(DmtxHoughLocal));
-   dec->houghGrid->maxima = (DmtxHoughLocal *)calloc(dec->houghGrid->count, sizeof(DmtxHoughLocal));
-   dec->houghGrid->vanish = (DmtxHoughLocal *)calloc(dec->houghGrid->count, sizeof(DmtxHoughLocal));
-
-   RETURN_FAIL_IF(dec->houghGrid->line == NULL ||
-         dec->houghGrid->maxima == NULL || dec->houghGrid->vanish == NULL);
+   dec->houghGrid = HoughGridCreate(1, 1);
+   RETURN_FAIL_IF(dec->houghGrid == NULL);
 
    for(row = 0; row < dec->houghGrid->rows; row++)
    {
@@ -109,29 +127,34 @@ HoughGridPopulate(DmtxDecode2 *dec)
 #undef RETURN_FAIL_IF
 
 /**
- *
- *
+ * Similar to HoughGridPopulate(), except starts from hough instead of sobel
  */
-DmtxPassFail
-HoughGridDestroy(DmtxHoughGrid **grid)
+/*
+HoughGridMerge()
 {
-   if(grid == NULL || *grid == NULL)
+   DmtxScanProgress newProgress;
+   DmtxHoughGrid oldGrid, newGrid;
+
+   oldGrid = dec->houghGrid;
+
+   // Merges raw hough grid into next larger grid
+   newCols = (oldGrid->cols + 1)/2;
+   newRows = (oldGrid->rows + 1)/2;
+   newGrid = HoughGridCreate(newCols, newRows);
+   if(newGrid == NULL)
       return DmtxFail;
 
-   if((*grid)->vanish != NULL)
-      free((*grid)->vanish);
+   for(each new local)
+      merge together info from appropriate old locals
 
-   if((*grid)->maxima != NULL)
-      free((*grid)->maxima);
+   dec->houghGrid = newGrid;
 
-   if((*grid)->line != NULL)
-      free((*grid)->line);
-
-   free(*grid);
-   *grid = NULL;
+   // Destroy original hough data
+   HoughGridDestroy(&(dec->houghGrid));
 
    return DmtxPass;
 }
+*/
 
 /**
  *
