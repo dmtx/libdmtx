@@ -108,6 +108,14 @@ struct DmtxValueGrid_struct {
    DmtxValueGrid *ref;
 };
 
+typedef struct DmtxSobelList_struct DmtxSobelList;
+struct DmtxSobelList_struct {
+   DmtxValueGrid *vSobel;
+   DmtxValueGrid *bSobel;
+   DmtxValueGrid *hSobel;
+   DmtxValueGrid *sSobel;
+};
+
 struct ZeroCrossing_struct {
    int iCol;
    int iRow;
@@ -252,14 +260,16 @@ typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
 struct DmtxDecode2_struct {
    DmtxImage     *image;
-/*
    DmtxSobelList *sobel;
+/*
    DmtxAccelList *accel;
 */
+/*
    DmtxValueGrid *vSobel;
    DmtxValueGrid *bSobel;
    DmtxValueGrid *hSobel;
    DmtxValueGrid *sSobel;
+*/
    DmtxValueGrid *vvAccel;
    DmtxValueGrid *vbAccel;
    DmtxValueGrid *vsAccel;
@@ -342,7 +352,11 @@ int dmtxValueGridGetWidth(DmtxValueGrid *valueGrid);
 int dmtxValueGridGetHeight(DmtxValueGrid *valueGrid);
 int dmtxValueGridGetValue(DmtxValueGrid *valueGrid, int x, int y);
 
-DmtxPassFail SobelGridPopulate(DmtxDecode2 *dec);
+/* dmtxsobel.c */
+DmtxSobelList *SobelListCreate(DmtxImage *img);
+DmtxPassFail SobelListDestroy(DmtxSobelList **list);
+DmtxPassFail SobelListPopulate(DmtxDecode2 *dec);
+
 DmtxPassFail AccelGridPopulate(DmtxDecode2 *dec);
 DmtxValueGrid *AccelGridCreate(DmtxValueGrid *sobel, DmtxEdgeType edgeType);
 

@@ -84,10 +84,9 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
 
    /* Allocate new buffers if necessary
    if(buffers are not allocated) */
+   dec->sobel = SobelListCreate(dec->image);
+   RETURN_FAIL_IF(dec->sobel == NULL);
 /*
-   dec->sobelList = SobelGridCreate(dec->image);
-   RETURN_FAIL_IF(dec->sobelList == NULL);
-
    dec->accelList = AccelGridCreate(dec);
    RETURN_FAIL_IF(dec->accelList == NULL);
 */
@@ -95,7 +94,8 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
    RETURN_FAIL_IF(dec->houghGrid == NULL);
 
    /* Necessary to zero out buffers? */
-   RETURN_FAIL_IF(SobelGridPopulate(dec) == DmtxFail);
+
+   RETURN_FAIL_IF(SobelListPopulate(dec) == DmtxFail);
    RETURN_FAIL_IF(AccelGridPopulate(dec) == DmtxFail);
    RETURN_FAIL_IF(HoughGridPopulate(dec) == DmtxFail);
 
@@ -116,19 +116,21 @@ decode2ReleaseCacheMemory(DmtxDecode2 *dec)
 
    HoughGridDestroy(&(dec->houghGrid));
 /*
-   AccelListDestroy(&(dec->accelList));
-   SobelListDestroy(&(dec->sobelList));
+   AccelListDestroy(&(dec->accel));
 */
+   SobelListDestroy(&(dec->sobel));
    dmtxValueGridDestroy(&(dec->hsAccel));
    dmtxValueGridDestroy(&(dec->hhAccel));
    dmtxValueGridDestroy(&(dec->hbAccel));
    dmtxValueGridDestroy(&(dec->vsAccel));
    dmtxValueGridDestroy(&(dec->vbAccel));
    dmtxValueGridDestroy(&(dec->vvAccel));
+/*
    dmtxValueGridDestroy(&(dec->sSobel));
    dmtxValueGridDestroy(&(dec->hSobel));
    dmtxValueGridDestroy(&(dec->bSobel));
    dmtxValueGridDestroy(&(dec->vSobel));
+*/
 
    return DmtxPass;
 }
