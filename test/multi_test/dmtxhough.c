@@ -97,8 +97,7 @@ HoughGridPopulate(DmtxDecode2 *dec)
    int row, col, idx;
    DmtxHoughLocal *line, *maxima, *vanish;
 
-   dec->houghGrid = HoughGridCreate(1, 1);
-   RETURN_FAIL_IF(dec->houghGrid == NULL);
+   assert(dec->houghGrid != NULL);
 
    for(row = 0; row < dec->houghGrid->rows; row++)
    {

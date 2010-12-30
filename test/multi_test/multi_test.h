@@ -252,6 +252,10 @@ typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
 struct DmtxDecode2_struct {
    DmtxImage     *image;
+/*
+   DmtxSobelList *sobel;
+   DmtxAccelList *accel;
+*/
    DmtxValueGrid *vSobel;
    DmtxValueGrid *bSobel;
    DmtxValueGrid *hSobel;

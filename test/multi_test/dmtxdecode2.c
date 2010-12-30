@@ -73,36 +73,31 @@ dmtxDecode2Destroy(DmtxDecode2 **dec)
 DmtxPassFail
 dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
 {
-   DmtxPassFail status;
-
    if(dec == NULL)
       return DmtxFail;
 
    dec->image = img;
 
+   /* Free existing buffers if sized incorrectly
+   if(buffers are allocated but sized incorrectly) */
+   RETURN_FAIL_IF(decode2ReleaseCacheMemory(dec) == DmtxFail);
+
+   /* Allocate new buffers if necessary
+   if(buffers are not allocated) */
 /*
-   // Free existing buffers if sized incorrectly
-   if(buffers are allocated but sized incorrectly)
-      free buffers;
+   dec->sobelList = SobelGridCreate(dec->image);
+   RETURN_FAIL_IF(dec->sobelList == NULL);
 
-   // Allocate new buffers if necessary
-   if(buffers are not allocated)
-      allocate buffers;
-
-   zero out buffers; // (is necessary?)
+   dec->accelList = AccelGridCreate(dec);
+   RETURN_FAIL_IF(dec->accelList == NULL);
 */
+   dec->houghGrid = HoughGridCreate(1,1);
+   RETURN_FAIL_IF(dec->houghGrid == NULL);
 
-   status = decode2ReleaseCacheMemory(dec);
-   RETURN_FAIL_IF(status == DmtxFail);
-
-   status = SobelGridPopulate(dec); /* change this so it doesn't allocate memory here */
-   RETURN_FAIL_IF(status == DmtxFail);
-
-   status = AccelGridPopulate(dec); /* change this so it doesn't allocate memory here */
-   RETURN_FAIL_IF(status == DmtxFail);
-
-   status = HoughGridPopulate(dec); /* change this so it doesn't allocate memory here */
-   RETURN_FAIL_IF(status == DmtxFail);
+   /* Necessary to zero out buffers? */
+   RETURN_FAIL_IF(SobelGridPopulate(dec) == DmtxFail);
+   RETURN_FAIL_IF(AccelGridPopulate(dec) == DmtxFail);
+   RETURN_FAIL_IF(HoughGridPopulate(dec) == DmtxFail);
 
    return DmtxPass;
 }
@@ -120,6 +115,10 @@ decode2ReleaseCacheMemory(DmtxDecode2 *dec)
       return DmtxFail;
 
    HoughGridDestroy(&(dec->houghGrid));
+/*
+   AccelListDestroy(&(dec->accelList));
+   SobelListDestroy(&(dec->sobelList));
+*/
    dmtxValueGridDestroy(&(dec->hsAccel));
    dmtxValueGridDestroy(&(dec->hhAccel));
    dmtxValueGridDestroy(&(dec->hbAccel));

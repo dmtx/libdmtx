@@ -98,6 +98,39 @@ dmtxValueGridGetValue(DmtxValueGrid *valueGrid, int x, int y)
 }
 
 /**
+ *
+ */
+/*
+DmtxSobelList *
+SobelListCreate(DmtxImage *img)
+{
+   int sWidth, sHeight;
+   DmtxImage *img = dec->image;
+   DmtxSobelList *sobelList;
+
+   sobelList = (DmtxSobelList *)malloc(sizeof(DmtxSobelList));
+   if(sobelList == NULL)
+      return NULL;
+
+   sWidth = dmtxImageGetProp(img, DmtxPropWidth) - 2;
+   sHeight = dmtxImageGetProp(img, DmtxPropHeight) - 2;
+
+   dec->vSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeVertical);
+   dec->bSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeBackslash);
+   dec->hSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeHorizontal);
+   dec->sSobel = dmtxValueGridCreate(sWidth, sHeight, DmtxEdgeSlash);
+
+   if(dec->vSobel == NULL || dec->bSobel == NULL || dec->hSobel == NULL || dec->sSobel == NULL)
+   {
+      SobelGridDestroy(&sobelList);
+      return NULL;
+   }
+
+   return sobelList;
+}
+*/
+
+/**
  * 3x3 Sobel Kernel
  */
 DmtxPassFail
