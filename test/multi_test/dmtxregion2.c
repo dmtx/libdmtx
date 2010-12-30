@@ -47,7 +47,7 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
    DmtxBoolean regionFound;
 
    vPoints = dmtxFindVanishPoints(dec->houghGrid->vanish);
-   dec->fn.vanishPointCallback(&vPoints, 1);
+   dec->fn.vanishPointCallback(&vPoints, 0);
 
    for(i = 0, regionFound = DmtxFalse; i < vPoints.count && regionFound == DmtxFalse; i++)
    {

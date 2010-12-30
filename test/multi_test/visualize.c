@@ -119,14 +119,7 @@ void VanishPointCallback(VanishPointSort *vPoints, int id)
    if(gState.displayVanish == DmtxFalse)
       return;
 
-   switch(id) {
-      case 0:
-         DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW5_Y, CTRL_COL1_X + 1);
-         break;
-      case 1:
-         DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW6_Y, CTRL_COL1_X + 1);
-         break;
-   }
+   DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW7_Y, CTRL_COL1_X + 1);
 }
 
 void TimingCallback(Timing *timing0, Timing *timing1, int id)
@@ -564,20 +557,21 @@ void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort *sort, int screenY
 
    for(sortIdx = 0; sortIdx < sort->count; sortIdx++)
    {
-      d0.X = d1.X = screenX + sort->vanishSum[sortIdx].phi;
-      d0.Y = screenY;
-      d1.Y = d0.Y + 63;
+      d0.X = screenX + sort->vanishSum[sortIdx].phi - 2;
+      d1.X = d0.X + 4;
+      d0.Y = screenY + (63 - sort->vanishSum[sortIdx].d) - 2;;
+      d1.Y = d0.Y + 4;
 
       if(sortIdx < 2)
-         rgba = 0xff0000ff;
+         rgba = 0xff0000ff; /* red: strongest */
       else if(sortIdx < 4)
-         rgba = 0x007700ff;
+         rgba = 0x999900ff; /* yellow: weaker */
       else if(sortIdx < 6)
-         rgba = 0x000077ff;
+         rgba = 0x007700ff; /* green: even weaker */
       else
-         rgba = 0x999900ff;
+         rgba = 0x000077ff; /* blue: weakest */
 
-      lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, rgba);
+      rectangleColor(screen, d0.X, d0.Y, d1.X, d1.Y, rgba);
    }
 }
 
