@@ -121,10 +121,10 @@ void VanishPointCallback(VanishPointSort *vPoints, int id)
 
    switch(id) {
       case 0:
-         DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW5_Y, CTRL_COL1_X);
+         DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW5_Y, CTRL_COL1_X + 1);
          break;
       case 1:
-         DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW6_Y, CTRL_COL1_X);
+         DrawVanishingPoints(gState.screen, vPoints, CTRL_ROW6_Y, CTRL_COL1_X + 1);
          break;
    }
 }
@@ -562,10 +562,11 @@ void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort *sort, int screenY
    DmtxPixelLoc d0, d1;
    Uint32 rgba;
 
-   for(sortIdx = 0; sortIdx < sort->count; sortIdx++) {
+   for(sortIdx = 0; sortIdx < sort->count; sortIdx++)
+   {
       d0.X = d1.X = screenX + sort->vanishSum[sortIdx].phi;
       d0.Y = screenY;
-      d1.Y = d0.Y + 64;
+      d1.Y = d0.Y + 63;
 
       if(sortIdx < 2)
          rgba = 0xff0000ff;
@@ -574,7 +575,7 @@ void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort *sort, int screenY
       else if(sortIdx < 6)
          rgba = 0x000077ff;
       else
-         rgba = 0x000000ff;
+         rgba = 0x999900ff;
 
       lineColor(screen, d0.X, d0.Y, d1.X, d1.Y, rgba);
    }

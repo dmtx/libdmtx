@@ -152,27 +152,21 @@ AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
 {
    int i, startHere;
    int phiDiff, phiDiffTmp;
-   DmtxBoolean willGrow;
+   DmtxBoolean isFull;
+   DmtxHoughBucket *lastBucket;
 
-   /* Special case: first addition */
-   if(sort->count == 0)
-   {
-      sort->vanishSum[sort->count++] = vanishSum;
+   isFull = (sort->count == ANGLE_SORT_MAX_COUNT) ? DmtxTrue : DmtxFalse;
+   lastBucket = &(sort->vanishSum[ANGLE_SORT_MAX_COUNT - 1]);
+
+   /* Array is full and incoming bucket is already weakest */
+   if(isFull && vanishSum.val < lastBucket->val)
       return;
-   }
-   /* Array is full and incoming bucket is immediately weakest */
-   else if(sort->count == ANGLE_SORT_MAX_COUNT &&
-         vanishSum.val < sort->vanishSum[ANGLE_SORT_MAX_COUNT - 1].val)
-   {
-      return;
-   }
 
-   willGrow = (sort->count < ANGLE_SORT_MAX_COUNT) ? DmtxTrue : DmtxFalse;
-   startHere = sort->count - 1; /* Sort normally starts at weakest element */
+   startHere = DmtxUndefined;
 
-   /* If sort already has entry for this angle (or close) then either:
-    *   a) Overwrite the old one without shifting (if stronger), or
-    *   b) Reject the new one completely (if weaker)
+   /* If sort already has entry near this angle then either:
+    *   a) Overwrite the old one without shifting if stronger
+    *   b) Reject the new one completely if weaker
     */
    for(i = 0; i < sort->count; i++)
    {
@@ -190,29 +184,35 @@ AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
          else
          {
             sort->vanishSum[i] = vanishSum;
-            willGrow = DmtxFalse; /* Non-growing re-sort required */
-            startHere = i - 1;
+            startHere = i;
             break;
          }
       }
    }
 
-   /* Shift weak entries downward */
-   for(i = startHere; i >= 0; i--)
+   if(startHere == DmtxUndefined)
    {
-      if(vanishSum.val > sort->vanishSum[i].val)
-      {
-         if(i + 1 < ANGLE_SORT_MAX_COUNT)
-         {
-            sort->vanishSum[i+1] = sort->vanishSum[i];
-         }
-         sort->vanishSum[i] = vanishSum;
-      }
+      if(isFull)
+         *lastBucket = vanishSum;
+      else
+         sort->vanishSum[sort->count++] = vanishSum;
+
+      startHere = sort->count - 1;
    }
 
-   /* Count changes only if shift occurs */
-   if(willGrow == DmtxTrue)
-      sort->count++;
+   /* Shift weak entries downward */
+   for(i = startHere; i > 0; i--)
+   {
+      if(vanishSum.val > sort->vanishSum[i-1].val)
+      {
+         sort->vanishSum[i] = sort->vanishSum[i-1];
+         sort->vanishSum[i-1] = vanishSum;
+      }
+      else
+      {
+         break;
+      }
+   }
 }
 
 /**
