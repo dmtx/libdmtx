@@ -78,6 +78,9 @@ dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img)
 
    dec->image = img;
 
+   /* XXX decide here how big and how small to scale the image, and what level to go to */
+   /*     store it in the decode struct */
+
    /* Free existing buffers if sized incorrectly */
    /* if(buffers are allocated but sized incorrectly) */
    RETURN_FAIL_IF(decode2ReleaseCacheMemory(dec) == DmtxFail);

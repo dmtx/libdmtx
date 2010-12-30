@@ -34,6 +34,24 @@ Contact: mblaughton@users.sourceforge.net
       return DmtxFail; \
    }
 
+/*
+struct Deskew {
+   DmtxMatrix3 fit2raw;
+   DmtxMatrix3 raw2fit;
+}
+
+struct Timing {
+   double shift;
+   double period;
+}
+
+struct AlignmentGrid {
+   Deskew align;
+   Timing vTiming;
+   Timing hTiming;
+}
+*/
+
 /**
  *
  *
@@ -70,23 +88,6 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
 /*       align = AlignRegion(deskew, vHough, &passFail);
          if(passFail == DmtxFail)
             continue;
-
-struct Deskew {
-   DmtxMatrix3 fit2raw;
-   DmtxMatrix3 raw2fit;
-}
-
-struct Timing {
-   double shift;
-   double period;
-}
-
-struct AlignmentGrid {
-   Deskew align;
-   Timing vTiming;
-   Timing hTiming;
-}
-
 */
 
 /*
@@ -134,17 +135,28 @@ struct AlignmentGrid {
  *              rescan for updated vpoints (using original centerline, adding only portion of region?)
  *              get new timing (?)
  *              continue stepping path where we left off?
+ *
+ * progress:
+ *    level
+ *    row
+ *    col
+ *    vanish point combo (?)
  */
 /*
-dmtxRegion2FindNext()
+dmtxRegion2FindNext(DmtxDecode2 *dec)
 {
    if(starting new level other than the first)
       HoughGridMerge();
 
-   for(new each local) <-- need way to save state between calls to dmtxRegion2FindNext()
+   // for each new local
+   while(dec->localIdx < dec->localCount)
    {
-      for(each valid combination of vanish points)
+      // each valid combination of vanish points
+      for(dec->vPointIdx < 28)
       {
+         vPointI = xyz;
+         vPointJ = xyz;
+
          while(perimeter condition not met)
          {
             stepOutward()
