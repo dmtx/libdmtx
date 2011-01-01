@@ -332,6 +332,7 @@ HandleArgs(UserOptions *opt, int *fileIndex, int *argcp, char **argvp[])
             err = StringToInt(&(opt->page), optarg, &ptr);
             if(err != DmtxPass || opt->page < 1 || *ptr != '\0')
                FatalError(EX_USAGE, _("Invalid page specified \"%s\""), optarg);
+            break;
          case 'q':
             err = StringToInt(&(opt->squareDevn), optarg, &ptr);
             if(err != DmtxPass || *ptr != '\0' ||
