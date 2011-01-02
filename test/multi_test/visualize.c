@@ -557,9 +557,9 @@ void DrawVanishingPoints(SDL_Surface *screen, VanishPointSort *sort, int screenY
 
    for(sortIdx = 0; sortIdx < sort->count; sortIdx++)
    {
-      d0.X = screenX + sort->vanishSum[sortIdx].phi - 2;
+      d0.X = screenX + sort->bucket[sortIdx].phi - 2;
       d1.X = d0.X + 4;
-      d0.Y = screenY + (63 - sort->vanishSum[sortIdx].d) - 2;;
+      d0.Y = screenY + (63 - sort->bucket[sortIdx].d) - 2;;
       d1.Y = d0.Y + 4;
 
       if(sortIdx < 2)

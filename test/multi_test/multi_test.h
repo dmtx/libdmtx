@@ -167,7 +167,7 @@ typedef struct HoughMaximaSort_struct {
 
 typedef struct VanishPointSort_struct {
    int count;
-   DmtxHoughBucket vanishSum[ANGLE_SORT_MAX_COUNT];
+   DmtxHoughBucket bucket[ANGLE_SORT_MAX_COUNT];
 } VanishPointSort;
 
 typedef struct Timing_struct {
@@ -182,6 +182,15 @@ struct DmtxTimingSort_struct {
    Timing timing[TIMING_SORT_MAX_COUNT];
 };
 typedef struct DmtxTimingSort_struct DmtxTimingSort;
+
+typedef struct DmtxOrient_struct DmtxOrient;
+struct DmtxOrient_struct {
+/* add supporting values used to build tranformation matrices here */
+   DmtxMatrix3 raw2fitLocal;
+   DmtxMatrix3 raw2fit;
+   DmtxMatrix3 fit2rawLocal;
+   DmtxMatrix3 fit2raw;
+};
 
 typedef struct AlignmentGrid_struct {
    int rowCount;
@@ -292,8 +301,9 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 
 /* Image processing functions */
 DmtxPassFail dmtxRegion2FindNext(DmtxDecode2 *dec);
+DmtxPassFail OrientRegion(DmtxOrient *orient, DmtxHoughBucket vp0, DmtxHoughBucket vp1);
 double UncompactOffset(double d, int phiIdx, int extent);
-void AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum);
+void AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket bucket);
 VanishPointSort dmtxFindVanishPoints(DmtxHoughLocal *vHough);
 void AddToMaximaSort(HoughMaximaSort *sort, int maximaMag);
 DmtxHoughBucket GetAngleSumAtPhi(DmtxHoughLocal *local, int phi);

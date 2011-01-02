@@ -61,8 +61,10 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
 {
    int i, j;
    int phiDiff, phiDiffTmp;
-   VanishPointSort vPoints;
    DmtxBoolean regionFound;
+   DmtxPassFail passFail;
+   VanishPointSort vPoints;
+   DmtxOrient orient;
 
    vPoints = dmtxFindVanishPoints(dec->hough->vanish);
    dec->fn.vanishPointCallback(&vPoints, 0);
@@ -71,25 +73,23 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
    {
       for(j = i + 1; j < vPoints.count; j++)
       {
-         phiDiffTmp = abs(vPoints.vanishSum[i].phi - vPoints.vanishSum[j].phi);
+         phiDiffTmp = abs(vPoints.bucket[i].phi - vPoints.bucket[j].phi);
          phiDiff = (phiDiffTmp < 64) ? phiDiffTmp : 128 - phiDiffTmp;
 
          /* Reject angle combinations that are too close */
          if(phiDiff < 36)
             continue;
 
-         /* Build untimed grid from vanish points */
-/*       orient = OrientRegion(vPoints.vanishSum[i], vPoints.vanishSum[j], &passFail);
+         /* Build oriented (but still untimed) grid from vanish points */
+         passFail = OrientRegion(&orient, vPoints.bucket[i], vPoints.bucket[j]);
          if(passFail == DmtxFail)
             continue;
-*/
 
          /* Build timed grid from untimed grid and line hough */
-/*       align = AlignRegion(deskew, vHough, &passFail);
+/*       align = AlignRegion(region, orient, lHough, &passFail);
          if(passFail == DmtxFail)
             continue;
 */
-
 /*
          // timings = dmtxFindGridTiming(dec->hough->line, &vPoints);
 
@@ -121,7 +121,19 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
 }
 
 /**
- * Some thoughts on how this might look
+ *
+ *
+ */
+DmtxPassFail
+OrientRegion(DmtxOrient *orient, DmtxHoughBucket vp0, DmtxHoughBucket vp1)
+{
+/* find 4 corners */
+
+   return DmtxPass;
+}
+
+/**
+ * Future structure of dmtxRegion2FindNext() (after getting orientation and timing working again)
  *
  * TODO:
  * o Is there a way to name HoughGridPopulate() and HoughGridMerge() to show they are sister functions?
@@ -215,7 +227,7 @@ UncompactOffset(double compactedOffset, int phiIdx, int extent)
  *
  */
 void
-AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
+AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket bucket)
 {
    int i, startHere;
    int phiDiff, phiDiffTmp;
@@ -223,10 +235,10 @@ AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
    DmtxHoughBucket *lastBucket;
 
    isFull = (sort->count == ANGLE_SORT_MAX_COUNT) ? DmtxTrue : DmtxFalse;
-   lastBucket = &(sort->vanishSum[ANGLE_SORT_MAX_COUNT - 1]);
+   lastBucket = &(sort->bucket[ANGLE_SORT_MAX_COUNT - 1]);
 
    /* Array is full and incoming bucket is already weakest */
-   if(isFull && vanishSum.val < lastBucket->val)
+   if(isFull && bucket.val < lastBucket->val)
       return;
 
    startHere = DmtxUndefined;
@@ -237,20 +249,20 @@ AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
     */
    for(i = 0; i < sort->count; i++)
    {
-      phiDiffTmp = abs(vanishSum.phi - sort->vanishSum[i].phi);
+      phiDiffTmp = abs(bucket.phi - sort->bucket[i].phi);
       phiDiff = (phiDiffTmp < 64) ? phiDiffTmp : 128 - phiDiffTmp;
 
       if(phiDiff < 10)
       {
          /* Similar angle is already represented with stronger magnitude */
-         if(vanishSum.val < sort->vanishSum[i].val)
+         if(bucket.val < sort->bucket[i].val)
          {
             return;
          }
          /* Found similar-but-weaker angle that will be overwritten */
          else
          {
-            sort->vanishSum[i] = vanishSum;
+            sort->bucket[i] = bucket;
             startHere = i;
             break;
          }
@@ -260,9 +272,9 @@ AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
    if(startHere == DmtxUndefined)
    {
       if(isFull)
-         *lastBucket = vanishSum;
+         *lastBucket = bucket;
       else
-         sort->vanishSum[sort->count++] = vanishSum;
+         sort->bucket[sort->count++] = bucket;
 
       startHere = sort->count - 1;
    }
@@ -270,10 +282,10 @@ AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket vanishSum)
    /* Shift weak entries downward */
    for(i = startHere; i > 0; i--)
    {
-      if(vanishSum.val > sort->vanishSum[i-1].val)
+      if(bucket.val > sort->bucket[i-1].val)
       {
-         sort->vanishSum[i] = sort->vanishSum[i-1];
-         sort->vanishSum[i-1] = vanishSum;
+         sort->bucket[i] = sort->bucket[i-1];
+         sort->bucket[i-1] = bucket;
       }
       else
       {
@@ -344,7 +356,7 @@ GetAngleSumAtPhi(DmtxHoughLocal *line, int phi)
 {
    int i, d;
    int prev, here, next;
-   DmtxHoughBucket vanishSum;
+   DmtxHoughBucket bucket;
    HoughMaximaSort sort;
 
    memset(&sort, 0x00, sizeof(HoughMaximaSort));
@@ -372,13 +384,13 @@ GetAngleSumAtPhi(DmtxHoughLocal *line, int phi)
          AddToMaximaSort(&sort, here);
    }
 
-   vanishSum.d = 0;
-   vanishSum.phi = phi;
-   vanishSum.val = 0;
+   bucket.d = 0;
+   bucket.phi = phi;
+   bucket.val = 0;
    for(i = 0; i < 8; i++)
-      vanishSum.val += sort.mag[i];
+      bucket.val += sort.mag[i];
 
-   return vanishSum;
+   return bucket;
 }
 
 /**
@@ -434,7 +446,7 @@ dmtxFindGridTiming(DmtxHoughLocal *line, VanishPointSort *vPoints)
 
    for(vSortIdx = 0; vSortIdx < vPoints->count; vSortIdx++) {
 
-      phi = vPoints->vanishSum[vSortIdx].phi;
+      phi = vPoints->bucket[vSortIdx].phi;
 
       /* Load FFT input array */
       for(i = 0; i < NFFT; i++) {
