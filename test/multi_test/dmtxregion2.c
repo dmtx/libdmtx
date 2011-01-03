@@ -86,7 +86,7 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
             continue;
 
          /* Build timed grid from untimed grid and line hough */
-/*       align = AlignRegion(region, orient, lHough, &passFail);
+/*       align = CalibrateRegion(region, orient, lHough, &passFail);
          if(passFail == DmtxFail)
             continue;
 */
@@ -127,10 +127,49 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
 DmtxPassFail
 OrientRegion(DmtxOrient *orient, DmtxHoughBucket vp0, DmtxHoughBucket vp1)
 {
-/* find 4 corners */
+   return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+/*
+DmtxPassFail
+CalibrateRegion(DmtxOrient *orient)
+{
+input:  orientation (transformation matrix)
+        hough line cache
+
+output: timed alignment grid
+
+description:
+  fourier transform receives evenly spaced samples to be taken in both directions (v and h)
+    -> tranforms into frequency space
+    -> major frequency emerges
+  determine shift as post-processing step (can't remember how I did it before at the moment)
+
+  need to interpolate values between true locations in line hough because
+    "evenly spaced" describes positions in the normalized fitted region whereas
+    the hough values are aligned along raw image coordinates
+
+  step size should be determined based on desired fft dimensions (maybe 64
+    steps?) ... check what we did for poc
+
+steps:
+   for each step 0-63 upward along Y axis
+      xFit = 0
+      yFit = 1-63
+      xRaw,yRaw = VMult(fit2raw,xFit,yFit)
+      lineFit = (xRaw - 0, yRaw - 0) (duh)
+      phi = lineFit angle (something like atan2)
+      d = vector2Mag(lineFit)
+      interpolate hough[d][phi] and add to fft
+      that was easy
 
    return DmtxPass;
 }
+*/
 
 /**
  * Future structure of dmtxRegion2FindNext() (after getting orientation and timing working again)
