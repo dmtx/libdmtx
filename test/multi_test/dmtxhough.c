@@ -404,6 +404,13 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    u = 32.0 * (cos(phiCompareRad) + sin(phiCompareRad));
    x = fabs((d - u)/sin(phiDeltaRad));
 
+   /* XXX now might be a great time to determine the octant in which the vanish
+          point falls. This will determine the corners used to build the
+          bounding region.
+
+          we can precalculate the distances at which x crosses into up to 2 regions
+    */
+
    if(x < 0.0001)
       return DmtxUndefined;
 

@@ -125,10 +125,57 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
  *
  */
 DmtxPassFail
-OrientRegion(DmtxOrient *orient, DmtxHoughBucket vp0, DmtxHoughBucket vp1)
+OrientRegion(DmtxOrient *orient, DmtxHoughBucket v0, DmtxHoughBucket v1)
 {
+/*
+   DmtxVector2 p[] = { { 0.0, 0.0 },
+                       { 1.0, 0.0 },
+                       { 1.0, 1.0 },
+                       { 0.0, 1.0 } };
+   
+   // Build orientation based on corners
+   min,max = BoundVanishCone(pMin, pMax, v0);
+   min,max = BoundVanishCone(pMin, pMax, v1);
+
+   // Pass corners to something like RegionUpdateCorners(), but works with DmtxOrient
+*/
+
    return DmtxPass;
 }
+
+/**
+ *
+ *
+ */
+/*
+BoundVanishCone(v)
+{
+   DmtxVector2 p[] = { { 0.0, 0.0 },
+                       { 1.0, 0.0 },
+                       { 1.0, 1.0 },
+                       { 0.0, 1.0 } };
+
+   vMin = vMax = test(p[0], v);
+
+   for(i = 1; i < 4; i++)
+   {
+      vCmp = test(p[i], v);
+
+      if(vCmp > vMax)
+      {
+         vMaxIdx = i;
+         vMaxVal = vCmp;
+      }
+      else if(vCmp < vMin)
+      {
+         vMinIdx = i;
+         vMinVal = vCmp;
+      }
+   }
+
+   return stuff;
+}
+*/
 
 /**
  *

@@ -301,7 +301,7 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 
 /* Image processing functions */
 DmtxPassFail dmtxRegion2FindNext(DmtxDecode2 *dec);
-DmtxPassFail OrientRegion(DmtxOrient *orient, DmtxHoughBucket vp0, DmtxHoughBucket vp1);
+DmtxPassFail OrientRegion(DmtxOrient *orient, DmtxHoughBucket v0, DmtxHoughBucket v1);
 double UncompactOffset(double d, int phiIdx, int extent);
 void AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket bucket);
 VanishPointSort dmtxFindVanishPoints(DmtxHoughLocal *vHough);

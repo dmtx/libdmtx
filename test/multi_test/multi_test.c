@@ -31,16 +31,16 @@ Contact: mblaughton@users.sourceforge.net
 
 /**
  * PLAN
- *   o [ done ] Tapered bucket calculation (4 wks)
- *   o [05-Jan] Save scan progress between calls (1 wk)
- *   o [12-Jan] Build orientation from new vanish point info (1 wk)
+ *   x [ done ] Tapered bucket calculation (4 wks)
+ *   / [12-Jan] Build orientation from new vanish point info (2 wks)
  *   o [19-Jan] FFT for grid alignment (1 wk)
- *   o [26-Jan] Outward stepping (1 wk)
- *   o [09-Feb] All grid locations (not just one) (2 wks)
- *   o [23-Feb] Region spanning hough alignment (2 wks)
- *   o [09-Mar] Multiscale hough (2 wks)
- *   o [23-Mar] Integrate w/ libdmtx proper as experimental option (2 wks)
- *   o [30-Mar] Release 0.7.4 (1 wk)
+ *   o [26-Jan] Save scan progress between calls (1 wk)
+ *   o [02-Feb] Outward stepping (1 wk)
+ *   o [16-Feb] All grid locations (not just one) (2 wks)
+ *   o [02-Mar] Region spanning hough alignment (2 wks)
+ *   o [16-Mar] Multiscale hough (2 wks)
+ *   o [30-Mar] Integrate w/ libdmtx proper as experimental option (2 wks)
+ *   o [06-Apr] Release 0.7.4 (1 wk)
  *   o [ next ] Bug fixes and site changes
  *
  * TODO
