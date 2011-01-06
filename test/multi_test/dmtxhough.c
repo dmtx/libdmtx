@@ -391,7 +391,7 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    if(phiBucket == phiCompare)
       return 32; /* Infinity */
 
-   phiDelta = phiBucket - phiCompare;
+   phiDelta = phiCompare - phiBucket;
    if(phiDelta < -64)
       phiDelta += 128;
    else if(phiDelta > 64)
@@ -403,58 +403,6 @@ GetVanishBucket(int phiBucket, int phiCompare, int dCompare)
    d = UncompactOffset(dCompare, phiCompare, 64);
    u = 32.0 * (cos(phiCompareRad) + sin(phiCompareRad));
    x = fabs((d - u)/sin(phiDeltaRad));
-
-   /* XXX determine the octant in which the vanish point falls
-
-typedef enum {
-   top     0x01 << 0,
-   left    0x01 << 1,
-   bottom  0x01 << 2,
-   right   0x01 << 3
-}
-
-   if(something)
-      phi += 128;
-
-   assert(phi >= 0 && phi < 256);
-
-   if(phi < 32 || phi >= 224)
-      zone1 = right;
-   else if(phi < 96)
-      zone1 = top;
-   else if(phi < 160)
-      zone1 = left;
-   else
-      zone1 = bottom;
-
-   if(phi < 64)
-      zone2 = (top | right);
-   else if(phi < 128)
-      zone2 = (top | left);
-   else if(phi < 196)
-      zone2 = (bottom | left);
-   else
-      zone2 = (bottom | right);
-
-   if(phi == 0 || phi == 64 || phi == 128 || phi == 196)
-   {
-      zone = (x < 32.0) ? zone0 : zone1;
-   }
-   else
-   {
-      xComp = 32/cos(phiRad);
-      yComp = 32/sin(phiRad);
-
-      if(x > max(xComp,yComp))
-         zone = zone[2];
-      else if(x > min(xComp,yComp))
-         zone = zone[1];
-      else
-         zone = zone0;;
-   }
-
-   return zone;
-*/
 
    if(x < 0.0001)
       return DmtxUndefined;

@@ -81,7 +81,7 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
             continue;
 
          /* Build oriented (but still untimed) grid from vanish points */
-         passFail = OrientRegion(&orient, vPoints.bucket[i], vPoints.bucket[j]);
+         passFail = OrientRegion(&orient, vPoints.bucket[i], vPoints.bucket[j], dec);
          if(passFail == DmtxFail)
             continue;
 
@@ -125,57 +125,19 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
  *
  */
 DmtxPassFail
-OrientRegion(DmtxOrient *orient, DmtxHoughBucket v0, DmtxHoughBucket v1)
+OrientRegion(DmtxOrient *orient, DmtxHoughBucket v0, DmtxHoughBucket v1, DmtxDecode2 *dec)
 {
-/*
-   DmtxVector2 p[] = { { 0.0, 0.0 },
-                       { 1.0, 0.0 },
-                       { 1.0, 1.0 },
-                       { 0.0, 1.0 } };
-   
-   // Build orientation based on corners
-   min,max = BoundVanishCone(pMin, pMax, v0);
-   min,max = BoundVanishCone(pMin, pMax, v1);
+   DmtxOctantType zone0, zone1;
 
-   // Pass corners to something like RegionUpdateCorners(), but works with DmtxOrient
-*/
+   zone0 = dec->zone[v0.d][v0.phi];
+   zone1 = dec->zone[v1.d][v1.phi];
+
+/* fprintf(stdout, "zone0:%d zone1:%d (%d %d)\n", zone0, zone1); */
+
+   /* Pass corners to something like RegionUpdateCorners(), but works with DmtxOrient */
 
    return DmtxPass;
 }
-
-/**
- *
- *
- */
-/*
-BoundVanishCone(v)
-{
-   DmtxVector2 p[] = { { 0.0, 0.0 },
-                       { 1.0, 0.0 },
-                       { 1.0, 1.0 },
-                       { 0.0, 1.0 } };
-
-   vMin = vMax = test(p[0], v);
-
-   for(i = 1; i < 4; i++)
-   {
-      vCmp = test(p[i], v);
-
-      if(vCmp > vMax)
-      {
-         vMaxIdx = i;
-         vMaxVal = vCmp;
-      }
-      else if(vCmp < vMin)
-      {
-         vMinIdx = i;
-         vMinVal = vCmp;
-      }
-   }
-
-   return stuff;
-}
-*/
 
 /**
  *

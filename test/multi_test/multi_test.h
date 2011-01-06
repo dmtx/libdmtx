@@ -99,6 +99,17 @@ typedef enum {
    DmtxEdgeSlash
 } DmtxEdgeType;
 
+typedef enum {
+   DmtxOctantTop         = 0x01,
+   DmtxOctantLeft        = 0x01 << 1,
+   DmtxOctantBottom      = 0x01 << 2,
+   DmtxOctantRight       = 0x01 << 3,
+   DmtxOctantTopLeft     = (DmtxOctantTop | DmtxOctantLeft),
+   DmtxOctantBottomLeft  = (DmtxOctantBottom | DmtxOctantLeft),
+   DmtxOctantBottomRight = (DmtxOctantBottom | DmtxOctantRight),
+   DmtxOctantTopRight    = (DmtxOctantTop | DmtxOctantRight)
+} DmtxOctantType;
+
 typedef struct DmtxValueGrid_struct DmtxValueGrid;
 struct DmtxValueGrid_struct {
    int width;
@@ -282,6 +293,7 @@ struct DmtxDecode2_struct {
    DmtxSobel     *sobel;
    DmtxAccel     *accel;
    DmtxHough     *hough;
+   unsigned char zone[64][128]; /* XXX temporary location */
    DmtxCallbacks  fn;
 };
 typedef struct DmtxDecode2_struct DmtxDecode2;
@@ -301,7 +313,7 @@ DmtxPassFail NudgeImage(int windowExtent, int pictureExtent, Sint16 *imageLoc);
 
 /* Image processing functions */
 DmtxPassFail dmtxRegion2FindNext(DmtxDecode2 *dec);
-DmtxPassFail OrientRegion(DmtxOrient *orient, DmtxHoughBucket v0, DmtxHoughBucket v1);
+DmtxPassFail OrientRegion(DmtxOrient *orient, DmtxHoughBucket v0, DmtxHoughBucket v1, DmtxDecode2 *dec);
 double UncompactOffset(double d, int phiIdx, int extent);
 void AddToVanishPointSort(VanishPointSort *sort, DmtxHoughBucket bucket);
 VanishPointSort dmtxFindVanishPoints(DmtxHoughLocal *vHough);
@@ -371,6 +383,7 @@ DmtxPassFail AccelPopulateLocal(DmtxValueGrid *acc);
 /* dmtxdecode2.c */
 DmtxDecode2 *dmtxDecode2Create();
 DmtxPassFail dmtxDecode2Destroy(DmtxDecode2 **dec);
+void PopulateZones(DmtxDecode2 *dec);
 DmtxPassFail dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img);
 DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 

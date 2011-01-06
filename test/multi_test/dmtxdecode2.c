@@ -22,6 +22,7 @@ Contact: mblaughton@users.sourceforge.net
 
 /* $Id$ */
 
+#include <math.h>
 #include <assert.h>
 #include "../../dmtx.h"
 #include "multi_test.h"
@@ -38,6 +39,8 @@ dmtxDecode2Create(DmtxImage *img)
    dec = (DmtxDecode2 *)calloc(1, sizeof(DmtxDecode2));
    if(dec == NULL)
       return NULL;
+
+   PopulateZones(dec);
 
    return dec;
 }
@@ -65,6 +68,84 @@ dmtxDecode2Destroy(DmtxDecode2 **dec)
       decode2ReleaseCacheMemory(dec); \
       return DmtxFail; \
    }
+
+/**
+ *
+ *
+ */
+void
+PopulateZones(DmtxDecode2 *dec)
+{
+   int d, phi;
+   int dFull, phiFull;
+   int x;
+   double phiRad, bucketRad, xComp, yComp;
+   DmtxOctantType zone0, zone1, zone2;
+   unsigned char *zone;
+
+   zone0 = 0;
+
+   /* Calculate distance of each vanish point and capture zone */
+   for(d = 0; d < 64; d++)
+   {
+      dFull = d - 32;
+
+      for(phi = 0; phi < 128; phi++)
+      {
+         zone = &(dec->zone[d][phi]);
+
+         phiFull = (dFull < 0) ? phi + 128 : phi;
+         assert(phiFull >= 0 && phiFull < 256);
+
+         if(phiFull < 32 || phiFull >= 224)
+            zone1 = DmtxOctantTop;
+         else if(phiFull < 96)
+            zone1 = DmtxOctantLeft;
+         else if(phiFull < 160)
+            zone1 = DmtxOctantBottom;
+         else
+            zone1 = DmtxOctantRight;
+
+         if(phiFull < 64)
+            zone2 = DmtxOctantTopLeft;
+         else if(phiFull < 128)
+            zone2 = DmtxOctantBottomLeft;
+         else if(phiFull < 192)
+            zone2 = DmtxOctantBottomRight;
+         else
+            zone2 = DmtxOctantTopRight;
+
+         /* Infinity */
+         if(dFull == 0)
+         {
+            *zone = zone2;
+         }
+         else
+         {
+            bucketRad = abs(dFull) * (M_PI/96.0);
+            x = 32.0/tan(bucketRad);
+
+            if(phiFull == 0 || phiFull == 64 || phiFull == 128 || phiFull == 196)
+            {
+               *zone = (x < 32.0) ? zone0 : zone1;
+            }
+            else
+            {
+               phiRad = phi * (M_PI/128.0);
+               xComp = fabs(32.0/cos(phiRad));
+               yComp = fabs(32.0/sin(phiRad));
+
+               if(x > max(xComp,yComp))
+                  *zone = zone2;
+               else if(x > min(xComp,yComp))
+                  *zone = zone1;
+               else
+                  *zone = zone0;
+            }
+         }
+      }
+   }
+}
 
 /**
  *
