@@ -306,7 +306,6 @@ struct DmtxDecode2_struct {
    DmtxSobel     *sobel;
    DmtxAccel     *accel;
    DmtxHough     *hough;
-   unsigned char zone[64][128]; /* XXX temporary location */
    DmtxVanishCorners corners[64][128]; /* XXX temporary location */
    DmtxCallbacks  fn;
 };
@@ -397,9 +396,9 @@ DmtxPassFail AccelPopulateLocal(DmtxValueGrid *acc);
 /* dmtxdecode2.c */
 DmtxDecode2 *dmtxDecode2Create();
 DmtxPassFail dmtxDecode2Destroy(DmtxDecode2 **dec);
-void PopulateZones(DmtxDecode2 *dec); /* obsolete */
 void PopulateVanishBounds(DmtxDecode2 *dec);
 DmtxVanishCorners GetVanishCorners(int d, int phi);
+int GetZone(int phiFull, double *distance);
 DmtxVectorPair GetZoneCornerLocs(DmtxOctantType zone);
 DmtxPassFail dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img);
 DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);

@@ -40,7 +40,6 @@ dmtxDecode2Create(DmtxImage *img)
    if(dec == NULL)
       return NULL;
 
-   PopulateZones(dec);
    PopulateVanishBounds(dec);
 
    return dec;
@@ -75,84 +74,6 @@ dmtxDecode2Destroy(DmtxDecode2 **dec)
  *
  */
 void
-PopulateZones(DmtxDecode2 *dec)
-{
-   int d, phi;
-   int dFull, phiFull;
-   int x;
-   double phiRad, bucketRad, xComp, yComp;
-   DmtxOctantType zone0, zone1, zone2;
-   unsigned char *zone;
-
-   zone0 = 0;
-
-   /* Calculate distance of each vanish point and capture zone */
-   for(d = 0; d < 64; d++)
-   {
-      dFull = d - 32;
-
-      for(phi = 0; phi < 128; phi++)
-      {
-         zone = &(dec->zone[d][phi]);
-
-         phiFull = (dFull < 0) ? phi + 128 : phi;
-         assert(phiFull >= 0 && phiFull < 256);
-
-         if(phiFull < 32 || phiFull >= 224)
-            zone1 = DmtxOctantTop;
-         else if(phiFull < 96)
-            zone1 = DmtxOctantLeft;
-         else if(phiFull < 160)
-            zone1 = DmtxOctantBottom;
-         else
-            zone1 = DmtxOctantRight;
-
-         if(phiFull < 64)
-            zone2 = DmtxOctantTopLeft;
-         else if(phiFull < 128)
-            zone2 = DmtxOctantBottomLeft;
-         else if(phiFull < 192)
-            zone2 = DmtxOctantBottomRight;
-         else
-            zone2 = DmtxOctantTopRight;
-
-         /* Infinity */
-         if(dFull == 0)
-         {
-            *zone = zone2;
-         }
-         else
-         {
-            bucketRad = abs(dFull) * (M_PI/96.0);
-            x = 32.0/tan(bucketRad);
-
-            if(phiFull == 0 || phiFull == 64 || phiFull == 128 || phiFull == 196)
-            {
-               *zone = (x < 32.0) ? zone0 : zone1;
-            }
-            else
-            {
-               phiRad = phi * (M_PI/128.0);
-               xComp = fabs(32.0/cos(phiRad));
-               yComp = fabs(32.0/sin(phiRad));
-
-               if(x > max(xComp,yComp))
-                  *zone = zone2;
-               else if(x > min(xComp,yComp))
-                  *zone = zone1;
-               else
-                  *zone = zone0;
-            }
-         }
-      }
-   }
-}
-
-/**
- *
- *
- */
-void
 PopulateVanishBounds(DmtxDecode2 *dec)
 {
    int d, phi;
@@ -171,10 +92,9 @@ GetVanishCorners(int d, int phi)
 {
    DmtxVanishCorners vBound;
    DmtxVectorPair locs, dirs;
-   int zone, zone0, zone1, zone2;
+   int zone;
    int dFull, phiFull;
-   double phiRad, bucketRad;
-   double l, xComp, yComp;
+   double l, phiRad, bucketRad;
    DmtxVector2 v;
 
    dFull = d - 32;
@@ -182,7 +102,51 @@ GetVanishCorners(int d, int phi)
    assert(phiFull >= 0 && phiFull < 256);
    phiRad = phi * (M_PI/128.0);
 
-   zone0 = 0;
+   /* Infinity */
+   if(dFull == 0)
+   {
+      zone = GetZone(phiFull, NULL);
+      locs = GetZoneCornerLocs(zone);
+
+      dirs.a.X = dirs.b.X = cos(phiRad); /* XXX does phiRad point in this direction, or right angle? */
+      dirs.a.Y = dirs.b.Y = sin(phiRad);
+   }
+   else
+   {
+      bucketRad = abs(dFull) * (M_PI/96.0);
+      l = 32/tan(bucketRad);
+      zone = GetZone(phiFull, &l);
+      locs = GetZoneCornerLocs(zone);
+
+      v.X = l * cos(phiRad);
+      v.Y = l * sin(phiRad); /* XXX remember phiRad may not point in direction you think */
+
+      dmtxVector2Sub(&dirs.a, &v, &locs.a);
+      dmtxVector2Sub(&dirs.b, &v, &locs.b);
+
+      dmtxVector2Norm(&dirs.a); /* I think this is necessary */
+      dmtxVector2Norm(&dirs.b);
+   }
+
+   vBound.zone = zone;
+   vBound.lineA.p = locs.a;
+   vBound.lineA.v = dirs.a;
+   vBound.lineB.p = locs.b;
+   vBound.lineB.v = dirs.b;
+
+   return vBound;
+}
+
+/**
+ *
+ *
+ */
+int
+GetZone(int phiFull, double *distance)
+{
+   int zone0 = 0;
+   int zone1, zone2;
+   double phiRad, xComp, yComp;
 
    if(phiFull < 32 || phiFull >= 224)
       zone1 = DmtxOctantTop;
@@ -193,6 +157,10 @@ GetVanishCorners(int d, int phi)
    else
       zone1 = DmtxOctantRight;
 
+   /* Orthagonal directions */
+   if(phiFull == 0 || phiFull == 64 || phiFull == 128 || phiFull == 196)
+      return (distance != NULL && *distance < 32.0) ? zone0 : zone1;
+
    if(phiFull < 64)
       zone2 = DmtxOctantTopLeft;
    else if(phiFull < 128)
@@ -202,61 +170,21 @@ GetVanishCorners(int d, int phi)
    else
       zone2 = DmtxOctantTopRight;
 
-   /* Infinity */
-   if(dFull == 0)
-   {
-      zone = zone2;
-      locs = GetZoneCornerLocs(zone);
-      dirs.a.X = dirs.b.X = cos(phiRad); /* XXX does phiRad point in this direction, or right angle? */
-      dirs.a.Y = dirs.b.Y = sin(phiRad);
-   }
-   else
-   {
-      bucketRad = abs(dFull) * (M_PI/96.0);
-      l = 32.0/tan(bucketRad);
-      assert(l >= 0.0);
+   /* Non-orthagonal vanishing point at infinity */
+   if(distance == NULL)
+      return zone2;
 
-      if(phiFull == 0 || phiFull == 64 || phiFull == 128 || phiFull == 196)
-      {
-         zone = (l < 32.0) ? zone0 : zone1;
-      }
-      else
-      {
-         xComp = fabs(32.0/cos(phiRad)); /* remember phiRad does not point in direction you thing */
-         yComp = fabs(32.0/sin(phiRad));
+   /* Must be a finite non-orthagonal vanishing point */
+   phiRad = phiFull * (M_PI/128.0);
+   xComp = fabs(32.0/cos(phiRad)); /* remember phiRad may not point in direction you think */
+   yComp = fabs(32.0/sin(phiRad));
 
-         if(l > max(xComp,yComp))
-            zone = zone2;
-         else if(l > min(xComp,yComp))
-            zone = zone1;
-         else
-            zone = zone0;
-      }
+   if(*distance > max(xComp,yComp))
+      return zone2;
+   else if(*distance > min(xComp,yComp))
+      return zone1;
 
-      if(zone == zone0)
-          zone = zone1; /* XXX for now */
-
-      locs = GetZoneCornerLocs(zone);
-
-      v.X = l * cos(phiRad);
-      v.Y = l * sin(phiRad); /* XXX remember phiRad may not point in direction you think */
-
-      dmtxVector2Sub(&dirs.a, &v, &locs.a);
-      dmtxVector2Sub(&dirs.b, &v, &locs.b);
-
-      dmtxVector2Norm(&dirs.a);
-      dmtxVector2Norm(&dirs.b);
-   }
-
-   vBound.zone = zone;
-
-   vBound.lineA.p = locs.a;
-   vBound.lineA.v = dirs.a;
-
-   vBound.lineB.p = locs.b;
-   vBound.lineB.v = dirs.b;
-
-   return vBound;
+   return zone0;
 }
 
 /**

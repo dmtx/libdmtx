@@ -127,16 +127,13 @@ dmtxRegion2FindNext(DmtxDecode2 *dec)
 DmtxPassFail
 OrientRegion(DmtxOrient *orient, DmtxHoughBucket v0, DmtxHoughBucket v1, DmtxDecode2 *dec)
 {
-   DmtxOctantType zone0, zone1;
+   DmtxRay2 v0a, v0b, v1a, v1b;
 
-   zone0 = dec->zone[v0.d][v0.phi]; /* remove these later */
-   zone1 = dec->zone[v1.d][v1.phi];
-/*
    v0a = dec->corners[v0.d][v0.phi].lineA;
    v0b = dec->corners[v0.d][v0.phi].lineB;
    v1a = dec->corners[v1.d][v1.phi].lineA;
    v1b = dec->corners[v1.d][v1.phi].lineB;
-
+/*
    RegionFromSides(v0a, v0b, v1a, v1b);
 */
    return DmtxPass;
