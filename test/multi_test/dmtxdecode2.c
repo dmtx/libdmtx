@@ -41,7 +41,7 @@ dmtxDecode2Create(DmtxImage *img)
       return NULL;
 
    PopulateZones(dec);
-/* PopulateVanishBounds(dec); */
+   PopulateVanishBounds(dec);
 
    return dec;
 }
@@ -152,7 +152,6 @@ PopulateZones(DmtxDecode2 *dec)
  *
  *
  */
-/*
 void
 PopulateVanishBounds(DmtxDecode2 *dec)
 {
@@ -162,25 +161,37 @@ PopulateVanishBounds(DmtxDecode2 *dec)
       for(d = 0; d < 64; d++)
          dec->corners[d][phi] = GetVanishCorners(d, phi);
 }
-*/
 
 /**
  *
  *
  */
-/*
 DmtxVanishCorners
-GetVanishCorners(DmtxHoughBucket vPoint)
+GetVanishCorners(int d, int phi)
 {
    DmtxVanishCorners vBound;
    DmtxVectorPair locs, dirs;
-   int zone, zone1, zone2;
-   const int zone0 = 0;
+   int zone, zone0, zone1, zone2;
+   int dFull, phiFull;
+   double phiRad, bucketRad;
+   double l, xComp, yComp;
+   DmtxVector2 v;
 
-   dFull = vPoint.d - 32;
+   dFull = d - 32;
    phiFull = (dFull < 0) ? phi + 128 : phi;
    assert(phiFull >= 0 && phiFull < 256);
-   phiRad = vPoint.phi * (M_PI/128.0);
+   phiRad = phi * (M_PI/128.0);
+
+   zone0 = 0;
+
+   if(phiFull < 32 || phiFull >= 224)
+      zone1 = DmtxOctantTop;
+   else if(phiFull < 96)
+      zone1 = DmtxOctantLeft;
+   else if(phiFull < 160)
+      zone1 = DmtxOctantBottom;
+   else
+      zone1 = DmtxOctantRight;
 
    if(phiFull < 64)
       zone2 = DmtxOctantTopLeft;
@@ -191,25 +202,16 @@ GetVanishCorners(DmtxHoughBucket vPoint)
    else
       zone2 = DmtxOctantTopRight;
 
-   // Infinity
+   /* Infinity */
    if(dFull == 0)
    {
-      locs = GetZoneCornerLocs(zone2);
-      dirs.a = dirs.b = normal(phiRad);
+      zone = zone2;
+      locs = GetZoneCornerLocs(zone);
+      dirs.a.X = dirs.b.X = cos(phiRad); /* XXX does phiRad point in this direction, or right angle? */
+      dirs.a.Y = dirs.b.Y = sin(phiRad);
    }
    else
    {
-      zone0 = 0;
-
-      if(phiFull < 32 || phiFull >= 224)
-         zone1 = DmtxOctantTop;
-      else if(phiFull < 96)
-         zone1 = DmtxOctantLeft;
-      else if(phiFull < 160)
-         zone1 = DmtxOctantBottom;
-      else
-         zone1 = DmtxOctantRight;
-
       bucketRad = abs(dFull) * (M_PI/96.0);
       l = 32.0/tan(bucketRad);
       assert(l >= 0.0);
@@ -220,7 +222,7 @@ GetVanishCorners(DmtxHoughBucket vPoint)
       }
       else
       {
-         xComp = fabs(32.0/cos(phiRad)); // remember phiRad does not point in direction you thing
+         xComp = fabs(32.0/cos(phiRad)); /* remember phiRad does not point in direction you thing */
          yComp = fabs(32.0/sin(phiRad));
 
          if(l > max(xComp,yComp))
@@ -232,16 +234,21 @@ GetVanishCorners(DmtxHoughBucket vPoint)
       }
 
       if(zone == zone0)
-          zone = zone1; // XXX for now
+          zone = zone1; /* XXX for now */
 
       locs = GetZoneCornerLocs(zone);
 
-      v.x = l * cos(phiRad); <-- careful... phiRad is 0-128 ?
-      v.y = l * sin(phiRad); // remember phiRad does not point in direction you thing
+      v.X = l * cos(phiRad);
+      v.Y = l * sin(phiRad); /* XXX remember phiRad may not point in direction you think */
 
-      dirs.a = norm(sub(v, locs.a);
-      dirs.b = norm(sub(v, locs.b);
+      dmtxVector2Sub(&dirs.a, &v, &locs.a);
+      dmtxVector2Sub(&dirs.b, &v, &locs.b);
+
+      dmtxVector2Norm(&dirs.a);
+      dmtxVector2Norm(&dirs.b);
    }
+
+   vBound.zone = zone;
 
    vBound.lineA.p = locs.a;
    vBound.lineA.v = dirs.a;
@@ -251,17 +258,15 @@ GetVanishCorners(DmtxHoughBucket vPoint)
 
    return vBound;
 }
-*/
 
 /**
  *
  *
  */
-/*
 DmtxVectorPair
 GetZoneCornerLocs(DmtxOctantType zone)
 {
-   const DmtxVector2 p00 = { 0.0, 0.0 }; // should be { -32.0, -32.0 } ?
+   const DmtxVector2 p00 = { 0.0, 0.0 }; /* should be { -32.0, -32.0 } ? */
    const DmtxVector2 p10 = { 1.0, 0.0 };
    const DmtxVector2 p11 = { 1.0, 1.0 };
    const DmtxVector2 p01 = { 0.0, 1.0 };
@@ -292,6 +297,7 @@ GetZoneCornerLocs(DmtxOctantType zone)
          break;
       case DmtxOctantBottomLeft:
       case DmtxOctantTopRight:
+      default: /* XXX this feels wrong */
          locs.a = p10;
          locs.b = p01;
          break;
@@ -299,7 +305,6 @@ GetZoneCornerLocs(DmtxOctantType zone)
 
    return locs;
 }
-*/
 
 /**
  *

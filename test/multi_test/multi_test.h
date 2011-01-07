@@ -288,19 +288,18 @@ struct DmtxCallbacks_struct {
 };
 typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
-/*
 typedef struct DmtxVectorPair_struct DmtxVectorPair;
-struct DmtxVectorPair {
+struct DmtxVectorPair_struct {
    DmtxVector2 a;
    DmtxVector2 b;
 };
 
 typedef struct DmtxVanishCorners_struct DmtxVanishCorners;
-struct DmtxVanishCorners {
-   DmtxRay2 lineA; // consider switching to DmtxVectorPair in future
+struct DmtxVanishCorners_struct {
+   unsigned char zone;
+   DmtxRay2 lineA; /* XXX consider switching to DmtxVectorPair later? */
    DmtxRay2 lineB;
 };
-*/
 
 struct DmtxDecode2_struct {
    DmtxImage     *image;
@@ -308,7 +307,7 @@ struct DmtxDecode2_struct {
    DmtxAccel     *accel;
    DmtxHough     *hough;
    unsigned char zone[64][128]; /* XXX temporary location */
-/* DmtxVanishCorners corners[64][128]; */ /* XXX temporary location */
+   DmtxVanishCorners corners[64][128]; /* XXX temporary location */
    DmtxCallbacks  fn;
 };
 typedef struct DmtxDecode2_struct DmtxDecode2;
@@ -398,7 +397,10 @@ DmtxPassFail AccelPopulateLocal(DmtxValueGrid *acc);
 /* dmtxdecode2.c */
 DmtxDecode2 *dmtxDecode2Create();
 DmtxPassFail dmtxDecode2Destroy(DmtxDecode2 **dec);
-void PopulateZones(DmtxDecode2 *dec);
+void PopulateZones(DmtxDecode2 *dec); /* obsolete */
+void PopulateVanishBounds(DmtxDecode2 *dec);
+DmtxVanishCorners GetVanishCorners(int d, int phi);
+DmtxVectorPair GetZoneCornerLocs(DmtxOctantType zone);
 DmtxPassFail dmtxDecode2SetImage(DmtxDecode2 *dec, DmtxImage *img);
 DmtxPassFail decode2ReleaseCacheMemory(DmtxDecode2 *dec);
 
