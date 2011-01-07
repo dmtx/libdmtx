@@ -129,17 +129,16 @@ OrientRegion(DmtxOrient *orient, DmtxHoughBucket v0, DmtxHoughBucket v1, DmtxDec
 {
    DmtxOctantType zone0, zone1;
 
-/* 2 things:
-     o These shouldn't be named zone0 and zone1. These is the same names used by the generic distances earlier.
-     o The angles can be precalculated just like the zones ... store them instead?
-*/
-   zone0 = dec->zone[v0.d][v0.phi];
+   zone0 = dec->zone[v0.d][v0.phi]; /* remove these later */
    zone1 = dec->zone[v1.d][v1.phi];
+/*
+   v0a = dec->corners[v0.d][v0.phi].lineA;
+   v0b = dec->corners[v0.d][v0.phi].lineB;
+   v1a = dec->corners[v1.d][v1.phi].lineA;
+   v1b = dec->corners[v1.d][v1.phi].lineB;
 
-/* fprintf(stdout, "zone0:%d zone1:%d (%d %d)\n", zone0, zone1); */
-
-   /* Pass corners to something like RegionUpdateCorners(), but works with DmtxOrient */
-
+   RegionFromSides(v0a, v0b, v1a, v1b);
+*/
    return DmtxPass;
 }
 

@@ -289,9 +289,16 @@ struct DmtxCallbacks_struct {
 typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
 /*
+typedef struct DmtxVectorPair_struct DmtxVectorPair;
+struct DmtxVectorPair {
+   DmtxVector2 a;
+   DmtxVector2 b;
+};
+
 typedef struct DmtxVanishCorners_struct DmtxVanishCorners;
 struct DmtxVanishCorners {
-   xyz
+   DmtxRay2 lineA; // consider switching to DmtxVectorPair in future
+   DmtxRay2 lineB;
 };
 */
 
