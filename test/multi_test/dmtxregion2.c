@@ -129,6 +129,10 @@ OrientRegion(DmtxOrient *orient, DmtxHoughBucket v0, DmtxHoughBucket v1, DmtxDec
 {
    DmtxOctantType zone0, zone1;
 
+/* 2 things:
+     o These shouldn't be named zone0 and zone1. These is the same names used by the generic distances earlier.
+     o The angles can be precalculated just like the zones ... store them instead?
+*/
    zone0 = dec->zone[v0.d][v0.phi];
    zone1 = dec->zone[v1.d][v1.phi];
 

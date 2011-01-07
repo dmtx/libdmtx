@@ -288,12 +288,20 @@ struct DmtxCallbacks_struct {
 };
 typedef struct DmtxCallbacks_struct DmtxCallbacks;
 
+/*
+typedef struct DmtxVanishCorners_struct DmtxVanishCorners;
+struct DmtxVanishCorners {
+   xyz
+};
+*/
+
 struct DmtxDecode2_struct {
    DmtxImage     *image;
    DmtxSobel     *sobel;
    DmtxAccel     *accel;
    DmtxHough     *hough;
    unsigned char zone[64][128]; /* XXX temporary location */
+/* DmtxVanishCorners corners[64][128]; */ /* XXX temporary location */
    DmtxCallbacks  fn;
 };
 typedef struct DmtxDecode2_struct DmtxDecode2;
