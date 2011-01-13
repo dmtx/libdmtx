@@ -252,185 +252,205 @@ static DmtxPassFail
 RsRepairErrors()
 {
 /*
-   if (syn_error)       // if errors, try and correct
-    {
-// initialise table entries
-      d[0] = 0 ;           // index form
-      d[1] = s[1] ;        // index form
-      elp[0][0] = 0 ;      // index form
-      elp[1][0] = 1 ;      // polynomial form
-      for (i=1; i<nn-kk; i++)
-        { elp[0][i] = -1 ;   // index form
-          elp[1][i] = 0 ;   // polynomial form
-        }
-      l[0] = 0 ;
-      l[1] = 0 ;
-      u_lu[0] = -1 ;
-      u_lu[1] = 0 ;
-      u = 0 ;
+   // remember that recd is in polynomial form but this code assumes index form
 
-      do
+   // initialise table entries
+   d[0] = 0;           // index form
+   d[1] = s[1];        // index form
+   elp[0][0] = 0;      // index form
+   elp[1][0] = 1;      // polynomial form
+
+   for(i = 1; i < nn-kk; i++)
+   {
+      elp[0][i] = -1;  // index form
+      elp[1][i] = 0;   // polynomial form
+   }
+
+   l[0] = 0;
+   l[1] = 0;
+   u_lu[0] = -1;
+   u_lu[1] = 0;
+   u = 0;
+
+   //
+   //
+   //
+   do {
+      u++;
+      if(d[u] == -1)
       {
-        u++ ;
-        if (d[u]==-1)
-          { l[u+1] = l[u] ;
-            for (i=0; i<=l[u]; i++)
-             {  elp[u+1][i] = elp[u][i] ;
-                elp[u][i] = index_of[elp[u][i]] ;
-             }
-          }
-        else
-// search for words with greatest u_lu[q] for which d[q]!=0
-          { q = u-1 ;
-            while ((d[q]==-1) && (q>0)) q-- ;
-// have found first non-zero d[q]
-            if (q>0)
-             { j=q ;
-               do
-               { j-- ;
-                 if ((d[j]!=-1) && (u_lu[q]<u_lu[j]))
-                   q = j ;
-               }while (j>0) ;
-             } ;
+         l[u+1] = l[u];
+         for(i=0; i<=l[u]; i++)
+         {
+            elp[u+1][i] = elp[u][i];
+            elp[u][i] = index_of[elp[u][i]];
+         }
+      }
+      else
+      {
+         // search for words with greatest u_lu[q] for which d[q]!=0
+         q = u - 1;
 
-// have now found q such that d[u]!=0 and u_lu[q] is maximum
-// store degree of new elp polynomial
-            if (l[u]>l[q]+u-q)  l[u+1] = l[u] ;
-            else  l[u+1] = l[q]+u-q ;
+         while(d[q] == -1 && q>0)
+            q--;
 
-// form new elp(x)
-            for (i=0; i<nn-kk; i++)    elp[u+1][i] = 0 ;
-            for (i=0; i<=l[q]; i++)
-              if (elp[q][i]!=-1)
-                elp[u+1][i+u-q] = alpha_to[(d[u]+nn-d[q]+elp[q][i])%nn] ;
-            for (i=0; i<=l[u]; i++)
-              { elp[u+1][i] ^= elp[u][i] ;
-                elp[u][i] = index_of[elp[u][i]] ;  //convert old elp value to index
-              }
-          }
-        u_lu[u+1] = u-l[u+1] ;
+         // have found first non-zero d[q]
+         if(q > 0)
+         {
+            j = q;
+            do {
+               j--;
+               if(d[j] != -1 && u_lu[q] < u_lu[j])
+                  q = j;
+            } while(j > 0);
+         }
 
-// form (u+1)th discrepancy
-        if (u<nn-kk)    // no discrepancy computed on last iteration
-          {
-            if (s[u+1]!=-1)
-                   d[u+1] = alpha_to[s[u+1]] ;
-            else
-              d[u+1] = 0 ;
-            for (i=1; i<=l[u+1]; i++)
-              if ((s[u+1-i]!=-1) && (elp[u+1][i]!=0))
-                d[u+1] ^= alpha_to[(s[u+1-i]+index_of[elp[u+1][i]])%nn] ;
-            d[u+1] = index_of[d[u+1]] ;    // put d[u+1] into index form
-          }
-      } while ((u<nn-kk) && (l[u+1]<=tt)) ;
+         // have now found q such that d[u]!=0 and u_lu[q] is maximum
+         // store degree of new elp polynomial
+         if(l[u] > l[q] + u - q)
+            l[u+1] = l[u];
+         else
+            l[u+1] = l[q] + u - q;
 
-      u++ ;
-      if (l[u]<=tt)         // can correct error
-       {
-// put elp into index form
-         for (i=0; i<=l[u]; i++)   elp[u][i] = index_of[elp[u][i]] ;
+         // form new elp(x)
+         for(i = 0; i < nn-kk; i++)
+            elp[u+1][i] = 0;
 
-// find roots of the error location polynomial
-         for (i=1; i<=l[u]; i++)
-           reg[i] = elp[u][i] ;
-         count = 0 ;
-         for (i=1; i<=nn; i++)
-          {  q = 1 ;
-             for (j=1; j<=l[u]; j++)
-              if (reg[j]!=-1)
-                { reg[j] = (reg[j]+j)%nn ;
-                  q ^= alpha_to[reg[j]] ;
-                } ;
-             if (!q)        // store root and error location number indices
-              { root[count] = i;
-                loc[count] = nn-i ;
-                count++ ;
-              };
-          } ;
-         if (count==l[u])    // no. roots = degree of elp hence <= tt errors
-          {
-// form polynomial z(x)
-           for (i=1; i<=l[u]; i++)        // Z[0] = 1 always - do not need
-            { if ((s[i]!=-1) && (elp[u][i]!=-1))
-                 z[i] = alpha_to[s[i]] ^ alpha_to[elp[u][i]] ;
-              else if ((s[i]!=-1) && (elp[u][i]==-1))
-                      z[i] = alpha_to[s[i]] ;
-                   else if ((s[i]==-1) && (elp[u][i]!=-1))
-                          z[i] = alpha_to[elp[u][i]] ;
-                        else
-                          z[i] = 0 ;
-              for (j=1; j<i; j++)
-                if ((s[j]!=-1) && (elp[u][i-j]!=-1))
-                   z[i] ^= alpha_to[(elp[u][i-j] + s[j])%nn] ;
-              z[i] = index_of[z[i]] ;         // put into index form
-            } ;
+         for(i = 0; i <= l[q]; i++)
+         {
+            if(elp[q][i] != -1)
+               elp[u+1][i+u-q] = alpha_to[(d[u]+nn-d[q]+elp[q][i])%nn];
+         }
 
-  // evaluate errors at locations given by error location numbers loc[i]
-           for (i=0; i<nn; i++)
-             { err[i] = 0 ;
-               if (recd[i]!=-1)        // convert recd[] to polynomial form
-                 recd[i] = alpha_to[recd[i]] ;
-               else  recd[i] = 0 ;
-             }
-           for (i=0; i<l[u]; i++)    // compute numerator of error term first
-            { err[loc[i]] = 1;       // accounts for z[0]
-              for (j=1; j<=l[u]; j++)
-                if (z[j]!=-1)
-                  err[loc[i]] ^= alpha_to[(z[j]+j*root[i])%nn] ;
-              if (err[loc[i]]!=0)
-               { err[loc[i]] = index_of[err[loc[i]]] ;
-                 q = 0 ;     // form denominator of error term
-                 for (j=0; j<l[u]; j++)
-                   if (j!=i)
-                     q += index_of[1^alpha_to[(loc[j]+root[i])%nn]] ;
-                 q = q % nn ;
-                 err[loc[i]] = alpha_to[(err[loc[i]]-q+nn)%nn] ;
-                 recd[loc[i]] ^= err[loc[i]] ;  //recd[i] must be in polynomial form
-               }
+         for(i=0; i<=l[u]; i++)
+         {
+            elp[u+1][i] ^= elp[u][i];
+            elp[u][i] = index_of[elp[u][i]];  // convert old elp value to index
+         }
+      }
+      u_lu[u+1] = u-l[u+1];
+
+      // form (u+1)th discrepancy
+      if(u < nn-kk)    // no discrepancy computed on last iteration
+      {
+         if(s[u+1]!=-1)
+            d[u+1] = alpha_to[s[u+1]];
+         else
+            d[u+1] = 0;
+
+         for(i=1; i<=l[u+1]; i++)
+         {
+            if((s[u+1-i]!=-1) && (elp[u+1][i]!=0))
+               d[u+1] ^= alpha_to[(s[u+1-i]+index_of[elp[u+1][i]])%nn];
+         }
+         d[u+1] = index_of[d[u+1]];    // put d[u+1] into index form
+      }
+   } while(u < nn-kk && l[u+1] <= tt);
+
+   u++;
+
+   // elp has degree has degree > tt hence cannot solve
+   if(l[u] > tt)
+   {
+      // could return error flag if desired
+      // convert recd[] to polynomial form or output as is
+      for(i = 0; i < nn; i++)
+         recd[i] = (recd[i] == -1) ? 0 : alpha_to[recd[i]];
+   }
+   else // can correct error
+   {
+      // put elp into index form
+      for(i = 0; i <= l[u]; i++)
+         elp[u][i] = index_of[elp[u][i]];
+
+      // find roots of the error location polynomial
+      for(i = 1; i <= l[u]; i++)
+         reg[i] = elp[u][i];
+
+      count = 0;
+      for(i = 1; i <= nn; i++)
+      {
+         q = 1;
+         for(j = 1; j <= l[u]; j++)
+         {
+            if(reg[j] != -1)
+            {
+               reg[j] = (reg[j] + j) % nn;
+               q ^= alpha_to[reg[j]];
             }
-          }
-         else    // no. roots != degree of elp => >tt errors and cannot solve
-           for (i=0; i<nn; i++)        // could return error flag if desired
-               if (recd[i]!=-1)        // convert recd[] to polynomial form
-                 recd[i] = alpha_to[recd[i]] ;
-               else  recd[i] = 0 ;     // just output received codeword as is
-       }
-     else         // elp has degree has degree >tt hence cannot solve
-       for (i=0; i<nn; i++)       // could return error flag if desired
-          if (recd[i]!=-1)        // convert recd[] to polynomial form
-            recd[i] = alpha_to[recd[i]] ;
-          else  recd[i] = 0 ;     // just output received codeword as is
-    }
-   else       // no non-zero syndromes => no errors: output received codeword
-    for (i=0; i<nn; i++)
-       if (recd[i]!=-1)        // convert recd[] to polynomial form
-         recd[i] = alpha_to[recd[i]] ;
-       else  recd[i] = 0 ;
+         }
+
+         if(!q)
+         {
+            // store root and error location number indices
+            root[count] = i;
+            loc[count] = nn - i;
+            count++;
+         }
+      }
+
+      if(count == l[u]) // no. roots = degree of elp hence <= tt errors
+      {
+         // form polynomial z(x)
+         for(i = 1; i <= l[u]; i++)        // Z[0] = 1 always - do not need
+         {
+            if((s[i] != -1) && (elp[u][i] != -1))
+               z[i] = alpha_to[s[i]] ^ alpha_to[elp[u][i]];
+            else if((s[i] != -1) && (elp[u][i] == -1))
+               z[i] = alpha_to[s[i]];
+            else if((s[i] == -1) && (elp[u][i] != -1))
+               z[i] = alpha_to[elp[u][i]];
+            else
+               z[i] = 0;
+
+            for(j = 1; j < i; j++)
+            {
+               if(s[j] != -1 && elp[u][i-j] != -1)
+                  z[i] ^= alpha_to[(elp[u][i-j] + s[j])%nn];
+            }
+            z[i] = index_of[z[i]]; // put into index form
+         }
+
+         // evaluate errors at locations given by error location numbers loc[i]
+         for(i = 0; i < nn; i++)
+         {
+            err[i] = 0;
+            recd[i] = (recd[i] == -1) ? 0 : alpha_to[recd[i]]; // convert recd[] to polynomial form
+         }
+
+         // compute numerator of error term first
+         for(i = 0; i < l[u]; i++)
+         {
+            err[loc[i]] = 1; // accounts for z[0]
+            for(j = 1; j <= l[u]; j++)
+            {
+               if(z[j]!=-1)
+                  err[loc[i]] ^= alpha_to[(z[j]+j*root[i])%nn];
+            }
+            if(err[loc[i]] != 0)
+            {
+               err[loc[i]] = index_of[err[loc[i]]];
+               q = 0; // form denominator of error term
+               for(j = 0; j < l[u]; j++)
+               {
+                  if(j != i)
+                     q += index_of[1^alpha_to[(loc[j]+root[i])%nn]];
+               }
+               q = q % nn;
+               err[loc[i]] = alpha_to[(err[loc[i]]-q+nn)%nn];
+               recd[loc[i]] ^= err[loc[i]]; // recd[i] must be in polynomial form
+            }
+         }
+      }
+      else // no. roots != degree of elp => >tt errors and cannot solve
+      {
+         // could return error flag if desired
+         // convert recd[] to polynomial form or output as is
+         for(i = 0; i < nn; i++)
+            recd[i] = (recd[i] == -1) ? 0 : alpha_to[recd[i]];
+      }
+   }
 */
 
    return DmtxPass;
 }
-
-/*
- * Generate log/antilog tables
- *
-void FillLogArrays(void)
-{
-   int i;
-
-   for(i = 0; i < GF; i++)
-   {
-      if(i == 0)
-         antilog301[i] = 1; // 2**0 = 1
-      else if(i == NN)
-         antilog301[i] = 0; // 2**x = 0 (impossible)
-      else
-         antilog301[i] = antilog301[i - 1] * 2; // 2**x == 2**(x-1) * 2
-
-      if(antilog301[i] >= GF)
-         antilog301[i] ^= PP;
-
-      log301[antilog301[i]] = i;
-   }
-}
-*/
