@@ -353,7 +353,8 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
    ModulePlacementEcc200(msg->array, msg->code,
          reg->sizeIdx, DmtxModuleOnRed | DmtxModuleOnGreen | DmtxModuleOnBlue);
 
-   if(DecodeCheckErrors(msg->code, reg->sizeIdx, fix) != DmtxPass) {
+   if(RsDecode(msg->code, reg->sizeIdx, fix) == DmtxFail)
+   {
       dmtxMessageDestroy(&msg);
       return NULL;
    }

@@ -215,7 +215,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    memcpy(enc->message->code, buf, dataWordCount);
 
    /* Generate error correction codewords */
-   GenReedSolEcc(enc->message, enc->region.sizeIdx);
+   RsEncode(enc->message, enc->region.sizeIdx);
 
    /* Module placement in region */
    ModulePlacementEcc200(enc->message->array, enc->message->code,
