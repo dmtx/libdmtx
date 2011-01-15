@@ -30,6 +30,7 @@ Contact: mike@dragonflylogic.com
 
 #define NN                      255
 #define MAX_ERROR_WORD_COUNT     68
+#define MAX_SYNDROME_COUNT       MAX_ERROR_WORD_COUNT + 1
 
 /* GF(256) log values using primitive polynomial 301 */
 static unsigned char log301[] =
@@ -142,7 +143,7 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
    int blockErrorWords, blockTotalWords, blockMaxCorrectable;
    unsigned char recd[NN];
    unsigned char g[MAX_ERROR_WORD_COUNT];
-   unsigned char s[MAX_ERROR_WORD_COUNT + 1];
+   unsigned char s[MAX_SYNDROME_COUNT];
    DmtxBoolean errorFound;
 
    blockStride = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
@@ -223,14 +224,13 @@ RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords)
    int i, j;
    DmtxBoolean errorFound = DmtxFalse;
 
-   memset(s, 0x00, sizeof(unsigned char) * (MAX_ERROR_WORD_COUNT + 1));
+   memset(s, 0x00, sizeof(unsigned char) * MAX_SYNDROME_COUNT);
 
    /* Form syndromes */
    for(i = 1; i <= blockErrorWords; i++)
    {
       for(j = 0; j < NN; j++) /* XXX this doesn't seem right (too many iterations) */
-         if(recd[j] != 0)
-            s[i] = GfAdd(s[i], GfMultAntilog(recd[j], i*j)); /* s[i] += recd[j] * 2**(i*j) */
+         s[i] = GfAdd(s[i], GfMultAntilog(recd[j], i*j)); /* s[i] += recd[j] * 2**(i*j) */
 
       /* Non-zero syndrome indicates error */
       if(s[i] != 0)
