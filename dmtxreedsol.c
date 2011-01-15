@@ -30,7 +30,7 @@ Contact: mike@dragonflylogic.com
 
 #define NN                      255
 #define MAX_ERROR_WORD_COUNT     68
-#define MAX_SYNDROME_COUNT       MAX_ERROR_WORD_COUNT + 1
+#define MAX_SYNDROME_COUNT       69
 
 /* GF(256) log values using primitive polynomial 301 */
 static unsigned char log301[] =
