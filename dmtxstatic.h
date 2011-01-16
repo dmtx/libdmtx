@@ -217,7 +217,7 @@ static void PlaceModule(unsigned char *modules, int mappingRows, int mappingCols
 static DmtxPassFail RsEncode(DmtxMessage *message, int sizeIdx);
 static DmtxPassFail RsDecode(unsigned char *code, int sizeIdx, int fix);
 static DmtxPassFail RsGenPoly(unsigned char *g, int errorWordCount);
-static DmtxBoolean RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockTotalWords);
+static DmtxBoolean RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords, int blockTotalWords);
 static DmtxPassFail RsRepairErrors();
 
 /* dmtxscangrid.c */

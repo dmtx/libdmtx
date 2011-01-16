@@ -164,7 +164,7 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
          recd[i] = code[blockTotalWords - (blockIdx + i * blockStride) - 1];
 
       /* Calculate syndrome */
-      errorFound = RsCalcSyndrome(s, recd, blockErrorWords);
+      errorFound = RsCalcSyndrome(s, recd, blockErrorWords, blockTotalWords);
 
       /* XXX temporary until error correction works again */
       if(errorFound == DmtxTrue)
@@ -219,7 +219,7 @@ RsGenPoly(unsigned char *g, int errorWordCount)
  *
  */
 static DmtxBoolean
-RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords)
+RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords, int blockTotalWords)
 {
    int i, j;
    DmtxBoolean errorFound = DmtxFalse;
@@ -229,8 +229,8 @@ RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords)
    /* Form syndromes */
    for(i = 1; i <= blockErrorWords; i++)
    {
-      for(j = 0; j < NN; j++) /* XXX this doesn't seem right (too many iterations) */
-         s[i] = GfAdd(s[i], GfMultAntilog(recd[j], i*j)); /* s[i] += recd[j] * 2**(i*j) */
+      for(j = 0; j < blockTotalWords; j++)
+         s[i] = GfAdd(s[i], GfMultAntilog(recd[j], i*j)); /* s[i] += recd[j] * alpha(j*(b-1+i)) */
 
       /* Non-zero syndrome indicates error */
       if(s[i] != 0)
