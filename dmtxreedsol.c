@@ -161,7 +161,7 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       /* Populate recd with data and error codewords */
       memset(recd, 0x00, sizeof(recd));
       for(i = 0; i < blockTotalWords; i++)
-         recd[i] = code[blockTotalWords - (blockIdx + i * blockStride) - 1];
+         recd[i] = code[blockIdx + blockStride * (blockTotalWords - 1 - i)];
 
       /* Calculate syndrome */
       errorFound = RsCalcSyndrome(s, recd, blockErrorWords, blockTotalWords);
