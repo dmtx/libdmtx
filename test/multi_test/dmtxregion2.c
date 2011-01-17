@@ -29,10 +29,7 @@ Contact: mblaughton@users.sourceforge.net
 #include "multi_test.h"
 #include "kiss_fftr.h"
 
-#define RETURN_FAIL_IF(C) \
-   if(C) { \
-      return DmtxFail; \
-   }
+#define RETURN_FAIL_IF(c) if(c) { return DmtxFail; }
 
 /*
 struct Deskew {

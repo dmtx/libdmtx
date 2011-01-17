@@ -63,8 +63,8 @@ dmtxDecode2Destroy(DmtxDecode2 **dec)
    return DmtxPass;
 }
 
-#define RETURN_FAIL_IF(C) \
-   if(C) { \
+#define RETURN_FAIL_IF(c) \
+   if(c) { \
       decode2ReleaseCacheMemory(dec); \
       return DmtxFail; \
    }

@@ -31,9 +31,9 @@ if CUSTOM_REGIONSCANPIXEL
 libdmtx_la_LIBADD += customRegionScanPixel.lo
 endif
 
-EXTRA_libdmtx_la_SOURCES = dmtxdecode.c dmtxencode.c dmtxfec.c dmtximage.c \
-	dmtxmatrix3.c dmtxmessage.c dmtxplacemod.c dmtxreedsol.c dmtxregion.c \
-	dmtxscangrid.c dmtxstatic.h dmtxsymbol.c dmtxtime.c dmtxvector2.c
+EXTRA_libdmtx_la_SOURCES = dmtxdecode.c dmtxencode.c dmtximage.c dmtxmatrix3.c \
+	dmtxmessage.c dmtxplacemod.c dmtxreedsol.c dmtxregion.c dmtxscangrid.c \
+	dmtxstatic.h dmtxsymbol.c dmtxtime.c dmtxvector2.c
 
 include_HEADERS = dmtx.h
 

@@ -105,10 +105,10 @@ RsEncode(DmtxMessage *message, int sizeIdx)
    /* Populate the generator polynomial */
    RsGenPoly(g, blockErrorWords);
 
-   /* Generate error codewords for each interleaved block */
+   /* Generate error codewords for all interleaved blocks */
    for(blockIdx = 0; blockIdx < blockStride; blockIdx++)
    {
-      /* Generate error codewords */
+      /* Generate */
       memset(b, 0x00, sizeof(b));
       for(i = blockIdx; i < symbolDataWords; i += blockStride)
       {
@@ -120,7 +120,7 @@ RsEncode(DmtxMessage *message, int sizeIdx)
          b[0] = GfMult(g[0], val);
       }
 
-      /* Write error codewords */
+      /* Copy to output message */
       bPtr = b + blockErrorWords;
       for(i = blockIdx + symbolDataWords; i < symbolTotalWords; i += blockStride)
          message->code[i] = *(--bPtr);
@@ -144,7 +144,7 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
    unsigned char recd[NN];
    unsigned char g[MAX_ERROR_WORD_COUNT];
    unsigned char s[MAX_SYNDROME_COUNT];
-   DmtxBoolean errorFound;
+   DmtxBoolean error;
 
    blockStride = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
    blockErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
@@ -158,23 +158,21 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       /* Need to query at block level because of special case at 144x144 */
       blockTotalWords = blockErrorWords + dmtxGetBlockDataSize(sizeIdx, blockIdx);
 
-      /* Populate recd with data and error codewords */
+      /* Populate recd[] with data and error codewords */
       memset(recd, 0x00, sizeof(recd));
       for(i = 0; i < blockTotalWords; i++)
          recd[i] = code[blockIdx + blockStride * (blockTotalWords - 1 - i)];
 
       /* Calculate syndrome */
-      errorFound = RsCalcSyndrome(s, recd, blockErrorWords, blockTotalWords);
+      error = RsCalcSyndrome(s, recd, blockErrorWords, blockTotalWords);
 
-      /* XXX temporary until error correction works again */
-      if(errorFound == DmtxTrue)
+      /* Attempt to repair detected error(s) */
+      if(error)
+         error = RsRepairErrors(recd, s, blockTotalWords);
+
+      /* Unable to repair errors */
+      if(error)
          return DmtxFail;
-
-      /* Repair errors */
-/*
-      if(errorFound == DmtxTrue)
-         RsRepairErrors(s, recd, blockTotalWords);
-*/
 
       /* Write out codewords */
 /*
@@ -222,33 +220,34 @@ static DmtxBoolean
 RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords, int blockTotalWords)
 {
    int i, j;
-   DmtxBoolean errorFound = DmtxFalse;
+   DmtxBoolean error = DmtxFalse;
 
    memset(s, 0x00, sizeof(unsigned char) * MAX_SYNDROME_COUNT);
 
    /* Form syndromes */
    for(i = 1; i <= blockErrorWords; i++)
    {
+      /* Calculate syndrome at i */
       for(j = 0; j < blockTotalWords; j++)
-         s[i] = GfAdd(s[i], GfMultAntilog(recd[j], i*j)); /* s[i] += recd[j] * alpha(j*(b-1+i)) */
+         s[i] = GfAdd(s[i], GfMultAntilog(recd[j], i*j));
 
       /* Non-zero syndrome indicates error */
       if(s[i] != 0)
-         errorFound = DmtxTrue;
+         error = DmtxTrue;
 
       /* Convert syndrome to index form */
       s[i] = log301[s[i]];
    }
 
-   return errorFound;
+   return error;
 }
 
 /**
  *
  *
  */
-static DmtxPassFail
-RsRepairErrors()
+static DmtxBoolean
+RsRepairErrors(unsigned char *recd, unsigned char *s, int blockTotalWords)
 {
 /*
    // remember that recd is in polynomial form but this code assumes index form
@@ -451,5 +450,5 @@ RsRepairErrors()
    }
 */
 
-   return DmtxPass;
+   return DmtxTrue; /* XXX temporary until error correction works again */
 }

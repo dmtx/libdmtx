@@ -69,10 +69,7 @@ AccelDestroy(DmtxAccel **accel)
    return DmtxPass;
 }
 
-#define RETURN_FAIL_IF(C) \
-   if(C) { \
-      return DmtxFail; \
-   }
+#define RETURN_FAIL_IF(c) if(c) { return DmtxFail; }
 
 /**
  *

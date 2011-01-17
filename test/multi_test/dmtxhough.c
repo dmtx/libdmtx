@@ -81,8 +81,8 @@ HoughDestroy(DmtxHough **grid)
    return DmtxPass;
 }
 
-#define RETURN_FAIL_IF(C) \
-   if(C) { \
+#define RETURN_FAIL_IF(c) \
+   if(c) { \
       HoughDestroy(&(dec->hough)); \
       return DmtxFail; \
    }
