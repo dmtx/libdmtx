@@ -168,15 +168,15 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
 
       /* Attempt to repair detected error(s) */
       if(error)
-         error = RsRepairErrors(recd, s, blockTotalWords);
+         error = RsRepairErrors(recd, s, blockErrorWords, blockTotalWords);
 
-      /* Unable to repair errors */
+      /* Unable to repair */
       if(error)
          return DmtxFail;
 
       /* Write out codewords */
 /*
-      for(i = 0; i < nn; i++)
+      for(i = 0; i < NN; i++)
          recd[i] = (recd[i] == -1) ? 0 : antilog301[recd[i]];
 */
    }
@@ -213,8 +213,10 @@ RsGenPoly(unsigned char *g, int errorWordCount)
 }
 
 /**
- *
- *
+ * Assume we have received bits grouped into mm-bit symbols in recd[i],
+ * i=0..(nn-1),  and recd[i] is index form (ie as powers of alpha). We first
+ * compute the 2*tt syndromes by substituting alpha**i into rec(X) and
+ * evaluating, storing the syndromes in s[i], i=1..2tt (leave s[0] zero).
  */
 static DmtxBoolean
 RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords, int blockTotalWords)
@@ -243,53 +245,90 @@ RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords, int b
 }
 
 /**
+ * First use the Berlekamp iteration to find the error location polynomial elp[i].
  *
+ * If the degree of the elp is > tt, we cannot correct all the errors and hence
+ * just put out the information symbols uncorrected. If the degree of elp is <=
+ * tt, we substitute alpha**i , i=1..n into the elp to get the roots, hence the
+ * inverse roots, the error location numbers. If the number of errors located
+ * does not equal the degree of the elp, we have more than tt errors and cannot
+ * correct them.  Otherwise, we then solve for the error value at the error
+ * location and correct the error.  The procedure is that found in Lin and
+ * Costello. For the cases where the number of errors is known to be too large
+ * to correct, the information symbols as received are output (the advantage of
+ * systematic encoding is that hopefully some of the information symbols will be
+ * okay and that if we are in luck, the errors are in the parity part of the
+ * transmitted codeword).  Of course, these insoluble cases can be returned as
+ * error flags to the calling routine if desired.
  *
+ * nn == NN == 255
+ * tt == number of errors that can be corrected = maxCorrectableErrors
+ * kk == nn - 2*tt (either data words or data words plus padding)
+ * nn - kk == nn - (nn - 2*tt) == 2 * tt == blockErrorWords (?)
+ * elp is error location polynomial
+ * l[] is lambda?
+ * d[] is discrepancy?
+ * u_lup[] is ?
+ * z[] is ?
+ * reg[] is ?
+ * u is step ?
+ * q is ?
  */
 static DmtxBoolean
-RsRepairErrors(unsigned char *recd, unsigned char *s, int blockTotalWords)
+RsRepairErrors(unsigned char *recd, unsigned char *s, int blockErrorWords, int blockTotalWords)
 {
+   DmtxBoolean error = DmtxTrue;
+
+   int i;
+   int d[MAX_ERROR_WORD_COUNT + 2];
+   int elp[MAX_ERROR_WORD_COUNT + 2][MAX_ERROR_WORD_COUNT];
 /*
-   // remember that recd is in polynomial form but this code assumes index form
+   int j, u, q;
+   int l[MAX_ERROR_WORD_COUNT + 2];
+   int u_lu[MAX_ERROR_WORD_COUNT + 2];
+   int root[tt], loc[tt], z[tt+1], err[nn], reg[tt+1];
+   int count = 0;
 
-   // initialise table entries
-   d[0] = 0;           // index form
-   d[1] = s[1];        // index form
-   elp[0][0] = 0;      // index form
-   elp[1][0] = 1;      // polynomial form
+   // remember that recd is in char/polynomial form but this code assumes int/index form
+   // s is received as unsigned in in XXX form ... expected here in index form
 
-   for(i = 1; i < nn-kk; i++)
+   maxCorrectableErrors = xyz;
+*/
+   /* Initialise table entries */
+   d[0] = 0;           /* index form */
+   d[1] = s[1];        /* index form */
+   elp[0][0] = 0;      /* index form */
+   elp[1][0] = 1;      /* polynomial form */
+
+   for(i = 1; i < blockErrorWords; i++)
    {
-      elp[0][i] = -1;  // index form
-      elp[1][i] = 0;   // polynomial form
+      elp[0][i] = -1;  /* index form */
+      elp[1][i] = 0;   /* polynomial form */
    }
-
+/*
    l[0] = 0;
    l[1] = 0;
    u_lu[0] = -1;
    u_lu[1] = 0;
    u = 0;
 
-   //
-   //
-   //
    do {
       u++;
       if(d[u] == -1)
       {
          l[u+1] = l[u];
-         for(i=0; i<=l[u]; i++)
+         for(i = 0; i <= l[u]; i++)
          {
             elp[u+1][i] = elp[u][i];
-            elp[u][i] = index_of[elp[u][i]];
+            elp[u][i] = log301[elp[u][i]];
          }
       }
       else
       {
-         // search for words with greatest u_lu[q] for which d[q]!=0
+         // search for words with greatest u_lu[q] for which d[q] != 0
          q = u - 1;
 
-         while(d[q] == -1 && q>0)
+         while(d[q] == -1 && q > 0)
             q--;
 
          // have found first non-zero d[q]
@@ -303,48 +342,44 @@ RsRepairErrors(unsigned char *recd, unsigned char *s, int blockTotalWords)
             } while(j > 0);
          }
 
-         // have now found q such that d[u]!=0 and u_lu[q] is maximum
+         // have now found q such that d[u] != 0 and u_lu[q] is maximum
          // store degree of new elp polynomial
-         if(l[u] > l[q] + u - q)
-            l[u+1] = l[u];
-         else
-            l[u+1] = l[q] + u - q;
+         l[u+1] = (l[u] > l[q] + u - q) ? l[u] : l[q] + u - q;
 
          // form new elp(x)
-         for(i = 0; i < nn-kk; i++)
+         for(i = 0; i < blockErrorWords; i++)
             elp[u+1][i] = 0;
 
          for(i = 0; i <= l[q]; i++)
          {
             if(elp[q][i] != -1)
-               elp[u+1][i+u-q] = alpha_to[(d[u]+nn-d[q]+elp[q][i])%nn];
+               elp[u+1][i+u-q] = antilog301[(d[u]+nn-d[q]+elp[q][i]) % NN];
          }
 
-         for(i=0; i<=l[u]; i++)
+         for(i = 0; i <= l[u]; i++)
          {
             elp[u+1][i] ^= elp[u][i];
-            elp[u][i] = index_of[elp[u][i]];  // convert old elp value to index
+            elp[u][i] = log301[elp[u][i]]; // convert old elp value to index
          }
       }
       u_lu[u+1] = u-l[u+1];
 
       // form (u+1)th discrepancy
-      if(u < nn-kk)    // no discrepancy computed on last iteration
+      if(u < blockErrorWords) // no discrepancy computed on last iteration
       {
-         if(s[u+1]!=-1)
-            d[u+1] = alpha_to[s[u+1]];
-         else
-            d[u+1] = 0;
+         d[u+1] = (s[u+1] == -1) ? 0 : antilog301[s[u+1]];
 
          for(i=1; i<=l[u+1]; i++)
          {
             if((s[u+1-i]!=-1) && (elp[u+1][i]!=0))
-               d[u+1] ^= alpha_to[(s[u+1-i]+index_of[elp[u+1][i]])%nn];
+               d[u+1] ^= antilog301[(s[u+1-i]+log301[elp[u+1][i]]) % NN];
          }
-         d[u+1] = index_of[d[u+1]];    // put d[u+1] into index form
+         d[u+1] = log301[d[u+1]]; // put d[u+1] into index form
       }
-   } while(u < nn-kk && l[u+1] <= tt);
-
+   } while(u < blockErrorWords && l[u+1] <= maxCorrectableErrors);
+*/
+/******************************************************************************/
+/*
    u++;
 
    // elp has degree has degree > tt hence cannot solve
@@ -352,29 +387,29 @@ RsRepairErrors(unsigned char *recd, unsigned char *s, int blockTotalWords)
    {
       // could return error flag if desired
       // convert recd[] to polynomial form or output as is
-      for(i = 0; i < nn; i++)
-         recd[i] = (recd[i] == -1) ? 0 : alpha_to[recd[i]];
+      for(i = 0; i < NN; i++)
+         recd[i] = (recd[i] == -1) ? 0 : antilog301[recd[i]];
    }
    else // can correct error
    {
       // put elp into index form
       for(i = 0; i <= l[u]; i++)
-         elp[u][i] = index_of[elp[u][i]];
+         elp[u][i] = log301[elp[u][i]];
 
       // find roots of the error location polynomial
       for(i = 1; i <= l[u]; i++)
          reg[i] = elp[u][i];
 
       count = 0;
-      for(i = 1; i <= nn; i++)
+      for(i = 1; i <= NN; i++)
       {
          q = 1;
          for(j = 1; j <= l[u]; j++)
          {
             if(reg[j] != -1)
             {
-               reg[j] = (reg[j] + j) % nn;
-               q ^= alpha_to[reg[j]];
+               reg[j] = (reg[j] + j) % NN;
+               q ^= antilog301[reg[j]];
             }
          }
 
@@ -382,7 +417,7 @@ RsRepairErrors(unsigned char *recd, unsigned char *s, int blockTotalWords)
          {
             // store root and error location number indices
             root[count] = i;
-            loc[count] = nn - i;
+            loc[count] = NN - i;
             count++;
          }
       }
@@ -393,27 +428,27 @@ RsRepairErrors(unsigned char *recd, unsigned char *s, int blockTotalWords)
          for(i = 1; i <= l[u]; i++)        // Z[0] = 1 always - do not need
          {
             if((s[i] != -1) && (elp[u][i] != -1))
-               z[i] = alpha_to[s[i]] ^ alpha_to[elp[u][i]];
+               z[i] = antilog301[s[i]] ^ antilog301[elp[u][i]];
             else if((s[i] != -1) && (elp[u][i] == -1))
-               z[i] = alpha_to[s[i]];
+               z[i] = antilog301[s[i]];
             else if((s[i] == -1) && (elp[u][i] != -1))
-               z[i] = alpha_to[elp[u][i]];
+               z[i] = antilog301[elp[u][i]];
             else
                z[i] = 0;
 
             for(j = 1; j < i; j++)
             {
                if(s[j] != -1 && elp[u][i-j] != -1)
-                  z[i] ^= alpha_to[(elp[u][i-j] + s[j])%nn];
+                  z[i] ^= antilog301[(elp[u][i-j] + s[j]) % NN];
             }
-            z[i] = index_of[z[i]]; // put into index form
+            z[i] = log301[z[i]]; // put into index form
          }
 
          // evaluate errors at locations given by error location numbers loc[i]
-         for(i = 0; i < nn; i++)
+         for(i = 0; i < NN; i++)
          {
             err[i] = 0;
-            recd[i] = (recd[i] == -1) ? 0 : alpha_to[recd[i]]; // convert recd[] to polynomial form
+            recd[i] = (recd[i] == -1) ? 0 : antilog301[recd[i]]; // convert recd[] to polynomial form
          }
 
          // compute numerator of error term first
@@ -423,19 +458,19 @@ RsRepairErrors(unsigned char *recd, unsigned char *s, int blockTotalWords)
             for(j = 1; j <= l[u]; j++)
             {
                if(z[j]!=-1)
-                  err[loc[i]] ^= alpha_to[(z[j]+j*root[i])%nn];
+                  err[loc[i]] ^= antilog301[(z[j]+j*root[i]) % NN];
             }
             if(err[loc[i]] != 0)
             {
-               err[loc[i]] = index_of[err[loc[i]]];
+               err[loc[i]] = log301[err[loc[i]]];
                q = 0; // form denominator of error term
                for(j = 0; j < l[u]; j++)
                {
                   if(j != i)
-                     q += index_of[1^alpha_to[(loc[j]+root[i])%nn]];
+                     q += log301[1^antilog301[(loc[j]+root[i]) % NN]];
                }
-               q = q % nn;
-               err[loc[i]] = alpha_to[(err[loc[i]]-q+nn)%nn];
+               q = q % NN;
+               err[loc[i]] = antilog301[(err[loc[i]]-q+nn) % NN];
                recd[loc[i]] ^= err[loc[i]]; // recd[i] must be in polynomial form
             }
          }
@@ -444,11 +479,11 @@ RsRepairErrors(unsigned char *recd, unsigned char *s, int blockTotalWords)
       {
          // could return error flag if desired
          // convert recd[] to polynomial form or output as is
-         for(i = 0; i < nn; i++)
-            recd[i] = (recd[i] == -1) ? 0 : alpha_to[recd[i]];
+         for(i = 0; i < NN; i++)
+            recd[i] = (recd[i] == -1) ? 0 : antilog301[recd[i]];
       }
    }
 */
 
-   return DmtxTrue; /* XXX temporary until error correction works again */
+   return error;
 }
