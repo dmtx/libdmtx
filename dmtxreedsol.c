@@ -247,7 +247,7 @@ RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords, int b
          error = DmtxTrue;
 
       /* Convert syndrome to index form */
-      s[i] = log301[s[i]]; /* XXX does it still make sense to do this? */
+/*    s[i] = log301[s[i]]; */
    }
 
    return error;
@@ -286,17 +286,18 @@ RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords, int b
 static DmtxPassFail
 RsFindErrorLocatorPoly(unsigned char *s, int errorWordCount, int totalWordCount, int maxCorrectable)
 {
-   unsigned char elp[MAX_ERROR_WORD_COUNT + 2][MAX_ERROR_WORD_COUNT] /* [step][order] */
-   int l[MAX_ERROR_WORD_COUNT + 1];
+   unsigned char elp[MAX_SYNDROME_COUNT][MAX_ERROR_WORD_COUNT] = {{ 0 }};
+   int l[MAX_SYNDROME_COUNT] = { 0 };
    int d[MAX_ERROR_WORD_COUNT];
+   int lMaxIdx;
 
    /* i = 0 */
-   memset(elp[0], 1, sizeof(unsigned char) * MAX_ERROR_WORD_COUNT);
+   elp[0][0] = 1;
    l[0] = 0;
    d[0] = 1;
 
    /* i = 1 */
-   memset(elp[1], 1, sizeof(unsigned char) * MAX_ERROR_WORD_COUNT);
+   elp[1][0] = 1;
    l[1] = 0;
    d[1] = s[1];
 
@@ -313,22 +314,19 @@ RsFindErrorLocatorPoly(unsigned char *s, int errorWordCount, int totalWordCount,
       {
          /* Find earlier iteration (m) that provides maximal something XXX */
          lMaxIdx = 0;
-         for(m = 1; m < i; m++) /* is direction of iterations important? */
-         {
+         for(m = 1; m < i; m++) /* is iteration direction important? */
             if(d[m] != 0 && l[m] > l[lMaxIdx])
                lMaxIdx = m;
-         }
 
-         /* Calculate error correction polynomial elp[i] XXX less stuck now */
-         for(j = 0; j < l[i]; j++)
-         {
-            elp[i][j] = antilog301[(d[i] + NN - d[q] + elp[x][x]) % NN];
-                                         *    /      *
-                                  everything is in polynomial form though
-            elp[i][j] = antilog301[(d[i] + NN - d[q] + elp[x][x]) % NN];
-         }
+         /* Calculate error location polynomial elp[i] (1st addition) */
+         for(j = 0; j < XYZ; j++)
+            elp[i][j+iPrev-m] = antilog301[(log301[d[i]] - log301[d[m]] + NN + elp[m][j]) % NN];
 
-         /* Set l */
+         /* Calculate error location polynomial elp[i] (2nd addition) */
+         for(j = 0; j < XYZ; j++)
+            elp[i][j] = GfSum(elp[i][j],  elp[iPrev][j]);
+
+         /* Set lambda */
          lTmp = l[m] + iPrev - m;
          l[i] = max(l[i], lTmp);
       }
@@ -341,6 +339,7 @@ RsFindErrorLocatorPoly(unsigned char *s, int errorWordCount, int totalWordCount,
          d[i] = GfSum(d[i], GfMult(s[i-j-1], elp[i][j]));
    }
 
+   /* XXX is safe to use i here? */
    return (l[i] > maxCorrectable) ? DmtxFail : DmtxPass;
 }
 #endif
