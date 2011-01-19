@@ -219,6 +219,7 @@ static DmtxPassFail RsDecode(unsigned char *code, int sizeIdx, int fix);
 static DmtxPassFail RsGenPoly(unsigned char *g, int errorWordCount);
 static DmtxBoolean RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords, int blockTotalWords);
 static DmtxBoolean RsRepairErrors(unsigned char *recd, unsigned char *s, int blockErrorWords, int blockTotalWords);
+static DmtxPassFail RsFindErrorLocatorPoly(unsigned char *s, int errorWordCount, int totalWordCount, int maxxCorrectable);
 
 /* dmtxscangrid.c */
 static DmtxScanGrid InitScanGrid(DmtxDecode *dec);
