@@ -218,8 +218,9 @@ static DmtxPassFail RsEncode(DmtxMessage *message, int sizeIdx);
 static DmtxPassFail RsDecode(unsigned char *code, int sizeIdx, int fix);
 static DmtxPassFail RsGenPoly(unsigned char *gen, int errorWordCount);
 static DmtxBoolean RsCalcSyndrome(unsigned char *syn, unsigned char *recd, int blockErrorWords, int blockTotalWords);
-static DmtxBoolean RsRepairErrors(unsigned char *recd, unsigned char *syn, int blockErrorWords, int blockTotalWords);
-static DmtxPassFail RsFindErrorLocatorPoly(unsigned char *syn, int errorWordCount, int totalWordCount, int maxxCorrectable);
+static int RsFindErrorLocatorPoly(unsigned char *syn, int errorWordCount, int totalWordCount, int maxCorrectable);
+static DmtxPassFail RsFindErrorPositions(unsigned char *syn, int errorWordCount, int totalWordCount, int maxCorrectable);
+static DmtxPassFail RsFindErrorValues(unsigned char *syn, int errorWordCount, int totalWordCount, int maxCorrectable);
 
 /* dmtxscangrid.c */
 static DmtxScanGrid InitScanGrid(DmtxDecode *dec);
