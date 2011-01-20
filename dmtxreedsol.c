@@ -245,105 +245,75 @@ RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords, int b
       /* Non-zero syndrome indicates error */
       if(s[i] != 0)
          error = DmtxTrue;
-
-      /* Convert syndrome to index form */
-/*    s[i] = log301[s[i]]; */
    }
 
    return error;
 }
 
-#ifdef IGNORE_THIS_CODE
 /**
- * My take on it
- * Note that i == 0 in code represents i == -1 in book. Not sure how to make that clear in code.
+ * Find the error location polynomial elp[i] using Berlekamp-Massey Algorithm
  *
- * i == 2
- * l[2] = 1
- * d[2] = s[2] + s[1]*elp[2][0]
- * d[i] = s[i] + s[i-1] * elp[i][0]
- *
- * l[3] = 1
- * d[3] = s[3] + s[2]*elp[3][0]
- * d[i] = s[i] + s[i-1] * elp[i][0]
- *
- * l[4] = 2
- * d[4] = s[4] + s[3]*elp[4][0]   + s[2]*elp[4][1]
- * d[i] = s[i] + s[i-1]*elp[i][0] + s[i-2]*elp[i][1]
- *
- * l[5] = 2
- * d[5] = s[5] + s[4]*elp[5][0]   + s[3]*elp[5][1]
- * d[i] = s[i] + s[i-1]*elp[i][0] + s[i-2]*elp[i][1]
- *
- * l[6] = 3
- * d[6] = s[6] + s[5]*elp[6][0]   + s[4]*elp[6][1]   + s[3]*elp[6][2]
- * d[i] = s[i] + s[i-1]*elp[i][0] + s[i-2]*elp[i][1] + s[i-3]*elp[i][2]
- *
- * for(j = 0, d[i] = s[i]; j < l[i]; j++)
- *    d[i] = GfSum(d[i], GfMult(s[i-j-1], elp[i][j]));
- *
+ * If degree of elp is <= maxCorrectable errors return DmtxPass
+ * Otherwise return DmtxFail because uncorrectable errors are present
  */
 static DmtxPassFail
 RsFindErrorLocatorPoly(unsigned char *s, int errorWordCount, int totalWordCount, int maxCorrectable)
 {
-   unsigned char elp[MAX_SYNDROME_COUNT][MAX_ERROR_WORD_COUNT] = {{ 0 }};
-   int l[MAX_SYNDROME_COUNT] = { 0 };
-   int d[MAX_ERROR_WORD_COUNT];
-   int lMaxIdx;
+   int i, iNext, j;
+   int m, mCmp;
+   int dsc[MAX_ERROR_WORD_COUNT] = { 0 };
+   int lam[MAX_ERROR_WORD_COUNT+2] = { 0 };
+   unsigned char elp[MAX_ERROR_WORD_COUNT+2][MAX_ERROR_WORD_COUNT] = {{ 0 }};
 
-   /* i = 0 */
+   /* iNext = 0 */
    elp[0][0] = 1;
-   l[0] = 0;
-   d[0] = 1;
+   lam[0] = 0;
+   dis[0] = 1;
 
-   /* i = 1 */
+   /* iNext = 1 */
    elp[1][0] = 1;
-   l[1] = 0;
-   d[1] = s[1];
+   lam[1] = 0;
+   dis[1] = s[1];
 
-   /* i = 2..errorWordCount */
-   for(i = 2, iPrev = 1; /* explicit break */; iPrev = i++)
+   for(iNext = 2, i = 1; /* explicit break */ ; i = iNext++)
    {
-      if(d[iPrev] == 0)
+      if(dis[i] == 0)
       {
-         /* Simple case: Direct copy */
-         memcpy(elp[i], elp[iPrev], sizeof(unsigned char) * MAX_ERROR_WORD_COUNT);
-         l[i] = l[iPrev];
+         /* Simple case: Direct copy from previous iteration */
+         memcpy(elp[iNext], elp[i], sizeof(unsigned char) * MAX_ERROR_WORD_COUNT);
+         lam[iNext] = lam[i];
       }
       else
       {
-         /* Find earlier iteration (m) that provides maximal something XXX */
-         lMaxIdx = 0;
-         for(m = 1; m < i; m++) /* is iteration direction important? */
-            if(d[m] != 0 && l[m] > l[lMaxIdx])
-               lMaxIdx = m;
+         /* Find earlier iteration (m) that provides maximal (m - lam[m]) */
+         for(m = 0, mCmp = 1; mCmp < i; mCmp++)
+            if(dis[mCmp] != 0 && (mCmp - lam[mCmp]) > (m - lam[m]))
+               m = mCmp;
 
-         /* Calculate error location polynomial elp[i] (1st addition) */
-         for(j = 0; j < XYZ; j++)
-            elp[i][j+iPrev-m] = antilog301[(log301[d[i]] - log301[d[m]] + NN + elp[m][j]) % NN];
+         /* Calculate error location polynomial elp[i] (set 1st term) */
+         for(j = 0; j < lam[m]; j++)
+            elp[iNext][j+i-m] = antilog301[(log301[dis[i]] - log301[dis[m]] + NN + elp[m][j]) % NN];
 
-         /* Calculate error location polynomial elp[i] (2nd addition) */
-         for(j = 0; j < XYZ; j++)
-            elp[i][j] = GfSum(elp[i][j],  elp[iPrev][j]);
+         /* Calculate error location polynomial elp[i] (add 2nd term) */
+         for(j = 0; j < lam[i]; j++)
+            elp[iNext][j] = GfAdd(elp[iNext][j], elp[i][j]);
 
-         /* Set lambda */
-         lTmp = l[m] + iPrev - m;
-         l[i] = max(l[i], lTmp);
+         /* Record lambda - Note: lam[m] + iEqn - mEqn == lam[m] + (i-1) - (m-1) */
+         lam[iNext] = max(lam[i], lam[m] + i - m);
       }
 
-      if(i == errorWordCount || l[i] > maxCorrectable)
+      if(i == errorWordCount || i >= lam[iNext] + maxCorrectable)
          break;
 
-      /* Calculate discrepancy d[i] */
-      for(j = 0, d[i] = s[i]; j < l[i]; j++)
-         d[i] = GfSum(d[i], GfMult(s[i-j-1], elp[i][j]));
+      /* Calculate discrepancy dis[i] */
+      for(j = 0, dis[iNext] = s[iNext]; j < lam[iNext]; j++)
+         dis[iNext] = GfAdd(dis[iNext], GfMult(s[iNext-j-1], elp[iNext][j]));
    }
 
-   /* XXX is safe to use i here? */
-   return (l[i] > maxCorrectable) ? DmtxFail : DmtxPass;
+   return (lam[iNext] > maxCorrectable) ? DmtxFail : DmtxPass;
 }
-#endif
 
+#ifdef IGNORE_THIS_CODE
 /**
  * Find the error location polynomial elp[i] using Berlekamp-Massey
  *
@@ -454,6 +424,7 @@ RsFindErrorLocatorPoly(unsigned char *s, int errorWordCount, int totalWordCount,
 
    return (l[u] > maxCorrectable) ? DmtxFail : DmtxPass;
 }
+#endif
 
 /**
  * 1) Find the error location polynomial elp[i] using Berlekamp-Massey
