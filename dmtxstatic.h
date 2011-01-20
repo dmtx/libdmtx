@@ -216,10 +216,10 @@ static void PlaceModule(unsigned char *modules, int mappingRows, int mappingCols
 /* dmtxreedsol.c */
 static DmtxPassFail RsEncode(DmtxMessage *message, int sizeIdx);
 static DmtxPassFail RsDecode(unsigned char *code, int sizeIdx, int fix);
-static DmtxPassFail RsGenPoly(unsigned char *g, int errorWordCount);
-static DmtxBoolean RsCalcSyndrome(unsigned char *s, unsigned char *recd, int blockErrorWords, int blockTotalWords);
-static DmtxBoolean RsRepairErrors(unsigned char *recd, unsigned char *s, int blockErrorWords, int blockTotalWords);
-static DmtxPassFail RsFindErrorLocatorPoly(unsigned char *s, int errorWordCount, int totalWordCount, int maxxCorrectable);
+static DmtxPassFail RsGenPoly(unsigned char *gen, int errorWordCount);
+static DmtxBoolean RsCalcSyndrome(unsigned char *syn, unsigned char *recd, int blockErrorWords, int blockTotalWords);
+static DmtxBoolean RsRepairErrors(unsigned char *recd, unsigned char *syn, int blockErrorWords, int blockTotalWords);
+static DmtxPassFail RsFindErrorLocatorPoly(unsigned char *syn, int errorWordCount, int totalWordCount, int maxxCorrectable);
 
 /* dmtxscangrid.c */
 static DmtxScanGrid InitScanGrid(DmtxDecode *dec);
