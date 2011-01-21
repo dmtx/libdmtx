@@ -80,7 +80,7 @@ static unsigned char antilog301[] =
 #define GfMult(a,b) \
    (((a) == 0 || (b) == 0) ? 0 : antilog301[(log301[(a)] + log301[(b)]) % NN])
 
-/* GF multiply by antilog (a * 2**b) */
+/* GF multiply by antilog (a * alpha**b) */
 #define GfMultAntilog(a,b) \
    (((a) == 0) ? 0 : antilog301[(log301[(a)] + (b)) % NN])
 
@@ -174,7 +174,7 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       {
          iNext = RsFindErrorLocatorPoly(syn, blockErrorWords, blockTotalWords, blockMaxCorrectable);
 
-         RETURN_FAIL_IF(RsFindErrorPositions(syn, blockErrorWords, blockTotalWords, blockMaxCorrectable) == DmtxFail);
+         RETURN_FAIL_IF(RsFindErrorPositions(NULL /* elp[iNext] */, 0 /* lam[iNext] */, blockMaxCorrectable) == DmtxFail);
 
          RETURN_FAIL_IF(RsFindErrorValues(syn, blockErrorWords, blockTotalWords, blockMaxCorrectable) == DmtxFail);
       }
@@ -205,9 +205,9 @@ RsGenPoly(unsigned char *gen, int errorWordCount)
    {
       for(j = i - 1; j >= 0; j--)
       {
-         gen[j] = GfMultAntilog(gen[j], i);   /* gen[j] *= 2**i */
+         gen[j] = GfMultAntilog(gen[j], i);
          if(j > 0)
-            gen[j] = GfAdd(gen[j], gen[j-1]); /* gen[j] += gen[j-1] */
+            gen[j] = GfAdd(gen[j], gen[j-1]);
       }
    }
 
@@ -306,95 +306,35 @@ RsFindErrorLocatorPoly(unsigned char *syn, int errorWordCount, int totalWordCoun
 }
 
 /**
- * Find roots of the error locator polynomial (Chien Search?)
+ * Find roots of the error locator polynomial (Chien Search)
  *
  * If the degree of elp is <= tt, we substitute alpha**i, i=1..n into the elp
  * to get the roots, hence the inverse roots, the error location numbers.
  *
  * If the number of errors located does not equal the degree of the elp, we
  * have more than tt errors and cannot correct them.
- *
- * Note: the initial code assumes elp is in index form, but it's snot
  */
 static DmtxPassFail
-RsFindErrorPositions(unsigned char *syn, int errorWordCount, int totalWordCount, int maxCorrectable)
+RsFindErrorPositions(unsigned char *elp, int lam, int maxCorrectable)
 {
-/*
-   int count = 0;
+   int i, j;
+/* int count = 0; */
+   unsigned char q, reg[MAX_ERROR_WORD_COUNT];
 
-   if(lam[iNext] > maxCorrectable)
+   if(lam > maxCorrectable)
       return DmtxFail;
 
-   memcpy(reg, elp[u], sizeof(unsigned char) * MAX_ERROR_WORD_COUNT);
-
-   for(b = 1; b <= NN; b++)
-   {
-      q = 1;
-      for(j = 0; j <=? l[u]; j++)
-         q = GfAdd(q, antilog301[(log301[reg[j]] - b + NN) % NN]);
-
-      if(q == 0)
-      {
-         root[count] = i;
-         loc[count] = NN - i;
-         count++;
-      }
-   }
-
+   memcpy(reg, elp, sizeof(unsigned char) * MAX_ERROR_WORD_COUNT);
 
    for(i = 1; i <= NN; i++)
    {
-      q = 1;
-      for(j = 1; j <= l[u]; j++)
-      {
-         if(reg[j] != 0)
-         {
-            reg[j] = GfMultAntilog(reg[j], j);
-            q = GfAdd(q, reg[j]);
-         }
-      }
+      for(q = 1, j = 1; j <= lam; j++)
+         q = GfAdd(q, GfMultAntilog(reg[j], j));
 
-      if(q == 0)
-      {
-         // store root and error location number indices
-         root[count] = i;
-         loc[count] = NN - i;
-         count++;
-      }
+/*    if(q == 0)
+         loc[count++] = NN - i; */
    }
 
-********************************************************************************
-slightly modified original:
-
-   if(lam[iNext] > maxCorrectable)
-      return DmtxFail;
-
-   // find roots of the error location polynomial
-   for(i = 1; i <= l[u]; i++)
-      reg[i] = elp[u][i];
-
-   count = 0;
-   for(i = 1; i <= NN; i++)
-   {
-      q = 1;
-      for(j = 1; j <= l[u]; j++)
-      {
-         if(reg[j] != -1)
-         {
-            reg[j] = (reg[j] + j) % NN;
-            q = GfAdd(q, antilog301[reg[j]]);
-         }
-      }
-
-      if(q == 0)
-      {
-         // store root and error location number indices
-         root[count] = i;
-         loc[count] = NN - i;
-         count++;
-      }
-   }
-*/
    return DmtxPass;
 }
 
