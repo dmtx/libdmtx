@@ -302,6 +302,11 @@ RsFindErrorLocatorPoly(unsigned char *syn, int errorWordCount, int totalWordCoun
          dis[iNext] = GfAdd(dis[iNext], GfMult(syn[iNext-j-1], elp[iNext][j]));
    }
 
+/*
+   if(lam > maxCorrectable)
+      return DmtxFail; // XXX return solvable == DmtxTrue/DmtxFalse
+*/
+
    return iNext;
 }
 
@@ -321,9 +326,6 @@ RsFindErrorPositions(unsigned char *elp, int lam, int maxCorrectable)
 /* int count = 0; */
    unsigned char q, reg[MAX_ERROR_WORD_COUNT];
 
-   if(lam > maxCorrectable)
-      return DmtxFail;
-
    memcpy(reg, elp, sizeof(unsigned char) * MAX_ERROR_WORD_COUNT);
 
    for(i = 1; i <= NN; i++)
@@ -334,6 +336,10 @@ RsFindErrorPositions(unsigned char *elp, int lam, int maxCorrectable)
 /*    if(q == 0)
          loc[count++] = NN - i; */
    }
+
+/* // Number of roots != degree of elp => >tt errors and cannot solve
+   if(count != l[u])  XXX consider changing this to solvable DmtxTrue/DmtxFalse
+      return DmtxFail; */
 
    return DmtxPass;
 }
@@ -354,10 +360,24 @@ static DmtxPassFail
 RsFindErrorValues(unsigned char *syn, int errorWordCount, int totalWordCount, int maxCorrectable)
 {
 /*
-   // Number of roots != degree of elp => >tt errors and cannot solve
-   if(count != l[u])
-      return DmtxFail;
+   // Form polynomial z(x)
+   for(z[0] = 1, i = 1; i <= l[u]; i++)
+   {
+      if(s[i] != 0)
+      {
+         if((elp[u][i] != -1)
+            z[i] = antilog301[s[i]] ^ antilog301[elp[u][i]];
+         else if(elp[u][i] == -1)
+            z[i] = antilog301[s[i]];
+         else if(elp[u][i] != -1)
+            z[i] = antilog301[elp[u][i]];
+      }
+      else
+         z[i] = 0;
 
+   }
+*/
+/*
    // Form polynomial z(x)
    for(i = 1; i <= l[u]; i++) // Z[0] = 1 always - do not need
    {
