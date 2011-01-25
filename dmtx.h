@@ -77,6 +77,8 @@ extern "C" {
 #define DmtxModuleVisited           0x20
 #define DmtxModuleData              0x40
 
+#define DMTX_CHECK_BOUNDS(l,i) (assert((i) >= 0 && (i) < (l)->length) && (l)->length <= (l)->capacity)
+
 typedef enum {
    DmtxSchemeAutoFast        = -2,
    DmtxSchemeAutoBest        = -1,
@@ -254,6 +256,14 @@ typedef struct DmtxRay2_struct {
    DmtxVector2     p;
    DmtxVector2     v;
 } DmtxRay2;
+
+typedef struct DmtxByteList_struct DmtxByteList;
+struct DmtxByteList_struct
+{
+   size_t length;
+   size_t capacity;
+   unsigned char *b;
+};
 
 /**
  * @struct DmtxImage
@@ -582,6 +592,11 @@ extern void dmtxMatrix3Print(DmtxMatrix3 m);
 extern int dmtxSymbolModuleStatus(DmtxMessage *mapping, int sizeIdx, int row, int col);
 extern int dmtxGetSymbolAttribute(int attribute, int sizeIdx);
 extern int dmtxGetBlockDataSize(int sizeIdx, int blockIdx);
+
+/* dmtxbytelist.c */
+extern DmtxByteList dmtxByteListBuild(unsigned char *storage, size_t capacity);
+extern void dmtxByteListInit(DmtxByteList *list, unsigned char value);
+extern DmtxPassFail dmtxByteListCopy(DmtxByteList *dest, DmtxByteList *src);
 
 extern char *dmtxVersion(void);
 

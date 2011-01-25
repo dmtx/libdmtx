@@ -147,6 +147,21 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
 /* unsigned char elp[MAX_ERROR_WORD_COUNT]; */
    unsigned char loc[NN];
    DmtxBoolean error, solvable;
+/*
+   unsigned char _gen[MAX_ERROR_WORD_COUNT];
+   unsigned char _elp[MAX_ERROR_WORD_COUNT];
+   unsigned char _syn[MAX_SYNDROME_COUNT];
+   unsigned char _rec[NN];
+   unsigned char _loc[NN];
+
+   DmtxByteList gen, rec syn elp loc;
+
+   gen = dmtxByteListBuild(_gen, sizeof(_gen));
+   rec = dmtxByteListBuild(_rec, sizeof(_rec));
+   syn = dmtxByteListBuild(_syn, sizeof(_syn));
+   elp = dmtxByteListBuild(_elp, sizeof(_elp));
+   loc = dmtxByteListBuild(_loc, sizeof(_loc));
+*/
 
    blockStride = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
    blockErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
@@ -164,6 +179,14 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       memset(rec, 0x00, sizeof(rec));
       for(i = 0; i < blockTotalWords; i++)
          rec[i] = code[blockIdx + blockStride * (blockTotalWords - 1 - i)];
+/*
+      dmtxByteListInit(&rec, 0);
+      for(i = 0; i < blockTotalWords; i++)
+      {
+         DMTX_CHECK_BOUNDS(rec, i);
+         rec[i] = code[blockIdx + blockStride * (blockTotalWords - 1 - i)];
+      }
+*/
 
       /* Calculate syndrome */
       error = RsCalcSyndrome(syn, rec, blockErrorWords, blockTotalWords);
@@ -220,6 +243,37 @@ RsGenPoly(unsigned char *gen, int errorWordCount)
    return DmtxPass;
 }
 
+/*
+static DmtxPassFail
+RsGenPoly(dmtxByteList *gen, int errorWordCount)
+{
+   int i, j;
+
+   assert(errorWordCount <= gen->capacity);
+
+   // Initialize all coefficients to 1
+   dmtxByteListInit(gen, 1);
+   gen->length = errorWordCount;
+
+   // Generate polynomial
+   for(i = 1; i <= errorWordCount; i++)
+   {
+      for(j = i - 1; j >= 0; j--)
+      {
+         DMTX_CHECK_BOUNDS(gen, j);
+         gen[j] = GfMultAntilog(gen[j], i);
+         if(j > 0)
+         {
+            DMTX_CHECK_BOUNDS(gen, j-1);
+            gen[j] = GfAdd(gen[j], gen[j-1]);
+         }
+      }
+   }
+
+   return DmtxPass;
+}
+*/
+
 /**
  * Assume we have received bits grouped into mm-bit symbols in rec[i],
  * i=0..(nn-1),  and rec[i] is index form (ie as powers of alpha). We first
@@ -248,6 +302,38 @@ RsCalcSyndrome(unsigned char *syn, unsigned char *rec, int blockErrorWords, int 
 
    return error;
 }
+
+/*
+static DmtxBoolean
+RsCalcSyndrome(DmtxByteList *syn, DmtxByteList *rec, int blockErrorWords, int blockTotalWords)
+{
+   int i, j;
+   DmtxBoolean error = DmtxFalse;
+
+   // Initialize all coefficients to 0
+   dmtxByteListInit(syn, 0);
+   syn->length = blockErrorWords + 1;
+
+   // Form syndromes
+   for(i = 1; i <= blockErrorWords; i++)
+   {
+      DMTX_CHECK_BOUNDS(syn, i);
+
+      // Calculate syndrome syn[i]
+      for(j = 0; j < blockTotalWords; j++)
+      {
+         DMTX_CHECK_BOUNDS(rec, j);
+         syn->b[i] = GfAdd(syn->b[i], GfMultAntilog(rec->b[j], i*j));
+      }
+
+      // Non-zero syndrome indicates error
+      if(syn->b[i] != 0)
+         error = DmtxTrue;
+   }
+
+   return error;
+}
+*/
 
 /**
  * @brief Find the error location polynomial using Berlekamp-Massey.
@@ -342,7 +428,7 @@ RsFindErrorPositions(unsigned char *loc, unsigned char *elp, int lam, int maxCor
 }
 
 /**
- * Find the error values (Forney?)
+ * Find the error values
  *
  * Solve for the error value at the error location and correct the error. The
  * procedure is that found in Lin and Costello.
@@ -362,13 +448,13 @@ RsFindErrorValues(unsigned char *rec, unsigned char *syn, unsigned char *loc)
    unsigned char root, err;
 
    /* Form polynomial z(x) */
-   for(i = 1; i <= lam; i++)
+   for(z[0] = 1, i = 1; i <= lam; i++)
       for(z[i] = GfAdd(syn[i], elp[i]), j = 1; j < i; j++)
          z[i] = GfAdd(z[i], GfMult(elp[i-j], syn[j]));
 
-   /* Compute numerator of error term first */
    for(i = 0; i < lam; i++)
    {
+      /* Calculate numerator of error term */
       root = NN - loc[i];
 
       for(err = 1, j = 1; j <= lam; j++)
@@ -377,13 +463,13 @@ RsFindErrorValues(unsigned char *rec, unsigned char *syn, unsigned char *loc)
       if(err == 0)
          continue;
 
-      /* Form denominator of error term */
+      /* Calculate denominator of error term */
       for(q = 0, j = 0; j < lam; j++)
       {
          if(j != i)
             q += log301[1 ^ antilog301[(loc[j] + root) % NN]];
       }
-      q = q % NN;
+      q %= NN;
 
       err = GfMult(err, NN - q);
       rec[loc[i]] = GfAdd(rec[loc[i]], err);

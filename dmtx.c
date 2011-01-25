@@ -82,6 +82,7 @@ Contact: mike@dragonflylogic.com
 #include "dmtxvector2.c"
 #include "dmtxmatrix3.c"
 #include "dmtximage.c"
+#include "dmtxbytelist.c"
 
 extern char *
 dmtxVersion(void)
