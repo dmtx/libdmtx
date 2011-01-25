@@ -94,11 +94,11 @@ RsEncode(DmtxMessage *message, int sizeIdx)
    int blockErrorWords, symbolDataWords, symbolErrorWords, symbolTotalWords;
    unsigned char val, *eccPtr;
    unsigned char _gen[MAX_ERROR_WORD_COUNT];
-   unsigned char ecc[MAX_ERROR_WORD_COUNT];
-
-   DmtxByteList gen;
+   unsigned char _ecc[MAX_ERROR_WORD_COUNT];
+   DmtxByteList gen, ecc;
 
    gen = dmtxByteListBuild(_gen, sizeof(_gen));
+   ecc = dmtxByteListBuild(_ecc, sizeof(_ecc));
 
    blockStride = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
    blockErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
@@ -113,23 +113,26 @@ RsEncode(DmtxMessage *message, int sizeIdx)
    for(blockIdx = 0; blockIdx < blockStride; blockIdx++)
    {
       /* Generate */
-      memset(ecc, 0x00, sizeof(ecc));
+      dmtxByteListInit(&ecc, blockErrorWords, 0);
       for(i = blockIdx; i < symbolDataWords; i += blockStride)
       {
-         val = GfAdd(ecc[blockErrorWords-1], message->code[i]);
+         val = GfAdd(ecc.b[blockErrorWords-1], message->code[i]);
 
          for(j = blockErrorWords - 1; j > 0; j--)
-            ecc[j] = GfAdd(ecc[j-1], GfMult(gen.b[j], val));
+         {
+            DMTX_CHECK_BOUNDS(&ecc, j); DMTX_CHECK_BOUNDS(&ecc, j-1); DMTX_CHECK_BOUNDS(&gen, j);
+            ecc.b[j] = GfAdd(ecc.b[j-1], GfMult(gen.b[j], val));
+         }
 
-         ecc[0] = GfMult(gen.b[0], val);
+         ecc.b[0] = GfMult(gen.b[0], val);
       }
 
       /* Copy to output message */
-      eccPtr = ecc + blockErrorWords;
+      eccPtr = ecc.b + blockErrorWords;
       for(i = blockIdx + symbolDataWords; i < symbolTotalWords; i += blockStride)
          message->code[i] = *(--eccPtr);
 
-      assert(ecc == eccPtr);
+      assert(ecc.b == eccPtr);
    }
 
    return DmtxPass;
@@ -146,12 +149,11 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
    int blockStride, blockIdx;
    int blockErrorWords, blockTotalWords, blockMaxCorrectable;
    DmtxBoolean error, solvable;
+   DmtxByteList rec, syn, elp, loc;
    unsigned char _elp[MAX_ERROR_WORD_COUNT];
    unsigned char _syn[MAX_SYNDROME_COUNT];
    unsigned char _rec[NN];
    unsigned char _loc[NN];
-
-   DmtxByteList rec, syn, elp, loc;
 
    rec = dmtxByteListBuild(_rec, sizeof(_rec));
    syn = dmtxByteListBuild(_syn, sizeof(_syn));
@@ -170,10 +172,7 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       /* Populate rec[] with data and error codewords */
       dmtxByteListInit(&rec, blockTotalWords, 0);
       for(i = 0; i < rec.length; i++)
-      {
-         DMTX_CHECK_BOUNDS(&rec, i);
          rec.b[i] = code[blockIdx + blockStride * (blockTotalWords - 1 - i)];
-      }
 
       /* Calculate syndrome */
       error = RsCalcSyndrome(&syn, &rec, blockErrorWords, blockTotalWords);

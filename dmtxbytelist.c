@@ -45,6 +45,8 @@ dmtxByteListBuild(unsigned char *storage, size_t capacity)
 extern void
 dmtxByteListInit(DmtxByteList *list, size_t length, unsigned char value)
 {
+   assert(length <= list->capacity);
+
    list->length = length;
    memset(list->b, value, sizeof(unsigned char) * list->capacity);
 }
