@@ -93,8 +93,12 @@ RsEncode(DmtxMessage *message, int sizeIdx)
    int blockStride, blockIdx;
    int blockErrorWords, symbolDataWords, symbolErrorWords, symbolTotalWords;
    unsigned char val, *eccPtr;
-   unsigned char gen[MAX_ERROR_WORD_COUNT];
+   unsigned char _gen[MAX_ERROR_WORD_COUNT];
    unsigned char ecc[MAX_ERROR_WORD_COUNT];
+
+   DmtxByteList gen;
+
+   gen = dmtxByteListBuild(_gen, sizeof(_gen));
 
    blockStride = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
    blockErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
@@ -103,7 +107,7 @@ RsEncode(DmtxMessage *message, int sizeIdx)
    symbolTotalWords = symbolDataWords + symbolErrorWords;
 
    /* Populate the generator polynomial */
-   RsGenPoly(gen, blockErrorWords);
+   RsGenPoly(&gen, blockErrorWords);
 
    /* Generate error codewords for all interleaved blocks */
    for(blockIdx = 0; blockIdx < blockStride; blockIdx++)
@@ -115,9 +119,9 @@ RsEncode(DmtxMessage *message, int sizeIdx)
          val = GfAdd(ecc[blockErrorWords-1], message->code[i]);
 
          for(j = blockErrorWords - 1; j > 0; j--)
-            ecc[j] = GfAdd(ecc[j-1], GfMult(gen[j], val));
+            ecc[j] = GfAdd(ecc[j-1], GfMult(gen.b[j], val));
 
-         ecc[0] = GfMult(gen[0], val);
+         ecc[0] = GfMult(gen.b[0], val);
       }
 
       /* Copy to output message */
@@ -141,34 +145,22 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
    int i;
    int blockStride, blockIdx;
    int blockErrorWords, blockTotalWords, blockMaxCorrectable;
-   unsigned char gen[MAX_ERROR_WORD_COUNT];
-   unsigned char rec[NN];
-   unsigned char syn[MAX_SYNDROME_COUNT];
-/* unsigned char elp[MAX_ERROR_WORD_COUNT]; */
-   unsigned char loc[NN];
    DmtxBoolean error, solvable;
-/*
-   unsigned char _gen[MAX_ERROR_WORD_COUNT];
    unsigned char _elp[MAX_ERROR_WORD_COUNT];
    unsigned char _syn[MAX_SYNDROME_COUNT];
    unsigned char _rec[NN];
    unsigned char _loc[NN];
 
-   DmtxByteList gen, rec syn elp loc;
+   DmtxByteList rec, syn, elp, loc;
 
-   gen = dmtxByteListBuild(_gen, sizeof(_gen));
    rec = dmtxByteListBuild(_rec, sizeof(_rec));
    syn = dmtxByteListBuild(_syn, sizeof(_syn));
    elp = dmtxByteListBuild(_elp, sizeof(_elp));
    loc = dmtxByteListBuild(_loc, sizeof(_loc));
-*/
 
    blockStride = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
    blockErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
    blockMaxCorrectable = dmtxGetSymbolAttribute(DmtxSymAttribBlockMaxCorrectable, sizeIdx);
-
-   /* Populate the generator polynomial */
-   RsGenPoly(gen, blockErrorWords);
 
    for(blockIdx = 0; blockIdx < blockStride; blockIdx++)
    {
@@ -176,36 +168,31 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       blockTotalWords = blockErrorWords + dmtxGetBlockDataSize(sizeIdx, blockIdx);
 
       /* Populate rec[] with data and error codewords */
-      memset(rec, 0x00, sizeof(rec));
-      for(i = 0; i < blockTotalWords; i++)
-         rec[i] = code[blockIdx + blockStride * (blockTotalWords - 1 - i)];
-/*
-      dmtxByteListInit(&rec, 0);
-      for(i = 0; i < blockTotalWords; i++)
+      dmtxByteListInit(&rec, blockTotalWords, 0);
+      for(i = 0; i < rec.length; i++)
       {
-         DMTX_CHECK_BOUNDS(rec, i);
-         rec[i] = code[blockIdx + blockStride * (blockTotalWords - 1 - i)];
+         DMTX_CHECK_BOUNDS(&rec, i);
+         rec.b[i] = code[blockIdx + blockStride * (blockTotalWords - 1 - i)];
       }
-*/
 
       /* Calculate syndrome */
-      error = RsCalcSyndrome(syn, rec, blockErrorWords, blockTotalWords);
+      error = RsCalcSyndrome(&syn, &rec, blockErrorWords, blockTotalWords);
 
       /* Attempt to repair detected error(s) */
       if(error)
       {
          /* Populates elp, lam */
-         solvable = RsFindErrorLocatorPoly(/*elp, lam, */ syn, blockErrorWords, blockTotalWords, blockMaxCorrectable);
+         solvable = RsFindErrorLocatorPoly(/*elp, lam, */ syn.b, blockErrorWords, blockTotalWords, blockMaxCorrectable);
          if(solvable == DmtxFalse)
             return DmtxFail;
 
          /* Populates loc */
-         solvable = RsFindErrorPositions(loc, NULL /* elp[iNext] */, 0 /* lam[iNext] */, blockMaxCorrectable);
+         solvable = RsFindErrorPositions(&loc, NULL /* elp[iNext] */, 0 /* lam[iNext] */, blockMaxCorrectable);
          if(solvable == DmtxFalse)
             return DmtxFail;
 
          /* Repairs rec */
-         RsFindErrorValues(rec, syn, NULL /* loc */);
+         RsFindErrorValues(rec.b, syn.b, NULL /* loc */);
       }
 
       /* Write correct/corrected values to output */
@@ -220,59 +207,32 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
  *
  */
 static DmtxPassFail
-RsGenPoly(unsigned char *gen, int errorWordCount)
+RsGenPoly(DmtxByteList *gen, int errorWordCount)
 {
    int i, j;
 
-   assert(errorWordCount <= MAX_ERROR_WORD_COUNT);
+   assert(errorWordCount <= gen->capacity);
 
    /* Initialize all coefficients to 1 */
-   memset(gen, 0x01, sizeof(unsigned char) * MAX_ERROR_WORD_COUNT);
+   dmtxByteListInit(gen, errorWordCount, 1);
 
    /* Generate polynomial */
    for(i = 1; i <= errorWordCount; i++)
    {
       for(j = i - 1; j >= 0; j--)
       {
-         gen[j] = GfMultAntilog(gen[j], i);
-         if(j > 0)
-            gen[j] = GfAdd(gen[j], gen[j-1]);
-      }
-   }
-
-   return DmtxPass;
-}
-
-/*
-static DmtxPassFail
-RsGenPoly(dmtxByteList *gen, int errorWordCount)
-{
-   int i, j;
-
-   assert(errorWordCount <= gen->capacity);
-
-   // Initialize all coefficients to 1
-   dmtxByteListInit(gen, 1);
-   gen->length = errorWordCount;
-
-   // Generate polynomial
-   for(i = 1; i <= errorWordCount; i++)
-   {
-      for(j = i - 1; j >= 0; j--)
-      {
          DMTX_CHECK_BOUNDS(gen, j);
-         gen[j] = GfMultAntilog(gen[j], i);
+         gen->b[j] = GfMultAntilog(gen->b[j], i);
          if(j > 0)
          {
             DMTX_CHECK_BOUNDS(gen, j-1);
-            gen[j] = GfAdd(gen[j], gen[j-1]);
+            gen->b[j] = GfAdd(gen->b[j], gen->b[j-1]);
          }
       }
    }
 
    return DmtxPass;
 }
-*/
 
 /**
  * Assume we have received bits grouped into mm-bit symbols in rec[i],
@@ -281,59 +241,33 @@ RsGenPoly(dmtxByteList *gen, int errorWordCount)
  * evaluating, storing the syndromes in syn[i], i=1..2tt (leave syn[0] zero).
  */
 static DmtxBoolean
-RsCalcSyndrome(unsigned char *syn, unsigned char *rec, int blockErrorWords, int blockTotalWords)
-{
-   int i, j;
-   DmtxBoolean error = DmtxFalse;
-
-   memset(syn, 0x00, sizeof(unsigned char) * MAX_SYNDROME_COUNT);
-
-   /* Form syndromes */
-   for(i = 1; i <= blockErrorWords; i++)
-   {
-      /* Calculate syndrome syn[i] */
-      for(j = 0; j < blockTotalWords; j++)
-         syn[i] = GfAdd(syn[i], GfMultAntilog(rec[j], i*j));
-
-      /* Non-zero syndrome indicates error */
-      if(syn[i] != 0)
-         error = DmtxTrue;
-   }
-
-   return error;
-}
-
-/*
-static DmtxBoolean
 RsCalcSyndrome(DmtxByteList *syn, DmtxByteList *rec, int blockErrorWords, int blockTotalWords)
 {
    int i, j;
    DmtxBoolean error = DmtxFalse;
 
-   // Initialize all coefficients to 0
-   dmtxByteListInit(syn, 0);
-   syn->length = blockErrorWords + 1;
+   /* Initialize all coefficients to 0 */
+   dmtxByteListInit(syn, blockErrorWords + 1, 0);
 
-   // Form syndromes
+   /* Form syndromes */
    for(i = 1; i <= blockErrorWords; i++)
    {
       DMTX_CHECK_BOUNDS(syn, i);
 
-      // Calculate syndrome syn[i]
+      /* Calculate syndrome syn[i] */
       for(j = 0; j < blockTotalWords; j++)
       {
          DMTX_CHECK_BOUNDS(rec, j);
          syn->b[i] = GfAdd(syn->b[i], GfMultAntilog(rec->b[j], i*j));
       }
 
-      // Non-zero syndrome indicates error
+      /* Non-zero syndrome indicates error */
       if(syn->b[i] != 0)
          error = DmtxTrue;
    }
 
    return error;
 }
-*/
 
 /**
  * @brief Find the error location polynomial using Berlekamp-Massey.
@@ -407,10 +341,12 @@ RsFindErrorLocatorPoly(unsigned char *syn, int errorWordCount, int totalWordCoun
  * have more than tt errors and cannot correct them.
  */
 static DmtxBoolean
-RsFindErrorPositions(unsigned char *loc, unsigned char *elp, int lam, int maxCorrectable)
+RsFindErrorPositions(DmtxByteList *loc, unsigned char *elp, int lam, int maxCorrectable)
 {
    int i, j, count = 0;
    unsigned char q, reg[MAX_ERROR_WORD_COUNT];
+
+   dmtxByteListInit(loc, 0, 0);
 
    memcpy(reg, elp, sizeof(unsigned char) * MAX_ERROR_WORD_COUNT);
 
@@ -420,7 +356,7 @@ RsFindErrorPositions(unsigned char *loc, unsigned char *elp, int lam, int maxCor
          q = GfAdd(q, GfMultAntilog(reg[j], j)); /* XXX reg is just a local copy of rec[] ... name it better */
 
       if(q == 0)
-         loc[count++] = NN - i;
+         dmtxByteListPush(loc, NN - i);
    }
 
    /* Number of roots != degree of elp => >tt errors and cannot solve */

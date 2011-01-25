@@ -43,8 +43,9 @@ dmtxByteListBuild(unsigned char *storage, size_t capacity)
  *
  */
 extern void
-dmtxByteListInit(DmtxByteList *list, unsigned char value)
+dmtxByteListInit(DmtxByteList *list, size_t length, unsigned char value)
 {
+   list->length = length;
    memset(list->b, value, sizeof(unsigned char) * list->capacity);
 }
 
@@ -68,4 +69,18 @@ dmtxByteListCopy(DmtxByteList *dest, DmtxByteList *src)
    memcpy(dest->b, src->b, sizeof(unsigned char) * length);
 
    return DmtxTrue;
+}
+
+/**
+ *
+ *
+ */
+extern size_t
+dmtxByteListPush(DmtxByteList *list, unsigned char value)
+{
+   assert(list->length < list->capacity);
+
+   list->b[list->length++] = value;
+
+   return list->length;
 }

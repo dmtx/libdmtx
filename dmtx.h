@@ -77,7 +77,7 @@ extern "C" {
 #define DmtxModuleVisited           0x20
 #define DmtxModuleData              0x40
 
-#define DMTX_CHECK_BOUNDS(l,i) (assert((i) >= 0 && (i) < (l)->length) && (l)->length <= (l)->capacity)
+#define DMTX_CHECK_BOUNDS(l,i) (assert((i) >= 0 && (i) < (l)->length && (l)->length <= (l)->capacity))
 
 typedef enum {
    DmtxSchemeAutoFast        = -2,
@@ -595,8 +595,9 @@ extern int dmtxGetBlockDataSize(int sizeIdx, int blockIdx);
 
 /* dmtxbytelist.c */
 extern DmtxByteList dmtxByteListBuild(unsigned char *storage, size_t capacity);
-extern void dmtxByteListInit(DmtxByteList *list, unsigned char value);
+extern void dmtxByteListInit(DmtxByteList *list, size_t length, unsigned char value);
 extern DmtxPassFail dmtxByteListCopy(DmtxByteList *dest, DmtxByteList *src);
+extern size_t dmtxByteListPush(DmtxByteList *list, unsigned char value);
 
 extern char *dmtxVersion(void);
 
