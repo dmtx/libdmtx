@@ -257,12 +257,14 @@ typedef struct DmtxRay2_struct {
    DmtxVector2     v;
 } DmtxRay2;
 
+typedef unsigned char DmtxByte;
+
 typedef struct DmtxByteList_struct DmtxByteList;
 struct DmtxByteList_struct
 {
    size_t length;
    size_t capacity;
-   unsigned char *b;
+   DmtxByte *b;
 };
 
 /**
@@ -594,10 +596,10 @@ extern int dmtxGetSymbolAttribute(int attribute, int sizeIdx);
 extern int dmtxGetBlockDataSize(int sizeIdx, int blockIdx);
 
 /* dmtxbytelist.c */
-extern DmtxByteList dmtxByteListBuild(unsigned char *storage, size_t capacity);
-extern void dmtxByteListInit(DmtxByteList *list, size_t length, unsigned char value);
+extern DmtxByteList dmtxByteListBuild(DmtxByte *storage, size_t capacity);
+extern void dmtxByteListInit(DmtxByteList *list, size_t length, DmtxByte value);
 extern DmtxPassFail dmtxByteListCopy(DmtxByteList *dest, DmtxByteList *src);
-extern size_t dmtxByteListPush(DmtxByteList *list, unsigned char value);
+extern size_t dmtxByteListPush(DmtxByteList *list, DmtxByte value);
 
 extern char *dmtxVersion(void);
 

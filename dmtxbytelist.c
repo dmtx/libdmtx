@@ -27,7 +27,7 @@ Contact: mike@dragonflylogic.com
  *
  */
 extern DmtxByteList
-dmtxByteListBuild(unsigned char *storage, size_t capacity)
+dmtxByteListBuild(DmtxByte *storage, size_t capacity)
 {
    DmtxByteList list;
 
@@ -43,12 +43,12 @@ dmtxByteListBuild(unsigned char *storage, size_t capacity)
  *
  */
 extern void
-dmtxByteListInit(DmtxByteList *list, size_t length, unsigned char value)
+dmtxByteListInit(DmtxByteList *list, size_t length, DmtxByte value)
 {
    assert(length <= list->capacity);
 
    list->length = length;
-   memset(list->b, value, sizeof(unsigned char) * list->capacity);
+   memset(list->b, value, sizeof(DmtxByte) * list->capacity);
 }
 
 /**
@@ -78,7 +78,7 @@ dmtxByteListCopy(DmtxByteList *dest, DmtxByteList *src)
  *
  */
 extern size_t
-dmtxByteListPush(DmtxByteList *list, unsigned char value)
+dmtxByteListPush(DmtxByteList *list, DmtxByte value)
 {
    assert(list->length < list->capacity);
 
