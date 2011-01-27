@@ -259,40 +259,40 @@ RsComputeSyndromes(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWor
  *         return DmtxFail because uncorrectable errors are present.
  */
 static int
-RsFindErrorLocatorPoly(DmtxByteList *elp, const DmtxByteList *syn, int errorWordCount, int maxCorrectable)
+RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorWordCount, int maxCorrectable)
 {
    int i, iNext, j;
    int m, mCmp;
    int lam[MAX_ERROR_WORD_COUNT+2] = { 0 };
-   unsigned char elpX[MAX_ERROR_WORD_COUNT+2][MAX_ERROR_WORD_COUNT] = {{ 0 }};
    DmtxByte disStorage[MAX_ERROR_WORD_COUNT+1];
-   DmtxByteList dis = dmtxByteListBuild(disStorage, sizeof(disStorage));
-/*
    DmtxByte elpStorage[MAX_ERROR_WORD_COUNT+2][MAX_ERROR_WORD_COUNT];
-   DmtxByteList elp[MAX_ERROR_WORD_COUNT+2];
+   DmtxByteList dis, elp[MAX_ERROR_WORD_COUNT+2];
 
-   for(i = 0; i < errorWordCount + 2; i++)
+   dis = dmtxByteListBuild(disStorage, sizeof(disStorage));
+
+   for(i = 0; i < MAX_ERROR_WORD_COUNT + 2; i++)
+   {
       elp[i] = dmtxByteListBuild(elpStorage[i], sizeof(elpStorage[i]));
-*/
+      dmtxByteListInit(&elp[i], 0, 0);
+   }
 
    /* iNext = 0 */
-   elpX[0][0] = 1;
-   lam[0] = 0;
+   dmtxByteListPush(&elp[0], 1);
+   lam[0] = 0; /* elp[0].length = 1? */
    dis.b[0] = 1;
 
    /* iNext = 1 */
-   elpX[1][0] = 1;
-   lam[1] = 0;
+   dmtxByteListPush(&elp[1], 1);
+   lam[1] = 0; /* elp[0].length = 1? */
    dis.b[1] = syn->b[1];
 
-   for(iNext = 2, i = 1; /* explicit break below */ ; i = iNext++)
+   for(iNext = 2, i = 1; /* explicit break */; i = iNext++)
    {
       if(dis.b[i] == 0)
       {
          /* Simple case: Copy directly from previous iteration */
-         /* dmtxByteListCopy() */
-         memcpy(elpX[iNext], elpX[i], sizeof(unsigned char) * MAX_ERROR_WORD_COUNT);
-         lam[iNext] = lam[i];
+         dmtxByteListCopy(&elp[iNext], &elp[i]);
+         lam[iNext] = lam[i]; /* XXX unnecessary ... done as part of ListCopy() */
       }
       else
       {
@@ -301,13 +301,13 @@ RsFindErrorLocatorPoly(DmtxByteList *elp, const DmtxByteList *syn, int errorWord
             if(dis.b[mCmp] != 0 && (mCmp - lam[mCmp]) > (m - lam[m]))
                m = mCmp;
 
-         /* Calculate error location polynomial elpX[i] (set 1st term) */
+         /* Calculate error location polynomial elp[i] (set 1st term) */
          for(j = 0; j < lam[m]; j++)
-            elpX[iNext][j+i-m] = antilog301[(log301[dis.b[i]] - log301[dis.b[m]] + NN + elpX[m][j]) % NN];
+            elp[iNext].b[j+i-m] = antilog301[(log301[dis.b[i]] - log301[dis.b[m]] + NN + elp[m].b[j]) % NN];
 
-         /* Calculate error location polynomial elpX[i] (add 2nd term) */
+         /* Calculate error location polynomial elp[i] (add 2nd term) */
          for(j = 0; j < lam[i]; j++)
-            elpX[iNext][j] = GfAdd(elpX[iNext][j], elpX[i][j]);
+            elp[iNext].b[j] = GfAdd(elp[iNext].b[j], elp[i].b[j]);
 
          /* Record lambda: lam[m] + iEqn - mEqn = lam[m] + (i-1) - (m-1) */
          lam[iNext] = max(lam[i], lam[m] + i - m);
@@ -318,7 +318,7 @@ RsFindErrorLocatorPoly(DmtxByteList *elp, const DmtxByteList *syn, int errorWord
 
       /* Calculate discrepancy dis.b[i] */
       for(j = 0, dis.b[iNext] = syn->b[iNext]; j < lam[iNext]; j++)
-         dis.b[iNext] = GfAdd(dis.b[iNext], GfMult(syn->b[iNext-j-1], elpX[iNext][j]));
+         dis.b[iNext] = GfAdd(dis.b[iNext], GfMult(syn->b[iNext-j-1], elp[iNext].b[j]));
    }
 
    return lam[iNext];
