@@ -217,10 +217,10 @@ static void PlaceModule(unsigned char *modules, int mappingRows, int mappingCols
 static DmtxPassFail RsEncode(DmtxMessage *message, int sizeIdx);
 static DmtxPassFail RsDecode(unsigned char *code, int sizeIdx, int fix);
 static DmtxPassFail RsGenPoly(DmtxByteList *gen, int errorWordCount);
-static DmtxBoolean RsCalcSyndrome(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWords);
-static DmtxBoolean RsFindErrorLocatorPoly(DmtxByteList *elp, const DmtxByteList *syn, int errorWordCount, int maxCorrectable);
-static DmtxBoolean RsFindErrorPositions(DmtxByteList *loc, const DmtxByteList *elp, int lam, int maxCorrectable);
-static DmtxBoolean RsFindErrorValues(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *elp, const DmtxByteList *syn);
+static DmtxBoolean RsComputeSyndromes(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWords);
+static int RsFindErrorLocatorPoly(DmtxByteList *elp, const DmtxByteList *syn, int errorWordCount, int maxCorrectable);
+static int RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp, int lam);
+static DmtxBoolean RsRepairErrors(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *elp, const DmtxByteList *syn, int lam);
 
 /* dmtxscangrid.c */
 static DmtxScanGrid InitScanGrid(DmtxDecode *dec);

@@ -56,7 +56,7 @@ dmtxByteListInit(DmtxByteList *list, size_t length, DmtxByte value)
  *
  */
 extern DmtxPassFail
-dmtxByteListCopy(DmtxByteList *dest, DmtxByteList *src)
+dmtxByteListCopy(DmtxByteList *dest, const DmtxByteList *src)
 {
    size_t length;
 
