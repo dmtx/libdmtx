@@ -65,9 +65,12 @@ Contact: mike@dragonflylogic.com
 #endif
 
 /**
- * This use of #include to merge .c files together is deliberate, if unusual.
- * This allows library functions to be grouped in files of like-functionality
- * while still enabling static functions to be accessed across files.
+ * Use #include to merge the individual .c source files into a single
+ * combined file during preprocessing. This enables us to organize the
+ * project into files of like functionality while still presenting a
+ * clean namespace. More specifically, internal functions can be made
+ * static without losing the ability to access them "externally" from
+ * the other files in this list.
  */
 
 #include "dmtxtime.c"

@@ -31,6 +31,18 @@ Contact: mike@dragonflylogic.com
 #define NN                      255
 #define MAX_ERROR_WORD_COUNT     68
 
+/* GF add (a + b) */
+#define GfAdd(a,b) \
+   ((a) ^ (b))
+
+/* GF multiply (a * b) */
+#define GfMult(a,b) \
+   (((a) == 0 || (b) == 0) ? 0 : antilog301[(log301[(a)] + log301[(b)]) % NN])
+
+/* GF multiply by antilog (a * alpha**b) */
+#define GfMultAntilog(a,b) \
+   (((a) == 0) ? 0 : antilog301[(log301[(a)] + (b)) % NN])
+
 /* GF(256) log values using primitive polynomial 301 */
 static DmtxByte log301[] =
    { 255,   0,   1, 240,   2, 225, 241,  53,   3,  38, 226, 133, 242,  43,  54, 210,
@@ -68,18 +80,6 @@ static DmtxByte antilog301[] =
      222, 145,  15,  30,  60, 120, 240, 205, 183,  67, 134,  33,  66, 132,  37,  74,
      148,   5,  10,  20,  40,  80, 160, 109, 218, 153,  31,  62, 124, 248, 221, 151,
        3,   6,  12,  24,  48,  96, 192, 173, 119, 238, 241, 207, 179,  75, 150,   0 };
-
-/* GF add (a + b) */
-#define GfAdd(a,b) \
-   ((a) ^ (b))
-
-/* GF multiply (a * b) */
-#define GfMult(a,b) \
-   (((a) == 0 || (b) == 0) ? 0 : antilog301[(log301[(a)] + log301[(b)]) % NN])
-
-/* GF multiply by antilog (a * alpha**b) */
-#define GfMultAntilog(a,b) \
-   (((a) == 0) ? 0 : antilog301[(log301[(a)] + (b)) % NN])
 
 /**
  * @brief
@@ -145,7 +145,7 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
    int i;
    int blockStride, blockIdx;
    int blockErrorWords, blockTotalWords, blockMaxCorrectable;
-   DmtxBoolean error, solvable;
+   DmtxBoolean error, repairable;
    DmtxByte elpStorage[MAX_ERROR_WORD_COUNT];
    DmtxByte synStorage[MAX_ERROR_WORD_COUNT+1];
    DmtxByte recStorage[NN];
@@ -176,14 +176,14 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       /* Error(s) detected: Attempt to repair */
       if(error)
       {
-         /* Calculate error locator polynomial (elp) */
-         solvable = RsFindErrorLocatorPoly(&elp, &syn, blockErrorWords, blockMaxCorrectable);
-         if(!solvable)
+         /* Find error locator polynomial (elp) */
+         repairable = RsFindErrorLocatorPoly(&elp, &syn, blockErrorWords, blockMaxCorrectable);
+         if(!repairable)
             return DmtxFail;
 
          /* Find error positions (loc) */
-         solvable = RsFindErrorLocations(&loc, &elp);
-         if(!solvable)
+         repairable = RsFindErrorLocations(&loc, &elp);
+         if(!repairable)
             return DmtxFail;
 
          /* Find error values and repair */
@@ -246,7 +246,7 @@ RsComputeSyndromes(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWor
       for(j = 0; j < rec->length; j++) /* blockTotalWords */
          syn->b[i] = GfAdd(syn->b[i], GfMultAntilog(rec->b[j], i*j));
 
-      /* Non-zero syndrome indicates error */
+      /* Non-zero syndrome indicates presence of error(s) */
       if(syn->b[i] != 0)
          error = DmtxTrue;
    }
@@ -256,7 +256,7 @@ RsComputeSyndromes(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWor
 
 /**
  * @brief Find the error location polynomial using Berlekamp-Massey.
- * @return Solvable (DmtxTrue|DmtxFalse)
+ * @return Repairable (DmtxTrue|DmtxFalse)
  */
 static DmtxBoolean
 RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorWordCount, int maxCorrectable)
@@ -322,7 +322,6 @@ dmtxByteListPrint(&dis, "   dis:");
 /* sprintf(prefix, "elp[%d]:", iNext); dmtxByteListPrint(&elp[iNext], prefix); */
 
       lambda = elp[iNext].length - 1;
-
       if(i == errorWordCount || i >= lambda + maxCorrectable)
          break;
 
@@ -335,6 +334,8 @@ dmtxByteListPrint(&dis, "   dis:");
 /* dmtxByteListPrint(&dis, "   dis:"); */
    }
 
+   dmtxByteListCopy(elpOut, &elp[iNext]);
+
    return (lambda <= maxCorrectable) ? DmtxTrue : DmtxFalse;
 }
 
@@ -344,7 +345,7 @@ dmtxByteListPrint(&dis, "   dis:");
  * to get the roots, hence the inverse roots, the error location numbers.
  * If the number of errors located does not equal the degree of the elp, we
  * have more than tt errors and cannot correct them.
- * @return Solvable (DmtxTrue|DmtxFalse)
+ * @return Repairable (DmtxTrue|DmtxFalse)
  */
 static DmtxBoolean
 RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp)
