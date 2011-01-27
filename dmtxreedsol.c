@@ -286,6 +286,7 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
 
    for(iNext = 2, i = 1; /* explicit break */; i = iNext++)
    {
+/*fprintf(stdout, "d[%d]: %d\n", i, log301[dis.b[i]]);*/
       if(dis.b[i] == 0)
       {
          /* Simple case: Copy directly from previous iteration */
@@ -295,15 +296,20 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
       {
          /* Find earlier iteration (m) that provides maximal (m - lambda) */
          for(m = 0, mCmp = 1; mCmp < i; mCmp++)
-            if(dis.b[mCmp] != 0 && (mCmp - elp[mCmp].length) > (m - elp[m].length))
+            if(dis.b[mCmp] != 0 && (mCmp - elp[mCmp].length) >= (m - elp[m].length))
                m = mCmp;
 
          /* Calculate error location polynomial elp[i] (set 1st term) */
-         for(lambda = elp[m].length - 1, j = 0; j < lambda; j++)
-            elp[iNext].b[j+i-m] = antilog301[(log301[dis.b[i]] - log301[dis.b[m]] + NN + elp[m].b[j]) % NN];
+         for(lambda = elp[m].length - 1, j = 0; j <= lambda; j++)
+         {
+/*fprintf(stdout, "x:[%d][%d][%d]%d\n", iNext, j, m, elp[iNext].b[j+i-m]);*/
+            elp[iNext].b[j+i-m] = antilog301[(log301[dis.b[i]] - log301[dis.b[m]] +
+                  NN + log301[elp[m].b[j]]) % NN];
+/*fprintf(stdout, "x:[%d][%d][%d]%d\n", iNext, j, m, elp[iNext].b[j+i-m]);*/
+         }
 
          /* Calculate error location polynomial elp[i] (add 2nd term) */
-         for(lambda = elp[i].length - 1, j = 0; j < lambda; j++)
+         for(lambda = elp[i].length - 1, j = 0; j <= lambda; j++)
             elp[iNext].b[j] = GfAdd(elp[iNext].b[j], elp[i].b[j]);
 
          elp[iNext].length = max(elp[i].length, elp[m].length + i - m);
@@ -315,8 +321,11 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
          break;
 
       /* Calculate discrepancy dis.b[i] */
-      for(disTmp = syn->b[iNext], j = 0; j < lambda; j++)
-         disTmp = GfAdd(disTmp, GfMult(syn->b[iNext-j-1], elp[iNext].b[j]));
+      for(disTmp = syn->b[iNext], j = 1; j <= lambda; j++)
+      {
+/*fprintf(stdout, "disTmp: %d [%d](%d) [%d](%d)\n", disTmp, iNext-j, syn->b[iNext-j], j, elp[iNext].b[j]);*/
+         disTmp = GfAdd(disTmp, GfMult(syn->b[iNext-j], elp[iNext].b[j]));
+      }
 
       assert(dis.length == iNext);
       dmtxByteListPush(&dis, disTmp);
