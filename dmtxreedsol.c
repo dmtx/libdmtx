@@ -82,8 +82,8 @@ static DmtxByte antilog301[] =
    (((a) == 0) ? 0 : antilog301[(log301[(a)] + (b)) % NN])
 
 /**
- *
- *
+ * @brief
+ * @return DmtxPass|DmtxFail
  */
 static DmtxPassFail
 RsEncode(DmtxMessage *message, int sizeIdx)
@@ -136,17 +136,16 @@ RsEncode(DmtxMessage *message, int sizeIdx)
 }
 
 /**
- *
- *
+ * @brief
+ * @return DmtxPass|DmtxFail
  */
 static DmtxPassFail
 RsDecode(unsigned char *code, int sizeIdx, int fix)
 {
    int i;
-   int lam, count;
    int blockStride, blockIdx;
    int blockErrorWords, blockTotalWords, blockMaxCorrectable;
-   DmtxBoolean error;
+   DmtxBoolean error, solvable;
    DmtxByte elpStorage[MAX_ERROR_WORD_COUNT];
    DmtxByte synStorage[MAX_ERROR_WORD_COUNT+1];
    DmtxByte recStorage[NN];
@@ -177,18 +176,18 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       /* Error(s) detected: Attempt to repair */
       if(error)
       {
-         /* Calculate error locator polynomial (elp) and lambda (lam) */
-         lam = RsFindErrorLocatorPoly(&elp, &syn, blockErrorWords, blockMaxCorrectable);
-         if(lam > blockMaxCorrectable)
+         /* Calculate error locator polynomial (elp) */
+         solvable = RsFindErrorLocatorPoly(&elp, &syn, blockErrorWords, blockMaxCorrectable);
+         if(!solvable)
             return DmtxFail;
 
          /* Find error positions (loc) */
-         count = RsFindErrorLocations(&loc, &elp, lam);
-         if(count != lam)
+         solvable = RsFindErrorLocations(&loc, &elp);
+         if(!solvable)
             return DmtxFail;
 
          /* Find error values and repair */
-         RsRepairErrors(&rec, &loc, &elp, &syn, lam);
+         RsRepairErrors(&rec, &loc, &elp, &syn);
       }
 
       /* Write correct/corrected values to output */
@@ -199,8 +198,8 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
 }
 
 /**
- *
- *
+ * @brief
+ * @return DmtxPass|DmtxFail
  */
 static DmtxPassFail
 RsGenPoly(DmtxByteList *gen, int errorWordCount)
@@ -225,10 +224,12 @@ RsGenPoly(DmtxByteList *gen, int errorWordCount)
 }
 
 /**
+ * @brief
  * Assume we have received bits grouped into mm-bit symbols in rec[i],
  * i=0..(nn-1),  and rec[i] is index form (ie as powers of alpha). We first
  * compute the 2*tt syndromes by substituting alpha**i into rec(X) and
  * evaluating, storing the syndromes in syn[i], i=1..2tt (leave syn[0] zero).
+ * @return Error(s) present (DmtxTrue|DmtxFalse)
  */
 static DmtxBoolean
 RsComputeSyndromes(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWords)
@@ -255,20 +256,19 @@ RsComputeSyndromes(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWor
 
 /**
  * @brief Find the error location polynomial using Berlekamp-Massey.
- * @return DmtxPass if degree of elp is <= maxCorrectable errors. Otherwise
- *         return DmtxFail because uncorrectable errors are present.
+ * @return Solvable (DmtxTrue|DmtxFalse)
  */
-static int
+static DmtxBoolean
 RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorWordCount, int maxCorrectable)
 {
    int i, iNext, j;
-   int m, mCmp;
-   int lam[MAX_ERROR_WORD_COUNT+2] = { 0 };
-   DmtxByte disStorage[MAX_ERROR_WORD_COUNT+1];
+   int m, mCmp, lambda;
+   DmtxByte disTmp, disStorage[MAX_ERROR_WORD_COUNT+1];
    DmtxByte elpStorage[MAX_ERROR_WORD_COUNT+2][MAX_ERROR_WORD_COUNT];
    DmtxByteList dis, elp[MAX_ERROR_WORD_COUNT+2];
 
    dis = dmtxByteListBuild(disStorage, sizeof(disStorage));
+   dmtxByteListInit(&dis, 0, 0);
 
    for(i = 0; i < MAX_ERROR_WORD_COUNT + 2; i++)
    {
@@ -278,13 +278,11 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
 
    /* iNext = 0 */
    dmtxByteListPush(&elp[0], 1);
-   lam[0] = 0; /* elp[0].length = 1? */
-   dis.b[0] = 1;
+   dmtxByteListPush(&dis, 1);
 
    /* iNext = 1 */
    dmtxByteListPush(&elp[1], 1);
-   lam[1] = 0; /* elp[0].length = 1? */
-   dis.b[1] = syn->b[1];
+   dmtxByteListPush(&dis, syn->b[1]);
 
    for(iNext = 2, i = 1; /* explicit break */; i = iNext++)
    {
@@ -292,53 +290,55 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
       {
          /* Simple case: Copy directly from previous iteration */
          dmtxByteListCopy(&elp[iNext], &elp[i]);
-         lam[iNext] = lam[i]; /* XXX unnecessary ... done as part of ListCopy() */
       }
       else
       {
-         /* Find earlier iteration (m) that provides maximal (m - lam[m]) */
+         /* Find earlier iteration (m) that provides maximal (m - lambda) */
          for(m = 0, mCmp = 1; mCmp < i; mCmp++)
-            if(dis.b[mCmp] != 0 && (mCmp - lam[mCmp]) > (m - lam[m]))
+            if(dis.b[mCmp] != 0 && (mCmp - elp[mCmp].length) > (m - elp[m].length))
                m = mCmp;
 
          /* Calculate error location polynomial elp[i] (set 1st term) */
-         for(j = 0; j < lam[m]; j++)
+         for(lambda = elp[m].length - 1, j = 0; j < lambda; j++)
             elp[iNext].b[j+i-m] = antilog301[(log301[dis.b[i]] - log301[dis.b[m]] + NN + elp[m].b[j]) % NN];
 
          /* Calculate error location polynomial elp[i] (add 2nd term) */
-         for(j = 0; j < lam[i]; j++)
+         for(lambda = elp[i].length - 1, j = 0; j < lambda; j++)
             elp[iNext].b[j] = GfAdd(elp[iNext].b[j], elp[i].b[j]);
 
-         /* Record lambda: lam[m] + iEqn - mEqn = lam[m] + (i-1) - (m-1) */
-         lam[iNext] = max(lam[i], lam[m] + i - m);
+         elp[iNext].length = max(elp[i].length, elp[m].length + i - m);
       }
 
-      if(i == errorWordCount || i >= lam[iNext] + maxCorrectable)
+      lambda = elp[iNext].length - 1;
+
+      if(i == errorWordCount || i >= lambda + maxCorrectable)
          break;
 
       /* Calculate discrepancy dis.b[i] */
-      for(j = 0, dis.b[iNext] = syn->b[iNext]; j < lam[iNext]; j++)
-         dis.b[iNext] = GfAdd(dis.b[iNext], GfMult(syn->b[iNext-j-1], elp[iNext].b[j]));
+      for(disTmp = syn->b[iNext], j = 0; j < lambda; j++)
+         disTmp = GfAdd(disTmp, GfMult(syn->b[iNext-j-1], elp[iNext].b[j]));
+
+      assert(dis.length == iNext);
+      dmtxByteListPush(&dis, disTmp);
    }
 
-   return lam[iNext];
+   return (lambda <= maxCorrectable) ? DmtxTrue : DmtxFalse;
 }
 
 /**
- * Find roots of the error locator polynomial (Chien Search)
- *
+ * @brief Find roots of the error locator polynomial (Chien Search)
  * If the degree of elp is <= tt, we substitute alpha**i, i=1..n into the elp
  * to get the roots, hence the inverse roots, the error location numbers.
- *
  * If the number of errors located does not equal the degree of the elp, we
  * have more than tt errors and cannot correct them.
+ * @return Solvable (DmtxTrue|DmtxFalse)
  */
-static int
-RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp, int lam)
+static DmtxBoolean
+RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp)
 {
    int i, j, count = 0;
-   DmtxByte q;
-   DmtxByte regStorage[MAX_ERROR_WORD_COUNT];
+   int lambda = elp->length - 1;
+   DmtxByte q, regStorage[MAX_ERROR_WORD_COUNT];
    DmtxByteList reg = dmtxByteListBuild(regStorage, sizeof(regStorage));
 
    dmtxByteListCopy(&reg, elp);
@@ -346,55 +346,53 @@ RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp, int lam)
 
    for(i = 1; i <= NN; i++)
    {
-      for(q = 1, j = 1; j <= lam; j++)
+      for(q = 1, j = 1; j <= lambda; j++)
          q = GfAdd(q, GfMultAntilog(reg.b[j], j));
 
       if(q == 0)
          dmtxByteListPush(loc, NN - i);
    }
 
-   /* Number of roots != degree of elp => >tt errors and cannot solve */
-   return count;
+   return (count == lambda) ? DmtxTrue : DmtxFalse;
 }
 
 /**
- * Find the error values
- *
+ * @brief Find the error values and repair
  * Solve for the error value at the error location and correct the error. The
  * procedure is that found in Lin and Costello.
- *
  * For the cases where the number of errors is known to be too large to
  * correct, the information symbols as received are output (the advantage of
  * systematic encoding is that hopefully some of the information symbols will
  * be okay and that if we are in luck, the errors are in the parity part of
  * the transmitted codeword).
  */
-static DmtxBoolean
-RsRepairErrors(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *elp, const DmtxByteList *syn, int lam)
+static void
+RsRepairErrors(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *elp, const DmtxByteList *syn)
 {
    int i, j, q;
+   int lambda = elp->length - 1;
    DmtxByte root, err;
    DmtxByte zStorage[MAX_ERROR_WORD_COUNT+1];
    DmtxByteList z = dmtxByteListBuild(zStorage, sizeof(zStorage));
 
    /* Form polynomial z(x) */
-   for(z.b[0] = 1, i = 1; i <= lam; i++)
+   for(z.b[0] = 1, i = 1; i <= lambda; i++)
       for(z.b[i] = GfAdd(syn->b[i], elp->b[i]), j = 1; j < i; j++)
          z.b[i] = GfAdd(z.b[i], GfMult(elp->b[i-j], syn->b[j]));
 
-   for(i = 0; i < lam; i++)
+   for(i = 0; i < lambda; i++)
    {
       /* Calculate numerator of error term */
       root = NN - loc->b[i];
 
-      for(err = 1, j = 1; j <= lam; j++)
+      for(err = 1, j = 1; j <= lambda; j++)
          err = GfAdd(err, GfMultAntilog(z.b[j], j * root));
 
       if(err == 0)
          continue;
 
       /* Calculate denominator of error term */
-      for(q = 0, j = 0; j < lam; j++)
+      for(q = 0, j = 0; j < lambda; j++)
       {
          if(j != i)
             q += log301[1 ^ antilog301[(loc->b[j] + root) % NN]];
@@ -404,6 +402,4 @@ RsRepairErrors(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *e
       err = GfMult(err, NN - q);
       rec->b[loc->b[i]] = GfAdd(rec->b[loc->b[i]], err);
    }
-
-   return DmtxTrue;
 }
