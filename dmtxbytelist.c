@@ -27,7 +27,7 @@ Contact: mike@dragonflylogic.com
  *
  */
 extern DmtxByteList
-dmtxByteListBuild(DmtxByte *storage, size_t capacity)
+dmtxByteListBuild(DmtxByte *storage, int capacity)
 {
    DmtxByteList list;
 
@@ -43,7 +43,7 @@ dmtxByteListBuild(DmtxByte *storage, size_t capacity)
  *
  */
 extern void
-dmtxByteListInit(DmtxByteList *list, size_t length, DmtxByte value)
+dmtxByteListInit(DmtxByteList *list, int length, DmtxByte value)
 {
    assert(length <= list->capacity);
 
@@ -58,7 +58,7 @@ dmtxByteListInit(DmtxByteList *list, size_t length, DmtxByte value)
 extern DmtxPassFail
 dmtxByteListCopy(DmtxByteList *dest, const DmtxByteList *src)
 {
-   size_t length;
+   int length;
 
    /* dest must be large enough to hold src data */
    if(dest->capacity < src->length)
@@ -77,7 +77,7 @@ dmtxByteListCopy(DmtxByteList *dest, const DmtxByteList *src)
  *
  *
  */
-extern size_t
+extern int
 dmtxByteListPush(DmtxByteList *list, DmtxByte value)
 {
    assert(list->length < list->capacity);
@@ -85,4 +85,22 @@ dmtxByteListPush(DmtxByteList *list, DmtxByte value)
    list->b[list->length++] = value;
 
    return list->length;
+}
+
+/**
+ *
+ *
+ */
+extern void
+dmtxByteListPrint(DmtxByteList *list, char *prefix)
+{
+   int i;
+
+   if(prefix != NULL)
+      fprintf(stdout, "%s", prefix);
+
+   for(i = 0; i < list->length; i++)
+      fprintf(stdout, " %d", list->b[i]);
+
+   fputc('\n', stdout);
 }

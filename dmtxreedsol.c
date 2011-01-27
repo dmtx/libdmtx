@@ -266,6 +266,7 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
    DmtxByte disTmp, disStorage[MAX_ERROR_WORD_COUNT+1];
    DmtxByte elpStorage[MAX_ERROR_WORD_COUNT+2][MAX_ERROR_WORD_COUNT];
    DmtxByteList dis, elp[MAX_ERROR_WORD_COUNT+2];
+/*char prefix[32];*/
 
    dis = dmtxByteListBuild(disStorage, sizeof(disStorage));
    dmtxByteListInit(&dis, 0, 0);
@@ -279,14 +280,21 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
    /* iNext = 0 */
    dmtxByteListPush(&elp[0], 1);
    dmtxByteListPush(&dis, 1);
+/*
+dmtxByteListPrint(&elp[0], "elp[0]:");
+dmtxByteListPrint(&dis, "   dis:");
+*/
 
    /* iNext = 1 */
    dmtxByteListPush(&elp[1], 1);
    dmtxByteListPush(&dis, syn->b[1]);
+/*
+dmtxByteListPrint(&elp[1], "elp[1]:");
+dmtxByteListPrint(&dis, "   dis:");
+*/
 
    for(iNext = 2, i = 1; /* explicit break */; i = iNext++)
    {
-/*fprintf(stdout, "d[%d]: %d\n", i, log301[dis.b[i]]);*/
       if(dis.b[i] == 0)
       {
          /* Simple case: Copy directly from previous iteration */
@@ -298,15 +306,12 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
          for(m = 0, mCmp = 1; mCmp < i; mCmp++)
             if(dis.b[mCmp] != 0 && (mCmp - elp[mCmp].length) >= (m - elp[m].length))
                m = mCmp;
+/* fprintf(stdout, "   m: %d (%d)\n", m, m - elp[m].length); */
 
          /* Calculate error location polynomial elp[i] (set 1st term) */
          for(lambda = elp[m].length - 1, j = 0; j <= lambda; j++)
-         {
-/*fprintf(stdout, "x:[%d][%d][%d]%d\n", iNext, j, m, elp[iNext].b[j+i-m]);*/
-            elp[iNext].b[j+i-m] = antilog301[(log301[dis.b[i]] - log301[dis.b[m]] +
-                  NN + log301[elp[m].b[j]]) % NN];
-/*fprintf(stdout, "x:[%d][%d][%d]%d\n", iNext, j, m, elp[iNext].b[j+i-m]);*/
-         }
+            elp[iNext].b[j+i-m] = antilog301[(NN - log301[dis.b[m]] +
+                  log301[dis.b[i]] + log301[elp[m].b[j]]) % NN];
 
          /* Calculate error location polynomial elp[i] (add 2nd term) */
          for(lambda = elp[i].length - 1, j = 0; j <= lambda; j++)
@@ -314,6 +319,7 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
 
          elp[iNext].length = max(elp[i].length, elp[m].length + i - m);
       }
+/* sprintf(prefix, "elp[%d]:", iNext); dmtxByteListPrint(&elp[iNext], prefix); */
 
       lambda = elp[iNext].length - 1;
 
@@ -322,13 +328,11 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
 
       /* Calculate discrepancy dis.b[i] */
       for(disTmp = syn->b[iNext], j = 1; j <= lambda; j++)
-      {
-/*fprintf(stdout, "disTmp: %d [%d](%d) [%d](%d)\n", disTmp, iNext-j, syn->b[iNext-j], j, elp[iNext].b[j]);*/
          disTmp = GfAdd(disTmp, GfMult(syn->b[iNext-j], elp[iNext].b[j]));
-      }
 
       assert(dis.length == iNext);
       dmtxByteListPush(&dis, disTmp);
+/* dmtxByteListPrint(&dis, "   dis:"); */
    }
 
    return (lambda <= maxCorrectable) ? DmtxTrue : DmtxFalse;

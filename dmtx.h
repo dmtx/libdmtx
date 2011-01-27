@@ -259,11 +259,17 @@ typedef struct DmtxRay2_struct {
 
 typedef unsigned char DmtxByte;
 
+/**
+ * @struct DmtxByteList
+ * @brief DmtxByteList
+ * Use signed int for length fields instead of size_t to play nicely with RS
+ * arithmetic
+ */
 typedef struct DmtxByteList_struct DmtxByteList;
 struct DmtxByteList_struct
 {
-   size_t length;
-   size_t capacity;
+   int length;
+   int capacity;
    DmtxByte *b;
 };
 
@@ -596,10 +602,11 @@ extern int dmtxGetSymbolAttribute(int attribute, int sizeIdx);
 extern int dmtxGetBlockDataSize(int sizeIdx, int blockIdx);
 
 /* dmtxbytelist.c */
-extern DmtxByteList dmtxByteListBuild(DmtxByte *storage, size_t capacity);
-extern void dmtxByteListInit(DmtxByteList *list, size_t length, DmtxByte value);
+extern DmtxByteList dmtxByteListBuild(DmtxByte *storage, int capacity);
+extern void dmtxByteListInit(DmtxByteList *list, int length, DmtxByte value);
 extern DmtxPassFail dmtxByteListCopy(DmtxByteList *dest, const DmtxByteList *src);
-extern size_t dmtxByteListPush(DmtxByteList *list, DmtxByte value);
+extern int dmtxByteListPush(DmtxByteList *list, DmtxByte value);
+extern void dmtxByteListPrint(DmtxByteList *list, char *prefix);
 
 extern char *dmtxVersion(void);
 
