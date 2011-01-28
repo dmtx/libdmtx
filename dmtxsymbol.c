@@ -143,10 +143,11 @@ dmtxGetBlockDataSize(int sizeIdx, int blockIdx)
 
    symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
    interleavedBlocks = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
-   count = (int)(symbolDataWords/interleavedBlocks);
 
    if(symbolDataWords < 1 || interleavedBlocks < 1)
       return DmtxUndefined;
+
+   count = (int)(symbolDataWords/interleavedBlocks);
 
    return (sizeIdx == DmtxSymbol144x144 && blockIdx < 8) ? count + 1 : count;
 }

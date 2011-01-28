@@ -26,7 +26,18 @@ only Data Matrix conditions and to integrate seamlessly with libdmtx.
 Contact: mike@dragonflylogic.com
 */
 
-/* $Id$ */
+/**
+ * $Id$
+ * \file dmtxreedsol.c
+ */
+
+/**
+ * TODO:
+ *   o try doxygen using using the JavaDoc style and JAVADOC_AUTOBRIEF = YES
+ *   o try doxygen math formulas? (enable USE_MATHJAX in the config)
+ *   o switch doxygen to simplified syntax, and using "\file" instead of "@file"
+ *   o add "\file" to file header
+ */
 
 #define NN                      255
 #define MAX_ERROR_WORD_COUNT     68
@@ -82,8 +93,11 @@ static DmtxByte antilog301[] =
        3,   6,  12,  24,  48,  96, 192, 173, 119, 238, 241, 207, 179,  75, 150,   0 };
 
 /**
- * @brief
- * @return DmtxPass|DmtxFail
+ * Encode xyz.
+ * More detailed description.
+ * \param message
+ * \param sizeIdx
+ * \return Function success (DmtxPass|DmtxFail)
  */
 static DmtxPassFail
 RsEncode(DmtxMessage *message, int sizeIdx)
@@ -136,8 +150,12 @@ RsEncode(DmtxMessage *message, int sizeIdx)
 }
 
 /**
- * @brief
- * @return DmtxPass|DmtxFail
+ * Decode xyz.
+ * More detailed description.
+ * \param code
+ * \param sizeIdx
+ * \param fix
+ * \return Function success (DmtxPass|DmtxFail)
  */
 static DmtxPassFail
 RsDecode(unsigned char *code, int sizeIdx, int fix)
@@ -162,7 +180,7 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
    /* For each interleaved block... */
    for(blockIdx = 0; blockIdx < blockStride; blockIdx++)
    {
-      /* Need to query at block level due to special case at 144x144 */
+      /* Data word count depends on blockIdx due to special case at 144x144 */
       blockTotalWords = blockErrorWords + dmtxGetBlockDataSize(sizeIdx, blockIdx);
 
       /* Populate received list (rec) with data and error codewords */
@@ -173,7 +191,7 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       /* Compute syndromes (syn) */
       error = RsComputeSyndromes(&syn, &rec, blockErrorWords);
 
-      /* Error(s) detected: Attempt to repair */
+      /* Error(s) detected: Attempt repair */
       if(error)
       {
          /* Find error locator polynomial (elp) */
@@ -198,8 +216,11 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
 }
 
 /**
- * @brief
- * @return DmtxPass|DmtxFail
+ * Populate generator polynomial.
+ * More detailed description.
+ * \param gen
+ * \param errorWordCount
+ * \return Function success (DmtxPass|DmtxFail)
  */
 static DmtxPassFail
 RsGenPoly(DmtxByteList *gen, int errorWordCount)
@@ -224,12 +245,15 @@ RsGenPoly(DmtxByteList *gen, int errorWordCount)
 }
 
 /**
- * @brief
+ * Populate generator polynomial.
  * Assume we have received bits grouped into mm-bit symbols in rec[i],
  * i=0..(nn-1),  and rec[i] is index form (ie as powers of alpha). We first
  * compute the 2*tt syndromes by substituting alpha**i into rec(X) and
  * evaluating, storing the syndromes in syn[i], i=1..2tt (leave syn[0] zero).
- * @return Error(s) present (DmtxTrue|DmtxFalse)
+ * \param syn
+ * \param rec
+ * \param blockErrorWords
+ * \return Are error(s) present? (DmtxPass|DmtxFail)
  */
 static DmtxBoolean
 RsComputeSyndromes(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWords)
@@ -240,10 +264,10 @@ RsComputeSyndromes(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWor
    /* Initialize all coefficients to 0 */
    dmtxByteListInit(syn, blockErrorWords + 1, 0);
 
-   for(i = 1; i < syn->length; i++) /* blockErrorWords + 1 */
+   for(i = 1; i < syn->length; i++)
    {
       /* Calculate syndrome at i */
-      for(j = 0; j < rec->length; j++) /* blockTotalWords */
+      for(j = 0; j < rec->length; j++) /* alternatively: j < blockTotalWords */
          syn->b[i] = GfAdd(syn->b[i], GfMultAntilog(rec->b[j], i*j));
 
       /* Non-zero syndrome indicates presence of error(s) */
@@ -255,8 +279,13 @@ RsComputeSyndromes(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWor
 }
 
 /**
- * @brief Find the error location polynomial using Berlekamp-Massey.
- * @return Repairable (DmtxTrue|DmtxFalse)
+ * Find the error location polynomial using Berlekamp-Massey.
+ * More detailed description.
+ * \param elpOut
+ * \param syn
+ * \param errorWordCount
+ * \param maxCorrectable
+ * \return Is block repairable? (DmtxTrue|DmtxFalse)
  */
 static DmtxBoolean
 RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorWordCount, int maxCorrectable)
@@ -340,12 +369,14 @@ dmtxByteListPrint(&dis, "   dis:");
 }
 
 /**
- * @brief Find roots of the error locator polynomial (Chien Search)
+ * Find roots of the error locator polynomial (Chien Search).
  * If the degree of elp is <= tt, we substitute alpha**i, i=1..n into the elp
  * to get the roots, hence the inverse roots, the error location numbers.
  * If the number of errors located does not equal the degree of the elp, we
  * have more than tt errors and cannot correct them.
- * @return Repairable (DmtxTrue|DmtxFalse)
+ * \param loc
+ * \param elp
+ * \return Is block repairable? (DmtxTrue|DmtxFalse)
  */
 static DmtxBoolean
 RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp)
@@ -371,7 +402,7 @@ RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp)
 }
 
 /**
- * @brief Find the error values and repair
+ * Find the error values and repair.
  * Solve for the error value at the error location and correct the error. The
  * procedure is that found in Lin and Costello.
  * For the cases where the number of errors is known to be too large to
@@ -379,6 +410,10 @@ RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp)
  * systematic encoding is that hopefully some of the information symbols will
  * be okay and that if we are in luck, the errors are in the parity part of
  * the transmitted codeword).
+ * \param rec
+ * \param loc
+ * \param elp
+ * \param syn
  */
 static void
 RsRepairErrors(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *elp, const DmtxByteList *syn)
