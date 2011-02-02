@@ -184,9 +184,9 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       blockTotalWords = blockErrorWords + dmtxGetBlockDataSize(sizeIdx, blockIdx);
 
       /* Populate received list (rec) with data and error codewords */
-      dmtxByteListInit(&rec, blockTotalWords, 0);
-      for(i = 0; i < rec.length; i++)
-         rec.b[i] = code[blockIdx + blockStride * (blockTotalWords - 1 - i)];
+      dmtxByteListInit(&rec, 0, 0);
+      for(i = 0; i < blockTotalWords; i++)
+         dmtxByteListPush(&rec, code[blockIdx + blockStride * (blockTotalWords - 1 - i)]);
 
       /* Compute syndromes (syn) */
       error = RsComputeSyndromes(&syn, &rec, blockErrorWords);
@@ -209,7 +209,8 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       }
 
       /* Write correct/corrected values to output */
-      /* for() ... */
+      for(i = 0; i < blockTotalWords; i++)
+         code[blockIdx + blockStride * (blockTotalWords - 1 - i)] = rec.b[i];
    }
 
    return DmtxPass;
@@ -295,7 +296,6 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
    DmtxByte disTmp, disStorage[MAX_ERROR_WORD_COUNT+1];
    DmtxByte elpStorage[MAX_ERROR_WORD_COUNT+2][MAX_ERROR_WORD_COUNT];
    DmtxByteList dis, elp[MAX_ERROR_WORD_COUNT+2];
-/*char prefix[32];*/
 
    dis = dmtxByteListBuild(disStorage, sizeof(disStorage));
    dmtxByteListInit(&dis, 0, 0);
@@ -306,21 +306,20 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
       dmtxByteListInit(&elp[i], 0, 0);
    }
 
+/* XXX after this all is confirmed to be working, consider refactoring:
+       "i" represents book "i"
+       "iNext" represents book "i+1" (one being calculated)
+       "idx" represents index of coefficients
+       "idxNext" represents index of coefficients (one being calculated)
+*/
+
    /* iNext = 0 */
    dmtxByteListPush(&elp[0], 1);
    dmtxByteListPush(&dis, 1);
-/*
-dmtxByteListPrint(&elp[0], "elp[0]:");
-dmtxByteListPrint(&dis, "   dis:");
-*/
 
    /* iNext = 1 */
    dmtxByteListPush(&elp[1], 1);
    dmtxByteListPush(&dis, syn->b[1]);
-/*
-dmtxByteListPrint(&elp[1], "elp[1]:");
-dmtxByteListPrint(&dis, "   dis:");
-*/
 
    for(iNext = 2, i = 1; /* explicit break */; i = iNext++)
    {
@@ -335,7 +334,6 @@ dmtxByteListPrint(&dis, "   dis:");
          for(m = 0, mCmp = 1; mCmp < i; mCmp++)
             if(dis.b[mCmp] != 0 && (mCmp - elp[mCmp].length) >= (m - elp[m].length))
                m = mCmp;
-/* fprintf(stdout, "   m: %d (%d)\n", m, m - elp[m].length); */
 
          /* Calculate error location polynomial elp[i] (set 1st term) */
          for(lambda = elp[m].length - 1, j = 0; j <= lambda; j++)
@@ -348,7 +346,6 @@ dmtxByteListPrint(&dis, "   dis:");
 
          elp[iNext].length = max(elp[i].length, elp[m].length + i - m);
       }
-/* sprintf(prefix, "elp[%d]:", iNext); dmtxByteListPrint(&elp[iNext], prefix); */
 
       lambda = elp[iNext].length - 1;
       if(i == errorWordCount || i >= lambda + maxCorrectable)
@@ -360,7 +357,6 @@ dmtxByteListPrint(&dis, "   dis:");
 
       assert(dis.length == iNext);
       dmtxByteListPush(&dis, disTmp);
-/* dmtxByteListPrint(&dis, "   dis:"); */
    }
 
    dmtxByteListCopy(elpOut, &elp[iNext]);
@@ -381,7 +377,7 @@ dmtxByteListPrint(&dis, "   dis:");
 static DmtxBoolean
 RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp)
 {
-   int i, j, count = 0;
+   int i, j;
    int lambda = elp->length - 1;
    DmtxByte q, regStorage[MAX_ERROR_WORD_COUNT];
    DmtxByteList reg = dmtxByteListBuild(regStorage, sizeof(regStorage));
@@ -392,13 +388,16 @@ RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp)
    for(i = 1; i <= NN; i++)
    {
       for(q = 1, j = 1; j <= lambda; j++)
-         q = GfAdd(q, GfMultAntilog(reg.b[j], j));
+      {
+         reg.b[j] = GfMultAntilog(reg.b[j], j);
+         q = GfAdd(q, reg.b[j]);
+      }
 
       if(q == 0)
          dmtxByteListPush(loc, NN - i);
    }
 
-   return (count == lambda) ? DmtxTrue : DmtxFalse;
+   return (loc->length == lambda) ? DmtxTrue : DmtxFalse;
 }
 
 /**
@@ -420,14 +419,18 @@ RsRepairErrors(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *e
 {
    int i, j, q;
    int lambda = elp->length - 1;
-   DmtxByte root, err;
+   DmtxByte zVal, root, err;
    DmtxByte zStorage[MAX_ERROR_WORD_COUNT+1];
    DmtxByteList z = dmtxByteListBuild(zStorage, sizeof(zStorage));
 
    /* Form polynomial z(x) */
-   for(z.b[0] = 1, i = 1; i <= lambda; i++)
-      for(z.b[i] = GfAdd(syn->b[i], elp->b[i]), j = 1; j < i; j++)
-         z.b[i] = GfAdd(z.b[i], GfMult(elp->b[i-j], syn->b[j]));
+   dmtxByteListPush(&z, 1);
+   for(i = 1; i <= lambda; i++)
+   {
+      for(zVal = GfAdd(syn->b[i], elp->b[i]), j = 1; j < i; j++)
+         zVal= GfAdd(zVal, GfMult(elp->b[i-j], syn->b[j]));
+      dmtxByteListPush(&z, zVal);
+   }
 
    for(i = 0; i < lambda; i++)
    {
@@ -448,7 +451,7 @@ RsRepairErrors(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *e
       }
       q %= NN;
 
-      err = GfMult(err, NN - q);
+      err = GfMultAntilog(err, NN - q);
       rec->b[loc->b[i]] = GfAdd(rec->b[loc->b[i]], err);
    }
 }
