@@ -267,7 +267,7 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
    int symbolRemaining;
    DmtxBoolean cleanBoundary;
    DmtxPassFail passFail;
-   DmtxByte outputAsciiStorage[2];
+   DmtxByte outputAsciiStorage[3];
    DmtxByteList outputAscii;
 
    /* Check if sitting on a clean byte boundary */
@@ -300,9 +300,12 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
    }
    else
    {
-      /* Test if eligible to end in ASCII using one of the special cases */
-      assert(sizeof(outputAsciiStorage) >= 2);
-      outputAscii = EncodeRemainingInAscii(stream, outputAsciiStorage, 2, &passFail);
+      /**
+       * Allow encoder to write out 3 (or more) additional codewords. If it
+       * finishes in 1 or 2 then this is a known end-of-symbol condition.
+       */
+      outputAscii = EncodeRemainingInAscii(stream, outputAsciiStorage, sizeof(outputAsciiStorage), &passFail);
+
       if(passFail == DmtxFail || outputAscii.length > symbolRemaining)
          return; /* Doesn't fit */
 
@@ -425,10 +428,27 @@ EncodeRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity
    streamAscii.status = DmtxStatusEncoding;
    streamAscii.output = dmtxByteListBuild(storage, capacity);
 
-   while(streamAscii.status == DmtxStatusEncoding)
-      EncodeNextWordAscii(&streamAscii);
+   while(streamAscii.outputChainLength < capacity)
+   {
+      if(StreamInputHasNext(&streamAscii))
+      {
+         EncodeNextWordAscii(&streamAscii);
+      }
+      else
+      {
+         StreamMarkComplete(&streamAscii);
+         break;
+      }
+   }
 
-   *passFail = (streamAscii.status == DmtxStatusComplete) ? DmtxPass : DmtxFail;
+   /**
+    * We stopped encoding before attempting to write beyond output boundary so
+    * any stream errors are unexpected issues. The passFail status indicates
+    * whether output.length can be trusted by the calling function.
+    */
+
+   *passFail = (streamAscii.status == DmtxStatusEncoding ||
+         streamAscii.status == DmtxStatusComplete) ? DmtxPass : DmtxFail;
 
    return streamAscii.output;
 }

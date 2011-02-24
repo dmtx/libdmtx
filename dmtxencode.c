@@ -427,11 +427,11 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
          break;
       default:
          dataWordCount = EncodeSingleScheme(enc, buf, inputString, inputSize, enc->scheme);
-/* try out our new thing */
+         /* try out our new thing */
 /*
-stream = StreamInit(inputString, inputSize, buf, 4096);
-EncodeSingleScheme2(&stream, enc->scheme, DmtxSymbolSquareAuto);
-dmtxByteListPrint(&(stream.output), "xxx:");
+         stream = StreamInit(inputString, inputSize, buf, 4096);
+         EncodeSingleScheme2(&stream, enc->scheme, DmtxSymbolSquareAuto);
+         dmtxByteListPrint(&(stream.output), "xxx:");
 */
          break;
    }
