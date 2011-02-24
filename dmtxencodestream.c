@@ -20,7 +20,7 @@
  * Contact: mike@dragonflylogic.com
  */
 
-/* $Id: dmtxencodestream.c 1178 2011-01-27 17:59:43Z mblaughton $ */
+/* $Id$ */
 
 #include "dmtx.h"
 #include "dmtxstatic.h"
