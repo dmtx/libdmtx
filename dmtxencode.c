@@ -433,7 +433,7 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
    /* try out our new thing */
    stream = StreamInit(inputString, inputSize, buf, 4096);
    EncodeSingleScheme2(&stream, DmtxSchemeAscii, DmtxSymbolSquareAuto);
-dmtxByteListPrint(&(stream.output), "xxx:");
+/* dmtxByteListPrint(&(stream.output), "xxx:"); */
 
    /* XXX must fix ... will need to handle sizeIdx requests here because it is
       needed by Encode...() for triplet termination */
