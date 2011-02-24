@@ -41,7 +41,7 @@ StreamInit(DmtxByte *input, int inputLength, DmtxByte *output, int outputLength)
    stream.status = DmtxStatusEncoding;
 
    stream.input = dmtxByteListBuild(input, inputLength);
-   stream.input.length = inputLength; /* clean up later */
+   stream.input.length = inputLength; /* clean up later -- maybe should be different "Built" option? */
 
    stream.output = dmtxByteListBuild(output, outputLength);
 
@@ -91,9 +91,15 @@ StreamMarkFatal(DmtxEncodeStream *stream, int reason)
 static void
 StreamOutputChainAppend(DmtxEncodeStream *stream, DmtxByte value)
 {
-   /* tighten this up ... currently just assumes it will fit */
-   dmtxByteListPush(&(stream->output), value);
-   stream->outputChainLength++;
+   if(dmtxByteListHasCapacity(&(stream->output)))
+   {
+      dmtxByteListPush(&(stream->output), value);
+      stream->outputChainLength++;
+   }
+   else
+   {
+      StreamMarkFatal(stream, 1 /*DmtxOutOfBounds*/);
+   }
 }
 
 /**

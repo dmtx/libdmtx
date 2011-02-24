@@ -260,6 +260,7 @@ static void EncodeNextWordEdifact(DmtxEncodeStream *stream);
 static void CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx);
 static void EncodeNextWordBase256(DmtxEncodeStream *stream);
 static void CompleteIfDoneBase256(DmtxEncodeStream *stream);
+static DmtxByteList EncodeRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail);
 
 static const int dmtxNeighborNone = 8;
 static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };

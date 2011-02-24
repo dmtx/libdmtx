@@ -29,7 +29,8 @@
 #include "dmtx.h"
 #include "dmtxstatic.h"
 
-#define RETURN_IF_ERROR(s) if((s)->status != DmtxStatusEncoding) { return; }
+/* CHKERR should follow any call that might change stream to bad status */
+#define CHKERR { if(stream->status != DmtxStatusEncoding) { return; } }
 
 /**
  *
@@ -61,28 +62,30 @@ EncodeNextWord2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requested
 {
    /* Change to target scheme if necessary */
    if(stream->currentScheme != targetScheme)
-      EncodeChangeScheme(stream, targetScheme, DmtxUnlatchExplicit);
+   {
+      EncodeChangeScheme(stream, targetScheme, DmtxUnlatchExplicit); CHKERR;
+   }
 
-   /* Poor man's polymorphism */
+   /* Explicit polymorphism */
    switch(targetScheme)
    {
       case DmtxSchemeAscii:
-         EncodeNextWordAscii(stream);
-         CompleteIfDoneAscii(stream);
+         EncodeNextWordAscii(stream); CHKERR;
+         CompleteIfDoneAscii(stream); CHKERR;
          break;
       case DmtxSchemeC40:
       case DmtxSchemeText:
       case DmtxSchemeX12:
-         EncodeNextWordTriplet(stream, targetScheme);
-         CompleteIfDoneTriplet(stream);
+         EncodeNextWordTriplet(stream, targetScheme); CHKERR;
+         CompleteIfDoneTriplet(stream); CHKERR;
          break;
       case DmtxSchemeEdifact:
-         EncodeNextWordEdifact(stream);
-         CompleteIfDoneEdifact(stream, requestedSizeIdx);
+         EncodeNextWordEdifact(stream); CHKERR;
+         CompleteIfDoneEdifact(stream, requestedSizeIdx); CHKERR;
          break;
       case DmtxSchemeBase256:
-         EncodeNextWordBase256(stream);
-         CompleteIfDoneBase256(stream);
+         EncodeNextWordBase256(stream); CHKERR;
+         CompleteIfDoneBase256(stream); CHKERR;
          break;
       default:
          StreamMarkFatal(stream, 1 /* unknown */);
@@ -100,16 +103,15 @@ EncodeNextWordAscii(DmtxEncodeStream *stream)
    DmtxBoolean v1set;
    DmtxByte v0, v1;
 
-   RETURN_IF_ERROR(stream);
    assert(stream->currentScheme == DmtxSchemeAscii);
 
    if(StreamInputHasNext(stream))
    {
-      v0 = StreamInputAdvanceNext(stream);
+      v0 = StreamInputAdvanceNext(stream); CHKERR;
 
       if(StreamInputHasNext(stream))
       {
-         v1 = StreamInputPeekNext(stream);
+         v1 = StreamInputPeekNext(stream); CHKERR;
          v1set = DmtxTrue;
       }
       else
@@ -118,24 +120,24 @@ EncodeNextWordAscii(DmtxEncodeStream *stream)
          v1set = DmtxFalse;
       }
 
-      /* Two adjacent digit chars */
       if(ISDIGIT(v0) && v1set && ISDIGIT(v1))
       {
-         StreamInputAdvanceNext(stream); /* Make the peek progress official */
-         StreamOutputChainAppend(stream, 10 * (v0 - '0') + (v1 - '0') + 130);
+         /* Two adjacent digit chars */
+         StreamInputAdvanceNext(stream); CHKERR; /* Make the peek progress official */
+         StreamOutputChainAppend(stream, 10 * (v0 - '0') + (v1 - '0') + 130); CHKERR;
       }
       else
       {
          if(v0 < 128)
          {
             /* Regular ASCII char */
-            StreamOutputChainAppend(stream, v0 + 1);
+            StreamOutputChainAppend(stream, v0 + 1); CHKERR;
          }
          else
          {
             /* Extended ASCII char */
-            StreamOutputChainAppend(stream, DmtxCharAsciiUpperShift);
-            StreamOutputChainAppend(stream, v0 - 127);
+            StreamOutputChainAppend(stream, DmtxCharAsciiUpperShift); CHKERR;
+            StreamOutputChainAppend(stream, v0 - 127); CHKERR;
          }
       }
    }
@@ -148,8 +150,6 @@ EncodeNextWordAscii(DmtxEncodeStream *stream)
 static void
 CompleteIfDoneAscii(DmtxEncodeStream *stream)
 {
-   RETURN_IF_ERROR(stream);
-
    /* padding ? */
 
    if(!StreamInputHasNext(stream))
@@ -163,7 +163,6 @@ CompleteIfDoneAscii(DmtxEncodeStream *stream)
 static void
 EncodeNextWordTriplet(DmtxEncodeStream *stream, DmtxScheme targetScheme)
 {
-   RETURN_IF_ERROR(stream);
    assert(stream->currentScheme == targetScheme);
    assert(targetScheme == DmtxSchemeC40 || targetScheme == DmtxSchemeText || targetScheme == DmtxSchemeX12);
 
@@ -196,7 +195,6 @@ EncodeNextWordTriplet(DmtxEncodeStream *stream, DmtxScheme targetScheme)
 static void
 CompleteIfDoneTriplet(DmtxEncodeStream *stream)
 {
-   RETURN_IF_ERROR(stream);
 }
 
 /**
@@ -208,12 +206,11 @@ EncodeNextWordEdifact(DmtxEncodeStream *stream)
 {
    DmtxByte inputValue, edifactValue, previousOutput;
 
-   RETURN_IF_ERROR(stream);
    assert(stream->currentScheme == DmtxSchemeEdifact);
 
    if(StreamInputHasNext(stream))
    {
-      inputValue = StreamInputAdvanceNext(stream);
+      inputValue = StreamInputAdvanceNext(stream); CHKERR;
 
       if(inputValue < 32 || inputValue > 94)
       {
@@ -226,21 +223,21 @@ EncodeNextWordEdifact(DmtxEncodeStream *stream)
       switch(stream->outputChainLength % 4)
       {
          case 0:
-            StreamOutputChainAppend(stream, edifactValue);
+            StreamOutputChainAppend(stream, edifactValue); CHKERR;
             break;
          case 1:
-            previousOutput = StreamOutputChainRemoveLast(stream);
-            StreamOutputChainAppend(stream, previousOutput | (edifactValue >> 6));
-            StreamOutputChainAppend(stream, edifactValue << 2);
+            previousOutput = StreamOutputChainRemoveLast(stream); CHKERR;
+            StreamOutputChainAppend(stream, previousOutput | (edifactValue >> 6)); CHKERR;
+            StreamOutputChainAppend(stream, edifactValue << 2); CHKERR;
             break;
          case 2:
-            previousOutput = StreamOutputChainRemoveLast(stream);
-            StreamOutputChainAppend(stream, previousOutput | (edifactValue >> 4));
-            StreamOutputChainAppend(stream, edifactValue << 4);
+            previousOutput = StreamOutputChainRemoveLast(stream); CHKERR;
+            StreamOutputChainAppend(stream, previousOutput | (edifactValue >> 4)); CHKERR;
+            StreamOutputChainAppend(stream, edifactValue << 4); CHKERR;
             break;
          case 3:
-            previousOutput = StreamOutputChainRemoveLast(stream);
-            StreamOutputChainAppend(stream, previousOutput | (edifactValue >> 2));
+            previousOutput = StreamOutputChainRemoveLast(stream); CHKERR;
+            StreamOutputChainAppend(stream, previousOutput | (edifactValue >> 2)); CHKERR;
             break;
       }
    }
@@ -269,9 +266,9 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
    int sizeIdx;
    int symbolRemaining;
    DmtxBoolean cleanBoundary;
-   DmtxByteList ascii; /* instantiate to hold up to 2 bytes */
-
-   RETURN_IF_ERROR(stream);
+   DmtxPassFail passFail;
+   DmtxByte outputAsciiStorage[2];
+   DmtxByteList outputAscii;
 
    /* Check if sitting on a clean byte boundary */
    cleanBoundary = (stream->outputChainLength % 3 == 0) ? DmtxTrue : DmtxFalse;
@@ -290,33 +287,39 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
    symbolRemaining = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) -
          stream->output.length;
 
-   /* Test if eligible to end in ASCII using one of the special cases */
-/*
-   passFail = EncodeRemainingInAscii(ascii, 2, stream); XXX won't work until this gets written
-   if(passFail == DmtxFail || ascii.length > symbolRemaining)
-      return; // Too big: keep going
-*/
-
-   if(ascii.length == 0)
+   if(!StreamInputHasNext(stream))
    {
-      /* Explicit unlatch required unless on clean byte boundary and full symbol */
+      /* Explicit unlatch required unless on clean boundary and full symbol */
       if(cleanBoundary == DmtxFalse || symbolRemaining > 0)
-         EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit);
+      {
+         EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
+         /* padding necessary? */
+      }
 
       StreamMarkComplete(stream);
    }
-   else if(ascii.length < 3 && cleanBoundary == DmtxTrue)
+   else
    {
-      EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit);
+      /* Test if eligible to end in ASCII using one of the special cases */
+      assert(sizeof(outputAsciiStorage) >= 2);
+      outputAscii = EncodeRemainingInAscii(stream, outputAsciiStorage, 2, &passFail);
+      if(passFail == DmtxFail || outputAscii.length > symbolRemaining)
+         return; /* Doesn't fit */
 
-      for(i = 0; i < ascii.length; i++)
-         StreamOutputChainAppend(stream, ascii.b[i]);
+      if(cleanBoundary && (outputAscii.length == 1 || outputAscii.length == 2))
+      {
+         EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit); CHKERR;
 
-      stream->inputNext = stream->input.length;
+         for(i = 0; i < outputAscii.length; i++)
+         {
+            StreamOutputChainAppend(stream, outputAscii.b[i]); CHKERR;
+         }
 
-      /* add padding too? */
+         /* Register input progress since we encoded outside normal stream */
+         stream->inputNext = stream->input.length;
 
-      StreamMarkComplete(stream);
+         StreamMarkComplete(stream);
+      }
    }
 }
 
@@ -327,7 +330,6 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
 static void
 EncodeNextWordBase256(DmtxEncodeStream *stream)
 {
-   RETURN_IF_ERROR(stream);
    assert(stream->currentScheme == DmtxSchemeBase256);
 
    /* stuff goes here */
@@ -340,7 +342,6 @@ EncodeNextWordBase256(DmtxEncodeStream *stream)
 static void
 CompleteIfDoneBase256(DmtxEncodeStream *stream)
 {
-   RETURN_IF_ERROR(stream);
 }
 
 /**
@@ -350,7 +351,8 @@ CompleteIfDoneBase256(DmtxEncodeStream *stream)
 static void
 EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatchType)
 {
-   assert(stream->currentScheme != targetScheme);
+   if(stream->currentScheme == targetScheme)
+      return;
 
    /* Every latch must go through ASCII */
    switch(stream->currentScheme)
@@ -359,7 +361,9 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
       case DmtxSchemeText:
       case DmtxSchemeX12:
          if(unlatchType == DmtxUnlatchExplicit)
-            StreamOutputChainAppend(stream, DmtxCharTripletUnlatch);
+         {
+            StreamOutputChainAppend(stream, DmtxCharTripletUnlatch); CHKERR;
+         }
          break;
       case DmtxSchemeEdifact:
          if(unlatchType == DmtxUnlatchExplicit)
@@ -379,13 +383,13 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
    switch(targetScheme)
    {
       case DmtxSchemeC40:
-         StreamOutputChainAppend(stream, DmtxCharC40Latch);
+         StreamOutputChainAppend(stream, DmtxCharC40Latch); CHKERR;
          break;
       case DmtxSchemeText:
-         StreamOutputChainAppend(stream, DmtxCharTextLatch);
+         StreamOutputChainAppend(stream, DmtxCharTextLatch); CHKERR;
          break;
       case DmtxSchemeX12:
-         StreamOutputChainAppend(stream, DmtxCharX12Latch);
+         StreamOutputChainAppend(stream, DmtxCharX12Latch); CHKERR;
          break;
       case DmtxSchemeEdifact:
          /* something goes here */
@@ -402,4 +406,29 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
    /* Reset current chain length to zero */
    stream->outputChainLength = 0;
    stream->currentScheme = targetScheme;
+}
+
+/**
+ *
+ *
+ */
+static DmtxByteList
+EncodeRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail)
+{
+   DmtxEncodeStream streamAscii;
+
+   /* Create temporary copy of stream that writes to storage */
+   streamAscii = *stream;
+   streamAscii.currentScheme = DmtxSchemeAscii;
+   streamAscii.outputChainLength = 0;
+   streamAscii.reason = DmtxUndefined;
+   streamAscii.status = DmtxStatusEncoding;
+   streamAscii.output = dmtxByteListBuild(storage, capacity);
+
+   while(streamAscii.status == DmtxStatusEncoding)
+      EncodeNextWordAscii(&streamAscii);
+
+   *passFail = (streamAscii.status == DmtxStatusComplete) ? DmtxPass : DmtxFail;
+
+   return streamAscii.output;
 }

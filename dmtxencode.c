@@ -408,7 +408,7 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
       int inputSize, int *sizeIdx)
 {
    int dataWordCount;
-   DmtxEncodeStream stream;
+/* DmtxEncodeStream stream; */
 
    /*
     * This function needs to take both dataWordCount and sizeIdx into account
@@ -427,13 +427,15 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
          break;
       default:
          dataWordCount = EncodeSingleScheme(enc, buf, inputString, inputSize, enc->scheme);
+/* try out our new thing */
+/*
+stream = StreamInit(inputString, inputSize, buf, 4096);
+EncodeSingleScheme2(&stream, enc->scheme, DmtxSymbolSquareAuto);
+dmtxByteListPrint(&(stream.output), "xxx:");
+*/
          break;
    }
 
-   /* try out our new thing */
-   stream = StreamInit(inputString, inputSize, buf, 4096);
-   EncodeSingleScheme2(&stream, DmtxSchemeAscii, DmtxSymbolSquareAuto);
-/* dmtxByteListPrint(&(stream.output), "xxx:"); */
 
    /* XXX must fix ... will need to handle sizeIdx requests here because it is
       needed by Encode...() for triplet termination */

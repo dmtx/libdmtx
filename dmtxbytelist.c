@@ -61,6 +61,16 @@ dmtxByteListInit(DmtxByteList *list, int length, DmtxByte value)
  *
  *
  */
+extern DmtxBoolean
+dmtxByteListHasCapacity(DmtxByteList *list)
+{
+   return (list->length < list->capacity) ? DmtxTrue : DmtxFalse;
+}
+
+/**
+ *
+ *
+ */
 extern DmtxPassFail
 dmtxByteListCopy(DmtxByteList *dest, const DmtxByteList *src)
 {
