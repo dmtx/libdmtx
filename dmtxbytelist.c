@@ -22,6 +22,12 @@ Contact: mike@dragonflylogic.com
 
 /* $Id$ */
 
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#include "dmtx.h"
+#include "dmtxstatic.h"
+
 /**
  *
  *
@@ -85,6 +91,18 @@ dmtxByteListPush(DmtxByteList *list, DmtxByte value)
    list->b[list->length++] = value;
 
    return list->length;
+}
+
+/**
+ *
+ *
+ */
+extern DmtxByte
+dmtxByteListPop(DmtxByteList *list)
+{
+   assert(list->length > 0);
+
+   return list->b[--(list->length)];
 }
 
 /**

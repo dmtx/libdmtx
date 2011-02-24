@@ -159,7 +159,7 @@ dmtxGetBlockDataSize(int sizeIdx, int blockIdx)
  * @return Symbol size index (or DmtxUndefined if none)
  */
 static int
-FindCorrectSymbolSize(int dataWords, int sizeIdxRequest)
+FindSymbolSize(int dataWords, int sizeIdxRequest)
 {
    int sizeIdx;
    int idxBeg, idxEnd;

@@ -86,6 +86,8 @@ Contact: mike@dragonflylogic.com
 #include "dmtxmatrix3.c"
 #include "dmtximage.c"
 #include "dmtxbytelist.c"
+#include "dmtxencodestream.c"
+#include "dmtxencodescheme.c"
 
 extern char *
 dmtxVersion(void)

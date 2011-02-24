@@ -229,10 +229,37 @@ static int GetGridCoordinates(DmtxScanGrid *grid, /*@out@*/ DmtxPixelLoc *locPtr
 static void SetDerivedFields(DmtxScanGrid *grid);
 
 /* dmtxsymbol.c */
-static int FindCorrectSymbolSize(int dataWords, int symbolShape);
+static int FindSymbolSize(int dataWords, int sizeIdxRequest);
 
 /* dmtximage.c */
 static int GetBitsPerPixel(int pack);
+
+/* dmtxencodestream.c */
+static DmtxEncodeStream StreamInit(DmtxByte *input, int inputLength, DmtxByte *output, int outputLength);
+static void StreamMarkComplete(DmtxEncodeStream *stream);
+static void StreamMarkInvalid(DmtxEncodeStream *stream, int reason);
+static void StreamMarkFatal(DmtxEncodeStream *stream, int reason);
+static void StreamOutputChainAppend(DmtxEncodeStream *stream, DmtxByte value);
+static DmtxByte StreamOutputChainRemoveLast(DmtxEncodeStream *stream);
+static void StreamOutputChainPrepend(DmtxEncodeStream *stream, DmtxByte value);
+static DmtxByte StreamOutputChainRemoveFirst(DmtxEncodeStream *stream);
+static void StreamOutputChainSet(DmtxEncodeStream stream, int i, DmtxByte value);
+static DmtxBoolean StreamInputHasNext(DmtxEncodeStream *stream);
+static DmtxByte StreamInputPeekNext(DmtxEncodeStream *stream);
+static DmtxByte StreamInputAdvanceNext(DmtxEncodeStream *stream);
+
+/* dmtxencodescheme.c */
+static DmtxPassFail EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
+static void EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatchType);
+static void EncodeNextWord2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
+static void EncodeNextWordAscii(DmtxEncodeStream *stream);
+static void CompleteIfDoneAscii(DmtxEncodeStream *stream);
+static void EncodeNextWordTriplet(DmtxEncodeStream *stream, DmtxScheme targetScheme);
+static void CompleteIfDoneTriplet(DmtxEncodeStream *stream);
+static void EncodeNextWordEdifact(DmtxEncodeStream *stream, int requestedSizeIdx);
+static void CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx);
+static void EncodeNextWordBase256(DmtxEncodeStream *stream);
+static void CompleteIfDoneBase256(DmtxEncodeStream *stream);
 
 static const int dmtxNeighborNone = 8;
 static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };

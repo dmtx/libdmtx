@@ -80,6 +80,13 @@ extern "C" {
 #define DMTX_CHECK_BOUNDS(l,i) (assert((i) >= 0 && (i) < (l)->length && (l)->length <= (l)->capacity))
 
 typedef enum {
+   DmtxStatusEncoding,
+   DmtxStatusComplete,
+   DmtxStatusInvalid,
+   DmtxStatusFatal
+} DmtxStatus;
+
+typedef enum {
    DmtxSchemeAutoFast        = -2,
    DmtxSchemeAutoBest        = -1,
    DmtxSchemeAscii           =  0,
@@ -271,6 +278,18 @@ struct DmtxByteList_struct
    int length;
    int capacity;
    DmtxByte *b;
+};
+
+typedef struct DmtxEncodeStream_struct DmtxEncodeStream;
+struct DmtxEncodeStream_struct
+{
+   int currentScheme;        /* Current encodation scheme */
+   int inputNext;            /* Index of next unprocessed input word in queue */
+   int outputChainLength;    /* Count of output words pushed within current scheme chain */
+   int reason;               /* Reason for status */
+   DmtxStatus status;
+   DmtxByteList input;
+   DmtxByteList output;
 };
 
 /**

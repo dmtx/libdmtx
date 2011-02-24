@@ -52,6 +52,7 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o libdmtx:   Inspect SDL image packing conventions (stride vs. pad, etc...)
   o libdmtx:   Clean up API for use with external ROI finders
   o libdmtx:   Is there a good way to know if dmtxRegionFindNext() timed out or finished file?
+  o libdmtx:   Files should compile individually (include dmtx.h and dmtxstatic.h)
   o libdmtx:   library should never call exit()
   x libdmtx:   Fixed ECC bug for 144x144 case (thanks Huver!)
   o dmtxread:  Flatten deeply nested loops in main()

@@ -298,7 +298,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    /* XXX clean up above lines later for corner cases */
 
    /* Use 1/3 (floor) of dataWordCount establish first symbol size attempt */
-   splitSizeIdxFirst = FindCorrectSymbolSize(tmpInputSize, sizeIdxRequest);
+   splitSizeIdxFirst = FindSymbolSize(tmpInputSize, sizeIdxRequest);
    if(splitSizeIdxFirst == DmtxUndefined)
       return DmtxFail;
 
@@ -408,6 +408,7 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
       int inputSize, int *sizeIdx)
 {
    int dataWordCount;
+   DmtxEncodeStream stream;
 
    /*
     * This function needs to take both dataWordCount and sizeIdx into account
@@ -429,11 +430,16 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
          break;
    }
 
+   /* try out our new thing */
+   stream = StreamInit(inputString, inputSize, buf, 4096);
+   EncodeSingleScheme2(&stream, DmtxSchemeAscii, DmtxSymbolSquareAuto);
+dmtxByteListPrint(&(stream.output), "xxx:");
+
    /* XXX must fix ... will need to handle sizeIdx requests here because it is
       needed by Encode...() for triplet termination */
 
    /* parameter sizeIdx is requested value, returned sizeIdx is decision */
-   *sizeIdx = FindCorrectSymbolSize(dataWordCount, *sizeIdx);
+   *sizeIdx = FindSymbolSize(dataWordCount, *sizeIdx);
    if(*sizeIdx == DmtxUndefined)
       return 0;
 
@@ -1402,7 +1408,7 @@ ProcessEndOfSymbolTriplet(DmtxEncode *enc, DmtxChannel *channel,
    /* Find minimum symbol size big enough to accomodate remaining codewords */
    currentByte = channel->currentLength/12;
 
-   sizeIdx = FindCorrectSymbolSize(currentByte + ((inputCount == 3) ? 2 : inputCount),
+   sizeIdx = FindSymbolSize(currentByte + ((inputCount == 3) ? 2 : inputCount),
          enc->sizeIdxRequest);
 
    if(sizeIdx == DmtxUndefined)
@@ -1532,7 +1538,7 @@ TestForEndOfSymbolEdifact(DmtxEncode *enc, DmtxChannel *channel)
    /* XXX broken -- what if someone asks for DmtxSymbolRectAuto or specific sizeIdx? */
 
    currentByte = channel->currentLength/12;
-   sizeIdx = FindCorrectSymbolSize(currentByte, DmtxSymbolSquareAuto);
+   sizeIdx = FindSymbolSize(currentByte, DmtxSymbolSquareAuto);
    /* XXX test for sizeIdx == DmtxUndefined here */
    symbolCodewords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) - currentByte;
 
