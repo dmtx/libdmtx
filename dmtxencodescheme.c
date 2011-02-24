@@ -77,7 +77,7 @@ EncodeNextWord2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requested
          CompleteIfDoneTriplet(stream);
          break;
       case DmtxSchemeEdifact:
-         EncodeNextWordEdifact(stream, requestedSizeIdx);
+         EncodeNextWordEdifact(stream);
          CompleteIfDoneEdifact(stream, requestedSizeIdx);
          break;
       case DmtxSchemeBase256:
@@ -204,7 +204,7 @@ CompleteIfDoneTriplet(DmtxEncodeStream *stream)
  *
  */
 static void
-EncodeNextWordEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
+EncodeNextWordEdifact(DmtxEncodeStream *stream)
 {
    DmtxByte inputValue, edifactValue, previousOutput;
 

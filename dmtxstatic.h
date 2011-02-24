@@ -256,7 +256,7 @@ static void EncodeNextWordAscii(DmtxEncodeStream *stream);
 static void CompleteIfDoneAscii(DmtxEncodeStream *stream);
 static void EncodeNextWordTriplet(DmtxEncodeStream *stream, DmtxScheme targetScheme);
 static void CompleteIfDoneTriplet(DmtxEncodeStream *stream);
-static void EncodeNextWordEdifact(DmtxEncodeStream *stream, int requestedSizeIdx);
+static void EncodeNextWordEdifact(DmtxEncodeStream *stream);
 static void CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx);
 static void EncodeNextWordBase256(DmtxEncodeStream *stream);
 static void CompleteIfDoneBase256(DmtxEncodeStream *stream);
