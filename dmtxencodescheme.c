@@ -30,19 +30,35 @@
  * A "word" refers to a full codeword byte that is appended to the encoded
  * output.
  *
- * A "chunk" refers to the minimum grouping of values in a schema that must be
- * encoded together.
- *
  * A "value" refers to any scheme value being appended to the output stream,
  * regardless of how many bytes are used to represent it. Examples:
  *
- *   1 ASCII value generally encodes as 1 word
- *   2 ASCII digits [0-9] can be encoded as 1 word
- *   3 C40/Text/X12 values generally encode as 2 words
- *   4 EDIFACT values generally encode as 3 words
+ *   ASCII:                   1 value  in  1 word
+ *   ASCII (digits):          2 values in  1 word
+ *   C40/Text/X12:            3 values in  2 words
+ *   C40/Text/X12 (unlatch):  1 values in  1 word
+ *   EDIFACT:                 4 values in  3 words
+ *   Base 256:                1 value  in  1 word
  *
- * Shifts, latches, and explicit unlatches typically count as values, so
- * outputChainValueCount will reflect these too.
+ *   Shifts count as values, so outputChainValueCount will reflect these
+ *
+ *   Latches are not counted as values. Technically, unlatches are counted, but
+ *   the chain lengths are immediately reset after unlatching so it never truly
+ *   affects anything.
+ *
+ *   Not decided yet whether Base256 length byte(s) are included as values ...
+ *   if we say 'no' then outputChainWordCount will always cleanly match the
+ *   length byte(s) at the beginning of the Base256 chain
+ *
+ * A "chunk" refers to the minimum grouping of values in a schema that must be
+ * encoded together.
+ *
+ *   ASCII:                   1 value  and 1 word  in 1 chunk
+ *   ASCII (digits):          2 values and 1 word  in 1 chunk (optional)
+ *   C40/Text/X12:            3 values and 2 words in 1 chunk
+ *   C40/Text/X12 (unlatch):  1 value  and 1 word  in 1 chunk
+ *   EDIFACT:                 1 value  and 1 word  in 1 chunk
+ *   Base 256:                1 value  and 1 word  in 1 chunk
  *
  * Each scheme implements 3 equivalent functions:
  *   - EncodeValue[Scheme]
@@ -156,12 +172,10 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
             EncodeValueEdifact(stream, DmtxValueEdifactUnlatch); CHKERR;
          }
          break;
-      case DmtxSchemeBase256:
-         /* Something goes here */
-         break;
       default:
-         /* Nothing to do for ASCII */
-         assert(stream->currentScheme == DmtxSchemeAscii);
+         /* Nothing to do for ASCII or Base 256 */
+         assert(stream->currentScheme == DmtxSchemeAscii ||
+               stream->currentScheme == DmtxSchemeBase256);
          break;
    }
    stream->currentScheme = DmtxSchemeAscii;
@@ -182,11 +196,16 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
          EncodeValueAscii(stream, DmtxValueEdifactLatch); CHKERR;
          break;
       case DmtxSchemeBase256:
-         /* something goes here */
+         EncodeValueAscii(stream, DmtxValueBase256Latch); CHKERR;
+/*
+         // Write temporary field length (0 indicates remainder of symbol)
+         EncodeValueBase256(stream, 0); CHKERR;
+         this will result in chain not including length byte(s) ... is okay?
+*/
          break;
       default:
          /* Nothing to do for ASCII */
-         assert(stream->currentScheme == DmtxSchemeAscii);
+         assert(targetScheme == DmtxSchemeAscii);
          break;
    }
    stream->currentScheme = targetScheme;
@@ -276,31 +295,6 @@ CompleteIfDoneAscii(DmtxEncodeStream *stream)
  *
  */
 static void
-EncodeValueC40TextX12(DmtxEncodeStream *stream, DmtxByte v0, DmtxByte v1, DmtxByte v2)
-{
-   DmtxByte cw0, cw1;
-
-   /* XXX should be setting error instead of assert? */
-   assert(stream->currentScheme == DmtxSchemeC40 ||
-         stream->currentScheme == DmtxSchemeText ||
-         stream->currentScheme == DmtxSchemeX12);
-
-   /* combine (v0,v1,v2) into (cw0,cw1) */
-   cw0 = cw1 = 0; /* temporary */
-
-   /* Append 2 codewords */
-   StreamOutputChainAppend(stream, cw0); CHKERR;
-   StreamOutputChainAppend(stream, cw1); CHKERR;
-
-   /* Update count for 3 encoded values */
-   stream->outputChainValueCount += 3;
-}
-
-/**
- *
- *
- */
-static void
 EncodeUnlatchC40TextX12(DmtxEncodeStream *stream)
 {
    /* XXX should be setting error instead of assert? */
@@ -326,9 +320,57 @@ EncodeUnlatchC40TextX12(DmtxEncodeStream *stream)
  *
  */
 static void
+EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList values)
+{
+   DmtxByte cw0, cw1;
+
+   /* XXX should be setting error instead of assert? */
+   assert(stream->currentScheme == DmtxSchemeC40 ||
+         stream->currentScheme == DmtxSchemeText ||
+         stream->currentScheme == DmtxSchemeX12);
+
+   /* combine (v0,v1,v2) into (cw0,cw1) */
+   cw0 = cw1 = 0; /* temporary */
+
+   /* Append 2 codewords */
+   StreamOutputChainAppend(stream, cw0); CHKERR;
+   StreamOutputChainAppend(stream, cw1); CHKERR;
+
+   /* Update count for 3 encoded values */
+   stream->outputChainValueCount += 3;
+}
+
+/**
+ *
+ *
+ */
+static void
 EncodeNextChunkC40TextX12(DmtxEncodeStream *stream)
 {
-   /* stuff goes here */
+/*
+   DmtxByte inputNext;
+   DmtxByte valueStorage[4];
+   DmtxByteList values = dmtxByteListBuild(valueStorage, sizeof(valueStorage));
+
+   while(streamInputHasNext(stream))
+   {
+      inputNext = StreamInputAdvanceNext(stream)); CHKERR;
+      valuesNext = GetC40TextX12Values(valueNext)
+
+      dmtxByteListPush(values, valuesNext);
+      if(values.length >= 3)
+      {
+         values = EncodeValuesC40TextX12(stream, values); CHKERR;
+      }
+      xxx maybe EncodeValuesC40TextX12() returns the unused values, if any
+
+      xxx need to account for end of symbol here too, right?
+
+      if(values.length == 0)
+         break;
+   }
+*/
+
    /* AppendChunkC40TextX12(stream, v0, v1, v2) */
 }
 
@@ -498,6 +540,8 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
          /* Register input progress since we encoded outside normal stream */
          stream->inputNext = stream->input.length;
 
+         /* may need to add some ascii padding here */
+
          StreamMarkComplete(stream);
       }
    }
@@ -513,6 +557,22 @@ EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
    /* XXX should be setting error instead of assert? */
    assert(stream->currentScheme == DmtxSchemeBase256);
 
+/*
+   // Append new codeword to end of chain
+   StreamOutputChainAppend(stream, Randomize255State(value, stream->output.length)); CHKERR;
+
+   // If we hit the threshold the length header requires a second byte
+   if(stream->outputChainWordCount == 250)
+   {
+      StreamOutputChainInsert(stream);
+      StreamOutputChainSet(stream, 0, stream->outputChainWordCount/250 + 249); CHKERR;
+      StreamOutputChainSet(stream, 1, stream->outputChainWordCount%250); CHKERR;
+      // wait ... do these values need to be randomized? If so use Randomize255State() like above.
+   }
+
+   // chain counts don't require update because the length header is not considered a chain value
+*/
+
    stream->outputChainValueCount++;
 }
 
@@ -523,7 +583,15 @@ EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
 static void
 EncodeNextChunkBase256(DmtxEncodeStream *stream)
 {
-   /* stuff goes here */
+/*
+   DmtxValue value;
+
+   if(StreamInputHasNext(stream))
+   {
+      value = StreamInputAdvanceNext(stream); CHKERR;
+      EncodeValueBase256(stream, value); CHKERR;
+   }
+*/
 }
 
 /**
@@ -533,6 +601,12 @@ EncodeNextChunkBase256(DmtxEncodeStream *stream)
 static void
 CompleteIfDoneBase256(DmtxEncodeStream *stream)
 {
+/*
+   check remaining symbol capacity and remaining codewords
+   if the chain can finish perfectly at the end of symbol data words there is a
+   special one-byte length header value that can be used (i think ... read the
+   spec again before commiting to anything)
+*/
 }
 
 /**

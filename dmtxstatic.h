@@ -257,8 +257,8 @@ static void EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value);
 static void EncodeNextChunkAscii(DmtxEncodeStream *stream);
 static void CompleteIfDoneAscii(DmtxEncodeStream *stream);
 
-static void EncodeValueC40TextX12(DmtxEncodeStream *stream, DmtxByte v0, DmtxByte v1, DmtxByte v2);
 static void EncodeUnlatchC40TextX12(DmtxEncodeStream *stream);
+static void EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList values);
 static void EncodeNextChunkC40TextX12(DmtxEncodeStream *stream);
 static void CompleteIfDoneC40TextX12(DmtxEncodeStream *stream);
 
