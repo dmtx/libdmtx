@@ -558,7 +558,7 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
    dataEnd = ptr + dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
 
    /* Print macro header if first codeword triggers it */
-   if(*ptr == DmtxChar05Macro || *ptr == DmtxChar06Macro) {
+   if(*ptr == DmtxValue05Macro || *ptr == DmtxValue06Macro) {
       PushOutputMacroHeader(msg, *ptr);
       macro = DmtxTrue;
    }
@@ -609,19 +609,19 @@ GetEncodationScheme(unsigned char *ptr)
    DmtxScheme encScheme;
 
    switch(*ptr) {
-      case DmtxCharC40Latch:
+      case DmtxValueC40Latch:
          encScheme = DmtxSchemeC40;
          break;
-      case DmtxCharTextLatch:
+      case DmtxValueTextLatch:
          encScheme = DmtxSchemeText;
          break;
-      case DmtxCharX12Latch:
+      case DmtxValueX12Latch:
          encScheme = DmtxSchemeX12;
          break;
-      case DmtxCharEdifactLatch:
+      case DmtxValueEdifactLatch:
          encScheme = DmtxSchemeEdifact;
          break;
-      case DmtxCharBase256Latch:
+      case DmtxValueBase256Latch:
          encScheme = DmtxSchemeBase256;
          break;
       default:
@@ -679,8 +679,8 @@ PushOutputMacroHeader(DmtxMessage *msg, int macroType)
    PushOutputWord(msg, 30); /* ASCII RS */
    PushOutputWord(msg, '0');
 
-   assert(macroType == DmtxChar05Macro || macroType == DmtxChar06Macro);
-   if(macroType == DmtxChar05Macro)
+   assert(macroType == DmtxValue05Macro || macroType == DmtxValue06Macro);
+   if(macroType == DmtxValue05Macro)
       PushOutputWord(msg, '5');
    else
       PushOutputWord(msg, '6');
@@ -727,10 +727,10 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
          PushOutputWord(msg, codeword + 127);
          upperShift = DmtxFalse;
       }
-      else if(codeword == DmtxCharAsciiUpperShift) {
+      else if(codeword == DmtxValueAsciiUpperShift) {
          upperShift = DmtxTrue;
       }
-      else if(codeword == DmtxCharAsciiPad) {
+      else if(codeword == DmtxValueAsciiPad) {
          assert(dataEnd >= ptr);
          assert(dataEnd - ptr <= INT_MAX);
          msg->padCount = (int)(dataEnd - ptr);
@@ -836,7 +836,7 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
       }
 
       /* Unlatch if codeword 254 follows 2 codewords in C40/Text encodation */
-      if(*ptr == DmtxCharTripletUnlatch)
+      if(*ptr == DmtxValueC40TextX12Unlatch)
          return ptr + 1;
 
       /* Unlatch is implied if only one codeword remains */
@@ -886,7 +886,7 @@ DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
       }
 
       /* Unlatch if codeword 254 follows 2 codewords in C40/Text encodation */
-      if(*ptr == DmtxCharTripletUnlatch)
+      if(*ptr == DmtxValueC40TextX12Unlatch)
          return ptr + 1;
 
       /* Unlatch is implied if only one codeword remains */
@@ -927,7 +927,7 @@ DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
             ptr++;
 
          /* Test for unlatch condition */
-         if(unpacked[i] == DmtxCharEdifactUnlatch) {
+         if(unpacked[i] == DmtxValueEdifactUnlatch) {
             assert(msg->output[msg->outputIdx] == 0); /* XXX dirty why? */
             return ptr;
          }

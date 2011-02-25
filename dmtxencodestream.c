@@ -36,7 +36,8 @@ StreamInit(DmtxByte *input, int inputLength, DmtxByte *output, int outputLength)
 
    stream.currentScheme = DmtxSchemeAscii;
    stream.inputNext = 0;
-   stream.outputChainLength = 0;
+   stream.outputChainValueCount = 0;
+   stream.outputChainWordCount = 0;
    stream.reason = DmtxUndefined;
    stream.status = DmtxStatusEncoding;
 
@@ -94,7 +95,7 @@ StreamOutputChainAppend(DmtxEncodeStream *stream, DmtxByte value)
    if(dmtxByteListHasCapacity(&(stream->output)))
    {
       dmtxByteListPush(&(stream->output), value);
-      stream->outputChainLength++;
+      stream->outputChainWordCount++;
    }
    else
    {
@@ -111,10 +112,10 @@ StreamOutputChainRemoveLast(DmtxEncodeStream *stream)
 {
    DmtxByte value;
 
-   if(stream->outputChainLength > 0)
+   if(stream->outputChainWordCount > 0)
    {
       value = dmtxByteListPop(&(stream->output));
-      stream->outputChainLength--;
+      stream->outputChainWordCount--;
    }
    else
    {

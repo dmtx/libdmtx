@@ -283,10 +283,11 @@ struct DmtxByteList_struct
 typedef struct DmtxEncodeStream_struct DmtxEncodeStream;
 struct DmtxEncodeStream_struct
 {
-   int currentScheme;        /* Current encodation scheme */
-   int inputNext;            /* Index of next unprocessed input word in queue */
-   int outputChainLength;    /* Count of output words pushed within current scheme chain */
-   int reason;               /* Reason for status */
+   int currentScheme;         /* Current encodation scheme */
+   int inputNext;             /* Index of next unprocessed input word in queue */
+   int outputChainValueCount; /* Count of output values pushed within current scheme chain */
+   int outputChainWordCount;  /* Count of output words pushed within current scheme chain */
+   int reason;                /* Reason for status */
    DmtxStatus status;
    DmtxByteList input;
    DmtxByteList output;

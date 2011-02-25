@@ -33,25 +33,25 @@ Contact: mike@dragonflylogic.com
 #define DmtxAlmostZero          0.000001
 #define DmtxAlmostInfinity            -1
 
-#define DmtxCharC40Latch             230
-#define DmtxCharTextLatch            239
-#define DmtxCharX12Latch             238
-#define DmtxCharEdifactLatch         240
-#define DmtxCharBase256Latch         231
+#define DmtxValueC40Latch            230
+#define DmtxValueTextLatch           239
+#define DmtxValueX12Latch            238
+#define DmtxValueEdifactLatch        240
+#define DmtxValueBase256Latch        231
 
-#define DmtxCharTripletUnlatch       254
-#define DmtxCharEdifactUnlatch        31
+#define DmtxValueC40TextX12Unlatch   254
+#define DmtxValueEdifactUnlatch       31
 
-#define DmtxCharAsciiPad             129
-#define DmtxCharAsciiUpperShift      235
-#define DmtxCharTripletShift1          0
-#define DmtxCharTripletShift2          1
-#define DmtxCharTripletShift3          2
-#define DmtxCharFNC1                 232
-#define DmtxCharStructuredAppend     233
-#define DmtxChar05Macro              236
-#define DmtxChar06Macro              237
-#define DmtxCharECI                  241
+#define DmtxValueAsciiPad            129
+#define DmtxValueAsciiUpperShift     235
+#define DmtxValueC40TextX12Shift1      0
+#define DmtxValueC40TextX12Shift2      1
+#define DmtxValueC40TextX12Shift3      2
+#define DmtxValueFNC1                232
+#define DmtxValueStructuredAppend    233
+#define DmtxValue05Macro             236
+#define DmtxValue06Macro             237
+#define DmtxValueECI                 241
 
 #define DmtxC40TextBasicSet            0
 #define DmtxC40TextShift1              1
@@ -250,16 +250,26 @@ static DmtxByte StreamInputAdvanceNext(DmtxEncodeStream *stream);
 
 /* dmtxencodescheme.c */
 static DmtxPassFail EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
+static void EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
 static void EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatchType);
-static void EncodeNextWord2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
-static void EncodeNextWordAscii(DmtxEncodeStream *stream);
+
+static void EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value);
+static void EncodeNextChunkAscii(DmtxEncodeStream *stream);
 static void CompleteIfDoneAscii(DmtxEncodeStream *stream);
-static void EncodeNextWordTriplet(DmtxEncodeStream *stream, DmtxScheme targetScheme);
-static void CompleteIfDoneTriplet(DmtxEncodeStream *stream);
-static void EncodeNextWordEdifact(DmtxEncodeStream *stream);
+
+static void EncodeValueC40TextX12(DmtxEncodeStream *stream, DmtxByte v0, DmtxByte v1, DmtxByte v2);
+static void EncodeUnlatchC40TextX12(DmtxEncodeStream *stream);
+static void EncodeNextChunkC40TextX12(DmtxEncodeStream *stream);
+static void CompleteIfDoneC40TextX12(DmtxEncodeStream *stream);
+
+static void EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value);
+static void EncodeNextChunkEdifact(DmtxEncodeStream *stream);
 static void CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx);
-static void EncodeNextWordBase256(DmtxEncodeStream *stream);
+
+static void EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value);
+static void EncodeNextChunkBase256(DmtxEncodeStream *stream);
 static void CompleteIfDoneBase256(DmtxEncodeStream *stream);
+
 static DmtxByteList EncodeRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail);
 
 static const int dmtxNeighborNone = 8;
