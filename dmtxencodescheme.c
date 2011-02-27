@@ -122,7 +122,7 @@ EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requested
    {
       case DmtxSchemeAscii:
          EncodeNextChunkAscii(stream); CHKERR;
-         CompleteIfDoneAscii(stream); CHKERR;
+         CompleteIfDoneAscii(stream, requestedSizeIdx); CHKERR;
          break;
       case DmtxSchemeC40:
       case DmtxSchemeText:
@@ -136,7 +136,7 @@ EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requested
          break;
       case DmtxSchemeBase256:
          EncodeNextChunkBase256(stream); CHKERR;
-         CompleteIfDoneBase256(stream); CHKERR;
+         CompleteIfDoneBase256(stream, requestedSizeIdx); CHKERR;
          break;
       default:
          StreamMarkFatal(stream, 1 /* unknown */);
@@ -199,8 +199,8 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
          EncodeValueAscii(stream, DmtxValueBase256Latch); CHKERR;
 /*
          // Write temporary field length (0 indicates remainder of symbol)
+         // need to switch schemes first?
          EncodeValueBase256(stream, 0); CHKERR;
-         this will result in chain not including length byte(s) ... is okay?
 */
          break;
       default:
@@ -282,12 +282,21 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream)
  *
  */
 static void
-CompleteIfDoneAscii(DmtxEncodeStream *stream)
+CompleteIfDoneAscii(DmtxEncodeStream *stream, int requestedSizeIdx)
 {
-   /* padding ? */
+   int sizeIdx;
 
    if(!StreamInputHasNext(stream))
-      StreamMarkComplete(stream);
+   {
+      sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx);
+      if(sizeIdx == DmtxUndefined)
+      {
+         StreamMarkInvalid(stream, 1 /* insufficient capacity */);
+         return;
+      }
+      PadRemainingInAscii(stream, sizeIdx); CHKERR;
+      StreamMarkComplete(stream, sizeIdx);
+   }
 }
 
 /**
@@ -486,25 +495,20 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
    int symbolRemaining;
    DmtxBoolean cleanBoundary;
    DmtxPassFail passFail;
-   DmtxByte outputAsciiStorage[3];
-   DmtxByteList outputAscii;
+   DmtxByte outputTmpStorage[3];
+   DmtxByteList outputTmp;
 
    /* Check if sitting on a clean byte boundary */
    cleanBoundary = (stream->outputChainValueCount % 4 == 0) ? DmtxTrue : DmtxFalse;
 
-   /* Find smallest symbol able to hold current encoded length */
+   /* Find symbol's remaining capacity based on current length */
    sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx);
-
-   /* Stop encoding: Unable to find matching symbol */
-   if(sizeIdx == DmtxUndefined)
+   if(sizeIdx == DmtxUndefined) /* XXX this is repeated elsewhere */
    {
-      StreamMarkInvalid(stream, 1 /*DmtxInsufficientCapacity*/);
+      StreamMarkInvalid(stream, 1 /* Insufficient capacity */);
       return;
    }
-
-   /* Find symbol's remaining capacity */
-   symbolRemaining = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) -
-         stream->output.length;
+   symbolRemaining = GetRemainingSymbolCapacity(stream->output.length, sizeIdx); CHKERR;
 
    if(!StreamInputHasNext(stream))
    {
@@ -512,37 +516,37 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
       if(cleanBoundary == DmtxFalse || symbolRemaining > 0)
       {
          EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
-         /* padding necessary? */
+         PadRemainingInAscii(stream, sizeIdx); CHKERR;
       }
 
-      StreamMarkComplete(stream);
+      StreamMarkComplete(stream, sizeIdx);
    }
    else
    {
       /**
-       * Allow encoder to write out 3 (or more) additional codewords. If it
-       * finishes in 1 or 2 then this is a known end-of-symbol condition.
+       * Allow encoder to write up to 3 additional codewords to a temporary
+       * stream. If it finishes in 1 or 2, is a known end-of-symbol condition.
        */
-      outputAscii = EncodeRemainingInAscii(stream, outputAsciiStorage, sizeof(outputAsciiStorage), &passFail);
+      outputTmp = EncodeTmpRemainingInAscii(stream, outputTmpStorage,
+            sizeof(outputTmpStorage), &passFail);
 
-      if(passFail == DmtxFail || outputAscii.length > symbolRemaining)
-         return; /* Doesn't fit */
+      if(passFail == DmtxFail || outputTmp.length > symbolRemaining)
+         return; /* Doesn't fit, continue encoding */
 
-      if(cleanBoundary && (outputAscii.length == 1 || outputAscii.length == 2))
+      if(cleanBoundary && (outputTmp.length == 1 || outputTmp.length == 2))
       {
          EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit); CHKERR;
 
-         for(i = 0; i < outputAscii.length; i++)
+         for(i = 0; i < outputTmp.length; i++)
          {
-            EncodeValueAscii(stream, outputAscii.b[i]); CHKERR;
+            EncodeValueAscii(stream, outputTmp.b[i]); CHKERR;
          }
 
          /* Register input progress since we encoded outside normal stream */
          stream->inputNext = stream->input.length;
 
-         /* may need to add some ascii padding here */
-
-         StreamMarkComplete(stream);
+         PadRemainingInAscii(stream, sizeIdx); CHKERR;
+         StreamMarkComplete(stream, sizeIdx);
       }
    }
 }
@@ -554,24 +558,35 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
 static void
 EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
 {
+   int headerByteCount;
+
    /* XXX should be setting error instead of assert? */
    assert(stream->currentScheme == DmtxSchemeBase256);
 
-/*
-   // Append new codeword to end of chain
-   StreamOutputChainAppend(stream, Randomize255State(value, stream->output.length)); CHKERR;
+   /* Append new codeword to end of chain */
+   StreamOutputChainAppend(stream, Randomize255State2(value, stream->output.length)); CHKERR;
 
-   // If we hit the threshold the length header requires a second byte
+   /* If we hit the threshold the length header requires a second byte */
    if(stream->outputChainWordCount == 250)
    {
-      StreamOutputChainInsert(stream);
-      StreamOutputChainSet(stream, 0, stream->outputChainWordCount/250 + 249); CHKERR;
-      StreamOutputChainSet(stream, 1, stream->outputChainWordCount%250); CHKERR;
-      // wait ... do these values need to be randomized? If so use Randomize255State() like above.
+      StreamOutputChainInsertFirst(stream); CHKERR;
+      /* Chain value count doesn't require update because the length header is
+       * not considered a chain value */
    }
 
-   // chain counts don't require update because the length header is not considered a chain value
-*/
+   /* Update header byte(s) with new length */
+   headerByteCount = stream->outputChainWordCount - stream->outputChainValueCount;
+   if(headerByteCount == 1)
+   {
+      /* XXX actually need to use Randomize255State() instead */
+      StreamOutputChainSet(stream, 0, stream->outputChainWordCount); CHKERR;
+   }
+   else
+   {
+      /* XXX actually need to use Randomize255State() instead */
+      StreamOutputChainSet(stream, 0, stream->outputChainWordCount/250 + 249); CHKERR;
+      StreamOutputChainSet(stream, 1, stream->outputChainWordCount%250); CHKERR;
+   }
 
    stream->outputChainValueCount++;
 }
@@ -583,15 +598,15 @@ EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
 static void
 EncodeNextChunkBase256(DmtxEncodeStream *stream)
 {
-/*
-   DmtxValue value;
+   int headerByteCount;
+   DmtxByte value;
 
    if(StreamInputHasNext(stream))
    {
+      headerByteCount = stream->outputChainWordCount - stream->outputChainValueCount;
       value = StreamInputAdvanceNext(stream); CHKERR;
       EncodeValueBase256(stream, value); CHKERR;
    }
-*/
 }
 
 /**
@@ -599,14 +614,139 @@ EncodeNextChunkBase256(DmtxEncodeStream *stream)
  *
  */
 static void
-CompleteIfDoneBase256(DmtxEncodeStream *stream)
+CompleteIfDoneBase256(DmtxEncodeStream *stream, int requestedSizeIdx)
 {
+   int sizeIdx;
 /*
    check remaining symbol capacity and remaining codewords
    if the chain can finish perfectly at the end of symbol data words there is a
    special one-byte length header value that can be used (i think ... read the
    spec again before commiting to anything)
 */
+   if(!StreamInputHasNext(stream))
+   {
+/*
+      headerLength = stream->outputChainWordCount - stream->outputChainValueCount;
+      if(headerLength == 2)
+      {
+         // test as if encoded up to exact symbol capacity
+         outputLength = stream->output.length - 1;
+         sizeIdx = FindSymbolSize(outputLength, requestedSizeIdx);
+         if(sizeIdx != DmtxUndefined)
+         {
+            symbolRemaining = GetRemainingSymbolCapacity(outputLength, sizeIdx);
+
+            if(symbolRemaining == 0)
+            {
+               StreamOutputRemoveFirst(stream);
+               StreamOutputSet(stream, 0, Randomize255(xyz)); // encode to end
+               StreamMarkComplete(stream, sizeIdx);
+               return;
+            }
+         }
+      }
+*/
+      sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx);
+      if(sizeIdx == DmtxUndefined)
+      {
+         StreamMarkInvalid(stream, 1 /* Insufficient capacity */);
+         return;
+      }
+/*
+      capacity = dmtxSymbolGetProp(DmtxDataWords, sizeIdx);
+
+      ChangeEncodingScheme(DmtxSchemeAscii, DmtxUnlatchImplicit);
+      PadRemainingInAscii(stream, sizeIdx);
+*/
+      StreamMarkComplete(stream, sizeIdx);
+   }
+}
+
+/**
+ * \brief  Randomize 253 state
+ * \param  codewordValue
+ * \param  codewordPosition
+ * \return Randomized value
+ */
+static DmtxByte
+Randomize253State2(DmtxByte cwValue, int cwPosition)
+{
+   int pseudoRandom, tmp;
+
+   pseudoRandom = ((149 * cwPosition) % 253) + 1;
+   tmp = cwValue + pseudoRandom;
+   if(tmp > 254)
+      tmp -= 254;
+
+   assert(tmp >= 0 && tmp < 256);
+
+   return (DmtxByte)tmp;
+}
+
+/**
+ * \brief  Randomize 255 state
+ * \param  cwValue
+ * \param  cwPosition
+ * \return Randomized value
+ */
+static DmtxByte
+Randomize255State2(DmtxByte cwValue, int cwPosition)
+{
+   int pseudoRandom, tmp;
+
+   pseudoRandom = ((149 * cwPosition) % 255) + 1;
+   tmp = cwValue + pseudoRandom;
+
+   return (tmp <= 255) ? tmp : tmp - 256;
+}
+
+/**
+ *
+ *
+ */
+static int
+GetRemainingSymbolCapacity(int outputLength, int sizeIdx)
+{
+   int dataCapacity;
+
+   assert(sizeIdx != DmtxUndefined);
+
+   dataCapacity = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
+
+   return dataCapacity - outputLength;
+}
+
+/**
+ * Can we just receive a length to pad here? I don't like receiving
+ * requestedSizeIdx (or sizeIdx) this late in the game
+ *
+ */
+static void
+PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx)
+{
+   int symbolRemaining;
+
+   /* XXX replace this with a proper error later */
+   assert(stream->currentScheme == DmtxSchemeAscii);
+
+   assert(sizeIdx != DmtxUndefined);
+
+   symbolRemaining = GetRemainingSymbolCapacity(stream->output.length, sizeIdx);
+
+   /* First pad character is not randomized */
+   if(symbolRemaining > 0)
+   {
+      StreamOutputChainAppend(stream, DmtxValueAsciiPad); CHKERR;
+      symbolRemaining--;
+   }
+
+   /* All remaining pad characters are randomized based on character position */
+   while(symbolRemaining > 0)
+   {
+      StreamOutputChainAppend(stream, Randomize253State2(DmtxValueAsciiPad,
+            stream->output.length)); CHKERR;
+      symbolRemaining--;
+   }
 }
 
 /**
@@ -614,7 +754,7 @@ CompleteIfDoneBase256(DmtxEncodeStream *stream)
  *
  */
 static DmtxByteList
-EncodeRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail)
+EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail)
 {
    DmtxEncodeStream streamAscii;
 
@@ -624,30 +764,26 @@ EncodeRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity
    streamAscii.outputChainValueCount = 0;
    streamAscii.outputChainWordCount = 0;
    streamAscii.reason = DmtxUndefined;
+   streamAscii.sizeIdx = DmtxUndefined;
    streamAscii.status = DmtxStatusEncoding;
    streamAscii.output = dmtxByteListBuild(storage, capacity);
 
    while(dmtxByteListHasCapacity(&(streamAscii.output)))
    {
+      /* Do not call CHKERR here because we don't want to return */
       if(StreamInputHasNext(&streamAscii))
-      {
          EncodeNextChunkAscii(&streamAscii);
-      }
       else
-      {
-         StreamMarkComplete(&streamAscii);
          break;
-      }
    }
 
    /**
     * We stopped encoding before attempting to write beyond output boundary so
-    * any stream errors are unexpected issues. The passFail status indicates
+    * any stream errors are truly unexpected. The passFail status indicates
     * whether output.length can be trusted by the calling function.
     */
 
-   *passFail = (streamAscii.status == DmtxStatusEncoding ||
-         streamAscii.status == DmtxStatusComplete) ? DmtxPass : DmtxFail;
+   *passFail = (streamAscii.status == DmtxStatusEncoding) ? DmtxPass : DmtxFail;
 
    return streamAscii.output;
 }

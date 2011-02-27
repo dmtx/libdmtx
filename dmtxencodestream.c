@@ -39,6 +39,7 @@ StreamInit(DmtxByte *input, int inputLength, DmtxByte *output, int outputLength)
    stream.outputChainValueCount = 0;
    stream.outputChainWordCount = 0;
    stream.reason = DmtxUndefined;
+   stream.sizeIdx = DmtxUndefined;
    stream.status = DmtxStatusEncoding;
 
    stream.input = dmtxByteListBuild(input, inputLength);
@@ -54,10 +55,11 @@ StreamInit(DmtxByte *input, int inputLength, DmtxByte *output, int outputLength)
  *
  */
 static void
-StreamMarkComplete(DmtxEncodeStream *stream)
+StreamMarkComplete(DmtxEncodeStream *stream, int sizeIdx)
 {
    if(stream->status == DmtxStatusEncoding)
    {
+      stream->sizeIdx = sizeIdx;
       stream->status = DmtxStatusComplete;
       assert(stream->reason == DmtxUndefined);
    }
@@ -131,7 +133,7 @@ StreamOutputChainRemoveLast(DmtxEncodeStream *stream)
  * used for binary length changes
  */
 static void
-StreamOutputChainPrepend(DmtxEncodeStream *stream, DmtxByte value)
+StreamOutputChainInsertFirst(DmtxEncodeStream *stream)
 {
    ;
 }
@@ -155,7 +157,7 @@ StreamOutputChainRemoveFirst(DmtxEncodeStream *stream)
  * used for binary length changes
  */
 static void
-StreamOutputChainSet(DmtxEncodeStream stream, int i, DmtxByte value)
+StreamOutputChainSet(DmtxEncodeStream *stream, int i, DmtxByte value)
 {
    ;
 }
