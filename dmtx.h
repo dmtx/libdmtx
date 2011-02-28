@@ -80,10 +80,10 @@ extern "C" {
 #define DMTX_CHECK_BOUNDS(l,i) (assert((i) >= 0 && (i) < (l)->length && (l)->length <= (l)->capacity))
 
 typedef enum {
-   DmtxStatusEncoding,
-   DmtxStatusComplete,
-   DmtxStatusInvalid,
-   DmtxStatusFatal
+   DmtxStatusEncoding, /* Encoding is currently underway */
+   DmtxStatusComplete, /* Encoding is done and everything went well */
+   DmtxStatusInvalid,  /* Something bad happened that sometimes happens */
+   DmtxStatusFatal     /* Something happened that should never happen */
 } DmtxStatus;
 
 typedef enum {

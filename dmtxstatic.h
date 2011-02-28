@@ -260,13 +260,13 @@ static void CompleteIfDoneAscii(DmtxEncodeStream *stream, int requestedSizeIdx);
 static void EncodeUnlatchC40TextX12(DmtxEncodeStream *stream);
 static void EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList values);
 static void EncodeNextChunkC40TextX12(DmtxEncodeStream *stream);
-static void CompleteIfDoneC40TextX12(DmtxEncodeStream *stream);
+static void CompleteIfDoneC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx);
 
 static void EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value);
 static void EncodeNextChunkEdifact(DmtxEncodeStream *stream);
 static void CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx);
 
-static void UpdateBase256ChainHeader(DmtxEncodeStream *stream);
+static void UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx);
 static void EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value);
 static void EncodeNextChunkBase256(DmtxEncodeStream *stream);
 static void CompleteIfDoneBase256(DmtxEncodeStream *stream, int requestedSizeIdx);

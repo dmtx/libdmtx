@@ -39,22 +39,26 @@
  *   EDIFACT:                 4 values in  3 words
  *   Base 256:                1 value  in  1 word
  *
- *   Shifts count as values, so outputChainValueCount will reflect these
+ *   - Shifts count as values, so outputChainValueCount will reflect these.
  *
- *   Latches and unlatches are also counted as values, but always in the scheme
- *   that is being exited.
+ *   - Latches and unlatches are also counted as values, but always in the
+ *     scheme being exited.
  *
- *   Base256 header (length) byte(s) are not included as values
+ *   - Base256 header bytes are not included as values.
  *
  * A "chunk" refers to the minimum grouping of values in a schema that must be
  * encoded together.
  *
- *   ASCII:                   1 value  and 1 word  in 1 chunk
- *   ASCII (digits):          2 values and 1 word  in 1 chunk (optional)
- *   C40/Text/X12:            3 values and 2 words in 1 chunk
- *   C40/Text/X12 (unlatch):  1 value  and 1 word  in 1 chunk
- *   EDIFACT:                 1 value  and 1 word  in 1 chunk
- *   Base 256:                1 value  and 1 word  in 1 chunk
+ *   ASCII:                   1 value  (1 word)  in 1 chunk
+ *   ASCII (digits):          2 values (1 word)  in 1 chunk (optional)
+ *   C40/Text/X12:            3 values (2 words) in 1 chunk
+ *   C40/Text/X12 (unlatch):  1 value  (1 word)  in 1 chunk
+ *   EDIFACT:                 1 value  (1 word*) in 1 chunk
+ *   Base 256:                1 value  (1 word)  in 1 chunk
+ *
+ *   * EDIFACT writes 6 bits at a time, but progress is tracked to the next byte
+ *     boundary. If unlatch value finishes mid-byte, the remaining bits before
+ *     the next boundary are all set to zero.
  *
  * Each scheme implements 3 equivalent functions:
  *   - EncodeValue[Scheme]
@@ -71,15 +75,14 @@
  * It's important that EncodeNextChunk[Scheme] not call CompleteIfDone[Scheme]
  * directly because some parts of the logic might want to encode a stream
  * without allowing the padding and other extra logic that can occur when an
- * end-of-symbol condition is triggered. XXX is this true for more than ASCII
+ * end-of-symbol condition is triggered.
  */
 
 #include "dmtx.h"
 #include "dmtxstatic.h"
 
-/* XXX later change this to set invalid status and return */
 /* XXX is there a way to handle muliple values of s? */
-#define CHKSCHEME(s) { assert(stream->currentScheme == s); }
+#define CHKSCHEME(s) { if(stream->currentScheme != (s)) { StreamMarkInvalid(stream, 1); return; } }
 
 /* CHKERR should follow any call that might alter stream status */
 #define CHKERR { if(stream->status != DmtxStatusEncoding) { return; } }
@@ -94,7 +97,11 @@
 static DmtxPassFail
 EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx)
 {
-   CHKSCHEME(DmtxSchemeAscii);
+   if(stream->currentScheme != DmtxSchemeAscii)
+   {
+      StreamMarkFatal(stream, 1);
+      return DmtxFail;
+   }
 
    while(stream->status == DmtxStatusEncoding)
       EncodeNextChunk(stream, targetScheme, requestedSizeIdx);
@@ -122,7 +129,6 @@ EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requested
       CHKSCHEME(targetScheme);
    }
 
-   /* Explicit polymorphism */
    switch(stream->currentScheme)
    {
       case DmtxSchemeAscii:
@@ -133,7 +139,7 @@ EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requested
       case DmtxSchemeText:
       case DmtxSchemeX12:
          EncodeNextChunkC40TextX12(stream); CHKERR;
-         CompleteIfDoneC40TextX12(stream); CHKERR;
+         CompleteIfDoneC40TextX12(stream, requestedSizeIdx); CHKERR;
          break;
       case DmtxSchemeEdifact:
          EncodeNextChunkEdifact(stream); CHKERR;
@@ -214,15 +220,10 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
    stream->outputChainWordCount = 0;
    stream->outputChainValueCount = 0;
 
-   /* Insert header length if just arrived in Base256 */
+   /* Insert header byte if just latched to Base256 */
    if(targetScheme == DmtxSchemeBase256)
    {
-      /* insert dummy value so we can use standard method of setting length header */
-      /* use generic StreamOutputChainAppend() instead of EncodeBase256Value() because
-         we don't want header bytes to count as a value */
-      /* currently 1 byte bute could grow to 2 if chain value count exceeds 240(?) */
-      StreamOutputChainAppend(stream, 0); CHKERR;
-      UpdateBase256ChainHeader(stream); CHKERR;
+      UpdateBase256ChainHeader(stream, DmtxUndefined); CHKERR;
    }
 }
 
@@ -311,37 +312,42 @@ CompleteIfDoneAscii(DmtxEncodeStream *stream, int requestedSizeIdx)
 static void
 EncodeUnlatchC40TextX12(DmtxEncodeStream *stream)
 {
-   /* XXX should be setting error instead of assert? */
-   assert(stream->currentScheme == DmtxSchemeC40 ||
-         stream->currentScheme == DmtxSchemeText ||
-         stream->currentScheme == DmtxSchemeX12);
-
-   /* XXX Verify we are on byte boundary too */
-/*
-   if(stream->outputChainValueCount % 3 != 0)
+   if(stream->currentScheme != DmtxSchemeC40 &&
+         stream->currentScheme != DmtxSchemeText &&
+         stream->currentScheme != DmtxSchemeX12)
    {
-      streamMarkInvalid(stream, 1 not on byte boundary);
+      StreamMarkInvalid(stream, 1);
       return;
    }
-*/
+
+   /* Verify we are on byte boundary */
+   if(stream->outputChainValueCount % 3 != 0)
+   {
+      StreamMarkInvalid(stream, 1 /* not on byte boundary */);
+      return;
+   }
+
    StreamOutputChainAppend(stream, DmtxValueC40TextX12Unlatch); CHKERR;
 
    stream->outputChainValueCount++;
 }
 
 /**
- * XXX can we merge this code into EncodeNextChunkC40TextX12()? do we want to?
- *     revisit question after implementing both completely
+ *
+ *
  */
 static void
 EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList values)
 {
    DmtxByte cw0, cw1;
 
-   /* XXX should be setting error instead of assert? */
-   assert(stream->currentScheme == DmtxSchemeC40 ||
-         stream->currentScheme == DmtxSchemeText ||
-         stream->currentScheme == DmtxSchemeX12);
+   if(stream->currentScheme != DmtxSchemeC40 &&
+         stream->currentScheme != DmtxSchemeText &&
+         stream->currentScheme != DmtxSchemeX12)
+   {
+      StreamMarkInvalid(stream, 1);
+      return;
+   }
 
    /* combine (v0,v1,v2) into (cw0,cw1) */
    cw0 = cw1 = 0; /* temporary */
@@ -412,12 +418,20 @@ EncodeNextChunkC40TextX12(DmtxEncodeStream *stream)
  *             3       1  Need bigger symbol
  */
 static void
-CompleteIfDoneC40TextX12(DmtxEncodeStream *stream)
+CompleteIfDoneC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx)
 {
+   int sizeIdx;
+
+   sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx); CHKSIZE;
+
+   if(!StreamInputHasNext(stream))
+   {
+      StreamMarkComplete(stream, sizeIdx);
+   }
 }
 
 /**
- * this code is separated from EncodeNextChunkEdifact() because it needs to be called directly elsewhere
+ *
  *
  */
 static void
@@ -523,7 +537,7 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
    }
    else
    {
-      /**
+      /*
        * Allow encoder to write up to 3 additional codewords to a temporary
        * stream. If it finishes in 1 or 2 it is a known end-of-symbol condition.
        */
@@ -557,42 +571,80 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
  *
  */
 static void
-UpdateBase256ChainHeader(DmtxEncodeStream *stream)
+UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx)
 {
    int headerIndex;
    int outputLength;
    int headerByteCount;
+   int symbolDataWords;
    DmtxByte headerValue0;
    DmtxByte headerValue1;
 
    headerIndex = stream->output.length - stream->outputChainWordCount;
    outputLength = stream->outputChainValueCount;
    headerByteCount = stream->outputChainWordCount - stream->outputChainValueCount;
-   assert(headerByteCount == 1 || headerByteCount == 2);
 
-   /* Over 250 threshold length header requires a second byte */
-   if(headerByteCount == 1 && outputLength >= 250)
+   /*
+    * Adjust header to hold correct number of bytes (not worrying about the
+    * values store there until below). Note: Header bytes are not considered
+    * scheme "values" so we can insert or remove them without needing to update
+    * outputChainValueCount.
+    */
+
+   if(headerByteCount == 0 && stream->outputChainWordCount == 0)
    {
-      /* Chain value count doesn't require update because the length header is
-         not considered a chain value */
-      StreamOutputChainInsertFirst(stream); CHKERR;
+      /* No output words written yet -- insert single header byte */
+      StreamOutputChainAppend(stream, 0); CHKERR;
       headerByteCount++;
    }
+   else if(headerByteCount == 1 && outputLength > 249)
+   {
+      /* Beyond 249 bytes requires a second header byte */
+      StreamOutputChainInsertFirst(stream); CHKERR; /* XXX just a stub right now */
+      headerByteCount++;
+   }
+   else if(headerByteCount == 2 && perfectSizeIdx != DmtxUndefined)
+   {
+      /* Encoding to exact end of symbol only requires single byte */
+      StreamOutputChainRemoveFirst(stream); CHKERR; /* XXX just a stub right now */
+      headerByteCount--;
+   }
 
-   if(headerByteCount == 1)
+   /*
+    * Encode header byte(s) to hold current length
+    */
+
+   if(headerByteCount == 1 && perfectSizeIdx != DmtxUndefined)
+   {
+      /* XXX replace magic value 0 with DmtxValueBase256EncodeToEnd or something? */
+      headerValue0 = Randomize255State2(0, headerIndex + 1);
+
+      /* Verify output length matches exact caapacity of perfectSizeIdx */
+      symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, perfectSizeIdx);
+      if(symbolDataWords != stream->output.length)
+      {
+         StreamMarkFatal(stream, 1);
+         return;
+      }
+
+      StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
+   }
+   else if(headerByteCount == 1 && perfectSizeIdx == DmtxUndefined)
    {
       headerValue0 = Randomize255State2(outputLength, headerIndex + 1);
       StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
    }
-   else
+   else if(headerByteCount == 2 && perfectSizeIdx == DmtxUndefined)
    {
-      assert(headerByteCount == 2);
-
       headerValue0 = Randomize255State2(outputLength/250 + 249, headerIndex + 1);
       StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
 
       headerValue1 = Randomize255State2(outputLength%250, headerIndex + 2);
       StreamOutputSet(stream, headerIndex + 1, headerValue1); CHKERR;
+   }
+   else
+   {
+      StreamMarkFatal(stream, 1);
    }
 }
 
@@ -608,7 +660,7 @@ EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
    StreamOutputChainAppend(stream, Randomize255State2(value, stream->output.length + 1)); CHKERR;
    stream->outputChainValueCount++;
 
-   UpdateBase256ChainHeader(stream);
+   UpdateBase256ChainHeader(stream, DmtxUndefined); CHKERR;
 }
 
 /**
@@ -628,46 +680,46 @@ EncodeNextChunkBase256(DmtxEncodeStream *stream)
 }
 
 /**
- *
- *
+ * check remaining symbol capacity and remaining codewords
+ * if the chain can finish perfectly at the end of symbol data words there is a
+ * special one-byte length header value that can be used (i think ... read the
+ * spec again before commiting to anything)
  */
 static void
 CompleteIfDoneBase256(DmtxEncodeStream *stream, int requestedSizeIdx)
 {
    int sizeIdx;
-/*
-   check remaining symbol capacity and remaining codewords
-   if the chain can finish perfectly at the end of symbol data words there is a
-   special one-byte length header value that can be used (i think ... read the
-   spec again before commiting to anything)
-*/
+   int headerByteCount, outputLength, symbolRemaining;
+
    if(!StreamInputHasNext(stream))
    {
-/*
-      headerLength = stream->outputChainWordCount - stream->outputChainValueCount;
-      if(headerLength == 2)
+      headerByteCount = stream->outputChainWordCount - stream->outputChainValueCount;
+      assert(headerByteCount == 1 || headerByteCount == 2);
+
+      /* Check for special case where we can encode using all symbol words */
+      if(headerByteCount == 2)
       {
-         // test as if encoded up to exact symbol capacity
+         /* Find symbol size as if headerByteCount was only 1 */
          outputLength = stream->output.length - 1;
-         sizeIdx = FindSymbolSize(outputLength, requestedSizeIdx); // atypical usage
+         sizeIdx = FindSymbolSize(outputLength, requestedSizeIdx); /* No CHKSIZE */
          if(sizeIdx != DmtxUndefined)
          {
             symbolRemaining = GetRemainingSymbolCapacity(outputLength, sizeIdx);
 
             if(symbolRemaining == 0)
             {
-               StreamOutputRemoveFirst(stream);
-               StreamOutputSet(stream, 0, Randomize255(xyz)); // encode to end
+               /* Perfect fit -- complete encoding */
+               UpdateBase256ChainHeader(stream, sizeIdx); CHKERR;
                StreamMarkComplete(stream, sizeIdx);
                return;
             }
          }
       }
-*/
+
+      /* Normal case */
       sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx); CHKSIZE;
       EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit);
       PadRemainingInAscii(stream, sizeIdx);
-
       StreamMarkComplete(stream, sizeIdx);
    }
 }
@@ -787,7 +839,7 @@ EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capac
          break;
    }
 
-   /**
+   /*
     * We stopped encoding before attempting to write beyond output boundary so
     * any stream errors are truly unexpected. The passFail status indicates
     * whether output.length can be trusted by the calling function.
