@@ -197,11 +197,6 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
          break;
       case DmtxSchemeBase256:
          EncodeValueAscii(stream, DmtxValueBase256Latch); CHKERR;
-/*
-         // Write temporary field length (0 indicates remainder of symbol)
-         // need to switch schemes first?
-         EncodeValueBase256(stream, 0); CHKERR;
-*/
          break;
       default:
          /* Nothing to do for ASCII */
@@ -213,6 +208,13 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
    /* Reset new chain length to zero */
    stream->outputChainValueCount = 0;
    stream->outputChainWordCount = 0;
+
+   /* Insert header length if just arrived in Base256 */
+   if(targetScheme == DmtxSchemeBase256)
+   {
+      EncodeValueBase256(stream, 0);
+      StreamOutputChainSet(stream, 0, 0);
+   }
 }
 
 /**
@@ -564,7 +566,7 @@ EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
    assert(stream->currentScheme == DmtxSchemeBase256);
 
    /* Append new codeword to end of chain */
-   StreamOutputChainAppend(stream, Randomize255State2(value, stream->output.length)); CHKERR;
+   StreamOutputChainAppend(stream, Randomize255State2(value, stream->output.length + 1)); CHKERR;
 
    /* If we hit the threshold the length header requires a second byte */
    if(stream->outputChainWordCount == 250)
@@ -576,10 +578,11 @@ EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
 
    /* Update header byte(s) with new length */
    headerByteCount = stream->outputChainWordCount - stream->outputChainValueCount;
+
    if(headerByteCount == 1)
    {
-      /* XXX actually need to use Randomize255State() instead */
-      StreamOutputChainSet(stream, 0, stream->outputChainWordCount); CHKERR;
+      StreamOutputChainSet(stream, 0, Randomize255State2(stream->output.length,
+            stream->outputChainWordCount)); CHKERR;
    }
    else
    {
@@ -598,12 +601,10 @@ EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
 static void
 EncodeNextChunkBase256(DmtxEncodeStream *stream)
 {
-   int headerByteCount;
    DmtxByte value;
 
    if(StreamInputHasNext(stream))
    {
-      headerByteCount = stream->outputChainWordCount - stream->outputChainValueCount;
       value = StreamInputAdvanceNext(stream); CHKERR;
       EncodeValueBase256(stream, value); CHKERR;
    }
@@ -685,17 +686,17 @@ Randomize253State2(DmtxByte cwValue, int cwPosition)
 
 /**
  * \brief  Randomize 255 state
- * \param  cwValue
- * \param  cwPosition
+ * \param  value
+ * \param  position
  * \return Randomized value
  */
 static DmtxByte
-Randomize255State2(DmtxByte cwValue, int cwPosition)
+Randomize255State2(DmtxByte value, int position)
 {
    int pseudoRandom, tmp;
 
-   pseudoRandom = ((149 * cwPosition) % 255) + 1;
-   tmp = cwValue + pseudoRandom;
+   pseudoRandom = ((149 * position) % 255) + 1;
+   tmp = value + pseudoRandom;
 
    return (tmp <= 255) ? tmp : tmp - 256;
 }

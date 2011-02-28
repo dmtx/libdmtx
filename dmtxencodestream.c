@@ -159,7 +159,11 @@ StreamOutputChainRemoveFirst(DmtxEncodeStream *stream)
 static void
 StreamOutputChainSet(DmtxEncodeStream *stream, int i, DmtxByte value)
 {
-   ;
+   int index;
+
+   index = stream->output.length - stream->outputChainWordCount;
+/*fprintf(stdout, "bl: %d %d %d\n", i, index, stream->outputChainValueCount);*/
+   stream->output.b[index] = Randomize255State2(index, stream->outputChainValueCount);
 }
 
 /**
