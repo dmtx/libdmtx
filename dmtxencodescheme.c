@@ -77,6 +77,10 @@
 #include "dmtx.h"
 #include "dmtxstatic.h"
 
+/* XXX later change this to set invalid status and return */
+/* XXX is there a way to handle muliple values of s? */
+#define CHKSCHEME(s) { assert(stream->currentScheme == s); }
+
 /* CHKERR should follow any call that might alter stream status */
 #define CHKERR { if(stream->status != DmtxStatusEncoding) { return; } }
 
@@ -90,8 +94,7 @@
 static DmtxPassFail
 EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx)
 {
-   /* XXX should be setting error instead of assert? */
-   assert(stream->currentScheme == DmtxSchemeAscii);
+   CHKSCHEME(DmtxSchemeAscii);
 
    while(stream->status == DmtxStatusEncoding)
       EncodeNextChunk(stream, targetScheme, requestedSizeIdx);
@@ -116,7 +119,7 @@ EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requested
    if(stream->currentScheme != targetScheme)
    {
       EncodeChangeScheme(stream, targetScheme, DmtxUnlatchExplicit); CHKERR;
-      assert(stream->currentScheme == targetScheme);
+      CHKSCHEME(targetScheme);
    }
 
    /* Explicit polymorphism */
@@ -202,7 +205,7 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
          break;
       default:
          /* Nothing to do for ASCII */
-         assert(targetScheme == DmtxSchemeAscii);
+         CHKSCHEME(DmtxSchemeAscii);
          break;
    }
    stream->currentScheme = targetScheme;
@@ -230,8 +233,7 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
 static void
 EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value)
 {
-   /* XXX should be setting error instead of assert? */
-   assert(stream->currentScheme == DmtxSchemeAscii);
+   CHKSCHEME(DmtxSchemeAscii);
 
    StreamOutputChainAppend(stream, value); CHKERR;
    stream->outputChainValueCount++;
@@ -423,8 +425,7 @@ EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value)
 {
    DmtxByte edifactValue, previousOutput;
 
-   /* XXX should be setting error instead of assert? */
-   assert(stream->currentScheme == DmtxSchemeEdifact);
+   CHKSCHEME(DmtxSchemeEdifact);
 
    if(value < 31 || value > 94)
    {
@@ -602,8 +603,7 @@ UpdateBase256ChainHeader(DmtxEncodeStream *stream)
 static void
 EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
 {
-   /* XXX should be setting error instead of assert? */
-   assert(stream->currentScheme == DmtxSchemeBase256);
+   CHKSCHEME(DmtxSchemeBase256);
 
    StreamOutputChainAppend(stream, Randomize255State2(value, stream->output.length + 1)); CHKERR;
    stream->outputChainValueCount++;
@@ -737,10 +737,8 @@ PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx)
    int symbolRemaining;
    DmtxByte padValue;
 
-   /* XXX replace this with a proper error later */
-   assert(stream->currentScheme == DmtxSchemeAscii);
-
-   assert(sizeIdx != DmtxUndefined);
+   CHKSCHEME(DmtxSchemeAscii);
+   CHKSIZE;
 
    symbolRemaining = GetRemainingSymbolCapacity(stream->output.length, sizeIdx);
 
