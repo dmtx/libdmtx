@@ -243,7 +243,7 @@ static void StreamOutputChainAppend(DmtxEncodeStream *stream, DmtxByte value);
 static DmtxByte StreamOutputChainRemoveLast(DmtxEncodeStream *stream);
 static void StreamOutputChainInsertFirst(DmtxEncodeStream *stream);
 static DmtxByte StreamOutputChainRemoveFirst(DmtxEncodeStream *stream);
-static void StreamOutputChainSet(DmtxEncodeStream *stream, int i, DmtxByte value);
+static void StreamOutputSet(DmtxEncodeStream *stream, int index, DmtxByte value);
 static DmtxBoolean StreamInputHasNext(DmtxEncodeStream *stream);
 static DmtxByte StreamInputPeekNext(DmtxEncodeStream *stream);
 static DmtxByte StreamInputAdvanceNext(DmtxEncodeStream *stream);
@@ -266,6 +266,7 @@ static void EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value);
 static void EncodeNextChunkEdifact(DmtxEncodeStream *stream);
 static void CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx);
 
+static void UpdateBase256ChainHeader(DmtxEncodeStream *stream);
 static void EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value);
 static void EncodeNextChunkBase256(DmtxEncodeStream *stream);
 static void CompleteIfDoneBase256(DmtxEncodeStream *stream, int requestedSizeIdx);

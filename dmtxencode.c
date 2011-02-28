@@ -412,7 +412,6 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
    DmtxEncodeStream stream;
    DmtxByte buf2[4096];
 */
-
    /*
     * This function needs to take both dataWordCount and sizeIdx into account
     * because symbol size is tied to an encodation. That is, a data stream
@@ -430,10 +429,12 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
          break;
       default:
          dataWordCount = EncodeSingleScheme(enc, buf, inputString, inputSize, enc->scheme);
-         /* try out the new encoding mechanism */
 /*
          stream = StreamInit(inputString, inputSize, buf2, sizeof(buf2));
+         stream = StreamInit(inputString, inputSize, buf, 4096);
          EncodeSingleScheme2(&stream, enc->scheme, DmtxSymbolSquareAuto);
+         dataWordCount = stream.output.length;
+         *sizeIdx = stream.sizeIdx;
          dmtxByteListPrint(&(stream.output), "xxx:");
 */
          break;

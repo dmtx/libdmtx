@@ -157,13 +157,12 @@ StreamOutputChainRemoveFirst(DmtxEncodeStream *stream)
  * used for binary length changes
  */
 static void
-StreamOutputChainSet(DmtxEncodeStream *stream, int i, DmtxByte value)
+StreamOutputSet(DmtxEncodeStream *stream, int index, DmtxByte value)
 {
-   int index;
-
-   index = stream->output.length - stream->outputChainWordCount;
-/*fprintf(stdout, "bl: %d %d %d\n", i, index, stream->outputChainValueCount);*/
-   stream->output.b[index] = Randomize255State2(index, stream->outputChainValueCount);
+   if(index < 0 || index >= stream->output.length)
+      StreamMarkFatal(stream, 1 /* out of bounds */);
+   else
+      stream->output.b[index] = value;
 }
 
 /**
