@@ -39,14 +39,14 @@ Contact: mike@dragonflylogic.com
 #define DmtxValueEdifactLatch        240
 #define DmtxValueBase256Latch        231
 
-#define DmtxValueC40TextX12Unlatch   254
+#define DmtxValueCTXUnlatch   254
 #define DmtxValueEdifactUnlatch       31
 
 #define DmtxValueAsciiPad            129
 #define DmtxValueAsciiUpperShift     235
-#define DmtxValueC40TextX12Shift1      0
-#define DmtxValueC40TextX12Shift2      1
-#define DmtxValueC40TextX12Shift3      2
+#define DmtxValueCTXShift1      0
+#define DmtxValueCTXShift2      1
+#define DmtxValueCTXShift3      2
 #define DmtxValueFNC1                232
 #define DmtxValueStructuredAppend    233
 #define DmtxValue05Macro             236
@@ -257,12 +257,12 @@ static void EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value);
 static void EncodeNextChunkAscii(DmtxEncodeStream *stream);
 static void CompleteIfDoneAscii(DmtxEncodeStream *stream, int requestedSizeIdx);
 
-static void EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList *valueList);
-static void EncodeUnlatchC40TextX12(DmtxEncodeStream *stream);
-static void EncodeNextChunkC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx);
-static void CompleteIfDoneC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx);
-static void CompleteIfDonePartial(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx);
-static DmtxPassFail PushC40TextX12Values(DmtxByteList *valueList, int inputValue, int targetScheme);
+static void EncodeValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList);
+static void EncodeUnlatchCTX(DmtxEncodeStream *stream);
+static void EncodeNextChunkCTX(DmtxEncodeStream *stream, int requestedSizeIdx);
+static void CompleteIfDoneCTX(DmtxEncodeStream *stream, int requestedSizeIdx);
+static void CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx);
+static DmtxPassFail PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme);
 
 static void EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value);
 static void EncodeNextChunkEdifact(DmtxEncodeStream *stream);

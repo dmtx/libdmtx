@@ -1138,7 +1138,7 @@ ChangeEncScheme(DmtxChannel *channel, DmtxScheme targetScheme, int unlatchType)
 
          /* Unlatch to ASCII and increment progress */
          if(unlatchType == DmtxUnlatchExplicit) {
-            PushInputWord(channel, DmtxValueC40TextX12Unlatch);
+            PushInputWord(channel, DmtxValueCTXUnlatch);
             IncrementProgress(channel, 12);
          }
          break;
@@ -1601,7 +1601,7 @@ GetC40TextX12Words(int *outputWords, int inputWord, DmtxScheme encScheme)
          return 0;
       }
       else {
-         outputWords[count++] = DmtxValueC40TextX12Shift2;
+         outputWords[count++] = DmtxValueCTXShift2;
          outputWords[count++] = 30;
          inputWord -= 128;
       }
@@ -1624,43 +1624,43 @@ GetC40TextX12Words(int *outputWords, int inputWord, DmtxScheme encScheme)
    }
    else { /* encScheme is C40 or Text */
       if(inputWord <= 31) {
-         outputWords[count++] = DmtxValueC40TextX12Shift1;
+         outputWords[count++] = DmtxValueCTXShift1;
          outputWords[count++] = inputWord;
       }
       else if(inputWord == 32) {
          outputWords[count++] = 3;
       }
       else if(inputWord <= 47) {
-         outputWords[count++] = DmtxValueC40TextX12Shift2;
+         outputWords[count++] = DmtxValueCTXShift2;
          outputWords[count++] = inputWord - 33;
       }
       else if(inputWord <= 57) {
          outputWords[count++] = inputWord - 44;
       }
       else if(inputWord <= 64) {
-         outputWords[count++] = DmtxValueC40TextX12Shift2;
+         outputWords[count++] = DmtxValueCTXShift2;
          outputWords[count++] = inputWord - 43;
       }
       else if(inputWord <= 90 && encScheme == DmtxSchemeC40) {
          outputWords[count++] = inputWord - 51;
       }
       else if(inputWord <= 90 && encScheme == DmtxSchemeText) {
-         outputWords[count++] = DmtxValueC40TextX12Shift3;
+         outputWords[count++] = DmtxValueCTXShift3;
          outputWords[count++] = inputWord - 64;
       }
       else if(inputWord <= 95) {
-         outputWords[count++] = DmtxValueC40TextX12Shift2;
+         outputWords[count++] = DmtxValueCTXShift2;
          outputWords[count++] = inputWord - 69;
       }
       else if(inputWord == 96 && encScheme == DmtxSchemeText) {
-         outputWords[count++] = DmtxValueC40TextX12Shift3;
+         outputWords[count++] = DmtxValueCTXShift3;
          outputWords[count++] = 0;
       }
       else if(inputWord <= 122 && encScheme == DmtxSchemeText) {
          outputWords[count++] = inputWord - 83;
       }
       else if(inputWord <= 127) {
-         outputWords[count++] = DmtxValueC40TextX12Shift3;
+         outputWords[count++] = DmtxValueCTXShift3;
          outputWords[count++] = inputWord - 96;
       }
    }
@@ -1672,7 +1672,7 @@ GetC40TextX12Words(int *outputWords, int inputWord, DmtxScheme encScheme)
  * @brief  Convert 2 codewords into 3 values for triplet-based schemes
  * @param  cw1
  * @param  cw2
- * @return C40TextX12 data
+ * @return C40/Text/X12 data
  */
 static DmtxTriplet
 GetTripletValues(unsigned char cw1, unsigned char cw2)

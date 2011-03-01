@@ -138,8 +138,8 @@ EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requested
       case DmtxSchemeC40:
       case DmtxSchemeText:
       case DmtxSchemeX12:
-         EncodeNextChunkC40TextX12(stream, requestedSizeIdx); CHKERR;
-         CompleteIfDoneC40TextX12(stream, requestedSizeIdx); CHKERR;
+         EncodeNextChunkCTX(stream, requestedSizeIdx); CHKERR;
+         CompleteIfDoneCTX(stream, requestedSizeIdx); CHKERR;
          break;
       case DmtxSchemeEdifact:
          EncodeNextChunkEdifact(stream); CHKERR;
@@ -174,7 +174,7 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
       case DmtxSchemeX12:
          if(unlatchType == DmtxUnlatchExplicit)
          {
-            EncodeUnlatchC40TextX12(stream); CHKERR;
+            EncodeUnlatchCTX(stream); CHKERR;
          }
          break;
       case DmtxSchemeEdifact:
@@ -310,7 +310,7 @@ CompleteIfDoneAscii(DmtxEncodeStream *stream, int requestedSizeIdx)
  *
  */
 static void
-EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList *valueList)
+EncodeValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList)
 {
    int pairValue;
    DmtxByte cw0, cw1;
@@ -341,7 +341,7 @@ EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList *valueList)
  *
  */
 static void
-EncodeUnlatchC40TextX12(DmtxEncodeStream *stream)
+EncodeUnlatchCTX(DmtxEncodeStream *stream)
 {
    if(stream->currentScheme != DmtxSchemeC40 &&
          stream->currentScheme != DmtxSchemeText &&
@@ -358,7 +358,7 @@ EncodeUnlatchC40TextX12(DmtxEncodeStream *stream)
       return;
    }
 
-   StreamOutputChainAppend(stream, DmtxValueC40TextX12Unlatch); CHKERR;
+   StreamOutputChainAppend(stream, DmtxValueCTXUnlatch); CHKERR;
 
    stream->outputChainValueCount++;
 }
@@ -368,7 +368,7 @@ EncodeUnlatchC40TextX12(DmtxEncodeStream *stream)
  *
  */
 static void
-EncodeNextChunkC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx)
+EncodeNextChunkCTX(DmtxEncodeStream *stream, int requestedSizeIdx)
 {
    DmtxPassFail passFail;
    DmtxByte inputValue;
@@ -379,12 +379,12 @@ EncodeNextChunkC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx)
    {
       inputValue = StreamInputAdvanceNext(stream); CHKERR;
       /* XXX remember to account for upper shift (4 values each) */
-      passFail = PushC40TextX12Values(&valueList, inputValue, stream->currentScheme);
+      passFail = PushCTXValues(&valueList, inputValue, stream->currentScheme);
 
       /* remember to account for upper shift (4 values each) ... does this loop structure still work? */
       while(valueList.length >= 3)
       {
-         EncodeValuesC40TextX12(stream, &valueList); CHKERR;
+         EncodeValuesCTX(stream, &valueList); CHKERR;
 /*       DmtxByteListRemoveFirst(valueList, 3); */
       }
 
@@ -400,7 +400,7 @@ EncodeNextChunkC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx)
     */
    if(!StreamInputHasNext(stream) && valueList.length > 0)
    {
-      CompleteIfDonePartial(stream, &valueList, requestedSizeIdx); CHKERR;
+      CompleteIfDonePartialCTX(stream, &valueList, requestedSizeIdx); CHKERR;
    }
 }
 
@@ -414,7 +414,7 @@ EncodeNextChunkC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx)
  *            -       -  UNLATCH [PAD]
  */
 static void
-CompleteIfDoneC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx)
+CompleteIfDoneCTX(DmtxEncodeStream *stream, int requestedSizeIdx)
 {
    int sizeIdx;
    int symbolRemaining;
@@ -462,7 +462,7 @@ CompleteIfDoneC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx)
  *               -       -  UNLATCH (continue ASCII)
  */
 static void
-CompleteIfDonePartial(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx)
+CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx)
 {
    int sizeIdx;
    int symbolRemaining;
@@ -481,8 +481,8 @@ CompleteIfDonePartial(DmtxEncodeStream *stream, DmtxByteList *valueList, int req
    if(valueList->length == 2 && symbolRemaining == 2)
    {
       /* End of symbol condition (b) -- Use Shift1 to pad final list value */
-      dmtxByteListPush(valueList, DmtxValueC40TextX12Shift1);
-      EncodeValuesC40TextX12(stream, valueList); CHKERR;
+      dmtxByteListPush(valueList, DmtxValueCTXShift1);
+      EncodeValuesCTX(stream, valueList); CHKERR;
       StreamMarkComplete(stream, sizeIdx);
    }
    else
@@ -496,7 +496,7 @@ CompleteIfDonePartial(DmtxEncodeStream *stream, DmtxByteList *valueList, int req
       StreamInputAdvancePrev(stream); CHKERR;
 
       // temporary re-encode most recently consumed input value to C40/Text/X12
-      passFail = PushC40TextX12Values(&tmp, inputValue));
+      passFail = PushCTXValues(&tmp, inputValue));
       if(valueList.length == 2 && tmp.length > 1)
       {
          StreamInputAdvancePrev(stream); CHKERR;
@@ -527,18 +527,18 @@ CompleteIfDonePartial(DmtxEncodeStream *stream, DmtxByteList *valueList, int req
  * @return Codeword count
  */
 static DmtxPassFail
-PushC40TextX12Values(DmtxByteList *valueList, int inputValue, int targetScheme)
+PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme)
 {
    /* Handle extended ASCII with Upper Shift character */
    if(inputValue > 127)
    {
       if(targetScheme == DmtxSchemeX12)
       {
-         return 0;
+         return 0; /* XXX shouldn't this be an error? */
       }
       else
       {
-         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift2);
+         dmtxByteListPush(valueList, DmtxValueCTXShift2);
          dmtxByteListPush(valueList, 30);
          inputValue -= 128;
       }
@@ -565,7 +565,7 @@ PushC40TextX12Values(DmtxByteList *valueList, int inputValue, int targetScheme)
       /* targetScheme is C40 or Text */
       if(inputValue <= 31)
       {
-         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift1);
+         dmtxByteListPush(valueList, DmtxValueCTXShift1);
          dmtxByteListPush(valueList, inputValue);
       }
       else if(inputValue == 32)
@@ -574,7 +574,7 @@ PushC40TextX12Values(DmtxByteList *valueList, int inputValue, int targetScheme)
       }
       else if(inputValue <= 47)
       {
-         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift2);
+         dmtxByteListPush(valueList, DmtxValueCTXShift2);
          dmtxByteListPush(valueList, inputValue - 33);
       }
       else if(inputValue <= 57)
@@ -583,7 +583,7 @@ PushC40TextX12Values(DmtxByteList *valueList, int inputValue, int targetScheme)
       }
       else if(inputValue <= 64)
       {
-         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift2);
+         dmtxByteListPush(valueList, DmtxValueCTXShift2);
          dmtxByteListPush(valueList, inputValue - 43);
       }
       else if(inputValue <= 90 && targetScheme == DmtxSchemeC40)
@@ -592,17 +592,17 @@ PushC40TextX12Values(DmtxByteList *valueList, int inputValue, int targetScheme)
       }
       else if(inputValue <= 90 && targetScheme == DmtxSchemeText)
       {
-         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift3);
+         dmtxByteListPush(valueList, DmtxValueCTXShift3);
          dmtxByteListPush(valueList, inputValue - 64);
       }
       else if(inputValue <= 95)
       {
-         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift2);
+         dmtxByteListPush(valueList, DmtxValueCTXShift2);
          dmtxByteListPush(valueList, inputValue - 69);
       }
       else if(inputValue == 96 && targetScheme == DmtxSchemeText)
       {
-         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift3);
+         dmtxByteListPush(valueList, DmtxValueCTXShift3);
          dmtxByteListPush(valueList, 0);
       }
       else if(inputValue <= 122 && targetScheme == DmtxSchemeText)
@@ -611,7 +611,7 @@ PushC40TextX12Values(DmtxByteList *valueList, int inputValue, int targetScheme)
       }
       else if(inputValue <= 127)
       {
-         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift3);
+         dmtxByteListPush(valueList, DmtxValueCTXShift3);
          dmtxByteListPush(valueList, inputValue - 96);
       }
    }

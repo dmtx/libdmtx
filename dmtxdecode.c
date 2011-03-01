@@ -836,7 +836,7 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
       }
 
       /* Unlatch if codeword 254 follows 2 codewords in C40/Text encodation */
-      if(*ptr == DmtxValueC40TextX12Unlatch)
+      if(*ptr == DmtxValueCTXUnlatch)
          return ptr + 1;
 
       /* Unlatch is implied if only one codeword remains */
@@ -886,7 +886,7 @@ DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
       }
 
       /* Unlatch if codeword 254 follows 2 codewords in C40/Text encodation */
-      if(*ptr == DmtxValueC40TextX12Unlatch)
+      if(*ptr == DmtxValueCTXUnlatch)
          return ptr + 1;
 
       /* Unlatch is implied if only one codeword remains */
