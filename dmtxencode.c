@@ -408,9 +408,10 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
       int inputSize, int *sizeIdx)
 {
    int dataWordCount;
+/*
    DmtxEncodeStream stream;
    DmtxByte buf2[4096];
-
+*/
    /*
     * This function needs to take both dataWordCount and sizeIdx into account
     * because symbol size is tied to an encodation. That is, a data stream
@@ -427,15 +428,15 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
          /* dataWordCount = EncodeAutoFast(enc, buf, inputString, inputSize); */
          break;
       default:
-/*
          dataWordCount = EncodeSingleScheme(enc, buf, inputString, inputSize, enc->scheme);
+/*
          stream = StreamInit(inputString, inputSize, buf2, sizeof(buf2));
-*/
          stream = StreamInit(inputString, inputSize, buf, 4096);
          EncodeSingleScheme2(&stream, enc->scheme, DmtxSymbolSquareAuto);
          dataWordCount = stream.output.length;
          *sizeIdx = stream.sizeIdx;
          dmtxByteListPrint(&(stream.output), "xxx:");
+*/
          break;
    }
 
@@ -444,9 +445,7 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
       needed by Encode...() for triplet termination */
 
    /* parameter sizeIdx is requested value, returned sizeIdx is decision */
-/*
    *sizeIdx = FindSymbolSize(dataWordCount, *sizeIdx);
-*/
    if(*sizeIdx == DmtxUndefined)
       return 0;
 
