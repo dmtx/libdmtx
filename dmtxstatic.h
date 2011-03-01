@@ -257,10 +257,12 @@ static void EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value);
 static void EncodeNextChunkAscii(DmtxEncodeStream *stream);
 static void CompleteIfDoneAscii(DmtxEncodeStream *stream, int requestedSizeIdx);
 
+static void EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList *valueList);
 static void EncodeUnlatchC40TextX12(DmtxEncodeStream *stream);
-static void EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList values);
-static void EncodeNextChunkC40TextX12(DmtxEncodeStream *stream);
+static void EncodeNextChunkC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx);
 static void CompleteIfDoneC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx);
+static void CompleteIfDonePartial(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx);
+static DmtxPassFail PushC40TextX12Values(DmtxByteList *valueList, int inputValue, int targetScheme);
 
 static void EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value);
 static void EncodeNextChunkEdifact(DmtxEncodeStream *stream);

@@ -138,7 +138,7 @@ EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requested
       case DmtxSchemeC40:
       case DmtxSchemeText:
       case DmtxSchemeX12:
-         EncodeNextChunkC40TextX12(stream); CHKERR;
+         EncodeNextChunkC40TextX12(stream, requestedSizeIdx); CHKERR;
          CompleteIfDoneC40TextX12(stream, requestedSizeIdx); CHKERR;
          break;
       case DmtxSchemeEdifact:
@@ -310,6 +310,37 @@ CompleteIfDoneAscii(DmtxEncodeStream *stream, int requestedSizeIdx)
  *
  */
 static void
+EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList *valueList)
+{
+   int pairValue;
+   DmtxByte cw0, cw1;
+
+   if(stream->currentScheme != DmtxSchemeC40 &&
+         stream->currentScheme != DmtxSchemeText &&
+         stream->currentScheme != DmtxSchemeX12)
+   {
+      StreamMarkInvalid(stream, 1);
+      return;
+   }
+
+   /* Build codewords from computed value */
+   pairValue = (1600 * valueList->b[0]) + (40 * valueList->b[1]) + valueList->b[2] + 1;
+   cw0 = pairValue / 256;
+   cw1 = pairValue % 256;
+
+   /* Append 2 codewords */
+   StreamOutputChainAppend(stream, cw0); CHKERR;
+   StreamOutputChainAppend(stream, cw1); CHKERR;
+
+   /* Update count for 3 encoded values */
+   stream->outputChainValueCount += 3;
+}
+
+/**
+ *
+ *
+ */
+static void
 EncodeUnlatchC40TextX12(DmtxEncodeStream *stream)
 {
    if(stream->currentScheme != DmtxSchemeC40 &&
@@ -333,202 +364,259 @@ EncodeUnlatchC40TextX12(DmtxEncodeStream *stream)
 }
 
 /**
+ *
+ *
+ */
+static void
+EncodeNextChunkC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx)
+{
+   DmtxPassFail passFail;
+   DmtxByte inputValue;
+   DmtxByte valueListStorage[4];
+   DmtxByteList valueList = dmtxByteListBuild(valueListStorage, sizeof(valueListStorage));
+
+   while(StreamInputHasNext(stream))
+   {
+      inputValue = StreamInputAdvanceNext(stream); CHKERR;
+      /* XXX remember to account for upper shift (4 values each) */
+      passFail = PushC40TextX12Values(&valueList, inputValue, stream->currentScheme);
+
+      /* remember to account for upper shift (4 values each) ... does this loop structure still work? */
+      while(valueList.length >= 3)
+      {
+         EncodeValuesC40TextX12(stream, &valueList); CHKERR;
+/*       DmtxByteListRemoveFirst(valueList, 3); */
+      }
+
+      /* Finished on byte boundary -- done with current chunk */
+      if(valueList.length == 0)
+         break;
+   }
+
+   /*
+    * Special case: If all input values have been consumed and 1 or 2 unwritten
+    * C40/Text/X12 values remain, finish encoding the symbol in ASCII according
+    * to the published end-of-symbol conditions.
+    */
+   if(!StreamInputHasNext(stream) && valueList.length > 0)
+   {
+      CompleteIfDonePartial(stream, &valueList, requestedSizeIdx); CHKERR;
+   }
+}
+
+/**
+ * Complete C40/Text/X12 encoding if matching a known end-of-symbol condition.
+ *
+ *   Term  Trip  Symbol  Codeword
+ *   Cond  Size  Remain  Sequence
+ *   ----  ----  ------  -----------------------
+ *    (a)     3       2  Special case
+ *            -       -  UNLATCH [PAD]
+ */
+static void
+CompleteIfDoneC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx)
+{
+   int sizeIdx;
+   int symbolRemaining;
+
+   sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx); CHKSIZE;
+   symbolRemaining = GetRemainingSymbolCapacity(stream->output.length, sizeIdx);
+
+   if(!StreamInputHasNext(stream))
+   {
+      if(symbolRemaining == 0)
+      {
+         /* End of symbol condition (a) -- Perfect fit */
+         StreamMarkComplete(stream, sizeIdx);
+      }
+      else
+      {
+         EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
+      }
+   }
+}
+
+/**
+ * The remaining values can exist in 3 possible cases:
+ *
+ *   a) 1 C40/Text/X12 remaining == 1 data
+ *   b) 2 C40/Text/X12 remaining == 1 shift + 1 data
+ *   c) 2 C40/Text/X12 remaining == 1 data +  1 data
+ *
+ * To distinguish between cases (b) and (c), encode the final input value to
+ * C40/Text/X12 in a temporary location and check the resulting length. If
+ * it expands to multiple values it represents (b); otherwise it is (c). This
+ * accounts for both shift and upper shift conditions.
+ *
+ * Note that in cases (a) and (c) the final C40/Text/X12 value encoded in the
+ * previous chunk may have been a shift value, but this will be ignored by
+ * the decoder due to the implicit shift to ASCII. <-- what if symbol is much
+ * larger though?
+ *
+ *   Term    Value  Symbol  Codeword
+ *   Cond    Count  Remain  Sequence
+ *   ----  -------  ------  ------------------------
+ *    (b)    C40 2       2  C40+C40+0
+ *    (d)  ASCII 1       1  ASCII (implicit unlatch)
+ *    (c)  ASCII 1       2  UNLATCH (continue ASCII)
+ *               -       -  UNLATCH (continue ASCII)
+ */
+static void
+CompleteIfDonePartial(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx)
+{
+   int sizeIdx;
+   int symbolRemaining;
+
+   /* replace this later */
+   assert(stream->currentScheme == DmtxSchemeC40 ||
+         stream->currentScheme == DmtxSchemeText ||
+         stream->currentScheme == DmtxSchemeX12);
+
+   /* Should have exactly one or two input values left */
+   assert(valueList->length == 1 || valueList->length == 2);
+
+   sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx); CHKSIZE;
+   symbolRemaining = GetRemainingSymbolCapacity(stream->output.length, sizeIdx);
+
+   if(valueList->length == 2 && symbolRemaining == 2)
+   {
+      /* End of symbol condition (b) -- Use Shift1 to pad final list value */
+      dmtxByteListPush(valueList, DmtxValueC40TextX12Shift1);
+      EncodeValuesC40TextX12(stream, valueList); CHKERR;
+      StreamMarkComplete(stream, sizeIdx);
+   }
+   else
+   {
+      /*
+       * Rollback progress of previously consumed input value(s) since ASCII
+       * encoder will be used to finish the symbol. 2 rollbacks are needed if
+       * valueList holds 2 data words (i.e., not shift or upper shifts).
+       */
+/*
+      StreamInputAdvancePrev(stream); CHKERR;
+
+      // temporary re-encode most recently consumed input value to C40/Text/X12
+      passFail = PushC40TextX12Values(&tmp, inputValue));
+      if(valueList.length == 2 && tmp.length > 1)
+      {
+         StreamInputAdvancePrev(stream); CHKERR;
+      }
+
+      ascii = encodeTmpRemainingToAscii(stream);
+      if(ascii.length == 1 && symbolRemaining == 1)
+      {
+         // End of symbol condition (d)
+         changeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit); CHKERR;
+         EncodeValueAscii(stream, ascii.b[0]); CHKERR;
+         StreamMarkComplete(stream, sizeIdx);
+      }
+      else
+      {
+         // Continue in ASCII (c)
+         changeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
+      }
+*/
+   }
+}
+
+/**
  * @brief  Convert 3 input values into 2 codewords for triplet-based schemes
  * @param  outputWords
  * @param  inputWord
  * @param  encScheme
  * @return Codeword count
  */
-/*
-static int
-GetC40TextX12Words(int *outputWords, int inputWord, DmtxScheme encScheme)
+static DmtxPassFail
+PushC40TextX12Values(DmtxByteList *valueList, int inputValue, int targetScheme)
 {
-   int count;
-
-   assert(encScheme == DmtxSchemeC40 ||
-         encScheme == DmtxSchemeText ||
-         encScheme == DmtxSchemeX12);
-
-   count = 0;
-
-   // Handle extended ASCII with Upper Shift character
-   if(inputWord > 127) {
-      if(encScheme == DmtxSchemeX12) {
+   /* Handle extended ASCII with Upper Shift character */
+   if(inputValue > 127)
+   {
+      if(targetScheme == DmtxSchemeX12)
+      {
          return 0;
       }
-      else {
-         outputWords[count++] = DmtxValueC40TextX12Shift2;
-         outputWords[count++] = 30;
-         inputWord -= 128;
-      }
-   }
-
-   // Handle all other characters according to encodation scheme
-   if(encScheme == DmtxSchemeX12) {
-      if(inputWord == 13)
-         outputWords[count++] = 0;
-      else if(inputWord == 42)
-         outputWords[count++] = 1;
-      else if(inputWord == 62)
-         outputWords[count++] = 2;
-      else if(inputWord == 32)
-         outputWords[count++] = 3;
-      else if(inputWord >= 48 && inputWord <= 57)
-         outputWords[count++] = inputWord - 44;
-      else if(inputWord >= 65 && inputWord <= 90)
-         outputWords[count++] = inputWord - 51;
-   }
-   else { // encScheme is C40 or Text
-      if(inputWord <= 31) {
-         outputWords[count++] = DmtxValueC40TextX12Shift1;
-         outputWords[count++] = inputWord;
-      }
-      else if(inputWord == 32) {
-         outputWords[count++] = 3;
-      }
-      else if(inputWord <= 47) {
-         outputWords[count++] = DmtxValueC40TextX12Shift2;
-         outputWords[count++] = inputWord - 33;
-      }
-      else if(inputWord <= 57) {
-         outputWords[count++] = inputWord - 44;
-      }
-      else if(inputWord <= 64) {
-         outputWords[count++] = DmtxValueC40TextX12Shift2;
-         outputWords[count++] = inputWord - 43;
-      }
-      else if(inputWord <= 90 && encScheme == DmtxSchemeC40) {
-         outputWords[count++] = inputWord - 51;
-      }
-      else if(inputWord <= 90 && encScheme == DmtxSchemeText) {
-         outputWords[count++] = DmtxValueC40TextX12Shift3;
-         outputWords[count++] = inputWord - 64;
-      }
-      else if(inputWord <= 95) {
-         outputWords[count++] = DmtxValueC40TextX12Shift2;
-         outputWords[count++] = inputWord - 69;
-      }
-      else if(inputWord == 96 && encScheme == DmtxSchemeText) {
-         outputWords[count++] = DmtxValueC40TextX12Shift3;
-         outputWords[count++] = 0;
-      }
-      else if(inputWord <= 122 && encScheme == DmtxSchemeText) {
-         outputWords[count++] = inputWord - 83;
-      }
-      else if(inputWord <= 127) {
-         outputWords[count++] = DmtxValueC40TextX12Shift3;
-         outputWords[count++] = inputWord - 96;
-      }
-   }
-
-   return count;
-}
-*/
-
-/**
- *
- *
- */
-static void
-EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList values)
-{
-   DmtxByte cw0, cw1;
-
-   if(stream->currentScheme != DmtxSchemeC40 &&
-         stream->currentScheme != DmtxSchemeText &&
-         stream->currentScheme != DmtxSchemeX12)
-   {
-      StreamMarkInvalid(stream, 1);
-      return;
-   }
-/*
-   int tripletValue;
-
-   tripletValue = (1600 * triplet->value[0]) + (40 * triplet->value[1]) + triplet->value[2] + 1;
-   PushInputWord(channel, tripletValue / 256);
-   PushInputWord(channel, tripletValue % 256);
-*/
-   /* combine (v0,v1,v2) into (cw0,cw1) */
-   cw0 = cw1 = 0; /* temporary */
-
-   /* Append 2 codewords */
-   StreamOutputChainAppend(stream, cw0); CHKERR;
-   StreamOutputChainAppend(stream, cw1); CHKERR;
-
-   /* Update count for 3 encoded values */
-   stream->outputChainValueCount += 3;
-}
-
-/**
- *
- *
- */
-static void
-EncodeNextChunkC40TextX12(DmtxEncodeStream *stream)
-{
-/*
-   DmtxByte inputValue;
-   DmtxByte valueListStorage[4];
-   DmtxByteList valueList = dmtxByteListBuild(valueListStorage, sizeof(valueListStorage));
-
-   while(streamInputHasNext(stream))
-   {
-      inputValue = StreamInputAdvanceNext(stream)); CHKERR;
-      dmtxByteListPushList(&valueList, GetC40TextX12Values(inputValue));
-
-      if(valueList.length >= 3)
+      else
       {
-         EncodeValuesC40TextX12(stream, valueList); CHKERR;
-         dmtxByteListDequeue(valueList, 3);
+         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift2);
+         dmtxByteListPush(valueList, 30);
+         inputValue -= 128;
       }
-
-      if(valueList.length == 0)
-         break;
    }
 
-   // Have remaining input valueList but not enough to form final pair of codewords
-   if(streamInputHasNext(stream))
+   /* Handle all other characters according to encodation scheme */
+   if(targetScheme == DmtxSchemeX12)
    {
-      left off here ... how best to track what input values are left ...
-      don't want to decode already-encoded values
+      if(inputValue == 13)
+         dmtxByteListPush(valueList, 0);
+      else if(inputValue == 42)
+         dmtxByteListPush(valueList, 1);
+      else if(inputValue == 62)
+         dmtxByteListPush(valueList, 2);
+      else if(inputValue == 32)
+         dmtxByteListPush(valueList, 3);
+      else if(inputValue >= 48 && inputValue <= 57)
+         dmtxByteListPush(valueList, inputValue - 44);
+      else if(inputValue >= 65 && inputValue <= 90)
+         dmtxByteListPush(valueList, inputValue - 51);
    }
-*/
-}
-
-/**
- * Complete C40/Text/X12 encoding if matching a known end-of-symbol condition.
- *
- *   Term  Trip   Symbol  Codeword
- *   Cond  Size   Remain  Sequence
- *   ----  -----  ------  -------------------
- *    (d)      1       1  Special case
- *    (c)      1       2  Special case
- *             1       3  UNLATCH ASCII PAD
- *             1       4  UNLATCH ASCII PAD PAD
- *    (b)      2       2  Special case
- *             2       3  UNLATCH ASCII ASCII
- *             2       4  UNLATCH ASCII ASCII PAD
- *    (a)      3       2  Special case
- *             3       3  C40 C40 UNLATCH
- *             3       4  C40 C40 UNLATCH PAD
- *
- *             1       0  Need bigger symbol
- *             2       0  Need bigger symbol
- *             2       1  Need bigger symbol
- *             3       0  Need bigger symbol
- *             3       1  Need bigger symbol
- */
-static void
-CompleteIfDoneC40TextX12(DmtxEncodeStream *stream, int requestedSizeIdx)
-{
-   int sizeIdx;
-
-   sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx); CHKSIZE;
-
-   if(!StreamInputHasNext(stream))
+   else
    {
-      StreamMarkComplete(stream, sizeIdx);
+      /* targetScheme is C40 or Text */
+      if(inputValue <= 31)
+      {
+         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift1);
+         dmtxByteListPush(valueList, inputValue);
+      }
+      else if(inputValue == 32)
+      {
+         dmtxByteListPush(valueList, 3);
+      }
+      else if(inputValue <= 47)
+      {
+         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift2);
+         dmtxByteListPush(valueList, inputValue - 33);
+      }
+      else if(inputValue <= 57)
+      {
+         dmtxByteListPush(valueList, inputValue - 44);
+      }
+      else if(inputValue <= 64)
+      {
+         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift2);
+         dmtxByteListPush(valueList, inputValue - 43);
+      }
+      else if(inputValue <= 90 && targetScheme == DmtxSchemeC40)
+      {
+         dmtxByteListPush(valueList, inputValue - 51);
+      }
+      else if(inputValue <= 90 && targetScheme == DmtxSchemeText)
+      {
+         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift3);
+         dmtxByteListPush(valueList, inputValue - 64);
+      }
+      else if(inputValue <= 95)
+      {
+         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift2);
+         dmtxByteListPush(valueList, inputValue - 69);
+      }
+      else if(inputValue == 96 && targetScheme == DmtxSchemeText)
+      {
+         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift3);
+         dmtxByteListPush(valueList, 0);
+      }
+      else if(inputValue <= 122 && targetScheme == DmtxSchemeText)
+      {
+         dmtxByteListPush(valueList, inputValue - 83);
+      }
+      else if(inputValue <= 127)
+      {
+         dmtxByteListPush(valueList, DmtxValueC40TextX12Shift3);
+         dmtxByteListPush(valueList, inputValue - 96);
+      }
    }
+
+   return DmtxPass;
 }
 
 /**
