@@ -2,6 +2,7 @@
  *
  *
  */
+/*
 encodeOptimized(stream)
 {
    DmtxEncodeStream streams[18];
@@ -28,11 +29,13 @@ encodeOptimized(stream)
       }
    }
 }
+*/
 
 /**
  *
  *
  */
+/*
 encodeBest(stream, requestedSizeIdx)
 {
    for(i = 0; i < 18; i++)
@@ -48,11 +51,13 @@ encodeBest(stream, requestedSizeIdx)
 
    return stream[best];
 }
+*/
 
 /**
  *
  *
  */
+/*
 getSourceScheme(targetScheme)
 {
    sourceScheme;
@@ -96,3 +101,4 @@ getSourceScheme(targetScheme)
 
    return sourceScheme;
 }
+*/

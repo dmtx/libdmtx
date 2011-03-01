@@ -87,7 +87,12 @@ Contact: mike@dragonflylogic.com
 #include "dmtximage.c"
 #include "dmtxbytelist.c"
 #include "dmtxencodestream.c"
-#include "dmtxencodescheme.c"
+#include "dmtxencodesingle.c"
+#include "dmtxencodeoptimize.c"
+#include "dmtxencodeascii.c"
+#include "dmtxencodec40textx12.c"
+#include "dmtxencodeedifact.c"
+#include "dmtxencodebase256.c"
 
 extern char *
 dmtxVersion(void)

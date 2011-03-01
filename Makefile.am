@@ -34,7 +34,8 @@ endif
 EXTRA_libdmtx_la_SOURCES = dmtxdecode.c dmtxencode.c dmtximage.c dmtxmatrix3.c \
 	dmtxmessage.c dmtxplacemod.c dmtxreedsol.c dmtxregion.c dmtxscangrid.c \
 	dmtxstatic.h dmtxsymbol.c dmtxtime.c dmtxvector2.c dmtxencodestream.c \
-	dmtxencodescheme.c
+	dmtxencodestream.c dmtxencodesingle.c dmtxencodeoptimize.c dmtxencodeascii.c \
+	dmtxencodec40textx12.c dmtxencodeedifact.c dmtxencodebase256.c
 
 include_HEADERS = dmtx.h
 
