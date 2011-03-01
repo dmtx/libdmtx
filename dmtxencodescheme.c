@@ -60,9 +60,11 @@
  *     boundary. If unlatch value finishes mid-byte, the remaining bits before
  *     the next boundary are all set to zero.
  *
+ * XXX maybe reorder the functions list in the file and break them up:
+ *
  * Each scheme implements 3 equivalent functions:
- *   - EncodeValue[Scheme]
  *   - EncodeNextChunk[Scheme]
+ *   - EncodeValue[Scheme]
  *   - CompleteIfDone[Scheme]
  *
  * XXX what about renaming EncodeValue[Scheme] to AppendValue[Scheme]? That
@@ -82,7 +84,7 @@
 #include "dmtxstatic.h"
 
 /* XXX is there a way to handle muliple values of s? */
-#define CHKSCHEME(s) { if(stream->currentScheme != (s)) { StreamMarkInvalid(stream, 1); return; } }
+#define CHKSCHEME(s) { if(stream->currentScheme != (s)) { StreamMarkFatal(stream, 1); return; } }
 
 /* CHKERR should follow any call that might alter stream status */
 #define CHKERR { if(stream->status != DmtxStatusEncoding) { return; } }
@@ -319,7 +321,13 @@ EncodeValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList)
          stream->currentScheme != DmtxSchemeText &&
          stream->currentScheme != DmtxSchemeX12)
    {
-      StreamMarkInvalid(stream, 1);
+      StreamMarkFatal(stream, 1);
+      return;
+   }
+
+   if(valueList->length != 3)
+   {
+      StreamMarkFatal(stream, 1);
       return;
    }
 
@@ -347,7 +355,7 @@ EncodeUnlatchCTX(DmtxEncodeStream *stream)
          stream->currentScheme != DmtxSchemeText &&
          stream->currentScheme != DmtxSchemeX12)
    {
-      StreamMarkInvalid(stream, 1);
+      StreamMarkFatal(stream, 1);
       return;
    }
 
@@ -405,7 +413,7 @@ EncodeNextChunkCTX(DmtxEncodeStream *stream, int requestedSizeIdx)
 }
 
 /**
- * Complete C40/Text/X12 encoding if matching a known end-of-symbol condition.
+ * Complete C40/Text/X12 encoding if it matches a known end-of-symbol condition.
  *
  *   Term  Trip  Symbol  Codeword
  *   Cond  Size  Remain  Sequence
@@ -468,9 +476,13 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
    int symbolRemaining;
 
    /* replace this later */
-   assert(stream->currentScheme == DmtxSchemeC40 ||
-         stream->currentScheme == DmtxSchemeText ||
-         stream->currentScheme == DmtxSchemeX12);
+   if(stream->currentScheme != DmtxSchemeC40 &&
+         stream->currentScheme != DmtxSchemeText &&
+         stream->currentScheme != DmtxSchemeX12)
+   {
+      StreamMarkFatal(stream, 1);
+      return;
+   }
 
    /* Should have exactly one or two input values left */
    assert(valueList->length == 1 || valueList->length == 2);
@@ -679,7 +691,7 @@ EncodeNextChunkEdifact(DmtxEncodeStream *stream)
 }
 
 /**
- * Complete EDIFACT encoding if matching a known end-of-symbol condition.
+ * Complete EDIFACT encoding if it matches a known end-of-symbol condition.
  *
  *   Term  Clean  Symbol  ASCII   Codeword
  *   Cond  Bound  Remain  Remain  Sequence
