@@ -333,6 +333,99 @@ EncodeUnlatchC40TextX12(DmtxEncodeStream *stream)
 }
 
 /**
+ * @brief  Convert 3 input values into 2 codewords for triplet-based schemes
+ * @param  outputWords
+ * @param  inputWord
+ * @param  encScheme
+ * @return Codeword count
+ */
+/*
+static int
+GetC40TextX12Words(int *outputWords, int inputWord, DmtxScheme encScheme)
+{
+   int count;
+
+   assert(encScheme == DmtxSchemeC40 ||
+         encScheme == DmtxSchemeText ||
+         encScheme == DmtxSchemeX12);
+
+   count = 0;
+
+   // Handle extended ASCII with Upper Shift character
+   if(inputWord > 127) {
+      if(encScheme == DmtxSchemeX12) {
+         return 0;
+      }
+      else {
+         outputWords[count++] = DmtxValueC40TextX12Shift2;
+         outputWords[count++] = 30;
+         inputWord -= 128;
+      }
+   }
+
+   // Handle all other characters according to encodation scheme
+   if(encScheme == DmtxSchemeX12) {
+      if(inputWord == 13)
+         outputWords[count++] = 0;
+      else if(inputWord == 42)
+         outputWords[count++] = 1;
+      else if(inputWord == 62)
+         outputWords[count++] = 2;
+      else if(inputWord == 32)
+         outputWords[count++] = 3;
+      else if(inputWord >= 48 && inputWord <= 57)
+         outputWords[count++] = inputWord - 44;
+      else if(inputWord >= 65 && inputWord <= 90)
+         outputWords[count++] = inputWord - 51;
+   }
+   else { // encScheme is C40 or Text
+      if(inputWord <= 31) {
+         outputWords[count++] = DmtxValueC40TextX12Shift1;
+         outputWords[count++] = inputWord;
+      }
+      else if(inputWord == 32) {
+         outputWords[count++] = 3;
+      }
+      else if(inputWord <= 47) {
+         outputWords[count++] = DmtxValueC40TextX12Shift2;
+         outputWords[count++] = inputWord - 33;
+      }
+      else if(inputWord <= 57) {
+         outputWords[count++] = inputWord - 44;
+      }
+      else if(inputWord <= 64) {
+         outputWords[count++] = DmtxValueC40TextX12Shift2;
+         outputWords[count++] = inputWord - 43;
+      }
+      else if(inputWord <= 90 && encScheme == DmtxSchemeC40) {
+         outputWords[count++] = inputWord - 51;
+      }
+      else if(inputWord <= 90 && encScheme == DmtxSchemeText) {
+         outputWords[count++] = DmtxValueC40TextX12Shift3;
+         outputWords[count++] = inputWord - 64;
+      }
+      else if(inputWord <= 95) {
+         outputWords[count++] = DmtxValueC40TextX12Shift2;
+         outputWords[count++] = inputWord - 69;
+      }
+      else if(inputWord == 96 && encScheme == DmtxSchemeText) {
+         outputWords[count++] = DmtxValueC40TextX12Shift3;
+         outputWords[count++] = 0;
+      }
+      else if(inputWord <= 122 && encScheme == DmtxSchemeText) {
+         outputWords[count++] = inputWord - 83;
+      }
+      else if(inputWord <= 127) {
+         outputWords[count++] = DmtxValueC40TextX12Shift3;
+         outputWords[count++] = inputWord - 96;
+      }
+   }
+
+   return count;
+}
+*/
+
+/**
  *
  *
  */
@@ -348,7 +441,13 @@ EncodeValuesC40TextX12(DmtxEncodeStream *stream, DmtxByteList values)
       StreamMarkInvalid(stream, 1);
       return;
    }
+/*
+   int tripletValue;
 
+   tripletValue = (1600 * triplet->value[0]) + (40 * triplet->value[1]) + triplet->value[2] + 1;
+   PushInputWord(channel, tripletValue / 256);
+   PushInputWord(channel, tripletValue % 256);
+*/
    /* combine (v0,v1,v2) into (cw0,cw1) */
    cw0 = cw1 = 0; /* temporary */
 
@@ -368,30 +467,32 @@ static void
 EncodeNextChunkC40TextX12(DmtxEncodeStream *stream)
 {
 /*
-   DmtxByte inputNext;
-   DmtxByte valueStorage[4];
-   DmtxByteList values = dmtxByteListBuild(valueStorage, sizeof(valueStorage));
+   DmtxByte inputValue;
+   DmtxByte valueListStorage[4];
+   DmtxByteList valueList = dmtxByteListBuild(valueListStorage, sizeof(valueListStorage));
 
    while(streamInputHasNext(stream))
    {
-      inputNext = StreamInputAdvanceNext(stream)); CHKERR;
-      valuesNext = GetC40TextX12Values(valueNext)
+      inputValue = StreamInputAdvanceNext(stream)); CHKERR;
+      dmtxByteListPushList(&valueList, GetC40TextX12Values(inputValue));
 
-      dmtxByteListPush(values, valuesNext);
-      if(values.length >= 3)
+      if(valueList.length >= 3)
       {
-         values = EncodeValuesC40TextX12(stream, values); CHKERR;
+         EncodeValuesC40TextX12(stream, valueList); CHKERR;
+         dmtxByteListDequeue(valueList, 3);
       }
-      xxx maybe EncodeValuesC40TextX12() returns the unused values, if any
 
-      xxx need to account for end of symbol here too, right?
-
-      if(values.length == 0)
+      if(valueList.length == 0)
          break;
    }
-*/
 
-   /* AppendChunkC40TextX12(stream, v0, v1, v2) */
+   // Have remaining input valueList but not enough to form final pair of codewords
+   if(streamInputHasNext(stream))
+   {
+      left off here ... how best to track what input values are left ...
+      don't want to decode already-encoded values
+   }
+*/
 }
 
 /**
@@ -611,7 +712,7 @@ UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx)
    }
 
    /*
-    * Encode header byte(s) to hold current length
+    * Encode header byte(s) with current length
     */
 
    if(headerByteCount == 1 && perfectSizeIdx != DmtxUndefined)
@@ -696,7 +797,7 @@ CompleteIfDoneBase256(DmtxEncodeStream *stream, int requestedSizeIdx)
       headerByteCount = stream->outputChainWordCount - stream->outputChainValueCount;
       assert(headerByteCount == 1 || headerByteCount == 2);
 
-      /* Check for special case where we can encode using all symbol words */
+      /* Check for special case where every symbol word is used */
       if(headerByteCount == 2)
       {
          /* Find symbol size as if headerByteCount was only 1 */
@@ -769,13 +870,20 @@ Randomize255State2(DmtxByte value, int position)
 static int
 GetRemainingSymbolCapacity(int outputLength, int sizeIdx)
 {
-   int dataCapacity;
+   int capacity;
+   int remaining;
 
-   assert(sizeIdx != DmtxUndefined);
+   if(sizeIdx == DmtxUndefined)
+   {
+      remaining = DmtxUndefined;
+   }
+   else
+   {
+      capacity = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
+      remaining = capacity - outputLength;
+   }
 
-   dataCapacity = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
-
-   return dataCapacity - outputLength;
+   return remaining;
 }
 
 /**
