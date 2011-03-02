@@ -220,8 +220,10 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
        */
 /*
       StreamInputAdvancePrev(stream); CHKERR;
+*/
 
-      // temporary re-encode most recently consumed input value to C40/Text/X12
+      /* temporary re-encode most recently consumed input value to C40/Text/X12 */
+/*
       passFail = PushCTXValues(&tmp, inputValue));
       if(valueList.length == 2 && tmp.length > 1)
       {
@@ -232,14 +234,14 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
       if(ascii.length == 1 && symbolRemaining == 1)
       {
          // End of symbol condition (d)
-         changeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit); CHKERR;
+         EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit); CHKERR;
          EncodeValueAscii(stream, ascii.b[0]); CHKERR;
          StreamMarkComplete(stream, sizeIdx);
       }
       else
       {
          // Continue in ASCII (c)
-         changeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
+         EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
       }
 */
    }

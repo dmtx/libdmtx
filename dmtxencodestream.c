@@ -107,9 +107,6 @@ StreamOutputChainAppend(DmtxEncodeStream *stream, DmtxByte value)
 /**
  * insert element at beginning of chain, shifting all following elements forward by one
  * used for binary length changes
- *
- * XXX this needs to be moved to the Base256 area because it makes assumptions
- * about what is a word and what is a value
  */
 static void
 StreamOutputChainInsertFirst(DmtxEncodeStream *stream)
@@ -135,9 +132,6 @@ StreamOutputChainInsertFirst(DmtxEncodeStream *stream)
 /**
  * remove first element from chain, shifting all following elements back by one
  * used for binary length changes end condition
- *
- * XXX this needs to be moved to the Base256 area because it makes assumptions
- * about what is a word and what is a value
  */
 static void
 StreamOutputChainRemoveFirst(DmtxEncodeStream *stream)
