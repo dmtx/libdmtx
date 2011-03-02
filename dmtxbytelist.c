@@ -47,16 +47,19 @@ dmtxByteListBuild(DmtxByte *storage, int capacity)
  *
  *
  */
-extern DmtxPassFail
-dmtxByteListInit(DmtxByteList *list, int length, DmtxByte value)
+extern void
+dmtxByteListInit(DmtxByteList *list, int length, DmtxByte value, DmtxPassFail *passFail)
 {
    if(length > list->capacity)
-      return DmtxFail;
-
-   list->length = length;
-   memset(list->b, value, sizeof(DmtxByte) * list->capacity);
-
-   return DmtxPass;
+   {
+      *passFail = DmtxFail;
+   }
+   else
+   {
+      list->length = length;
+      memset(list->b, value, sizeof(DmtxByte) * list->capacity);
+      *passFail = DmtxPass;
+   }
 }
 
 /**
@@ -73,37 +76,42 @@ dmtxByteListHasCapacity(DmtxByteList *list)
  *
  *
  */
-extern DmtxPassFail
-dmtxByteListCopy(DmtxByteList *dest, const DmtxByteList *src)
+extern void
+dmtxByteListCopy(DmtxByteList *dest, const DmtxByteList *src, DmtxPassFail *passFail)
 {
    int length;
 
-   /* dest must be large enough to hold src data */
    if(dest->capacity < src->length)
-      return DmtxFail;
+   {
+      *passFail = DmtxFail; /* dest must be large enough to hold src data */
+   }
+   else
+   {
+      /* Copy as many bytes as dest can hold or src can provide (smaller of two) */
+      length = (dest->capacity < src->capacity) ? dest->capacity : src->capacity;
 
-   /* Copy as many bytes as dest can hold or src can provide (smaller of two) */
-   length = (dest->capacity < src->capacity) ? dest->capacity : src->capacity;
-
-   dest->length = src->length;
-   memcpy(dest->b, src->b, sizeof(unsigned char) * length);
-
-   return DmtxTrue;
+      dest->length = src->length;
+      memcpy(dest->b, src->b, sizeof(unsigned char) * length);
+      *passFail = DmtxPass;
+   }
 }
 
 /**
  *
  *
  */
-extern DmtxPassFail
-dmtxByteListPush(DmtxByteList *list, DmtxByte value)
+extern void
+dmtxByteListPush(DmtxByteList *list, DmtxByte value, DmtxPassFail *passFail)
 {
    if(list->length >= list->capacity)
-      return DmtxFail;
-
-   list->b[list->length++] = value;
-
-   return DmtxPass;
+   {
+      *passFail = DmtxFail;
+   }
+   else
+   {
+      list->b[list->length++] = value;
+      *passFail = DmtxPass;
+   }
 }
 
 /**

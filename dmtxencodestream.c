@@ -94,15 +94,67 @@ StreamMarkFatal(DmtxEncodeStream *stream, int reason)
 static void
 StreamOutputChainAppend(DmtxEncodeStream *stream, DmtxByte value)
 {
-   if(dmtxByteListHasCapacity(&(stream->output)))
+   DmtxPassFail passFail;
+
+   dmtxByteListPush(&(stream->output), value, &passFail);
+
+   if(passFail == DmtxPass)
+      stream->outputChainWordCount++;
+   else
+      StreamMarkFatal(stream, 1 /*DmtxOutOfBounds*/);
+}
+
+/**
+ * insert element at beginning of chain, shifting all following elements forward by one
+ * used for binary length changes
+ *
+ * XXX this needs to be moved to the Base256 area because it makes assumptions
+ * about what is a word and what is a value
+ */
+static void
+StreamOutputChainInsertFirst(DmtxEncodeStream *stream)
+{
+   DmtxPassFail passFail;
+   int i, chainStart;
+
+   chainStart = stream->output.length - stream->outputChainWordCount;
+   dmtxByteListPush(&(stream->output), 0, &passFail);
+   if(passFail == DmtxPass)
    {
-      dmtxByteListPush(&(stream->output), value);
+      for(i = stream->output.length - 1; i > chainStart; i--)
+         stream->output.b[i] = stream->output.b[i-1];
+
       stream->outputChainWordCount++;
    }
    else
    {
-      StreamMarkFatal(stream, 1 /*DmtxOutOfBounds*/);
+      StreamMarkFatal(stream, 1);
    }
+}
+
+/**
+ * remove first element from chain, shifting all following elements back by one
+ * used for binary length changes end condition
+ *
+ * XXX this needs to be moved to the Base256 area because it makes assumptions
+ * about what is a word and what is a value
+ */
+static void
+StreamOutputChainRemoveFirst(DmtxEncodeStream *stream)
+{
+   DmtxPassFail passFail;
+   int i, chainStart;
+
+   chainStart = stream->output.length - stream->outputChainWordCount;
+
+   for(i = chainStart; i < stream->output.length - 1; i++)
+      stream->output.b[i] = stream->output.b[i+1];
+
+   dmtxByteListPop(&(stream->output), &passFail);
+   if(passFail == DmtxPass)
+      stream->outputChainWordCount--;
+   else
+      StreamMarkFatal(stream, 1);
 }
 
 /**
@@ -125,30 +177,6 @@ StreamOutputChainRemoveLast(DmtxEncodeStream *stream)
       value = 0;
       StreamMarkFatal(stream, 1 /*DmtxEmptyList*/);
    }
-
-   return value;
-}
-
-/**
- * insert element at beginning of chain, shifting all following elements forward by one
- * used for binary length changes
- */
-static void
-StreamOutputChainInsertFirst(DmtxEncodeStream *stream)
-{
-   ;
-}
-
-/**
- * remove first element from chain, shifting all following elements back by one
- * used for binary length changes end condition
- */
-static DmtxByte
-StreamOutputChainRemoveFirst(DmtxEncodeStream *stream)
-{
-   DmtxByte value = 0;
-
-   /* XXX this is incomplete */
 
    return value;
 }

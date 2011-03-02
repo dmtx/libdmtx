@@ -183,11 +183,14 @@ CompleteIfDoneCTX(DmtxEncodeStream *stream, int requestedSizeIdx)
  *    (c)  ASCII 1       2  UNLATCH ASCII
  *               -       -  UNLATCH (continue ASCII)
  */
+#undef CHKPASS
+#define CHKPASS { if(passFail == DmtxFail) return; }
 static void
 CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx)
 {
    int sizeIdx;
    int symbolRemaining;
+   DmtxPassFail passFail;
 
    if(!IsCTX(stream->currentScheme))
    {
@@ -204,7 +207,7 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
    if(valueList->length == 2 && symbolRemaining == 2)
    {
       /* End of symbol condition (b) -- Use Shift1 to pad final list value */
-      dmtxByteListPush(valueList, DmtxValueCTXShift1);
+      dmtxByteListPush(valueList, DmtxValueCTXShift1, &passFail); CHKPASS;
       EncodeValuesCTX(stream, valueList); CHKERR;
       StreamMarkComplete(stream, sizeIdx);
    }
@@ -249,9 +252,13 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
  * @param  encScheme
  * @return Codeword count
  */
+#undef CHKPASS
+#define CHKPASS { if(passFail == DmtxFail) return DmtxFail; }
 static DmtxPassFail
 PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme)
 {
+   DmtxPassFail passFail;
+
    /* Handle extended ASCII with Upper Shift character */
    if(inputValue > 127)
    {
@@ -261,9 +268,8 @@ PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme)
       }
       else
       {
-/*       passFail = dmtxByteListPush(valueList, DmtxValueCTXShift2); CHKPASS(passFail); */
-         dmtxByteListPush(valueList, DmtxValueCTXShift2); /* XXX can throw error? */
-         dmtxByteListPush(valueList, 30);
+         dmtxByteListPush(valueList, DmtxValueCTXShift2, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, 30, &passFail); CHKPASS;
          inputValue -= 128;
       }
    }
@@ -272,71 +278,83 @@ PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme)
    if(targetScheme == DmtxSchemeX12)
    {
       if(inputValue == 13)
-         dmtxByteListPush(valueList, 0);
+      {
+         dmtxByteListPush(valueList, 0, &passFail); CHKPASS;
+      }
       else if(inputValue == 42)
-         dmtxByteListPush(valueList, 1);
+      {
+         dmtxByteListPush(valueList, 1, &passFail); CHKPASS;
+      }
       else if(inputValue == 62)
-         dmtxByteListPush(valueList, 2);
+      {
+         dmtxByteListPush(valueList, 2, &passFail); CHKPASS;
+      }
       else if(inputValue == 32)
-         dmtxByteListPush(valueList, 3);
+      {
+         dmtxByteListPush(valueList, 3, &passFail); CHKPASS;
+      }
       else if(inputValue >= 48 && inputValue <= 57)
-         dmtxByteListPush(valueList, inputValue - 44);
+      {
+         dmtxByteListPush(valueList, inputValue - 44, &passFail); CHKPASS;
+      }
       else if(inputValue >= 65 && inputValue <= 90)
-         dmtxByteListPush(valueList, inputValue - 51);
+      {
+         dmtxByteListPush(valueList, inputValue - 51, &passFail); CHKPASS;
+      }
    }
    else
    {
       /* targetScheme is C40 or Text */
       if(inputValue <= 31)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift1);
-         dmtxByteListPush(valueList, inputValue);
+         dmtxByteListPush(valueList, DmtxValueCTXShift1, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, inputValue, &passFail); CHKPASS;
       }
       else if(inputValue == 32)
       {
-         dmtxByteListPush(valueList, 3);
+         dmtxByteListPush(valueList, 3, &passFail); CHKPASS;
       }
       else if(inputValue <= 47)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift2);
-         dmtxByteListPush(valueList, inputValue - 33);
+         dmtxByteListPush(valueList, DmtxValueCTXShift2, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, inputValue - 33, &passFail); CHKPASS;
       }
       else if(inputValue <= 57)
       {
-         dmtxByteListPush(valueList, inputValue - 44);
+         dmtxByteListPush(valueList, inputValue - 44, &passFail); CHKPASS;
       }
       else if(inputValue <= 64)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift2);
-         dmtxByteListPush(valueList, inputValue - 43);
+         dmtxByteListPush(valueList, DmtxValueCTXShift2, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, inputValue - 43, &passFail); CHKPASS;
       }
       else if(inputValue <= 90 && targetScheme == DmtxSchemeC40)
       {
-         dmtxByteListPush(valueList, inputValue - 51);
+         dmtxByteListPush(valueList, inputValue - 51, &passFail); CHKPASS;
       }
       else if(inputValue <= 90 && targetScheme == DmtxSchemeText)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift3);
-         dmtxByteListPush(valueList, inputValue - 64);
+         dmtxByteListPush(valueList, DmtxValueCTXShift3, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, inputValue - 64, &passFail); CHKPASS;
       }
       else if(inputValue <= 95)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift2);
-         dmtxByteListPush(valueList, inputValue - 69);
+         dmtxByteListPush(valueList, DmtxValueCTXShift2, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, inputValue - 69, &passFail); CHKPASS;
       }
       else if(inputValue == 96 && targetScheme == DmtxSchemeText)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift3);
-         dmtxByteListPush(valueList, 0);
+         dmtxByteListPush(valueList, DmtxValueCTXShift3, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, 0, &passFail); CHKPASS;
       }
       else if(inputValue <= 122 && targetScheme == DmtxSchemeText)
       {
-         dmtxByteListPush(valueList, inputValue - 83);
+         dmtxByteListPush(valueList, inputValue - 83, &passFail); CHKPASS;
       }
       else if(inputValue <= 127)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift3);
-         dmtxByteListPush(valueList, inputValue - 96);
+         dmtxByteListPush(valueList, DmtxValueCTXShift3, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, inputValue - 96, &passFail); CHKPASS;
       }
    }
 

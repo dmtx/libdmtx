@@ -151,13 +151,13 @@ UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx)
    else if(!perfectFit && headerByteCount == 1 && outputLength > 249)
    {
       /* Beyond 249 bytes requires a second header byte */
-      StreamOutputChainInsertFirst(stream); CHKERR; /* XXX just a stub right now */
+      StreamOutputChainInsertFirst(stream); CHKERR;
       headerByteCount++;
    }
    else if(perfectFit && headerByteCount == 2)
    {
       /* Encoding to exact end of symbol only requires single byte */
-      StreamOutputChainRemoveFirst(stream); CHKERR; /* XXX just a stub right now */
+      StreamOutputChainRemoveFirst(stream); CHKERR;
       headerByteCount--;
    }
 
