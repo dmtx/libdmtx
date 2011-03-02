@@ -220,7 +220,7 @@ static DmtxPassFail RsGenPoly(DmtxByteList *gen, int errorWordCount);
 static DmtxBoolean RsComputeSyndromes(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWords);
 static DmtxBoolean RsFindErrorLocatorPoly(DmtxByteList *elp, const DmtxByteList *syn, int errorWordCount, int maxCorrectable);
 static DmtxBoolean RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp);
-static void RsRepairErrors(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *elp, const DmtxByteList *syn);
+static DmtxPassFail RsRepairErrors(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *elp, const DmtxByteList *syn);
 
 /* dmtxscangrid.c */
 static DmtxScanGrid InitScanGrid(DmtxDecode *dec);
@@ -263,6 +263,7 @@ static void EncodeNextChunkCTX(DmtxEncodeStream *stream, int requestedSizeIdx);
 static void CompleteIfDoneCTX(DmtxEncodeStream *stream, int requestedSizeIdx);
 static void CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx);
 static DmtxPassFail PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme);
+static DmtxBoolean IsCTX(int scheme);
 
 static void EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value);
 static void EncodeNextChunkEdifact(DmtxEncodeStream *stream);

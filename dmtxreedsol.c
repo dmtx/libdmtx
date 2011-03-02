@@ -57,6 +57,8 @@ Contact: mike@dragonflylogic.com
 #define GfMultAntilog(a,b) \
    (((a) == 0) ? 0 : antilog301[(log301[(a)] + (b)) % NN])
 
+#define CHKPASS(p,r) { if((p) == DmtxFail) return r; }
+
 /* GF(256) log values using primitive polynomial 301 */
 static DmtxByte log301[] =
    { 255,   0,   1, 240,   2, 225, 241,  53,   3,  38, 226, 133, 242,  43,  54, 210,
@@ -108,6 +110,7 @@ RsEncode(DmtxMessage *message, int sizeIdx)
    int i, j;
    int blockStride, blockIdx;
    int blockErrorWords, symbolDataWords, symbolErrorWords, symbolTotalWords;
+   DmtxPassFail passFail;
    DmtxByte val, *eccPtr;
    DmtxByte genStorage[MAX_ERROR_WORD_COUNT];
    DmtxByte eccStorage[MAX_ERROR_WORD_COUNT];
@@ -127,7 +130,7 @@ RsEncode(DmtxMessage *message, int sizeIdx)
    for(blockIdx = 0; blockIdx < blockStride; blockIdx++)
    {
       /* Generate error codewords */
-      dmtxByteListInit(&ecc, blockErrorWords, 0);
+      passFail = dmtxByteListInit(&ecc, blockErrorWords, 0); CHKPASS(passFail, DmtxFail);
       for(i = blockIdx; i < symbolDataWords; i += blockStride)
       {
          val = GfAdd(ecc.b[blockErrorWords-1], message->code[i]);
@@ -167,6 +170,7 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
    int blockStride, blockIdx;
    int blockErrorWords, blockTotalWords, blockMaxCorrectable;
    DmtxBoolean error, repairable;
+   DmtxPassFail passFail;
    DmtxByte elpStorage[MAX_ERROR_WORD_COUNT];
    DmtxByte synStorage[MAX_ERROR_WORD_COUNT+1];
    DmtxByte recStorage[NN];
@@ -187,9 +191,11 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
       blockTotalWords = blockErrorWords + dmtxGetBlockDataSize(sizeIdx, blockIdx);
 
       /* Populate received list (rec) with data and error codewords */
-      dmtxByteListInit(&rec, 0, 0);
+      passFail = dmtxByteListInit(&rec, 0, 0); CHKPASS(passFail, DmtxFail);
       for(i = 0; i < blockTotalWords; i++)
-         dmtxByteListPush(&rec, code[blockIdx + blockStride * (blockTotalWords - 1 - i)]);
+      {
+         passFail = dmtxByteListPush(&rec, code[blockIdx + blockStride * (blockTotalWords - 1 - i)]); CHKPASS(passFail, DmtxFail);
+      }
 
       /* Compute syndromes (syn) */
       error = RsComputeSyndromes(&syn, &rec, blockErrorWords);
@@ -230,9 +236,10 @@ static DmtxPassFail
 RsGenPoly(DmtxByteList *gen, int errorWordCount)
 {
    int i, j;
+   DmtxPassFail passFail;
 
    /* Initialize all coefficients to 1 */
-   dmtxByteListInit(gen, errorWordCount, 1);
+   passFail = dmtxByteListInit(gen, errorWordCount, 1); CHKPASS(passFail, DmtxFail);
 
    /* Generate polynomial */
    for(i = 0; i < gen->length; i++)
@@ -263,10 +270,12 @@ static DmtxBoolean
 RsComputeSyndromes(DmtxByteList *syn, const DmtxByteList *rec, int blockErrorWords)
 {
    int i, j;
+   DmtxPassFail passFail;
    DmtxBoolean error = DmtxFalse;
 
    /* Initialize all coefficients to 0 */
-   dmtxByteListInit(syn, blockErrorWords + 1, 0);
+   passFail = dmtxByteListInit(syn, blockErrorWords + 1, 0); CHKPASS(passFail, DmtxTrue);
+   /* XXX this CHKPASS isn't doing what we want ... really need a error reporting strategy */
 
    for(i = 1; i < syn->length; i++)
    {
@@ -299,37 +308,31 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
    DmtxByte disTmp, disStorage[MAX_ERROR_WORD_COUNT+1];
    DmtxByte elpStorage[MAX_ERROR_WORD_COUNT+2][MAX_ERROR_WORD_COUNT];
    DmtxByteList dis, elp[MAX_ERROR_WORD_COUNT+2];
+   DmtxPassFail passFail;
 
    dis = dmtxByteListBuild(disStorage, sizeof(disStorage));
-   dmtxByteListInit(&dis, 0, 0);
+   passFail = dmtxByteListInit(&dis, 0, 0); CHKPASS(passFail, DmtxFalse); /* XXX CHKPASS not ideal */
 
    for(i = 0; i < MAX_ERROR_WORD_COUNT + 2; i++)
    {
       elp[i] = dmtxByteListBuild(elpStorage[i], sizeof(elpStorage[i]));
-      dmtxByteListInit(&elp[i], 0, 0);
+      passFail = dmtxByteListInit(&elp[i], 0, 0); CHKPASS(passFail, DmtxFalse);
    }
 
-/* XXX after this all is confirmed to be working, consider refactoring:
-       "i" represents book "i"
-       "iNext" represents book "i+1" (one being calculated)
-       "idx" represents index of coefficients
-       "idxNext" represents index of coefficients (one being calculated)
-*/
-
    /* iNext = 0 */
-   dmtxByteListPush(&elp[0], 1);
-   dmtxByteListPush(&dis, 1);
+   passFail = dmtxByteListPush(&elp[0], 1); CHKPASS(passFail, DmtxFalse);
+   passFail = dmtxByteListPush(&dis, 1); CHKPASS(passFail, DmtxFalse);
 
    /* iNext = 1 */
-   dmtxByteListPush(&elp[1], 1);
-   dmtxByteListPush(&dis, syn->b[1]);
+   passFail = dmtxByteListPush(&elp[1], 1); CHKPASS(passFail, DmtxFalse);
+   passFail = dmtxByteListPush(&dis, syn->b[1]); CHKPASS(passFail, DmtxFalse);
 
    for(iNext = 2, i = 1; /* explicit break */; i = iNext++)
    {
       if(dis.b[i] == 0)
       {
          /* Simple case: Copy directly from previous iteration */
-         dmtxByteListCopy(&elp[iNext], &elp[i]);
+         passFail = dmtxByteListCopy(&elp[iNext], &elp[i]); CHKPASS(passFail, DmtxFalse);
       }
       else
       {
@@ -359,10 +362,10 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
          disTmp = GfAdd(disTmp, GfMult(syn->b[iNext-j], elp[iNext].b[j]));
 
       assert(dis.length == iNext);
-      dmtxByteListPush(&dis, disTmp);
+      passFail = dmtxByteListPush(&dis, disTmp); CHKPASS(passFail, DmtxFalse);
    }
 
-   dmtxByteListCopy(elpOut, &elp[iNext]);
+   passFail = dmtxByteListCopy(elpOut, &elp[iNext]); CHKPASS(passFail, DmtxFalse);
 
    return (lambda <= maxCorrectable) ? DmtxTrue : DmtxFalse;
 }
@@ -382,11 +385,12 @@ RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp)
 {
    int i, j;
    int lambda = elp->length - 1;
+   DmtxPassFail passFail;
    DmtxByte q, regStorage[MAX_ERROR_WORD_COUNT];
    DmtxByteList reg = dmtxByteListBuild(regStorage, sizeof(regStorage));
 
-   dmtxByteListCopy(&reg, elp);
-   dmtxByteListInit(loc, 0, 0);
+   passFail = dmtxByteListCopy(&reg, elp); CHKPASS(passFail, DmtxFalse);
+   passFail = dmtxByteListInit(loc, 0, 0); CHKPASS(passFail, DmtxFalse);
 
    for(i = 1; i <= NN; i++)
    {
@@ -397,7 +401,9 @@ RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp)
       }
 
       if(q == 0)
-         dmtxByteListPush(loc, NN - i);
+      {
+         passFail = dmtxByteListPush(loc, NN - i); CHKPASS(passFail, DmtxFalse);
+      }
    }
 
    return (loc->length == lambda) ? DmtxTrue : DmtxFalse;
@@ -417,22 +423,23 @@ RsFindErrorLocations(DmtxByteList *loc, const DmtxByteList *elp)
  * \param elp
  * \param syn
  */
-static void
+static DmtxPassFail
 RsRepairErrors(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *elp, const DmtxByteList *syn)
 {
    int i, j, q;
    int lambda = elp->length - 1;
+   DmtxPassFail passFail;
    DmtxByte zVal, root, err;
    DmtxByte zStorage[MAX_ERROR_WORD_COUNT+1];
    DmtxByteList z = dmtxByteListBuild(zStorage, sizeof(zStorage));
 
    /* Form polynomial z(x) */
-   dmtxByteListPush(&z, 1);
+   passFail = dmtxByteListPush(&z, 1); CHKPASS(passFail, DmtxFail);
    for(i = 1; i <= lambda; i++)
    {
       for(zVal = GfAdd(syn->b[i], elp->b[i]), j = 1; j < i; j++)
          zVal= GfAdd(zVal, GfMult(elp->b[i-j], syn->b[j]));
-      dmtxByteListPush(&z, zVal);
+      passFail = dmtxByteListPush(&z, zVal); CHKPASS(passFail, DmtxFail);
    }
 
    for(i = 0; i < lambda; i++)
@@ -457,4 +464,6 @@ RsRepairErrors(DmtxByteList *rec, const DmtxByteList *loc, const DmtxByteList *e
       err = GfMultAntilog(err, NN - q);
       rec->b[loc->b[i]] = GfAdd(rec->b[loc->b[i]], err);
    }
+
+   return DmtxPass;
 }

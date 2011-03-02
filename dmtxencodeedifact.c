@@ -140,7 +140,7 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
             sizeof(outputTmpStorage), &passFail);
 
       if(passFail == DmtxFail || outputTmp.length > symbolRemaining)
-         return; /* Doesn't fit, continue encoding */
+         return; /* Doesn't fit -- continue encoding */
 
       if(cleanBoundary && (outputTmp.length == 1 || outputTmp.length == 2))
       {
@@ -150,10 +150,11 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
          {
             EncodeValueAscii(stream, outputTmp.b[i]); CHKERR;
          }
-         /* Register input progress since we encoded outside normal stream */
+
+         /* Register progress since encoding happened outside normal path */
          stream->inputNext = stream->input.length;
 
-         /* Pad remaining (if necessary) */
+         /* Pad remaining if necessary */
          PadRemainingInAscii(stream, sizeIdx); CHKERR;
 
          StreamMarkComplete(stream, sizeIdx);

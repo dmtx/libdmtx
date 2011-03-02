@@ -24,7 +24,6 @@ Contact: mike@dragonflylogic.com
 
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include "dmtx.h"
 #include "dmtxstatic.h"
 
@@ -48,13 +47,16 @@ dmtxByteListBuild(DmtxByte *storage, int capacity)
  *
  *
  */
-extern void
+extern DmtxPassFail
 dmtxByteListInit(DmtxByteList *list, int length, DmtxByte value)
 {
-   assert(length <= list->capacity);
+   if(length > list->capacity)
+      return DmtxFail;
 
    list->length = length;
    memset(list->b, value, sizeof(DmtxByte) * list->capacity);
+
+   return DmtxPass;
 }
 
 /**
@@ -93,14 +95,15 @@ dmtxByteListCopy(DmtxByteList *dest, const DmtxByteList *src)
  *
  *
  */
-extern int
+extern DmtxPassFail
 dmtxByteListPush(DmtxByteList *list, DmtxByte value)
 {
-   assert(list->length < list->capacity);
+   if(list->length >= list->capacity)
+      return DmtxFail;
 
    list->b[list->length++] = value;
 
-   return list->length;
+   return DmtxPass;
 }
 
 /**
@@ -108,9 +111,9 @@ dmtxByteListPush(DmtxByteList *list, DmtxByte value)
  *
  */
 extern DmtxByte
-dmtxByteListPop(DmtxByteList *list)
+dmtxByteListPop(DmtxByteList *list, DmtxPassFail *passFail)
 {
-   assert(list->length > 0);
+   *passFail = (list->length > 0) ? DmtxPass : DmtxFail;
 
    return list->b[--(list->length)];
 }

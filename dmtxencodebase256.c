@@ -57,88 +57,6 @@ EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
 }
 
 /**
- *
- *
- */
-static void
-UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx)
-{
-   int headerIndex;
-   int outputLength;
-   int headerByteCount;
-   int symbolDataWords;
-   DmtxByte headerValue0;
-   DmtxByte headerValue1;
-
-   headerIndex = stream->output.length - stream->outputChainWordCount;
-   outputLength = stream->outputChainValueCount;
-   headerByteCount = stream->outputChainWordCount - stream->outputChainValueCount;
-
-   /*
-    * Adjust header to hold correct number of bytes (not worrying about the
-    * values store there until below). Note: Header bytes are not considered
-    * scheme "values" so we can insert or remove them without needing to update
-    * outputChainValueCount.
-    */
-
-   if(headerByteCount == 0 && stream->outputChainWordCount == 0)
-   {
-      /* No output words written yet -- insert single header byte */
-      StreamOutputChainAppend(stream, 0); CHKERR;
-      headerByteCount++;
-   }
-   else if(headerByteCount == 1 && outputLength > 249)
-   {
-      /* Beyond 249 bytes requires a second header byte */
-      StreamOutputChainInsertFirst(stream); CHKERR; /* XXX just a stub right now */
-      headerByteCount++;
-   }
-   else if(headerByteCount == 2 && perfectSizeIdx != DmtxUndefined)
-   {
-      /* Encoding to exact end of symbol only requires single byte */
-      StreamOutputChainRemoveFirst(stream); CHKERR; /* XXX just a stub right now */
-      headerByteCount--;
-   }
-
-   /*
-    * Encode header byte(s) with current length
-    */
-
-   if(headerByteCount == 1 && perfectSizeIdx != DmtxUndefined)
-   {
-      /* XXX replace magic value 0 with DmtxValueBase256EncodeToEnd or something? */
-      headerValue0 = Randomize255State2(0, headerIndex + 1);
-
-      /* Verify output length matches exact caapacity of perfectSizeIdx */
-      symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, perfectSizeIdx);
-      if(symbolDataWords != stream->output.length)
-      {
-         StreamMarkFatal(stream, 1);
-         return;
-      }
-
-      StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
-   }
-   else if(headerByteCount == 1 && perfectSizeIdx == DmtxUndefined)
-   {
-      headerValue0 = Randomize255State2(outputLength, headerIndex + 1);
-      StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
-   }
-   else if(headerByteCount == 2 && perfectSizeIdx == DmtxUndefined)
-   {
-      headerValue0 = Randomize255State2(outputLength/250 + 249, headerIndex + 1);
-      StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
-
-      headerValue1 = Randomize255State2(outputLength%250, headerIndex + 2);
-      StreamOutputSet(stream, headerIndex + 1, headerValue1); CHKERR;
-   }
-   else
-   {
-      StreamMarkFatal(stream, 1);
-   }
-}
-
-/**
  * check remaining symbol capacity and remaining codewords
  * if the chain can finish perfectly at the end of symbol data words there is a
  * special one-byte length header value that can be used (i think ... read the
@@ -180,5 +98,97 @@ CompleteIfDoneBase256(DmtxEncodeStream *stream, int requestedSizeIdx)
       EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit);
       PadRemainingInAscii(stream, sizeIdx);
       StreamMarkComplete(stream, sizeIdx);
+   }
+}
+
+/**
+ *
+ *
+ */
+static void
+UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx)
+{
+   int headerIndex;
+   int outputLength;
+   int headerByteCount;
+   int symbolDataWords;
+   DmtxBoolean perfectFit;
+   DmtxByte headerValue0;
+   DmtxByte headerValue1;
+
+   headerIndex = stream->output.length - stream->outputChainWordCount;
+   outputLength = stream->outputChainValueCount;
+   headerByteCount = stream->outputChainWordCount - stream->outputChainValueCount;
+   perfectFit = (perfectSizeIdx == DmtxUndefined) ? DmtxFalse : DmtxTrue;
+
+   /*
+    * If requested perfect fit verify symbol capacity against output length
+    */
+
+   if(perfectFit)
+   {
+      symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, perfectSizeIdx);
+      if(symbolDataWords != stream->output.length)
+      {
+         StreamMarkFatal(stream, 1);
+         return;
+      }
+   }
+
+   /*
+    * Adjust header to hold correct number of bytes, not worrying about the
+    * values held there until below. Note: Header bytes are not considered
+    * scheme "values" so we can insert or remove them without updating the
+    * outputChainValueCount.
+    */
+
+   if(headerByteCount == 0 && stream->outputChainWordCount == 0)
+   {
+      /* No output words written yet -- insert single header byte */
+      StreamOutputChainAppend(stream, 0); CHKERR;
+      headerByteCount++;
+   }
+   else if(!perfectFit && headerByteCount == 1 && outputLength > 249)
+   {
+      /* Beyond 249 bytes requires a second header byte */
+      StreamOutputChainInsertFirst(stream); CHKERR; /* XXX just a stub right now */
+      headerByteCount++;
+   }
+   else if(perfectFit && headerByteCount == 2)
+   {
+      /* Encoding to exact end of symbol only requires single byte */
+      StreamOutputChainRemoveFirst(stream); CHKERR; /* XXX just a stub right now */
+      headerByteCount--;
+   }
+
+   /*
+    * Encode header byte(s) with current length
+    */
+
+   if(!perfectFit && headerByteCount == 1 && outputLength <= 249)
+   {
+      /* Normal condition for chain length < 250 bytes */
+      headerValue0 = Randomize255State2(outputLength, headerIndex + 1);
+      StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
+   }
+   else if(!perfectFit && headerByteCount == 2 && outputLength > 249)
+   {
+      /* Normal condition for chain length >= 250 bytes */
+      headerValue0 = Randomize255State2(outputLength/250 + 249, headerIndex + 1);
+      StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
+
+      headerValue1 = Randomize255State2(outputLength%250, headerIndex + 2);
+      StreamOutputSet(stream, headerIndex + 1, headerValue1); CHKERR;
+   }
+   else if(perfectFit && headerByteCount == 1)
+   {
+      /* Special condition when Base 256 stays in effect to end of symbol */
+      headerValue0 = Randomize255State2(0, headerIndex + 1); /* XXX replace magic value 0? */
+      StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
+   }
+   else
+   {
+      StreamMarkFatal(stream, 1); /* XXX error */
+      return;
    }
 }

@@ -76,9 +76,7 @@ EncodeValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList)
    int pairValue;
    DmtxByte cw0, cw1;
 
-   if(stream->currentScheme != DmtxSchemeC40 &&
-         stream->currentScheme != DmtxSchemeText &&
-         stream->currentScheme != DmtxSchemeX12)
+   if(!IsCTX(stream->currentScheme))
    {
       StreamMarkFatal(stream, 1);
       return;
@@ -110,9 +108,7 @@ EncodeValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList)
 static void
 EncodeUnlatchCTX(DmtxEncodeStream *stream)
 {
-   if(stream->currentScheme != DmtxSchemeC40 &&
-         stream->currentScheme != DmtxSchemeText &&
-         stream->currentScheme != DmtxSchemeX12)
+   if(!IsCTX(stream->currentScheme))
    {
       StreamMarkFatal(stream, 1);
       return;
@@ -184,7 +180,7 @@ CompleteIfDoneCTX(DmtxEncodeStream *stream, int requestedSizeIdx)
  *   ----  -------  ------  ------------------------
  *    (b)    C40 2       2  C40+C40+0
  *    (d)  ASCII 1       1  ASCII (implicit unlatch)
- *    (c)  ASCII 1       2  UNLATCH (continue ASCII)
+ *    (c)  ASCII 1       2  UNLATCH ASCII
  *               -       -  UNLATCH (continue ASCII)
  */
 static void
@@ -193,10 +189,7 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
    int sizeIdx;
    int symbolRemaining;
 
-   /* replace this later */
-   if(stream->currentScheme != DmtxSchemeC40 &&
-         stream->currentScheme != DmtxSchemeText &&
-         stream->currentScheme != DmtxSchemeX12)
+   if(!IsCTX(stream->currentScheme))
    {
       StreamMarkFatal(stream, 1);
       return;
@@ -264,11 +257,12 @@ PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme)
    {
       if(targetScheme == DmtxSchemeX12)
       {
-         return 0; /* XXX shouldn't this be an error? */
+         return DmtxFail; /* XXX shouldn't this be an error? */
       }
       else
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift2);
+/*       passFail = dmtxByteListPush(valueList, DmtxValueCTXShift2); CHKPASS(passFail); */
+         dmtxByteListPush(valueList, DmtxValueCTXShift2); /* XXX can throw error? */
          dmtxByteListPush(valueList, 30);
          inputValue -= 128;
       }
@@ -347,4 +341,21 @@ PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme)
    }
 
    return DmtxPass;
+}
+
+/**
+ *
+ *
+ */
+static DmtxBoolean
+IsCTX(int scheme)
+{
+   DmtxBoolean isCTX;
+
+   if(scheme == DmtxSchemeC40 || scheme == DmtxSchemeText || scheme == DmtxSchemeX12)
+      isCTX = DmtxTrue;
+   else
+      isCTX = DmtxFalse;
+
+   return isCTX;
 }

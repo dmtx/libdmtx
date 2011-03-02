@@ -113,10 +113,11 @@ static DmtxByte
 StreamOutputChainRemoveLast(DmtxEncodeStream *stream)
 {
    DmtxByte value;
+   DmtxPassFail passFail;
 
    if(stream->outputChainWordCount > 0)
    {
-      value = dmtxByteListPop(&(stream->output));
+      value = dmtxByteListPop(&(stream->output), &passFail);
       stream->outputChainWordCount--;
    }
    else
