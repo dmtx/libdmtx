@@ -629,7 +629,6 @@ extern DmtxBoolean dmtxByteListHasCapacity(DmtxByteList *list);
 extern void dmtxByteListCopy(DmtxByteList *dest, const DmtxByteList *src, DmtxPassFail *passFail);
 extern void dmtxByteListPush(DmtxByteList *list, DmtxByte value, DmtxPassFail *passFail);
 extern DmtxByte dmtxByteListPop(DmtxByteList *list, DmtxPassFail *passFail);
-/*extern DmtxByte dmtxByteListRemoveFirst(DmtxByteList *list, DmtxPassFail *passFail);*/
 extern void dmtxByteListPrint(DmtxByteList *list, char *prefix);
 
 extern char *dmtxVersion(void);

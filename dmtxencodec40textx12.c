@@ -100,7 +100,7 @@ EncodeValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList)
       return;
    }
 
-   if(valueList->length != 3)
+   if(valueList->length < 3)
    {
       StreamMarkFatal(stream, 1);
       return;

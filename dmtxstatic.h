@@ -248,7 +248,7 @@ static DmtxByte StreamInputAdvanceNext(DmtxEncodeStream *stream);
 static void StreamInputAdvancePrev(DmtxEncodeStream *stream);
 
 /* dmtxencodesingle.c */
-static DmtxPassFail EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
+static void EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
 static void EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
 static void EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatchType);
 static DmtxByte Randomize253State2(DmtxByte cwValue, int cwPosition);

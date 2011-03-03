@@ -96,22 +96,24 @@
  *
  *
  */
-static DmtxPassFail
+static void
 EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx)
 {
-   if(stream->currentScheme != DmtxSchemeAscii)
+   CHKSCHEME(DmtxSchemeAscii);
+
+   if(targetScheme != DmtxSchemeAscii)
    {
-      StreamMarkFatal(stream, 1);
-      return DmtxFail;
+      EncodeChangeScheme(stream, targetScheme, DmtxUnlatchExplicit); CHKERR;
    }
 
    while(stream->status == DmtxStatusEncoding)
-      EncodeNextChunk(stream, targetScheme, requestedSizeIdx);
+   {
+      /* Use current scheme as target in single scheme mode */
+      EncodeNextChunk(stream, stream->currentScheme, requestedSizeIdx);
+   }
 
-   if(stream->status != DmtxStatusComplete || StreamInputHasNext(stream))
-      return DmtxFail; /* throw out an error too? */
-
-   return DmtxPass;
+   if(StreamInputHasNext(stream))
+      StreamMarkFatal(stream, 1 /* leftover parts */);
 }
 
 /**
