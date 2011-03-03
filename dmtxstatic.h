@@ -240,45 +240,48 @@ static void StreamMarkComplete(DmtxEncodeStream *stream, int sizeIdx);
 static void StreamMarkInvalid(DmtxEncodeStream *stream, int reason);
 static void StreamMarkFatal(DmtxEncodeStream *stream, int reason);
 static void StreamOutputChainAppend(DmtxEncodeStream *stream, DmtxByte value);
-static void StreamOutputChainInsertFirst(DmtxEncodeStream *stream);
-static void StreamOutputChainRemoveFirst(DmtxEncodeStream *stream);
 static DmtxByte StreamOutputChainRemoveLast(DmtxEncodeStream *stream);
 static void StreamOutputSet(DmtxEncodeStream *stream, int index, DmtxByte value);
 static DmtxBoolean StreamInputHasNext(DmtxEncodeStream *stream);
 static DmtxByte StreamInputPeekNext(DmtxEncodeStream *stream);
 static DmtxByte StreamInputAdvanceNext(DmtxEncodeStream *stream);
 
-/* dmtxencodescheme.c */
+/* dmtxencodesingle.c */
 static DmtxPassFail EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
 static void EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
 static void EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatchType);
+static DmtxByte Randomize253State2(DmtxByte cwValue, int cwPosition);
+static DmtxByte Randomize255State2(DmtxByte cwValue, int cwPosition);
+static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
 
-static void EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value);
+/* dmtxencodeascii.c */
 static void EncodeNextChunkAscii(DmtxEncodeStream *stream);
+static void EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value);
 static void CompleteIfDoneAscii(DmtxEncodeStream *stream, int requestedSizeIdx);
+static void PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx);
+static DmtxByteList EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail);
 
+/* dmtxencodec40textx12.c */
+static void EncodeNextChunkCTX(DmtxEncodeStream *stream, int requestedSizeIdx);
 static void EncodeValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList);
 static void EncodeUnlatchCTX(DmtxEncodeStream *stream);
-static void EncodeNextChunkCTX(DmtxEncodeStream *stream, int requestedSizeIdx);
 static void CompleteIfDoneCTX(DmtxEncodeStream *stream, int requestedSizeIdx);
 static void CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx);
 static DmtxPassFail PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme);
 static DmtxBoolean IsCTX(int scheme);
 
-static void EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value);
+/* dmtxencodeedifact.c */
 static void EncodeNextChunkEdifact(DmtxEncodeStream *stream);
+static void EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value);
 static void CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx);
 
-static void UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx);
-static void EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value);
+/* dmtxencodebase256.c */
 static void EncodeNextChunkBase256(DmtxEncodeStream *stream);
+static void EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value);
 static void CompleteIfDoneBase256(DmtxEncodeStream *stream, int requestedSizeIdx);
-
-static DmtxByte Randomize253State2(DmtxByte cwValue, int cwPosition);
-static DmtxByte Randomize255State2(DmtxByte cwValue, int cwPosition);
-static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
-static void PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx);
-static DmtxByteList EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail);
+static void UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx);
+static void Base256OutputChainInsertFirst(DmtxEncodeStream *stream);
+static void Base256OutputChainRemoveFirst(DmtxEncodeStream *stream);
 
 static const int dmtxNeighborNone = 8;
 static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };

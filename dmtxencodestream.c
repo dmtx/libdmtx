@@ -105,53 +105,6 @@ StreamOutputChainAppend(DmtxEncodeStream *stream, DmtxByte value)
 }
 
 /**
- * insert element at beginning of chain, shifting all following elements forward by one
- * used for binary length changes
- */
-static void
-StreamOutputChainInsertFirst(DmtxEncodeStream *stream)
-{
-   DmtxPassFail passFail;
-   int i, chainStart;
-
-   chainStart = stream->output.length - stream->outputChainWordCount;
-   dmtxByteListPush(&(stream->output), 0, &passFail);
-   if(passFail == DmtxPass)
-   {
-      for(i = stream->output.length - 1; i > chainStart; i--)
-         stream->output.b[i] = stream->output.b[i-1];
-
-      stream->outputChainWordCount++;
-   }
-   else
-   {
-      StreamMarkFatal(stream, 1);
-   }
-}
-
-/**
- * remove first element from chain, shifting all following elements back by one
- * used for binary length changes end condition
- */
-static void
-StreamOutputChainRemoveFirst(DmtxEncodeStream *stream)
-{
-   DmtxPassFail passFail;
-   int i, chainStart;
-
-   chainStart = stream->output.length - stream->outputChainWordCount;
-
-   for(i = chainStart; i < stream->output.length - 1; i++)
-      stream->output.b[i] = stream->output.b[i+1];
-
-   dmtxByteListPop(&(stream->output), &passFail);
-   if(passFail == DmtxPass)
-      stream->outputChainWordCount--;
-   else
-      StreamMarkFatal(stream, 1);
-}
-
-/**
  * pop off newest/last
  * used for edifact
  */

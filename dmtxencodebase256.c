@@ -116,19 +116,19 @@ UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx)
    DmtxByte headerValue0;
    DmtxByte headerValue1;
 
-   headerIndex = stream->output.length - stream->outputChainWordCount;
    outputLength = stream->outputChainValueCount;
+   headerIndex = stream->output.length - stream->outputChainWordCount;
    headerByteCount = stream->outputChainWordCount - stream->outputChainValueCount;
    perfectFit = (perfectSizeIdx == DmtxUndefined) ? DmtxFalse : DmtxTrue;
 
    /*
-    * If requested perfect fit verify symbol capacity against output length
+    * If requested perfect fit verify symbol capacity against final length
     */
 
    if(perfectFit)
    {
       symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, perfectSizeIdx);
-      if(symbolDataWords != stream->output.length)
+      if(symbolDataWords != stream->output.length - 1)
       {
          StreamMarkFatal(stream, 1);
          return;
@@ -151,13 +151,13 @@ UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx)
    else if(!perfectFit && headerByteCount == 1 && outputLength > 249)
    {
       /* Beyond 249 bytes requires a second header byte */
-      StreamOutputChainInsertFirst(stream); CHKERR;
+      Base256OutputChainInsertFirst(stream); CHKERR;
       headerByteCount++;
    }
    else if(perfectFit && headerByteCount == 2)
    {
       /* Encoding to exact end of symbol only requires single byte */
-      StreamOutputChainRemoveFirst(stream); CHKERR;
+      Base256OutputChainRemoveFirst(stream); CHKERR;
       headerByteCount--;
    }
 
@@ -191,4 +191,59 @@ UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx)
       StreamMarkFatal(stream, 1); /* XXX error */
       return;
    }
+}
+
+/**
+ * insert element at beginning of chain, shifting all following elements forward by one
+ * used for binary length changes
+ */
+static void
+Base256OutputChainInsertFirst(DmtxEncodeStream *stream)
+{
+   DmtxByte value;
+   DmtxPassFail passFail;
+   int i, chainStart;
+
+   chainStart = stream->output.length - stream->outputChainWordCount;
+   dmtxByteListPush(&(stream->output), 0, &passFail);
+   if(passFail == DmtxPass)
+   {
+      for(i = stream->output.length - 1; i > chainStart; i--)
+      {
+         value = UnRandomize255State(stream->output.b[i-1], i);
+         stream->output.b[i] = Randomize255State2(value, i + 1);
+      }
+
+      stream->outputChainWordCount++;
+   }
+   else
+   {
+      StreamMarkFatal(stream, 1);
+   }
+}
+
+/**
+ * remove first element from chain, shifting all following elements back by one
+ * used for binary length changes end condition
+ */
+static void
+Base256OutputChainRemoveFirst(DmtxEncodeStream *stream)
+{
+   DmtxByte value;
+   DmtxPassFail passFail;
+   int i, chainStart;
+
+   chainStart = stream->output.length - stream->outputChainWordCount;
+
+   for(i = chainStart; i < stream->output.length - 1; i++)
+   {
+      value = UnRandomize255State(stream->output.b[i+1], i+2);
+      stream->output.b[i] = Randomize255State2(value, i + 1);
+   }
+
+   dmtxByteListPop(&(stream->output), &passFail);
+   if(passFail == DmtxPass)
+      stream->outputChainWordCount--;
+   else
+      StreamMarkFatal(stream, 1);
 }
