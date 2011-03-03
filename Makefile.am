@@ -4,6 +4,8 @@
 # $ make dist-gzip
 # $ script/dist-image.sh
 
+AUTOMAKE_OPTIONS = foreign
+
 ACLOCAL_AMFLAGS = -I m4
 AM_CPPFLAGS = -Wshadow -Wall -pedantic -ansi
 
