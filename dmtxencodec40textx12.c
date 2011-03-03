@@ -25,6 +25,18 @@
 #include "dmtx.h"
 #include "dmtxstatic.h"
 
+#undef CHKERR
+#define CHKERR { if(stream->status != DmtxStatusEncoding) { return; } }
+
+#undef CHKSIZE
+#define CHKSIZE { if(sizeIdx == DmtxUndefined) { StreamMarkInvalid(stream, 1); return; } }
+
+#undef CHKPASS
+#define CHKPASS { if(passFail == DmtxFail) { StreamMarkFatal(stream, 1); return; } }
+
+#undef RETURN_IF_FAIL
+#define RETURN_IF_FAIL { if(*passFail == DmtxFail) return; }
+
 /**
  *
  *
@@ -34,20 +46,26 @@ EncodeNextChunkCTX(DmtxEncodeStream *stream, int requestedSizeIdx)
 {
    DmtxPassFail passFail;
    DmtxByte inputValue;
-   DmtxByte valueListStorage[4];
+   DmtxByte valueListStorage[6];
    DmtxByteList valueList = dmtxByteListBuild(valueListStorage, sizeof(valueListStorage));
 
    while(StreamInputHasNext(stream))
    {
       inputValue = StreamInputAdvanceNext(stream); CHKERR;
-      /* XXX remember to account for upper shift (4 values each) */
-      passFail = PushCTXValues(&valueList, inputValue, stream->currentScheme);
 
-      /* remember to account for upper shift (4 values each) ... does this loop structure still work? */
+      /* Expand next input value into up to 4 CTX values and add to valueList */
+      PushCTXValues(&valueList, inputValue, stream->currentScheme, &passFail);
+      if(passFail == DmtxFail)
+      {
+         StreamMarkInvalid(stream, 1);
+         return;
+      }
+
+      /* If there at least 3 CTX values available encode them to output */
       while(valueList.length >= 3)
       {
          EncodeValuesCTX(stream, &valueList); CHKERR;
-/*       DmtxByteListRemoveFirst(valueList, 3); */
+         ShiftValueListBy3(&valueList, &passFail); CHKPASS;
       }
 
       /* Finished on byte boundary -- done with current chunk */
@@ -183,14 +201,15 @@ CompleteIfDoneCTX(DmtxEncodeStream *stream, int requestedSizeIdx)
  *    (c)  ASCII 1       2  UNLATCH ASCII
  *               -       -  UNLATCH (continue ASCII)
  */
-#undef CHKPASS
-#define CHKPASS { if(passFail == DmtxFail) return; }
 static void
 CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx)
 {
    int sizeIdx;
    int symbolRemaining;
    DmtxPassFail passFail;
+   DmtxByte inputValue;
+   DmtxByte outputTmpStorage[4];
+   DmtxByteList outputTmp = dmtxByteListBuild(outputTmpStorage, sizeof(outputTmpStorage));
 
    if(!IsCTX(stream->currentScheme))
    {
@@ -216,62 +235,63 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
       /*
        * Rollback progress of previously consumed input value(s) since ASCII
        * encoder will be used to finish the symbol. 2 rollbacks are needed if
-       * valueList holds 2 data words (i.e., not shift or upper shifts).
+       * valueList holds 2 data words (i.e., not shifts or upper shifts).
        */
-/*
-      StreamInputAdvancePrev(stream); CHKERR;
-*/
 
-      /* temporary re-encode most recently consumed input value to C40/Text/X12 */
-/*
-      passFail = PushCTXValues(&tmp, inputValue));
-      if(valueList.length == 2 && tmp.length > 1)
+      StreamInputAdvancePrev(stream); CHKERR;
+      inputValue = StreamInputPeekNext(stream); CHKERR;
+
+      /* Test encode most recently consumed input value to C40/Text/X12 */
+      PushCTXValues(&outputTmp, inputValue, stream->currentScheme, &passFail);
+      if(valueList->length == 2 && outputTmp.length > 1)
       {
          StreamInputAdvancePrev(stream); CHKERR;
       }
 
-      ascii = encodeTmpRemainingToAscii(stream);
-      if(ascii.length == 1 && symbolRemaining == 1)
+      /* Re-use outputTmp to hold ASCII representation of 1-2 input values */
+      outputTmp = EncodeTmpRemainingInAscii(stream, outputTmpStorage,
+            sizeof(outputTmpStorage), &passFail);
+
+      if(passFail == DmtxPass && outputTmp.length == 1 && symbolRemaining == 1)
       {
-         // End of symbol condition (d)
+         /* End of symbol condition (d) */
          EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit); CHKERR;
-         EncodeValueAscii(stream, ascii.b[0]); CHKERR;
+         EncodeValueAscii(stream, outputTmp.b[0]); CHKERR;
+
+         /* Register progress since encoding happened outside normal path */
+         stream->inputNext = stream->input.length;
+
          StreamMarkComplete(stream, sizeIdx);
       }
       else
       {
-         // Continue in ASCII (c)
+         /* Continue in ASCII (c) */
          EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
       }
-*/
    }
 }
 
 /**
- * @brief  Convert 3 input values into 2 codewords for triplet-based schemes
- * @param  outputWords
- * @param  inputWord
- * @param  encScheme
- * @return Codeword count
+ *
+ *
  */
-#undef CHKPASS
-#define CHKPASS { if(passFail == DmtxFail) return DmtxFail; }
-static DmtxPassFail
-PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme)
+static void
+PushCTXValues(DmtxByteList *valueList, DmtxByte inputValue, int targetScheme, DmtxPassFail *passFail)
 {
-   DmtxPassFail passFail;
+   assert(valueList->length <= 2);
 
    /* Handle extended ASCII with Upper Shift character */
    if(inputValue > 127)
    {
       if(targetScheme == DmtxSchemeX12)
       {
-         return DmtxFail; /* XXX shouldn't this be an error? */
+         *passFail = DmtxFail;
+         return;
       }
       else
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift2, &passFail); CHKPASS;
-         dmtxByteListPush(valueList, 30, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, DmtxValueCTXShift2, passFail); RETURN_IF_FAIL;
+         dmtxByteListPush(valueList, 30, passFail); RETURN_IF_FAIL;
          inputValue -= 128;
       }
    }
@@ -281,27 +301,27 @@ PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme)
    {
       if(inputValue == 13)
       {
-         dmtxByteListPush(valueList, 0, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, 0, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue == 42)
       {
-         dmtxByteListPush(valueList, 1, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, 1, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue == 62)
       {
-         dmtxByteListPush(valueList, 2, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, 2, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue == 32)
       {
-         dmtxByteListPush(valueList, 3, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, 3, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue >= 48 && inputValue <= 57)
       {
-         dmtxByteListPush(valueList, inputValue - 44, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, inputValue - 44, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue >= 65 && inputValue <= 90)
       {
-         dmtxByteListPush(valueList, inputValue - 51, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, inputValue - 51, passFail); RETURN_IF_FAIL;
       }
    }
    else
@@ -309,58 +329,58 @@ PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme)
       /* targetScheme is C40 or Text */
       if(inputValue <= 31)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift1, &passFail); CHKPASS;
-         dmtxByteListPush(valueList, inputValue, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, DmtxValueCTXShift1, passFail); RETURN_IF_FAIL;
+         dmtxByteListPush(valueList, inputValue, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue == 32)
       {
-         dmtxByteListPush(valueList, 3, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, 3, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue <= 47)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift2, &passFail); CHKPASS;
-         dmtxByteListPush(valueList, inputValue - 33, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, DmtxValueCTXShift2, passFail); RETURN_IF_FAIL;
+         dmtxByteListPush(valueList, inputValue - 33, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue <= 57)
       {
-         dmtxByteListPush(valueList, inputValue - 44, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, inputValue - 44, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue <= 64)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift2, &passFail); CHKPASS;
-         dmtxByteListPush(valueList, inputValue - 43, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, DmtxValueCTXShift2, passFail); RETURN_IF_FAIL;
+         dmtxByteListPush(valueList, inputValue - 43, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue <= 90 && targetScheme == DmtxSchemeC40)
       {
-         dmtxByteListPush(valueList, inputValue - 51, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, inputValue - 51, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue <= 90 && targetScheme == DmtxSchemeText)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift3, &passFail); CHKPASS;
-         dmtxByteListPush(valueList, inputValue - 64, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, DmtxValueCTXShift3, passFail); RETURN_IF_FAIL;
+         dmtxByteListPush(valueList, inputValue - 64, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue <= 95)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift2, &passFail); CHKPASS;
-         dmtxByteListPush(valueList, inputValue - 69, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, DmtxValueCTXShift2, passFail); RETURN_IF_FAIL;
+         dmtxByteListPush(valueList, inputValue - 69, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue == 96 && targetScheme == DmtxSchemeText)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift3, &passFail); CHKPASS;
-         dmtxByteListPush(valueList, 0, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, DmtxValueCTXShift3, passFail); RETURN_IF_FAIL;
+         dmtxByteListPush(valueList, 0, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue <= 122 && targetScheme == DmtxSchemeText)
       {
-         dmtxByteListPush(valueList, inputValue - 83, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, inputValue - 83, passFail); RETURN_IF_FAIL;
       }
       else if(inputValue <= 127)
       {
-         dmtxByteListPush(valueList, DmtxValueCTXShift3, &passFail); CHKPASS;
-         dmtxByteListPush(valueList, inputValue - 96, &passFail); CHKPASS;
+         dmtxByteListPush(valueList, DmtxValueCTXShift3, passFail); RETURN_IF_FAIL;
+         dmtxByteListPush(valueList, inputValue - 96, passFail); RETURN_IF_FAIL;
       }
    }
 
-   return DmtxPass;
+   *passFail = DmtxPass;
 }
 
 /**
@@ -378,4 +398,31 @@ IsCTX(int scheme)
       isCTX = DmtxFalse;
 
    return isCTX;
+}
+
+/**
+ *
+ *
+ */
+static void
+ShiftValueListBy3(DmtxByteList *list, DmtxPassFail *passFail)
+{
+   int i;
+
+   /* Shift values */
+   for(i = 0; i < list->length - 3; i++)
+      list->b[i] = list->b[i+3];
+
+   /* Shorten list by 3 (or less) */
+   for(i = 0; i < 3; i++)
+   {
+      dmtxByteListPop(list, passFail);
+      if(*passFail == DmtxFail)
+         return;
+
+      if(list->length == 0)
+         break;
+   }
+
+   *passFail = DmtxPass;
 }

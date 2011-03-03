@@ -130,6 +130,37 @@ dmtxByteListPop(DmtxByteList *list, DmtxPassFail *passFail)
  *
  *
  */
+/*
+extern DmtxByte
+dmtxByteListRemoveFirst(DmtxByteList *list, DmtxPassFail *passFail)
+{
+   int i;
+   DmtxByte value;
+
+   if(list->length == 0)
+   {
+      *passFail = DmtxFail;
+       return 0;
+   }
+
+   // Capture value to be removed
+   value = list->b[0];
+
+   // Shift values over by one
+   for(i = 0; i < list->length - 1; i++)
+      list->b[i] = list->b[i+1];
+
+   // Shorten list by one
+   dmtxByteListPop(list, passFail);
+
+   return value;
+}
+*/
+
+/**
+ *
+ *
+ */
 extern void
 dmtxByteListPrint(DmtxByteList *list, char *prefix)
 {

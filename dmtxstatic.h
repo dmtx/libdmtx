@@ -245,6 +245,7 @@ static void StreamOutputSet(DmtxEncodeStream *stream, int index, DmtxByte value)
 static DmtxBoolean StreamInputHasNext(DmtxEncodeStream *stream);
 static DmtxByte StreamInputPeekNext(DmtxEncodeStream *stream);
 static DmtxByte StreamInputAdvanceNext(DmtxEncodeStream *stream);
+static void StreamInputAdvancePrev(DmtxEncodeStream *stream);
 
 /* dmtxencodesingle.c */
 static DmtxPassFail EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
@@ -267,8 +268,9 @@ static void EncodeValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList);
 static void EncodeUnlatchCTX(DmtxEncodeStream *stream);
 static void CompleteIfDoneCTX(DmtxEncodeStream *stream, int requestedSizeIdx);
 static void CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx);
-static DmtxPassFail PushCTXValues(DmtxByteList *valueList, int inputValue, int targetScheme);
+static void PushCTXValues(DmtxByteList *valueList, DmtxByte inputValue, int targetScheme, DmtxPassFail *passFail);
 static DmtxBoolean IsCTX(int scheme);
+static void ShiftValueListBy3(DmtxByteList *list, DmtxPassFail *passFail);
 
 /* dmtxencodeedifact.c */
 static void EncodeNextChunkEdifact(DmtxEncodeStream *stream);

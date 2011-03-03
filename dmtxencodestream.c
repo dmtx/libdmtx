@@ -169,8 +169,6 @@ StreamInputPeekNext(DmtxEncodeStream *stream)
 }
 
 /**
- * Dequeue next input value from stream.
- * pop off first/oldest
  * used as each input cw is processed
  *
  * /param value Value to populate, can be null (for blind dequeues)
@@ -184,7 +182,22 @@ StreamInputAdvanceNext(DmtxEncodeStream *stream)
    value = StreamInputPeekNext(stream);
 
    if(stream->status == DmtxStatusEncoding)
-      stream->inputNext++;
+      stream->inputNext++; /* XXX is this what we really mean here? */
 
    return value;
+}
+
+/**
+ * used as each input cw is processed
+ *
+ * /param value Value to populate, can be null (for blind dequeues)
+ * /param stream
+ */
+static void
+StreamInputAdvancePrev(DmtxEncodeStream *stream)
+{
+   if(stream->inputNext > 0)
+      stream->inputNext--;
+   else
+      StreamMarkFatal(stream, 1 /*DmtxOutOfBounds*/);
 }

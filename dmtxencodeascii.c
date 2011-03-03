@@ -157,9 +157,8 @@ EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capac
 
    while(dmtxByteListHasCapacity(&(streamAscii.output)))
    {
-      /* Do not call CHKERR here because we don't want to return */
       if(StreamInputHasNext(&streamAscii))
-         EncodeNextChunkAscii(&streamAscii);
+         EncodeNextChunkAscii(&streamAscii); /* No CHKERR */
       else
          break;
    }
