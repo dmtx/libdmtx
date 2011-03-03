@@ -1,4 +1,19 @@
 /**
+ * libdmtx - Data Matrix Encoding/Decoding Library
+ * Copyright 2011 Mike Laughton. All rights reserved.
+ *
+ * See LICENSE file in parent directory for full terms of
+ * use and distribution.
+ *
+ * Contact: Mike Laughton <mike@dragonflylogic.com>
+ */
+
+/**
+ * $Id: file 1153 2011-01-13 08:34:06Z mblaughton $
+ * \file dmtxencodeoptimize.c
+ */
+
+/**
  *
  *
  */

@@ -1,43 +1,21 @@
-/*
-libdmtx - Data Matrix Encoding/Decoding Library
+/**
+ * libdmtx - Data Matrix Encoding/Decoding Library
+ * Copyright 2008, 2009 Mike Laughton. All rights reserved.
+ *
+ * See LICENSE file in parent directory for full terms of
+ * use and distribution.
+ *
+ * Contact: Mike Laughton <mike@dragonflylogic.com>
+ */
 
-Copyright (C) 2008, 2009 Mike Laughton
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 2.1 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
-Contact: mike@dragonflylogic.com
-*/
+/**
+ * $Id: file 1153 2011-01-13 08:34:06Z mblaughton $
+ * \file dmtxencode.c
+ * \brief Encode messages
+ */
 
 #undef ISDIGIT
 #define ISDIGIT(n) (n > 47 && n < 58)
-
-/* $Id$ */
-
-/**
- * @file dmtxencode.c
- * @brief Encode messages
- */
-
-/* TODO rewrite this logic to use a push/stack approach. Do not track mid-
-   byte progress. Encode triplet-based schemes pre-encoding as necessary
-   like before, but only track how far up we had to go. Only rule channel
-   loss when unlatch is possible, or at end of channel. Make sure that
-   "remaining words in this schema" works accounts for shift characters,
-   and is used by all terminating conditions. Also see the rewrite comments
-   in EncodeAsciiCodeword().
-*/
 
 /**
  * @brief  Initialize encode struct with default values

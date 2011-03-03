@@ -1,33 +1,20 @@
-/*
-libdmtx - Data Matrix Encoding/Decoding Library
+/**
+ * libdmtx - Data Matrix Encoding/Decoding Library
+ * Copyright 2011 Mike Laughton. All rights reserved.
+ *
+ * See LICENSE file in parent directory for full terms of
+ * use and distribution.
+ *
+ * ---------------------------------------------------------
+ * Portions of this file were derived from the Reed-Solomon
+ * encoder/decoder released by Simon Rockliff in June 1991.
+ * ---------------------------------------------------------
 
-Copyright (C) 2008, 2009, 2010 Mike Laughton
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU Lesser General Public
-License as published by the Free Software Foundation; either
-version 2.1 of the License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public
-License along with this library; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-
---------------------------------------------------------------------------
-Portions of this file were derived from the Reed-Solomon encoder/decoder
-released by Simon Rockliff in June 1991. It has been modified to include
-only Data Matrix conditions and to integrate seamlessly with libdmtx.
---------------------------------------------------------------------------
-
-Contact: mike@dragonflylogic.com
-*/
+ * Contact: Mike Laughton <mike@dragonflylogic.com>
+ */
 
 /**
- * $Id$
+ * $Id: file 1153 2011-01-13 08:34:06Z mblaughton $
  * \file dmtxreedsol.c
  */
 
@@ -37,9 +24,7 @@ Contact: mike@dragonflylogic.com
 /**
  * TODO:
  *   o try doxygen using using the JavaDoc style and JAVADOC_AUTOBRIEF = YES
- *   o try doxygen math formulas? (enable USE_MATHJAX in the config)
  *   o switch doxygen to simplified syntax, and using "\file" instead of "@file"
- *   o add "\file" to file header
  */
 
 #define NN                      255
