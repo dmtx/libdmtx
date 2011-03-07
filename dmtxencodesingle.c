@@ -70,9 +70,6 @@
  * end-of-symbol condition is triggered.
  */
 
-#include "dmtx.h"
-#include "dmtxstatic.h"
-
 /* XXX is there a way to handle muliple values of s? */
 #define CHKSCHEME(s) { if(stream->currentScheme != (s)) { StreamMarkFatal(stream, 1); return; } }
 

@@ -12,9 +12,6 @@
  * \file dmtxencodec40textx12.c
  */
 
-#include "dmtx.h"
-#include "dmtxstatic.h"
-
 #undef CHKERR
 #define CHKERR { if(stream->status != DmtxStatusEncoding) { return; } }
 

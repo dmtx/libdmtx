@@ -12,9 +12,6 @@
  * \file dmtxencodebase256.c
  */
 
-#include "dmtx.h"
-#include "dmtxstatic.h"
-
 /**
  *
  *

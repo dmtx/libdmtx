@@ -12,9 +12,6 @@
  * \file dmtxencodeedifact.c
  */
 
-#include "dmtx.h"
-#include "dmtxstatic.h"
-
 /**
  *
  *

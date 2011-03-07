@@ -12,9 +12,6 @@
  * \file dmtxencodeascii.c
  */
 
-#include "dmtx.h"
-#include "dmtxstatic.h"
-
 /**
  *
  *

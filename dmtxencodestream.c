@@ -12,9 +12,6 @@
  * \file dmtxencodestream.c
  */
 
-#include "dmtx.h"
-#include "dmtxstatic.h"
-
 /**
  *
  *

@@ -17,9 +17,6 @@
  * \file dmtxreedsol.c
  */
 
-#include "dmtx.h"
-#include "dmtxstatic.h"
-
 /**
  * TODO:
  *   o try doxygen using using the JavaDoc style and JAVADOC_AUTOBRIEF = YES
