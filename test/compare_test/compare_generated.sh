@@ -2,8 +2,8 @@
 
 #SCHEMES="b f a c t x e 8"
 SCHEMES="b a c t x e 8"
-DMTXWRITE="../../util/dmtxwrite/dmtxwrite"
-DMTXREAD="../../util/dmtxread/dmtxread"
+DMTXWRITE="$(which dmtxwrite)"
+DMTXREAD="$(which dmtxread)"
 MOGRIFY=$(which mogrify)
 
 if [[ ! -x "$DMTXWRITE" ]]; then
