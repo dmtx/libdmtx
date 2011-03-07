@@ -1,5 +1,5 @@
 AC_INIT([libdmtx], [0.7.3], [mike@dragonflylogic.com])
-AM_INIT_AUTOMAKE([-Wall -Werror gnu])
+AM_INIT_AUTOMAKE([-Wall -Werror])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])

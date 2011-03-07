@@ -9,7 +9,6 @@
  */
 
 /**
- * $Id: file 1153 2011-01-13 08:34:06Z mblaughton $
  * \file dmtxmatrix3.c
  * \brief 2D Matrix (3x3) math
  */
