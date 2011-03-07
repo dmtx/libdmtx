@@ -1005,51 +1005,6 @@ DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
 }
 
 /**
- * @brief  Unrandomize 253 state
- * @param  codewordValue
- * @return codewordPosition
- */
-/**
-static unsigned char
-UnRandomize253State(unsigned char codewordValue, int codewordPosition)
-{
-   int pseudoRandom;
-   int tmp;
-
-   pseudoRandom = ((149 * codewordPosition) % 253) + 1;
-   tmp = codewordValue - pseudoRandom;
-   if(tmp < 1)
-      tmp += 254;
-
-   assert(tmp >= 0 && tmp < 256);
-
-   return (unsigned char)tmp;
-}
-*/
-
-/**
- * @brief  Unrandomize 255 state
- * @param  value
- * @param  idx
- * @return Unrandomized value
- */
-static unsigned char
-UnRandomize255State(unsigned char value, int idx)
-{
-   int pseudoRandom;
-   int tmp;
-
-   pseudoRandom = ((149 * idx) % 255) + 1;
-   tmp = value - pseudoRandom;
-   if(tmp < 0)
-      tmp += 256;
-
-   assert(tmp >= 0 && tmp < 256);
-
-   return (unsigned char)tmp;
-}
-
-/**
  * @brief  Increment counters used to determine module values
  * @param  img
  * @param  reg

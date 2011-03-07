@@ -40,7 +40,7 @@ EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
 {
    CHKSCHEME(DmtxSchemeBase256);
 
-   StreamOutputChainAppend(stream, Randomize255State2(value, stream->output.length + 1)); CHKERR;
+   StreamOutputChainAppend(stream, Randomize255State(value, stream->output.length + 1)); CHKERR;
    stream->outputChainValueCount++;
 
    UpdateBase256ChainHeader(stream, DmtxUndefined); CHKERR;
@@ -158,22 +158,22 @@ UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx)
    if(!perfectFit && headerByteCount == 1 && outputLength <= 249)
    {
       /* Normal condition for chain length < 250 bytes */
-      headerValue0 = Randomize255State2(outputLength, headerIndex + 1);
+      headerValue0 = Randomize255State(outputLength, headerIndex + 1);
       StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
    }
    else if(!perfectFit && headerByteCount == 2 && outputLength > 249)
    {
       /* Normal condition for chain length >= 250 bytes */
-      headerValue0 = Randomize255State2(outputLength/250 + 249, headerIndex + 1);
+      headerValue0 = Randomize255State(outputLength/250 + 249, headerIndex + 1);
       StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
 
-      headerValue1 = Randomize255State2(outputLength%250, headerIndex + 2);
+      headerValue1 = Randomize255State(outputLength%250, headerIndex + 2);
       StreamOutputSet(stream, headerIndex + 1, headerValue1); CHKERR;
    }
    else if(perfectFit && headerByteCount == 1)
    {
       /* Special condition when Base 256 stays in effect to end of symbol */
-      headerValue0 = Randomize255State2(0, headerIndex + 1); /* XXX replace magic value 0? */
+      headerValue0 = Randomize255State(0, headerIndex + 1); /* XXX replace magic value 0? */
       StreamOutputSet(stream, headerIndex, headerValue0); CHKERR;
    }
    else
@@ -201,7 +201,7 @@ Base256OutputChainInsertFirst(DmtxEncodeStream *stream)
       for(i = stream->output.length - 1; i > chainStart; i--)
       {
          value = UnRandomize255State(stream->output.b[i-1], i);
-         stream->output.b[i] = Randomize255State2(value, i + 1);
+         stream->output.b[i] = Randomize255State(value, i + 1);
       }
 
       stream->outputChainWordCount++;
@@ -228,7 +228,7 @@ Base256OutputChainRemoveFirst(DmtxEncodeStream *stream)
    for(i = chainStart; i < stream->output.length - 1; i++)
    {
       value = UnRandomize255State(stream->output.b[i+1], i+2);
-      stream->output.b[i] = Randomize255State2(value, i + 1);
+      stream->output.b[i] = Randomize255State(value, i + 1);
    }
 
    dmtxByteListPop(&(stream->output), &passFail);
@@ -236,4 +236,43 @@ Base256OutputChainRemoveFirst(DmtxEncodeStream *stream)
       stream->outputChainWordCount--;
    else
       StreamMarkFatal(stream, 1);
+}
+
+/**
+ * \brief  Randomize 255 state
+ * \param  value
+ * \param  position
+ * \return Randomized value
+ */
+static DmtxByte
+Randomize255State(DmtxByte value, int position)
+{
+   int pseudoRandom, tmp;
+
+   pseudoRandom = ((149 * position) % 255) + 1;
+   tmp = value + pseudoRandom;
+
+   return (tmp <= 255) ? tmp : tmp - 256;
+}
+
+/**
+ * @brief  Unrandomize 255 state
+ * @param  value
+ * @param  idx
+ * @return Unrandomized value
+ */
+static unsigned char
+UnRandomize255State(unsigned char value, int idx)
+{
+   int pseudoRandom;
+   int tmp;
+
+   pseudoRandom = ((149 * idx) % 255) + 1;
+   tmp = value - pseudoRandom;
+   if(tmp < 0)
+      tmp += 256;
+
+   assert(tmp >= 0 && tmp < 256);
+
+   return (unsigned char)tmp;
 }

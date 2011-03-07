@@ -222,44 +222,6 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
 }
 
 /**
- * \brief  Randomize 253 state
- * \param  codewordValue
- * \param  codewordPosition
- * \return Randomized value
- */
-static DmtxByte
-Randomize253State2(DmtxByte cwValue, int cwPosition)
-{
-   int pseudoRandom, tmp;
-
-   pseudoRandom = ((149 * cwPosition) % 253) + 1;
-   tmp = cwValue + pseudoRandom;
-   if(tmp > 254)
-      tmp -= 254;
-
-   assert(tmp >= 0 && tmp < 256);
-
-   return (DmtxByte)tmp;
-}
-
-/**
- * \brief  Randomize 255 state
- * \param  value
- * \param  position
- * \return Randomized value
- */
-static DmtxByte
-Randomize255State2(DmtxByte value, int position)
-{
-   int pseudoRandom, tmp;
-
-   pseudoRandom = ((149 * position) % 255) + 1;
-   tmp = value + pseudoRandom;
-
-   return (tmp <= 255) ? tmp : tmp - 256;
-}
-
-/**
  *
  *
  */

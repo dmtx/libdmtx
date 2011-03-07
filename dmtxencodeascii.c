@@ -120,7 +120,7 @@ PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx)
    /* All remaining pad characters are randomized based on character position */
    while(symbolRemaining > 0)
    {
-      padValue = Randomize253State2(DmtxValueAsciiPad, stream->output.length + 1);
+      padValue = Randomize253State(DmtxValueAsciiPad, stream->output.length + 1);
       StreamOutputChainAppend(stream, padValue); CHKERR;
       symbolRemaining--;
    }
@@ -162,4 +162,25 @@ EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capac
    *passFail = (streamAscii.status == DmtxStatusEncoding) ? DmtxPass : DmtxFail;
 
    return streamAscii.output;
+}
+
+/**
+ * \brief  Randomize 253 state
+ * \param  codewordValue
+ * \param  codewordPosition
+ * \return Randomized value
+ */
+static DmtxByte
+Randomize253State(DmtxByte cwValue, int cwPosition)
+{
+   int pseudoRandom, tmp;
+
+   pseudoRandom = ((149 * cwPosition) % 253) + 1;
+   tmp = cwValue + pseudoRandom;
+   if(tmp > 254)
+      tmp -= 254;
+
+   assert(tmp >= 0 && tmp < 256);
+
+   return (DmtxByte)tmp;
 }

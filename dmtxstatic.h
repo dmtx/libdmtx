@@ -156,38 +156,13 @@ static unsigned char *DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, 
 static unsigned char *DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
 static unsigned char *DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd);
-/* static unsigned char UnRandomize253State(unsigned char codewordValue, int codewordPosition); */
-static unsigned char UnRandomize255State(unsigned char value, int idx);
 static void TallyModuleJumps(DmtxDecode *dec, DmtxRegion *reg, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir);
 static DmtxPassFail PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg);
 
 /* dmtxencode.c */
-static int AddPadChars(unsigned char *buf, int *bufSize, int paddedSize);
-static unsigned char Randomize253State(unsigned char codewordValue, int codewordPosition);
-static unsigned char Randomize255State(unsigned char codewordValue, int codewordPosition);
 static void PrintPattern(DmtxEncode *encode);
-static void InitChannel(DmtxChannel *channel, unsigned char *codewords, int length);
 static int EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputString, int inputSize, int *sizeIdx);
-static int EncodeSingleScheme(DmtxEncode *enc, unsigned char *buf, unsigned char *codewords, int length, DmtxScheme scheme);
 static int EncodeAutoBest(DmtxEncode *enc, unsigned char *buf, unsigned char *codewords, int length);
-/*static int EncodeAutoFast(unsigned char *buf, unsigned char *codewords, int length); */
-static DmtxChannel FindBestChannel(DmtxEncode *enc, DmtxChannelGroup group, DmtxScheme targetScheme);
-static DmtxPassFail EncodeNextWord(DmtxEncode *enc, DmtxChannel *channel, DmtxScheme targetScheme);
-static DmtxPassFail EncodeAsciiCodeword(DmtxChannel *channel);
-static DmtxPassFail EncodeTripletCodeword(DmtxEncode *enc, DmtxChannel *channel);
-static DmtxPassFail EncodeEdifactCodeword(DmtxEncode *enc, DmtxChannel *channel);
-static DmtxPassFail EncodeBase256Codeword(DmtxChannel *channel);
-static void ChangeEncScheme(DmtxChannel *channel, DmtxScheme targetScheme, int unlatchType);
-static void PushInputWord(DmtxChannel *channel, unsigned char codeword);
-static void PushTriplet(DmtxChannel *channel, DmtxTriplet *triplet);
-static void IncrementProgress(DmtxChannel *channel, int encodedUnits);
-static DmtxPassFail ProcessEndOfSymbolTriplet(DmtxEncode *enc, DmtxChannel *channel, DmtxTriplet *triplet, int tripletCount, int inputCount);
-static DmtxPassFail TestForEndOfSymbolEdifact(DmtxEncode *enc, DmtxChannel *channel);
-static int GetC40TextX12Words(int *outputWords, int inputWord, DmtxScheme encScheme);
-static DmtxTriplet GetTripletValues(unsigned char cw1, unsigned char cw2);
-static DmtxQuadruplet GetQuadrupletValues(unsigned char cw1, unsigned char cw2, unsigned char cw3);
-/*static void DumpChannel(DmtxChannel *channel);*/
-/*static void DumpChannelGroup(DmtxChannelGroup *group, int encTarget);*/
 
 /* dmtxplacemod.c */
 static int ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int sizeIdx, int moduleOnColor);
@@ -237,8 +212,6 @@ static void StreamInputAdvancePrev(DmtxEncodeStream *stream);
 static void EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
 static void EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
 static void EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatchType);
-static DmtxByte Randomize253State2(DmtxByte cwValue, int cwPosition);
-static DmtxByte Randomize255State2(DmtxByte cwValue, int cwPosition);
 static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
 
 /* dmtxencodeascii.c */
@@ -247,6 +220,7 @@ static void EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value);
 static void CompleteIfDoneAscii(DmtxEncodeStream *stream, int requestedSizeIdx);
 static void PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx);
 static DmtxByteList EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail);
+static DmtxByte Randomize253State(DmtxByte cwValue, int cwPosition);
 
 /* dmtxencodec40textx12.c */
 static void EncodeNextChunkCTX(DmtxEncodeStream *stream, int requestedSizeIdx);
@@ -270,6 +244,8 @@ static void CompleteIfDoneBase256(DmtxEncodeStream *stream, int requestedSizeIdx
 static void UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx);
 static void Base256OutputChainInsertFirst(DmtxEncodeStream *stream);
 static void Base256OutputChainRemoveFirst(DmtxEncodeStream *stream);
+static DmtxByte Randomize255State(DmtxByte cwValue, int cwPosition);
+static unsigned char UnRandomize255State(unsigned char value, int idx);
 
 static const int dmtxNeighborNone = 8;
 static const int dmtxPatternX[] = { -1,  0,  1,  1,  1,  0, -1, -1 };
