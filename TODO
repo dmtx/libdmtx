@@ -39,7 +39,6 @@ FOCUS: refactor encoding engine, FNC1, macros
 version 0.8.0: (planned TBD)
 FOCUS: region detection refinement, multiple barcode scanning, structured append
   o libdmtx:   Replace DmtxDirection (e.g., DmtxDirUp) with index range 0-7 (?)
-  o libdmtx:   Finish fec integration (encode_rs_char, aLog[], etc...)
   o libdmtx:   Fast Hough fit followed by precision handle fit
   o libdmtx:   Optimizations need to perform multi-barcode scans
   o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
@@ -52,9 +51,12 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o libdmtx:   Inspect SDL image packing conventions (stride vs. pad, etc...)
   o libdmtx:   Clean up API for use with external ROI finders
   o libdmtx:   Is there a good way to know if dmtxRegionFindNext() timed out or finished file?
-  o libdmtx:   Files should compile individually (include dmtx.h and dmtxstatic.h)
   o libdmtx:   library should never call exit()
+  x libdmtx:   Added Base 256 "encode to end of symbol" single byte header
+  x libdmtx:   Fixed encoding bug affecting certain end-of-symbol conditions
+  x libdmtx:   Added DmtxByteList struct and supporting functions
   x libdmtx:   Fixed ECC bug for 144x144 case (thanks Huver!)
+  x libdmtx:   Wrote new Reed Solomon code
   o dmtxread:  Flatten deeply nested loops in main()
   o dmtxread:  Add true scan timings that factor in linking, startup, image load
   o dmtxwrite: Add support for setting foreground and background colors
