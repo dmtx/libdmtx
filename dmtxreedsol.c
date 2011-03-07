@@ -131,7 +131,7 @@ RsEncode(DmtxMessage *message, int sizeIdx)
 
       /* Copy to output message */
       eccPtr = ecc.b + blockErrorWords;
-      for(i = blockIdx + symbolDataWords; i < symbolTotalWords; i += blockStride)
+      for(i = symbolDataWords + blockIdx; i < symbolTotalWords; i += blockStride)
          message->code[i] = *(--eccPtr);
 
       assert(ecc.b == eccPtr);
@@ -155,9 +155,11 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
 {
    int i;
    int blockStride, blockIdx;
-   int blockErrorWords, blockTotalWords, blockMaxCorrectable;
+   int blockDataWords, blockErrorWords, blockTotalWords, blockMaxCorrectable;
+   int symbolDataWords, symbolErrorWords, symbolTotalWords;
    DmtxBoolean error, repairable;
    DmtxPassFail passFail;
+   unsigned char *word;
    DmtxByte elpStorage[MAX_ERROR_WORD_COUNT];
    DmtxByte synStorage[MAX_ERROR_WORD_COUNT+1];
    DmtxByte recStorage[NN];
@@ -170,18 +172,34 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
    blockStride = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
    blockErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribBlockErrorWords, sizeIdx);
    blockMaxCorrectable = dmtxGetSymbolAttribute(DmtxSymAttribBlockMaxCorrectable, sizeIdx);
+   symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
+   symbolErrorWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolErrorWords, sizeIdx);
+   symbolTotalWords = symbolDataWords + symbolErrorWords;
 
-   /* For each interleaved block... */
+   /* For each interleaved block */
    for(blockIdx = 0; blockIdx < blockStride; blockIdx++)
    {
       /* Data word count depends on blockIdx due to special case at 144x144 */
-      blockTotalWords = blockErrorWords + dmtxGetBlockDataSize(sizeIdx, blockIdx);
+      blockDataWords = dmtxGetBlockDataSize(sizeIdx, blockIdx);
+      blockTotalWords = blockErrorWords + blockDataWords;
 
       /* Populate received list (rec) with data and error codewords */
       dmtxByteListInit(&rec, 0, 0, &passFail); CHKPASS;
-      for(i = 0; i < blockTotalWords; i++)
+
+      /* Start with final error word and work backward */
+      word = code + symbolTotalWords + blockIdx - blockStride;
+      for(i = 0; i < blockErrorWords; i++)
       {
-         dmtxByteListPush(&rec, code[blockIdx + blockStride * (blockTotalWords - 1 - i)], &passFail); CHKPASS;
+         dmtxByteListPush(&rec, *word, &passFail); CHKPASS;
+         word -= blockStride;
+      }
+
+      /* Start with final data word and work backward */
+      word = code + blockIdx + (blockStride * (blockDataWords - 1));
+      for(i = 0; i < blockDataWords; i++)
+      {
+         dmtxByteListPush(&rec, *word, &passFail); CHKPASS;
+         word -= blockStride;
       }
 
       /* Compute syndromes (syn) */
@@ -204,9 +222,25 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
          RsRepairErrors(&rec, &loc, &elp, &syn);
       }
 
-      /* Write correct/corrected values to output */
-      for(i = 0; i < blockTotalWords; i++)
-         code[blockIdx + blockStride * (blockTotalWords - 1 - i)] = rec.b[i];
+      /*
+       * Overwrite output with correct/corrected values
+       */
+
+      /* Start with first data word and work forward */
+      word = code + blockIdx;
+      for(i = 0; i < blockDataWords; i++)
+      {
+         *word = dmtxByteListPop(&rec, &passFail); CHKPASS;
+         word += blockStride;
+      }
+
+      /* Start with first error word and work forward */
+      word = code + symbolDataWords + blockIdx;
+      for(i = 0; i < blockErrorWords; i++)
+      {
+         *word = dmtxByteListPop(&rec, &passFail); CHKPASS;
+         word += blockStride;
+      }
    }
 
    return DmtxPass;
