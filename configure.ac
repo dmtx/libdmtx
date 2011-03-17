@@ -5,6 +5,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_FILES([
    Makefile
+   libdmtx.pc
    test/Makefile
    test/multi_test/Makefile
    test/rotate_test/Makefile
@@ -36,7 +37,5 @@ case $target_os in
       ARCH=mingw32 ;;
 esac
 AM_CONDITIONAL([TARGET_MACOSX], [test x$ARCH = xmacosx])
-
-AC_CONFIG_FILES([libdmtx.pc])
 
 AC_OUTPUT
