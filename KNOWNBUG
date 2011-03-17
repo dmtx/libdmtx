@@ -19,28 +19,7 @@ Data Mosaic encoding doesn't produce output for certain sizes:
    $ echo -n foooo | dmtxwrite -M  <-- works
 
 
-2. dmtxread
-::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-The follow options are considered experimental:
-  -M,  --mosaic              interpret as Data Mosaic barcodes
-
-
-3. dmtxwrite
-::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-The follow options are considered experimental:
-  -eb, --encodation=b        best encodation (beta only)
-  -M,  --mosaic              create Data Mosaic (non-standard)
-
-The follow options are not implemented yet:
-  -ef, --encodation=f        fast encodation
-  -c,  --color=COLOR         barcode color
-  -b,  --bgcolor=COLOR       background color
-  -r,  --rotate=DEGREES      rotation angle
-
-
-4. Test Programs
+2. Test Programs
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 multi_test:
@@ -56,29 +35,7 @@ unit_test:
   * No known issues
 
 
-5. Wrappers
-::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
-cocoa wrapper:
-  * No known issues
-
-java wrapper:
-  * No known issues
-
-net wrapper:
-  * No known issues
-
-php wrapper:
-  * No known issues
-
-python wrapper:
-  * No known issues
-
-ruby wrapper:
-  * No known issues
-
-
-6. Scripts in the script directory
+3. Scripts in the script directory
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 The check_headers.pl script verifies that every function has
