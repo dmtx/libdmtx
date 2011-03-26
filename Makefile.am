@@ -13,11 +13,12 @@ lib_LTLIBRARIES = libdmtx.la
 libdmtx_la_SOURCES = dmtx.c
 libdmtx_la_CFLAGS = -Wall -pedantic
 
-EXTRA_libdmtx_la_SOURCES = dmtxdecode.c dmtxencode.c dmtximage.c dmtxmatrix3.c \
-	dmtxmessage.c dmtxplacemod.c dmtxreedsol.c dmtxregion.c dmtxscangrid.c \
-	dmtxstatic.h dmtxsymbol.c dmtxtime.c dmtxvector2.c dmtxencodestream.c \
-	dmtxencodestream.c dmtxencodesingle.c dmtxencodeoptimize.c dmtxencodeascii.c \
-	dmtxencodec40textx12.c dmtxencodeedifact.c dmtxencodebase256.c
+EXTRA_libdmtx_la_SOURCES = dmtxencode.c dmtxencodestream.c dmtxencodescheme.c \
+	dmtxencodeoptimize.c dmtxencodeascii.c dmtxencodec40textx12.c \
+	dmtxencodeedifact.c dmtxencodebase256.c dmtxdecode.c dmtxdecodescheme.c \
+	dmtxmessage.c dmtxregion.c dmtxsymbol.c dmtxplacemod.c dmtxreedsol.c \
+	dmtxscangrid.c dmtximage.c dmtxbytelist.c dmtxtime.c dmtxvector2.c \
+	dmtxmatrix3.c dmtxstatic.h
 
 include_HEADERS = dmtx.h
 

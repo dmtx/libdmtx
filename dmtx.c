@@ -51,34 +51,37 @@
 #endif
 
 /**
- * Use #include to merge the individual .c source files into a single
- * combined file during preprocessing. This enables us to organize the
- * project into files of like functionality while still presenting a
- * clean namespace. More specifically, internal functions can be made
- * static without losing the ability to access them "externally" from
- * the other files in this list.
+ * Use #include to merge the individual .c source files into a single combined
+ * file during preprocessing. This allows the project to be organized in files
+ * of like-functionality while still keeping a clean namespace. Specifically,
+ * internal functions can be static without losing the ability to access them
+ * "externally" from the other source files in this list.
  */
 
-#include "dmtxtime.c"
-#include "dmtxscangrid.c"
-#include "dmtxmessage.c"
-#include "dmtxregion.c"
-#include "dmtxdecode.c"
 #include "dmtxencode.c"
-#include "dmtxplacemod.c"
-#include "dmtxreedsol.c"
-#include "dmtxsymbol.c"
-#include "dmtxvector2.c"
-#include "dmtxmatrix3.c"
-#include "dmtximage.c"
-#include "dmtxbytelist.c"
 #include "dmtxencodestream.c"
-#include "dmtxencodesingle.c"
+#include "dmtxencodescheme.c"
 #include "dmtxencodeoptimize.c"
 #include "dmtxencodeascii.c"
 #include "dmtxencodec40textx12.c"
 #include "dmtxencodeedifact.c"
 #include "dmtxencodebase256.c"
+
+#include "dmtxdecode.c"
+#include "dmtxdecodescheme.c"
+
+#include "dmtxmessage.c"
+#include "dmtxregion.c"
+#include "dmtxsymbol.c"
+#include "dmtxplacemod.c"
+#include "dmtxreedsol.c"
+#include "dmtxscangrid.c"
+
+#include "dmtximage.c"
+#include "dmtxbytelist.c"
+#include "dmtxtime.c"
+#include "dmtxvector2.c"
+#include "dmtxmatrix3.c"
 
 extern char *
 dmtxVersion(void)
