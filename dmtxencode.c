@@ -382,37 +382,30 @@ EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputStr
 
    /*
     * This function needs to take both dataWordCount and sizeIdx into account
-    * because symbol size is tied to an encodation. That is, a data stream
-    * might be different from one symbol size to another
+    * because symbol size can affect encoding near the end of symbol.
     */
 
    /* Encode input string into data codewords */
    switch(enc->scheme) {
       case DmtxSchemeAutoBest:
-         dataWordCount = EncodeAutoBest(enc, buf, inputString, inputSize);
+         dataWordCount = 0;
+         stream = StreamInit(inputString, inputSize, buf, 4096);
+         EncodeOptimizeBest(&stream, *sizeIdx);
+         dataWordCount = stream.output.length;
+         *sizeIdx = stream.sizeIdx;
          break;
       case DmtxSchemeAutoFast:
          dataWordCount = 0;
          /* dataWordCount = EncodeAutoFast(enc, buf, inputString, inputSize); */
          break;
       default:
-/*
-         dataWordCount = EncodeSingleScheme(enc, buf, inputString, inputSize, enc->scheme);
-*/
          stream = StreamInit(inputString, inputSize, buf, 4096);
-         EncodeSingleScheme2(&stream, enc->scheme, DmtxSymbolSquareAuto);
+         EncodeSingleScheme(&stream, enc->scheme, *sizeIdx);
          dataWordCount = stream.output.length;
          *sizeIdx = stream.sizeIdx;
-/*       dmtxByteListPrint(&(stream.output), "xxx:"); */
          break;
    }
 
-
-   /* XXX must fix ... will need to handle sizeIdx requests here because it is
-      needed by Encode...() for triplet termination */
-
-   /* parameter sizeIdx is requested value, returned sizeIdx is decision */
-/* *sizeIdx = FindSymbolSize(dataWordCount, *sizeIdx); */
    if(*sizeIdx == DmtxUndefined)
       return 0;
 
@@ -481,17 +474,4 @@ PrintPattern(DmtxEncode *enc)
 
       }
    }
-}
-
-/**
- * @brief  Encode message using best possible encodation (combine schemes)
- * @param  buf
- * @param  codewords
- * @param  length
- * @return Encoded length of winning channel
- */
-static int
-EncodeAutoBest(DmtxEncode *enc, unsigned char *buf, unsigned char *codewords, int length)
-{
-   return 0;
 }

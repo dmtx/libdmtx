@@ -82,7 +82,7 @@
  *
  */
 static void
-EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx)
+EncodeSingleScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx)
 {
    CHKSCHEME(DmtxSchemeAscii);
 
@@ -98,7 +98,7 @@ EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int reque
    }
 
    if(StreamInputHasNext(stream))
-      StreamMarkFatal(stream, 1 /* leftover parts */);
+      StreamMarkFatal(stream, 1 /* Found unexplained leftovers */);
 }
 
 /**

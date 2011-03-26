@@ -162,7 +162,6 @@ static unsigned char *DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, 
 /* dmtxencode.c */
 static void PrintPattern(DmtxEncode *encode);
 static int EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputString, int inputSize, int *sizeIdx);
-static int EncodeAutoBest(DmtxEncode *enc, unsigned char *buf, unsigned char *codewords, int length);
 
 /* dmtxplacemod.c */
 static int ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int sizeIdx, int moduleOnColor);
@@ -208,11 +207,14 @@ static DmtxByte StreamInputPeekNext(DmtxEncodeStream *stream);
 static DmtxByte StreamInputAdvanceNext(DmtxEncodeStream *stream);
 static void StreamInputAdvancePrev(DmtxEncodeStream *stream);
 
-/* dmtxencodesingle.c */
-static void EncodeSingleScheme2(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
+/* dmtxencodescheme.c */
+static void EncodeSingleScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
 static void EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx);
 static void EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatchType);
 static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
+
+/* dmtxencodeoptimize.c */
+static void EncodeOptimizeBest(DmtxEncodeStream *stream, int requestedSizeIdx);
 
 /* dmtxencodeascii.c */
 static void EncodeNextChunkAscii(DmtxEncodeStream *stream);

@@ -14,9 +14,20 @@
  *
  *
  */
-/*
-encodeOptimized(stream)
+static void
+EncodeOptimizeBest(DmtxEncodeStream *stream, int requestedSizeIdx)
 {
+   CHKSCHEME(DmtxSchemeAscii);
+
+   while(stream->status == DmtxStatusEncoding)
+   {
+      /* Use current scheme as target in single scheme mode */
+      EncodeNextChunk(stream, stream->currentScheme, requestedSizeIdx);
+   }
+
+   if(StreamInputHasNext(stream))
+      StreamMarkFatal(stream, 1 /* Found unexplained leftovers */);
+/*
    DmtxEncodeStream streams[18];
    initialize streams
 
@@ -40,8 +51,8 @@ encodeOptimized(stream)
          }
       }
    }
-}
 */
+}
 
 /**
  *
