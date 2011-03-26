@@ -6,9 +6,7 @@
  * use and distribution.
  *
  * Contact: Mike Laughton <mike@dragonflylogic.com>
- */
-
-/**
+ *
  * \file dmtxencodeedifact.c
  */
 

@@ -6,9 +6,7 @@
  * use and distribution.
  *
  * Contact: Mike Laughton <mike@dragonflylogic.com>
- */
-
-/**
+ *
  * \file dmtxencode.c
  * \brief Encode messages
  */

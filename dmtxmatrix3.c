@@ -6,9 +6,7 @@
  * use and distribution.
  *
  * Contact: Mike Laughton <mike@dragonflylogic.com>
- */
-
-/**
+ *
  * \file dmtxmatrix3.c
  * \brief 2D Matrix (3x3) math
  */

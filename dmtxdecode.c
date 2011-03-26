@@ -7,9 +7,7 @@
  * use and distribution.
  *
  * Contact: Mike Laughton <mike@dragonflylogic.com>
- */
-
-/**
+ *
  * \file dmtxdecode.c
  * \brief Decode regions
  */

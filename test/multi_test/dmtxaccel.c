@@ -1,3 +1,15 @@
+/**
+ * libdmtx - Data Matrix Encoding/Decoding Library
+ * Copyright 2010 Mike Laughton. All rights reserved.
+ *
+ * See LICENSE file in parent directory for full terms of
+ * use and distribution.
+ *
+ * Contact: Mike Laughton <mike@dragonflylogic.com>
+ *
+ * \file dmtxaccel.c
+ */
+
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 #include <assert.h>

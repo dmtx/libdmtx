@@ -11,9 +11,7 @@
  * ---------------------------------------------------------
 
  * Contact: Mike Laughton <mike@dragonflylogic.com>
- */
-
-/**
+ *
  * \file dmtxreedsol.c
  */
 
