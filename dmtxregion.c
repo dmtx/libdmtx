@@ -56,7 +56,6 @@ dmtxRegionDestroy(DmtxRegion **reg)
  * @param  timeout Pointer to timeout time (NULL if none)
  * @return Detected region (if found)
  */
-#ifndef CUSTOM_REGIONFINDNEXT
 extern DmtxRegion *
 dmtxRegionFindNext(DmtxDecode *dec, DmtxTime *timeout)
 {
@@ -82,7 +81,6 @@ dmtxRegionFindNext(DmtxDecode *dec, DmtxTime *timeout)
 
    return NULL;
 }
-#endif
 
 /**
  * @brief  Scan individual pixel for presence of barcode edge
@@ -90,7 +88,6 @@ dmtxRegionFindNext(DmtxDecode *dec, DmtxTime *timeout)
  * @param  loc Pixel location
  * @return Detected region (if any)
  */
-#ifndef CUSTOM_REGIONSCANPIXEL
 extern DmtxRegion *
 dmtxRegionScanPixel(DmtxDecode *dec, int x, int y)
 {
@@ -143,7 +140,6 @@ dmtxRegionScanPixel(DmtxDecode *dec, int x, int y)
    /* Found a valid matrix region */
    return dmtxRegionCreate(&reg);
 }
-#endif
 
 /**
  *
