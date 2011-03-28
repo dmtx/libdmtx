@@ -19,6 +19,9 @@ StreamInit(DmtxByteList *input, DmtxByteList *output)
 {
    DmtxEncodeStream stream;
 
+   stream.input = input;
+   stream.output = output;
+
    stream.currentScheme = DmtxSchemeAscii;
    stream.inputNext = 0;
    stream.outputChainValueCount = 0;
@@ -26,8 +29,6 @@ StreamInit(DmtxByteList *input, DmtxByteList *output)
    stream.reason = DmtxUndefined;
    stream.sizeIdx = DmtxUndefined;
    stream.status = DmtxStatusEncoding;
-   stream.input = input;
-   stream.output = output;
 
    return stream;
 }

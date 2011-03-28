@@ -214,7 +214,8 @@ static void EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme
 static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
 
 /* dmtxencodeoptimize.c */
-static int EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest);
+static int EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxRequest);
+static int GetPreviousSchemeState(int stateCurrent);
 
 /* dmtxencodeascii.c */
 static void EncodeNextChunkAscii(DmtxEncodeStream *stream);

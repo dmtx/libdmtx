@@ -10,52 +10,88 @@
  * \file dmtxencodeoptimize.c
  */
 
+enum SchemeState {
+   Ascii,
+   AsciiDigit1,
+   AsciiDigit2,
+   C40Digit1,
+   C40Digit2,
+   C40Digit3,
+   TextDigit1,
+   TextDigit2,
+   TextDigit3,
+   X12Digit1,
+   X12Digit2,
+   X12Digit3,
+   EdifactDigit1,
+   EdifactDigit2,
+   EdifactDigit3,
+   EdifactDigit4,
+   Base256,
+   SchemeStateCount
+};
+
 /**
  *
  *
  */
 static int
-EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest)
+EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxRequest)
 {
+/*
    DmtxEncodeStream stream;
 
    stream = StreamInit(input, output);
 
-   /* Continue encoding until complete */
+   // Continue encoding until complete
    while(stream.status == DmtxStatusEncoding)
       EncodeNextChunk(&stream, stream.currentScheme, sizeIdxRequest);
 
-   /* Verify encoding completed successfully and all inputs were consumed */
+   // Verify encoding completed successfully and all inputs were consumed
    if(stream.status != DmtxStatusComplete || StreamInputHasNext(&stream))
       return DmtxUndefined;
 
    return stream.sizeIdx;
+*/
+   int i;
+   DmtxEncodeStream stream[SchemeStateCount];
+   DmtxByte outputStorage[SchemeStateCount][4096];
+   DmtxByteList output[SchemeStateCount];
 
-/*
-   DmtxEncodeStream streams[18];
-   initialize streams
+   for(i = 0; i < SchemeStateCount; i++)
+   {
+      output[i] = dmtxByteListBuild(outputStorage[i], sizeof(outputStorage[i]));
+      stream[i] = StreamInit(input, &(output[i]));
+   }
 
-   // Encode input words until none are left
+   /* Continue encoding until complete */
    for(;;)
    {
-      // find the most efficient way to reach the 18 possible states of input+1
-      // starting from the 18 states at current input progress
-      for(targetScheme : 1 .. 18)
+      /*
+       * find the most efficient way to reach the 18 possible states of input+1
+       * starting from the 18 states at current input progress
+       */
+/*
+      for(state = 0; state < SchemeStateCount; state++)
       {
-         sourceScheme = getSourceScheme(targetScheme);
+         statePrevious = GetPreviousSchemeState(state);
 
-         if(sourceScheme != SEARCH_REQUIRED)
-         {
-            // starting from the 18 states at current input progress
-            stream.advanceCopy(stream, sourceScheme);
-         }
-         else
+         if(statePrevious == DmtxUndefined)
          {
             stream.encodeBest(stream);
          }
+         else
+         {
+            stream[state] = stream[statePrevious];
+            stream[state].inputNext++; (decide how best to handle)
+            stream[state].outputChainValueCount (decide how best to handle)
+            stream[state].outputChainWordCount (decide how best to handle)
+         }
       }
-   }
 */
+   }
+
+   return DmtxUndefined;
 }
 
 /**
@@ -84,48 +120,47 @@ encodeBest(stream, sizeIdxRequest)
  *
  *
  */
-/*
-getSourceScheme(targetScheme)
+static int
+GetPreviousSchemeState(int stateCurrent)
 {
-   sourceScheme;
+   enum SchemeState statePrevious;
 
-   switch(targetScheme)
+   switch(stateCurrent)
    {
       case AsciiDigit2:
-         sourceScheme = AsciiDigit1;
+         statePrevious = AsciiDigit1;
          break;
       case C40Digit2:
-         sourceScheme = C40Digit1:
+         statePrevious = C40Digit1;
          break;
       case C40Digit3:
-         sourceScheme = C40Digit2:
+         statePrevious = C40Digit2;
          break;
       case TextDigit2:
-         sourceScheme = TextDigit1:
+         statePrevious = TextDigit1;
          break;
       case TextDigit3:
-         sourceScheme = TextDigit2:
+         statePrevious = TextDigit2;
          break;
       case X12Digit2:
-         sourceScheme = X12Digit1:
+         statePrevious = X12Digit1;
          break;
       case X12Digit3:
-         sourceScheme = X12Digit2:
+         statePrevious = X12Digit2;
          break;
       case EdifactDigit2:
-         sourceScheme = EdifactDigit1:
+         statePrevious = EdifactDigit1;
          break;
       case EdifactDigit3:
-         sourceScheme = EdifactDigit2:
+         statePrevious = EdifactDigit2;
          break;
       case EdifactDigit4:
-         sourceScheme = EdifactDigit3:
+         statePrevious = EdifactDigit3;
          break;
       default:
-         sourceScheme = SEARCH_REQUIRED;
+         statePrevious = DmtxUndefined;
          break;
    }
 
-   return sourceScheme;
+   return statePrevious;
 }
-*/

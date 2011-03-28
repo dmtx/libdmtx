@@ -88,19 +88,16 @@ EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
 
    stream = StreamInit(input, output);
 
-   /* Latch to target scheme if not ASCII */
-   if(scheme != DmtxSchemeAscii)
-   {
-      EncodeChangeScheme(&stream, scheme, DmtxUnlatchImplicit);
-      if(stream.status != DmtxStatusEncoding)
-         return DmtxUndefined;
-   }
+   /* Latch to target scheme (if necessary) */
+   EncodeChangeScheme(&stream, scheme, DmtxUnlatchImplicit);
+   if(stream.status != DmtxStatusEncoding)
+      return DmtxUndefined;
 
    /* Continue encoding until complete */
    while(stream.status == DmtxStatusEncoding)
       EncodeNextChunk(&stream, stream.currentScheme, sizeIdxRequest);
 
-   /* Verify encoding completed successfully and all inputs were consumed */
+   /* Verify encoding completed and all inputs were consumed */
    if(stream.status != DmtxStatusComplete || StreamInputHasNext(&stream))
       return DmtxUndefined;
 
