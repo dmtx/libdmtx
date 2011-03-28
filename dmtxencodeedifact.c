@@ -86,7 +86,7 @@ EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value)
  * If not matching any of the above, continue without doing anything.
  */
 static void
-CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
+CompleteIfDoneEdifact(DmtxEncodeStream *stream, int sizeIdxRequest)
 {
    int i;
    int sizeIdx;
@@ -100,8 +100,8 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
    cleanBoundary = (stream->outputChainValueCount % 4 == 0) ? DmtxTrue : DmtxFalse;
 
    /* Find symbol's remaining capacity based on current length */
-   sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx); CHKSIZE;
-   symbolRemaining = GetRemainingSymbolCapacity(stream->output.length, sizeIdx); CHKERR;
+   sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest); CHKSIZE;
+   symbolRemaining = GetRemainingSymbolCapacity(stream->output->length, sizeIdx); CHKERR;
 
    if(!StreamInputHasNext(stream))
    {
@@ -109,7 +109,7 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
       if(cleanBoundary == DmtxFalse || symbolRemaining > 0)
       {
          EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
-         sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx); CHKSIZE;
+         sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest); CHKSIZE;
          PadRemainingInAscii(stream, sizeIdx); CHKERR;
       }
 
@@ -137,7 +137,7 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int requestedSizeIdx)
          }
 
          /* Register progress since encoding happened outside normal path */
-         stream->inputNext = stream->input.length;
+         stream->inputNext = stream->input->length;
 
          /* Pad remaining if necessary */
          PadRemainingInAscii(stream, sizeIdx); CHKERR;

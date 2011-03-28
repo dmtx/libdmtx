@@ -14,19 +14,23 @@
  *
  *
  */
-static void
-EncodeOptimizeBest(DmtxEncodeStream *stream, int requestedSizeIdx)
+static int
+EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest)
 {
-   CHKSCHEME(DmtxSchemeAscii);
+   DmtxEncodeStream stream;
 
-   while(stream->status == DmtxStatusEncoding)
-   {
-      /* Use current scheme as target in single scheme mode */
-      EncodeNextChunk(stream, stream->currentScheme, requestedSizeIdx);
-   }
+   stream = StreamInit(input, output);
 
-   if(StreamInputHasNext(stream))
-      StreamMarkFatal(stream, 1 /* Found unexplained leftovers */);
+   /* Continue encoding until complete */
+   while(stream.status == DmtxStatusEncoding)
+      EncodeNextChunk(&stream, stream.currentScheme, sizeIdxRequest);
+
+   /* Verify encoding completed successfully and all inputs were consumed */
+   if(stream.status != DmtxStatusComplete || StreamInputHasNext(&stream))
+      return DmtxUndefined;
+
+   return stream.sizeIdx;
+
 /*
    DmtxEncodeStream streams[18];
    initialize streams
@@ -59,12 +63,12 @@ EncodeOptimizeBest(DmtxEncodeStream *stream, int requestedSizeIdx)
  *
  */
 /*
-encodeBest(stream, requestedSizeIdx)
+encodeBest(stream, sizeIdxRequest)
 {
    for(i = 0; i < 18; i++)
    {
       tmpEncodeStream[i] = stream[i];
-      stopped = encodeNextWord(tmpEncodeStream[i], targetScheme, requestedSizeIdx);
+      stopped = encodeNextWord(tmpEncodeStream[i], targetScheme, sizeIdxRequest);
 
       if(result is shortest)
       {

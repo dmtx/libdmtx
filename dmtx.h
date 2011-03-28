@@ -274,8 +274,8 @@ struct DmtxEncodeStream_struct
    int reason;                /* Reason for status */
    int sizeIdx;               /* Symbol size of completed stream */
    DmtxStatus status;
-   DmtxByteList input;
-   DmtxByteList output;
+   DmtxByteList *input;
+   DmtxByteList *output;
 };
 
 /**

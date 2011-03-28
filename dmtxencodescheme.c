@@ -81,24 +81,30 @@
  *
  *
  */
-static void
-EncodeSingleScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx)
+static int
+EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme)
 {
-   CHKSCHEME(DmtxSchemeAscii);
+   DmtxEncodeStream stream;
 
-   if(targetScheme != DmtxSchemeAscii)
+   stream = StreamInit(input, output);
+
+   /* Latch to target scheme if not ASCII */
+   if(scheme != DmtxSchemeAscii)
    {
-      EncodeChangeScheme(stream, targetScheme, DmtxUnlatchExplicit); CHKERR;
+      EncodeChangeScheme(&stream, scheme, DmtxUnlatchImplicit);
+      if(stream.status != DmtxStatusEncoding)
+         return DmtxUndefined;
    }
 
-   while(stream->status == DmtxStatusEncoding)
-   {
-      /* Use current scheme as target in single scheme mode */
-      EncodeNextChunk(stream, stream->currentScheme, requestedSizeIdx);
-   }
+   /* Continue encoding until complete */
+   while(stream.status == DmtxStatusEncoding)
+      EncodeNextChunk(&stream, stream.currentScheme, sizeIdxRequest);
 
-   if(StreamInputHasNext(stream))
-      StreamMarkFatal(stream, 1 /* Found unexplained leftovers */);
+   /* Verify encoding completed successfully and all inputs were consumed */
+   if(stream.status != DmtxStatusComplete || StreamInputHasNext(&stream))
+      return DmtxUndefined;
+
+   return stream.sizeIdx;
 }
 
 /**
@@ -109,7 +115,7 @@ EncodeSingleScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int reques
  * cases this requires additional input words to be encoded as well.
  */
 static void
-EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requestedSizeIdx)
+EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int sizeIdxRequest)
 {
    /* Change to target scheme if necessary */
    if(stream->currentScheme != targetScheme)
@@ -122,21 +128,21 @@ EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int requested
    {
       case DmtxSchemeAscii:
          EncodeNextChunkAscii(stream); CHKERR;
-         CompleteIfDoneAscii(stream, requestedSizeIdx); CHKERR;
+         CompleteIfDoneAscii(stream, sizeIdxRequest); CHKERR;
          break;
       case DmtxSchemeC40:
       case DmtxSchemeText:
       case DmtxSchemeX12:
-         EncodeNextChunkCTX(stream, requestedSizeIdx); CHKERR;
-         CompleteIfDoneCTX(stream, requestedSizeIdx); CHKERR;
+         EncodeNextChunkCTX(stream, sizeIdxRequest); CHKERR;
+         CompleteIfDoneCTX(stream, sizeIdxRequest); CHKERR;
          break;
       case DmtxSchemeEdifact:
          EncodeNextChunkEdifact(stream); CHKERR;
-         CompleteIfDoneEdifact(stream, requestedSizeIdx); CHKERR;
+         CompleteIfDoneEdifact(stream, sizeIdxRequest); CHKERR;
          break;
       case DmtxSchemeBase256:
          EncodeNextChunkBase256(stream); CHKERR;
-         CompleteIfDoneBase256(stream, requestedSizeIdx); CHKERR;
+         CompleteIfDoneBase256(stream, sizeIdxRequest); CHKERR;
          break;
       default:
          StreamMarkFatal(stream, 1 /* unknown */);

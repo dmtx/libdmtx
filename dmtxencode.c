@@ -156,17 +156,19 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
 extern DmtxPassFail
 dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 {
-   int dataWordCount;
    int sizeIdx;
    int width, height, bitsPerPixel;
-   unsigned char buf[4096];
    unsigned char *pxl;
+   DmtxByte outputStorage[4096];
+   DmtxByteList output = dmtxByteListBuild(outputStorage, sizeof(outputStorage));
+   DmtxByteList input = dmtxByteListBuild(inputString, inputSize);
+
+   input.length = inputSize;
 
    /* Encode input string into data codewords */
-   sizeIdx = enc->sizeIdxRequest;
-   dataWordCount = EncodeDataCodewords(enc, buf, inputString, inputSize, &sizeIdx);
-   if(dataWordCount <= 0)
-      return(DmtxFail);
+   sizeIdx = EncodeDataCodewords(&input, &output, enc->sizeIdxRequest, enc->scheme);
+   if(sizeIdx == DmtxUndefined || output.length <= 0)
+      return DmtxFail;
 
    /* EncodeDataCodewords() should have updated any auto sizeIdx to a real one */
    assert(sizeIdx != DmtxSymbolSquareAuto && sizeIdx != DmtxSymbolRectAuto);
@@ -181,7 +183,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    /* Allocate memory for message and array */
    enc->message = dmtxMessageCreate(sizeIdx, DmtxFormatMatrix);
    enc->message->padCount = 0; /* XXX this needs to be added back */
-   memcpy(enc->message->code, buf, dataWordCount);
+   memcpy(enc->message->code, output.b, output.length);
 
    /* Generate error correction codewords */
    RsEncode(enc->message, enc->region.sizeIdx);
@@ -230,6 +232,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 extern DmtxPassFail
 dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 {
+#ifdef _IGNOREFORNOW
    int dataWordCount;
    int tmpInputSize;
    unsigned char *inputStart;
@@ -251,9 +254,8 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
     */
 
    /* Encode full input string to establish baseline data codeword count */
-   sizeIdx = sizeIdxRequest = enc->sizeIdxRequest;
    /* XXX buf can be changed here to use all 3 buffers' length */
-   dataWordCount = EncodeDataCodewords(enc, buf[0], inputString, inputSize, &sizeIdx);
+   sizeIdx = EncodeDataCodewords(input, output, enc->sizeIdxRequest, enc->scheme, passFail); XYZ
    if(dataWordCount <= 0)
       return DmtxFail;
 
@@ -289,21 +291,21 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
       /* RED LAYER */
       sizeIdx = splitSizeIdxAttempt;
       inputStart = inputString;
-      EncodeDataCodewords(enc, buf[0], inputStart, splitInputSize[0], &sizeIdx);
+      EncodeDataCodewords(enc->scheme, buf[0], inputStart, splitInputSize[0], &sizeIdx);
       if(sizeIdx != splitSizeIdxAttempt)
          continue;
 
       /* GREEN LAYER */
       sizeIdx = splitSizeIdxAttempt;
       inputStart += splitInputSize[0];
-      EncodeDataCodewords(enc, buf[1], inputStart, splitInputSize[1], &sizeIdx);
+      EncodeDataCodewords(enc->scheme, buf[1], inputStart, splitInputSize[1], &sizeIdx);
       if(sizeIdx != splitSizeIdxAttempt)
          continue;
 
       /* BLUE LAYER */
       sizeIdx = splitSizeIdxAttempt;
       inputStart += splitInputSize[1];
-      EncodeDataCodewords(enc, buf[2], inputStart, splitInputSize[2], &sizeIdx);
+      EncodeDataCodewords(enc->scheme, buf[2], inputStart, splitInputSize[2], &sizeIdx);
       if(sizeIdx != splitSizeIdxAttempt)
          continue;
 
@@ -356,7 +358,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    dmtxEncodeStructDeInit(&encBlue); */
 
    PrintPattern(enc);
-
+#endif
    return DmtxPass;
 }
 
@@ -368,44 +370,32 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
  * @param  scheme
  * @param  sizeIdx
  * @return Count of encoded data words
+ *
+ * This function needs to take both dataWordCount and sizeIdx into account
+ * because symbol size can affect encoding near the end of symbol.
+ *
+ * later pass DmtxEncode to this function with an error reason field, which goes to EncodeSingle... too
  */
 static int
-EncodeDataCodewords(DmtxEncode *enc, unsigned char *buf, unsigned char *inputString,
-      int inputSize, int *sizeIdx)
+EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme)
 {
-   int dataWordCount;
-   DmtxEncodeStream stream;
-
-   /*
-    * This function needs to take both dataWordCount and sizeIdx into account
-    * because symbol size can affect encoding near the end of symbol.
-    */
+   int sizeIdx;
 
    /* Encode input string into data codewords */
-   switch(enc->scheme) {
+   switch(scheme)
+   {
       case DmtxSchemeAutoBest:
-         dataWordCount = 0;
-         stream = StreamInit(inputString, inputSize, buf, 4096);
-         EncodeOptimizeBest(&stream, *sizeIdx);
-         dataWordCount = stream.output.length;
-         *sizeIdx = stream.sizeIdx;
+         sizeIdx = EncodeOptimizeBest(input, output, sizeIdxRequest);
          break;
       case DmtxSchemeAutoFast:
-         dataWordCount = 0;
-         /* dataWordCount = EncodeAutoFast(enc, buf, inputString, inputSize); */
+         sizeIdx = DmtxUndefined; /* EncodeAutoFast(input, output, sizeIdxRequest, passFail); */
          break;
       default:
-         stream = StreamInit(inputString, inputSize, buf, 4096);
-         EncodeSingleScheme(&stream, enc->scheme, *sizeIdx);
-         dataWordCount = stream.output.length;
-         *sizeIdx = stream.sizeIdx;
+         sizeIdx = EncodeSingleScheme(input, output, sizeIdxRequest, scheme);
          break;
    }
 
-   if(*sizeIdx == DmtxUndefined)
-      return 0;
-
-   return dataWordCount;
+   return sizeIdx;
 }
 
 /**

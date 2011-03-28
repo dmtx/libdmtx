@@ -76,13 +76,13 @@ EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value)
  *
  */
 static void
-CompleteIfDoneAscii(DmtxEncodeStream *stream, int requestedSizeIdx)
+CompleteIfDoneAscii(DmtxEncodeStream *stream, int sizeIdxRequest)
 {
    int sizeIdx;
 
    if(!StreamInputHasNext(stream))
    {
-      sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx); CHKSIZE;
+      sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest); CHKSIZE;
       PadRemainingInAscii(stream, sizeIdx); CHKERR;
       StreamMarkComplete(stream, sizeIdx);
    }
@@ -90,7 +90,7 @@ CompleteIfDoneAscii(DmtxEncodeStream *stream, int requestedSizeIdx)
 
 /**
  * Can we just receive a length to pad here? I don't like receiving
- * requestedSizeIdx (or sizeIdx) this late in the game
+ * sizeIdxRequest (or sizeIdx) this late in the game
  *
  */
 static void
@@ -102,7 +102,7 @@ PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx)
    CHKSCHEME(DmtxSchemeAscii);
    CHKSIZE;
 
-   symbolRemaining = GetRemainingSymbolCapacity(stream->output.length, sizeIdx);
+   symbolRemaining = GetRemainingSymbolCapacity(stream->output->length, sizeIdx);
 
    /* First pad character is not randomized */
    if(symbolRemaining > 0)
@@ -115,7 +115,7 @@ PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx)
    /* All remaining pad characters are randomized based on character position */
    while(symbolRemaining > 0)
    {
-      padValue = Randomize253State(DmtxValueAsciiPad, stream->output.length + 1);
+      padValue = Randomize253State(DmtxValueAsciiPad, stream->output->length + 1);
       StreamOutputChainAppend(stream, padValue); CHKERR;
       symbolRemaining--;
    }
@@ -123,14 +123,16 @@ PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx)
 
 /**
  *
- *
+ * consider receiving an instanitated DmtxByteList instead of the output components
  */
 static DmtxByteList
 EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail)
 {
    DmtxEncodeStream streamAscii;
+   DmtxByteList output = dmtxByteListBuild(storage, capacity);
 
    /* Create temporary copy of stream that writes to storage */
+
    streamAscii = *stream;
    streamAscii.currentScheme = DmtxSchemeAscii;
    streamAscii.outputChainValueCount = 0;
@@ -138,9 +140,9 @@ EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capac
    streamAscii.reason = DmtxUndefined;
    streamAscii.sizeIdx = DmtxUndefined;
    streamAscii.status = DmtxStatusEncoding;
-   streamAscii.output = dmtxByteListBuild(storage, capacity);
+   streamAscii.output = &output;
 
-   while(dmtxByteListHasCapacity(&(streamAscii.output)))
+   while(dmtxByteListHasCapacity(streamAscii.output))
    {
       if(StreamInputHasNext(&streamAscii))
          EncodeNextChunkAscii(&streamAscii); /* No CHKERR */
@@ -156,7 +158,7 @@ EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capac
 
    *passFail = (streamAscii.status == DmtxStatusEncoding) ? DmtxPass : DmtxFail;
 
-   return streamAscii.output;
+   return output;
 }
 
 /**

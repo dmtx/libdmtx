@@ -27,7 +27,7 @@
  *
  */
 static void
-EncodeNextChunkCTX(DmtxEncodeStream *stream, int requestedSizeIdx)
+EncodeNextChunkCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
 {
    DmtxPassFail passFail;
    DmtxByte inputValue;
@@ -65,7 +65,7 @@ EncodeNextChunkCTX(DmtxEncodeStream *stream, int requestedSizeIdx)
     */
    if(!StreamInputHasNext(stream) && valueList.length > 0)
    {
-      CompleteIfDonePartialCTX(stream, &valueList, requestedSizeIdx); CHKERR;
+      CompleteIfDonePartialCTX(stream, &valueList, sizeIdxRequest); CHKERR;
    }
 }
 
@@ -139,13 +139,13 @@ EncodeUnlatchCTX(DmtxEncodeStream *stream)
  *            -       -  UNLATCH [PAD]
  */
 static void
-CompleteIfDoneCTX(DmtxEncodeStream *stream, int requestedSizeIdx)
+CompleteIfDoneCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
 {
    int sizeIdx;
    int symbolRemaining;
 
-   sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx); CHKSIZE;
-   symbolRemaining = GetRemainingSymbolCapacity(stream->output.length, sizeIdx);
+   sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest); CHKSIZE;
+   symbolRemaining = GetRemainingSymbolCapacity(stream->output->length, sizeIdx);
 
    if(!StreamInputHasNext(stream))
    {
@@ -187,7 +187,7 @@ CompleteIfDoneCTX(DmtxEncodeStream *stream, int requestedSizeIdx)
  *               -       -  UNLATCH (continue ASCII)
  */
 static void
-CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int requestedSizeIdx)
+CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeIdxRequest)
 {
    int sizeIdx;
    int symbolRemaining;
@@ -205,8 +205,8 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
    /* Should have exactly one or two input values left */
    assert(valueList->length == 1 || valueList->length == 2);
 
-   sizeIdx = FindSymbolSize(stream->output.length, requestedSizeIdx); CHKSIZE;
-   symbolRemaining = GetRemainingSymbolCapacity(stream->output.length, sizeIdx);
+   sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest); CHKSIZE;
+   symbolRemaining = GetRemainingSymbolCapacity(stream->output->length, sizeIdx);
 
    if(valueList->length == 2 && symbolRemaining == 2)
    {
@@ -244,7 +244,7 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
          EncodeValueAscii(stream, outputTmp.b[0]); CHKERR;
 
          /* Register progress since encoding happened outside normal path */
-         stream->inputNext = stream->input.length;
+         stream->inputNext = stream->input->length;
 
          StreamMarkComplete(stream, sizeIdx);
       }
