@@ -610,7 +610,7 @@ extern int dmtxGetBlockDataSize(int sizeIdx, int blockIdx);
 extern DmtxByteList dmtxByteListBuild(DmtxByte *storage, int capacity);
 extern void dmtxByteListInit(DmtxByteList *list, int length, DmtxByte value, DmtxPassFail *passFail);
 extern DmtxBoolean dmtxByteListHasCapacity(DmtxByteList *list);
-extern void dmtxByteListCopy(DmtxByteList *dest, const DmtxByteList *src, DmtxPassFail *passFail);
+extern void dmtxByteListCopy(DmtxByteList *dst, const DmtxByteList *src, DmtxPassFail *passFail);
 extern void dmtxByteListPush(DmtxByteList *list, DmtxByte value, DmtxPassFail *passFail);
 extern DmtxByte dmtxByteListPop(DmtxByteList *list, DmtxPassFail *passFail);
 extern void dmtxByteListPrint(DmtxByteList *list, char *prefix);

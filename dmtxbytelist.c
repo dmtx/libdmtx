@@ -65,21 +65,21 @@ dmtxByteListHasCapacity(DmtxByteList *list)
  *
  */
 extern void
-dmtxByteListCopy(DmtxByteList *dest, const DmtxByteList *src, DmtxPassFail *passFail)
+dmtxByteListCopy(DmtxByteList *dst, const DmtxByteList *src, DmtxPassFail *passFail)
 {
    int length;
 
-   if(dest->capacity < src->length)
+   if(dst->capacity < src->length)
    {
-      *passFail = DmtxFail; /* dest must be large enough to hold src data */
+      *passFail = DmtxFail; /* dst must be large enough to hold src data */
    }
    else
    {
-      /* Copy as many bytes as dest can hold or src can provide (smaller of two) */
-      length = (dest->capacity < src->capacity) ? dest->capacity : src->capacity;
+      /* Copy as many bytes as dst can hold or src can provide (smaller of two) */
+      length = (dst->capacity < src->capacity) ? dst->capacity : src->capacity;
 
-      dest->length = src->length;
-      memcpy(dest->b, src->b, sizeof(unsigned char) * length);
+      dst->length = src->length;
+      memcpy(dst->b, src->b, sizeof(unsigned char) * length);
       *passFail = DmtxPass;
    }
 }
