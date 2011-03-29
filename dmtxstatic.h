@@ -196,6 +196,7 @@ static int GetBitsPerPixel(int pack);
 
 /* dmtxencodestream.c */
 static DmtxEncodeStream StreamInit(DmtxByteList *input, DmtxByteList *output);
+static void StreamCopy(DmtxEncodeStream *dst, DmtxEncodeStream *src);
 static void StreamMarkComplete(DmtxEncodeStream *stream, int sizeIdx);
 static void StreamMarkInvalid(DmtxEncodeStream *stream, int reason);
 static void StreamMarkFatal(DmtxEncodeStream *stream, int reason);
@@ -216,6 +217,7 @@ static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
 /* dmtxencodeoptimize.c */
 static int EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxRequest);
 static int GetPreviousSchemeState(int stateCurrent);
+static void StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream);
 
 /* dmtxencodeascii.c */
 static void EncodeNextChunkAscii(DmtxEncodeStream *stream);

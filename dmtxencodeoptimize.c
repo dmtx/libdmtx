@@ -53,8 +53,9 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxReq
 
    return stream.sizeIdx;
 */
-   int i;
+   int i, state, statePrevious;
    DmtxEncodeStream stream[SchemeStateCount];
+   DmtxEncodeStream streamNext[SchemeStateCount];
    DmtxByte outputStorage[SchemeStateCount][4096];
    DmtxByteList output[SchemeStateCount];
 
@@ -64,57 +65,35 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxReq
       stream[i] = StreamInit(input, &(output[i]));
    }
 
-   /* Continue encoding until complete */
    for(;;)
    {
-      /*
-       * find the most efficient way to reach the 18 possible states of input+1
-       * starting from the 18 states at current input progress
-       */
-/*
+      /* Find most efficient way to reach each state for the next input value */
       for(state = 0; state < SchemeStateCount; state++)
       {
          statePrevious = GetPreviousSchemeState(state);
 
-         if(statePrevious == DmtxUndefined)
+         if(statePrevious != DmtxUndefined)
          {
-            stream.encodeBest(stream);
+            StreamCopy(&(streamNext[state]), &(stream[statePrevious]));
+            streamNext[state].inputNext++;
          }
          else
          {
-            stream[state] = stream[statePrevious];
-            stream[state].inputNext++; (decide how best to handle)
-            stream[state].outputChainValueCount (decide how best to handle)
-            stream[state].outputChainWordCount (decide how best to handle)
+            StreamAdvanceFromBest(&(streamNext[state]), stream);
          }
       }
-*/
+
+      /* Update "current" streams with results */
+      for(state = 0; state < SchemeStateCount; state++)
+         StreamCopy(&(stream[state]), &(streamNext[state]));
+
+      /* Break condition -- Quit when all streams are either finished or invalid */
+      if(1)
+         break;
    }
 
    return DmtxUndefined;
 }
-
-/**
- *
- *
- */
-/*
-encodeBest(stream, sizeIdxRequest)
-{
-   for(i = 0; i < 18; i++)
-   {
-      tmpEncodeStream[i] = stream[i];
-      stopped = encodeNextWord(tmpEncodeStream[i], targetScheme, sizeIdxRequest);
-
-      if(result is shortest)
-      {
-         best = i;
-      }
-   }
-
-   return stream[best];
-}
-*/
 
 /**
  *
@@ -163,4 +142,27 @@ GetPreviousSchemeState(int stateCurrent)
    }
 
    return statePrevious;
+}
+
+/**
+ *
+ *
+ */
+static void
+StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream)
+{
+/*
+   for(i = 0; i < 18; i++)
+   {
+      tmpEncodeStream[i] = stream[i];
+      stopped = encodeNextWord(tmpEncodeStream[i], targetScheme, sizeIdxRequest);
+
+      if(result is shortest)
+      {
+         best = i;
+      }
+   }
+
+   return stream[best];
+*/
 }

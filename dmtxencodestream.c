@@ -38,6 +38,28 @@ StreamInit(DmtxByteList *input, DmtxByteList *output)
  *
  */
 static void
+StreamCopy(DmtxEncodeStream *dst, DmtxEncodeStream *src)
+{
+   int length;
+
+   dst->currentScheme = src->currentScheme;
+   dst->inputNext = src->inputNext;
+   dst->outputChainValueCount = src->outputChainValueCount;
+   dst->outputChainWordCount = src->outputChainWordCount;
+   dst->reason = src->reason;
+   dst->sizeIdx = src->sizeIdx;
+   dst->status = src->status;
+   dst->input = src->input;
+
+   length = min(dst->input->capacity, dst->output->capacity);
+   memmove(dst->output, src->output, length);
+}
+
+/**
+ *
+ *
+ */
+static void
 StreamMarkComplete(DmtxEncodeStream *stream, int sizeIdx)
 {
    if(stream->status == DmtxStatusEncoding)
