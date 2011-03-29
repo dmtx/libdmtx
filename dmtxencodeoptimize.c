@@ -36,28 +36,36 @@ enum SchemeState {
  *
  */
 static int
-EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxRequest)
+EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest)
 {
-   int i, state, cameFrom;
-   DmtxEncodeStream stream[SchemeStateCount];
-   DmtxEncodeStream streamTmp[SchemeStateCount];
-   DmtxByte outputStorage[SchemeStateCount][4096];
-   DmtxByte outputTmpStorage[SchemeStateCount][4096];
-   DmtxByteList output[SchemeStateCount];
-   DmtxByteList outputTmp[SchemeStateCount];
+   int i, cameFrom, targetScheme;
+   DmtxEncodeStream streamBest[SchemeStateCount];
+   DmtxEncodeStream streamTemp[SchemeStateCount];
+   DmtxByte outputBestStorage[SchemeStateCount][4096];
+   DmtxByte outputTempStorage[SchemeStateCount][4096];
+   DmtxByteList outputBest[SchemeStateCount];
+   DmtxByteList outputTemp[SchemeStateCount];
 
    /* Initialize streams with their own output storage */
    for(i = 0; i < SchemeStateCount; i++)
    {
-      output[i] = dmtxByteListBuild(outputStorage[i], sizeof(outputStorage[i]));
-      outputTmp[i] = dmtxByteListBuild(outputTmpStorage[i], sizeof(outputTmpStorage[i]));
-      stream[i] = StreamInit(input, &(output[i]));
-      streamTmp[i] = StreamInit(input, &(outputTmp[i]));
+      outputBest[i] = dmtxByteListBuild(outputBestStorage[i], sizeof(outputBestStorage[i]));
+      outputTemp[i] = dmtxByteListBuild(outputTempStorage[i], sizeof(outputTempStorage[i]));
+      streamBest[i] = StreamInit(input, &(outputBest[i]));
+      streamTemp[i] = StreamInit(input, &(outputTemp[i]));
    }
 
-   /* Encode first chunk in each stream */
+   /* Encode first chunk in each non-intermediate stream */
    for(i = 0; i < SchemeStateCount; i++)
-      EncodeNextChunk(&(stream[i]), GetSchemeFromState(i), sizeIdxRequest);
+   {
+      cameFrom = GetPreviousSchemeState(i);
+      targetScheme = GetSchemeFromState(i);
+
+      if(cameFrom == DmtxUndefined)
+         EncodeNextChunk(&(streamBest[i]), targetScheme, sizeIdxRequest);
+      else
+         ; /* XXX mark invalid */
+   }
 
    /* Continue encoding until all streams are complete */
    for(;;)
@@ -67,26 +75,25 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxReq
          break;
 
       /* Find most efficient way to reach each state for the next input value */
-      for(state = 0; state < SchemeStateCount; state++)
+      for(i = 0; i < SchemeStateCount; i++)
       {
-         /* what about first iteration? */
-         cameFrom = GetPreviousSchemeState(state);
+         cameFrom = GetPreviousSchemeState(i);
 
          if(cameFrom == DmtxUndefined)
          {
-            StreamAdvanceFromBest(&(streamTmp[state]), stream, sizeIdxRequest);
+            StreamAdvanceFromBest(&(streamTemp[i]), streamBest, sizeIdxRequest);
          }
          else
          {
             /* what about sizeidxrequest ... what if finished? */
-            StreamCopy(&(streamTmp[state]), &(stream[cameFrom]));
-            streamTmp[state].inputNext++;
+            StreamCopy(&(streamTemp[i]), &(streamBest[cameFrom]));
+            streamTemp[i].inputNext++;
          }
       }
 
       /* Update "current" streams with results */
-      for(state = 0; state < SchemeStateCount; state++)
-         StreamCopy(&(stream[state]), &(streamTmp[state]));
+      for(i = 0; i < SchemeStateCount; i++)
+         StreamCopy(&(streamBest[i]), &(streamTemp[i]));
    }
 
    return DmtxUndefined;
