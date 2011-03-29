@@ -42,6 +42,12 @@ FOCUS: region detection refinement, multiple barcode scanning, structured append
   o project:   Clean up source file permissions (write script to detect outliers?)
 
 version 0.7.4: (planned TBD)
+  o libdmtx:   Create coding style guide
+               - Always pass by reference passFail as final parameter (can't be ignored)
+               - Use "enum XYZ" instead of "typedef enum"
+               - dmtx prefix for public functions
+               - static functions start capitalized
+               - etc...
   o libdmtx:   XXX write optimize logic
   x libdmtx:   Added Base 256 "encode to end of symbol" single byte header
   x libdmtx:   Fixed encoding bug affecting certain end-of-symbol conditions

@@ -50,14 +50,22 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxReq
    for(i = 0; i < SchemeStateCount; i++)
    {
       output[i] = dmtxByteListBuild(outputStorage[i], sizeof(outputStorage[i]));
-      stream[i] = StreamInit(input, &(output[i]));
-
       outputTmp[i] = dmtxByteListBuild(outputTmpStorage[i], sizeof(outputTmpStorage[i]));
+      stream[i] = StreamInit(input, &(output[i]));
       streamTmp[i] = StreamInit(input, &(outputTmp[i]));
    }
 
+   /* Encode first chunk in each stream */
+   for(i = 0; i < SchemeStateCount; i++)
+      EncodeNextChunk(&(stream[i]), GetSchemeFromState(i), sizeIdxRequest);
+
+   /* Continue encoding until all streams are complete */
    for(;;)
    {
+      /* Break condition -- Quit when all streams are either finished or invalid */
+      if(1)
+         break;
+
       /* Find most efficient way to reach each state for the next input value */
       for(state = 0; state < SchemeStateCount; state++)
       {
@@ -79,13 +87,81 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxReq
       /* Update "current" streams with results */
       for(state = 0; state < SchemeStateCount; state++)
          StreamCopy(&(stream[state]), &(streamTmp[state]));
-
-      /* Break condition -- Quit when all streams are either finished or invalid */
-      if(1)
-         break;
    }
 
    return DmtxUndefined;
+}
+
+/**
+ *
+ *
+ */
+static void
+StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, int sizeIdxRequest)
+{
+   StreamCopy(streamNext, &(stream[Ascii]));
+
+   EncodeNextChunk(streamNext, DmtxSchemeAscii, sizeIdxRequest);
+/*
+   for(i = 0; i < 18; i++)
+   {
+      tmpEncodeStream[i] = stream[i];
+      stopped = encodeNextChunk(tmpEncodeStream[i], targetScheme, sizeIdxRequest);
+
+      if(result is shortest)
+      {
+         best = i;
+      }
+   }
+*/
+}
+
+/**
+ *
+ *
+ */
+static int
+GetSchemeFromState(int state)
+{
+   DmtxScheme scheme;
+
+   switch(state)
+   {
+      case Ascii:
+      case AsciiDigit1:
+      case AsciiDigit2:
+         scheme = DmtxSchemeAscii;
+         break;
+      case C40Digit1:
+      case C40Digit2:
+      case C40Digit3:
+         scheme = DmtxSchemeC40;
+         break;
+      case TextDigit1:
+      case TextDigit2:
+      case TextDigit3:
+         scheme = DmtxSchemeText;
+         break;
+      case X12Digit1:
+      case X12Digit2:
+      case X12Digit3:
+         scheme = DmtxSchemeX12;
+         break;
+      case EdifactDigit1:
+      case EdifactDigit2:
+      case EdifactDigit3:
+      case EdifactDigit4:
+         scheme = DmtxSchemeEdifact;
+         break;
+      case Base256:
+         scheme = DmtxSchemeBase256;
+         break;
+      default:
+         scheme = DmtxUndefined;
+         break;
+   }
+
+   return scheme;
 }
 
 /**
@@ -135,28 +211,4 @@ GetPreviousSchemeState(int state)
    }
 
    return cameFrom;
-}
-
-/**
- *
- *
- */
-static void
-StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, int sizeIdxRequest)
-{
-   StreamCopy(streamNext, &(stream[Ascii]));
-
-   EncodeNextChunk(streamNext, DmtxSchemeAscii, sizeIdxRequest);
-/*
-   for(i = 0; i < 18; i++)
-   {
-      tmpEncodeStream[i] = stream[i];
-      stopped = encodeNextChunk(tmpEncodeStream[i], targetScheme, sizeIdxRequest);
-
-      if(result is shortest)
-      {
-         best = i;
-      }
-   }
-*/
 }
