@@ -38,31 +38,22 @@ enum SchemeState {
 static int
 EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxRequest)
 {
-/*
-   DmtxEncodeStream stream;
-
-   stream = StreamInit(input, output);
-
-   // Continue encoding until complete
-   while(stream.status == DmtxStatusEncoding)
-      EncodeNextChunk(&stream, stream.currentScheme, sizeIdxRequest);
-
-   // Verify encoding completed successfully and all inputs were consumed
-   if(stream.status != DmtxStatusComplete || StreamInputHasNext(&stream))
-      return DmtxUndefined;
-
-   return stream.sizeIdx;
-*/
-   int i, state, statePrevious;
+   int i, state, cameFrom;
    DmtxEncodeStream stream[SchemeStateCount];
-   DmtxEncodeStream streamNext[SchemeStateCount];
+   DmtxEncodeStream streamTmp[SchemeStateCount];
    DmtxByte outputStorage[SchemeStateCount][4096];
+   DmtxByte outputTmpStorage[SchemeStateCount][4096];
    DmtxByteList output[SchemeStateCount];
+   DmtxByteList outputTmp[SchemeStateCount];
 
+   /* Initialize streams with their own output storage */
    for(i = 0; i < SchemeStateCount; i++)
    {
       output[i] = dmtxByteListBuild(outputStorage[i], sizeof(outputStorage[i]));
       stream[i] = StreamInit(input, &(output[i]));
+
+      outputTmp[i] = dmtxByteListBuild(outputTmpStorage[i], sizeof(outputTmpStorage[i]));
+      streamTmp[i] = StreamInit(input, &(outputTmp[i]));
    }
 
    for(;;)
@@ -70,22 +61,24 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxReq
       /* Find most efficient way to reach each state for the next input value */
       for(state = 0; state < SchemeStateCount; state++)
       {
-         statePrevious = GetPreviousSchemeState(state);
+         /* what about first iteration? */
+         cameFrom = GetPreviousSchemeState(state);
 
-         if(statePrevious != DmtxUndefined)
+         if(cameFrom == DmtxUndefined)
          {
-            StreamCopy(&(streamNext[state]), &(stream[statePrevious]));
-            streamNext[state].inputNext++;
+            StreamAdvanceFromBest(&(streamTmp[state]), stream, sizeIdxRequest);
          }
          else
          {
-            StreamAdvanceFromBest(&(streamNext[state]), stream);
+            /* what about sizeidxrequest ... what if finished? */
+            StreamCopy(&(streamTmp[state]), &(stream[cameFrom]));
+            streamTmp[state].inputNext++;
          }
       }
 
       /* Update "current" streams with results */
       for(state = 0; state < SchemeStateCount; state++)
-         StreamCopy(&(stream[state]), &(streamNext[state]));
+         StreamCopy(&(stream[state]), &(streamTmp[state]));
 
       /* Break condition -- Quit when all streams are either finished or invalid */
       if(1)
@@ -100,48 +93,48 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *outputBest, int sizeIdxReq
  *
  */
 static int
-GetPreviousSchemeState(int stateCurrent)
+GetPreviousSchemeState(int state)
 {
-   enum SchemeState statePrevious;
+   enum SchemeState cameFrom;
 
-   switch(stateCurrent)
+   switch(state)
    {
       case AsciiDigit2:
-         statePrevious = AsciiDigit1;
+         cameFrom = AsciiDigit1;
          break;
       case C40Digit2:
-         statePrevious = C40Digit1;
+         cameFrom = C40Digit1;
          break;
       case C40Digit3:
-         statePrevious = C40Digit2;
+         cameFrom = C40Digit2;
          break;
       case TextDigit2:
-         statePrevious = TextDigit1;
+         cameFrom = TextDigit1;
          break;
       case TextDigit3:
-         statePrevious = TextDigit2;
+         cameFrom = TextDigit2;
          break;
       case X12Digit2:
-         statePrevious = X12Digit1;
+         cameFrom = X12Digit1;
          break;
       case X12Digit3:
-         statePrevious = X12Digit2;
+         cameFrom = X12Digit2;
          break;
       case EdifactDigit2:
-         statePrevious = EdifactDigit1;
+         cameFrom = EdifactDigit1;
          break;
       case EdifactDigit3:
-         statePrevious = EdifactDigit2;
+         cameFrom = EdifactDigit2;
          break;
       case EdifactDigit4:
-         statePrevious = EdifactDigit3;
+         cameFrom = EdifactDigit3;
          break;
       default:
-         statePrevious = DmtxUndefined;
+         cameFrom = DmtxUndefined;
          break;
    }
 
-   return statePrevious;
+   return cameFrom;
 }
 
 /**
@@ -149,20 +142,21 @@ GetPreviousSchemeState(int stateCurrent)
  *
  */
 static void
-StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream)
+StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, int sizeIdxRequest)
 {
+   StreamCopy(streamNext, &(stream[Ascii]));
+
+   EncodeNextChunk(streamNext, DmtxSchemeAscii, sizeIdxRequest);
 /*
    for(i = 0; i < 18; i++)
    {
       tmpEncodeStream[i] = stream[i];
-      stopped = encodeNextWord(tmpEncodeStream[i], targetScheme, sizeIdxRequest);
+      stopped = encodeNextChunk(tmpEncodeStream[i], targetScheme, sizeIdxRequest);
 
       if(result is shortest)
       {
          best = i;
       }
    }
-
-   return stream[best];
 */
 }
