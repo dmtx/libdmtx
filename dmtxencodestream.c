@@ -40,7 +40,7 @@ StreamInit(DmtxByteList *input, DmtxByteList *output)
 static void
 StreamCopy(DmtxEncodeStream *dst, DmtxEncodeStream *src)
 {
-   int length;
+   DmtxPassFail passFail;
 
    dst->currentScheme = src->currentScheme;
    dst->inputNext = src->inputNext;
@@ -51,8 +51,7 @@ StreamCopy(DmtxEncodeStream *dst, DmtxEncodeStream *src)
    dst->status = src->status;
    dst->input = src->input;
 
-   length = min(dst->input->capacity, dst->output->capacity);
-   memmove(dst->output, src->output, length);
+   dmtxByteListCopy(dst->output, src->output, &passFail);
 }
 
 /**
