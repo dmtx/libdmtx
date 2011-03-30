@@ -69,6 +69,8 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
    /* Continue encoding until all streams are complete */
    for(;;)
    {
+      /* XXX check streams for fatal condition here ? */
+
       /* Break condition -- Quit when all streams are either finished or invalid */
       if(AllStreamsComplete(streamBest))
          break;
@@ -78,13 +80,12 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       {
          cameFrom = GetPreviousSchemeState(i);
 
-         if(cameFrom == DmtxUndefined)
+         if(cameFrom == DmtxUndefined || streamBest[i].status == DmtxStatusInvalid)
          {
             StreamAdvanceFromBest(&(streamTemp[i]), streamBest, sizeIdxRequest);
          }
          else
          {
-            /* what about sizeidxrequest ... what if finished? */
             StreamCopy(&(streamTemp[i]), &(streamBest[cameFrom]));
             streamTemp[i].inputNext++;
          }
@@ -92,7 +93,10 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
 
       /* Update "current" streams with results */
       for(i = 0; i < SchemeStateCount; i++)
+      {
+/* XXX only copy over streamBest if streamBest is not complete */
          StreamCopy(&(streamBest[i]), &(streamTemp[i]));
+      }
    }
 
    return DmtxUndefined;
@@ -108,6 +112,7 @@ StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, in
    StreamCopy(streamNext, &(stream[Ascii]));
 
    EncodeNextChunk(streamNext, DmtxSchemeAscii, sizeIdxRequest);
+/* XXX should produce invalid output if all streams are invalid */
 /*
    for(i = 0; i < 18; i++)
    {
