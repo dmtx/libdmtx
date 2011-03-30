@@ -38,7 +38,7 @@ enum SchemeState {
 static int
 EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest)
 {
-   int i, cameFrom, targetScheme;
+   int i, cameFrom;
    DmtxEncodeStream streamBest[SchemeStateCount];
    DmtxEncodeStream streamTemp[SchemeStateCount];
    DmtxByte outputBestStorage[SchemeStateCount][4096];
@@ -59,19 +59,18 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
    for(i = 0; i < SchemeStateCount; i++)
    {
       cameFrom = GetPreviousSchemeState(i);
-      targetScheme = GetSchemeFromState(i);
 
       if(cameFrom == DmtxUndefined)
-         EncodeNextChunk(&(streamBest[i]), targetScheme, sizeIdxRequest);
+         EncodeNextChunk(&(streamBest[i]), GetSchemeFromState(i), sizeIdxRequest);
       else
-         ; /* XXX mark invalid */
+         StreamMarkInvalid(&(streamBest[i]), DmtxChannelUnsupportedChar);
    }
 
    /* Continue encoding until all streams are complete */
    for(;;)
    {
       /* Break condition -- Quit when all streams are either finished or invalid */
-      if(1)
+      if(AllStreamsComplete(streamBest))
          break;
 
       /* Find most efficient way to reach each state for the next input value */
@@ -218,4 +217,18 @@ GetPreviousSchemeState(int state)
    }
 
    return cameFrom;
+}
+
+static DmtxBoolean
+AllStreamsComplete(DmtxEncodeStream *streams)
+{
+   int i;
+
+   for(i = 0; i < SchemeStateCount; i++)
+   {
+      if(streams[i].status == DmtxStatusEncoding)
+         return DmtxFalse;
+   }
+
+   return DmtxTrue;
 }
