@@ -45,8 +45,7 @@ EXTRA_DIST = KNOWNBUG \
 	script/check_spacing.sh \
 	script/check_todo.sh \
 	script/check_whitespace.sh \
-	script/dist-image.sh \
-	test/rotate_test/images/test_image??.png
+	script/dist-image.sh
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libdmtx.pc

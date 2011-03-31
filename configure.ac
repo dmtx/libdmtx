@@ -7,10 +7,7 @@ AC_CONFIG_FILES([
    Makefile
    libdmtx.pc
    test/Makefile
-   test/multi_test/Makefile
-   test/rotate_test/Makefile
    test/simple_test/Makefile
-   test/unit_test/Makefile
 ])
 
 AC_PROG_CC
