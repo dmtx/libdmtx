@@ -111,7 +111,8 @@ StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, in
 {
    StreamCopy(streamNext, &(stream[Ascii]));
 
-   EncodeNextChunk(streamNext, DmtxSchemeAscii, sizeIdxRequest);
+   EncodeNextChunkAscii(stream, DmtxFalse); CHKERR;
+   CompleteIfDoneAscii(stream, sizeIdxRequest); CHKERR;
 /* XXX should produce invalid output if all streams are invalid */
 /*
    for(i = 0; i < 18; i++)

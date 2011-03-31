@@ -222,7 +222,7 @@ static int GetPreviousSchemeState(int state);
 static DmtxBoolean AllStreamsComplete(DmtxEncodeStream *stream);
 
 /* dmtxencodeascii.c */
-static void EncodeNextChunkAscii(DmtxEncodeStream *stream);
+static void EncodeNextChunkAscii(DmtxEncodeStream *stream, DmtxBoolean compressDigits);
 static void EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value);
 static void CompleteIfDoneAscii(DmtxEncodeStream *stream, int sizeIdxRequest);
 static void PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx);

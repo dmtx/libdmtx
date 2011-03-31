@@ -15,27 +15,22 @@
  *
  */
 static void
-EncodeNextChunkAscii(DmtxEncodeStream *stream)
+EncodeNextChunkAscii(DmtxEncodeStream *stream, DmtxBoolean compressDigits)
 {
-   DmtxBoolean v1set;
-   DmtxByte v0, v1;
+   DmtxByte v0, v1 = 0;
 
    if(StreamInputHasNext(stream))
    {
       v0 = StreamInputAdvanceNext(stream); CHKERR;
 
-      if(StreamInputHasNext(stream))
-      {
-         v1 = StreamInputPeekNext(stream); CHKERR;
-         v1set = DmtxTrue;
-      }
+      if(compressDigits && StreamInputHasNext(stream))
+         v1 = StreamInputPeekNext(stream);
       else
-      {
-         v1 = 0;
-         v1set = DmtxFalse;
-      }
+         compressDigits = DmtxFalse;
 
-      if(ISDIGIT(v0) && v1set && ISDIGIT(v1))
+      CHKERR;
+
+      if(compressDigits && ISDIGIT(v0) && ISDIGIT(v1))
       {
          /* Two adjacent digit chars */
          StreamInputAdvanceNext(stream); CHKERR; /* Make the peek progress official */
@@ -123,7 +118,7 @@ PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx)
 
 /**
  *
- * consider receiving an instanitated DmtxByteList instead of the output components
+ * consider receiving instantiated DmtxByteList instead of the output components
  */
 static DmtxByteList
 EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail)
@@ -145,7 +140,7 @@ EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capac
    while(dmtxByteListHasCapacity(streamAscii.output))
    {
       if(StreamInputHasNext(&streamAscii))
-         EncodeNextChunkAscii(&streamAscii); /* No CHKERR */
+         EncodeNextChunkAscii(&streamAscii, DmtxTrue); /* No CHKERR */
       else
          break;
    }

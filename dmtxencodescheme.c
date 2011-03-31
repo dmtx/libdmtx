@@ -124,7 +124,7 @@ EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int sizeIdxRe
    switch(stream->currentScheme)
    {
       case DmtxSchemeAscii:
-         EncodeNextChunkAscii(stream); CHKERR;
+         EncodeNextChunkAscii(stream, DmtxTrue); CHKERR;
          CompleteIfDoneAscii(stream, sizeIdxRequest); CHKERR;
          break;
       case DmtxSchemeC40:
