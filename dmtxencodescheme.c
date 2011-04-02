@@ -7,7 +7,7 @@
  *
  * Contact: Mike Laughton <mike@dragonflylogic.com>
  *
- * \file dmtxencodesingle.c
+ * \file dmtxencodescheme.c
  */
 
 /**
@@ -68,7 +68,7 @@
  * end-of-symbol condition is triggered.
  */
 
-/* XXX is there a way to handle muliple values of s? */
+/* XXX is there a way to handle multiple values of s? */
 #define CHKSCHEME(s) { if(stream->currentScheme != (s)) { StreamMarkFatal(stream, 1); return; } }
 
 /* CHKERR should follow any call that might alter stream status */
@@ -95,7 +95,7 @@ EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
 
    /* Continue encoding until complete */
    while(stream.status == DmtxStatusEncoding)
-      EncodeNextChunk(&stream, stream.currentScheme, sizeIdxRequest);
+      EncodeNextChunk(&stream, stream.currentScheme, DmtxEncodeNormal, sizeIdxRequest);
 
    /* Verify encoding completed and all inputs were consumed */
    if(stream.status != DmtxStatusComplete || StreamInputHasNext(&stream))
@@ -112,19 +112,22 @@ EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
  * cases this requires additional input words to be encoded as well.
  */
 static void
-EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int sizeIdxRequest)
+EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int option, int sizeIdxRequest)
 {
+   DmtxBoolean compactDigits;
+
    /* Change to target scheme if necessary */
-   if(stream->currentScheme != targetScheme)
+   if(stream->currentScheme != scheme)
    {
-      EncodeChangeScheme(stream, targetScheme, DmtxUnlatchExplicit); CHKERR;
-      CHKSCHEME(targetScheme);
+      EncodeChangeScheme(stream, scheme, DmtxUnlatchExplicit); CHKERR;
+      CHKSCHEME(scheme);
    }
 
    switch(stream->currentScheme)
    {
       case DmtxSchemeAscii:
-         EncodeNextChunkAscii(stream, DmtxTrue); CHKERR;
+         compactDigits = (option == DmtxEncodeExpand) ? DmtxFalse : DmtxTrue;
+         EncodeNextChunkAscii(stream, compactDigits); CHKERR;
          CompleteIfDoneAscii(stream, sizeIdxRequest); CHKERR;
          break;
       case DmtxSchemeC40:

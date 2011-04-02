@@ -56,6 +56,11 @@
 #define max(X,Y) (((X) > (Y)) ? (X) : (Y))
 
 typedef enum {
+   DmtxEncodeNormal,
+   DmtxEncodeExpand
+} DmtxEncodeOption;
+
+typedef enum {
    DmtxRangeGood,
    DmtxRangeBad,
    DmtxRangeEnd
@@ -210,19 +215,19 @@ static void StreamInputAdvancePrev(DmtxEncodeStream *stream);
 
 /* dmtxencodescheme.c */
 static int EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme);
-static void EncodeNextChunk(DmtxEncodeStream *stream, DmtxScheme targetScheme, int sizeIdxRequest);
+static void EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int subScheme, int sizeIdxRequest);
 static void EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatchType);
 static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
 
 /* dmtxencodeoptimize.c */
 static int EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest);
-static void StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, int sizeIdxRequest);
+static void StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, int schemeState, int sizeIdxRequest);
 static int GetSchemeFromState(int state);
 static int GetPreviousSchemeState(int state);
 static DmtxBoolean AllStreamsComplete(DmtxEncodeStream *stream);
 
 /* dmtxencodeascii.c */
-static void EncodeNextChunkAscii(DmtxEncodeStream *stream, DmtxBoolean compressDigits);
+static void EncodeNextChunkAscii(DmtxEncodeStream *stream, DmtxBoolean compactDigits);
 static void EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value);
 static void CompleteIfDoneAscii(DmtxEncodeStream *stream, int sizeIdxRequest);
 static void PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx);
