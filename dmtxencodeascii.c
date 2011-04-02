@@ -15,7 +15,7 @@
  *
  */
 static void
-EncodeNextChunkAscii(DmtxEncodeStream *stream, DmtxBoolean compressDigits)
+EncodeNextChunkAscii(DmtxEncodeStream *stream, DmtxBoolean compactDigits)
 {
    DmtxByte v0, v1 = 0;
 
@@ -23,14 +23,14 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream, DmtxBoolean compressDigits)
    {
       v0 = StreamInputAdvanceNext(stream); CHKERR;
 
-      if(compressDigits && StreamInputHasNext(stream))
+      if(compactDigits && StreamInputHasNext(stream))
          v1 = StreamInputPeekNext(stream);
       else
-         compressDigits = DmtxFalse;
+         compactDigits = DmtxFalse;
 
       CHKERR;
 
-      if(compressDigits && ISDIGIT(v0) && ISDIGIT(v1))
+      if(compactDigits && ISDIGIT(v0) && ISDIGIT(v1))
       {
          /* Two adjacent digit chars */
          StreamInputAdvanceNext(stream); CHKERR; /* Make the peek progress official */
