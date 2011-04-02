@@ -47,6 +47,8 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
    DmtxByte outputTempStorage[SchemeStateCount][4096];
    DmtxByteList outputBest[SchemeStateCount];
    DmtxByteList outputTemp[SchemeStateCount];
+   DmtxEncodeStream *winner;
+   DmtxPassFail passFail;
 
    /* Initialize streams with their own output storage */
    for(i = 0; i < SchemeStateCount; i++)
@@ -57,7 +59,7 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       streamTemp[i] = StreamInit(input, &(outputTemp[i]));
    }
 
-   /* Encode first chunk in each stream or invalidate if not possible */
+   /* Encode first chunk to each state or invalidate if not possible */
    for(i = 0; i < SchemeStateCount; i++)
    {
       cameFrom = GetPreviousSchemeState(i);
@@ -79,13 +81,16 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
    {
       /* XXX check streams for fatal condition here ? */
 
-      /* Break condition -- Quit when all streams are either finished or invalid */
-      if(AllStreamsComplete(streamBest))
+      /* Break condition -- Quit if no streams are still encoding */
+      if(AllStreamsDone(streamBest))
          break;
 
       /* Find most efficient way to reach each state for the next input value */
       for(i = 0; i < SchemeStateCount; i++)
       {
+         if(streamBest[i].status == DmtxStatusComplete)
+            continue;
+
          cameFrom = GetPreviousSchemeState(i);
 
          if(cameFrom == DmtxUndefined || streamBest[i].status == DmtxStatusInvalid)
@@ -101,12 +106,30 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       /* Update "current" streams with results */
       for(i = 0; i < SchemeStateCount; i++)
       {
-/* XXX only copy over streamBest if streamBest is not complete */
+         if(streamBest[i].status == DmtxStatusComplete)
+            continue;
+
          StreamCopy(&(streamBest[i]), &(streamTemp[i]));
       }
    }
 
-   return DmtxUndefined;
+   /* Choose the winner */
+   winner = NULL;
+   for(i = 0; i < SchemeStateCount; i++)
+   {
+      if(streamBest[i].status == DmtxStatusComplete)
+      {
+         if(winner == NULL || streamBest[i].output->length < winner->output->length)
+            winner = &(streamBest[i]);
+      }
+   }
+
+   if(winner == NULL)
+      return DmtxUndefined;
+
+   dmtxByteListCopy(output, winner->output, &passFail);
+
+   return (passFail == DmtxPass) ? winner->sizeIdx : DmtxUndefined;
 }
 
 /**
@@ -238,7 +261,7 @@ GetPreviousSchemeState(int state)
 }
 
 static DmtxBoolean
-AllStreamsComplete(DmtxEncodeStream *streams)
+AllStreamsDone(DmtxEncodeStream *streams)
 {
    int i;
 

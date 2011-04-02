@@ -224,7 +224,7 @@ static int EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int siz
 static void StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, int schemeState, int sizeIdxRequest);
 static int GetSchemeFromState(int state);
 static int GetPreviousSchemeState(int state);
-static DmtxBoolean AllStreamsComplete(DmtxEncodeStream *stream);
+static DmtxBoolean AllStreamsDone(DmtxEncodeStream *stream);
 
 /* dmtxencodeascii.c */
 static void EncodeNextChunkAscii(DmtxEncodeStream *stream, DmtxBoolean compactDigits);
