@@ -11,7 +11,7 @@
  */
 
 enum SchemeState {
-   AsciiExpand,
+   AsciiExpanded,
    AsciiDigit1,
    AsciiDigit2,
    C40Digit1,
@@ -38,7 +38,7 @@ enum SchemeState {
 static int
 EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest)
 {
-   int i, cameFrom;
+   enum SchemeState i, cameFrom;
    DmtxScheme targetScheme;
    DmtxEncodeOption encodeOption;
    DmtxEncodeStream streamBest[SchemeStateCount];
@@ -67,7 +67,7 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       if(cameFrom == DmtxUndefined)
       {
          targetScheme = GetSchemeFromState(i);
-         encodeOption = (i == AsciiExpand) ? DmtxEncodeExpand : DmtxEncodeNormal;
+         encodeOption = (i == AsciiExpanded) ? DmtxEncodeExpand : DmtxEncodeNormal;
          EncodeNextChunk(&(streamBest[i]), targetScheme, encodeOption, sizeIdxRequest);
       }
       else
@@ -136,32 +136,55 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
  *
  *
  */
-static void
+static int
 StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, int targetState, int sizeIdxRequest)
 {
+   int i;
+   int bestOrigin = DmtxUndefined;
+   DmtxScheme targetScheme;
+   DmtxEncodeOption encodeOption;
+   DmtxEncodeStream streamTemp;
+   DmtxByte outputTempStorage[4096];
+   DmtxByteList outputTemp = dmtxByteListBuild(outputTempStorage, sizeof(outputTempStorage));
+
+   streamTemp.output = &outputTemp;
+   targetScheme = GetSchemeFromState(targetState);
+   encodeOption = (targetState == AsciiExpanded) ? DmtxEncodeExpand : DmtxEncodeNormal;
+
+   for(i = 0; i < SchemeStateCount; i++)
+   {
+      if(CantUnlatch(i) || stream[i].status != DmtxStatusEncoding)
+         continue;
+
+      StreamCopy(&streamTemp, &(stream[i]));
+
+      EncodeNextChunk(&streamTemp, targetScheme, encodeOption, sizeIdxRequest);
+
+      if(streamTemp.status != DmtxStatusInvalid &&
+            (bestOrigin == DmtxUndefined || streamTemp.output->length < streamNext->output->length))
+      {
+         bestOrigin = i;
+         StreamCopy(streamNext, &streamTemp);
+      }
+   }
+
+   if(bestOrigin == DmtxUndefined)
+      StreamMarkInvalid(streamNext, 1 /* all streams are invalid */);
+
+   return bestOrigin;
+}
+
+/*
    DmtxScheme targetScheme;
    DmtxEncodeOption encodeOption;
 
-   StreamCopy(streamNext, &(stream[AsciiExpand]));
+   StreamCopy(streamNext, &(stream[AsciiExpanded]));
 
    targetScheme = GetSchemeFromState(targetState);
-   encodeOption = (targetState == AsciiExpand) ? DmtxEncodeExpand : DmtxEncodeNormal;
+   encodeOption = (targetState == AsciiExpanded) ? DmtxEncodeExpand : DmtxEncodeNormal;
 
    EncodeNextChunk(streamNext, targetScheme, encodeOption, sizeIdxRequest);
-/* XXX should produce invalid output if all streams are invalid */
-/*
-   for(i = 0; i < 18; i++)
-   {
-      tmpEncodeStream[i] = stream[i];
-      stopped = EncodeNextChunk(tmpEncodeStream[i], scheme, subScheme, sizeIdxRequest);
-
-      if(result is shortest)
-      {
-         best = i;
-      }
-   }
 */
-}
 
 /**
  *
@@ -174,7 +197,7 @@ GetSchemeFromState(int state)
 
    switch(state)
    {
-      case AsciiExpand:
+      case AsciiExpanded:
       case AsciiDigit1:
       case AsciiDigit2:
          scheme = DmtxSchemeAscii;
@@ -260,10 +283,34 @@ GetPreviousSchemeState(int state)
    return cameFrom;
 }
 
+/**
+ *
+ *
+ */
+static DmtxBoolean
+CantUnlatch(int state)
+{
+   DmtxBoolean cantUnlatch;
+
+   if(state == AsciiDigit1 ||
+         state == C40Digit1 || state == C40Digit2 ||
+         state == TextDigit1 || state == TextDigit2 ||
+         state == X12Digit1 || state == X12Digit2)
+   {
+      cantUnlatch = DmtxTrue;
+   }
+   else
+   {
+      cantUnlatch = DmtxFalse;
+   }
+
+   return cantUnlatch;
+}
+
 static DmtxBoolean
 AllStreamsDone(DmtxEncodeStream *streams)
 {
-   int i;
+   enum SchemeState i;
 
    for(i = 0; i < SchemeStateCount; i++)
    {
