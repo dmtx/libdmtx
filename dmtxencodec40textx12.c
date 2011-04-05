@@ -226,14 +226,15 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
       StreamInputAdvancePrev(stream); CHKERR;
       inputValue = StreamInputPeekNext(stream); CHKERR;
 
-      /* Test encode most recently consumed input value to C40/Text/X12 */
+      /* Test-encode most recently consumed input value to C40/Text/X12 */
       PushCTXValues(&outputTmp, inputValue, stream->currentScheme, &passFail);
-      if(valueList->length == 2 && outputTmp.length > 1)
+      if(valueList->length == 2 && outputTmp.length == 1)
       {
          StreamInputAdvancePrev(stream); CHKERR;
       }
 
       /* Re-use outputTmp to hold ASCII representation of 1-2 input values */
+      /* XXX Refactor how the DmtxByteList is passed back here */
       outputTmp = EncodeTmpRemainingInAscii(stream, outputTmpStorage,
             sizeof(outputTmpStorage), &passFail);
 
