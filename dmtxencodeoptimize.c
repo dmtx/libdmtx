@@ -38,7 +38,7 @@ enum SchemeState {
 static int
 EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest)
 {
-   enum SchemeState i, cameFrom;
+   enum SchemeState state, cameFrom;
    DmtxScheme targetScheme;
    DmtxEncodeOption encodeOption;
    DmtxEncodeStream streamBest[SchemeStateCount];
@@ -50,29 +50,32 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
    DmtxEncodeStream *winner;
    DmtxPassFail passFail;
 
-   /* Initialize streams with their own output storage */
-   for(i = 0; i < SchemeStateCount; i++)
+   /* Initialize all streams with their own output storage */
+   for(state = 0; state < SchemeStateCount; state++)
    {
-      outputBest[i] = dmtxByteListBuild(outputBestStorage[i], sizeof(outputBestStorage[i]));
-      outputTemp[i] = dmtxByteListBuild(outputTempStorage[i], sizeof(outputTempStorage[i]));
-      streamBest[i] = StreamInit(input, &(outputBest[i]));
-      streamTemp[i] = StreamInit(input, &(outputTemp[i]));
+      outputBest[state] = dmtxByteListBuild(outputBestStorage[state],
+            sizeof(outputBestStorage[state]));
+
+      outputTemp[state] = dmtxByteListBuild(outputTempStorage[state],
+            sizeof(outputTempStorage[state]));
+
+      streamBest[state] = StreamInit(input, &(outputBest[state]));
+      streamTemp[state] = StreamInit(input, &(outputTemp[state]));
    }
 
-   /* Encode first chunk to each state or invalidate if not possible */
-   for(i = 0; i < SchemeStateCount; i++)
+   /* Encode first chunk in each stream or invalidate if not possible */
+   for(state = 0; state < SchemeStateCount; state++)
    {
-      cameFrom = GetPreviousSchemeState(i);
-
-      if(cameFrom == DmtxUndefined)
+      if(GetPreviousState(state) == DmtxUndefined)
       {
-         targetScheme = GetSchemeFromState(i);
-         encodeOption = (i == AsciiExpanded) ? DmtxEncodeExpand : DmtxEncodeNormal;
-         EncodeNextChunk(&(streamBest[i]), targetScheme, encodeOption, sizeIdxRequest);
+         /* Not an intermediate state -- Can start encoding here */
+         targetScheme = GetScheme(state);
+         encodeOption = (state == AsciiExpanded) ? DmtxEncodeExpand : DmtxEncodeNormal;
+         EncodeNextChunk(&(streamBest[state]), targetScheme, encodeOption, sizeIdxRequest);
       }
       else
       {
-         StreamMarkInvalid(&(streamBest[i]), DmtxChannelUnsupportedChar);
+         StreamMarkInvalid(&(streamBest[state]), DmtxChannelUnsupportedChar);
       }
    }
 
@@ -86,41 +89,37 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
          break;
 
       /* Find most efficient way to reach each state for the next input value */
-      for(i = 0; i < SchemeStateCount; i++)
+      for(state = 0; state < SchemeStateCount; state++)
       {
-         if(streamBest[i].status == DmtxStatusComplete)
+         if(streamBest[state].status == DmtxStatusComplete)
             continue;
 
-         cameFrom = GetPreviousSchemeState(i);
+         cameFrom = GetPreviousState(state);
 
-         if(cameFrom == DmtxUndefined || streamBest[i].status == DmtxStatusInvalid)
-         {
-            StreamAdvanceFromBest(&(streamTemp[i]), streamBest, i, sizeIdxRequest);
-         }
+         if(cameFrom == DmtxUndefined || streamBest[state].status == DmtxStatusInvalid)
+            StreamAdvanceFromBest(&(streamTemp[state]), streamBest, state, sizeIdxRequest);
          else
-         {
-            StreamCopy(&(streamTemp[i]), &(streamBest[cameFrom]));
-         }
+            StreamCopy(&(streamTemp[state]), &(streamBest[cameFrom]));
       }
 
       /* Update "current" streams with results */
-      for(i = 0; i < SchemeStateCount; i++)
+      for(state = 0; state < SchemeStateCount; state++)
       {
-         if(streamBest[i].status == DmtxStatusComplete)
+         if(streamBest[state].status == DmtxStatusComplete)
             continue;
 
-         StreamCopy(&(streamBest[i]), &(streamTemp[i]));
+         StreamCopy(&(streamBest[state]), &(streamTemp[state]));
       }
    }
 
    /* Choose the winner */
    winner = NULL;
-   for(i = 0; i < SchemeStateCount; i++)
+   for(state = 0; state < SchemeStateCount; state++)
    {
-      if(streamBest[i].status == DmtxStatusComplete)
+      if(streamBest[state].status == DmtxStatusComplete)
       {
-         if(winner == NULL || streamBest[i].output->length < winner->output->length)
-            winner = &(streamBest[i]);
+         if(winner == NULL || streamBest[state].output->length < winner->output->length)
+            winner = &(streamBest[state]);
       }
    }
 
@@ -137,7 +136,8 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
  *
  */
 static int
-StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, int targetState, int sizeIdxRequest)
+StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream,
+      int targetState, int sizeIdxRequest)
 {
    int i;
    int bestOrigin = DmtxUndefined;
@@ -148,7 +148,7 @@ StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, in
    DmtxByteList outputTemp = dmtxByteListBuild(outputTempStorage, sizeof(outputTempStorage));
 
    streamTemp.output = &outputTemp;
-   targetScheme = GetSchemeFromState(targetState);
+   targetScheme = GetScheme(targetState);
    encodeOption = (targetState == AsciiExpanded) ? DmtxEncodeExpand : DmtxEncodeNormal;
 
    for(i = 0; i < SchemeStateCount; i++)
@@ -180,7 +180,7 @@ StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, in
 
    StreamCopy(streamNext, &(stream[AsciiExpanded]));
 
-   targetScheme = GetSchemeFromState(targetState);
+   targetScheme = GetScheme(targetState);
    encodeOption = (targetState == AsciiExpanded) ? DmtxEncodeExpand : DmtxEncodeNormal;
 
    EncodeNextChunk(streamNext, targetScheme, encodeOption, sizeIdxRequest);
@@ -191,7 +191,7 @@ StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, in
  *
  */
 static int
-GetSchemeFromState(int state)
+GetScheme(int state)
 {
    DmtxScheme scheme;
 
@@ -239,7 +239,7 @@ GetSchemeFromState(int state)
  *
  */
 static int
-GetPreviousSchemeState(int state)
+GetPreviousState(int state)
 {
    enum SchemeState cameFrom;
 
