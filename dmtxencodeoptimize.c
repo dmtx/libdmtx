@@ -31,6 +31,23 @@ enum SchemeState {
    SchemeStateCount
 };
 
+/* temporary */
+/*
+static void DumpStreams(DmtxEncodeStream *streamBest)
+{
+   enum SchemeState state;
+   char prefix[32];
+
+   fprintf(stdout, "----------------------------------------\n");
+   for(state = 0; state < SchemeStateCount; state++)
+   {
+      snprintf(prefix, sizeof(prefix), "%2d (%s): ", state,
+            (streamBest[state].status == DmtxStatusEncoding) ? " Valid " : "Invalid");
+      dmtxByteListPrint(streamBest[state].output, prefix);
+   }
+}
+*/
+
 /**
  *
  *
@@ -79,6 +96,8 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       }
    }
 
+/* DumpStreams(streamBest); */
+
    /* Continue encoding until all streams are complete */
    for(;;)
    {
@@ -110,6 +129,7 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
 
          StreamCopy(&(streamBest[state]), &(streamTemp[state]));
       }
+/* DumpStreams(streamBest); */
    }
 
    /* Choose the winner */
@@ -173,18 +193,6 @@ StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream,
 
    return bestOrigin;
 }
-
-/*
-   DmtxScheme targetScheme;
-   DmtxEncodeOption encodeOption;
-
-   StreamCopy(streamNext, &(stream[AsciiExpanded]));
-
-   targetScheme = GetScheme(targetState);
-   encodeOption = (targetState == AsciiExpanded) ? DmtxEncodeExpand : DmtxEncodeNormal;
-
-   EncodeNextChunk(streamNext, targetScheme, encodeOption, sizeIdxRequest);
-*/
 
 /**
  *
