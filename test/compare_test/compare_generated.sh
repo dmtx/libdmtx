@@ -34,13 +34,13 @@ for file in input_messages/message_*.dat; do
    for scheme in $SCHEMES; do
 
       OUTPUT="compare_generated/barcode_${MESSAGE}_${scheme}"
-      $DMTXWRITE -e$scheme -o $OUTPUT.pnm $file 1>/dev/null 2>&1
+      $DMTXWRITE -e$scheme -o $OUTPUT.png $file 1>/dev/null 2>&1
       ERROR=$?
 
       if [[ "$ERROR" -eq 0 ]]; then
-         mogrify -depth 8 -type TrueColor $OUTPUT.pnm
+         mogrify -depth 8 -type TrueColor $OUTPUT.png
 
-         DECODE=$($DMTXREAD $OUTPUT.pnm)
+         DECODE=$($DMTXREAD $OUTPUT.png)
 
          if [[ "$ENCODE" != "$DECODE" ]]; then
             echo "message $MESSAGE scheme $scheme: FAIL"
