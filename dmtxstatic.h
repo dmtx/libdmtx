@@ -56,8 +56,9 @@
 #define max(X,Y) (((X) > (Y)) ? (X) : (Y))
 
 typedef enum {
-   DmtxEncodeNormal,
-   DmtxEncodeExpand
+   DmtxEncodeNormal,  /* Use normal scheme behavior (e.g., ASCII auto) */
+   DmtxEncodeCompact, /* Use only compact format within scheme */
+   DmtxEncodeExpanded /* Use only expanded format within scheme */
 } DmtxEncodeOption;
 
 typedef enum {
@@ -228,7 +229,7 @@ static DmtxBoolean CantUnlatch(int state);
 static DmtxBoolean AllStreamsDone(DmtxEncodeStream *stream);
 
 /* dmtxencodeascii.c */
-static void EncodeNextChunkAscii(DmtxEncodeStream *stream, DmtxBoolean compactDigits);
+static void EncodeNextChunkAscii(DmtxEncodeStream *stream, int option);
 static void EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value);
 static void CompleteIfDoneAscii(DmtxEncodeStream *stream, int sizeIdxRequest);
 static void PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx);

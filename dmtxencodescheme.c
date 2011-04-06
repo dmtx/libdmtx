@@ -114,8 +114,6 @@ EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
 static void
 EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int option, int sizeIdxRequest)
 {
-   DmtxBoolean compactDigits;
-
    /* Change to target scheme if necessary */
    if(stream->currentScheme != scheme)
    {
@@ -126,8 +124,7 @@ EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int option, int sizeIdxReq
    switch(stream->currentScheme)
    {
       case DmtxSchemeAscii:
-         compactDigits = (option == DmtxEncodeExpand) ? DmtxFalse : DmtxTrue;
-         EncodeNextChunkAscii(stream, compactDigits); CHKERR;
+         EncodeNextChunkAscii(stream, option); CHKERR;
          CompleteIfDoneAscii(stream, sizeIdxRequest); CHKERR;
          break;
       case DmtxSchemeC40:

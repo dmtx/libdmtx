@@ -12,40 +12,62 @@
 
 /**
  *
+ * Add comment explaining the 3 modes this function can use, and why it's done this way
+ * Simple single scheme encoding uses "Normal"
+ * The optimizer needs to track "Expanded" and "Compact" streams separately, so they
+ * are called explicitly.
  *
+ *   Normal:   Automatically collapses 2 consecutive digits into one codeword
+ *   Expanded: Uses a whole codeword to represent a digit (never collapses)
+ *   Compact:  Collapses 2 digits into a single codeword or marks the stream
+ *             invalid if either values are not digits
+ * /param stream
+ * /param option [Expanded|Compact|Normal]
  */
 static void
-EncodeNextChunkAscii(DmtxEncodeStream *stream, DmtxBoolean compactDigits)
+EncodeNextChunkAscii(DmtxEncodeStream *stream, int option)
 {
-   DmtxByte v0, v1 = 0;
+   DmtxByte v0, v1;
+   DmtxBoolean compactDigits;
 
    if(StreamInputHasNext(stream))
    {
       v0 = StreamInputAdvanceNext(stream); CHKERR;
 
-      if(compactDigits && StreamInputHasNext(stream))
-         v1 = StreamInputPeekNext(stream);
-      else
-         compactDigits = DmtxFalse;
-
-      CHKERR;
-
-      if(compactDigits && ISDIGIT(v0) && ISDIGIT(v1))
+      if((option == DmtxEncodeCompact || option == DmtxEncodeNormal) &&
+            StreamInputHasNext(stream))
       {
-         /* Two adjacent digit chars */
-         StreamInputAdvanceNext(stream); CHKERR; /* Make the peek progress official */
-         EncodeValueAscii(stream, 10 * (v0 - '0') + (v1 - '0') + 130); CHKERR;
+         v1 = StreamInputPeekNext(stream); CHKERR;
+         compactDigits = (ISDIGIT(v0) && ISDIGIT(v1)) ? DmtxTrue : DmtxFalse;
+      }
+      else /* option == DmtxEncodeExpanded */
+      {
+         v1 = 0;
+         compactDigits = DmtxFalse;
+      }
+
+      if(compactDigits == DmtxTrue)
+      {
+         /* Two adjacent digit chars: Make peek progress official and encode */
+         StreamInputAdvanceNext(stream); CHKERR;
+         EncodeValueAscii(stream, 10 * (v0-'0') + (v1-'0') + 130); CHKERR;
+      }
+      else if(option == DmtxEncodeCompact)
+      {
+         /* Can't compact non-digits */
+         StreamMarkInvalid(stream, 1 /* can't compact */);
       }
       else
       {
+         /* Encode single ASCII char */
          if(v0 < 128)
          {
-            /* Regular ASCII char */
+            /* Regular ASCII */
             EncodeValueAscii(stream, v0 + 1); CHKERR;
          }
          else
          {
-            /* Extended ASCII char */
+            /* Extended ASCII */
             EncodeValueAscii(stream, DmtxValueAsciiUpperShift); CHKERR;
             EncodeValueAscii(stream, v0 - 127); CHKERR;
          }
@@ -54,7 +76,8 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream, DmtxBoolean compactDigits)
 }
 
 /**
- * this code is separated from EncodeNextChunkAscii() because it needs to be called directly elsewhere
+ * this code is separated from EncodeNextChunkAscii() because it needs to be
+ * called directly elsewhere
  *
  */
 static void
@@ -121,7 +144,8 @@ PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx)
  * consider receiving instantiated DmtxByteList instead of the output components
  */
 static DmtxByteList
-EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail)
+EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage,
+      int capacity, DmtxPassFail *passFail)
 {
    DmtxEncodeStream streamAscii;
    DmtxByteList output = dmtxByteListBuild(storage, capacity);
@@ -140,7 +164,7 @@ EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capac
    while(dmtxByteListHasCapacity(streamAscii.output))
    {
       if(StreamInputHasNext(&streamAscii))
-         EncodeNextChunkAscii(&streamAscii, DmtxTrue); /* No CHKERR */
+         EncodeNextChunkAscii(&streamAscii, DmtxEncodeNormal); /* No CHKERR */
       else
          break;
    }

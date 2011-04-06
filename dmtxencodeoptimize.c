@@ -41,8 +41,20 @@ static void DumpStreams(DmtxEncodeStream *streamBest)
    fprintf(stdout, "----------------------------------------\n");
    for(state = 0; state < SchemeStateCount; state++)
    {
-      snprintf(prefix, sizeof(prefix), "%2d (%s): ", state,
-            (streamBest[state].status == DmtxStatusEncoding) ? " Valid " : "Invalid");
+      switch(streamBest[state].status) {
+         case DmtxStatusEncoding:
+            snprintf(prefix, sizeof(prefix), "%2d (%s): ", state, " encode ");
+            break;
+         case DmtxStatusComplete:
+            snprintf(prefix, sizeof(prefix), "%2d (%s): ", state, "complete");
+            break;
+         case DmtxStatusInvalid:
+            snprintf(prefix, sizeof(prefix), "%2d (%s): ", state, "invalid ");
+            break;
+         case DmtxStatusFatal:
+            snprintf(prefix, sizeof(prefix), "%2d (%s): ", state, " fatal  ");
+            break;
+      }
       dmtxByteListPrint(streamBest[state].output, prefix);
    }
 }
@@ -83,16 +95,25 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
    /* Encode first chunk in each stream or invalidate if not possible */
    for(state = 0; state < SchemeStateCount; state++)
    {
-      if(GetPreviousState(state) == DmtxUndefined)
+      /* XXX rename GetPreviousState() to something more meaningful */
+      if(GetPreviousState(state) != DmtxUndefined)
       {
-         /* Not an intermediate state -- Can start encoding here */
-         targetScheme = GetScheme(state);
-         encodeOption = (state == AsciiExpanded) ? DmtxEncodeExpand : DmtxEncodeNormal;
-         EncodeNextChunk(&(streamBest[state]), targetScheme, encodeOption, sizeIdxRequest);
+         /* This state can only come from a precursor; Can't start here */
+         StreamMarkInvalid(&(streamBest[state]), 1 /* can't start intermediate */);
       }
       else
       {
-         StreamMarkInvalid(&(streamBest[state]), DmtxChannelUnsupportedChar);
+         /* Not an intermediate state -- Start encoding */
+         targetScheme = GetScheme(state);
+
+         if(state == AsciiExpanded)
+            encodeOption = DmtxEncodeExpanded;
+         else if(state == AsciiDigit1)
+            encodeOption = DmtxEncodeCompact;
+         else
+            encodeOption = DmtxEncodeNormal;
+
+         EncodeNextChunk(&(streamBest[state]), targetScheme, encodeOption, sizeIdxRequest);
       }
    }
 
@@ -115,10 +136,10 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
 
          cameFrom = GetPreviousState(state);
 
-         if(cameFrom == DmtxUndefined || streamBest[state].status == DmtxStatusInvalid)
-            StreamAdvanceFromBest(&(streamTemp[state]), streamBest, state, sizeIdxRequest);
-         else
+         if(cameFrom != DmtxUndefined)
             StreamCopy(&(streamTemp[state]), &(streamBest[cameFrom]));
+         else
+            StreamAdvanceFromBest(&(streamTemp[state]), streamBest, state, sizeIdxRequest);
       }
 
       /* Update "current" streams with results */
@@ -169,7 +190,14 @@ StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream,
 
    streamTemp.output = &outputTemp;
    targetScheme = GetScheme(targetState);
-   encodeOption = (targetState == AsciiExpanded) ? DmtxEncodeExpand : DmtxEncodeNormal;
+
+   /* XXX this logic is repeated below */
+   if(targetState == AsciiExpanded)
+      encodeOption = DmtxEncodeExpanded;
+   else if(targetState == AsciiDigit1)
+      encodeOption = DmtxEncodeCompact;
+   else
+      encodeOption = DmtxEncodeNormal;
 
    for(i = 0; i < SchemeStateCount; i++)
    {
