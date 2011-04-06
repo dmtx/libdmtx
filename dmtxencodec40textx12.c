@@ -262,7 +262,8 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
  *
  */
 static void
-PushCTXValues(DmtxByteList *valueList, DmtxByte inputValue, int targetScheme, DmtxPassFail *passFail)
+PushCTXValues(DmtxByteList *valueList, DmtxByte inputValue, int targetScheme,
+      DmtxPassFail *passFail)
 {
    assert(valueList->length <= 2);
 
@@ -308,6 +309,11 @@ PushCTXValues(DmtxByteList *valueList, DmtxByte inputValue, int targetScheme, Dm
       else if(inputValue >= 65 && inputValue <= 90)
       {
          dmtxByteListPush(valueList, inputValue - 51, passFail); RETURN_IF_FAIL;
+      }
+      else
+      {
+         *passFail = DmtxFail;
+         return;
       }
    }
    else
@@ -363,6 +369,11 @@ PushCTXValues(DmtxByteList *valueList, DmtxByte inputValue, int targetScheme, Dm
       {
          dmtxByteListPush(valueList, DmtxValueCTXShift3, passFail); RETURN_IF_FAIL;
          dmtxByteListPush(valueList, inputValue - 96, passFail); RETURN_IF_FAIL;
+      }
+      else
+      {
+         *passFail = DmtxFail;
+         return;
       }
    }
 
