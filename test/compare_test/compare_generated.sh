@@ -5,6 +5,7 @@ SCHEMES="b a c t x e 8"
 DMTXWRITE="$(which dmtxwrite)"
 DMTXREAD="$(which dmtxread)"
 MOGRIFY=$(which mogrify)
+COMPARE_DIR="compare_generated"
 
 if [[ ! -x "$DMTXWRITE" ]]; then
    echo "Unable to execute \"$DMTXWRITE\""
@@ -21,6 +22,10 @@ if [[ ! -x "$MOGRIFY" ]]; then
    exit 1
 fi
 
+if [[ ! -d "$COMPARE_DIR" ]]; then
+   $(which mkdir) "$COMPARE_DIR"
+fi
+
 ERROR_COUNT=0
 
 echo "Generating and reading back barcodes from input messages"
@@ -33,19 +38,37 @@ for file in input_messages/message_*.dat; do
 
    for scheme in $SCHEMES; do
 
-      OUTPUT="compare_generated/barcode_${MESSAGE}_${scheme}"
-      $DMTXWRITE -e$scheme -o $OUTPUT.png $file 1>/dev/null 2>&1
+      OUTPUT="${COMPARE_DIR}/barcode_${MESSAGE}_${scheme}"
+      $DMTXWRITE -e$scheme -o ${OUTPUT}.png $file 1>/dev/null 2>&1
       ERROR=$?
+      if [[ "$ERROR" -eq 70 ]]; then
+         # XXX revisit this to use more specific error code when available
+         echo "   SKIP: message $MESSAGE scheme ${scheme} (unsupported character)"
+         continue;
+      elif [[ "$ERROR" -ne 0 && "$ERROR" -ne 70 ]]; then
+         echo "  ERROR: dmtxwrite failed"
+         exit "$ERROR";
+      fi
 
-      if [[ "$ERROR" -eq 0 ]]; then
-         mogrify -depth 8 -type TrueColor $OUTPUT.png
+      $MOGRIFY -depth 8 -type TrueColor ${OUTPUT}.png
+      ERROR=$?
+      if [[ $? -ne 0 ]]; then
+         echo "  ERROR: mogrify failed"
+         exit "$ERROR";
+      fi
 
-         DECODE=$($DMTXREAD $OUTPUT.png)
+      DECODE=$($DMTXREAD ${OUTPUT}.png)
+      ERROR=$?
+      if [[ $? -ne 0 ]]; then
+         echo " ERROR: dmtxread failed"
+         exit "$ERROR";
+      fi
 
-         if [[ "$ENCODE" != "$DECODE" ]]; then
-            echo "message $MESSAGE scheme $scheme: FAIL"
-            ERROR_COUNT=$[$ERROR_COUNT + 1]
-         fi
+      if [[ "$ENCODE" == "$DECODE" ]]; then
+         echo "SUCCESS: message $MESSAGE scheme ${scheme}"
+      else
+         echo "FAILURE: message $MESSAGE scheme ${scheme}"
+         ERROR_COUNT=$[$ERROR_COUNT + 1]
       fi
 
    done

@@ -2,23 +2,32 @@
 
 ERROR_COUNT=0
 
-for PNG_BARCODE in compare_confirmed/barcode_*_?.png; do
-   PNM_BARCODE=$(echo $PNG_BARCODE | sed -e 's/\.png$/.pnm/')
-   convert -depth 8 -type TrueColor $PNG_BARCODE $PNM_BARCODE
-done
-
 echo "Comparing generated barcodes against confirmed results"
 echo "-----------------------------------------------------------------"
 
-for file in compare_confirmed/barcode_*_?.pnm; do
+for CONFIRMED in compare_confirmed/barcode_*_?.png; do
 
-   TEST_BARCODE=compare_generated/$(basename $file | sed -e 's/^confirmed_/barcode_/')
-   if [[ ! -r "$TEST_BARCODE" ]]; then
-      continue
+   GENERATED="compare_generated/$(basename $CONFIRMED | sed -e 's/^confirmed_/barcode_/')"
+   if [[ ! -s "$GENERATED" ]]; then
+      echo "FILE MISSING: Please run compare_generated.sh first."
+      exit 1
    fi
 
-   cmp $file $TEST_BARCODE
-   if [[ $? -ne 0 ]]; then
+   GENERATED_MD5SUM=$(convert -depth 8 -type TrueColor $GENERATED pnm: | md5sum)
+   GENERATED_ERROR=$?
+
+   CONFIRMED_MD5SUM=$(convert -depth 8 -type TrueColor $CONFIRMED pnm: | md5sum)
+   CONFIRMED_ERROR=$?
+
+   if [[ "$GENERATED_ERROR" -ne 0 || "$CONFIRMED_ERROR" -ne 0 ]]; then
+      echo "Error: convert failed"
+      exit 1
+   fi
+
+   if [[ "$GENERATED_MD5SUM" == "$CONFIRMED_MD5SUM" ]]; then
+      echo "SUCCESS: $(basename $CONFIRMED)"
+   else
+      echo "FAILURE: $(basename $GENERATED)"
       ERROR_COUNT=$[$ERROR_COUNT + 1]
    fi
 
