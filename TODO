@@ -1,203 +1,173 @@
-TODO Items
+TODO
 -----------------------------------------------------------------
 
 version 1.0.0: (planned TBD)
 FOCUS: remaining gaps, testing, documentation
-  o libdmtx:   Investigate using MMX to optimize inner loops
-  o libdmtx:   Investigate using threads to split up image processing
-  o testsuite: Generate metrics in reproducible format to enable historical tracking
-  o testsuite: Investigate option of embedding decoded text into PNG test image comments
-  o testsuite: Tests should compare scanned results to embedded PNG comments
-  o testsuite: 'make test' writes metrics file
-  o testsuite: 'make test' confirms performance
+  o Investigate using MMX to optimize inner loops
+  o Investigate using threads to split up image processing
+  o (test suite) Generate metrics in reproducible format to enable historical tracking
+  o (test suite) Investigate option of embedding decoded text into PNG test image comments
+  o (test suite) Tests should compare scanned results to embedded PNG comments
+  o (test suite) 'make test' writes metrics file
+  o (test suite) 'make test' confirms performance
 
 version 0.9.0: (planned TBD)
-FOCUS: refactor encoding engine, FNC1, macros
-  o libdmtx:   Implement --auto-fast option using algorithm from spec (lighter & faster?)
-  o libdmtx:   Structured append reading and writing
-  o libdmtx:   Use new Edifact decode function that doesn't assume full triplet
-  o libdmtx:   Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
-  o libdmtx:   Rewrite encoder(s) to not need "twothirdsbits" tracking (fixes multiple bugs)
-  o libdmtx:   autobest: Consider tracking 3 separate channels for triplets, 4 for quads
-               in order to account for all possibilities. (In case it's not always best
-               to latch into scheme as soon as possible)
-  o testsuite: Implement exhaustive comparison between --auto-fast and --auto-best
+FOCUS: multiple barcode scanning, structured append, FNC1, macros
+  o Implement --auto-fast option using algorithm from spec (lighter & faster?)
+  o Structured append reading and writing
+  o (test suite) Implement exhaustive comparison between --auto-fast and --auto-best
+  o Implement consistent and robust error handling (errno.h + custom)
+  o Implement structured append symbols
+  o Image quality metric
+  o Clean up source file permissions (write script to detect outliers?)
 
 version 0.8.0: (planned TBD)
-FOCUS: region detection refinement, multiple barcode scanning, structured append
-  o libdmtx:   Replace DmtxDirection (e.g., DmtxDirUp) with index range 0-7 (?)
-  o libdmtx:   Fast Hough fit followed by precision handle fit
-  o libdmtx:   Optimizations need to perform multi-barcode scans
-  o libdmtx:   Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
-  o libdmtx:   Use 100x faster pixel access in PointFlow calculation pass
-  o libdmtx:   Use calibration edge alignment to set precise locs for all edges
-  o libdmtx:   Rename math types to drop unnecessary numeral (DmtxVector2, DmtxRay2, etc...)
-  o libdmtx:   Implement consistent and robust error handling (errno.h + custom)
-  o libdmtx:   Implement structured append symbols
-  o libdmtx:   Image quality metric
-  o libdmtx:   Inspect SDL image packing conventions (stride vs. pad, etc...)
-  o libdmtx:   Clean up API for use with external ROI finders
-  o libdmtx:   Is there a good way to know if dmtxRegionFindNext() timed out or finished file?
-  o libdmtx:   library should never call exit()
-  o project:   Clean up source file permissions (write script to detect outliers?)
+FOCUS: region detection
+  o Use calibration edge alignment to set precise locs for all edges
+  o Replace DmtxDirection (e.g., DmtxDirUp) with index range 0-7 (?)
+  o Rename outputIdx to outputLength? (Count pad codewords instead of pointer)
+  o Rename math types to drop unnecessary numeral (DmtxVector2, DmtxRay2, etc...)
+  o Inspect SDL image packing naming conventions (stride vs. pad, etc...)
+  o Clean up API for use with external ROI finders
+  o Is there a good way to know if dmtxRegionFindNext() timed out or finished file?
 
-version 0.7.4: (planned TBD)
-  o libdmtx:   Create coding style guide
+version 0.7.4: (targeting April 2011)
+FOCUS: error correction, encoding engine, experimental region finder, relicensing
+  o After release, email all packagers about repo changes
+  o Test builds on propietary UNIXs
+  o Add .gitignore ?
+  o Create coding style guide
                - Always pass by reference passFail as final parameter (can't be ignored)
                - Use "enum XYZ" instead of "typedef enum"
                - dmtx prefix for public functions
                - static functions start capitalized
                - etc...
-  o libdmtx:   XXX write optimize logic
-  x libdmtx:   Added Base 256 "encode to end of symbol" single byte header
-  x libdmtx:   Fixed encoding bug affecting certain end-of-symbol conditions
-  x libdmtx:   Added DmtxByteList struct and supporting functions
-  x libdmtx:   Fixed ECC bug for 144x144 case (thanks Huver!)
-  x libdmtx:   Wrote new Reed Solomon code
+  o library should never call exit()
+  o Test error corrections with controled damage to images (add to test suite?)
+  o Add explicit build targets for debug and release
+  o Remove remnants of attempt to get files compiling individually
+  o Review dmtxencode*.c for remaining TODOs and other cleanup
+  o Clean up PushCTXValues() passFail handling
+  o Add new error codes and messages into dmtxencode.c
+  o Capture all compare_generated.sh errors (e.g., can't encode pnm) to avoid false negatives
+  o Add test in compare_generated.sh to create directory if needed
+  o Fix encoding bugs reported by compare_generated.sh
+  o Finish optimize best
+  x Use new Edifact decode function that doesn't assume full triplet
+  x Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
+  x Remove "twothirdsbits" encoder concept (source of many headaches)
+  x Track intermediate states in "optimize best" to account for all possibilities
+  x Added Base 256 "encode to end of symbol" single byte header
+  x Fixed encoding bug affecting certain end-of-symbol conditions
+  x New Reed Solomon code
+  x Added DmtxByteList struct and supporting functions
+  x Fixed ECC bug for 144x144 case (thanks Huver!)
 
 version 0.7.2: (04-Sep-2009)
-  x libdmtx:   Added initial macro decoding support (thanks Marlon!)
-  x libdmtx:   Fast quad fill for dmtxDecodeMatrixRegion() (thanks Mackenzie!)
-  x libdmtx:   Fixed capacity bug with rectangle requests
-  x wrapper:   New Vala wrapper (thanks Evan!)
-  x wrapper:   Wrapper integration in build system (thanks Evan!)
-  x project:   Add libdmtx-X.X.X.zip as source package option
-  x project:   Add libdmtx-win32-X.X.X.zip as binary package option
-  x project:   Add "project" directory to EXTRA_DIST in Makefile.am
+  x Added initial macro decoding support (thanks Marlon!)
+  x Fast quad fill for dmtxDecodeMatrixRegion() (thanks Mackenzie!)
+  x Fixed capacity bug with rectangle requests
+  x Add libdmtx-X.X.X.zip as source package option
+  x Add libdmtx-win32-X.X.X.zip as binary package option
+  x Add "project" directory to EXTRA_DIST in Makefile.am
 
 version 0.7.0: (02-Mar-2009)
-  x libdmtx:   Fix 64b->32b int assignment warnings
-  x libdmtx:   FNC1 and correct upper shift (thanks Robin!)
-  x libdmtx:   Support byte-padded row sizes via dmtxImageSetProp()
-  x libdmtx:   Move image scaling factors to DmtxDecode
-  x libdmtx:   Add DmtxUndefined to replace "-1" for undefined fixes, offset, etc...
-  x libdmtx:   Update dmtxImageCreate() parameter options
-  x libdmtx:   Switch DmtxFlipNone represent top-down row order
-  x libdmtx:   Add dmtxEncodeSetProp() and dmtxEncodeGetProp()
-  x libdmtx:   Relocate scan cache from DmtxImage to DmtxDecode
-  x libdmtx:   Remove status from DmtxPixelLoc
-  x libdmtx:   Configurable pixel packing
-  x libdmtx:   Removed DmtxRgb, dmtxcolor.c, DmtxColor3, and DmtxGradient
-  x libdmtx:   DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE
-  x libdmtx:   DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE
-  x libdmtx:   Change all major types to use Create() and Destroy() convention
-  x dmtxread:  Option to print extended ASCII as UTF-8 (thanks Robin!)
-  x dmtxread:  Fix diagnostic image output
-  x dmtxread:  Fix misrepresented capacity in verbose mode
-  x dmtxwrite: True vector SVG output bypassing ImageMagick (thanks Richard!)
-  x dmtxwrite: Use Magick to write images of major image formats
-  x dmtxwrite: Bad option should give short "invalid option -- N; --help for more"
-  x dmtxwrite: Use HandleArgs() to capture requests, and process afterward
-  x dmtxwrite: Switch to using new dmtxEncodeSetProp() approach
-  x wrapper:   New Java wrapper (thanks Pete and Dikran!)
-  x wrapper:   New .NET wrapper (thanks Vali and Joe!)
-  x project:   Update documentation to reflect API changes
-  x project:   Add comment to wiki pages that points to source README
-  x project:   Figure out earliest usable Magick version for configure.ac
-  x project:   Add simple_test project to libdmtx.sln
-  x project:   Rename wiki page to "Windows (VisualC)"
-  x project:   Introduce "project" directory for non-autotools platforms
-  x project:   Rename "wrappers" directory to "wrapper" for consistency
-  x project:   Create a common tasks and release checklist document
+  x Fix 64b->32b int assignment warnings
+  x FNC1 and correct upper shift (thanks Robin!)
+  x Support byte-padded row sizes via dmtxImageSetProp()
+  x Move image scaling factors to DmtxDecode
+  x Add DmtxUndefined to replace "-1" for undefined fixes, offset, etc...
+  x Update dmtxImageCreate() parameter options
+  x Switch DmtxFlipNone represent top-down row order
+  x Add dmtxEncodeSetProp() and dmtxEncodeGetProp()
+  x Relocate scan cache from DmtxImage to DmtxDecode
+  x Remove status from DmtxPixelLoc
+  x Configurable pixel packing
+  x Removed DmtxRgb, dmtxcolor.c, DmtxColor3, and DmtxGradient
+  x DmtxTrue/DmtxFalse replaces DMTX_TRUE/DMTX_FALSE
+  x DmtxPass/DmtxFail replaces DMTX_SUCCESS/DMTX_FAILURE
+  x Change all major types to use Create() and Destroy() convention
+  x Update documentation to reflect API changes
+  x Add comment to wiki pages that points to source README
+  x Figure out earliest usable Magick version for configure.ac
+  x Add simple_test project to libdmtx.sln
+  x Rename wiki page to "Windows (VisualC)"
+  x Introduce "project" directory for non-autotools platforms
+  x Rename "wrappers" directory to "wrapper" for consistency
+  x Create a common tasks and release checklist document
 
 version 0.6.0: (23-Nov-2008)
-  x libdmtx:   Initial work preparing for custom pixel packing in future
-  x libdmtx:   Begin static analysis cleanup with splint
-  x libdmtx:   New --disable-dmtxread and --disable-dmtxwrite [Romain]
-  x libdmtx:   Ability to specify max/min expected barcode sizes
-  x libdmtx:   New edge neighbor tracking (Hough Transform + 2 way edge cache)
-  x libdmtx:   Info cache to track scan progress and avoid rescanning pixels
-  x libdmtx:   Scan multiple barcodes within an image
-  x libdmtx:   Significantly reduced memory footprint
-  x libdmtx:   Major reduction in floating point operations
-  x dmtxread:  New informative return codes (found, not found, error)
-  x dmtxread:  Read input from STDIN
-  x dmtxread:  GraphicsMagick support for image reading [Olivier]
-  x dmtxread:  JPEG reading support [Ryan]
-  x dmtxread:  Diagnostic images display trail left by scanning logic
-  x dmtxwrite: Option to write output to STDOUT [Olivier]
-  x wrapper:   PHP wrapper now compiles with recent libdmtx
-  x wrapper:   New encoding/decoding Ruby wrapper [Romain]
-  x project:   Dedicated README.xxx instructions for specific platforms
-  x project:   Various improvements for cross platform builds
+  x Initial work preparing for custom pixel packing in future
+  x Begin static analysis cleanup with splint
+  x New --disable-dmtxread and --disable-dmtxwrite [Romain]
+  x Ability to specify max/min expected barcode sizes
+  x New edge neighbor tracking (Hough Transform + 2 way edge cache)
+  x Info cache to track scan progress and avoid rescanning pixels
+  x Scan multiple barcodes within an image
+  x Significantly reduced memory footprint
+  x Major reduction in floating point operations
+  x Dedicated README.xxx instructions for specific platforms
+  x Various improvements for cross platform builds
 
 version 0.5.2: (04-Sep-2008)
-  x libdmtx:   Move SetRangeLimit and SetScanRegion into library
-  x libdmtx:   Replace DMTXUTIL_SUCCESS/ERROR with DMTX_SUCCESS/FAILURE
-  x libdmtx:   Add edge threshold filtering
-  x libdmtx:   Add encoding support for 144x144 barcodes
-  x libdmtx:   Fixed encoding case when message starts with two digits
-  x libdmtx:   Fixed bug in range limit option
-  x libdmtx:   Add dynamic image shrinking (pixel skipping)
-  x libdmtx:   Add step-by-step diagnostic image dump (debug build)
-  x libdmtx:   Fixed bug in minimum scan gap setting
-  x libdmtx:   Removed y-flip from internal pixel storage
-  x libdmtx:   Added strict border tests to eliminate false positives
-  x libdmtx:   Added squareness deviation filter
-  x libdmtx:   Implement simplified Hough transform for locating first edge
-  x libdmtx:   Several behind-the-scenes performance enhancements
-  x wrapper:   Python wrapper update; 15x faster (thanks Jonathan!)
-  x wrapper:   New PHP wrapper code added
-  x project:   Various improvements when building for OS X and FreeBSD
+  x Move SetRangeLimit and SetScanRegion into library
+  x Replace DMTXUTIL_SUCCESS/ERROR with DMTX_SUCCESS/FAILURE
+  x Add edge threshold filtering
+  x Add encoding support for 144x144 barcodes
+  x Fixed encoding case when message starts with two digits
+  x Fixed bug in range limit option
+  x Add dynamic image shrinking (pixel skipping)
+  x Add step-by-step diagnostic image dump (debug build)
+  x Fixed bug in minimum scan gap setting
+  x Removed y-flip from internal pixel storage
+  x Added strict border tests to eliminate false positives
+  x Added squareness deviation filter
+  x Implement simplified Hough transform for locating first edge
+  x Several behind-the-scenes performance enhancements
+  x Various improvements when building for OS X and FreeBSD
 
 version 0.5.1: (01-Jul-2008)
-  x libdmtx:   Fixed Extended ASCII encoding bug
-  x libdmtx:   Fixed error correction bug related to multiple interleaved blocks
-  x libdmtx:   Added timeout condition for region detection
-  x libdmtx:   Allow partial and complete disabling of error correction
-  x libdmtx:   Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
-  x libdmtx:   Tighter integration with libfec
-  x dmtxread:  Conditional build logic for libtiff
-  x dmtxquery: Start new utility to extra information from dmtxread output
-  x testsuite: Started unit test executable for low level testing
-  x wrapper:   New Cocoa wrapper for iPhone, iPod Touch, OS X (thanks Stefan!)
-  x project:   Include local copies of getopt1.c getopt.c getopt.h
-  x project:   Various things to help compiling in MS VC++
-  x project:   Added missing header comments
+  x Fixed Extended ASCII encoding bug
+  x Fixed error correction bug related to multiple interleaved blocks
+  x Added timeout condition for region detection
+  x Allow partial and complete disabling of error correction
+  x Replaced DmtxPixel struct with DmtxRgb for safe pixel copies
+  x Tighter integration with libfec
+  x (test suite) Started unit test executable for low level testing
+  x Include local copies of getopt1.c getopt.c getopt.h
+  x Various things to help compiling in MS VC++
+  x Added missing header comments
 
 version 0.5: (13-Apr-2008)
-  x libdmtx:   Rework encoding and decoding API for consistency and intuitiveness
-  x libdmtx:   Handle region detection and region decoding as separate tasks
-  x libdmtx:   Pass found regions back to calling app before attempting decode
-  x libdmtx:   Image mask approach (for performance and multi-barcode scans)
-  x libdmtx:   Remove "2" from functions named *MatrixRegion2*() (whoops)
-  x libdmtx:   Fix TestForEndOfSymbolEdifact() to handle special cases correctly
-  x libdmtx:   Roll scan pattern into core library (inward breadth-first cross)
-  x libdmtx:   Replace dmtxScanLine() with dmtxScanPixel()
-  x libdmtx:   Implement 4-direction weighted module decisions (eliminates thresholds)
-  x libdmtx:   Error correction using libfec (thanks Florian!)
-  x dmtxread:  Add ability to scan portion of image
-  x dmtxread:  Add --diagnose option that dumps image with embedded scan infomation
-  x dmtxread:  Added Z rotation angle (in degrees) to verbose output
-  x dmtxwrite: Move ASCII and codeword output to separate --preview option
-  x dmtxwrite: Added -R option for setting image print resolution in dpi (PNG only)
-  x project:   Remove gltest and simpletest from default build target
-  x project:   Update Subversion to be keyword friendly ($Id$)
-  x project:   Updated documentation to reflect API and option changes
-  x testsuite: Moved all public images to common directory with single copyright file
+  x Rework encoding and decoding API for consistency and intuitiveness
+  x Handle region detection and region decoding as separate tasks
+  x Pass found regions back to calling app before attempting decode
+  x Image mask approach (for performance and multi-barcode scans)
+  x Remove "2" from functions named *MatrixRegion2*() (whoops)
+  x Fix TestForEndOfSymbolEdifact() to handle special cases correctly
+  x Roll scan pattern into core library (inward breadth-first cross)
+  x Replace dmtxScanLine() with dmtxScanPixel()
+  x Implement 4-direction weighted module decisions (eliminates thresholds)
+  x Error correction using libfec (thanks Florian!)
+  x Remove gltest and simpletest from default build target
+  x Update Subversion to be keyword friendly ($Id$)
+  x Updated documentation to reflect API and option changes
+  x (test suite) Moved all public images to common directory with single copyright file
 
 version 0.4: (07-Dec-2008)
-  x libdmtx:   Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
-  x libdmtx:   Fix 4 bottom-right modules in sizes where they are not used (thanks Matthias R.!)
-  x libdmtx:   Replace callback references with preprocessor macros
-  x libdmtx:   Implement remaining encodation schemes for encoding (X12, Base 256, etc...)
-  x libdmtx:   Implement remaining encodation schemes for decoding (X12, Base 256, etc...)
-  x libdmtx:   Implement --auto-best option for best possible encoding efficiency
-  x libdmtx:   Implement multi-region symbols
-  x libdmtx:   Read and write rectangle shaped barcodes
-  x libdmtx:   Use GNU autotools (autoconf, automake, libtool)
-  x libdmtx:   New region detection overhaul
-  x libdmtx:   Fix chcon error in Makefile (right answer might be to use autoconf)
-  x bindings:  Include initial version of Python bindings from pydmtx project (thanks Dan!)
-  x bindings:  Add decoding functionality through Python
-  x bindings:  Expose new encoding functionality through Python
-  x dmtxread:  Fix dmtxread crash when same barcode is found more than 16 times
-  x dmtxread:  Verbose messages describing traits of detected barcodes
-  x dmtxread:  --codewords option to print codewords instead of decoded message
-  x dmtxread:  --newline option to insert newline character at end of output
-  x dmtxwrite: Additional output formats (PNG, ASCII, codewords)
-  x testsuite: 'make test' executes regression tests for encodation
-  x testsuite: Add marathon images to project (thanks John!)
+  x Remove arbitrary sz scaling (100.0) since it doesn't matter anyway
+  x Fix 4 bottom-right modules in sizes where they are not used (thanks Matthias R.!)
+  x Replace callback references with preprocessor macros
+  x Implement remaining encodation schemes for encoding (X12, Base 256, etc...)
+  x Implement remaining encodation schemes for decoding (X12, Base 256, etc...)
+  x Implement --auto-best option for best possible encoding efficiency
+  x Implement multi-region symbols
+  x Read and write rectangle shaped barcodes
+  x Use GNU autotools (autoconf, automake, libtool)
+  x New region detection overhaul
+  x Fix chcon error in Makefile (right answer might be to use autoconf)
+  x (test suite) 'make test' executes regression tests for encodation
+  x (test suite) Add marathon images to project (thanks John!)
 
 version 0.3: (15-Oct-2006)
   x Use preprocessor to pull code into one big file before compiling
@@ -254,90 +224,19 @@ version 0.1: (22-Apr-2006)
   x Calibrate based on calibration lines
   x Shrink-fit transformation around region
 
-
 Future Versions:
 -----------------------------------------------------------------
-  o libdmtx:   Capture high-level design in documentation (data flow, module analogies)
-  o libdmtx:   Try bi-linear approximation (instead of linear) in follower edge detection
-  o libdmtx:   Implement fixed point math functions for use on mobile platforms
-  o libdmtx:   Add calibration functionality to remove spherical distortion
-
+  o Capture high-level design in documentation (data flow, module analogies)
+  o Try bi-linear approximation (instead of linear) in follower edge detection
+  o Implement fixed point math functions for use on mobile platforms
+  o Add calibration functionality to remove spherical distortion
 
 Perhaps Never:
 -----------------------------------------------------------------
-  o libdmtx:   Implement pre-ECC200 Data Matrix standards (big effort/low demand)
-
+  o Implement pre-ECC200 Data Matrix standards (big effort/low demand)
 
 Website:
 -----------------------------------------------------------------
   o Explore using single background image instead of split
   o Add what we currently do, don't do, would like to do in the future
   o Add http://hosted-projects.com/trac/hudora/public/wiki/huBarcode to resources page
-
-
-Proposed Change: Modularity
------------------------------------------------------------------
-Make finder bar detection pluggable so a separate future version
-can be made for dot peen pattern detection (remaining steps would
-be unchanged).
-
-
-Proposed Change: Region Calibration
------------------------------------------------------------------
-The current calibration technique relies solely on points and
-angles found during the Hough process, and uses the calibration
-bar only to detect symbol size. A more robust approach might take
-advantage of the calibration bars' repeating pattern to extract
-precise edge locations for the adjacent edges. Doing so will
-provide extremely accurate symbol regions since each of the 4
-edges will contain a precise anchor point instead of relying on a
-potentially fuzzy edge measurement. This will also help with
-barcodes created using undersized/oversized printing process.
-
-
-Boundary Hough test
------------------------------------------------------------------
-Increment line
-Decrement interior line
-
-
-Vanishing Point detection (high-res Hough)
------------------------------------------------------------------
-Known:
-  "L" alignment edge location
-
-Approach:
-  1) Sample each pixel in a parallelogram formed by the "L" edges
-     and implied opposing parallel edges
-  2) Sample each pixel within region exactly once
-  3) Perform Boundary Hough test twice, once for each edge of "L"
-     to define interior direction
-  4) Detect interior edges as pattern of points in Hough grid
-  5) 2 skew tranforms should be sufficient to correct any
-     perspective distortion
-  6) Find calibration edges and extract exact edge locations
-
-Note: Initial implementation may use regular Hough if much simpler
-
-
-Bahamas Approach
------------------------------------------------------------------
-1) Calculate point flows, store in cache (maybe?)
-
-2) Calculate local low-res Hough, store in overlapping N^2xN^2
-   grid (probably 16x16 or 32x32). Store 4 values, (H+ H- V+ V-),
-   which can be compared later to detect alternating module
-   patterns. Values are determined by compass direction.
-
-   This step should respect pixel skipping (i.e., shrinking)
-   option. Also consider adding ability to grow instead of
-   shrink, causing single pixel modules to appear larger.
-
-3) For each local region, find vanishing point and module size
-   (high-res Hough with known limits). Attempt decode if barcode
-   presence is detected. If both vanishing point and module size
-   are known, can be confident about scan results (either success
-   or failure).
-
-4) Increment to next larger region size by combining small local
-   regions and repeat #3. Continue until all sizes are considered
