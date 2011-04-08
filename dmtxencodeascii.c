@@ -175,7 +175,10 @@ EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage,
     * whether output.length can be trusted by the calling function.
     */
 
-   *passFail = (streamAscii.status == DmtxStatusEncoding) ? DmtxPass : DmtxFail;
+   if(streamAscii.status == DmtxStatusInvalid || streamAscii.status == DmtxStatusFatal)
+      *passFail = DmtxFail;
+   else
+      *passFail = DmtxPass;
 
    return output;
 }
