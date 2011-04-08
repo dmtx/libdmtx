@@ -96,12 +96,53 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int sizeIdxRequest)
    DmtxByte outputTmpStorage[3];
    DmtxByteList outputTmp;
 
-   /* Check if sitting on a clean byte boundary */
+   /*
+    * If we just completed a triplet (cleanBoundary), 1 or 2 symbol codewords
+    * remain, and our remaining inputs (if any) represented in ASCII would fit
+    * in the remaining space, encode them in ASCII with an implicit unlatch.
+    */
+
    cleanBoundary = (stream->outputChainValueCount % 4 == 0) ? DmtxTrue : DmtxFalse;
 
-   /* Find symbol's remaining capacity based on current length */
-   sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest); CHKSIZE;
-   symbolRemaining = GetRemainingSymbolCapacity(stream->output->length, sizeIdx); CHKERR;
+   if(cleanBoundary == DmtxTrue)
+   {
+      /* Encode up to 3 codewords to a temporary stream */
+      outputTmp = EncodeTmpRemainingInAscii(stream, outputTmpStorage,
+            sizeof(outputTmpStorage), &passFail);
+
+      if(passFail == DmtxFail)
+      {
+         StreamMarkFatal(stream, 1 /* should never happen */);
+         return;
+      }
+
+      if(outputTmp.length < 3)
+      {
+         /* Find minimum symbol size for projected length */
+         sizeIdx = FindSymbolSize(stream->output->length + outputTmp.length, sizeIdxRequest); CHKSIZE;
+
+         /* Find remaining capacity over current length */
+         symbolRemaining = GetRemainingSymbolCapacity(stream->output->length, sizeIdx); CHKERR;
+
+         if(symbolRemaining < 3 && outputTmp.length <= symbolRemaining)
+         {
+            EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit); CHKERR;
+
+            for(i = 0; i < outputTmp.length; i++)
+            {
+               EncodeValueAscii(stream, outputTmp.b[i]); CHKERR;
+            }
+
+            /* Register progress since encoding happened outside normal path */
+            stream->inputNext = stream->input->length;
+
+            /* Pad remaining if necessary */
+            PadRemainingInAscii(stream, sizeIdx); CHKERR;
+            StreamMarkComplete(stream, sizeIdx);
+            return;
+         }
+      }
+   }
 
    if(!StreamInputHasNext(stream))
    {
@@ -114,35 +155,5 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int sizeIdxRequest)
       }
 
       StreamMarkComplete(stream, sizeIdx);
-   }
-   else
-   {
-      /*
-       * Allow encoder to write up to 3 additional codewords to a temporary
-       * stream. If it finishes in 1 or 2 it is a known end-of-symbol condition.
-       */
-      outputTmp = EncodeTmpRemainingInAscii(stream, outputTmpStorage,
-            sizeof(outputTmpStorage), &passFail);
-
-      if(passFail == DmtxFail || outputTmp.length > symbolRemaining)
-         return; /* Doesn't fit -- continue encoding */
-
-      if(cleanBoundary && (outputTmp.length == 1 || outputTmp.length == 2))
-      {
-         EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit); CHKERR;
-
-         for(i = 0; i < outputTmp.length; i++)
-         {
-            EncodeValueAscii(stream, outputTmp.b[i]); CHKERR;
-         }
-
-         /* Register progress since encoding happened outside normal path */
-         stream->inputNext = stream->input->length;
-
-         /* Pad remaining if necessary */
-         PadRemainingInAscii(stream, sizeIdx); CHKERR;
-
-         StreamMarkComplete(stream, sizeIdx);
-      }
    }
 }
