@@ -41,6 +41,12 @@ static void DumpStreams(DmtxEncodeStream *streamBest)
    fprintf(stdout, "----------------------------------------\n");
    for(state = 0; state < SchemeStateCount; state++)
    {
+      if(streamBest[state].status == DmtxStatusEncoding ||
+            streamBest[state].status == DmtxStatusComplete)
+         fprintf(stdout, "\"%c\" ", streamBest[state].input->b[streamBest[state].inputNext-1]);
+      else
+         fprintf(stdout, "    ");
+
       switch(streamBest[state].status) {
          case DmtxStatusEncoding:
             snprintf(prefix, sizeof(prefix), "%2d (%s): ", state, " encode ");
