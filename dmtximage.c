@@ -12,24 +12,23 @@
  */
 
 /**
- * libdmtx treats image data as a single 1D array of packed pixels. When
- * reading and writing barcodes, this array provides the sole mechanism for
- * pixel storage and libdmtx relies on the calling program to transfer
- * images to/from the outside world (e.g., saving to disk, acquiring camera
- * input, etc...).
+ * libdmtx stores image data as a large one-dimensional array of packed pixels,
+ * reading from the array when scanning barcodes and writing to it when creating
+ * a barcode. Beyond this interaction the calling program is responsible for
+ * populating and dispatching pixels between the image array and the outside
+ * world, whether that means loading an image from a file, acquiring camera
+ * input, displaying output to a screen, saving to disk, etc...
  *
- * By default, libdmtx treats the first pixel of an array as the top-left
- * location of an image, with horizontal rows working downward to the
- * final pixel at the bottom-right corner. If mapping a pixel buffer this
- * way produces an inverted image, then specify DmtxFlipY at image
- * creation time to remove the inversion. Note that DmtxFlipY has no
- * significant affect on performance since it only modifies the pixel
- * mapping math and does not alter any pixel data. If the image appears
- * correctly without any flips then specify DmtxFlipNone.
+ * By default, libdmtx treats the first pixel of an image array as the top-left
+ * corner of the physical image, with the final pixel landing at the bottom-
+ * right. However, if mapping a pixel buffer this way produces an inverted
+ * image the calling program can specify DmtxFlipY at image creation time to
+ * remove the inversion. This has a negligible effect on performance since it
+ * only modifies the pixel mapping math, and does not alter any pixel data.
  *
  * Regardless of how an image is stored internally, all libdmtx functions
- * consider coordinate (x=0,y=0) to represent the bottom-left pixel
- * location of an image.
+ * consider coordinate (0,0) to mathematically represent the bottom-left pixel
+ * location of an image using a right-handed coordinate system.
  *
  *                (0,HEIGHT-1)        (WIDTH-1,HEIGHT-1)
  *
