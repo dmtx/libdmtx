@@ -44,6 +44,7 @@ FOCUS: error correction, encoding engine, experimental region finder, relicensin
                - etc...
   o library should never call exit()
   o Test error corrections with controled damage to images (add to test suite?)
+  o Change file header to say "in the main project directory" instead of "parent"
   o Add explicit build targets for debug and release
   o Remove remnants of attempt to get files compiling individually
   o Review dmtxencode*.c for remaining TODOs and other cleanup
