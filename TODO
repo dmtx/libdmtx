@@ -43,6 +43,8 @@ FOCUS: error correction, encoding engine, experimental region finder, relicensin
                - static functions start capitalized
                - etc...
   o library should never call exit()
+  o Rename repositories: libdmtx-utils -> dmtx-utils; libdmtx-wrappers -> dmtx-wrappers
+  o Split repositories
   o Test error corrections with controled damage to images (add to test suite?)
   o Change file header to say "in the main project directory" instead of "parent"
   o Add explicit build targets for debug and release
