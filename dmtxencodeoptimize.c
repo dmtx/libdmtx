@@ -11,22 +11,22 @@
  */
 
 enum SchemeState {
-   AsciiExpanded,
-   AsciiDigit1,
-   AsciiDigit2,
-   C40Digit1,
-   C40Digit2,
-   C40Digit3,
-   TextDigit1,
-   TextDigit2,
-   TextDigit3,
-   X12Digit1,
-   X12Digit2,
-   X12Digit3,
-   EdifactDigit1,
-   EdifactDigit2,
-   EdifactDigit3,
-   EdifactDigit4,
+   AsciiFull,
+   AsciiCompactOffset0, /* 0 offset from first regular input value */
+   AsciiCompactOffset1,
+   C40Offset0,          /* 0 offset from first expanded C40 value */
+   C40Offset1,
+   C40Offset2,
+   TextOffset0,         /* 0 offset from first expanded Text value */
+   TextOffset1,
+   TextOffset2,
+   X12Offset0,          /* 0 offset from first expanded X12 value */
+   X12Offset1,
+   X12Offset2,
+   EdifactOffset0,      /* 0 offset from first regular input value */
+   EdifactOffset1,
+   EdifactOffset2,
+   EdifactOffset3,
    Base256,
    SchemeStateCount
 };
@@ -73,9 +73,9 @@ static void DumpStreams(DmtxEncodeStream *streamBest)
 static int
 EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest)
 {
-   enum SchemeState state, cameFrom;
-   DmtxScheme targetScheme;
-   DmtxEncodeOption encodeOption;
+   enum SchemeState state;
+   int inputNext = 0;
+   int sizeIdx;
    DmtxEncodeStream streamBest[SchemeStateCount];
    DmtxEncodeStream streamTemp[SchemeStateCount];
    DmtxByte outputBestStorage[SchemeStateCount][4096];
@@ -88,73 +88,35 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
    /* Initialize all streams with their own output storage */
    for(state = 0; state < SchemeStateCount; state++)
    {
-      outputBest[state] = dmtxByteListBuild(outputBestStorage[state],
-            sizeof(outputBestStorage[state]));
-
-      outputTemp[state] = dmtxByteListBuild(outputTempStorage[state],
-            sizeof(outputTempStorage[state]));
-
+      outputBest[state] = dmtxByteListBuild(outputBestStorage[state], sizeof(outputBestStorage[state]));
+      outputTemp[state] = dmtxByteListBuild(outputTempStorage[state], sizeof(outputTempStorage[state]));
       streamBest[state] = StreamInit(input, &(outputBest[state]));
       streamTemp[state] = StreamInit(input, &(outputTemp[state]));
    }
 
-   /* Encode first chunk in each stream or invalidate if not possible */
-   for(state = 0; state < SchemeStateCount; state++)
+   /* For each input value */
+   for(inputNext = 0; inputNext < input->length; inputNext++)
    {
-      /* XXX rename GetPreviousState() to something more meaningful */
-      if(GetPreviousState(state) != DmtxUndefined)
-      {
-         /* This state can only come from a precursor; Can't start here */
-         StreamMarkInvalid(&(streamBest[state]), 1 /* can't start intermediate */);
-      }
-      else
-      {
-         /* Not an intermediate state -- Start encoding */
-         targetScheme = GetScheme(state);
-
-         if(state == AsciiExpanded)
-            encodeOption = DmtxEncodeExpanded;
-         else if(state == AsciiDigit1)
-            encodeOption = DmtxEncodeCompact;
-         else
-            encodeOption = DmtxEncodeNormal;
-
-         EncodeNextChunk(&(streamBest[state]), targetScheme, encodeOption, sizeIdxRequest);
-      }
-   }
-
-/* DumpStreams(streamBest); */
-
-   /* Continue encoding until all streams are complete */
-   for(;;)
-   {
-      /* XXX check streams for fatal condition here ? */
-
-      /* Break condition -- Quit if no streams are still encoding */
-      if(AllStreamsDone(streamBest))
-         break;
-
-      /* Find most efficient way to reach each state for the next input value */
+      /* For each encoding state */
       for(state = 0; state < SchemeStateCount; state++)
       {
-         if(streamBest[state].status == DmtxStatusComplete)
-            continue;
+         if(streamBest[state].status != DmtxStatusComplete)
+         {
+            /* XXX incomplete ... still need test to determine state to receive correct offsets */
+            if(streamBest[state].status != DmtxStatusInvalid && streamBest[state].encodedInputCount > 0)
+               StreamCopy(&(streamTemp[state]), &(streamBest[state]));
+            else
+               StreamAdvanceFromBest(&(streamTemp[state]), streamBest, state, sizeIdxRequest);
 
-         cameFrom = GetPreviousState(state);
-
-         if(cameFrom != DmtxUndefined)
-            StreamCopy(&(streamTemp[state]), &(streamBest[cameFrom]));
-         else
-            StreamAdvanceFromBest(&(streamTemp[state]), streamBest, state, sizeIdxRequest);
+            streamTemp[state].encodedInputCount--;
+         }
       }
 
       /* Update "current" streams with results */
       for(state = 0; state < SchemeStateCount; state++)
       {
-         if(streamBest[state].status == DmtxStatusComplete)
-            continue;
-
-         StreamCopy(&(streamBest[state]), &(streamTemp[state]));
+         if(streamBest[state].status != DmtxStatusComplete)
+            StreamCopy(&(streamBest[state]), &(streamTemp[state]));
       }
 /* DumpStreams(streamBest); */
    }
@@ -170,62 +132,59 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       }
    }
 
+   /* Copy winner to output */
    if(winner == NULL)
-      return DmtxUndefined;
+   {
+      sizeIdx = DmtxUndefined;
+   }
+   else
+   {
+      dmtxByteListCopy(output, winner->output, &passFail);
+      sizeIdx = (passFail == DmtxPass) ? winner->sizeIdx : DmtxUndefined;
+   }
 
-   dmtxByteListCopy(output, winner->output, &passFail);
-
-   return (passFail == DmtxPass) ? winner->sizeIdx : DmtxUndefined;
+   return sizeIdx;
 }
 
 /**
- *
- *
+ * It's safe to compare output length because all targetState combinations
+ * start on same input and encodes same number of inputs. Only difference
+ * is the number of latches/unlatches that are also encoded
  */
-static int
-StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream,
-      int targetState, int sizeIdxRequest)
+static void
+StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList, int targetState, int sizeIdxRequest)
 {
-   int i;
-   int bestOrigin = DmtxUndefined;
+   enum SchemeState fromState;
    DmtxScheme targetScheme;
    DmtxEncodeOption encodeOption;
    DmtxEncodeStream streamTemp;
    DmtxByte outputTempStorage[4096];
    DmtxByteList outputTemp = dmtxByteListBuild(outputTempStorage, sizeof(outputTempStorage));
 
-   streamTemp.output = &outputTemp;
+   assert(streamList[targetState].status == DmtxStatusInvalid ||
+         streamList[targetState].encodedInputCount == 0);
+
+   streamTemp.output = &outputTemp; /* Set directly instead of calling StreamInit() */
    targetScheme = GetScheme(targetState);
 
-   /* XXX this logic is repeated below */
-   if(targetState == AsciiExpanded)
-      encodeOption = DmtxEncodeExpanded;
-   else if(targetState == AsciiDigit1)
+   if(targetState == AsciiFull)
+      encodeOption = DmtxEncodeFull;
+   else if(targetState == AsciiCompactOffset0)
       encodeOption = DmtxEncodeCompact;
    else
       encodeOption = DmtxEncodeNormal;
 
-   for(i = 0; i < SchemeStateCount; i++)
+   for(fromState = 0; fromState < SchemeStateCount; fromState++)
    {
-      if(CantUnlatch(i) || stream[i].status != DmtxStatusEncoding)
-         continue;
-
-      StreamCopy(&streamTemp, &(stream[i]));
-
+      StreamCopy(&streamTemp, &(streamList[fromState]));
       EncodeNextChunk(&streamTemp, targetScheme, encodeOption, sizeIdxRequest);
 
-      if(streamTemp.status != DmtxStatusInvalid &&
-            (bestOrigin == DmtxUndefined || streamTemp.output->length < streamNext->output->length))
+      if(fromState == 0 || (streamTemp.status != DmtxStatusInvalid &&
+            streamTemp.output->length < streamNext->output->length))
       {
-         bestOrigin = i;
          StreamCopy(streamNext, &streamTemp);
       }
    }
-
-   if(bestOrigin == DmtxUndefined)
-      StreamMarkInvalid(streamNext, 1 /* all streams are invalid */);
-
-   return bestOrigin;
 }
 
 /**
@@ -239,30 +198,30 @@ GetScheme(int state)
 
    switch(state)
    {
-      case AsciiExpanded:
-      case AsciiDigit1:
-      case AsciiDigit2:
+      case AsciiFull:
+      case AsciiCompactOffset0:
+      case AsciiCompactOffset1:
          scheme = DmtxSchemeAscii;
          break;
-      case C40Digit1:
-      case C40Digit2:
-      case C40Digit3:
+      case C40Offset0:
+      case C40Offset1:
+      case C40Offset2:
          scheme = DmtxSchemeC40;
          break;
-      case TextDigit1:
-      case TextDigit2:
-      case TextDigit3:
+      case TextOffset0:
+      case TextOffset1:
+      case TextOffset2:
          scheme = DmtxSchemeText;
          break;
-      case X12Digit1:
-      case X12Digit2:
-      case X12Digit3:
+      case X12Offset0:
+      case X12Offset1:
+      case X12Offset2:
          scheme = DmtxSchemeX12;
          break;
-      case EdifactDigit1:
-      case EdifactDigit2:
-      case EdifactDigit3:
-      case EdifactDigit4:
+      case EdifactOffset0:
+      case EdifactOffset1:
+      case EdifactOffset2:
+      case EdifactOffset3:
          scheme = DmtxSchemeEdifact;
          break;
       case Base256:
@@ -274,91 +233,4 @@ GetScheme(int state)
    }
 
    return scheme;
-}
-
-/**
- *
- *
- */
-static int
-GetPreviousState(int state)
-{
-   enum SchemeState cameFrom;
-
-   switch(state)
-   {
-      case AsciiDigit2:
-         cameFrom = AsciiDigit1;
-         break;
-      case C40Digit2:
-         cameFrom = C40Digit1;
-         break;
-      case C40Digit3:
-         cameFrom = C40Digit2;
-         break;
-      case TextDigit2:
-         cameFrom = TextDigit1;
-         break;
-      case TextDigit3:
-         cameFrom = TextDigit2;
-         break;
-      case X12Digit2:
-         cameFrom = X12Digit1;
-         break;
-      case X12Digit3:
-         cameFrom = X12Digit2;
-         break;
-      case EdifactDigit2:
-         cameFrom = EdifactDigit1;
-         break;
-      case EdifactDigit3:
-         cameFrom = EdifactDigit2;
-         break;
-      case EdifactDigit4:
-         cameFrom = EdifactDigit3;
-         break;
-      default:
-         cameFrom = DmtxUndefined;
-         break;
-   }
-
-   return cameFrom;
-}
-
-/**
- *
- *
- */
-static DmtxBoolean
-CantUnlatch(int state)
-{
-   DmtxBoolean cantUnlatch;
-
-   if(state == AsciiDigit1 ||
-         state == C40Digit1 || state == C40Digit2 ||
-         state == TextDigit1 || state == TextDigit2 ||
-         state == X12Digit1 || state == X12Digit2)
-   {
-      cantUnlatch = DmtxTrue;
-   }
-   else
-   {
-      cantUnlatch = DmtxFalse;
-   }
-
-   return cantUnlatch;
-}
-
-static DmtxBoolean
-AllStreamsDone(DmtxEncodeStream *streams)
-{
-   enum SchemeState i;
-
-   for(i = 0; i < SchemeStateCount; i++)
-   {
-      if(streams[i].status == DmtxStatusEncoding)
-         return DmtxFalse;
-   }
-
-   return DmtxTrue;
 }

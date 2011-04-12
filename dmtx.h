@@ -269,6 +269,7 @@ struct DmtxEncodeStream_struct
 {
    int currentScheme;         /* Current encodation scheme */
    int inputNext;             /* Index of next unprocessed input word in queue */
+   int encodedInputCount;     /* Count of input values encoded in most recent chunk */
    int outputChainValueCount; /* Count of output values pushed within current scheme chain */
    int outputChainWordCount;  /* Count of output words pushed within current scheme chain */
    int reason;                /* Reason for status */

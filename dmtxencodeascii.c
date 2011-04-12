@@ -40,7 +40,7 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream, int option)
          v1 = StreamInputPeekNext(stream); CHKERR;
          compactDigits = (ISDIGIT(v0) && ISDIGIT(v1)) ? DmtxTrue : DmtxFalse;
       }
-      else /* option == DmtxEncodeExpanded */
+      else /* option == DmtxEncodeFull */
       {
          v1 = 0;
          compactDigits = DmtxFalse;

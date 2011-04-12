@@ -58,7 +58,7 @@
 typedef enum {
    DmtxEncodeNormal,  /* Use normal scheme behavior (e.g., ASCII auto) */
    DmtxEncodeCompact, /* Use only compact format within scheme */
-   DmtxEncodeExpanded /* Use only expanded format within scheme */
+   DmtxEncodeFull     /* Use only fully expanded format within scheme */
 } DmtxEncodeOption;
 
 typedef enum {
@@ -222,11 +222,9 @@ static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
 
 /* dmtxencodeoptimize.c */
 static int EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest);
-static int StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *stream, int schemeState, int sizeIdxRequest);
+static void StreamAdvanceFromBest(DmtxEncodeStream *streamNext,
+      DmtxEncodeStream *streamList, int targeteState, int sizeIdxRequest);
 static int GetScheme(int state);
-static int GetPreviousState(int state);
-static DmtxBoolean CantUnlatch(int state);
-static DmtxBoolean AllStreamsDone(DmtxEncodeStream *stream);
 
 /* dmtxencodeascii.c */
 static void EncodeNextChunkAscii(DmtxEncodeStream *stream, int option);
