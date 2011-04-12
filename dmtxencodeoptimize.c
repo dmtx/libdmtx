@@ -84,6 +84,7 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
    DmtxByteList outputTemp[SchemeStateCount];
    DmtxEncodeStream *winner;
    DmtxPassFail passFail;
+   DmtxBoolean validTargetState;
 
    /* Initialize all streams with their own output storage */
    for(state = 0; state < SchemeStateCount; state++)
@@ -102,13 +103,25 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       {
          if(streamBest[state].status != DmtxStatusComplete)
          {
-            /* XXX incomplete ... still need test to determine state to receive correct offsets */
             if(streamBest[state].status != DmtxStatusInvalid && streamBest[state].encodedInputCount > 0)
+            {
                StreamCopy(&(streamTemp[state]), &(streamBest[state]));
+               streamTemp[state].encodedInputCount--;
+            }
             else
-               StreamAdvanceFromBest(&(streamTemp[state]), streamBest, state, sizeIdxRequest);
+            {
+               validTargetState = IsValidTargetState(state, inputNext);
 
-            streamTemp[state].encodedInputCount--;
+               if(validTargetState == DmtxTrue)
+               {
+                  StreamAdvanceFromBest(&(streamTemp[state]), streamBest, state, sizeIdxRequest);
+                  streamTemp[state].encodedInputCount--;
+               }
+               else
+               {
+                  StreamMarkInvalid(&(streamTemp[state]), 1);
+               }
+            }
          }
       }
 
@@ -185,6 +198,67 @@ StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList
          StreamCopy(streamNext, &streamTemp);
       }
    }
+}
+
+/**
+ *
+ *
+ */
+static DmtxBoolean
+IsValidTargetState(int state, int inputNext)
+{
+   DmtxBoolean validTargetState;
+
+   switch(state)
+   {
+      case AsciiCompactOffset0:
+         validTargetState = (inputNext % 2 == 0) ? DmtxTrue : DmtxFalse;
+         break;
+
+      case AsciiCompactOffset1:
+         validTargetState = (inputNext % 2 == 1) ? DmtxTrue : DmtxFalse;
+         break;
+
+      case C40Offset0:
+      case TextOffset0:
+      case X12Offset0:
+         validTargetState = (inputNext % 3 == 0) ? DmtxTrue : DmtxFalse; /* wrong */
+         break;
+
+      case C40Offset1:
+      case TextOffset1:
+      case X12Offset1:
+         validTargetState = (inputNext % 3 == 1) ? DmtxTrue : DmtxFalse; /* wrong */
+         break;
+
+      case C40Offset2:
+      case TextOffset2:
+      case X12Offset2:
+         validTargetState = (inputNext % 3 == 2) ? DmtxTrue : DmtxFalse; /* wrong */
+         break;
+
+      case EdifactOffset0:
+         validTargetState = (inputNext % 4 == 0) ? DmtxTrue : DmtxFalse;
+         break;
+
+      case EdifactOffset1:
+         validTargetState = (inputNext % 4 == 1) ? DmtxTrue : DmtxFalse;
+         break;
+
+      case EdifactOffset2:
+         validTargetState = (inputNext % 4 == 2) ? DmtxTrue : DmtxFalse;
+         break;
+
+      case EdifactOffset3:
+         validTargetState = (inputNext % 4 == 3) ? DmtxTrue : DmtxFalse;
+         break;
+
+      default:
+         validTargetState = DmtxTrue;
+         break;
+   }
+
+   return validTargetState;
 }
 
 /**

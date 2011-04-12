@@ -224,6 +224,7 @@ static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
 static int EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest);
 static void StreamAdvanceFromBest(DmtxEncodeStream *streamNext,
       DmtxEncodeStream *streamList, int targeteState, int sizeIdxRequest);
+static DmtxBoolean IsValidTargetState(int state, int inputNext);
 static int GetScheme(int state);
 
 /* dmtxencodeascii.c */
