@@ -114,10 +114,6 @@ EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
 static void
 EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int option, int sizeIdxRequest)
 {
-   int inputNextBefore, inputNextAfter;
-
-   inputNextBefore = stream->inputNext;
-
    /* Change to target scheme if necessary */
    if(stream->currentScheme != scheme)
    {
@@ -149,10 +145,6 @@ EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int option, int sizeIdxReq
          StreamMarkFatal(stream, 1 /* unknown */);
          break;
    }
-
-   inputNextAfter = stream->inputNext;
-
-   stream->encodedInputCount = inputNextAfter - inputNextBefore;
 }
 
 /**

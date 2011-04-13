@@ -24,7 +24,6 @@ StreamInit(DmtxByteList *input, DmtxByteList *output)
 
    stream.currentScheme = DmtxSchemeAscii;
    stream.inputNext = 0;
-   stream.encodedInputCount = 0;
    stream.outputChainValueCount = 0;
    stream.outputChainWordCount = 0;
    stream.reason = DmtxUndefined;
@@ -45,7 +44,6 @@ StreamCopy(DmtxEncodeStream *dst, DmtxEncodeStream *src)
 
    dst->currentScheme = src->currentScheme;
    dst->inputNext = src->inputNext;
-   dst->encodedInputCount = src->encodedInputCount;
    dst->outputChainValueCount = src->outputChainValueCount;
    dst->outputChainWordCount = src->outputChainWordCount;
    dst->reason = src->reason;

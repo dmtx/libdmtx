@@ -84,7 +84,6 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
    DmtxByteList outputTemp[SchemeStateCount];
    DmtxEncodeStream *winner;
    DmtxPassFail passFail;
-   DmtxBoolean validTargetState;
 
    /* Initialize all streams with their own output storage */
    for(state = 0; state < SchemeStateCount; state++)
@@ -103,24 +102,30 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       {
          if(streamBest[state].status != DmtxStatusComplete)
          {
-            if(streamBest[state].status != DmtxStatusInvalid && streamBest[state].encodedInputCount > 0)
+            if(streamBest[state].status != DmtxStatusInvalid && inputNext < streamBest[state].inputNext)
             {
                StreamCopy(&(streamTemp[state]), &(streamBest[state]));
-               streamTemp[state].encodedInputCount--;
             }
             else
             {
-               validTargetState = IsValidTargetState(state, inputNext);
-
-               if(validTargetState == DmtxTrue)
+               /* Better name: CanSwitchHere() or something */
+               if(IsValidTargetState(state, inputNext))
                {
                   StreamAdvanceFromBest(&(streamTemp[state]), streamBest, state, sizeIdxRequest);
-                  streamTemp[state].encodedInputCount--;
                }
                else
                {
-                  StreamMarkInvalid(&(streamTemp[state]), 1);
+                  StreamCopy(&(streamTemp[state]), &(streamBest[state]));
+                  EncodeNextChunk(&(streamTemp[state]), GetScheme(state), DmtxEncodeNormal, sizeIdxRequest);
                }
+
+               /*
+                * Here's the problem -- we need to encode next chunk from same
+                * state, but only if we're already in a valid state to begin with.
+                * Maybe we should initialize intermediate states to Invalid? How
+                * does EncodeNextChunk() handle attempts to encode invalid streams?
+                */
+
             }
          }
       }
@@ -165,7 +170,8 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
  * is the number of latches/unlatches that are also encoded
  */
 static void
-StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList, int targetState, int sizeIdxRequest)
+StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList,
+     int targetState, int sizeIdxRequest)
 {
    enum SchemeState fromState;
    DmtxScheme targetScheme;
@@ -174,15 +180,12 @@ StreamAdvanceFromBest(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList
    DmtxByte outputTempStorage[4096];
    DmtxByteList outputTemp = dmtxByteListBuild(outputTempStorage, sizeof(outputTempStorage));
 
-   assert(streamList[targetState].status == DmtxStatusInvalid ||
-         streamList[targetState].encodedInputCount == 0);
-
    streamTemp.output = &outputTemp; /* Set directly instead of calling StreamInit() */
    targetScheme = GetScheme(targetState);
 
    if(targetState == AsciiFull)
       encodeOption = DmtxEncodeFull;
-   else if(targetState == AsciiCompactOffset0)
+   else if(targetState == AsciiCompactOffset0 || targetState == AsciiCompactOffset1)
       encodeOption = DmtxEncodeCompact;
    else
       encodeOption = DmtxEncodeNormal;
