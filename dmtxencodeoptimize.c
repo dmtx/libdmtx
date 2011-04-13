@@ -94,6 +94,46 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       streamTemp[state] = StreamInit(input, &(outputTemp[state]));
    }
 
+/*
+   for(inputNext = 0; inputNext < input->length; inputNext++)
+   {
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, AsciiFull, sizeIdxRequest);
+
+      asciiCompactStart = f(inputNext % 2);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (asciiCompactStart == AsciiCompactOffset1), sizeIdxRequest);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (asciiCompactStart == AsciiCompactOffset2), sizeIdxRequest);
+
+      ctxStart = f(ctxValueCount % 3);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (ctxStart == C40Offset0), sizeIdxRequest);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (ctxStart == C40Offset1), sizeIdxRequest);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (ctxStart == C40Offset2), sizeIdxRequest);
+
+      textStart = f(textValueCount % 3);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (textStart == TextOffset0), sizeIdxRequest);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (textStart == TextOffset1), sizeIdxRequest);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (textStart == TextOffset2), sizeIdxRequest);
+
+      x12Start = f(x12ValueCount % 3);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (x12Start == X12Offset0), sizeIdxRequest);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (x12Start == X12Offset1), sizeIdxRequest);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (x12Start == X12Offset2), sizeIdxRequest);
+
+      edifactStart = f(inputNext % 4);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (edifactStart == EdifactOffset0), sizeIdxRequest);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (edifactStart == EdifactOffset1), sizeIdxRequest);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (edifactStart == EdifactOffset2), sizeIdxRequest);
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, (edifactStart == EdifactOffset3), sizeIdxRequest);
+
+      StreamAdvanceFromBest(&(streamTemp[state]), streamBest, Base256, sizeIdxRequest);
+
+      // Update "current" streams with results
+      for(state = 0; state < SchemeStateCount; state++)
+      {
+         if(streamBest[state].status != DmtxStatusComplete)
+            StreamCopy(&(streamBest[state]), &(streamTemp[state]));
+      }
+   }
+*/
    /* For each input value */
    for(inputNext = 0; inputNext < input->length; inputNext++)
    {
