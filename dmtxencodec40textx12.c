@@ -157,6 +157,8 @@ CompleteIfDoneCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
       else
       {
          EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
+         PadRemainingInAscii(stream, sizeIdx);
+         StreamMarkComplete(stream, sizeIdx);
       }
    }
 }
@@ -184,11 +186,12 @@ CompleteIfDoneCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
  *    (b)    C40 2       2  C40+C40+0
  *    (d)  ASCII 1       1  ASCII (implicit unlatch)
  *    (c)  ASCII 1       2  UNLATCH ASCII
- *               -       -  UNLATCH (continue ASCII)
+ *               -       -  UNLATCH (finish ASCII)
  */
 static void
 CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeIdxRequest)
 {
+   int i;
    int sizeIdx1, sizeIdx2;
    int symbolRemaining1, symbolRemaining2;
    DmtxPassFail passFail;
@@ -255,13 +258,21 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
 
          /* Register progress since encoding happened outside normal path */
          stream->inputNext = stream->input->length;
-
          StreamMarkComplete(stream, sizeIdx1);
       }
       else
       {
-         /* Continue in ASCII (c) */
+         /* Finish in ASCII (c) */
          EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
+         for(i = 0; i < outputTmp.length; i++)
+            EncodeValueAscii(stream, outputTmp.b[i]); CHKERR;
+
+         sizeIdx1 = FindSymbolSize(stream->output->length, sizeIdxRequest);
+         PadRemainingInAscii(stream, sizeIdx1);
+
+         /* Register progress since encoding happened outside normal path */
+         stream->inputNext = stream->input->length;
+         StreamMarkComplete(stream, sizeIdx1);
       }
    }
 }
