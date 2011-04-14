@@ -52,9 +52,10 @@ FOCUS: error correction, encoding engine, experimental region finder, relicensin
   o Review dmtxencode*.c for remaining TODOs and other cleanup
   o Clean up PushCTXValues() passFail handling
   o Add new error codes and messages into dmtxencode.c
-  o Finish optimize best
-  / Capture all compare_generated.sh errors (e.g., can't encode pnm) to avoid false negatives
-  / Fix encoding bugs reported by compare_generated.sh
+  o Figure out why -eb doesn't find -e8 results for large messages
+  / Finish optimize best
+  x Capture all compare_generated.sh errors (e.g., can't encode pnm) to avoid false negatives
+  x Fix encoding bugs reported by compare_generated.sh
   x Add test in compare_generated.sh to create directory if needed
   x Use new Edifact decode function that doesn't assume full triplet
   x Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
