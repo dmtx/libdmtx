@@ -224,8 +224,14 @@ static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
 static int EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest);
 static void StreamAdvanceFromBest(DmtxEncodeStream *streamNext,
       DmtxEncodeStream *streamList, int targeteState, int sizeIdxRequest);
-static DmtxBoolean IsValidTargetState(int state, int inputNext);
+static void AdvanceAsciiCompact(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList,
+      int state, int inputNext, int sizeIdxRequest);
+static void AdvanceCTX(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList,
+      int state, int inputNext, int ctxValueCount, int sizeIdxRequest);
+static void AdvanceEdifact(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList,
+      int state, int inputNext, int sizeIdxRequest);
 static int GetScheme(int state);
+static DmtxBoolean ValidStateSwitch(int fromState, int targetState);
 
 /* dmtxencodeascii.c */
 static void EncodeNextChunkAscii(DmtxEncodeStream *stream, int option);
