@@ -70,8 +70,6 @@ static void DumpStreams(DmtxEncodeStream *streamBest)
  *
  *
  */
-#undef CHKPASS
-#define CHKPASS { if(passFail == DmtxFail) return DmtxUndefined; }
 static int
 EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest)
 {
@@ -134,16 +132,16 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       }
 
       dmtxByteListClear(&ctxTemp);
-      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeC40, &passFail); CHKPASS;
-      c40ValueCount += ctxTemp.length;
+      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeC40, &passFail);
+      c40ValueCount += ((passFail == DmtxPass) ? ctxTemp.length : 1);
 
       dmtxByteListClear(&ctxTemp);
-      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeText, &passFail); CHKPASS;
-      textValueCount += ctxTemp.length;
+      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeText, &passFail);
+      textValueCount += ((passFail == DmtxPass) ? ctxTemp.length : 1);
 
       dmtxByteListClear(&ctxTemp);
-      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeX12, &passFail); CHKPASS;
-      x12ValueCount += ctxTemp.length;
+      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeX12, &passFail);
+      x12ValueCount += ((passFail == DmtxPass) ? ctxTemp.length : 1);
 
 /*    DumpStreams(streamsBest); */
    }
@@ -230,12 +228,20 @@ AdvanceAsciiCompact(DmtxEncodeStream *streamsNext, DmtxEncodeStream *streamsBest
    DmtxEncodeStream *targetStream = &(streamsNext[targetState]);
    DmtxBoolean isStartState;
 
-   if(targetState == AsciiCompactOffset0)
-      isStartState = (inputNext % 2 == 0) ? DmtxTrue : DmtxFalse;
-   else if(targetState == AsciiCompactOffset1)
-      isStartState = (inputNext % 2 == 1) ? DmtxTrue : DmtxFalse;
-   else
-      StreamMarkFatal(targetStream, 1 /* illegal parameter value */);
+   switch(targetState)
+   {
+      case AsciiCompactOffset0:
+         isStartState = (inputNext % 2 == 0) ? DmtxTrue : DmtxFalse;
+         break;
+
+      case AsciiCompactOffset1:
+         isStartState = (inputNext % 2 == 1) ? DmtxTrue : DmtxFalse;
+         break;
+
+      default:
+         StreamMarkFatal(targetStream, 1 /* illegal parameter value */);
+         return;
+   }
 
    if(inputNext < currentStream->inputNext)
    {
@@ -267,26 +273,26 @@ AdvanceCTX(DmtxEncodeStream *streamsNext, DmtxEncodeStream *streamsBest,
    switch(targetState)
    {
       case C40Offset0:
-      case EdifactOffset0:
+      case TextOffset0:
       case X12Offset0:
          isStartState = (ctxValueCount % 3 == 0) ? DmtxTrue : DmtxFalse;
          break;
 
       case C40Offset1:
-      case EdifactOffset1:
+      case TextOffset1:
       case X12Offset1:
          isStartState = (ctxValueCount % 3 == 1) ? DmtxTrue : DmtxFalse;
          break;
 
       case C40Offset2:
-      case EdifactOffset2:
+      case TextOffset2:
       case X12Offset2:
          isStartState = (ctxValueCount % 3 == 2) ? DmtxTrue : DmtxFalse;
          break;
 
       default:
          StreamMarkFatal(targetStream, 1 /* illegal parameter value */);
-         break;
+         return;
    }
 
    if(inputNext < currentStream->inputNext)
@@ -313,25 +319,32 @@ AdvanceEdifact(DmtxEncodeStream *streamsNext, DmtxEncodeStream *streamsBest,
 {
    DmtxEncodeStream *currentStream = &(streamsBest[targetState]);
    DmtxEncodeStream *targetStream = &(streamsNext[targetState]);
-   enum SchemeState startState;
+   DmtxBoolean isStartState;
 
-   switch(inputNext % 4)
+   switch(targetState)
    {
-      case 0:
-         startState = EdifactOffset0;
+      case EdifactOffset0:
+         isStartState = (inputNext % 4 == 0) ? DmtxTrue : DmtxFalse;
          break;
-      case 1:
-         startState = EdifactOffset1;
+
+      case EdifactOffset1:
+         isStartState = (inputNext % 4 == 1) ? DmtxTrue : DmtxFalse;
          break;
-      case 2:
-         startState = EdifactOffset2;
+
+      case EdifactOffset2:
+         isStartState = (inputNext % 4 == 2) ? DmtxTrue : DmtxFalse;
          break;
-      case 3:
-         startState = EdifactOffset3;
+
+      case EdifactOffset3:
+         isStartState = (inputNext % 4 == 3) ? DmtxTrue : DmtxFalse;
          break;
+
+      default:
+         StreamMarkFatal(targetStream, 1 /* illegal parameter value */);
+         return;
    }
 
-   if(targetState == startState)
+   if(isStartState == DmtxTrue)
    {
       StreamAdvanceFromBest(streamsNext, streamsBest, targetState, sizeIdxRequest);
    }
