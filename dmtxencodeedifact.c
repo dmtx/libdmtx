@@ -146,6 +146,9 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int sizeIdxRequest)
 
    if(!StreamInputHasNext(stream))
    {
+      sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest); CHKSIZE;
+      symbolRemaining = GetRemainingSymbolCapacity(stream->output->length, sizeIdx); CHKERR;
+
       /* Explicit unlatch required unless on clean boundary and full symbol */
       if(cleanBoundary == DmtxFalse || symbolRemaining > 0)
       {
