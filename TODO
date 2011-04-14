@@ -44,7 +44,6 @@ FOCUS: error correction, encoding engine, experimental region finder, relicensin
                - etc...
   o library should never call exit()
   o Rename repositories: libdmtx-utils -> dmtx-utils; libdmtx-wrappers -> dmtx-wrappers
-  o Split repositories
   o Test error corrections with controled damage to images (add to test suite?)
   o Change file header to say "in the main project directory" instead of "parent"
   o Add explicit build targets for debug and release
@@ -52,6 +51,7 @@ FOCUS: error correction, encoding engine, experimental region finder, relicensin
   o Review dmtxencode*.c for remaining TODOs and other cleanup
   o Clean up PushCTXValues() passFail handling
   o Add new error codes and messages into dmtxencode.c
+  x Split up repositories
   x Finish optimize best
   x Capture all compare_generated.sh errors (e.g., can't encode pnm) to avoid false negatives
   x Fix encoding bugs reported by compare_generated.sh
