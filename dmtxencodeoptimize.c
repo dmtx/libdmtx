@@ -200,7 +200,7 @@ StreamAdvanceFromBest(DmtxEncodeStream *streamsNext, DmtxEncodeStream *streamsBe
 
    for(fromState = 0; fromState < SchemeStateCount; fromState++)
    {
-      if(streamsBest[fromState].status == DmtxStatusComplete ||
+      if(streamsBest[fromState].status != DmtxStatusEncoding ||
             ValidStateSwitch(fromState, targetState) == DmtxFalse)
       {
          continue;
