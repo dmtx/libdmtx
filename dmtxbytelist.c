@@ -54,6 +54,17 @@ dmtxByteListInit(DmtxByteList *list, int length, DmtxByte value, DmtxPassFail *p
  *
  *
  */
+extern void
+dmtxByteListClear(DmtxByteList *list)
+{
+   memset(list->b, 0x00, sizeof(DmtxByte) * list->capacity);
+   list->length = 0;
+}
+
+/**
+ *
+ *
+ */
 extern DmtxBoolean
 dmtxByteListHasCapacity(DmtxByteList *list)
 {
