@@ -42,6 +42,7 @@ FOCUS: error correction, encoding engine, experimental region finder, relicensin
                - dmtx prefix for public functions
                - static functions start capitalized
                - etc...
+  o Change default encoder to optimize best
   o library should never call exit()
   o Rename repositories: libdmtx-utils -> dmtx-utils; libdmtx-wrappers -> dmtx-wrappers
   o Test error corrections with controled damage to images (add to test suite?)
