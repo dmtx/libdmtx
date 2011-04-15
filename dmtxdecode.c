@@ -3,8 +3,8 @@
  * Copyright 2008, 2009 Mike Laughton. All rights reserved.
  * Copyright 2009 Mackenzie Straight. All rights reserved.
  *
- * See LICENSE file in parent directory for full terms of
- * use and distribution.
+ * See LICENSE file in main project directory for full terms
+ * of use and distribution.
  *
  * Contact: Mike Laughton <mike@dragonflylogic.com>
  *

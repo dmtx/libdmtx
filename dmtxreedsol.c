@@ -2,8 +2,8 @@
  * libdmtx - Data Matrix Encoding/Decoding Library
  * Copyright 2011 Mike Laughton. All rights reserved.
  *
- * See LICENSE file in parent directory for full terms of
- * use and distribution.
+ * See LICENSE file in main project directory for full terms
+ * of use and distribution.
  *
  * ---------------------------------------------------------
  * Portions of this file were derived from the Reed-Solomon
