@@ -60,8 +60,8 @@ EncodeNextChunkCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
 
    /*
     * Special case: If all input values have been consumed and 1 or 2 unwritten
-    * C40/Text/X12 values remain, finish encoding the symbol in ASCII according
-    * to the published end-of-symbol conditions.
+    * C40/Text/X12 values remain, finish encoding the symbol according to the
+    * established end-of-symbol conditions.
     */
    if(!StreamInputHasNext(stream) && valueList.length > 0)
    {
@@ -149,17 +149,13 @@ CompleteIfDoneCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
       sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest); CHKSIZE;
       symbolRemaining = GetRemainingSymbolCapacity(stream->output->length, sizeIdx);
 
-      if(symbolRemaining == 0)
-      {
-         /* End of symbol condition (a) -- Perfect fit */
-         StreamMarkComplete(stream, sizeIdx);
-      }
-      else
+      if(symbolRemaining > 0)
       {
          EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
          PadRemainingInAscii(stream, sizeIdx);
-         StreamMarkComplete(stream, sizeIdx);
       }
+
+      StreamMarkComplete(stream, sizeIdx);
    }
 }
 
