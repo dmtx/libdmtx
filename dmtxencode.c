@@ -165,6 +165,9 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
    input.length = inputSize;
 
+/* XXX stream = StreamInit() ... */
+/* XXX EncodeDataCodewords(&stream) ... */
+
    /* Encode input string into data codewords */
    sizeIdx = EncodeDataCodewords(&input, &output, enc->sizeIdxRequest, enc->scheme);
    if(sizeIdx == DmtxUndefined || output.length <= 0)
@@ -376,6 +379,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
  *
  * later pass DmtxEncode to this function with an error reason field, which goes to EncodeSingle... too
  */
+/* XXX EncodeDataCodewords(DmtxEncodeStream *stream, int sizeIdxRequest, DmtxScheme scheme) */
 static int
 EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme)
 {
