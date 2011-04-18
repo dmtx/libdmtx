@@ -10,11 +10,6 @@
  * \file file.c
  */
 
-#include <stdio.h>
-#include <string.h>
-#include "dmtx.h"
-#include "dmtxstatic.h"
-
 /**
  *
  *
