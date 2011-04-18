@@ -204,8 +204,8 @@ static int GetBitsPerPixel(int pack);
 static DmtxEncodeStream StreamInit(DmtxByteList *input, DmtxByteList *output);
 static void StreamCopy(DmtxEncodeStream *dst, DmtxEncodeStream *src);
 static void StreamMarkComplete(DmtxEncodeStream *stream, int sizeIdx);
-static void StreamMarkInvalid(DmtxEncodeStream *stream, int reason);
-static void StreamMarkFatal(DmtxEncodeStream *stream, int reason);
+static void StreamMarkInvalid(DmtxEncodeStream *stream, int reasonIdx);
+static void StreamMarkFatal(DmtxEncodeStream *stream, int reasonIdx);
 static void StreamOutputChainAppend(DmtxEncodeStream *stream, DmtxByte value);
 static DmtxByte StreamOutputChainRemoveLast(DmtxEncodeStream *stream);
 static void StreamOutputSet(DmtxEncodeStream *stream, int index, DmtxByte value);
@@ -302,5 +302,25 @@ static int rHvY[] =
         66,   62,   58,   53,   49,   44,   40,   36,   31,   27,   22,   18,   13,    9,    4 };
 
 /*@ -charint @*/
+
+enum DmtxErrorMessage {
+   DmtxErrorUnknown,
+   DmtxErrorUnsupportedCharacter,
+   DmtxErrorNotOnByteBoundary,
+   DmtxErrorIllegalParameterValue,
+   DmtxErrorEmptyList,
+   DmtxErrorOutOfBounds,
+   DmtxErrorMessageTooLarge
+};
+
+static char *dmtxErrorMessage[] = {
+   "Unknown error",
+   "Unsupported character",
+   "Not on byte boundary",
+   "Illegal parameter value",
+   "Encountered empty list",
+   "Out of bounds",
+   "Message too large"
+};
 
 #endif

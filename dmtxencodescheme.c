@@ -142,7 +142,7 @@ EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int option, int sizeIdxReq
          CompleteIfDoneBase256(stream, sizeIdxRequest); CHKERR;
          break;
       default:
-         StreamMarkFatal(stream, 1 /* unknown */);
+         StreamMarkFatal(stream, DmtxErrorUnknown);
          break;
    }
 }

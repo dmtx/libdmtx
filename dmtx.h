@@ -271,7 +271,7 @@ struct DmtxEncodeStream_struct
    int inputNext;             /* Index of next unprocessed input word in queue */
    int outputChainValueCount; /* Count of output values pushed within current scheme chain */
    int outputChainWordCount;  /* Count of output words pushed within current scheme chain */
-   int reason;                /* Reason for status */
+   char *reason;              /* Reason for status */
    int sizeIdx;               /* Symbol size of completed stream */
    DmtxStatus status;
    DmtxByteList *input;

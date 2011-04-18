@@ -156,7 +156,7 @@ EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage,
    streamAscii.currentScheme = DmtxSchemeAscii;
    streamAscii.outputChainValueCount = 0;
    streamAscii.outputChainWordCount = 0;
-   streamAscii.reason = DmtxUndefined;
+   streamAscii.reason = NULL;
    streamAscii.sizeIdx = DmtxUndefined;
    streamAscii.status = DmtxStatusEncoding;
    streamAscii.output = &output;
