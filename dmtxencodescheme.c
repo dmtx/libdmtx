@@ -20,12 +20,12 @@
  * A "value" refers to any scheme value being appended to the output stream,
  * regardless of how many bytes are used to represent it. Examples:
  *
- *   ASCII:                   1 value  in  1 word
- *   ASCII (digits):          2 values in  1 word
- *   C40/Text/X12:            3 values in  2 words
- *   C40/Text/X12 (unlatch):  1 values in  1 word
- *   EDIFACT:                 4 values in  3 words
- *   Base 256:                1 value  in  1 word
+ *   ASCII:                   1 value  in  1 codeword
+ *   ASCII (digits):          2 values in  1 codeword
+ *   C40/Text/X12:            3 values in  2 codewords
+ *   C40/Text/X12 (unlatch):  1 values in  1 codeword
+ *   EDIFACT:                 4 values in  3 codewords
+ *   Base 256:                1 value  in  1 codeword
  *
  *   - Shifts count as values, so outputChainValueCount will reflect these.
  *
@@ -37,16 +37,16 @@
  * A "chunk" refers to the minimum grouping of values in a schema that must be
  * encoded together.
  *
- *   ASCII:                   1 value  (1 word)  in 1 chunk
- *   ASCII (digits):          2 values (1 word)  in 1 chunk (optional)
- *   C40/Text/X12:            3 values (2 words) in 1 chunk
- *   C40/Text/X12 (unlatch):  1 value  (1 word)  in 1 chunk
- *   EDIFACT:                 1 value  (1 word*) in 1 chunk
- *   Base 256:                1 value  (1 word)  in 1 chunk
+ *   ASCII:                   1 value  (1 codeword)  in 1 chunk
+ *   ASCII (digits):          2 values (1 codeword)  in 1 chunk (optional)
+ *   C40/Text/X12:            3 values (2 codewords) in 1 chunk
+ *   C40/Text/X12 (unlatch):  1 value  (1 codeword)  in 1 chunk
+ *   EDIFACT:                 1 value  (1 codeword*) in 1 chunk
+ *   Base 256:                1 value  (1 codeword)  in 1 chunk
  *
  *   * EDIFACT writes 6 bits at a time, but progress is tracked to the next byte
  *     boundary. If unlatch value finishes mid-byte, the remaining bits before
- *     the next boundary are all set to zero.
+ *     the next boundary are set to zero.
  *
  * XXX maybe reorder the functions list in the file and break them up:
  *
