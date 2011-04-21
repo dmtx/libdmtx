@@ -59,7 +59,7 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream, int option)
       }
       else
       {
-         /* Encode single ASCII char */
+         /* Encode single ASCII value */
          if(v0 < 128)
          {
             /* Regular ASCII */
