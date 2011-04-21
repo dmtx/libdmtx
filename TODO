@@ -48,7 +48,7 @@ FOCUS: error correction, encoding engine, experimental region finder, relicensin
   o Figure out CHK* macro strategy
   o Review dmtxencode*.c for remaining TODOs and other cleanup
   o Add new error codes and messages into dmtxencode.c
-  / Rename repositories: libdmtx-utils -> dmtx-utils; libdmtx-wrappers -> dmtx-wrappers
+  x Rename repositories: libdmtx, dmtx-utils, and dmtx-wrappers
   x Remove remnants of attempt to get files compiling individually
   x Clean up PushCTXValues() passFail handling
   x Change file header to say "in the main project directory" instead of "parent"
