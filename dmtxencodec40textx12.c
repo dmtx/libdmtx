@@ -65,6 +65,7 @@ EncodeNextChunkCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
     */
    if(!StreamInputHasNext(stream) && valueList.length > 0)
    {
+/* XXX rename to CompletePartialCTX() */
       CompleteIfDonePartialCTX(stream, &valueList, sizeIdxRequest); CHKERR;
    }
 }
