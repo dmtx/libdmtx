@@ -62,13 +62,12 @@ if [[ -z "$LIBDMTX" || ! -d "$LIBDMTX/script" ]]; then
    exit 1
 fi
 
-RunTest check_comments.sh || exit 1
-RunTest check_copyright.sh || exit 1
-RunTest check_keyword.sh || exit 1
-RunTest check_license.sh || exit 1
-RunTest check_spacing.sh || exit 1
-RunTest check_whitespace.sh || exit 1
-RunTest check_headers.pl || exit 1
+RunTest check_comments.sh
+RunTest check_copyright.sh
+RunTest check_license.sh
+RunTest check_spacing.sh
+RunTest check_whitespace.sh
+RunTest check_headers.pl
 RunTest check_todo.sh
 
 exit 0

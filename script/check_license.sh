@@ -2,9 +2,10 @@
 
 FILE="$1"
 
-TEST1="^modify it under the terms of the GNU Lesser General Public\$"
-TEST2="^MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE\.  See the GNU\$"
-TEST3="^You should have received a copy of the GNU Lesser General Public\$"
+TEST1="^ \* libdmtx - Data Matrix Encoding/Decoding Library\$"
+TEST2="^ \* See LICENSE file in the main project directory for full\$"
+TEST3="^ \* terms of use and distribution.\$"
+TEST4="^ \* Contact: Mike Laughton <mike@dragonflylogic.com>\$"
 
 COUNT=0
 
@@ -15,6 +16,9 @@ grep --silent "$TEST2" $FILE
 COUNT=$(( COUNT + $? ))
 
 grep --silent "$TEST3" $FILE
+COUNT=$(( COUNT + $? ))
+
+grep --silent "$TEST4" $FILE
 COUNT=$(( COUNT + $? ))
 
 if [[ "$COUNT" -gt 0 ]]; then

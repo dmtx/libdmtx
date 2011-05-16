@@ -3,17 +3,10 @@
 FILE="$1"
 
 # Every nontrivial source file must include a copyright line
-COPYRIGHT=$(grep "Copyright (C) " $FILE)
+COPYRIGHT=$(grep "Copyright 2[[:digit:]]\{3\}" $FILE)
 if [[ $? -ne 0 ]]; then
    echo "Missing copyright text in $FILE"
    exit 1
-fi
-
-# Copyright line must contain the current year
-echo "$COPYRIGHT" | grep --silent $(date '+%Y')
-if [[ $? -ne 0 ]]; then
-   echo "Missing or incorrect copyright year in $FILE"
-   exit 2
 fi
 
 exit 0
