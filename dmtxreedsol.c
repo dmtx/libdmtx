@@ -9,7 +9,7 @@
  * Portions of this file were derived from the Reed-Solomon
  * encoder/decoder released by Simon Rockliff in June 1991.
  * ---------------------------------------------------------
-
+ *
  * Contact: Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtxreedsol.c

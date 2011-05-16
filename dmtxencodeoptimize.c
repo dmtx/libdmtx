@@ -31,8 +31,7 @@ enum SchemeState {
    SchemeStateCount
 };
 
-/* temporary */
-/*
+/** temporary
 static void DumpStreams(DmtxEncodeStream *streamBest)
 {
    enum SchemeState state;
