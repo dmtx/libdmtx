@@ -37,12 +37,12 @@ FOCUS: error correction, encoding engine, experimental region finder, relicensin
   o Test builds on propietary UNIXs
   o Add .gitignore ?
   o Create coding style guide
-               - Always pass by reference passFail as final parameter (can't be ignored)
-               - Use "enum XYZ" instead of "typedef enum"
-               - dmtx prefix for public functions
-               - static functions start capitalized
-               - etc...
-  o library should never call exit()
+      - Always pass by reference passFail as final parameter (can't be ignored)
+      - Use "enum XYZ" instead of "typedef enum"
+      - dmtx prefix for public functions
+      - static functions start capitalized
+      - etc...
+  o library should never call exit() (or assert()?)
   o Test error corrections with controled damage to images (add to test suite?)
   o Add explicit build targets for debug and release
   o Figure out CHK* macro strategy
