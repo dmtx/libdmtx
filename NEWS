@@ -1,3 +1,9 @@
+17-Mar-2011: Core library relicensed to Simplified BSD with waiver option
+03-Mar-2011: libdmtx code now in SourceForge GIT repositories
+29-Nov-2010: libdmtx binaries now available as official Fedora package
+18-Nov-2009: Mikko Koppanen released improved PHP bindings for libdmtx
+05-Nov-2009: "Onion" released a Gstreamer element using libdmtx
+04-Sep-2009: New release: libdmtx-0.7.2 (Release Notes)
 06-Aug-2009: Simon Wood released pyDataMatrixScanner at SourceForge
 03-Aug-2009: Evan Nemerson added Vala support with a new wrapper
 31-Jul-2009: libdmtx Documentation wiki moved to libdmtx.wikidot.com
