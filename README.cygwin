@@ -29,26 +29,10 @@ Cygwin:
   * automake
   * pkg-config
 
-Also, if libdmtx was obtained from Subversion:
+Also, if libdmtx was obtained from Git:
 
   * autoconf
   * libtool
-
-Also, if compiling dmtxread and/or dmtxwrite:
-
-  * libSM-devel
-  * libXt-devel
-  * ImageMagick
-  * libMagick-devel
-
-If you only want the core library and don't care about command
-line utilities, you can disable dmtxread and dmtxwrite to avoid
-the ImageMagick dependency. To do this, run the libdmtx configure
-step with the following parameters:
-
-  $ ./configure --disable-dmtxread --disable-dmtxwrite
-  $ make
-  $ sudo make install
 
 
 3. This Document

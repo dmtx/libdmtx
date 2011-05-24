@@ -13,23 +13,20 @@ its components.
 1. Installing libdmtx on GNU/Linux
 -----------------------------------------------------------------
 
-libdmtx can be installed on GNU/Linux using the instructions
-provided in the general README file. However, please see below
-for additional details that might benefit users on this platform.
+libdmtx can be installed on Linux using the instructions provided
+in the general README file. However, please see below for
+additional details that might benefit users on this platform.
 
 
-2. Installing Pre-Compiled Binaries
+2. Pre-Compiled Binaries
 -----------------------------------------------------------------
 
-Debian users are the big winners because libdmtx is available in
-the main testing and unstable repositories (although not in
-stable yet). The Debian package is named "libdmtx-utils".
+Many Linux distributions offer pre-compiled libdmtx binaries in
+their package repositories. If you aren't required to build from
+source for other reasons, this can be a great time saver.
 
-On Ubuntu Server, ImageMagick may install incorrectly but without
-errors since the server version does not come with installed
-image libraries and no GUI (GTK or KDE) so it doesn't correctly
-define the needed functions. Installing under Ubuntu Desktop
-edition works with no special modifications.
+Go to http://www.dragonflylogic.com/downloads for a list of all
+download options available on your system.
 
 
 3. This Document

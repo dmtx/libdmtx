@@ -30,20 +30,7 @@ version of the library. Recommendations are provided at:
 3. Dependencies
 -----------------------------------------------------------------
 
-Mac OS X does not have pkg-config installed by default. Even
-though I specified -L and -I options for ImageMagick the compiler
-losses this info at some point and looks to pkg-config to find
-it. Once pkg-config was installed it compiled perfectly. After
-installing pkg-config you do not need to re-install ImageMagick.
-
-The command line utilities dmtxread and dmtxwrite have a
-dependency on ImageMagick, which must be downloaded and built
-from its source distribution. After doing this, simply add the
-relevant "-L" and "-I" options to the CFLAGS and LDFLAGS
-environment variables before running the ./configure script.
-
-Compiling from Subversion requires a working autoconf/pkg-config
-setup:
+Compiling from Git requires a working autoconf/pkg-config setup:
 
   * autoconf, automake, libtool, and pkgconfig are required to
     generate the configure script. These packages are available

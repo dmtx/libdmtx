@@ -37,7 +37,7 @@ will be C:\msys\1.0.
 
 Open the MSYS shell and run the following:
 
-  $ ./configure --disable-dmtxread --disable-dmtxwrite --disable-dmtxquery
+  $ ./configure
   $ make
   $ sudo make install
 
@@ -57,31 +57,7 @@ Finally run:
 Now you should have working dmtx.dll in the folder .libs.
 
 
-4. External Dependencies
------------------------------------------------------------------
-
-The dmtxread and dmtxwrite command line utilities require
-ImageMagick to be installed on your system. To satisfy this
-requirement you can download and install the current stable
-branch of ImageMagick from:
-
-   https://sourceforge.net/projects/imagemagick/
-
-After downloading, unpack the ImageMagick sources and run:
-
-  $ ./configure
-  $ make
-  $ sudo make install
-
-Once ImageMagick is installed, change into the libdmtx directory
-and perform a full install:
-
-  $ ./configure
-  $ make
-  $ sudo make install
-
-
-5. This Document
+4. This Document
 -----------------------------------------------------------------
 
 This document is derived from the wiki page located at:

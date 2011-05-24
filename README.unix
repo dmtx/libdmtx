@@ -21,12 +21,18 @@ additional details that might benefit users on this platform.
 2. Known Issues
 -----------------------------------------------------------------
 
-libdmtx is known to have been compiled on the following flavors
-of Unix:
+libdmtx is known to work on the following commercial Unix
+versions:
 
-   * Solaris
-   * HP-UX
    * AIX
+   * HP-UX
+   * Solaris
+
+However, due to the non-GNU nature of these operating systems,
+building libdmtx from source can be a time consuming task. Users
+may wish to first evaluate the free trial binaries available at:
+
+  http://www.dragonflylogic.com/downloads
 
 
 3. This Document
