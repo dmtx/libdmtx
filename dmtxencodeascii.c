@@ -154,7 +154,6 @@ EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage,
    DmtxByteList output = dmtxByteListBuild(storage, capacity);
 
    /* Create temporary copy of stream that writes to storage */
-
    streamAscii = *stream;
    streamAscii.currentScheme = DmtxSchemeAscii;
    streamAscii.outputChainValueCount = 0;
