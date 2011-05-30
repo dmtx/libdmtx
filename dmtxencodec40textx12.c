@@ -145,6 +145,9 @@ CompleteIfDoneCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
    int sizeIdx;
    int symbolRemaining;
 
+   if(stream->status == DmtxStatusComplete)
+      return;
+
    if(!StreamInputHasNext(stream))
    {
       sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest); CHKSIZE;

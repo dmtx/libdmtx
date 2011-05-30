@@ -154,7 +154,7 @@ static DmtxPassFail PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, Dm
 
 /* dmtxdecodescheme.c */
 static void DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart);
-static int GetEncodationScheme(unsigned char *ptr);
+static int GetEncodationScheme(unsigned char cw);
 static void PushOutputWord(DmtxMessage *msg, int value);
 static void PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value);
 static void PushOutputMacroHeader(DmtxMessage *msg, int macroType);

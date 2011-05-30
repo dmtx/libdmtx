@@ -38,7 +38,7 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
 
    while(ptr < dataEnd) {
 
-      encScheme = GetEncodationScheme(ptr);
+      encScheme = GetEncodationScheme(*ptr);
       if(encScheme != DmtxSchemeAscii)
          ptr++;
 
@@ -73,15 +73,15 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
 /**
  * @brief  Determine next encodation scheme
  * @param  encScheme
- * @param  ptr
+ * @param  cw
  * @return Pointer to next undecoded codeword
  */
 static int
-GetEncodationScheme(unsigned char *ptr)
+GetEncodationScheme(unsigned char cw)
 {
    DmtxScheme encScheme;
 
-   switch(*ptr) {
+   switch(cw) {
       case DmtxValueC40Latch:
          encScheme = DmtxSchemeC40;
          break;
@@ -191,7 +191,7 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 
       codeword = (int)(*ptr);
 
-      if(GetEncodationScheme(ptr) != DmtxSchemeAscii)
+      if(GetEncodationScheme(*ptr) != DmtxSchemeAscii)
          return ptr;
       else
          ptr++;
@@ -242,6 +242,10 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
    state.upperShift = DmtxFalse;
 
    assert(encScheme == DmtxSchemeC40 || encScheme == DmtxSchemeText);
+
+   /* Unlatch is implied if only one codeword remains */
+   if(dataEnd - ptr < 2)
+      return ptr;
 
    while(ptr < dataEnd) {
 
@@ -313,7 +317,7 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
          return ptr + 1;
 
       /* Unlatch is implied if only one codeword remains */
-      if(dataEnd - ptr == 1)
+      if(dataEnd - ptr < 2)
          return ptr;
    }
 
@@ -333,6 +337,10 @@ DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
    int i;
    int packed;
    int x12Values[3];
+
+   /* Unlatch is implied if only one codeword remains */
+   if(dataEnd - ptr < 2)
+      return ptr;
 
    while(ptr < dataEnd) {
 
@@ -363,7 +371,7 @@ DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
          return ptr + 1;
 
       /* Unlatch is implied if only one codeword remains */
-      if(dataEnd - ptr == 1)
+      if(dataEnd - ptr < 2)
          return ptr;
    }
 
@@ -382,6 +390,10 @@ DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
 {
    int i;
    unsigned char unpacked[4];
+
+   /* Unlatch is implied if fewer than 3 codewords remain */
+   if(dataEnd - ptr < 3)
+      return ptr;
 
    while(ptr < dataEnd) {
 
@@ -409,9 +421,8 @@ DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
       }
 
       /* Unlatch is implied if fewer than 3 codewords remain */
-      if(dataEnd - ptr < 3) {
+      if(dataEnd - ptr < 3)
          return ptr;
-      }
    }
 
    return ptr;
@@ -480,13 +491,11 @@ DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
       ptrEnd = ptr + (d0 - 249) * 250 + d1;
    }
 
-   if(ptrEnd > dataEnd) {
+   if(ptrEnd > dataEnd)
       exit(40); /* XXX needs cleaner error handling */
-   }
 
-   while(ptr < ptrEnd) {
+   while(ptr < ptrEnd)
       PushOutputWord(msg, UnRandomize255State(*(ptr++), idx++));
-   }
 
    return ptr;
 }

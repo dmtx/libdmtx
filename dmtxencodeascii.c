@@ -98,6 +98,9 @@ CompleteIfDoneAscii(DmtxEncodeStream *stream, int sizeIdxRequest)
 {
    int sizeIdx;
 
+   if(stream->status == DmtxStatusComplete)
+      return;
+
    if(!StreamInputHasNext(stream))
    {
       sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest); CHKSIZE;

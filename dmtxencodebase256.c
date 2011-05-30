@@ -53,6 +53,9 @@ CompleteIfDoneBase256(DmtxEncodeStream *stream, int sizeIdxRequest)
    int sizeIdx;
    int headerByteCount, outputLength, symbolRemaining;
 
+   if(stream->status == DmtxStatusComplete)
+      return;
+
    if(!StreamInputHasNext(stream))
    {
       headerByteCount = stream->outputChainWordCount - stream->outputChainValueCount;

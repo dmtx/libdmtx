@@ -130,10 +130,14 @@ EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int option, int sizeIdxReq
       case DmtxSchemeC40:
       case DmtxSchemeText:
       case DmtxSchemeX12:
+         /* Check twice: CTX may be done before starting */
+         CompleteIfDoneCTX(stream, sizeIdxRequest); CHKERR;
          EncodeNextChunkCTX(stream, sizeIdxRequest); CHKERR;
          CompleteIfDoneCTX(stream, sizeIdxRequest); CHKERR;
          break;
       case DmtxSchemeEdifact:
+         /* Check twice: Edifact may be done before starting */
+         CompleteIfDoneEdifact(stream, sizeIdxRequest); CHKERR;
          EncodeNextChunkEdifact(stream); CHKERR;
          CompleteIfDoneEdifact(stream, sizeIdxRequest); CHKERR;
          break;

@@ -96,6 +96,9 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int sizeIdxRequest)
    DmtxByte outputTmpStorage[3];
    DmtxByteList outputTmp;
 
+   if(stream->status == DmtxStatusComplete)
+      return;
+
    /*
     * If we just completed a triplet (cleanBoundary), 1 or 2 symbol codewords
     * remain, and our remaining inputs (if any) represented in ASCII would fit
