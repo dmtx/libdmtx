@@ -6,9 +6,6 @@ Common Tasks
 Generate splint warnings
 $ splint -posix-strict-lib dmtx.c
 
-Tag release
-$ ?
-
 
 Release Checklist
 -----------------------------------------------------------------
@@ -51,9 +48,9 @@ Release Checklist
 
 8) o Perform final test build
 
-   o $ svn update # get any pending updates
+   o $ git status # no staged commits
+   o $ git pull # get any pending updates
    o # final commit
-   o $ svn diff # confirm no diffs, code is final
    o $ sudo make uninstall && make clean && make distclean
    o $ ./autogen.sh && ./configure && make && make check && sudo make install
    o # Run tests and confirm it works. Start step over if changes are needed.
@@ -61,12 +58,11 @@ Release Checklist
 9) o Build and test tarballs
 
    o $ cd ..
-   o $ svn co https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk release
+   o $ git clone git://libdmtx.git.sourceforge.net/gitroot/libdmtx/libdmtx release
    o $ cd release
-   o $ find . -type d -name ".svn" -exec rm -Rf {} \;
-   o $ find . -type d -name ".svn"
+   o $ rm -Rf .git
+   o $ find . -type d -name ".git"
    o $ ./autogen.sh && ./configure # don't build though
-   o $ rm m4/* # probably should be addressed in Makefile.am instead
    o $ make dist-gzip
    o $ make dist-bzip2
    o $ make dist-zip
@@ -79,19 +75,29 @@ Release Checklist
     o Upload files to SourceForge
     o Publish news item
 
-11) o Tag final release in SVN (do this only after uploading to
+11) o Tag final release in Git (do this only after uploading to
       SourceForge in case something changes at the last minute)
 
-    o $ svn copy https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/trunk \
-                 https://libdmtx.svn.sourceforge.net/svnroot/libdmtx/tags/release-0.8.0 \
-           -m "Tagged libdmtx 0.8.0 release"
+    o $ git tag -a -m "Tagged v0.7.4" v0.7.4
+    o $ git push origin --tags
 
 12) o Update minor number in unstable trunk (e.g., 0.8.0 -> 0.8.1)
 
     o Use file list from step 6 above
     o $ ./autogen.sh
     o $ ./configure
-    o $ svn commit
+    o $ git commit -a
+    o $ git push
+
+13) o Check out tagged version so dmtx-utils and dmtx-wrapper
+      builds will inherit correct version numbers
+
+    o $ git checkout v0.7.4
+    o $ ./autogen.sh
+    o $ ./configure
+    o $ make clean
+    o $ make
+    o $ sudo make install
 
 13) o Update libdmtx.org with news item, download entry, and new
       project status
@@ -99,5 +105,3 @@ Release Checklist
 14) o Send message to libdmtx-announcements@lists.sourceforge.net
       with subject "libdmtx: 0.8.0 Released" and ReleaseNotes.txt
       as message body
-
-15) o Create win32 build ("Release") and upload to SourceForge
