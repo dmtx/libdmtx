@@ -54,9 +54,8 @@ fall into one of four categories:
 
 libdmtx uses GNU Autotools so installation should be familiar to
 free software veterans. If your platform cannot easily run the
-Autotools scripts (e.g., MS Visual Studio) then refer to the
-appropriate platform-specific README.xxx located in this
-directory for alternate instructions.
+Autotools scripts, refer to the appropriate platform-specific
+README.xxx located in this directory for alternate instructions.
 
 In theory the following 3 steps would build and install libdmtx
 on your system:
