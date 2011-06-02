@@ -50,7 +50,7 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream, int option)
       {
          /* Two adjacent digit chars: Make peek progress official and encode */
          StreamInputAdvanceNext(stream); CHKERR;
-         EncodeValueAscii(stream, 10 * (v0-'0') + (v1-'0') + 130); CHKERR;
+         AppendValueAscii(stream, 10 * (v0-'0') + (v1-'0') + 130); CHKERR;
       }
       else if(option == DmtxEncodeCompact)
       {
@@ -63,13 +63,13 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream, int option)
          if(v0 < 128)
          {
             /* Regular ASCII */
-            EncodeValueAscii(stream, v0 + 1); CHKERR;
+            AppendValueAscii(stream, v0 + 1); CHKERR;
          }
          else
          {
             /* Extended ASCII */
-            EncodeValueAscii(stream, DmtxValueAsciiUpperShift); CHKERR;
-            EncodeValueAscii(stream, v0 - 127); CHKERR;
+            AppendValueAscii(stream, DmtxValueAsciiUpperShift); CHKERR;
+            AppendValueAscii(stream, v0 - 127); CHKERR;
          }
       }
    }
@@ -81,7 +81,7 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream, int option)
  *
  */
 static void
-EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value)
+AppendValueAscii(DmtxEncodeStream *stream, DmtxByte value)
 {
    CHKSCHEME(DmtxSchemeAscii);
 

@@ -49,7 +49,7 @@ EncodeNextChunkCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
       /* If there at least 3 CTX values available encode them to output */
       while(valueList.length >= 3)
       {
-         EncodeValuesCTX(stream, &valueList); CHKERR;
+         AppendValuesCTX(stream, &valueList); CHKERR;
          ShiftValueListBy3(&valueList, &passFail); CHKPASS;
       }
 
@@ -81,7 +81,7 @@ EncodeNextChunkCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
  *
  */
 static void
-EncodeValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList)
+AppendValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList)
 {
    int pairValue;
    DmtxByte cw0, cw1;
@@ -116,7 +116,7 @@ EncodeValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList)
  *
  */
 static void
-EncodeUnlatchCTX(DmtxEncodeStream *stream)
+AppendUnlatchCTX(DmtxEncodeStream *stream)
 {
    if(!IsCTX(stream->currentScheme))
    {
@@ -224,7 +224,7 @@ CompletePartialC40Text(DmtxEncodeStream *stream, DmtxByteList *valueList, int si
    {
       /* End of symbol condition (b) -- Use Shift1 to pad final list value */
       dmtxByteListPush(valueList, DmtxValueCTXShift1, &passFail); CHKPASS;
-      EncodeValuesCTX(stream, valueList); CHKERR;
+      AppendValuesCTX(stream, valueList); CHKERR;
       StreamMarkComplete(stream, sizeIdx2);
    }
    else
@@ -258,7 +258,7 @@ CompletePartialC40Text(DmtxEncodeStream *stream, DmtxByteList *valueList, int si
       {
          /* End of symbol condition (d) */
          EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit); CHKERR;
-         EncodeValueAscii(stream, outputTmp.b[0]); CHKERR;
+         AppendValueAscii(stream, outputTmp.b[0]); CHKERR;
 
          /* Register progress since encoding happened outside normal path */
          stream->inputNext = stream->input->length;
@@ -269,7 +269,7 @@ CompletePartialC40Text(DmtxEncodeStream *stream, DmtxByteList *valueList, int si
          /* Finish in ASCII (c) */
          EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
          for(i = 0; i < outputTmp.length; i++)
-            EncodeValueAscii(stream, outputTmp.b[i]); CHKERR;
+            AppendValueAscii(stream, outputTmp.b[i]); CHKERR;
 
          sizeIdx1 = FindSymbolSize(stream->output->length, sizeIdxRequest);
          PadRemainingInAscii(stream, sizeIdx1);
@@ -322,7 +322,7 @@ CompletePartialX12(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeId
    {
       /* End of symbol condition (XXX) */
       EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit); CHKERR;
-      EncodeValueAscii(stream, outputTmp.b[0]); CHKERR;
+      AppendValueAscii(stream, outputTmp.b[0]); CHKERR;
 
       /* Register progress since encoding happened outside normal path */
       stream->inputNext = stream->input->length;
@@ -333,7 +333,7 @@ CompletePartialX12(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeId
       /* Finish in ASCII (XXX) */
       EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
       for(i = 0; i < outputTmp.length; i++)
-         EncodeValueAscii(stream, outputTmp.b[i]); CHKERR;
+         AppendValueAscii(stream, outputTmp.b[i]); CHKERR;
 
       sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest);
       PadRemainingInAscii(stream, sizeIdx);

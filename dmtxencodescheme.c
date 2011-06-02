@@ -49,10 +49,10 @@
  *
  * Each scheme implements 3 equivalent functions:
  *   - EncodeNextChunk[Scheme]
- *   - EncodeValue[Scheme]
+ *   - AppendValue[Scheme]
  *   - CompleteIfDone[Scheme]
  *
- * XXX what about renaming EncodeValue[Scheme] to AppendValue[Scheme]? That
+ * XXX what about renaming AppendValue[Scheme] to AppendValue[Scheme]? That
  * shows that the stream is being affected
  *
  * The master function EncodeNextChunk() (no Scheme in the name) knows which
@@ -169,13 +169,13 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
       case DmtxSchemeX12:
          if(unlatchType == DmtxUnlatchExplicit)
          {
-            EncodeUnlatchCTX(stream); CHKERR;
+            AppendUnlatchCTX(stream); CHKERR;
          }
          break;
       case DmtxSchemeEdifact:
          if(unlatchType == DmtxUnlatchExplicit)
          {
-            EncodeValueEdifact(stream, DmtxValueEdifactUnlatch); CHKERR;
+            AppendValueEdifact(stream, DmtxValueEdifactUnlatch); CHKERR;
          }
          break;
       default:
@@ -190,19 +190,19 @@ EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatc
    switch(targetScheme)
    {
       case DmtxSchemeC40:
-         EncodeValueAscii(stream, DmtxValueC40Latch); CHKERR;
+         AppendValueAscii(stream, DmtxValueC40Latch); CHKERR;
          break;
       case DmtxSchemeText:
-         EncodeValueAscii(stream, DmtxValueTextLatch); CHKERR;
+         AppendValueAscii(stream, DmtxValueTextLatch); CHKERR;
          break;
       case DmtxSchemeX12:
-         EncodeValueAscii(stream, DmtxValueX12Latch); CHKERR;
+         AppendValueAscii(stream, DmtxValueX12Latch); CHKERR;
          break;
       case DmtxSchemeEdifact:
-         EncodeValueAscii(stream, DmtxValueEdifactLatch); CHKERR;
+         AppendValueAscii(stream, DmtxValueEdifactLatch); CHKERR;
          break;
       case DmtxSchemeBase256:
-         EncodeValueAscii(stream, DmtxValueBase256Latch); CHKERR;
+         AppendValueAscii(stream, DmtxValueBase256Latch); CHKERR;
          break;
       default:
          /* Nothing to do for ASCII */

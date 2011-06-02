@@ -22,7 +22,7 @@ EncodeNextChunkBase256(DmtxEncodeStream *stream)
    if(StreamInputHasNext(stream))
    {
       value = StreamInputAdvanceNext(stream); CHKERR;
-      EncodeValueBase256(stream, value); CHKERR;
+      AppendValueBase256(stream, value); CHKERR;
    }
 }
 
@@ -31,7 +31,7 @@ EncodeNextChunkBase256(DmtxEncodeStream *stream)
  *
  */
 static void
-EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value)
+AppendValueBase256(DmtxEncodeStream *stream, DmtxByte value)
 {
    CHKSCHEME(DmtxSchemeBase256);
 

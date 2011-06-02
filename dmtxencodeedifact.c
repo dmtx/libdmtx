@@ -22,7 +22,7 @@ EncodeNextChunkEdifact(DmtxEncodeStream *stream)
    if(StreamInputHasNext(stream))
    {
       value = StreamInputAdvanceNext(stream); CHKERR;
-      EncodeValueEdifact(stream, value); CHKERR;
+      AppendValueEdifact(stream, value); CHKERR;
    }
 }
 
@@ -31,7 +31,7 @@ EncodeNextChunkEdifact(DmtxEncodeStream *stream)
  *
  */
 static void
-EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value)
+AppendValueEdifact(DmtxEncodeStream *stream, DmtxByte value)
 {
    DmtxByte edifactValue, previousOutput;
 
@@ -133,7 +133,7 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int sizeIdxRequest)
 
             for(i = 0; i < outputTmp.length; i++)
             {
-               EncodeValueAscii(stream, outputTmp.b[i]); CHKERR;
+               AppendValueAscii(stream, outputTmp.b[i]); CHKERR;
             }
 
             /* Register progress since encoding happened outside normal path */

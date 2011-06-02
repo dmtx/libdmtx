@@ -235,7 +235,7 @@ static DmtxBoolean ValidStateSwitch(int fromState, int targetState);
 
 /* dmtxencodeascii.c */
 static void EncodeNextChunkAscii(DmtxEncodeStream *stream, int option);
-static void EncodeValueAscii(DmtxEncodeStream *stream, DmtxByte value);
+static void AppendValueAscii(DmtxEncodeStream *stream, DmtxByte value);
 static void CompleteIfDoneAscii(DmtxEncodeStream *stream, int sizeIdxRequest);
 static void PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx);
 static DmtxByteList EncodeTmpRemainingInAscii(DmtxEncodeStream *stream, DmtxByte *storage, int capacity, DmtxPassFail *passFail);
@@ -243,8 +243,8 @@ static DmtxByte Randomize253State(DmtxByte cwValue, int cwPosition);
 
 /* dmtxencodec40textx12.c */
 static void EncodeNextChunkCTX(DmtxEncodeStream *stream, int sizeIdxRequest);
-static void EncodeValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList);
-static void EncodeUnlatchCTX(DmtxEncodeStream *stream);
+static void AppendValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList);
+static void AppendUnlatchCTX(DmtxEncodeStream *stream);
 static void CompleteIfDoneCTX(DmtxEncodeStream *stream, int sizeIdxRequest);
 static void CompletePartialC40Text(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeIdxRequest);
 static void CompletePartialX12(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeIdxRequest);
@@ -255,12 +255,12 @@ static void ShiftValueListBy3(DmtxByteList *list, DmtxPassFail *passFail);
 
 /* dmtxencodeedifact.c */
 static void EncodeNextChunkEdifact(DmtxEncodeStream *stream);
-static void EncodeValueEdifact(DmtxEncodeStream *stream, DmtxByte value);
+static void AppendValueEdifact(DmtxEncodeStream *stream, DmtxByte value);
 static void CompleteIfDoneEdifact(DmtxEncodeStream *stream, int sizeIdxRequest);
 
 /* dmtxencodebase256.c */
 static void EncodeNextChunkBase256(DmtxEncodeStream *stream);
-static void EncodeValueBase256(DmtxEncodeStream *stream, DmtxByte value);
+static void AppendValueBase256(DmtxEncodeStream *stream, DmtxByte value);
 static void CompleteIfDoneBase256(DmtxEncodeStream *stream, int sizeIdxRequest);
 static void UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx);
 static void Base256OutputChainInsertFirst(DmtxEncodeStream *stream);
