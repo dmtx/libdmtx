@@ -62,6 +62,7 @@
  * end-of-symbol condition is triggered.
  */
 
+/* Verify stream is using expected scheme */
 #define CHKSCHEME(s) { \
    if(stream->currentScheme != (s)) { StreamMarkFatal(stream, DmtxErrorUnexpectedScheme); return; } \
 }
