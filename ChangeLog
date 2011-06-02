@@ -1,6 +1,27 @@
 Changes for libdmtx
 -----------------------------------------------------------------
 
+version 0.7.4 [June 2011]
+  library: Relicensed to use Simplified BSD with waiver option
+  library: Added new error codes and messages in dmtxencode.c
+  library: Added DmtxByteList struct and supporting functions
+  library: Changed file header with updated text
+  library: Fixed ECC bug for 144x144 case (thanks Huver!)
+  library: New Reed Solomon implementation
+  library: New repository structure: libdmtx, dmtx-utils, and dmtx-wrappers
+  testing: Added test in compare_generated.sh to create directory if needed
+  testing: Fix compare_generated.sh to prevent false negatives
+  encoder: Review CHK macro strategy
+  encoder: New encoding implementation
+  encoder: Added Base 256 "encode to end of symbol" single byte header
+  encoder: Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
+  encoder: Clean up PushCTXValues() passFail handling
+  encoder: Fixed all encoding bugs reported by compare_generated.sh
+  encoder: Fixed encoding bug affecting certain end-of-symbol conditions
+  encoder: Replaced "twothirdsbits" encoder concept (major source of headaches)
+  encoder: Track intermediate states in "optimize best" to handle all possibilities
+  decoder: Use new Edifact decode function that doesn't assume full triplet
+
 version 0.7.2 [September 2009]
   Added initial macro decoding support (thanks Marlon!)
   Fast quad fill for dmtxDecodeMatrixRegion() (thanks Mackenzie!)
