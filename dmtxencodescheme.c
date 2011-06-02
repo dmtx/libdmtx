@@ -62,13 +62,19 @@
  * end-of-symbol condition is triggered.
  */
 
-#define CHKSCHEME(s) { if(stream->currentScheme != (s)) { StreamMarkFatal(stream, 1); return; } }
+#define CHKSCHEME(s) { \
+   if(stream->currentScheme != (s)) { StreamMarkFatal(stream, DmtxErrorUnexpectedScheme); return; } \
+}
 
 /* CHKERR should follow any call that might alter stream status */
-#define CHKERR { if(stream->status != DmtxStatusEncoding) { return; } }
+#define CHKERR { \
+   if(stream->status != DmtxStatusEncoding) { return; } \
+}
 
 /* CHKSIZE should follows typical calls to FindSymbolSize()  */
-#define CHKSIZE { if(sizeIdx == DmtxUndefined) { StreamMarkInvalid(stream, 1); return; } }
+#define CHKSIZE { \
+   if(sizeIdx == DmtxUndefined) { StreamMarkInvalid(stream, DmtxErrorUnknown); return; } \
+}
 
 /**
  *

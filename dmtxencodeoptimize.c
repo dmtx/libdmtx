@@ -239,7 +239,7 @@ AdvanceAsciiCompact(DmtxEncodeStream *streamsNext, DmtxEncodeStream *streamsBest
          break;
 
       default:
-         StreamMarkFatal(targetStream, 1 /* illegal parameter value */);
+         StreamMarkFatal(targetStream, DmtxErrorIllegalParameterValue);
          return;
    }
 
@@ -254,7 +254,7 @@ AdvanceAsciiCompact(DmtxEncodeStream *streamsNext, DmtxEncodeStream *streamsBest
    else
    {
       StreamCopy(targetStream, currentStream);
-      StreamMarkInvalid(targetStream, 1);
+      StreamMarkInvalid(targetStream, DmtxErrorUnknown);
    }
 }
 
@@ -291,7 +291,7 @@ AdvanceCTX(DmtxEncodeStream *streamsNext, DmtxEncodeStream *streamsBest,
          break;
 
       default:
-         StreamMarkFatal(targetStream, 1 /* illegal parameter value */);
+         StreamMarkFatal(targetStream, DmtxErrorIllegalParameterValue);
          return;
    }
 
@@ -306,7 +306,7 @@ AdvanceCTX(DmtxEncodeStream *streamsNext, DmtxEncodeStream *streamsBest,
    else
    {
       StreamCopy(targetStream, currentStream);
-      StreamMarkInvalid(targetStream, 1);
+      StreamMarkInvalid(targetStream, DmtxErrorUnknown);
    }
 }
 
@@ -340,7 +340,7 @@ AdvanceEdifact(DmtxEncodeStream *streamsNext, DmtxEncodeStream *streamsBest,
          break;
 
       default:
-         StreamMarkFatal(targetStream, 1 /* illegal parameter value */);
+         StreamMarkFatal(targetStream, DmtxErrorIllegalParameterValue);
          return;
    }
 
@@ -354,7 +354,7 @@ AdvanceEdifact(DmtxEncodeStream *streamsNext, DmtxEncodeStream *streamsBest,
       if(currentStream->status == DmtxStatusEncoding && currentStream->currentScheme == DmtxSchemeEdifact)
          EncodeNextChunk(targetStream, DmtxSchemeEdifact, DmtxEncodeNormal, sizeIdxRequest);
       else
-         StreamMarkInvalid(targetStream, 1);
+         StreamMarkInvalid(targetStream, DmtxErrorUnknown);
    }
 }
 

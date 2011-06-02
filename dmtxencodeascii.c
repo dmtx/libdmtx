@@ -55,7 +55,7 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream, int option)
       else if(option == DmtxEncodeCompact)
       {
          /* Can't compact non-digits */
-         StreamMarkInvalid(stream, 1 /* can't compact */);
+         StreamMarkInvalid(stream, DmtxErrorCantCompactNonDigits);
       }
       else
       {

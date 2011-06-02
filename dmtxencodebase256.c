@@ -119,7 +119,7 @@ UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx)
       symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, perfectSizeIdx);
       if(symbolDataWords != stream->output->length - 1)
       {
-         StreamMarkFatal(stream, 1);
+         StreamMarkFatal(stream, DmtxErrorUnknown);
          return;
       }
    }
@@ -177,7 +177,7 @@ UpdateBase256ChainHeader(DmtxEncodeStream *stream, int perfectSizeIdx)
    }
    else
    {
-      StreamMarkFatal(stream, 1); /* XXX error */
+      StreamMarkFatal(stream, DmtxErrorUnknown);
       return;
    }
 }
@@ -207,7 +207,7 @@ Base256OutputChainInsertFirst(DmtxEncodeStream *stream)
    }
    else
    {
-      StreamMarkFatal(stream, 1);
+      StreamMarkFatal(stream, DmtxErrorUnknown);
    }
 }
 
@@ -234,7 +234,7 @@ Base256OutputChainRemoveFirst(DmtxEncodeStream *stream)
    if(passFail == DmtxPass)
       stream->outputChainWordCount--;
    else
-      StreamMarkFatal(stream, 1);
+      StreamMarkFatal(stream, DmtxErrorUnknown);
 }
 
 /**

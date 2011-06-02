@@ -15,10 +15,10 @@
 #define CHKERR { if(stream->status != DmtxStatusEncoding) { return; } }
 
 #undef CHKSIZE
-#define CHKSIZE { if(sizeIdx == DmtxUndefined) { StreamMarkInvalid(stream, 1); return; } }
+#define CHKSIZE { if(sizeIdx == DmtxUndefined) { StreamMarkInvalid(stream, DmtxErrorUnknown); return; } }
 
 #undef CHKPASS
-#define CHKPASS { if(passFail == DmtxFail) { StreamMarkFatal(stream, 1); return; } }
+#define CHKPASS { if(passFail == DmtxFail) { StreamMarkFatal(stream, DmtxErrorUnknown); return; } }
 
 #undef RETURN_IF_FAIL
 #define RETURN_IF_FAIL { if(*passFail == DmtxFail) return; }
@@ -43,7 +43,8 @@ EncodeNextChunkCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
       PushCTXValues(&valueList, inputValue, stream->currentScheme, &passFail);
       if(passFail == DmtxFail)
       {
-         StreamMarkInvalid(stream, 1);
+         /* XXX Perhaps PushCTXValues should return this error code */
+         StreamMarkInvalid(stream, DmtxErrorUnsupportedCharacter);
          return;
       }
 
@@ -89,13 +90,13 @@ AppendValuesCTX(DmtxEncodeStream *stream, DmtxByteList *valueList)
 
    if(!IsCTX(stream->currentScheme))
    {
-      StreamMarkFatal(stream, 1);
+      StreamMarkFatal(stream, DmtxErrorUnexpectedScheme);
       return;
    }
 
    if(valueList->length < 3)
    {
-      StreamMarkFatal(stream, 1);
+      StreamMarkFatal(stream, DmtxErrorIncompleteValueList);
       return;
    }
 
@@ -121,14 +122,14 @@ AppendUnlatchCTX(DmtxEncodeStream *stream)
 {
    if(!IsCTX(stream->currentScheme))
    {
-      StreamMarkFatal(stream, 1);
+      StreamMarkFatal(stream, DmtxErrorUnexpectedScheme);
       return;
    }
 
    /* Verify we are on byte boundary */
    if(stream->outputChainValueCount % 3 != 0)
    {
-      StreamMarkInvalid(stream, 1 /* not on byte boundary */);
+      StreamMarkInvalid(stream, DmtxErrorNotOnByteBoundary);
       return;
    }
 
@@ -208,7 +209,7 @@ CompletePartialC40Text(DmtxEncodeStream *stream, DmtxByteList *valueList, int si
 
    if(stream->currentScheme != DmtxSchemeC40 && stream->currentScheme != DmtxSchemeText)
    {
-      StreamMarkFatal(stream, 1);
+      StreamMarkFatal(stream, DmtxErrorUnexpectedScheme);
       return;
    }
 
@@ -251,7 +252,7 @@ CompletePartialC40Text(DmtxEncodeStream *stream, DmtxByteList *valueList, int si
 
       if(passFail == DmtxFail)
       {
-         StreamMarkFatal(stream, 1 /* should never happen */);
+         StreamMarkFatal(stream, DmtxErrorUnknown);
          return;
       }
 
@@ -299,7 +300,7 @@ CompletePartialX12(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeId
 
    if(stream->currentScheme != DmtxSchemeX12)
    {
-      StreamMarkFatal(stream, 1);
+      StreamMarkFatal(stream, DmtxErrorUnexpectedScheme);
       return;
    }
 
@@ -372,7 +373,7 @@ PartialX12ChunkRemains(DmtxEncodeStream *stream)
       inputValue = StreamInputAdvanceNext(&streamTmp);
       if(stream->status != DmtxStatusEncoding)
       {
-         StreamMarkInvalid(stream, 1);
+         StreamMarkInvalid(stream, DmtxErrorUnknown);
          return DmtxFalse;
       }
 
@@ -380,7 +381,7 @@ PartialX12ChunkRemains(DmtxEncodeStream *stream)
       PushCTXValues(&valueList, inputValue, streamTmp.currentScheme, &passFail);
       if(passFail == DmtxFail)
       {
-         StreamMarkInvalid(stream, 1);
+         StreamMarkInvalid(stream, DmtxErrorUnknown);
          return DmtxFalse;
       }
 

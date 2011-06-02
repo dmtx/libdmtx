@@ -312,7 +312,10 @@ enum DmtxErrorMessage {
    DmtxErrorIllegalParameterValue,
    DmtxErrorEmptyList,
    DmtxErrorOutOfBounds,
-   DmtxErrorMessageTooLarge
+   DmtxErrorMessageTooLarge,
+   DmtxErrorCantCompactNonDigits,
+   DmtxErrorUnexpectedScheme,
+   DmtxErrorIncompleteValueList
 };
 
 static char *dmtxErrorMessage[] = {
@@ -322,7 +325,10 @@ static char *dmtxErrorMessage[] = {
    "Illegal parameter value",
    "Encountered empty list",
    "Out of bounds",
-   "Message too large"
+   "Message too large",
+   "Can't compact non-digits",
+   "Encountered unexpected scheme",
+   "Encountered incomplete value list"
 };
 
 #endif

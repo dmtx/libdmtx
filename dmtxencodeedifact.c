@@ -116,7 +116,7 @@ CompleteIfDoneEdifact(DmtxEncodeStream *stream, int sizeIdxRequest)
 
       if(passFail == DmtxFail)
       {
-         StreamMarkFatal(stream, 1 /* should never happen */);
+         StreamMarkFatal(stream, DmtxErrorUnknown);
          return;
       }
 
