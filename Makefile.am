@@ -33,7 +33,6 @@ EXTRA_DIST = KNOWNBUG \
 	README.mingw \
 	README.osx \
 	README.unix \
-	README.visualc \
 	m4 \
 	script/check_all.sh \
 	script/check_comments.sh \
