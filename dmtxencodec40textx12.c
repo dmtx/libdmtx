@@ -65,8 +65,14 @@ EncodeNextChunkCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
     */
    if(!StreamInputHasNext(stream) && valueList.length > 0)
    {
-/* XXX rename to CompletePartialCTX() */
-      CompleteIfDonePartialCTX(stream, &valueList, sizeIdxRequest); CHKERR;
+      if(stream->currentScheme == DmtxSchemeX12)
+      {
+         CompletePartialX12(stream, &valueList, sizeIdxRequest); CHKERR;
+      }
+      else
+      {
+         CompletePartialC40Text(stream, &valueList, sizeIdxRequest); CHKERR;
+      }
    }
 }
 
@@ -189,7 +195,7 @@ CompleteIfDoneCTX(DmtxEncodeStream *stream, int sizeIdxRequest)
  *               -       -  UNLATCH (finish ASCII)
  */
 static void
-CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeIdxRequest)
+CompletePartialC40Text(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeIdxRequest)
 {
    int i;
    int sizeIdx1, sizeIdx2;
@@ -199,7 +205,7 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
    DmtxByte outputTmpStorage[4];
    DmtxByteList outputTmp = dmtxByteListBuild(outputTmpStorage, sizeof(outputTmpStorage));
 
-   if(!IsCTX(stream->currentScheme))
+   if(stream->currentScheme != DmtxSchemeC40 && stream->currentScheme != DmtxSchemeText)
    {
       StreamMarkFatal(stream, 1);
       return;
@@ -235,9 +241,7 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
       /* Test-encode most recently consumed input value to C40/Text/X12 */
       PushCTXValues(&outputTmp, inputValue, stream->currentScheme, &passFail);
       if(valueList->length == 2 && outputTmp.length == 1)
-      {
          StreamInputAdvancePrev(stream); CHKERR;
-      }
 
       /* Re-use outputTmp to hold ASCII representation of 1-2 input values */
       /* XXX Refactor how the DmtxByteList is passed back here */
@@ -275,6 +279,121 @@ CompleteIfDonePartialCTX(DmtxEncodeStream *stream, DmtxByteList *valueList, int 
          StreamMarkComplete(stream, sizeIdx1);
       }
    }
+}
+
+/**
+ * Partial chunks are not valid in X12. Encode using ASCII instead, using
+ * an implied unlatch if there is exactly one ascii codeword and one symbol
+ * codeword remaining. Otherwise use explicit unlatch.
+ */
+static void
+CompletePartialX12(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeIdxRequest)
+{
+   int i;
+   int sizeIdx;
+   int symbolRemaining;
+   DmtxPassFail passFail;
+   DmtxByte outputTmpStorage[2];
+   DmtxByteList outputTmp;
+
+   if(stream->currentScheme != DmtxSchemeX12)
+   {
+      StreamMarkFatal(stream, 1);
+      return;
+   }
+
+   /* Should have exactly one or two input values left */
+   assert(valueList->length == 1 || valueList->length == 2);
+
+   /* Roll back input progress */
+   for(i = 0; i < valueList->length; i++)
+   {
+      StreamInputAdvancePrev(stream); CHKERR;
+   }
+
+   /* Encode up to 2 codewords to a temporary stream */
+   outputTmp = EncodeTmpRemainingInAscii(stream, outputTmpStorage,
+         sizeof(outputTmpStorage), &passFail);
+
+   sizeIdx = FindSymbolSize(stream->output->length + 1, sizeIdxRequest);
+   symbolRemaining = GetRemainingSymbolCapacity(stream->output->length, sizeIdx);
+
+   if(outputTmp.length == 1 && symbolRemaining == 1)
+   {
+      /* End of symbol condition (XXX) */
+      EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchImplicit); CHKERR;
+      EncodeValueAscii(stream, outputTmp.b[0]); CHKERR;
+
+      /* Register progress since encoding happened outside normal path */
+      stream->inputNext = stream->input->length;
+      StreamMarkComplete(stream, sizeIdx);
+   }
+   else
+   {
+      /* Finish in ASCII (XXX) */
+      EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
+      for(i = 0; i < outputTmp.length; i++)
+         EncodeValueAscii(stream, outputTmp.b[i]); CHKERR;
+
+      sizeIdx = FindSymbolSize(stream->output->length, sizeIdxRequest);
+      PadRemainingInAscii(stream, sizeIdx);
+
+      /* Register progress since encoding happened outside normal path */
+      stream->inputNext = stream->input->length;
+      StreamMarkComplete(stream, sizeIdx);
+   }
+}
+
+/**
+ *
+ *
+   if(1 or 2 x12 values remain)
+      return true
+   else
+      return false
+ */
+static DmtxBoolean
+PartialX12ChunkRemains(DmtxEncodeStream *stream)
+{
+   DmtxEncodeStream streamTmp;
+   DmtxByte inputValue;
+   DmtxByte valueListStorage[6];
+   DmtxByteList valueList = dmtxByteListBuild(valueListStorage, sizeof(valueListStorage));
+   DmtxPassFail passFail;
+
+   /* Create temporary copy of stream to track test input progress */
+   streamTmp = *stream;
+   streamTmp.currentScheme = DmtxSchemeX12;
+   streamTmp.outputChainValueCount = 0;
+   streamTmp.outputChainWordCount = 0;
+   streamTmp.reason = NULL;
+   streamTmp.sizeIdx = DmtxUndefined;
+   streamTmp.status = DmtxStatusEncoding;
+   streamTmp.output = NULL;
+
+   while(StreamInputHasNext(&streamTmp))
+   {
+      inputValue = StreamInputAdvanceNext(&streamTmp);
+      if(stream->status != DmtxStatusEncoding)
+      {
+         StreamMarkInvalid(stream, 1);
+         return DmtxFalse;
+      }
+
+      /* Expand next input value into up to 4 CTX values and add to valueList */
+      PushCTXValues(&valueList, inputValue, streamTmp.currentScheme, &passFail);
+      if(passFail == DmtxFail)
+      {
+         StreamMarkInvalid(stream, 1);
+         return DmtxFalse;
+      }
+
+      /* Not a final partial chunk */
+      if(valueList.length >= 3)
+         return DmtxFalse;
+   }
+
+   return (valueList.length == 0) ? DmtxFalse : DmtxTrue;
 }
 
 /**

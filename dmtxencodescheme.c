@@ -8,12 +8,11 @@
  * Contact: Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtxencodescheme.c
+ * \brief Logic for encoding in single scheme
  */
 
 /**
- * this file deals with encoding logic (scheme rules)
- *
- * In the context of this file:
+ * In this file:
  *
  * A "word" refers to a full codeword byte to be appended to the encoded output.
  *
@@ -27,12 +26,12 @@
  *   EDIFACT:                 4 values in  3 codewords
  *   Base 256:                1 value  in  1 codeword
  *
- *   - Shifts count as values, so outputChainValueCount will reflect these.
+ *   * Shifts count as values, so outputChainValueCount will reflect these.
  *
- *   - Latches and unlatches are also counted as values, but always in the
+ *   * Latches and unlatches are also counted as values, but always in the
  *     scheme being exited.
  *
- *   - Base256 header bytes are not included as values.
+ *   * Base256 header bytes are not included as values.
  *
  * A "chunk" refers to the minimum grouping of values in a schema that must be
  * encoded together.
@@ -47,8 +46,6 @@
  *   * EDIFACT writes 6 bits at a time, but progress is tracked to the next byte
  *     boundary. If unlatch value finishes mid-byte, the remaining bits before
  *     the next boundary are set to zero.
- *
- * XXX maybe reorder the functions list in the file and break them up:
  *
  * Each scheme implements 3 equivalent functions:
  *   - EncodeNextChunk[Scheme]
@@ -88,14 +85,9 @@ EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
 
    stream = StreamInit(input, output);
 
-   /* Latch to target scheme (if necessary) */
-   EncodeChangeScheme(&stream, scheme, DmtxUnlatchImplicit);
-   if(stream.status != DmtxStatusEncoding)
-      return DmtxUndefined;
-
    /* Continue encoding until complete */
    while(stream.status == DmtxStatusEncoding)
-      EncodeNextChunk(&stream, stream.currentScheme, DmtxEncodeNormal, sizeIdxRequest);
+      EncodeNextChunk(&stream, scheme, DmtxEncodeNormal, sizeIdxRequest);
 
    /* Verify encoding completed and all inputs were consumed */
    if(stream.status != DmtxStatusComplete || StreamInputHasNext(&stream))
@@ -114,12 +106,23 @@ EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
 static void
 EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int option, int sizeIdxRequest)
 {
+   /* Special case: Prevent X12 from entering state with no way to unlatch */
+   if(stream->currentScheme != DmtxSchemeX12 && scheme == DmtxSchemeX12)
+   {
+      if(PartialX12ChunkRemains(stream))
+         scheme = DmtxSchemeAscii;
+   }
+
    /* Change to target scheme if necessary */
    if(stream->currentScheme != scheme)
    {
       EncodeChangeScheme(stream, scheme, DmtxUnlatchExplicit); CHKERR;
       CHKSCHEME(scheme);
    }
+
+   /* Special case: Edifact may be done before writing first word */
+   if(scheme == DmtxSchemeEdifact)
+      CompleteIfDoneEdifact(stream, sizeIdxRequest); CHKERR;
 
    switch(stream->currentScheme)
    {
@@ -130,14 +133,10 @@ EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int option, int sizeIdxReq
       case DmtxSchemeC40:
       case DmtxSchemeText:
       case DmtxSchemeX12:
-         /* Check twice: CTX may be done before starting */
-         CompleteIfDoneCTX(stream, sizeIdxRequest); CHKERR;
          EncodeNextChunkCTX(stream, sizeIdxRequest); CHKERR;
          CompleteIfDoneCTX(stream, sizeIdxRequest); CHKERR;
          break;
       case DmtxSchemeEdifact:
-         /* Check twice: Edifact may be done before starting */
-         CompleteIfDoneEdifact(stream, sizeIdxRequest); CHKERR;
          EncodeNextChunkEdifact(stream); CHKERR;
          CompleteIfDoneEdifact(stream, sizeIdxRequest); CHKERR;
          break;
