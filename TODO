@@ -3,13 +3,13 @@ TODO
 
 version 1.0.0: (planned TBD)
 FOCUS: remaining gaps, testing, documentation
-  o Investigate using MMX to optimize inner loops
-  o Investigate using threads to split up image processing
-  o (test suite) Generate metrics in reproducible format to enable historical tracking
-  o (test suite) Investigate option of embedding decoded text into PNG test image comments
-  o (test suite) Tests should compare scanned results to embedded PNG comments
-  o (test suite) 'make test' writes metrics file
-  o (test suite) 'make test' confirms performance
+  o decoder: Investigate using MMX to optimize inner loops
+  o decoder: Investigate using threads to split up image processing
+  o testing: Generate metrics in reproducible format to enable historical tracking
+  o testing: Investigate option of embedding decoded text into PNG test image comments
+  o testing: Tests should compare scanned results to embedded PNG comments
+  o testing: 'make test' writes metrics file
+  o testing: 'make test' confirms performance
 
 version 0.9.0: (planned TBD)
 FOCUS: multiple barcode scanning, structured append, FNC1, macros
@@ -36,23 +36,23 @@ FOCUS: region detection
   o library: Library should never call exit() or assert()
 
 version 0.7.4: (02-Jun-2011)
-  x library: Relicensed to use Simplified BSD with exception
-  x library: Add new error codes and messages into dmtxencode.c
+  x library: Relicensed to use Simplified BSD with waiver option
+  x library: Added new error codes and messages in dmtxencode.c
   x library: Added DmtxByteList struct and supporting functions
-  x library: Change file header to say "in the main project directory" instead of "parent"
+  x library: Changed file header with updated text
   x library: Fixed ECC bug for 144x144 case (thanks Huver!)
-  x library: New Reed Solomon logic
+  x library: New Reed Solomon implementation
   x library: New repository structure: libdmtx, dmtx-utils, and dmtx-wrappers
-  x testing: Add test in compare_generated.sh to create directory if needed
+  x testing: Added test in compare_generated.sh to create directory if needed
   x testing: Fix compare_generated.sh to prevent false negatives
   x encoder: Review CHK macro strategy
-  x encoder: New encoding logic
+  x encoder: New encoding implementation
   x encoder: Added Base 256 "encode to end of symbol" single byte header
   x encoder: Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
   x encoder: Clean up PushCTXValues() passFail handling
-  x encoder: Fix encoding bugs reported by compare_generated.sh
+  x encoder: Fixed all encoding bugs reported by compare_generated.sh
   x encoder: Fixed encoding bug affecting certain end-of-symbol conditions
-  x encoder: Remove "twothirdsbits" encoder concept (headache source)
+  x encoder: Replaced "twothirdsbits" encoder concept (major source of headaches)
   x encoder: Track intermediate states in "optimize best" to handle all possibilities
   x decoder: Use new Edifact decode function that doesn't assume full triplet
 
