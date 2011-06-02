@@ -23,16 +23,16 @@ Data Mosaic encoding doesn't produce output for certain sizes:
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 multi_test:
-  * No known issues
+  * No known issues (not included in general download)
 
 rotate_test:
-  * No known issues
+  * No known issues (not included in general download)
 
 simple_test:
   * No known issues
 
 unit_test:
-  * No known issues
+  * Missing files   (not included in general download)
 
 
 3. Scripts in the script directory

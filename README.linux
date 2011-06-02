@@ -22,8 +22,8 @@ additional details that might benefit users on this platform.
 -----------------------------------------------------------------
 
 Many Linux distributions offer pre-compiled libdmtx binaries in
-their package repositories. If you aren't required to build from
-source for other reasons, this can be a great time saver.
+their package repositories. This can be a real time saver if you
+aren't required to build from source for other reasons.
 
 Go to http://www.dragonflylogic.com/downloads for a list of all
 download options available on your system.

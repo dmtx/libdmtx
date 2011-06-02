@@ -28,9 +28,9 @@ versions:
    * HP-UX
    * Solaris
 
-However, due to the non-GNU nature of these operating systems,
-building libdmtx from source can be a time consuming task. Users
-may wish to first evaluate the free trial binaries available at:
+However, building libdmtx from source on these operating systems
+can be tricky due to their non-GNU conventions. Users may wish to
+evaluate the trial binaries available at:
 
   http://www.dragonflylogic.com/downloads
 
