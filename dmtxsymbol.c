@@ -12,10 +12,10 @@
  */
 
 /**
- * @brief  Retrieve property based on symbol size
- * @param  attribute
- * @param  sizeIdx
- * @return Attribute value
+ * \brief  Retrieve property based on symbol size
+ * \param  attribute
+ * \param  sizeIdx
+ * \return Attribute value
  */
 extern int
 dmtxGetSymbolAttribute(int attribute, int sizeIdx)
@@ -113,10 +113,10 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
 }
 
 /**
- * @brief  Retrieve data size for a specific symbol size and block number
- * @param  sizeIdx
- * @param  blockIdx
- * @return Attribute value
+ * \brief  Retrieve data size for a specific symbol size and block number
+ * \param  sizeIdx
+ * \param  blockIdx
+ * \return Attribute value
  */
 extern int
 dmtxGetBlockDataSize(int sizeIdx, int blockIdx)
@@ -137,10 +137,10 @@ dmtxGetBlockDataSize(int sizeIdx, int blockIdx)
 }
 
 /**
- * @brief  Determine symbol size based on data size and requested properties
- * @param  dataWords
- * @param  sizeIdxRequest
- * @return Symbol size index (or DmtxUndefined if none)
+ * \brief  Determine symbol size based on data size and requested properties
+ * \param  dataWords
+ * \param  sizeIdxRequest
+ * \return Symbol size index (or DmtxUndefined if none)
  */
 static int
 FindSymbolSize(int dataWords, int sizeIdxRequest)

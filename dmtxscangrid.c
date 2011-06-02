@@ -12,9 +12,9 @@
  */
 
 /**
- * @brief  Initialize scan grid pattern
- * @param  dec
- * @return Initialized grid
+ * \brief  Initialize scan grid pattern
+ * \param  dec
+ * \return Initialized grid
  */
 static DmtxScanGrid
 InitScanGrid(DmtxDecode *dec)
@@ -60,11 +60,11 @@ InitScanGrid(DmtxDecode *dec)
 }
 
 /**
- * @brief  Return the next good location (which may be the current location),
+ * \brief  Return the next good location (which may be the current location),
  *         and advance grid progress one position beyond that. If no good
  *         locations remain then return DmtxRangeEnd.
- * @param  grid
- * @return void
+ * \param  grid
+ * \return void
  */
 static int
 PopGridLocation(DmtxScanGrid *grid, DmtxPixelLoc *locPtr)
@@ -83,10 +83,10 @@ PopGridLocation(DmtxScanGrid *grid, DmtxPixelLoc *locPtr)
 }
 
 /**
- * @brief  Extract current grid position in pixel coordinates and return
+ * \brief  Extract current grid position in pixel coordinates and return
  *         whether location is good, bad, or end
- * @param  grid
- * @return Pixel location
+ * \param  grid
+ * \return Pixel location
  */
 static int
 GetGridCoordinates(DmtxScanGrid *grid, DmtxPixelLoc *locPtr)
@@ -160,9 +160,9 @@ GetGridCoordinates(DmtxScanGrid *grid, DmtxPixelLoc *locPtr)
 }
 
 /**
- * @brief  Update derived fields based on current state
- * @param  grid
- * @return void
+ * \brief  Update derived fields based on current state
+ * \param  grid
+ * \return void
  */
 static void
 SetDerivedFields(DmtxScanGrid *grid)

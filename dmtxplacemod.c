@@ -54,12 +54,12 @@ dmtxSymbolModuleStatus(DmtxMessage *message, int sizeIdx, int symbolRow, int sym
 }
 
 /**
- * @brief  Logical relationship between bit and module locations
- * @param  modules
- * @param  codewords
- * @param  sizeIdx
- * @param  moduleOnColor
- * @return Number of codewords read
+ * \brief  Logical relationship between bit and module locations
+ * \param  modules
+ * \param  codewords
+ * \param  sizeIdx
+ * \param  moduleOnColor
+ * \return Number of codewords read
  */
 static int
 ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int sizeIdx, int moduleOnColor)
@@ -125,15 +125,15 @@ ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int size
 }
 
 /**
- * @brief  XXX
- * @param  modules
- * @param  mappingRows
- * @param  mappingCols
- * @param  row
- * @param  col
- * @param  codeword
- * @param  moduleOnColor
- * @return void
+ * \brief  XXX
+ * \param  modules
+ * \param  mappingRows
+ * \param  mappingCols
+ * \param  row
+ * \param  col
+ * \param  codeword
+ * \param  moduleOnColor
+ * \return void
  */
 static void
 PatternShapeStandard(unsigned char *modules, int mappingRows, int mappingCols, int row, int col, unsigned char *codeword, int moduleOnColor)
@@ -149,13 +149,13 @@ PatternShapeStandard(unsigned char *modules, int mappingRows, int mappingCols, i
 }
 
 /**
- * @brief  XXX
- * @param  modules
- * @param  mappingRows
- * @param  mappingCols
- * @param  codeword
- * @param  moduleOnColor
- * @return void
+ * \brief  XXX
+ * \param  modules
+ * \param  mappingRows
+ * \param  mappingCols
+ * \param  codeword
+ * \param  moduleOnColor
+ * \return void
  */
 static void
 PatternShapeSpecial1(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
@@ -171,13 +171,13 @@ PatternShapeSpecial1(unsigned char *modules, int mappingRows, int mappingCols, u
 }
 
 /**
- * @brief  XXX
- * @param  modules
- * @param  mappingRows
- * @param  mappingCols
- * @param  codeword
- * @param  moduleOnColor
- * @return void
+ * \brief  XXX
+ * \param  modules
+ * \param  mappingRows
+ * \param  mappingCols
+ * \param  codeword
+ * \param  moduleOnColor
+ * \return void
  */
 static void
 PatternShapeSpecial2(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
@@ -193,13 +193,13 @@ PatternShapeSpecial2(unsigned char *modules, int mappingRows, int mappingCols, u
 }
 
 /**
- * @brief  XXX
- * @param  modules
- * @param  mappingRows
- * @param  mappingCols
- * @param  codeword
- * @param  moduleOnColor
- * @return void
+ * \brief  XXX
+ * \param  modules
+ * \param  mappingRows
+ * \param  mappingCols
+ * \param  codeword
+ * \param  moduleOnColor
+ * \return void
  */
 static void
 PatternShapeSpecial3(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
@@ -215,13 +215,13 @@ PatternShapeSpecial3(unsigned char *modules, int mappingRows, int mappingCols, u
 }
 
 /**
- * @brief  XXX
- * @param  modules
- * @param  mappingRows
- * @param  mappingCols
- * @param  codeword
- * @param  moduleOnColor
- * @return void
+ * \brief  XXX
+ * \param  modules
+ * \param  mappingRows
+ * \param  mappingCols
+ * \param  codeword
+ * \param  moduleOnColor
+ * \return void
  */
 static void
 PatternShapeSpecial4(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor)
@@ -237,16 +237,16 @@ PatternShapeSpecial4(unsigned char *modules, int mappingRows, int mappingCols, u
 }
 
 /**
- * @brief  XXX
- * @param  modules
- * @param  mappingRows
- * @param  mappingCols
- * @param  row
- * @param  col
- * @param  codeword
- * @param  mask
- * @param  moduleOnColor
- * @return void
+ * \brief  XXX
+ * \param  modules
+ * \param  mappingRows
+ * \param  mappingCols
+ * \param  row
+ * \param  col
+ * \param  codeword
+ * \param  mask
+ * \param  moduleOnColor
+ * \return void
  */
 static void
 PlaceModule(unsigned char *modules, int mappingRows, int mappingCols, int row, int col, unsigned char *codeword, int mask, int moduleOnColor)

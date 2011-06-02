@@ -52,9 +52,9 @@
  */
 
 /**
- * @brief  XXX
- * @param  XXX
- * @return XXX
+ * \brief  XXX
+ * \param  XXX
+ * \return XXX
  */
 extern DmtxImage *
 dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
@@ -140,9 +140,9 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
 }
 
 /**
- * @brief  Free libdmtx image memory
- * @param  img pointer to img location
- * @return DmtxFail | DmtxPass
+ * \brief  Free libdmtx image memory
+ * \param  img pointer to img location
+ * \return DmtxFail | DmtxPass
  */
 extern DmtxPassFail
 dmtxImageDestroy(DmtxImage **img)
@@ -179,9 +179,9 @@ dmtxImageSetChannel(DmtxImage *img, int channelStart, int bitsPerChannel)
 }
 
 /**
- * @brief  Set image property
- * @param  img pointer to image
- * @return image width
+ * \brief  Set image property
+ * \param  img pointer to image
+ * \return image width
  */
 extern DmtxPassFail
 dmtxImageSetProp(DmtxImage *img, int prop, int value)
@@ -205,9 +205,9 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
 }
 
 /**
- * @brief  Get image width
- * @param  img pointer to image
- * @return image width
+ * \brief  Get image width
+ * \param  img pointer to image
+ * \return image width
  */
 extern int
 dmtxImageGetProp(DmtxImage *img, int prop)
@@ -242,11 +242,11 @@ dmtxImageGetProp(DmtxImage *img, int prop)
 }
 
 /**
- * @brief  Returns pixel offset for image
- * @param  img
- * @param  x coordinate
- * @param  y coordinate
- * @return pixe byte offset
+ * \brief  Returns pixel offset for image
+ * \param  img
+ * \param  x coordinate
+ * \param  y coordinate
+ * \return pixel byte offset
  */
 extern int
 dmtxImageGetByteOffset(DmtxImage *img, int x, int y)
@@ -354,12 +354,12 @@ dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value)
 }
 
 /**
- * @brief  Test whether image contains a coordinate expressed in integers
- * @param  img
- * @param  margin width
- * @param  x coordinate
- * @param  y coordinate
- * @return DmtxTrue | DmtxFalse
+ * \brief  Test whether image contains a coordinate expressed in integers
+ * \param  img
+ * \param  margin width
+ * \param  x coordinate
+ * \param  y coordinate
+ * \return DmtxTrue | DmtxFalse
  */
 extern DmtxBoolean
 dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
@@ -374,11 +374,11 @@ dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 }
 
 /**
- * @brief  Test whether image contains a coordinate expressed in floating points
- * @param  img
- * @param  x coordinate
- * @param  y coordinate
- * @return DmtxTrue | DmtxFalse
+ * \brief  Test whether image contains a coordinate expressed in floating points
+ * \param  img
+ * \param  x coordinate
+ * \param  y coordinate
+ * \return DmtxTrue | DmtxFalse
  */
 extern DmtxBoolean
 dmtxImageContainsFloat(DmtxImage *img, double x, double y)

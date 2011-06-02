@@ -11,11 +11,11 @@
  */
 
 /**
- * @brief  Translate encoded data stream into final output
- * @param  msg
- * @param  sizeIdx
- * @param  outputStart
- * @return void
+ * \brief  Translate encoded data stream into final output
+ * \param  msg
+ * \param  sizeIdx
+ * \param  outputStart
+ * \return void
  */
 static void
 DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
@@ -71,10 +71,10 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
 }
 
 /**
- * @brief  Determine next encodation scheme
- * @param  encScheme
- * @param  cw
- * @return Pointer to next undecoded codeword
+ * \brief  Determine next encodation scheme
+ * \param  encScheme
+ * \param  cw
+ * \return Pointer to next undecoded codeword
  */
 static int
 GetEncodationScheme(unsigned char cw)
@@ -173,11 +173,11 @@ PushOutputMacroTrailer(DmtxMessage *msg)
 }
 
 /**
- * @brief  Decode stream assuming standard ASCII encodation
- * @param  msg
- * @param  ptr
- * @param  dataEnd
- * @return Pointer to next undecoded codeword
+ * \brief  Decode stream assuming standard ASCII encodation
+ * \param  msg
+ * \param  ptr
+ * \param  dataEnd
+ * \return Pointer to next undecoded codeword
  */
 static unsigned char *
 DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
@@ -223,12 +223,12 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 }
 
 /**
- * @brief  Decode stream assuming C40 or Text encodation
- * @param  msg
- * @param  ptr
- * @param  dataEnd
- * @param  encScheme
- * @return Pointer to next undecoded codeword
+ * \brief  Decode stream assuming C40 or Text encodation
+ * \param  msg
+ * \param  ptr
+ * \param  dataEnd
+ * \param  encScheme
+ * \return Pointer to next undecoded codeword
  */
 static unsigned char *
 DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd, DmtxScheme encScheme)
@@ -325,11 +325,11 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
 }
 
 /**
- * @brief  Decode stream assuming X12 encodation
- * @param  msg
- * @param  ptr
- * @param  dataEnd
- * @return Pointer to next undecoded codeword
+ * \brief  Decode stream assuming X12 encodation
+ * \param  msg
+ * \param  ptr
+ * \param  dataEnd
+ * \return Pointer to next undecoded codeword
  */
 static unsigned char *
 DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
@@ -379,11 +379,11 @@ DecodeSchemeX12(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 }
 
 /**
- * @brief  Decode stream assuming EDIFACT encodation
- * @param  msg
- * @param  ptr
- * @param  dataEnd
- * @return Pointer to next undecoded codeword
+ * \brief  Decode stream assuming EDIFACT encodation
+ * \param  msg
+ * \param  ptr
+ * \param  dataEnd
+ * \return Pointer to next undecoded codeword
  */
 static unsigned char *
 DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
@@ -461,11 +461,11 @@ DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
 }
 
 /**
- * @brief  Decode stream assuming Base 256 encodation
- * @param  msg
- * @param  ptr
- * @param  dataEnd
- * @return Pointer to next undecoded codeword
+ * \brief  Decode stream assuming Base 256 encodation
+ * \param  msg
+ * \param  ptr
+ * \param  dataEnd
+ * \return Pointer to next undecoded codeword
  */
 static unsigned char *
 DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)

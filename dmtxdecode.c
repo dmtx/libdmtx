@@ -13,9 +13,9 @@
  */
 
 /**
- * @brief  Initialize decode struct with default values
- * @param  img
- * @return Initialized DmtxDecode struct
+ * \brief  Initialize decode struct with default values
+ * \param  img
+ * \return Initialized DmtxDecode struct
  */
 extern DmtxDecode *
 dmtxDecodeCreate(DmtxImage *img, int scale)
@@ -56,9 +56,9 @@ dmtxDecodeCreate(DmtxImage *img, int scale)
 }
 
 /**
- * @brief  Deinitialize decode struct
- * @param  dec
- * @return void
+ * \brief  Deinitialize decode struct
+ * \param  dec
+ * \return void
  */
 extern DmtxPassFail
 dmtxDecodeDestroy(DmtxDecode **dec)
@@ -77,11 +77,11 @@ dmtxDecodeDestroy(DmtxDecode **dec)
 }
 
 /**
- * @brief  Set decoding behavior property
- * @param  dec
- * @param  prop
- * @param  value
- * @return DmtxPass | DmtxFail
+ * \brief  Set decoding behavior property
+ * \param  dec
+ * \param  prop
+ * \param  value
+ * \return DmtxPass | DmtxFail
  */
 extern DmtxPassFail
 dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
@@ -138,10 +138,10 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
 }
 
 /**
- * @brief  Get decoding behavior property
- * @param  dec
- * @param  prop
- * @return value
+ * \brief  Get decoding behavior property
+ * \param  dec
+ * \param  prop
+ * \return value
  */
 extern int
 dmtxDecodeGetProp(DmtxDecode *dec, int prop)
@@ -181,11 +181,11 @@ dmtxDecodeGetProp(DmtxDecode *dec, int prop)
 }
 
 /**
- * @brief  Returns xxx
- * @param  img
- * @param  Scaled x coordinate
- * @param  Scaled y coordinate
- * @return Scaled pixel offset
+ * \brief  Returns xxx
+ * \param  img
+ * \param  Scaled x coordinate
+ * \param  Scaled y coordinate
+ * \return Scaled pixel offset
  */
 extern unsigned char *
 dmtxDecodeGetCache(DmtxDecode *dec, int x, int y)
@@ -248,8 +248,7 @@ dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, int *value)
 }
 
 /**
- * @brief  Fill the region covered by the quadrilateral given by (p0,p1,p2,p3) in the cache.
- *
+ * \brief  Fill the region covered by the quadrilateral given by (p0,p1,p2,p3) in the cache.
  */
 static void
 CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2, DmtxPixelLoc p3)
@@ -308,11 +307,11 @@ CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2
 }
 
 /**
- * @brief  Convert fitted Data Matrix region into a decoded message
- * @param  dec
- * @param  reg
- * @param  fix
- * @return Decoded message
+ * \brief  Convert fitted Data Matrix region into a decoded message
+ * \param  dec
+ * \param  reg
+ * \param  fix
+ * \return Decoded message
  */
 extern DmtxMessage *
 dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
@@ -367,11 +366,11 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 }
 
 /**
- * @brief  Convert fitted Data Mosaic region into a decoded message
- * @param  dec
- * @param  reg
- * @param  fix
- * @return Decoded message
+ * \brief  Convert fitted Data Mosaic region into a decoded message
+ * \param  dec
+ * \param  reg
+ * \param  fix
+ * \return Decoded message
  */
 extern DmtxMessage *
 dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
@@ -518,16 +517,16 @@ dmtxDecodeCreateDiagnostic(DmtxDecode *dec, int *totalBytes, int *headerBytes, i
 }
 
 /**
- * @brief  Increment counters used to determine module values
- * @param  img
- * @param  reg
- * @param  tally
- * @param  xOrigin
- * @param  yOrigin
- * @param  mapWidth
- * @param  mapHeight
- * @param  dir
- * @return void
+ * \brief  Increment counters used to determine module values
+ * \param  img
+ * \param  reg
+ * \param  tally
+ * \param  xOrigin
+ * \param  yOrigin
+ * \param  mapWidth
+ * \param  mapHeight
+ * \param  dir
+ * \return void
  */
 static void
 TallyModuleJumps(DmtxDecode *dec, DmtxRegion *reg, int tally[][24], int xOrigin, int yOrigin, int mapWidth, int mapHeight, DmtxDirection dir)
@@ -630,11 +629,11 @@ TallyModuleJumps(DmtxDecode *dec, DmtxRegion *reg, int tally[][24], int xOrigin,
 }
 
 /**
- * @brief  Populate array with codeword values based on module colors
- * @param  msg
- * @param  img
- * @param  reg
- * @return DmtxPass | DmtxFail
+ * \brief  Populate array with codeword values based on module colors
+ * \param  msg
+ * \param  img
+ * \param  reg
+ * \return DmtxPass | DmtxFail
  */
 static DmtxPassFail
 PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg)

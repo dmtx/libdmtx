@@ -12,10 +12,10 @@
  */
 
 /**
- * @brief  Allocate memory for message
- * @param  sizeIdx
- * @param  symbolFormat DmtxFormatMatrix | DmtxFormatMosaic
- * @return Address of allocated memory
+ * \brief  Allocate memory for message
+ * \param  sizeIdx
+ * \param  symbolFormat DmtxFormatMatrix | DmtxFormatMosaic
+ * \return Address of allocated memory
  */
 extern DmtxMessage *
 dmtxMessageCreate(int sizeIdx, int symbolFormat)
@@ -70,9 +70,9 @@ dmtxMessageCreate(int sizeIdx, int symbolFormat)
 }
 
 /**
- * @brief  Free memory previously allocated for message
- * @param  message
- * @return void
+ * \brief  Free memory previously allocated for message
+ * \param  message
+ * \return void
  */
 extern DmtxPassFail
 dmtxMessageDestroy(DmtxMessage **msg)
