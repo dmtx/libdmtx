@@ -1,4 +1,4 @@
-AC_INIT([libdmtx], [0.7.4], [mike@dragonflylogic.com])
+AC_INIT([libdmtx], [0.7.5], [mike@dragonflylogic.com])
 AM_INIT_AUTOMAKE([-Wall -Werror])
 
 AC_CONFIG_MACRO_DIR([m4])
