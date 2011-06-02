@@ -2,7 +2,6 @@
 # $ make distclean
 # $ make dist-bzip2
 # $ make dist-gzip
-# $ script/dist-image.sh
 
 AUTOMAKE_OPTIONS = foreign
 
@@ -27,6 +26,7 @@ SUBDIRS = . test
 dist_man_MANS = man/libdmtx.3
 
 EXTRA_DIST = KNOWNBUG \
+	LICENSE \
 	README.cygwin \
 	README.freebsd \
 	README.linux \
@@ -35,17 +35,15 @@ EXTRA_DIST = KNOWNBUG \
 	README.unix \
 	README.visualc \
 	m4 \
-	project \
 	script/check_all.sh \
 	script/check_comments.sh \
 	script/check_copyright.sh \
 	script/check_headers.pl \
-	script/check_keyword.sh \
 	script/check_license.sh \
 	script/check_spacing.sh \
+	script/check_splint.sh \
 	script/check_todo.sh \
-	script/check_whitespace.sh \
-	script/dist-image.sh
+	script/check_whitespace.sh
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libdmtx.pc
