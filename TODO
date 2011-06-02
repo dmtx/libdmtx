@@ -30,42 +30,31 @@ FOCUS: region detection
   o Inspect SDL image packing naming conventions (stride vs. pad, etc...)
   o Clean up API for use with external ROI finders
   o Is there a good way to know if dmtxRegionFindNext() timed out or finished file?
+  o testing: Test error corrections with controled damage to images
+  o library: Add .gitignore for generated files
+  o library: Add explicit build targets for debug and release
+  o library: Library should never call exit() or assert()
 
-version 0.7.4: (targeting May 2011)
-FOCUS: error correction, encoding engine, experimental region finder, relicensing
-  o After release, email all packagers about repo changes
-  o Test builds on propietary UNIXs
-  o Add .gitignore ?
-  o Create coding style guide
-      - Always pass by reference passFail as final parameter (can't be ignored)
-      - Use "enum XYZ" instead of "typedef enum"
-      - dmtx prefix for public functions
-      - static functions start capitalized
-      - etc...
-  o library should never call exit() (or assert()?)
-  o Test error corrections with controled damage to images (add to test suite?)
-  o Add explicit build targets for debug and release
-  o Figure out CHK* macro strategy
-  o Review dmtxencode*.c for remaining TODOs and other cleanup
-  o Add new error codes and messages into dmtxencode.c
-  x Rename repositories: libdmtx, dmtx-utils, and dmtx-wrappers
-  x Remove remnants of attempt to get files compiling individually
-  x Clean up PushCTXValues() passFail handling
-  x Change file header to say "in the main project directory" instead of "parent"
-  x Split up repositories
-  x Finish optimize best
-  x Capture all compare_generated.sh errors (e.g., can't encode pnm) to avoid false negatives
-  x Fix encoding bugs reported by compare_generated.sh
-  x Add test in compare_generated.sh to create directory if needed
-  x Use new Edifact decode function that doesn't assume full triplet
-  x Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
-  x Remove "twothirdsbits" encoder concept (source of many headaches)
-  x Track intermediate states in "optimize best" to account for all possibilities
-  x Added Base 256 "encode to end of symbol" single byte header
-  x Fixed encoding bug affecting certain end-of-symbol conditions
-  x New Reed Solomon code
-  x Added DmtxByteList struct and supporting functions
-  x Fixed ECC bug for 144x144 case (thanks Huver!)
+version 0.7.4: (02-Jun-2011)
+  x library: Relicensed to use Simplified BSD with exception
+  x library: Add new error codes and messages into dmtxencode.c
+  x library: Added DmtxByteList struct and supporting functions
+  x library: Change file header to say "in the main project directory" instead of "parent"
+  x library: Fixed ECC bug for 144x144 case (thanks Huver!)
+  x library: New Reed Solomon logic
+  x library: New repository structure: libdmtx, dmtx-utils, and dmtx-wrappers
+  x testing: Add test in compare_generated.sh to create directory if needed
+  x testing: Fix compare_generated.sh to prevent false negatives
+  x encoder: Review CHK macro strategy
+  x encoder: New encoding logic
+  x encoder: Added Base 256 "encode to end of symbol" single byte header
+  x encoder: Check ProcessEndOfSymbolTriplet() for same problem fixed in Edifact
+  x encoder: Clean up PushCTXValues() passFail handling
+  x encoder: Fix encoding bugs reported by compare_generated.sh
+  x encoder: Fixed encoding bug affecting certain end-of-symbol conditions
+  x encoder: Remove "twothirdsbits" encoder concept (headache source)
+  x encoder: Track intermediate states in "optimize best" to handle all possibilities
+  x decoder: Use new Edifact decode function that doesn't assume full triplet
 
 version 0.7.2: (04-Sep-2009)
   x Added initial macro decoding support (thanks Marlon!)
