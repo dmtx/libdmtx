@@ -8,6 +8,7 @@
  * Contact: Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtxencodebase256.c
+ * \brief Base 256 encoding rules
  */
 
 /**
@@ -254,10 +255,10 @@ Randomize255State(DmtxByte value, int position)
 }
 
 /**
- * @brief  Unrandomize 255 state
- * @param  value
- * @param  idx
- * @return Unrandomized value
+ * \brief  Unrandomize 255 state
+ * \param  value
+ * \param  idx
+ * \return Unrandomized value
  */
 static unsigned char
 UnRandomize255State(unsigned char value, int idx)

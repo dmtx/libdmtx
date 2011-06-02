@@ -8,6 +8,7 @@
  * Contact: Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtxencodeoptimize.c
+ * \brief Logic for optimized (multiple scheme) encoding
  */
 
 enum SchemeState {

@@ -48,16 +48,13 @@
  *     the next boundary are set to zero.
  *
  * Each scheme implements 3 equivalent functions:
- *   - EncodeNextChunk[Scheme]
- *   - AppendValue[Scheme]
- *   - CompleteIfDone[Scheme]
+ *   * EncodeNextChunk[Scheme]
+ *   * AppendValue[Scheme]
+ *   * CompleteIfDone[Scheme]
  *
- * XXX what about renaming AppendValue[Scheme] to AppendValue[Scheme]? That
- * shows that the stream is being affected
- *
- * The master function EncodeNextChunk() (no Scheme in the name) knows which
- * scheme-specific implementations to call based on the stream's current
- * encodation scheme.
+ * The function EncodeNextChunk() (no Scheme in the name) knows which scheme-
+ * specific implementations to call based on the stream's current encodation
+ * scheme.
  *
  * It's important that EncodeNextChunk[Scheme] not call CompleteIfDone[Scheme]
  * directly because some parts of the logic might want to encode a stream
@@ -65,7 +62,6 @@
  * end-of-symbol condition is triggered.
  */
 
-/* XXX is there a way to handle multiple values of s? */
 #define CHKSCHEME(s) { if(stream->currentScheme != (s)) { StreamMarkFatal(stream, 1); return; } }
 
 /* CHKERR should follow any call that might alter stream status */

@@ -8,15 +8,15 @@
  * Contact: Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtxencode.c
- * \brief Encode messages
+ * \brief Base encoding logic
  */
 
 #undef ISDIGIT
 #define ISDIGIT(n) (n > 47 && n < 58)
 
 /**
- * @brief  Initialize encode struct with default values
- * @return Initialized DmtxEncode struct
+ * \brief  Initialize encode struct with default values
+ * \return Initialized DmtxEncode struct
  */
 extern DmtxEncode *
 dmtxEncodeCreate(void)
@@ -50,9 +50,9 @@ dmtxEncodeCreate(void)
 }
 
 /**
- * @brief  Deinitialize encode struct
- * @param  enc
- * @return void
+ * \brief  Deinitialize encode struct
+ * \param  enc
+ * \return void
  */
 extern DmtxPassFail
 dmtxEncodeDestroy(DmtxEncode **enc)
@@ -77,11 +77,11 @@ dmtxEncodeDestroy(DmtxEncode **enc)
 }
 
 /**
- * @brief  Set encoding behavior property
- * @param  enc
- * @param  prop
- * @param  value
- * @return DmtxPass | DmtxFail
+ * \brief  Set encoding behavior property
+ * \param  enc
+ * \param  prop
+ * \param  value
+ * \return DmtxPass | DmtxFail
  */
 extern DmtxPassFail
 dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value)
@@ -123,10 +123,10 @@ dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value)
 }
 
 /**
- * @brief  Get encoding behavior property
- * @param  enc
- * @param  prop
- * @return value
+ * \brief  Get encoding behavior property
+ * \param  enc
+ * \param  prop
+ * \return value
  */
 extern int
 dmtxEncodeGetProp(DmtxEncode *enc, int prop)
@@ -146,12 +146,12 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
 }
 
 /**
- * @brief  Convert message into Data Matrix image
- * @param  enc
- * @param  inputSize
- * @param  inputString
- * @param  sizeIdxRequest
- * @return DmtxPass | DmtxFail
+ * \brief  Convert message into Data Matrix image
+ * \param  enc
+ * \param  inputSize
+ * \param  inputString
+ * \param  sizeIdxRequest
+ * \return DmtxPass | DmtxFail
  */
 extern DmtxPassFail
 dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
@@ -165,8 +165,8 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
    input.length = inputSize;
 
-/* XXX stream = StreamInit() ... */
-/* XXX EncodeDataCodewords(&stream) ... */
+   /* Future: stream = StreamInit() ... */
+   /* Future: EncodeDataCodewords(&stream) ... */
 
    /* Encode input string into data codewords */
    sizeIdx = EncodeDataCodewords(&input, &output, enc->sizeIdxRequest, enc->scheme);
@@ -225,12 +225,12 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 }
 
 /**
- * @brief  Convert message into Data Mosaic image
- * @param  enc
- * @param  inputSize
- * @param  inputString
- * @param  sizeIdxRequest
- * @return DmtxPass | DmtxFail
+ * \brief  Convert message into Data Mosaic image
+ * \param  enc
+ * \param  inputSize
+ * \param  inputString
+ * \param  sizeIdxRequest
+ * \return DmtxPass | DmtxFail
  */
 extern DmtxPassFail
 dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
@@ -246,7 +246,8 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    DmtxEncode encGreen, encBlue;
    int row, col, mappingRows, mappingCols;
 
-   /* 1) count how many codewords it would take to encode the whole thing
+   /*
+    * 1) count how many codewords it would take to encode the whole thing
     * 2) take ceiling N of codeword count divided by 3
     * 3) using minimum symbol size that can accomodate N codewords:
     * 4) create several barcodes over iterations of increasing numbers of
@@ -288,7 +289,6 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
    /* Try increasing symbol sizes until 3 of them can hold all input values */
    for(splitSizeIdxAttempt = splitSizeIdxFirst; splitSizeIdxAttempt <= splitSizeIdxLast; splitSizeIdxAttempt++) {
-
       assert(splitSizeIdxAttempt >= 0);
 
       /* RED LAYER */
@@ -366,20 +366,17 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 }
 
 /**
- * @brief  Convert input into message using specific encodation scheme
- * @param  buf
- * @param  inputString
- * @param  inputSize
- * @param  scheme
- * @param  sizeIdx
- * @return Count of encoded data words
+ * \brief  Convert input into message using specific encodation scheme
+ * \param  buf
+ * \param  inputString
+ * \param  inputSize
+ * \param  scheme
+ * \param  sizeIdx
+ * \return Count of encoded data words
  *
- * This function needs to take both dataWordCount and sizeIdx into account
- * because symbol size can affect encoding near the end of symbol.
- *
- * later pass DmtxEncode to this function with an error reason field, which goes to EncodeSingle... too
+ * Future: pass DmtxEncode to this function with an error reason field, which
+ *         goes to EncodeSingle... too
  */
-/* XXX EncodeDataCodewords(DmtxEncodeStream *stream, int sizeIdxRequest, DmtxScheme scheme) */
 static int
 EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme)
 {
@@ -403,9 +400,9 @@ EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxReques
 }
 
 /**
- * @brief  Write encoded message to image
- * @param  enc
- * @return void
+ * \brief  Write encoded message to image
+ * \param  enc
+ * \return void
  */
 static void
 PrintPattern(DmtxEncode *enc)

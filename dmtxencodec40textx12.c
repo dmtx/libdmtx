@@ -8,6 +8,7 @@
  * Contact: Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtxencodec40textx12.c
+ * \brief C40/Text/X12 encoding rules
  */
 
 #undef CHKERR
@@ -345,12 +346,7 @@ CompletePartialX12(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeId
 }
 
 /**
- *
- *
-   if(1 or 2 x12 values remain)
-      return true
-   else
-      return false
+ * Return DmtxTrue 1 or 2 X12 values remain, otherwise DmtxFalse
  */
 static DmtxBoolean
 PartialX12ChunkRemains(DmtxEncodeStream *stream)

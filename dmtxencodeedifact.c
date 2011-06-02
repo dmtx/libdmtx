@@ -8,6 +8,7 @@
  * Contact: Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtxencodeedifact.c
+ * \brief Edifact encoding rules
  */
 
 /**

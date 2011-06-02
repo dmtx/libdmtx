@@ -8,11 +8,10 @@
  * Contact: Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtxencodeascii.c
+ * \brief ASCII encoding rules
  */
 
 /**
- *
- * Add comment explaining the 3 modes this function can use, and why it's done this way
  * Simple single scheme encoding uses "Normal"
  * The optimizer needs to track "Expanded" and "Compact" streams separately, so they
  * are called explicitly.
@@ -21,8 +20,9 @@
  *   Expanded: Uses a whole codeword to represent a digit (never collapses)
  *   Compact:  Collapses 2 digits into a single codeword or marks the stream
  *             invalid if either values are not digits
- * /param stream
- * /param option [Expanded|Compact|Normal]
+ *
+ * \param stream
+ * \param option [Expanded|Compact|Normal]
  */
 static void
 EncodeNextChunkAscii(DmtxEncodeStream *stream, int option)
@@ -78,7 +78,6 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream, int option)
 /**
  * this code is separated from EncodeNextChunkAscii() because it needs to be
  * called directly elsewhere
- *
  */
 static void
 AppendValueAscii(DmtxEncodeStream *stream, DmtxByte value)
@@ -112,7 +111,6 @@ CompleteIfDoneAscii(DmtxEncodeStream *stream, int sizeIdxRequest)
 /**
  * Can we just receive a length to pad here? I don't like receiving
  * sizeIdxRequest (or sizeIdx) this late in the game
- *
  */
 static void
 PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx)
@@ -143,7 +141,6 @@ PadRemainingInAscii(DmtxEncodeStream *stream, int sizeIdx)
 }
 
 /**
- *
  * consider receiving instantiated DmtxByteList instead of the output components
  */
 static DmtxByteList

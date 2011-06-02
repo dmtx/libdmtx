@@ -8,6 +8,7 @@
  * Contact: Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtxencodestream.c
+ * \brief DmtxEncodeStream implementation
  */
 
 /**
@@ -175,8 +176,8 @@ StreamInputPeekNext(DmtxEncodeStream *stream)
 /**
  * used as each input cw is processed
  *
- * /param value Value to populate, can be null (for blind dequeues)
- * /param stream
+ * \param value Value to populate, can be null (for blind dequeues)
+ * \param stream
  */
 static DmtxByte
 StreamInputAdvanceNext(DmtxEncodeStream *stream)
@@ -194,8 +195,8 @@ StreamInputAdvanceNext(DmtxEncodeStream *stream)
 /**
  * used as each input cw is processed
  *
- * /param value Value to populate, can be null (for blind dequeues)
- * /param stream
+ * \param value Value to populate, can be null (for blind dequeues)
+ * \param stream
  */
 static void
 StreamInputAdvancePrev(DmtxEncodeStream *stream)
