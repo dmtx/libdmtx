@@ -226,6 +226,16 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
 /**
  * \brief  Convert message into Data Mosaic image
+ *
+ *  1) count how many codewords it would take to encode the whole thing
+ *  2) take ceiling N of codeword count divided by 3
+ *  3) using minimum symbol size that can accomodate N codewords:
+ *  4) create several barcodes over iterations of increasing numbers of
+ *     input codewords until you go one too far
+ *  5) if codewords remain after filling R, G, and B barcodes then go back
+ *     to 3 and try with next larger size
+ *  6) take the 3 different images you created and write out a new barcode
+ *
  * \param  enc
  * \param  inputSize
  * \param  inputString
@@ -235,133 +245,111 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 extern DmtxPassFail
 dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 {
-#ifdef _IGNOREFORNOW
-   int dataWordCount;
+   unsigned char *inputStringR, *inputStringG, *inputStringB;
    int tmpInputSize;
-   unsigned char *inputStart;
-   int splitInputSize[3];
-   int sizeIdx, sizeIdxRequest;
-   int splitSizeIdxAttempt, splitSizeIdxFirst, splitSizeIdxLast;
-   unsigned char buf[3][4096];
-   DmtxEncode encGreen, encBlue;
+   int inputSizeR, inputSizeG, inputSizeB;
+   int sizeIdxAttempt, sizeIdxFirst, sizeIdxLast;
    int row, col, mappingRows, mappingCols;
-
-   /*
-    * 1) count how many codewords it would take to encode the whole thing
-    * 2) take ceiling N of codeword count divided by 3
-    * 3) using minimum symbol size that can accomodate N codewords:
-    * 4) create several barcodes over iterations of increasing numbers of
-    *    input codewords until you go one too far
-    * 5) if codewords remain after filling R, G, and B barcodes then go back
-    *    to 3 and try with next larger size
-    * 6) take the 3 different images you created and write out a new barcode
-    */
-
-   /* Encode full input string to establish baseline data codeword count */
-   /* XXX buf can be changed here to use all 3 buffers' length */
-   sizeIdx = EncodeDataCodewords(input, output, enc->sizeIdxRequest, enc->scheme, passFail); XYZ
-   if(dataWordCount <= 0)
-      return DmtxFail;
+   DmtxEncode *encG, *encB;
 
    /* Use 1/3 (ceiling) of inputSize establish input size target */
    tmpInputSize = (inputSize + 2) / 3;
-   splitInputSize[0] = tmpInputSize;
-   splitInputSize[1] = tmpInputSize;
-   splitInputSize[2] = inputSize - (splitInputSize[0] + splitInputSize[1]);
-   /* XXX clean up above lines later for corner cases */
+   inputSizeR = tmpInputSize;
+   inputSizeG = tmpInputSize;
+   inputSizeB = inputSize - (inputSizeR + inputSizeG);
+
+   inputStringR = inputString;
+   inputStringG = inputStringR + inputSizeR;
+   inputStringB = inputStringG + inputSizeG;
 
    /* Use 1/3 (floor) of dataWordCount establish first symbol size attempt */
-   splitSizeIdxFirst = FindSymbolSize(tmpInputSize, sizeIdxRequest);
-   if(splitSizeIdxFirst == DmtxUndefined)
+   sizeIdxFirst = FindSymbolSize(tmpInputSize, enc->sizeIdxRequest);
+   if(sizeIdxFirst == DmtxUndefined)
       return DmtxFail;
 
    /* Set the last possible symbol size for this symbol shape or specific size request */
-   if(sizeIdxRequest == DmtxSymbolSquareAuto)
-      splitSizeIdxLast = DmtxSymbolSquareCount - 1;
-   else if(sizeIdxRequest == DmtxSymbolRectAuto)
-      splitSizeIdxLast = DmtxSymbolSquareCount + DmtxSymbolRectCount - 1;
+   if(enc->sizeIdxRequest == DmtxSymbolSquareAuto)
+      sizeIdxLast = DmtxSymbolSquareCount - 1;
+   else if(enc->sizeIdxRequest == DmtxSymbolRectAuto)
+      sizeIdxLast = DmtxSymbolSquareCount + DmtxSymbolRectCount - 1;
    else
-      splitSizeIdxLast = splitSizeIdxFirst;
+      sizeIdxLast = sizeIdxFirst;
 
-   /* XXX would be nice if we could choose a size and then fill up each
-      layer as we go, but this can cause problems with all data fits on
-      first 2 layers.  Revisit this later after things look a bit cleaner. */
+   encG = encB = NULL;
 
    /* Try increasing symbol sizes until 3 of them can hold all input values */
-   for(splitSizeIdxAttempt = splitSizeIdxFirst; splitSizeIdxAttempt <= splitSizeIdxLast; splitSizeIdxAttempt++) {
-      assert(splitSizeIdxAttempt >= 0);
+   for(sizeIdxAttempt = sizeIdxFirst; sizeIdxAttempt <= sizeIdxLast; sizeIdxAttempt++)
+   {
+      dmtxEncodeDestroy(&encG);
+      dmtxEncodeDestroy(&encB);
 
-      /* RED LAYER */
-      sizeIdx = splitSizeIdxAttempt;
-      inputStart = inputString;
-      EncodeDataCodewords(enc->scheme, buf[0], inputStart, splitInputSize[0], &sizeIdx);
-      if(sizeIdx != splitSizeIdxAttempt)
+      encG = dmtxEncodeCreate();
+      encB = dmtxEncodeCreate();
+
+      /* RED LAYER - Holds master copy */
+      dmtxEncodeDataMatrix(enc, inputSizeR, inputStringR);
+      if(enc->region.sizeIdx != sizeIdxAttempt)
          continue;
 
-      /* GREEN LAYER */
-      sizeIdx = splitSizeIdxAttempt;
-      inputStart += splitInputSize[0];
-      EncodeDataCodewords(enc->scheme, buf[1], inputStart, splitInputSize[1], &sizeIdx);
-      if(sizeIdx != splitSizeIdxAttempt)
+      /* GREEN LAYER - Holds temporary copy */
+      *encG = *enc;
+      dmtxEncodeDataMatrix(encG, inputSizeG, inputStringG);
+      if(encG->region.sizeIdx != sizeIdxAttempt)
          continue;
 
-      /* BLUE LAYER */
-      sizeIdx = splitSizeIdxAttempt;
-      inputStart += splitInputSize[1];
-      EncodeDataCodewords(enc->scheme, buf[2], inputStart, splitInputSize[2], &sizeIdx);
-      if(sizeIdx != splitSizeIdxAttempt)
+      /* BLUE LAYER - Holds temporary copy */
+      *encB = *enc;
+      dmtxEncodeDataMatrix(encB, inputSizeB, inputStringB);
+      if(encB->region.sizeIdx != sizeIdxAttempt)
          continue;
 
+      /* If we get this far we found a fit */
       break;
    }
 
-   dmtxEncodeSetProp(enc, DmtxPropSizeRequest, splitSizeIdxAttempt);
+   if(encG == NULL || encB == NULL)
+   {
+      dmtxEncodeDestroy(&encG);
+      dmtxEncodeDestroy(&encB);
+      return DmtxFail;
+   }
+
+   dmtxEncodeSetProp(enc, DmtxPropSizeRequest, sizeIdxAttempt);
 
    /* Now we have the correct lengths for splitInputSize, and they all fit into the desired size */
-   encGreen = *enc;
-   encBlue = *enc;
 
-   /* First encode red to the main encode struct (image portion will be overwritten) */
-   inputStart = inputString;
-   dmtxEncodeDataMatrix(enc, splitInputSize[0], inputStart);
+   mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdxAttempt);
+   mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdxAttempt);
 
-   inputStart += splitInputSize[0];
-   dmtxEncodeDataMatrix(&encGreen, splitInputSize[1], inputStart);
+   memset(enc->message->array, 0x00, sizeof(unsigned char) *
+         enc->region.mappingRows * enc->region.mappingCols);
 
-   inputStart += splitInputSize[1];
-   dmtxEncodeDataMatrix(&encBlue, splitInputSize[2], inputStart);
+   ModulePlacementEcc200(enc->message->array, enc->message->code, sizeIdxAttempt, DmtxModuleOnRed);
 
-   mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, splitSizeIdxAttempt);
-   mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, splitSizeIdxAttempt);
-
-   memset(enc->message->array, 0x00, sizeof(unsigned char) * enc->region.mappingRows * enc->region.mappingCols);
-   ModulePlacementEcc200(enc->message->array, enc->message->code, enc->region.sizeIdx, DmtxModuleOnRed);
-
-   /* Data Mosaic will traverse this array multiple times -- reset
-      DmtxModuleAssigned and DMX_MODULE_VISITED bits before starting */
+   /* Reset DmtxModuleAssigned and DMX_MODULE_VISITED bits */
    for(row = 0; row < mappingRows; row++) {
       for(col = 0; col < mappingCols; col++) {
          enc->message->array[row*mappingCols+col] &= (0xff ^ (DmtxModuleAssigned | DmtxModuleVisited));
       }
    }
 
-   ModulePlacementEcc200(enc->message->array, encGreen.message->code, enc->region.sizeIdx, DmtxModuleOnGreen);
+   ModulePlacementEcc200(enc->message->array, encG->message->code, sizeIdxAttempt, DmtxModuleOnGreen);
 
-   /* Data Mosaic will traverse this array multiple times -- reset
-      DmtxModuleAssigned and DMX_MODULE_VISITED bits before starting */
+   /* Reset DmtxModuleAssigned and DMX_MODULE_VISITED bits */
    for(row = 0; row < mappingRows; row++) {
       for(col = 0; col < mappingCols; col++) {
          enc->message->array[row*mappingCols+col] &= (0xff ^ (DmtxModuleAssigned | DmtxModuleVisited));
       }
    }
 
-   ModulePlacementEcc200(enc->message->array, encBlue.message->code, enc->region.sizeIdx, DmtxModuleOnBlue);
+   ModulePlacementEcc200(enc->message->array, encB->message->code, sizeIdxAttempt, DmtxModuleOnBlue);
 
-/* dmtxEncodeStructDeInit(&encGreen);
-   dmtxEncodeStructDeInit(&encBlue); */
+   /* Destroy encG and encB */
+   dmtxEncodeDestroy(&encG);
+   dmtxEncodeDestroy(&encB);
 
    PrintPattern(enc);
-#endif
+
    return DmtxPass;
 }
 
