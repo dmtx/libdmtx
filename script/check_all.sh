@@ -11,12 +11,7 @@ function RunTest()
    for dir in $(find "$LIBDMTX" -type d); do
 
       if [[ "$dir" != "$LIBDMTX" &&
-            "$dir" != "$LIBDMTX/util/dmtxread" &&
-            "$dir" != "$LIBDMTX/util/dmtxwrite" &&
-            "$dir" != "$LIBDMTX/test/rotate_test" &&
-            "$dir" != "$LIBDMTX/test/simple_test" &&
-            "$dir" != "$LIBDMTX/test/unit_test" &&
-            "$dir" != "$LIBDMTX/test/script" ]]; then
+            "$dir" != "$LIBDMTX/test/simple_test" ]]; then
          continue
       fi
 
