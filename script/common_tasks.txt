@@ -97,7 +97,7 @@ Release Checklist
     o $ ./configure
     o $ make clean
     o $ make
-    o $ sudo make install
+    o # sudo make install
 
 13) o Update libdmtx.org with news item, download entry, and new
       project status
