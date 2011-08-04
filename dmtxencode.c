@@ -250,7 +250,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    int inputSizeR, inputSizeG, inputSizeB;
    int sizeIdxAttempt, sizeIdxFirst, sizeIdxLast;
    int row, col, mappingRows, mappingCols;
-   DmtxEncode *encG, *encB;
+   DmtxEncode *encR, *encG, *encB;
 
    /* Use 1/3 (ceiling) of inputSize establish input size target */
    tmpInputSize = (inputSize + 2) / 3;
@@ -275,30 +275,38 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    else
       sizeIdxLast = sizeIdxFirst;
 
-   encG = encB = NULL;
+   encR = encG = encB = NULL;
 
    /* Try increasing symbol sizes until 3 of them can hold all input values */
    for(sizeIdxAttempt = sizeIdxFirst; sizeIdxAttempt <= sizeIdxLast; sizeIdxAttempt++)
    {
+      dmtxEncodeDestroy(&encR);
       dmtxEncodeDestroy(&encG);
       dmtxEncodeDestroy(&encB);
 
+      encR = dmtxEncodeCreate();
       encG = dmtxEncodeCreate();
       encB = dmtxEncodeCreate();
 
-      /* RED LAYER - Holds master copy */
-      dmtxEncodeDataMatrix(enc, inputSizeR, inputStringR);
-      if(enc->region.sizeIdx != sizeIdxAttempt)
+      /* Copy all settings from master DmtxEncode, including pointer to image
+         and message, which is initially null */
+      *encR = *encG = *encB = *enc;
+
+      dmtxEncodeSetProp(encR, DmtxPropSizeRequest, sizeIdxAttempt);
+      dmtxEncodeSetProp(encG, DmtxPropSizeRequest, sizeIdxAttempt);
+      dmtxEncodeSetProp(encB, DmtxPropSizeRequest, sizeIdxAttempt);
+
+      /* RED LAYER - Holds temporary copy */
+      dmtxEncodeDataMatrix(encR, inputSizeR, inputStringR);
+      if(encR->region.sizeIdx != sizeIdxAttempt)
          continue;
 
       /* GREEN LAYER - Holds temporary copy */
-      *encG = *enc;
       dmtxEncodeDataMatrix(encG, inputSizeG, inputStringG);
       if(encG->region.sizeIdx != sizeIdxAttempt)
          continue;
 
       /* BLUE LAYER - Holds temporary copy */
-      *encB = *enc;
       dmtxEncodeDataMatrix(encB, inputSizeB, inputStringB);
       if(encB->region.sizeIdx != sizeIdxAttempt)
          continue;
@@ -307,24 +315,27 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
       break;
    }
 
-   if(encG == NULL || encB == NULL)
+   if(encR == NULL || encG == NULL || encB == NULL)
    {
+      dmtxEncodeDestroy(&encR);
       dmtxEncodeDestroy(&encG);
       dmtxEncodeDestroy(&encB);
       return DmtxFail;
    }
 
+   /* Now we have the correct sizeIdxAttempt, and they all fit into the desired size */
+
+   /* Perform the red portion of the final encode to set internals correctly */
    dmtxEncodeSetProp(enc, DmtxPropSizeRequest, sizeIdxAttempt);
+   dmtxEncodeDataMatrix(enc, inputSizeR, inputStringR);
 
-   /* Now we have the correct lengths for splitInputSize, and they all fit into the desired size */
-
+   /* Zero out the array and overwrite the bits in 3 passes */
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdxAttempt);
    mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdxAttempt);
-
    memset(enc->message->array, 0x00, sizeof(unsigned char) *
          enc->region.mappingRows * enc->region.mappingCols);
 
-   ModulePlacementEcc200(enc->message->array, enc->message->code, sizeIdxAttempt, DmtxModuleOnRed);
+   ModulePlacementEcc200(enc->message->array, encR->message->code, sizeIdxAttempt, DmtxModuleOnRed);
 
    /* Reset DmtxModuleAssigned and DMX_MODULE_VISITED bits */
    for(row = 0; row < mappingRows; row++) {
@@ -344,7 +355,8 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
    ModulePlacementEcc200(enc->message->array, encB->message->code, sizeIdxAttempt, DmtxModuleOnBlue);
 
-   /* Destroy encG and encB */
+   /* Destroy encR, encG, and encB */
+   dmtxEncodeDestroy(&encR);
    dmtxEncodeDestroy(&encG);
    dmtxEncodeDestroy(&encB);
 

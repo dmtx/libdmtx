@@ -34,6 +34,7 @@ FOCUS: region detection
   o library: Add .gitignore for generated files
   o library: Add explicit build targets for debug and release
   o library: Library should never call exit() or assert()
+  x encoder: Fixed Data Mosaic encoding bug
 
 version 0.7.4: (02-Jun-2011)
   x library: Relicensed to use Simplified BSD with waiver option
