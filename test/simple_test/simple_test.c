@@ -34,7 +34,7 @@ main(int argc, char *argv[])
 
    enc = dmtxEncodeCreate();
    assert(enc != NULL);
-   dmtxEncodeDataMatrix(enc, strlen(str), str);
+   dmtxEncodeDataMatrix(enc, strlen((const char *)str), str);
 
    /* 2) COPY the new image data before releasing encoding memory */
 
