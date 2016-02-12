@@ -20,7 +20,7 @@ int
 main(int argc, char *argv[])
 {
    size_t          width, height, bytesPerPixel;
-   unsigned char   str[] = "FRONT";
+   unsigned char   str[] = "BACK";
    unsigned char  *pxl;
    DmtxEncode     *enc;
    DmtxImage      *img;

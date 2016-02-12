@@ -2,6 +2,7 @@
  * libdmtx - Data Matrix Encoding/Decoding Library
  * Copyright 2008, 2009 Mike Laughton. All rights reserved.
  * Copyright 2009 Mackenzie Straight. All rights reserved.
+ * Copyright 2016 Tim Zaman. All rights reserved.
  *
  * See LICENSE file in the main project directory for full
  * terms of use and distribution.
@@ -349,8 +350,8 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 
    CacheFillQuad(dec, pxTopLeft, pxTopRight, pxBottomRight, pxBottomLeft);
 
-   return dmtxDecodePopulatedArray(reg->sizeIdx, msg, fix);
-   //return msg;
+   dmtxDecodePopulatedArray(reg->sizeIdx, msg, fix);
+   return msg;
 }
 
 /**
@@ -360,21 +361,39 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
  * \param  fix
  * \return Decoded message
  */
-extern DmtxMessage *
+void
 dmtxDecodePopulatedArray(int sizeIdx, DmtxMessage *msg, int fix)
 {
-   ModulePlacementEcc200(msg->array, msg->code,
-         sizeIdx, DmtxModuleOnRed | DmtxModuleOnGreen | DmtxModuleOnBlue);
+   /*
+    * Example msg->array indices for a 12x12 datamatrix.
+    *  also, the 'L' color (usually black) is defined as 'DmtxModuleOnRGB'
+    *
+    * XX    XX    XX    XX    XX    XX   
+    * XX 0   1  2  3  4  5  6  7  8  9 XX 
+    * XX 10 11 12 13 14 15 16 17 18 19 
+    * XX 20 21 22 23 24 25 26 27 28 29 XX
+    * XX 30 31 32 33 34 35 36 37 38 39 
+    * XX 40 41 42 43 44 45 46 47 48 49 XX
+    * XX 50 51 52 53 54 55 56 57 58 59 
+    * XX 60 61 62 63 64 65 66 67 68 69 XX
+    * XX 70 71 72 73 74 75 76 77 78 79 
+    * XX 80 81 82 83 84 85 86 87 88 89 XX
+    * XX 90 91 92 93 94 95 96 97 98 99 
+    * XX XX XX XX XX XX XX XX XX XX XX XX
+    *
+    */
+    
+   ModulePlacementEcc200(msg->array, msg->code, sizeIdx, DmtxModuleOnRed | DmtxModuleOnGreen | DmtxModuleOnBlue);
 
-   if(RsDecode(msg->code, sizeIdx, fix) == DmtxFail)
-   {
+   if(RsDecode(msg->code, sizeIdx, fix) == DmtxFail){
       dmtxMessageDestroy(&msg);
-      return NULL;
+      msg = NULL;
+      return;
    }
 
    DecodeDataStream(msg, sizeIdx, NULL);
 
-   return msg;
+   return;
 }
 
 /**
@@ -719,22 +738,26 @@ PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg)
 
          /* Decide module status based on final tallies */
          for(mapRow = 0; mapRow < mapHeight; mapRow++) {
+         //for(mapRow = mapHeight-1; mapRow >= 0; mapRow--) {
             for(mapCol = 0; mapCol < mapWidth; mapCol++) {
                
                rowTmp = (yRegionCount * mapHeight) + mapRow;
                rowTmp = yRegionTotal * mapHeight - rowTmp - 1;
                colTmp = (xRegionCount * mapWidth) + mapCol;
                idx = (rowTmp * xRegionTotal * mapWidth) + colTmp;
-               //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::idx: %d\n", idx);
-
+               //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::idx: %d @ %d,%d\n", idx, mapCol, mapRow);
+               //fprintf(stdout, "%c ",tally[mapRow][mapCol]==DmtxModuleOff ? 'X' : ' ');
                if(tally[mapRow][mapCol]/(double)weightFactor >= 0.5){
                   msg->array[idx] = DmtxModuleOnRGB;
+                  //fprintf(stdout, "X ");
                } else {
                   msg->array[idx] = DmtxModuleOff;
+                  //fprintf(stdout, "  ");
                }
 
                msg->array[idx] |= DmtxModuleAssigned;
             }
+            //fprintf(stdout, "\n");
          }
       }
    }
