@@ -62,7 +62,7 @@
 extern DmtxImage *
 dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
 {
-   DmtxPassFail err;
+//   DmtxPassFail err;
    DmtxImage *img;
 
    if(pxl == NULL || width < 1 || height < 1)
@@ -89,51 +89,51 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
       case DmtxPackCustom:
          break;
       case DmtxPack1bppK:
-         err = dmtxImageSetChannel(img, 0, 1);
+         dmtxImageSetChannel(img, 0, 1);
          return NULL; /* unsupported packing order */
 /*       break; */
       case DmtxPack8bppK:
-         err = dmtxImageSetChannel(img, 0, 8);
+         dmtxImageSetChannel(img, 0, 8);
          break;
       case DmtxPack16bppRGB:
       case DmtxPack16bppBGR:
       case DmtxPack16bppYCbCr:
-         err = dmtxImageSetChannel(img,  0, 5);
-         err = dmtxImageSetChannel(img,  5, 5);
-         err = dmtxImageSetChannel(img, 10, 5);
+         dmtxImageSetChannel(img,  0, 5);
+         dmtxImageSetChannel(img,  5, 5);
+         dmtxImageSetChannel(img, 10, 5);
          break;
       case DmtxPack24bppRGB:
       case DmtxPack24bppBGR:
       case DmtxPack24bppYCbCr:
       case DmtxPack32bppRGBX:
       case DmtxPack32bppBGRX:
-         err = dmtxImageSetChannel(img,  0, 8);
-         err = dmtxImageSetChannel(img,  8, 8);
-         err = dmtxImageSetChannel(img, 16, 8);
+         dmtxImageSetChannel(img,  0, 8);
+         dmtxImageSetChannel(img,  8, 8);
+         dmtxImageSetChannel(img, 16, 8);
          break;
       case DmtxPack16bppRGBX:
       case DmtxPack16bppBGRX:
-         err = dmtxImageSetChannel(img,  0, 5);
-         err = dmtxImageSetChannel(img,  5, 5);
-         err = dmtxImageSetChannel(img, 10, 5);
+         dmtxImageSetChannel(img,  0, 5);
+         dmtxImageSetChannel(img,  5, 5);
+         dmtxImageSetChannel(img, 10, 5);
          break;
       case DmtxPack16bppXRGB:
       case DmtxPack16bppXBGR:
-         err = dmtxImageSetChannel(img,  1, 5);
-         err = dmtxImageSetChannel(img,  6, 5);
-         err = dmtxImageSetChannel(img, 11, 5);
+         dmtxImageSetChannel(img,  1, 5);
+         dmtxImageSetChannel(img,  6, 5);
+         dmtxImageSetChannel(img, 11, 5);
          break;
       case DmtxPack32bppXRGB:
       case DmtxPack32bppXBGR:
-         err = dmtxImageSetChannel(img,  8, 8);
-         err = dmtxImageSetChannel(img, 16, 8);
-         err = dmtxImageSetChannel(img, 24, 8);
+         dmtxImageSetChannel(img,  8, 8);
+         dmtxImageSetChannel(img, 16, 8);
+         dmtxImageSetChannel(img, 24, 8);
          break;
       case DmtxPack32bppCMYK:
-         err = dmtxImageSetChannel(img,  0, 8);
-         err = dmtxImageSetChannel(img,  8, 8);
-         err = dmtxImageSetChannel(img, 16, 8);
-         err = dmtxImageSetChannel(img, 24, 8);
+         dmtxImageSetChannel(img,  0, 8);
+         dmtxImageSetChannel(img,  8, 8);
+         dmtxImageSetChannel(img, 16, 8);
+         dmtxImageSetChannel(img, 24, 8);
          break;
       default:
          return NULL;

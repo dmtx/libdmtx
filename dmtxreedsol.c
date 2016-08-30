@@ -152,7 +152,8 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
 {
    int i;
    int blockStride, blockIdx;
-   int blockDataWords, blockErrorWords, blockTotalWords, blockMaxCorrectable;
+   int blockDataWords, blockErrorWords, blockMaxCorrectable;
+//   int blockDataWords, blockErrorWords, blockTotalWords, blockMaxCorrectable;
    int symbolDataWords, symbolErrorWords, symbolTotalWords;
    DmtxBoolean error, repairable;
    DmtxPassFail passFail;
@@ -178,7 +179,7 @@ RsDecode(unsigned char *code, int sizeIdx, int fix)
    {
       /* Data word count depends on blockIdx due to special case at 144x144 */
       blockDataWords = dmtxGetBlockDataSize(sizeIdx, blockIdx);
-      blockTotalWords = blockErrorWords + blockDataWords;
+//      blockTotalWords = blockErrorWords + blockDataWords;
 
       /* Populate received list (rec) with data and error codewords */
       dmtxByteListInit(&rec, 0, 0, &passFail); CHKPASS;

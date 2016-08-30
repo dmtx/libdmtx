@@ -593,7 +593,6 @@ static int
 ReadModuleColor(DmtxDecode *dec, DmtxRegion *reg, int symbolRow, int symbolCol,
       int sizeIdx, int colorPlane)
 {
-   int err;
    int i;
    int symbolRows, symbolCols;
    int color, colorTmp;
@@ -614,7 +613,7 @@ ReadModuleColor(DmtxDecode *dec, DmtxRegion *reg, int symbolRow, int symbolCol,
 
       //fprintf(stdout, "%dx%d\n", (int)(p.X + 0.5), (int)(p.Y + 0.5));
 
-      err = dmtxDecodeGetPixelValue(dec, (int)(p.X + 0.5), (int)(p.Y + 0.5),
+      dmtxDecodeGetPixelValue(dec, (int)(p.X + 0.5), (int)(p.Y + 0.5),
             colorPlane, &colorTmp);
       color += colorTmp;
    }
@@ -640,9 +639,9 @@ MatrixRegionFindSize(DmtxDecode *dec, DmtxRegion *reg)
    int colorOnAvg, bestColorOnAvg;
    int colorOffAvg, bestColorOffAvg;
    int contrast, bestContrast;
-   DmtxImage *img;
+//   DmtxImage *img;
 
-   img = dec->image;
+//   img = dec->image;
    bestSizeIdx = DmtxUndefined;
    bestContrast = 0;
    bestColorOnAvg = bestColorOffAvg = 0;
@@ -1205,6 +1204,8 @@ TrailBlazeGapped(DmtxDecode *dec, DmtxRegion *reg, DmtxBresLine line, int stream
             break;
 
          err = BresLineGetStep(line, flowNext.loc, &travel, &outward);
+         if (err == DmtxFail) { return DmtxFail; }
+
          if(flowNext.mag < 50 || outward < 0 || (outward == 0 && travel < 0)) {
             onEdge = DmtxFalse;
          }
