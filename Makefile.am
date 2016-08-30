@@ -6,7 +6,7 @@
 AUTOMAKE_OPTIONS = foreign
 
 ACLOCAL_AMFLAGS = -I m4
-AM_CPPFLAGS = -Wshadow -Wall -pedantic -ansi
+AM_CPPFLAGS = -Wshadow -Wall -pedantic -std=c99
 
 lib_LTLIBRARIES = libdmtx.la
 libdmtx_la_SOURCES = dmtx.c
