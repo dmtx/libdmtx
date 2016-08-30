@@ -17,6 +17,9 @@
  * \param  img
  * \return Initialized DmtxDecode struct
  */
+
+#include <stdio.h> // for snprintf
+
 extern DmtxDecode *
 dmtxDecodeCreate(DmtxImage *img, int scale)
 {
