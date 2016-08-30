@@ -608,11 +608,13 @@ ReadModuleColor(DmtxDecode *dec, DmtxRegion *reg, int symbolRow, int symbolCol,
 
       dmtxMatrix3VMultiplyBy(&p, reg->fit2raw);
 
+      //fprintf(stdout, "%dx%d\n", (int)(p.X + 0.5), (int)(p.Y + 0.5));
+
       err = dmtxDecodeGetPixelValue(dec, (int)(p.X + 0.5), (int)(p.Y + 0.5),
             colorPlane, &colorTmp);
       color += colorTmp;
    }
-
+   //fprintf(stdout, "\n");
    return color/5;
 }
 

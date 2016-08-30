@@ -20,7 +20,7 @@ int
 main(int argc, char *argv[])
 {
    size_t          width, height, bytesPerPixel;
-   unsigned char   str[] = "30Q324343430794<OQQ";
+   unsigned char   str[] = "BACK";
    unsigned char  *pxl;
    DmtxEncode     *enc;
    DmtxImage      *img;
@@ -33,6 +33,12 @@ main(int argc, char *argv[])
    /* 1) ENCODE a new Data Matrix barcode image (in memory only) */
 
    enc = dmtxEncodeCreate();
+
+   //dmtxEncodeSetProp( enc, DmtxPropPixelPacking, DmtxPack16bppRGB );
+   //dmtxEncodeSetProp( enc, DmtxPropPixelPacking, DmtxPack32bppRGB );
+   //dmtxEncodeSetProp( enc, DmtxPropWidth, 160 );
+   //dmtxEncodeSetProp( enc, DmtxPropHeight, 160 );
+
    assert(enc != NULL);
    dmtxEncodeDataMatrix(enc, strlen((const char *)str), str);
 
@@ -48,6 +54,18 @@ main(int argc, char *argv[])
 
    dmtxEncodeDestroy(&enc);
 
+   fprintf(stdout, "width:  \"%d\"\n", width);
+   fprintf(stdout, "height: \"%d\"\n", height);
+   fprintf(stdout, "bpp:    \"%d\"\n", bytesPerPixel);
+
+   for (int i=0; i<width*height; i++){
+      fprintf(stdout, "%d", (pxl[i*3])==0);
+      if (i%width==width-1){
+         fprintf(stdout, "\n");
+      }
+   }
+
+
    /* 3) DECODE the Data Matrix barcode from the copied image */
 
    img = dmtxImageCreate(pxl, width, height, DmtxPack24bppRGB);
@@ -59,6 +77,28 @@ main(int argc, char *argv[])
    reg = dmtxRegionFindNext(dec, NULL);
    if(reg != NULL) {
       msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
+
+      
+      fprintf(stdout, "msg->arraySize :  \"%d\"\n", msg->arraySize );
+      fprintf(stdout, "msg->codeSize  :  \"%d\"\n", msg->codeSize  );
+      fprintf(stdout, "msg->outputSize:  \"%d\"\n", msg->outputSize);
+      int oned = sqrt(msg->arraySize);
+      for (int i=0; i<msg->arraySize; i++){
+         fprintf(stdout, " %c.", msg->array[i]);
+         if (i%oned==oned-1){
+            fprintf(stdout, "\n");
+         }
+      }
+      fprintf(stdout, "\n\n");
+      for (int j=0; j<msg->codeSize; j++){
+         fprintf(stdout, " %c.", msg->code[j]);
+      }
+      fprintf(stdout, "\n\n");
+      for (int k=0; k<msg->outputSize; k++){
+         fprintf(stdout, " %c.", msg->output[k]);
+      }
+      fprintf(stdout, "\n\n");
+
       if(msg != NULL) {
          fputs("output: \"", stdout);
          fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
@@ -72,5 +112,10 @@ main(int argc, char *argv[])
    dmtxImageDestroy(&img);
    free(pxl);
 
+   fprintf(stdout, "%d\n", getSizeIdxFromSymbolDimension(12, 12));
+
    exit(0);
 }
+
+
+

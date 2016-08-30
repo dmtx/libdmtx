@@ -2,6 +2,7 @@
  * libdmtx - Data Matrix Encoding/Decoding Library
  * Copyright 2008, 2009 Mike Laughton. All rights reserved.
  * Copyright 2009 Mackenzie Straight. All rights reserved.
+ * Copyright 2016 Tim Zaman. All rights reserved.
  *
  * See LICENSE file in the main project directory for full
  * terms of use and distribution.
@@ -319,6 +320,7 @@ CacheFillQuad(DmtxDecode *dec, DmtxPixelLoc p0, DmtxPixelLoc p1, DmtxPixelLoc p2
 extern DmtxMessage *
 dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 {
+   //fprintf(stdout, "libdmtx::dmtxDecodeMatrixRegion()\n");
    DmtxMessage *msg;
    DmtxVector2 topLeft, topRight, bottomLeft, bottomRight;
    DmtxPixelLoc pxTopLeft, pxTopRight, pxBottomLeft, pxBottomRight;
@@ -328,18 +330,6 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
       return NULL;
 
    if(PopulateArrayFromMatrix(dec, reg, msg) != DmtxPass) {
-      dmtxMessageDestroy(&msg);
-      return NULL;
-   }
-
-   /* maybe place remaining logic into new dmtxDecodePopulatedArray()
-      function so other people can pass in their own arrays */
-
-   ModulePlacementEcc200(msg->array, msg->code,
-         reg->sizeIdx, DmtxModuleOnRed | DmtxModuleOnGreen | DmtxModuleOnBlue);
-
-   if(RsDecode(msg->code, reg->sizeIdx, fix) == DmtxFail)
-   {
       dmtxMessageDestroy(&msg);
       return NULL;
    }
@@ -363,9 +353,50 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 
    CacheFillQuad(dec, pxTopLeft, pxTopRight, pxBottomRight, pxBottomLeft);
 
-   DecodeDataStream(msg, reg->sizeIdx, NULL);
-
+   dmtxDecodePopulatedArray(reg->sizeIdx, msg, fix);
    return msg;
+}
+
+/**
+ * \brief  Ripped out a part of dmtxDecodeMatrixRegion function to this one to parse own array
+ * \param  sizeIdx
+ * \param  msg
+ * \param  fix
+ * \return Decoded message
+ */
+void
+dmtxDecodePopulatedArray(int sizeIdx, DmtxMessage *msg, int fix)
+{
+   /*
+    * Example msg->array indices for a 12x12 datamatrix.
+    *  also, the 'L' color (usually black) is defined as 'DmtxModuleOnRGB'
+    *
+    * XX    XX    XX    XX    XX    XX   
+    * XX 0   1  2  3  4  5  6  7  8  9 XX 
+    * XX 10 11 12 13 14 15 16 17 18 19 
+    * XX 20 21 22 23 24 25 26 27 28 29 XX
+    * XX 30 31 32 33 34 35 36 37 38 39 
+    * XX 40 41 42 43 44 45 46 47 48 49 XX
+    * XX 50 51 52 53 54 55 56 57 58 59 
+    * XX 60 61 62 63 64 65 66 67 68 69 XX
+    * XX 70 71 72 73 74 75 76 77 78 79 
+    * XX 80 81 82 83 84 85 86 87 88 89 XX
+    * XX 90 91 92 93 94 95 96 97 98 99 
+    * XX XX XX XX XX XX XX XX XX XX XX XX
+    *
+    */
+    
+   ModulePlacementEcc200(msg->array, msg->code, sizeIdx, DmtxModuleOnRed | DmtxModuleOnGreen | DmtxModuleOnBlue);
+
+   if(RsDecode(msg->code, sizeIdx, fix) == DmtxFail){
+      dmtxMessageDestroy(&msg);
+      msg = NULL;
+      return;
+   }
+
+   DecodeDataStream(msg, sizeIdx, NULL);
+
+   return;
 }
 
 /**
@@ -585,6 +616,8 @@ TallyModuleJumps(DmtxDecode *dec, DmtxRegion *reg, int tally[][24], int xOrigin,
       /* Capture tModule for each leading border module as normal but
          decide status based on predictable barcode border pattern */
 
+
+
       *travel = travelStart;
       color = ReadModuleColor(dec, reg, symbolRow, symbolCol, reg->sizeIdx, reg->flowBegin.plane);
       tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
@@ -605,24 +638,27 @@ TallyModuleJumps(DmtxDecode *dec, DmtxRegion *reg, int tally[][24], int xOrigin,
          tModule = (darkOnLight) ? reg->offColor - color : color - reg->offColor;
 
          if(statusPrev == DmtxModuleOnRGB) {
-            if(tModule < tPrev - jumpThreshold)
+            if(tModule < tPrev - jumpThreshold){
                statusModule = DmtxModuleOff;
-            else
+            } else {
                statusModule = DmtxModuleOnRGB;
+            }
          }
          else if(statusPrev == DmtxModuleOff) {
-            if(tModule > tPrev + jumpThreshold)
+            if(tModule > tPrev + jumpThreshold) {
                statusModule = DmtxModuleOnRGB;
-            else
+            } else {
                statusModule = DmtxModuleOff;
+            }
          }
 
          mapRow = symbolRow - yOrigin;
          mapCol = symbolCol - xOrigin;
          assert(mapRow < 24 && mapCol < 24);
 
-         if(statusModule == DmtxModuleOnRGB)
+         if(statusModule == DmtxModuleOnRGB){
             tally[mapRow][mapCol] += (2 * weight);
+         }
 
          weight--;
       }
@@ -641,6 +677,7 @@ TallyModuleJumps(DmtxDecode *dec, DmtxRegion *reg, int tally[][24], int xOrigin,
 static DmtxPassFail
 PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg)
 {
+   //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix()\n");
    int weightFactor;
    int mapWidth, mapHeight;
    int xRegionTotal, yRegionTotal;
@@ -663,6 +700,27 @@ PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg)
    weightFactor = 2 * (mapHeight + mapWidth + 2);
    assert(weightFactor > 0);
 
+   //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::reg->sizeIdx: %d\n", reg->sizeIdx);
+   //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::reg->flowBegin.plane: %d\n", reg->flowBegin.plane);
+   //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::reg->onColor: %d\n", reg->onColor);
+   //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::reg->offColor: %d\n", reg->offColor);
+   //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::xRegionTotal: %d\n", xRegionTotal);
+   //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::yRegionTotal: %d\n", yRegionTotal);
+   //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::mapWidth: %d\n", mapWidth);
+   //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::mapHeight: %d\n", mapHeight);
+   //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::weightFactor: %d\n", weightFactor);
+   //reg->fit2raw[1][0]=0;
+   //reg->fit2raw[0][1]=0;
+   //reg->fit2raw[0][2]=0;
+   //reg->fit2raw[2][2]=1;
+   //reg->fit2raw[1][2]=0;
+   //reg->fit2raw[2][0]=10; //translation
+   //reg->fit2raw[2][1]=10; //translation
+   //reg->fit2raw[0][0]=60; //scale
+   //reg->fit2raw[1][1]=60; //scale
+   //dmtxMatrix3Print(reg->fit2raw);
+   
+
    /* Tally module changes for each region in each direction */
    for(yRegionCount = 0; yRegionCount < yRegionTotal; yRegionCount++) {
 
@@ -673,6 +731,7 @@ PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg)
 
          /* X location of mapping region origin in symbol coordinates */
          xOrigin = xRegionCount * (mapWidth + 2) + 1;
+         //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::xOrigin: %d\n", xOrigin);
 
          memset(tally, 0x00, 24 * 24 * sizeof(int));
          TallyModuleJumps(dec, reg, tally, xOrigin, yOrigin, mapWidth, mapHeight, DmtxDirUp);
@@ -682,20 +741,26 @@ PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg)
 
          /* Decide module status based on final tallies */
          for(mapRow = 0; mapRow < mapHeight; mapRow++) {
+         //for(mapRow = mapHeight-1; mapRow >= 0; mapRow--) {
             for(mapCol = 0; mapCol < mapWidth; mapCol++) {
-
+               
                rowTmp = (yRegionCount * mapHeight) + mapRow;
                rowTmp = yRegionTotal * mapHeight - rowTmp - 1;
                colTmp = (xRegionCount * mapWidth) + mapCol;
                idx = (rowTmp * xRegionTotal * mapWidth) + colTmp;
-
-               if(tally[mapRow][mapCol]/(double)weightFactor >= 0.5)
+               //fprintf(stdout, "libdmtx::PopulateArrayFromMatrix::idx: %d @ %d,%d\n", idx, mapCol, mapRow);
+               //fprintf(stdout, "%c ",tally[mapRow][mapCol]==DmtxModuleOff ? 'X' : ' ');
+               if(tally[mapRow][mapCol]/(double)weightFactor >= 0.5){
                   msg->array[idx] = DmtxModuleOnRGB;
-               else
+                  //fprintf(stdout, "X ");
+               } else {
                   msg->array[idx] = DmtxModuleOff;
+                  //fprintf(stdout, "  ");
+               }
 
                msg->array[idx] |= DmtxModuleAssigned;
             }
+            //fprintf(stdout, "\n");
          }
       }
    }

@@ -11,6 +11,28 @@
  * \brief Data Matrix symbol attributes
  */
 
+
+/**
+ * \brief  Retrieve symbol index from rows and columns
+ * \param  rows
+ * \param  cols
+ * \return sizeIdx value
+ */
+extern int 
+getSizeIdxFromSymbolDimension(int rows, int cols)
+{
+  int symbolRows, symbolCols;
+  for (int i=0; i<30; i++){
+    symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, i);
+    symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, i);
+    if (rows==symbolRows && cols==symbolCols){
+      return i;
+    }
+  }
+  return -1;
+}
+
+
 /**
  * \brief  Retrieve property based on symbol size
  * \param  attribute

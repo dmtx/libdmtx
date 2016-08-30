@@ -1,6 +1,7 @@
 /**
  * libdmtx - Data Matrix Encoding/Decoding Library
  * Copyright 2008, 2009 Mike Laughton. All rights reserved.
+ * Copyright 2016 Tim Zaman. All rights reserved.
  *
  * See LICENSE file in the main project directory for full
  * terms of use and distribution.
@@ -62,6 +63,8 @@ extern "C" {
 #define DmtxModuleData              0x40
 
 #define DMTX_CHECK_BOUNDS(l,i) (assert((i) >= 0 && (i) < (l)->length && (l)->length <= (l)->capacity))
+
+
 
 typedef enum {
    DmtxStatusEncoding, /* Encoding is currently underway */
@@ -540,6 +543,7 @@ extern int dmtxDecodeGetProp(DmtxDecode *dec, int prop);
 extern /*@exposed@*/ unsigned char *dmtxDecodeGetCache(DmtxDecode *dec, int x, int y);
 extern DmtxPassFail dmtxDecodeGetPixelValue(DmtxDecode *dec, int x, int y, int channel, /*@out@*/ int *value);
 extern DmtxMessage *dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
+extern void dmtxDecodePopulatedArray(int sizeIdx, DmtxMessage *msg, int fix);
 extern DmtxMessage *dmtxDecodeMosaicRegion(DmtxDecode *dec, DmtxRegion *reg, int fix);
 extern unsigned char *dmtxDecodeCreateDiagnostic(DmtxDecode *dec, /*@out@*/ int *totalBytes, /*@out@*/ int *headerBytes, int style);
 
@@ -605,6 +609,7 @@ extern void dmtxMatrix3Print(DmtxMatrix3 m);
 extern int dmtxSymbolModuleStatus(DmtxMessage *mapping, int sizeIdx, int row, int col);
 extern int dmtxGetSymbolAttribute(int attribute, int sizeIdx);
 extern int dmtxGetBlockDataSize(int sizeIdx, int blockIdx);
+extern int getSizeIdxFromSymbolDimension(int rows, int cols);
 
 /* dmtxbytelist.c */
 extern DmtxByteList dmtxByteListBuild(DmtxByte *storage, int capacity);
