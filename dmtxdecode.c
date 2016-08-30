@@ -2,12 +2,15 @@
  * libdmtx - Data Matrix Encoding/Decoding Library
  * Copyright 2008, 2009 Mike Laughton. All rights reserved.
  * Copyright 2009 Mackenzie Straight. All rights reserved.
+ * Copyright 2012-2016 Vadim A. Misbakh-Soloviov. All rights reserved.
  * Copyright 2016 Tim Zaman. All rights reserved.
  *
  * See LICENSE file in the main project directory for full
  * terms of use and distribution.
  *
- * Contact: Mike Laughton <mike@dragonflylogic.com>
+ * Contact:
+ * Vadim A. Misbakh-Soloviov <dmtx@mva.name>
+ * Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtxdecode.c
  * \brief Decode regions

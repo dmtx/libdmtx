@@ -1,6 +1,7 @@
 /**
  * libdmtx - Data Matrix Encoding/Decoding Library
  * Copyright 2011 Mike Laughton. All rights reserved.
+ * Copyright 2012-2016 Vadim A. Misbakh-Soloviov. All rights reserved.
  *
  * See LICENSE file in the main project directory for full
  * terms of use and distribution.
@@ -10,7 +11,9 @@
  * encoder/decoder released by Simon Rockliff in June 1991.
  * ---------------------------------------------------------
  *
- * Contact: Mike Laughton <mike@dragonflylogic.com>
+ * Contact:
+ * Vadim A. Misbakh-Soloviov <dmtx@mva.name>
+ * Mike Laughton <mike@dragonflylogic.com>
  *
  * \file dmtxreedsol.c
  */

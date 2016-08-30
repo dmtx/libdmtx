@@ -1,11 +1,15 @@
 /**
  * libdmtx - Data Matrix Encoding/Decoding Library
  * Copyright 2008, 2009 Mike Laughton. All rights reserved.
+ * Copyright 2010-2016 Vadim A. Misbakh-Soloviov. All rights reserved.
+ * Copyright 2016 Tim Zaman. All rights reserved.
  *
  * See LICENSE file in the main project directory for full
  * terms of use and distribution.
  *
- * Contact: Mike Laughton <mike@dragonflylogic.com>
+ * Contact:
+ * Vadim A. Misbakh-Soloviov <dmtx@mva.name>
+ * Mike Laughton <mike@dragonflylogic.com>
  *
  * \file simple_test.c
  */
@@ -20,7 +24,7 @@ int
 main(int argc, char *argv[])
 {
    size_t          width, height, bytesPerPixel;
-   unsigned char   str[] = "BACK";
+   unsigned char   str[] = "30Q324343430794<OQQ";
    unsigned char  *pxl;
    DmtxEncode     *enc;
    DmtxImage      *img;
@@ -65,7 +69,6 @@ main(int argc, char *argv[])
       }
    }
 
-
    /* 3) DECODE the Data Matrix barcode from the copied image */
 
    img = dmtxImageCreate(pxl, width, height, DmtxPack24bppRGB);
@@ -78,7 +81,6 @@ main(int argc, char *argv[])
    if(reg != NULL) {
       msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
 
-      
       fprintf(stdout, "msg->arraySize :  \"%d\"\n", msg->arraySize );
       fprintf(stdout, "msg->codeSize  :  \"%d\"\n", msg->codeSize  );
       fprintf(stdout, "msg->outputSize:  \"%d\"\n", msg->outputSize);
@@ -116,6 +118,3 @@ main(int argc, char *argv[])
 
    exit(0);
 }
-
-
-

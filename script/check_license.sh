@@ -5,7 +5,7 @@ FILE="$1"
 TEST1="^ \* libdmtx - Data Matrix Encoding/Decoding Library\$"
 TEST2="^ \* See LICENSE file in the main project directory for full\$"
 TEST3="^ \* terms of use and distribution.\$"
-TEST4="^ \* Contact: Mike Laughton <mike@dragonflylogic.com>\$"
+TEST4="^ \* Vadim A. Misbakh-Soloviov\$"
 
 COUNT=0
 
