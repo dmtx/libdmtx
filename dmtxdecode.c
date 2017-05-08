@@ -356,8 +356,7 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
 
    CacheFillQuad(dec, pxTopLeft, pxTopRight, pxBottomRight, pxBottomLeft);
 
-   dmtxDecodePopulatedArray(reg->sizeIdx, msg, fix);
-   return msg;
+   return dmtxDecodePopulatedArray(reg->sizeIdx, msg, fix);
 }
 
 /**
@@ -365,9 +364,12 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
  * \param  sizeIdx
  * \param  msg
  * \param  fix
- * \return Decoded message
+ * \return Decoded message (msg pointer) or NULL in case of failure.
+ * \note You should reaffect msg with the result of this call
+ *       since a NULL result means msg gets freed and should not be used anymore.
+ *       ex: msg = dmtxDecodePopulatedArray(sizeidx, msg, fix);
  */
-void
+DmtxMessage *
 dmtxDecodePopulatedArray(int sizeIdx, DmtxMessage *msg, int fix)
 {
    /*
@@ -394,12 +396,12 @@ dmtxDecodePopulatedArray(int sizeIdx, DmtxMessage *msg, int fix)
    if(RsDecode(msg->code, sizeIdx, fix) == DmtxFail){
       dmtxMessageDestroy(&msg);
       msg = NULL;
-      return;
+      return NULL;
    }
 
    DecodeDataStream(msg, sizeIdx, NULL);
 
-   return;
+   return msg;
 }
 
 /**
