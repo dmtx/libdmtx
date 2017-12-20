@@ -450,18 +450,29 @@ PrintPattern(DmtxEncode *enc)
          moduleStatus = dmtxSymbolModuleStatus(enc->message,
                enc->region.sizeIdx, symbolRow, symbolCol);
 
-         for(i = pixelRow; i < pixelRow + enc->moduleSize; i++) {
-            for(j = pixelCol; j < pixelCol + enc->moduleSize; j++) {
-               rgb[0] = ((moduleStatus & DmtxModuleOnRed) != 0x00) ? 0 : 255;
-               rgb[1] = ((moduleStatus & DmtxModuleOnGreen) != 0x00) ? 0 : 255;
-               rgb[2] = ((moduleStatus & DmtxModuleOnBlue) != 0x00) ? 0 : 255;
-/*             dmtxImageSetRgb(enc->image, j, i, rgb); */
-               dmtxImageSetPixelValue(enc->image, j, i, 0, rgb[0]);
-               dmtxImageSetPixelValue(enc->image, j, i, 1, rgb[1]);
-               dmtxImageSetPixelValue(enc->image, j, i, 2, rgb[2]);
-            }
-         }
-
+		 if (enc->image->bytesPerPixel == 1)
+		 {
+			 for(i = pixelRow; i < pixelRow + enc->moduleSize; i++) {
+				for(j = pixelCol; j < pixelCol + enc->moduleSize; j++) {
+				   rgb[0] = ((moduleStatus & DmtxModuleOnRed) != 0x00) ? 0 : 255;
+				   dmtxImageSetPixelValue(enc->image, j, i, 0, rgb[0]);
+				}
+			 }
+		 }
+		 else
+		 {
+			 for(i = pixelRow; i < pixelRow + enc->moduleSize; i++) {
+				 for(j = pixelCol; j < pixelCol + enc->moduleSize; j++) {
+					 rgb[0] = ((moduleStatus & DmtxModuleOnRed) != 0x00) ? 0 : 255;
+					 rgb[1] = ((moduleStatus & DmtxModuleOnGreen) != 0x00) ? 0 : 255;
+					 rgb[2] = ((moduleStatus & DmtxModuleOnBlue) != 0x00) ? 0 : 255;
+					 /*             dmtxImageSetRgb(enc->image, j, i, rgb); */
+					 dmtxImageSetPixelValue(enc->image, j, i, 0, rgb[0]);
+					 dmtxImageSetPixelValue(enc->image, j, i, 1, rgb[1]);
+					 dmtxImageSetPixelValue(enc->image, j, i, 2, rgb[2]);
+				 }
+			 }
+		 }
       }
    }
 }
