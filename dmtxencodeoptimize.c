@@ -14,6 +14,8 @@
  * \brief Logic for optimized (multiple scheme) encoding
  */
 
+#define DUMPSTREAMS 0
+
 enum SchemeState {
    AsciiFull,
    AsciiCompactOffset0, /* 0 offset from first regular input value */
@@ -35,7 +37,7 @@ enum SchemeState {
    SchemeStateCount
 };
 
-/** temporary
+#if DUMPSTREAMS
 static void DumpStreams(DmtxEncodeStream *streamBest)
 {
    enum SchemeState state;
@@ -67,14 +69,15 @@ static void DumpStreams(DmtxEncodeStream *streamBest)
       dmtxByteListPrint(streamBest[state].output, prefix);
    }
 }
-*/
+#endif
+
 
 /**
  *
  *
  */
 static int
-EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest)
+EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, int fnc1)
 {
    enum SchemeState state;
    int inputNext, c40ValueCount, textValueCount, x12ValueCount;
@@ -97,6 +100,8 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       outputsTemp[state] = dmtxByteListBuild(outputsTempStorage[state], sizeof(outputsTempStorage[state]));
       streamsBest[state] = StreamInit(input, &(outputsBest[state]));
       streamsTemp[state] = StreamInit(input, &(outputsTemp[state]));
+      streamsBest[state].fnc1 = fnc1;
+      streamsTemp[state].fnc1 = fnc1;
    }
 
    c40ValueCount = textValueCount = x12ValueCount = 0;
@@ -135,18 +140,20 @@ EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
       }
 
       dmtxByteListClear(&ctxTemp);
-      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeC40, &passFail);
+      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeC40, &passFail, fnc1);
       c40ValueCount += ((passFail == DmtxPass) ? ctxTemp.length : 1);
 
       dmtxByteListClear(&ctxTemp);
-      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeText, &passFail);
+      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeText, &passFail, fnc1);
       textValueCount += ((passFail == DmtxPass) ? ctxTemp.length : 1);
 
       dmtxByteListClear(&ctxTemp);
-      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeX12, &passFail);
+      PushCTXValues(&ctxTemp, input->b[inputNext], DmtxSchemeX12, &passFail, fnc1);
       x12ValueCount += ((passFail == DmtxPass) ? ctxTemp.length : 1);
 
-/*    DumpStreams(streamsBest); */
+#if DUMPSTREAMS
+      DumpStreams(streamsBest);
+#endif
    }
 
    /* Choose the overall winner */

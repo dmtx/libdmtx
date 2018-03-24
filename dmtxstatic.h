@@ -170,7 +170,7 @@ static unsigned char *DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, 
 
 /* dmtxencode.c */
 static void PrintPattern(DmtxEncode *encode);
-static int EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme);
+static int EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1);
 
 /* dmtxplacemod.c */
 static int ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int sizeIdx, int moduleOnColor);
@@ -218,13 +218,13 @@ static DmtxByte StreamInputAdvanceNext(DmtxEncodeStream *stream);
 static void StreamInputAdvancePrev(DmtxEncodeStream *stream);
 
 /* dmtxencodescheme.c */
-static int EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme);
+static int EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1);
 static void EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int subScheme, int sizeIdxRequest);
 static void EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatchType);
 static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
 
 /* dmtxencodeoptimize.c */
-static int EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest);
+static int EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, int fnc1);
 static void StreamAdvanceFromBest(DmtxEncodeStream *streamNext,
       DmtxEncodeStream *streamList, int targeteState, int sizeIdxRequest);
 static void AdvanceAsciiCompact(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList,
@@ -252,7 +252,7 @@ static void CompleteIfDoneCTX(DmtxEncodeStream *stream, int sizeIdxRequest);
 static void CompletePartialC40Text(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeIdxRequest);
 static void CompletePartialX12(DmtxEncodeStream *stream, DmtxByteList *valueList, int sizeIdxRequest);
 static DmtxBoolean PartialX12ChunkRemains(DmtxEncodeStream *stream);
-static void PushCTXValues(DmtxByteList *valueList, DmtxByte inputValue, int targetScheme, DmtxPassFail *passFail);
+static void PushCTXValues(DmtxByteList *valueList, DmtxByte inputValue, int targetScheme, DmtxPassFail *passFail, int fnc1);
 static DmtxBoolean IsCTX(int scheme);
 static void ShiftValueListBy3(DmtxByteList *list, DmtxPassFail *passFail);
 

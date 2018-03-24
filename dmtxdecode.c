@@ -37,6 +37,8 @@ dmtxDecodeCreate(DmtxImage *img, int scale)
    width = dmtxImageGetProp(img, DmtxPropWidth) / scale;
    height = dmtxImageGetProp(img, DmtxPropHeight) / scale;
 
+   dec->fnc1 = DmtxUndefined;
+
    dec->edgeMin = DmtxUndefined;
    dec->edgeMax = DmtxUndefined;
    dec->scanGap = 1;
@@ -103,6 +105,9 @@ dmtxDecodeSetProp(DmtxDecode *dec, int prop, int value)
       case DmtxPropScanGap:
          dec->scanGap = value; /* XXX Should this be scaled? */
          break;
+      case DmtxPropFnc1:
+         dec->fnc1 = value;
+         break;
       case DmtxPropSquareDevn:
          dec->squareDevn = cos(value * (M_PI/180.0));
          break;
@@ -160,6 +165,8 @@ dmtxDecodeGetProp(DmtxDecode *dec, int prop)
          return dec->edgeMax;
       case DmtxPropScanGap:
          return dec->scanGap;
+      case DmtxPropFnc1:
+         return dec->fnc1;
       case DmtxPropSquareDevn:
          return (int)(acos(dec->squareDevn) * 180.0/M_PI);
       case DmtxPropSymbolSize:
@@ -336,6 +343,8 @@ dmtxDecodeMatrixRegion(DmtxDecode *dec, DmtxRegion *reg, int fix)
       dmtxMessageDestroy(&msg);
       return NULL;
    }
+
+   msg->fnc1 = dec->fnc1;
 
    topLeft.X = bottomLeft.X = topLeft.Y = topRight.Y = -0.1;
    topRight.X = bottomRight.X = bottomLeft.Y = bottomRight.Y = 1.1;

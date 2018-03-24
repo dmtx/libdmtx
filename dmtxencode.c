@@ -38,6 +38,8 @@ dmtxEncodeCreate(void)
    enc->imageFlip = DmtxFlipNone;
    enc->rowPadBytes = 0;
 
+   enc->fnc1 = DmtxUndefined;
+
    /* Initialize background color to white */
 /* enc.region.gradient.ray.p.R = 255.0;
    enc.region.gradient.ray.p.G = 255.0;
@@ -100,6 +102,9 @@ dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value)
             return DmtxFail;
          enc->sizeIdxRequest = value;
          break;
+      case DmtxPropFnc1:
+         enc->fnc1 = value;
+         break;
 
       /* Presentation details */
       case DmtxPropMarginSize:
@@ -141,6 +146,8 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
          return enc->moduleSize;
       case DmtxPropScheme:
          return enc->scheme;
+      case DmtxPropFnc1:
+         return enc->fnc1;
       default:
          break;
    }
@@ -172,7 +179,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    /* Future: EncodeDataCodewords(&stream) ... */
 
    /* Encode input string into data codewords */
-   sizeIdx = EncodeDataCodewords(&input, &output, enc->sizeIdxRequest, enc->scheme);
+   sizeIdx = EncodeDataCodewords(&input, &output, enc->sizeIdxRequest, enc->scheme, enc->fnc1);
    if(sizeIdx == DmtxUndefined || output.length <= 0)
       return DmtxFail;
 
@@ -381,7 +388,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
  *         goes to EncodeSingle... too
  */
 static int
-EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme)
+EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1)
 {
    int sizeIdx;
 
@@ -389,13 +396,13 @@ EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxReques
    switch(scheme)
    {
       case DmtxSchemeAutoBest:
-         sizeIdx = EncodeOptimizeBest(input, output, sizeIdxRequest);
+         sizeIdx = EncodeOptimizeBest(input, output, sizeIdxRequest, fnc1);
          break;
       case DmtxSchemeAutoFast:
          sizeIdx = DmtxUndefined; /* EncodeAutoFast(input, output, sizeIdxRequest, passFail); */
          break;
       default:
-         sizeIdx = EncodeSingleScheme(input, output, sizeIdxRequest, scheme);
+         sizeIdx = EncodeSingleScheme(input, output, sizeIdxRequest, scheme, fnc1);
          break;
    }
 

@@ -41,7 +41,15 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream, int option)
             StreamInputHasNext(stream))
       {
          v1 = StreamInputPeekNext(stream); CHKERR;
-         compactDigits = (ISDIGIT(v0) && ISDIGIT(v1)) ? DmtxTrue : DmtxFalse;
+
+         /* Check for FNC1 character */
+         if(stream->fnc1 != DmtxUndefined && (int)v1 == stream->fnc1)
+         {
+            v1 = 0;
+            compactDigits = DmtxFalse;
+         }
+         else
+            compactDigits = (ISDIGIT(v0) && ISDIGIT(v1)) ? DmtxTrue : DmtxFalse;
       }
       else /* option == DmtxEncodeFull */
       {
@@ -63,7 +71,12 @@ EncodeNextChunkAscii(DmtxEncodeStream *stream, int option)
       else
       {
          /* Encode single ASCII value */
-         if(v0 < 128)
+         if(stream->fnc1 != DmtxUndefined && (int)v0 == stream->fnc1)
+         {
+            /* FNC1 */
+            AppendValueAscii(stream, DmtxValueFNC1); CHKERR;
+         }
+         else if(v0 < 128)
          {
             /* Regular ASCII */
             AppendValueAscii(stream, v0 + 1); CHKERR;
