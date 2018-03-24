@@ -54,6 +54,7 @@ StreamCopy(DmtxEncodeStream *dst, DmtxEncodeStream *src)
    dst->sizeIdx = src->sizeIdx;
    dst->status = src->status;
    dst->input = src->input;
+   dst->fnc1 = src->fnc1;
 
    dmtxByteListCopy(dst->output, src->output, &passFail);
 }

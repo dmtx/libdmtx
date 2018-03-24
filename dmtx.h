@@ -163,6 +163,7 @@ typedef enum {
    DmtxPropSizeRequest,
    DmtxPropMarginSize,
    DmtxPropModuleSize,
+   DmtxPropFnc1,
    /* Decoding properties */
    DmtxPropEdgeMin           = 200,
    DmtxPropEdgeMax,
@@ -277,6 +278,7 @@ struct DmtxEncodeStream_struct
    int outputChainWordCount;  /* Count of output words pushed within current scheme chain */
    char *reason;              /* Reason for status */
    int sizeIdx;               /* Symbol size of completed stream */
+   int fnc1;                  /* Character to represent FNC1, or DmtxUndefined */
    DmtxStatus status;
    DmtxByteList *input;
    DmtxByteList *output;
@@ -394,6 +396,7 @@ typedef struct DmtxMessage_struct {
    size_t          outputSize;    /* Size of buffer used to hold decoded data */
    int             outputIdx;     /* Internal index used to store output progress */
    int             padCount;
+   int             fnc1;          /* Character to represent FNC1, or DmtxUndefined */
    unsigned char  *array;         /* Pointer to internal representation of Data Matrix modules */
    unsigned char  *code;          /* Pointer to internal storage of code words (data and error) */
    unsigned char  *output;        /* Pointer to internal storage of decoded output */
@@ -445,6 +448,7 @@ typedef struct DmtxDecode_struct {
    int             edgeMin;
    int             edgeMax;
    int             scanGap;
+   int             fnc1;
    double          squareDevn;
    int             sizeIdxExpected;
    int             edgeThresh;
@@ -476,6 +480,7 @@ typedef struct DmtxEncode_struct {
    int             pixelPacking;
    int             imageFlip;
    int             rowPadBytes;
+   int             fnc1;
    DmtxMessage    *message;
    DmtxImage      *image;
    DmtxRegion      region;

@@ -230,6 +230,11 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
          PushOutputWord(msg, digits/10 + '0');
          PushOutputWord(msg, digits - (digits/10)*10 + '0');
       }
+      else if(codeword == DmtxValueFNC1) {
+         if(msg->fnc1 != DmtxUndefined) {
+             PushOutputWord(msg, msg->fnc1);
+         }
+      }
    }
 
    return ptr;
@@ -303,7 +308,9 @@ DecodeSchemeC40Text(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
                PushOutputC40TextWord(msg, &state, c40Values[i] + 69); /* ASCII 91 - 95 */
             }
             else if(c40Values[i] == 27) {
-               PushOutputC40TextWord(msg, &state, 0x1d); /* FNC1 -- XXX depends on position? */
+               if(msg->fnc1 != DmtxUndefined) {
+                   PushOutputC40TextWord(msg, &state, msg->fnc1);
+               }
             }
             else if(c40Values[i] == 30) {
                state.upperShift = DmtxTrue;

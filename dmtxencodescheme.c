@@ -85,11 +85,19 @@
  *
  */
 static int
-EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme)
+EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1)
 {
    DmtxEncodeStream stream;
 
    stream = StreamInit(input, output);
+   stream.fnc1 = fnc1;
+
+   /* 1st FNC1 special case, encode before scheme switch */
+   if (fnc1 != DmtxUndefined && (int)(input->b[0]) == fnc1)
+   {
+      StreamInputAdvanceNext(&stream);
+      AppendValueAscii(&stream, DmtxValueFNC1);
+   }
 
    /* Continue encoding until complete */
    while(stream.status == DmtxStatusEncoding)

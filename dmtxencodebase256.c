@@ -25,6 +25,16 @@ EncodeNextChunkBase256(DmtxEncodeStream *stream)
 
    if(StreamInputHasNext(stream))
    {
+      /* Check for FNC1 character, which needs to be sent in ASCII */
+      value = StreamInputPeekNext(stream); CHKERR;
+      if(stream->fnc1 != DmtxUndefined && (int)value == stream->fnc1) {
+         EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit);
+
+         StreamInputAdvanceNext(stream); CHKERR;
+         AppendValueAscii(stream, DmtxValueFNC1); CHKERR;
+         return;
+      }
+
       value = StreamInputAdvanceNext(stream); CHKERR;
       AppendValueBase256(stream, value); CHKERR;
    }
