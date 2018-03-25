@@ -51,7 +51,12 @@ AppendValueEdifact(DmtxEncodeStream *stream, DmtxByte value)
 
    CHKSCHEME(DmtxSchemeEdifact);
 
-   if(value < 31 || value > 94)
+   /*
+    *  TODO: KECA -> korean, circles
+    *  TODO: UNOX -> ISO-2022-JP
+    *  TODO: and so on
+    */
+   if(value < 32 || value > 94)
    {
       StreamMarkInvalid(stream, DmtxChannelUnsupportedChar);
       return;
