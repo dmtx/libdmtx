@@ -1310,6 +1310,8 @@ FindBestSolidLine(DmtxDecode *dec, DmtxRegion *reg, int step0, int step1, int st
    angleBest = 0;
    hOffset = hOffsetBest = 0;
 
+   sign = 0;
+
    /* Always follow path flowing away from the trail start */
    if(step0 != 0) {
       if(step0 > 0) {
