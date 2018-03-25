@@ -36,6 +36,7 @@
 #define DmtxValueCTXShift3      2
 #define DmtxValueFNC1                232
 #define DmtxValueStructuredAppend    233
+#define DmtxValueReaderProgramming   234
 #define DmtxValue05Macro             236
 #define DmtxValue06Macro             237
 #define DmtxValueECI                 241
