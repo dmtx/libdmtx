@@ -222,6 +222,9 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
          msg->padCount = (int)(dataEnd - ptr);
          return dataEnd;
       }
+      else if(codeword == 0 || codeword >= 242) {
+        return ptr;
+      }
       else if(codeword <= 128) {
          PushOutputWord(msg, codeword - 1);
       }
