@@ -27,7 +27,8 @@ EncodeNextChunkEdifact(DmtxEncodeStream *stream)
    {
       /* Check for FNC1 character, which needs to be sent in ASCII */
       value = StreamInputPeekNext(stream); CHKERR;
-      if(stream->fnc1 != DmtxUndefined && (int)value == stream->fnc1) {
+
+      if((value < 32 || value > 94) || (stream->fnc1 != DmtxUndefined && (int)value == stream->fnc1)) {
          EncodeChangeScheme(stream, DmtxSchemeAscii, DmtxUnlatchExplicit); CHKERR;
 
          StreamInputAdvanceNext(stream); CHKERR;
@@ -56,7 +57,7 @@ AppendValueEdifact(DmtxEncodeStream *stream, DmtxByte value)
     *  TODO: UNOX -> ISO-2022-JP
     *  TODO: and so on
     */
-   if(value < 32 || value > 94)
+   if(value < 31 || value > 94)
    {
       StreamMarkInvalid(stream, DmtxChannelUnsupportedChar);
       return;
