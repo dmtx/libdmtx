@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -Wshadow -Wall -pedantic -ansi
+AM_CPPFLAGS = -Wshadow -Wall -pedantic -std=c99
 
 check_PROGRAMS = unit_test
 
