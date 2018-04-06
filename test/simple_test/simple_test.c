@@ -58,9 +58,9 @@ main(int argc, char *argv[])
 
    dmtxEncodeDestroy(&enc);
 
-   fprintf(stdout, "width:  \"%d\"\n", width);
-   fprintf(stdout, "height: \"%d\"\n", height);
-   fprintf(stdout, "bpp:    \"%d\"\n", bytesPerPixel);
+   fprintf(stdout, "width:  \"%zd\"\n", width);
+   fprintf(stdout, "height: \"%zd\"\n", height);
+   fprintf(stdout, "bpp:    \"%zd\"\n", bytesPerPixel);
 
    for (int i=0; i<width*height; i++){
       fprintf(stdout, "%d", (pxl[i*3])==0);
@@ -81,9 +81,9 @@ main(int argc, char *argv[])
    if(reg != NULL) {
       msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
 
-      fprintf(stdout, "msg->arraySize :  \"%d\"\n", msg->arraySize );
-      fprintf(stdout, "msg->codeSize  :  \"%d\"\n", msg->codeSize  );
-      fprintf(stdout, "msg->outputSize:  \"%d\"\n", msg->outputSize);
+      fprintf(stdout, "msg->arraySize :  \"%zd\"\n", msg->arraySize );
+      fprintf(stdout, "msg->codeSize  :  \"%zd\"\n", msg->codeSize  );
+      fprintf(stdout, "msg->outputSize:  \"%zd\"\n", msg->outputSize);
       int oned = sqrt(msg->arraySize);
       for (int i=0; i<msg->arraySize; i++){
          fprintf(stdout, " %c.", msg->array[i]);
