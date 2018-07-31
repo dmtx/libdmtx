@@ -21,7 +21,7 @@
  * \param  outputStart
  * \return void
  */
-extern void
+extern DmtxPassFail
 DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
 {
    //fprintf(stdout, "libdmtx::DecodeDataStream()\n");
@@ -76,11 +76,16 @@ DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart)
             /* error */
             break;
       }
+
+      if(ptr == NULL)
+         return DmtxFail;
    }
 
    /* Print macro trailer if required */
    if(macro == DmtxTrue)
       PushOutputMacroTrailer(msg);
+
+   return DmtxPass;
 }
 
 /**
@@ -488,7 +493,8 @@ DecodeSchemeEdifact(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
  * \param  msg
  * \param  ptr
  * \param  dataEnd
- * \return Pointer to next undecoded codeword
+ * \return Pointer to next undecoded codeword,
+ *         NULL if an error was detected in the stream
  */
 static unsigned char *
 DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
@@ -515,7 +521,7 @@ DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd
    }
 
    if(ptrEnd > dataEnd)
-      exit(40); /* XXX needs cleaner error handling */
+      return NULL;
 
    while(ptr < ptrEnd)
       PushOutputWord(msg, UnRandomize255State(*(ptr++), idx++));

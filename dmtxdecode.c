@@ -408,7 +408,11 @@ dmtxDecodePopulatedArray(int sizeIdx, DmtxMessage *msg, int fix)
       return NULL;
    }
 
-   DecodeDataStream(msg, sizeIdx, NULL);
+   if(DecodeDataStream(msg, sizeIdx, NULL) == DmtxFail) {
+      dmtxMessageDestroy(&msg);
+      msg = NULL;
+      return NULL;
+   }
 
    return msg;
 }

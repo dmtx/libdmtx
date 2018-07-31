@@ -157,7 +157,7 @@ static void TallyModuleJumps(DmtxDecode *dec, DmtxRegion *reg, int tally[][24], 
 static DmtxPassFail PopulateArrayFromMatrix(DmtxDecode *dec, DmtxRegion *reg, DmtxMessage *msg);
 
 /* dmtxdecodescheme.c */
-static void DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart);
+static DmtxPassFail DecodeDataStream(DmtxMessage *msg, int sizeIdx, unsigned char *outputStart);
 static int GetEncodationScheme(unsigned char cw);
 static void PushOutputWord(DmtxMessage *msg, int value);
 static void PushOutputC40TextWord(DmtxMessage *msg, C40TextState *state, int value);
