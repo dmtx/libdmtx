@@ -19,7 +19,7 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
-#include <dmtx.h>
+#include "../../dmtx.h"
 
 int
 main(int argc, char *argv[])
