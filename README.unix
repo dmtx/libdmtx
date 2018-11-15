@@ -29,10 +29,7 @@ versions:
    * Solaris
 
 However, building libdmtx from source on these operating systems
-can be tricky due to their non-GNU conventions. Users may wish to
-evaluate the trial binaries available at:
-
-  http://www.dragonflylogic.com/downloads
+can be tricky due to their non-GNU conventions.
 
 
 3. This Document
