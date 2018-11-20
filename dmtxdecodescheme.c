@@ -136,6 +136,16 @@ PushOutputWord(DmtxMessage *msg, int value)
 }
 
 /**
+*
+*
+*/
+static DmtxBoolean
+ValidOutputWord(int value)
+{
+   return (value >= 0 && value < 256) ? DmtxTrue : DmtxFalse;
+}
+
+/**
  *
  *
  */
@@ -196,12 +206,13 @@ PushOutputMacroTrailer(DmtxMessage *msg)
  * \param  ptr
  * \param  dataEnd
  * \return Pointer to next undecoded codeword
+ *         NULL if an error was detected in the stream
  */
 static unsigned char *
 DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
    int upperShift;
-   int codeword, digits;
+   int codeword, digits, pushword;
 
    upperShift = DmtxFalse;
 
@@ -215,7 +226,10 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
          ptr++;
 
       if(upperShift == DmtxTrue) {
-         PushOutputWord(msg, codeword + 127);
+         pushword = codeword + 127;
+         if (ValidOutputWord(pushword) != DmtxTrue)
+            return NULL;
+         PushOutputWord(msg, pushword);
          upperShift = DmtxFalse;
       }
       else if(codeword == DmtxValueAsciiUpperShift) {
@@ -240,7 +254,10 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
       }
       else if(codeword == DmtxValueFNC1) {
          if(msg->fnc1 != DmtxUndefined) {
-             PushOutputWord(msg, msg->fnc1);
+             pushword = msg->fnc1;
+             if (ValidOutputWord(pushword) != DmtxTrue)
+                return NULL;
+             PushOutputWord(msg, pushword);
          }
       }
    }
