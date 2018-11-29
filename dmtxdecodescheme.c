@@ -211,14 +211,10 @@ PushOutputMacroTrailer(DmtxMessage *msg)
 static unsigned char *
 DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
 {
-   int upperShift;
-   int codeword, digits, pushword;
-
-   upperShift = DmtxFalse;
+   int upperShift = DmtxFalse;
 
    while(ptr < dataEnd) {
-
-      codeword = (int)(*ptr);
+      int codeword = (int)(*ptr);
 
       if(GetEncodationScheme(*ptr) != DmtxSchemeAscii)
          return ptr;
@@ -226,7 +222,7 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
          ptr++;
 
       if(upperShift == DmtxTrue) {
-         pushword = codeword + 127;
+         int pushword = codeword + 127;
          if (ValidOutputWord(pushword) != DmtxTrue)
             return NULL;
          PushOutputWord(msg, pushword);
@@ -248,13 +244,13 @@ DecodeSchemeAscii(DmtxMessage *msg, unsigned char *ptr, unsigned char *dataEnd)
          PushOutputWord(msg, codeword - 1);
       }
       else if(codeword <= 229) {
-         digits = codeword - 130;
+         int digits = codeword - 130;
          PushOutputWord(msg, digits/10 + '0');
          PushOutputWord(msg, digits - (digits/10)*10 + '0');
       }
       else if(codeword == DmtxValueFNC1) {
          if(msg->fnc1 != DmtxUndefined) {
-             pushword = msg->fnc1;
+             int pushword = msg->fnc1;
              if (ValidOutputWord(pushword) != DmtxTrue)
                 return NULL;
              PushOutputWord(msg, pushword);
