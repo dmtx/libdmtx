@@ -213,7 +213,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    assert(bitsPerPixel % 8 == 0);
 
    /* Allocate memory for the image to be generated */
-   pxl = (unsigned char *)malloc(width * height * (bitsPerPixel/8) + enc->rowPadBytes);
+   pxl = (unsigned char *)malloc((width * bitsPerPixel / 8 + enc->rowPadBytes) * height);
    if(pxl == NULL) {
       perror("pixel malloc error");
       return DmtxFail;
