@@ -25,8 +25,8 @@
 extern int 
 getSizeIdxFromSymbolDimension(int rows, int cols)
 {
-  int symbolRows, symbolCols;
-  for (int i=0; i<30; i++){
+  int symbolRows, symbolCols, i;
+  for (i=0; i<30; i++){
     symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, i);
     symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, i);
     if (rows==symbolRows && cols==symbolCols){
