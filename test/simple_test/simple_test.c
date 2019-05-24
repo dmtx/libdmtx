@@ -39,10 +39,12 @@ main(int argc, char *argv[])
 
    enc = dmtxEncodeCreate();
 
-   //dmtxEncodeSetProp( enc, DmtxPropPixelPacking, DmtxPack16bppRGB );
-   //dmtxEncodeSetProp( enc, DmtxPropPixelPacking, DmtxPack32bppRGB );
-   //dmtxEncodeSetProp( enc, DmtxPropWidth, 160 );
-   //dmtxEncodeSetProp( enc, DmtxPropHeight, 160 );
+   /*
+    dmtxEncodeSetProp( enc, DmtxPropPixelPacking, DmtxPack16bppRGB );
+    dmtxEncodeSetProp( enc, DmtxPropPixelPacking, DmtxPack32bppRGB );
+    dmtxEncodeSetProp( enc, DmtxPropWidth, 160 );
+    dmtxEncodeSetProp( enc, DmtxPropHeight, 160 );
+   */
 
    assert(enc != NULL);
    dmtxEncodeDataMatrix(enc, strlen((const char *)str), str);
