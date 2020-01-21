@@ -1,21 +1,25 @@
 cmake_minimum_required(VERSION 3.12)
 project(DMTX VERSION 0.7.5 LANGUAGES C)
 
+# DMTX library
+option(DMTX_SHARED "Build DMTX as shared library" ${BUILD_SHARED_LIBS})
+if(DMTX_SHARED)
+  add_library(dmtx SHARED "dmtx.c")
+else()
+  add_library(dmtx STATIC "dmtx.c")
+endif()
 
-add_library(dmtx dmtx.c)
-target_link_libraries(dmtx -lm)
+# Compiler specific settings
+if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+  set_target_properties(dmtx PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+else()
+  target_link_libraries(dmtx PUBLIC -lm)
+endif()
 
-#------------------------------------------------------------------------------#
-enable_testing()
-add_executable(simple
-  test/simple_test/simple_test.c)
-target_link_libraries(simple PRIVATE dmtx)
-add_test(NAME simpleTest COMMAND simple)
-
-#------------------------------------------------------------------------------#
-# this test doesn't work yet (nothing wrong with the code - something wrong with my script)
-# add_executable(unit
-#   test/unit_test/unit_test.c)
-# target_link_libraries(unit PRIVATE dmtx)
-# add_test(NAME unitTest COMMAND unit)
-
+# Add tests if DMTX is the main project
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    include(CTest)
+    if(BUILD_TESTING)
+      add_subdirectory("test")
+    endif()
+endif()
