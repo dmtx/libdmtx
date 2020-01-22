@@ -18,9 +18,14 @@
 #include <stdio.h>
 #include <string.h>
 #include "../../dmtx.h"
-#include "../../util/common/dmtxutil.h"
 
 char *programName;
+
+static void FatalError(int idx, char* msg)
+{
+   fprintf(stdout, "FAIL: (%d) %s\n", idx, msg);
+   exit(1);
+}
 
 static void timeAddTest(void);
 static void timePrint(DmtxTime t);
