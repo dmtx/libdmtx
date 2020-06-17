@@ -369,7 +369,8 @@ RsFindErrorLocatorPoly(DmtxByteList *elpOut, const DmtxByteList *syn, int errorW
 
          /* Calculate error location polynomial elp[i] (set 1st term) */
          for(lambda = elp[m].length - 1, j = 0; j <= lambda; j++)
-            elp[iNext].b[j+i-m] = antilog301[(NN - log301[dis.b[m]] +
+            elp[iNext].b[j+i-m] = (elp[i - 1].b[j] == 0) ? 0 :
+                  antilog301[(NN - log301[dis.b[m]] +
                   log301[dis.b[i]] + log301[elp[m].b[j]]) % NN];
 
          /* Calculate error location polynomial elp[i] (add 2nd term) */
