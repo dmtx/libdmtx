@@ -520,7 +520,7 @@ dmtxDecodeCreateDiagnostic(DmtxDecode *dec, int *totalBytes, int *headerBytes, i
    if(pnm == NULL)
       return NULL;
 
-#ifdef _VISUALC_
+#if defined(_MSC_VER) && (_MSC_VER < 1700)
    count = sprintf_s((char *)pnm, *headerBytes + 1, "P6\n%d %d\n255\n", width, height);
 #else
    count = snprintf((char *)pnm, *headerBytes + 1, "P6\n%d %d\n255\n", width, height);
