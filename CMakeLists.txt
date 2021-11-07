@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.0)
 project(DMTX VERSION 0.7.5 LANGUAGES C)
 
 # DMTX library
@@ -13,6 +13,9 @@ endif()
 if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
   set_target_properties(dmtx PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 else()
+  set_target_properties(dmtx PROPERTIES
+                                VERSION ${PROJECT_VERSION}
+                                SOVERSION ${PROJECT_VERSION_MAJOR})
   target_link_libraries(dmtx PUBLIC -lm)
 endif()
 
