@@ -10,7 +10,7 @@ else()
 endif()
 
 # Compiler specific settings
-if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+if (MSVC)
   set_target_properties(dmtx PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 else()
   set_target_properties(dmtx PROPERTIES
