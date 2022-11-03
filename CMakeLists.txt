@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(DMTX VERSION 0.7.5 LANGUAGES C)
+project(DMTX VERSION 0.7.7 LANGUAGES C)
 
 # DMTX library
 option(DMTX_SHARED "Build DMTX as shared library" ${BUILD_SHARED_LIBS})
@@ -18,6 +18,9 @@ else()
                                 SOVERSION ${PROJECT_VERSION_MAJOR})
   target_link_libraries(dmtx PUBLIC -lm)
 endif()
+
+set_target_properties(dmtx PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/dmtx.h")
+install(TARGETS dmtx LIBRARY ARCHIVE RUNTIME PUBLIC_HEADER)
 
 # Add tests if DMTX is the main project
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
