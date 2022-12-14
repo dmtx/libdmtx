@@ -92,6 +92,11 @@ EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest
     stream = StreamInit(input, output);
     stream.fnc1 = fnc1;
 
+    if (bReaderProgramming == true) {
+        /* change to have reader programming label */
+        AppendValueAscii(&stream, DmtxValueReaderProgramming);
+    }
+
     /* 1st FNC1 special case, encode before scheme switch */
     if (fnc1 != DmtxUndefined && (int)(input->b[0]) == fnc1)
     {

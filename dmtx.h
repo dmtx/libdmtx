@@ -24,6 +24,8 @@ extern "C" {
 
 /* Time headers required for DmtxTime struct below */
 #include <time.h>
+#include <stdbool.h>
+
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
@@ -538,7 +540,7 @@ extern DmtxEncode *dmtxEncodeCreate(void);
 extern DmtxPassFail dmtxEncodeDestroy(DmtxEncode **enc);
 extern DmtxPassFail dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value);
 extern int dmtxEncodeGetProp(DmtxEncode *enc, int prop);
-extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s);
+extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, bool bReaderProgramming);
 extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s);
 
 /* dmtxdecode.c */

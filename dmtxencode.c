@@ -161,10 +161,11 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
  * \param  inputSize
  * \param  inputString
  * \param  sizeIdxRequest
+ * \param  bReaderProgramming
  * \return DmtxPass | DmtxFail
  */
 extern DmtxPassFail
-dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
+dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString, bool bReaderProgramming)
 {
    int sizeIdx;
    int width, height, bitsPerPixel;
@@ -179,7 +180,7 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    /* Future: EncodeDataCodewords(&stream) ... */
 
    /* Encode input string into data codewords */
-   sizeIdx = EncodeDataCodewords(&input, &output, enc->sizeIdxRequest, enc->scheme, enc->fnc1);
+   sizeIdx = EncodeDataCodewords(&input, &output, enc->sizeIdxRequest, enc->scheme, enc->fnc1, bReaderProgramming);
    if(sizeIdx == DmtxUndefined || output.length <= 0)
       return DmtxFail;
 
@@ -307,17 +308,17 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
       dmtxEncodeSetProp(encB, DmtxPropSizeRequest, sizeIdxAttempt);
 
       /* RED LAYER - Holds temporary copy */
-      dmtxEncodeDataMatrix(encR, inputSizeR, inputStringR);
+      dmtxEncodeDataMatrix(encR, inputSizeR, inputStringR, false);
       if(encR->region.sizeIdx != sizeIdxAttempt)
          continue;
 
       /* GREEN LAYER - Holds temporary copy */
-      dmtxEncodeDataMatrix(encG, inputSizeG, inputStringG);
+      dmtxEncodeDataMatrix(encG, inputSizeG, inputStringG, false);
       if(encG->region.sizeIdx != sizeIdxAttempt)
          continue;
 
       /* BLUE LAYER - Holds temporary copy */
-      dmtxEncodeDataMatrix(encB, inputSizeB, inputStringB);
+      dmtxEncodeDataMatrix(encB, inputSizeB, inputStringB, false);
       if(encB->region.sizeIdx != sizeIdxAttempt)
          continue;
 
@@ -337,7 +338,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
    /* Perform the red portion of the final encode to set internals correctly */
    dmtxEncodeSetProp(enc, DmtxPropSizeRequest, sizeIdxAttempt);
-   dmtxEncodeDataMatrix(enc, inputSizeR, inputStringR);
+   dmtxEncodeDataMatrix(enc, inputSizeR, inputStringR, false);
 
    /* Zero out the array and overwrite the bits in 3 passes */
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdxAttempt);
@@ -382,13 +383,14 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
  * \param  inputSize
  * \param  scheme
  * \param  sizeIdx
+ * \param  bReaderProgramming
  * \return Count of encoded data words
  *
  * Future: pass DmtxEncode to this function with an error reason field, which
  *         goes to EncodeSingle... too
  */
 static int
-EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1)
+EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1, bool bReaderProgramming)
 {
    int sizeIdx;
 
@@ -402,7 +404,7 @@ EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxReques
          sizeIdx = DmtxUndefined; /* EncodeAutoFast(input, output, sizeIdxRequest, passFail); */
          break;
       default:
-         sizeIdx = EncodeSingleScheme(input, output, sizeIdxRequest, scheme, fnc1);
+         sizeIdx = EncodeSingleScheme(input, output, sizeIdxRequest, scheme, fnc1, bReaderProgramming);
          break;
    }
 
