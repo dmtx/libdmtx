@@ -14,6 +14,13 @@ AC_PROG_CC
 AC_PROG_LIBTOOL
 AM_PROG_CC_C_O
 
+
+AC_ARG_ENABLE([reader_programming], [AS_HELP_STRING([--enable-reader-programming], [Enable Reader Programming breaking feature.])], [], [enable_reader_programming=no] )
+AS_IF([test "x$enable_reader_programming" = "xyes"], [
+  AC_DEFINE([HAVE_READER_PROGRAMMING], [1], [Reader Programming breaking feature.])
+])
+
+
 AC_SEARCH_LIBS([sin], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
 AC_SEARCH_LIBS([cos], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
 AC_SEARCH_LIBS([atan2], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
