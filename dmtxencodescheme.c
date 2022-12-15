@@ -85,14 +85,14 @@
  *
  */
 static int
-EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1, bool bReaderProgramming)
+EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1, DmtxBoolean bReaderProgramming)
 {
     DmtxEncodeStream stream;
 
     stream = StreamInit(input, output);
     stream.fnc1 = fnc1;
 
-    if (bReaderProgramming == true) {
+    if (bReaderProgramming == DmtxTrue) {
         /* change to have reader programming label */
         AppendValueAscii(&stream, DmtxValueReaderProgramming);
     }

@@ -165,7 +165,7 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
  * \return DmtxPass | DmtxFail
  */
 extern DmtxPassFail
-dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString, bool bReaderProgramming)
+dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString, DmtxBoolean bReaderProgramming)
 {
    int sizeIdx;
    int width, height, bitsPerPixel;
@@ -308,17 +308,17 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
       dmtxEncodeSetProp(encB, DmtxPropSizeRequest, sizeIdxAttempt);
 
       /* RED LAYER - Holds temporary copy */
-      dmtxEncodeDataMatrix(encR, inputSizeR, inputStringR, false);
+      dmtxEncodeDataMatrix(encR, inputSizeR, inputStringR, DmtxFalse);
       if(encR->region.sizeIdx != sizeIdxAttempt)
          continue;
 
       /* GREEN LAYER - Holds temporary copy */
-      dmtxEncodeDataMatrix(encG, inputSizeG, inputStringG, false);
+      dmtxEncodeDataMatrix(encG, inputSizeG, inputStringG, DmtxFalse);
       if(encG->region.sizeIdx != sizeIdxAttempt)
          continue;
 
       /* BLUE LAYER - Holds temporary copy */
-      dmtxEncodeDataMatrix(encB, inputSizeB, inputStringB, false);
+      dmtxEncodeDataMatrix(encB, inputSizeB, inputStringB, DmtxFalse);
       if(encB->region.sizeIdx != sizeIdxAttempt)
          continue;
 
@@ -338,7 +338,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
    /* Perform the red portion of the final encode to set internals correctly */
    dmtxEncodeSetProp(enc, DmtxPropSizeRequest, sizeIdxAttempt);
-   dmtxEncodeDataMatrix(enc, inputSizeR, inputStringR, false);
+   dmtxEncodeDataMatrix(enc, inputSizeR, inputStringR, DmtxFalse);
 
    /* Zero out the array and overwrite the bits in 3 passes */
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdxAttempt);
@@ -390,7 +390,7 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
  *         goes to EncodeSingle... too
  */
 static int
-EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1, bool bReaderProgramming)
+EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1, DmtxBoolean bReaderProgramming)
 {
    int sizeIdx;
 
