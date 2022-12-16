@@ -47,7 +47,11 @@ main(int argc, char *argv[])
    */
 
    assert(enc != NULL);
-   dmtxEncodeDataMatrix(enc, strlen((const char *)str), str);
+   #ifdef HAVE_READER_PROGRAMMING
+     dmtxEncodeDataMatrix(enc, strlen((const char *)str), str, DmtxFalse);
+   #else
+     dmtxEncodeDataMatrix(enc, strlen((const char *)str), str);
+   #endif
 
    /* 2) COPY the new image data before releasing encoding memory */
 

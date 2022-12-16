@@ -538,7 +538,11 @@ extern DmtxEncode *dmtxEncodeCreate(void);
 extern DmtxPassFail dmtxEncodeDestroy(DmtxEncode **enc);
 extern DmtxPassFail dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value);
 extern int dmtxEncodeGetProp(DmtxEncode *enc, int prop);
-extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, DmtxBoolean bReaderProgramming);
+#ifdef HAVE_READER_PROGRAMMING
+    extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, DmtxBoolean bReaderProgramming);
+#else
+    extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s);
+#endif
 extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s);
 
 /* dmtxdecode.c */
