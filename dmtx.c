@@ -33,15 +33,15 @@
 #include "dmtxstatic.h"
 
 #ifndef CALLBACK_POINT_PLOT
-#define CALLBACK_POINT_PLOT(a,b,c,d)
+#define CALLBACK_POINT_PLOT(a, b, c, d)
 #endif
 
 #ifndef CALLBACK_POINT_XFRM
-#define CALLBACK_POINT_XFRM(a,b,c,d)
+#define CALLBACK_POINT_XFRM(a, b, c, d)
 #endif
 
 #ifndef CALLBACK_MODULE
-#define CALLBACK_MODULE(a,b,c,d,e)
+#define CALLBACK_MODULE(a, b, c, d, e)
 #endif
 
 #ifndef CALLBACK_MATRIX
@@ -49,7 +49,7 @@
 #endif
 
 #ifndef CALLBACK_FINAL
-#define CALLBACK_FINAL(a,b)
+#define CALLBACK_FINAL(a, b)
 #endif
 
 /**
@@ -88,5 +88,5 @@
 extern char *
 dmtxVersion(void)
 {
-   return DmtxVersion;
+    return DmtxVersion;
 }

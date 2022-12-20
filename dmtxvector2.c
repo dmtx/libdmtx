@@ -21,10 +21,10 @@
 extern DmtxVector2 *
 dmtxVector2AddTo(DmtxVector2 *v1, const DmtxVector2 *v2)
 {
-   v1->X += v2->X;
-   v1->Y += v2->Y;
+    v1->X += v2->X;
+    v1->Y += v2->Y;
 
-   return v1;
+    return v1;
 }
 
 /**
@@ -34,9 +34,9 @@ dmtxVector2AddTo(DmtxVector2 *v1, const DmtxVector2 *v2)
 extern DmtxVector2 *
 dmtxVector2Add(DmtxVector2 *vOut, const DmtxVector2 *v1, const DmtxVector2 *v2)
 {
-   *vOut = *v1;
+    *vOut = *v1;
 
-   return dmtxVector2AddTo(vOut, v2);
+    return dmtxVector2AddTo(vOut, v2);
 }
 
 /**
@@ -46,10 +46,10 @@ dmtxVector2Add(DmtxVector2 *vOut, const DmtxVector2 *v1, const DmtxVector2 *v2)
 extern DmtxVector2 *
 dmtxVector2SubFrom(DmtxVector2 *v1, const DmtxVector2 *v2)
 {
-   v1->X -= v2->X;
-   v1->Y -= v2->Y;
+    v1->X -= v2->X;
+    v1->Y -= v2->Y;
 
-   return v1;
+    return v1;
 }
 
 /**
@@ -59,9 +59,9 @@ dmtxVector2SubFrom(DmtxVector2 *v1, const DmtxVector2 *v2)
 extern DmtxVector2 *
 dmtxVector2Sub(DmtxVector2 *vOut, const DmtxVector2 *v1, const DmtxVector2 *v2)
 {
-   *vOut = *v1;
+    *vOut = *v1;
 
-   return dmtxVector2SubFrom(vOut, v2);
+    return dmtxVector2SubFrom(vOut, v2);
 }
 
 /**
@@ -71,10 +71,10 @@ dmtxVector2Sub(DmtxVector2 *vOut, const DmtxVector2 *v1, const DmtxVector2 *v2)
 extern DmtxVector2 *
 dmtxVector2ScaleBy(DmtxVector2 *v, double s)
 {
-   v->X *= s;
-   v->Y *= s;
+    v->X *= s;
+    v->Y *= s;
 
-   return v;
+    return v;
 }
 
 /**
@@ -84,9 +84,9 @@ dmtxVector2ScaleBy(DmtxVector2 *v, double s)
 extern DmtxVector2 *
 dmtxVector2Scale(DmtxVector2 *vOut, const DmtxVector2 *v, double s)
 {
-   *vOut = *v;
+    *vOut = *v;
 
-   return dmtxVector2ScaleBy(vOut, s);
+    return dmtxVector2ScaleBy(vOut, s);
 }
 
 /**
@@ -96,7 +96,7 @@ dmtxVector2Scale(DmtxVector2 *vOut, const DmtxVector2 *v, double s)
 extern double
 dmtxVector2Cross(const DmtxVector2 *v1, const DmtxVector2 *v2)
 {
-   return (v1->X * v2->Y) - (v1->Y * v2->X);
+    return (v1->X * v2->Y) - (v1->Y * v2->X);
 }
 
 /**
@@ -106,16 +106,16 @@ dmtxVector2Cross(const DmtxVector2 *v1, const DmtxVector2 *v2)
 extern double
 dmtxVector2Norm(DmtxVector2 *v)
 {
-   double mag;
+    double mag;
 
-   mag = dmtxVector2Mag(v);
+    mag = dmtxVector2Mag(v);
 
-   if(mag <= DmtxAlmostZero)
-      return -1.0; /* XXX this doesn't look clean */
+    if (mag <= DmtxAlmostZero)
+        return -1.0; /* XXX this doesn't look clean */
 
-   dmtxVector2ScaleBy(v, 1/mag);
+    dmtxVector2ScaleBy(v, 1 / mag);
 
-   return mag;
+    return mag;
 }
 
 /**
@@ -125,7 +125,7 @@ dmtxVector2Norm(DmtxVector2 *v)
 extern double
 dmtxVector2Dot(const DmtxVector2 *v1, const DmtxVector2 *v2)
 {
-   return (v1->X * v2->X) + (v1->Y * v2->Y);
+    return (v1->X * v2->X) + (v1->Y * v2->Y);
 }
 
 /**
@@ -135,7 +135,7 @@ dmtxVector2Dot(const DmtxVector2 *v1, const DmtxVector2 *v2)
 extern double
 dmtxVector2Mag(const DmtxVector2 *v)
 {
-   return sqrt(v->X * v->X + v->Y * v->Y);
+    return sqrt(v->X * v->X + v->Y * v->Y);
 }
 
 /**
@@ -145,12 +145,12 @@ dmtxVector2Mag(const DmtxVector2 *v)
 extern double
 dmtxDistanceFromRay2(const DmtxRay2 *r, const DmtxVector2 *q)
 {
-   DmtxVector2 vSubTmp;
+    DmtxVector2 vSubTmp;
 
-   /* Assumes that v is a unit vector */
-   assert(fabs(1.0 - dmtxVector2Mag(&(r->v))) <= DmtxAlmostZero);
+    /* Assumes that v is a unit vector */
+    assert(fabs(1.0 - dmtxVector2Mag(&(r->v))) <= DmtxAlmostZero);
 
-   return dmtxVector2Cross(&(r->v), dmtxVector2Sub(&vSubTmp, q, &(r->p)));
+    return dmtxVector2Cross(&(r->v), dmtxVector2Sub(&vSubTmp, q, &(r->p)));
 }
 
 /**
@@ -160,16 +160,17 @@ dmtxDistanceFromRay2(const DmtxRay2 *r, const DmtxVector2 *q)
 extern double
 dmtxDistanceAlongRay2(const DmtxRay2 *r, const DmtxVector2 *q)
 {
-   DmtxVector2 vSubTmp;
+    DmtxVector2 vSubTmp;
 
 #ifdef DEBUG
-   /* Assumes that v is a unit vector */
-   if(fabs(1.0 - dmtxVector2Mag(&(r->v))) > DmtxAlmostZero) {
-      ; /* XXX big error goes here */
-   }
+    /* Assumes that v is a unit vector */
+    if (fabs(1.0 - dmtxVector2Mag(&(r->v))) > DmtxAlmostZero)
+    {
+        ; /* XXX big error goes here */
+    }
 #endif
 
-   return dmtxVector2Dot(dmtxVector2Sub(&vSubTmp, q, &(r->p)), &(r->v));
+    return dmtxVector2Dot(dmtxVector2Sub(&vSubTmp, q, &(r->p)), &(r->v));
 }
 
 /**
@@ -179,17 +180,17 @@ dmtxDistanceAlongRay2(const DmtxRay2 *r, const DmtxVector2 *q)
 extern DmtxPassFail
 dmtxRay2Intersect(DmtxVector2 *point, const DmtxRay2 *p0, const DmtxRay2 *p1)
 {
-   double numer, denom;
-   DmtxVector2 w;
+    double numer, denom;
+    DmtxVector2 w;
 
-   denom = dmtxVector2Cross(&(p1->v), &(p0->v));
-   if(fabs(denom) <= DmtxAlmostZero)
-      return DmtxFail;
+    denom = dmtxVector2Cross(&(p1->v), &(p0->v));
+    if (fabs(denom) <= DmtxAlmostZero)
+        return DmtxFail;
 
-   dmtxVector2Sub(&w, &(p1->p), &(p0->p));
-   numer = dmtxVector2Cross(&(p1->v), &w);
+    dmtxVector2Sub(&w, &(p1->p), &(p0->p));
+    numer = dmtxVector2Cross(&(p1->v), &w);
 
-   return dmtxPointAlongRay2(point, p0, numer/denom);
+    return dmtxPointAlongRay2(point, p0, numer / denom);
 }
 
 /**
@@ -199,13 +200,13 @@ dmtxRay2Intersect(DmtxVector2 *point, const DmtxRay2 *p0, const DmtxRay2 *p1)
 extern DmtxPassFail
 dmtxPointAlongRay2(DmtxVector2 *point, const DmtxRay2 *r, double t)
 {
-   DmtxVector2 vTmp;
+    DmtxVector2 vTmp;
 
-   /* Ray should always have unit length of 1 */
-   assert(fabs(1.0 - dmtxVector2Mag(&(r->v))) <= DmtxAlmostZero);
+    /* Ray should always have unit length of 1 */
+    assert(fabs(1.0 - dmtxVector2Mag(&(r->v))) <= DmtxAlmostZero);
 
-   dmtxVector2Scale(&vTmp, &(r->v), t);
-   dmtxVector2Add(point, &(r->p), &vTmp);
+    dmtxVector2Scale(&vTmp, &(r->v), t);
+    dmtxVector2Add(point, &(r->p), &vTmp);
 
-   return DmtxPass;
+    return DmtxPass;
 }

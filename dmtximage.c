@@ -62,84 +62,85 @@
 extern DmtxImage *
 dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
 {
-//   DmtxPassFail err;
-   DmtxImage *img;
+    //   DmtxPassFail err;
+    DmtxImage *img;
 
-   if(pxl == NULL || width < 1 || height < 1)
-      return NULL;
+    if (pxl == NULL || width < 1 || height < 1)
+        return NULL;
 
-   img = (DmtxImage *)calloc(1, sizeof(DmtxImage));
-   if(img == NULL)
-      return NULL;
+    img = (DmtxImage *)calloc(1, sizeof(DmtxImage));
+    if (img == NULL)
+        return NULL;
 
-   img->pxl = pxl;
-   img->width = width;
-   img->height = height;
-   img->pixelPacking = pack;
-   img->bitsPerPixel = GetBitsPerPixel(pack);
-   img->bytesPerPixel = img->bitsPerPixel/8;
-   img->rowPadBytes = 0;
-   img->rowSizeBytes = img->width * img->bytesPerPixel + img->rowPadBytes;
-   img->imageFlip = DmtxFlipNone;
+    img->pxl = pxl;
+    img->width = width;
+    img->height = height;
+    img->pixelPacking = pack;
+    img->bitsPerPixel = GetBitsPerPixel(pack);
+    img->bytesPerPixel = img->bitsPerPixel / 8;
+    img->rowPadBytes = 0;
+    img->rowSizeBytes = img->width * img->bytesPerPixel + img->rowPadBytes;
+    img->imageFlip = DmtxFlipNone;
 
-   /* Leave channelStart[] and bitsPerChannel[] with zeros from calloc */
-   img->channelCount = 0;
+    /* Leave channelStart[] and bitsPerChannel[] with zeros from calloc */
+    img->channelCount = 0;
 
-   switch(pack) {
-      case DmtxPackCustom:
-         break;
-      case DmtxPack1bppK:
-         dmtxImageSetChannel(img, 0, 1);
-         return NULL; /* unsupported packing order */
-/*       break; */
-      case DmtxPack8bppK:
-         dmtxImageSetChannel(img, 0, 8);
-         break;
-      case DmtxPack16bppRGB:
-      case DmtxPack16bppBGR:
-      case DmtxPack16bppYCbCr:
-         dmtxImageSetChannel(img,  0, 5);
-         dmtxImageSetChannel(img,  5, 5);
-         dmtxImageSetChannel(img, 10, 5);
-         break;
-      case DmtxPack24bppRGB:
-      case DmtxPack24bppBGR:
-      case DmtxPack24bppYCbCr:
-      case DmtxPack32bppRGBX:
-      case DmtxPack32bppBGRX:
-         dmtxImageSetChannel(img,  0, 8);
-         dmtxImageSetChannel(img,  8, 8);
-         dmtxImageSetChannel(img, 16, 8);
-         break;
-      case DmtxPack16bppRGBX:
-      case DmtxPack16bppBGRX:
-         dmtxImageSetChannel(img,  0, 5);
-         dmtxImageSetChannel(img,  5, 5);
-         dmtxImageSetChannel(img, 10, 5);
-         break;
-      case DmtxPack16bppXRGB:
-      case DmtxPack16bppXBGR:
-         dmtxImageSetChannel(img,  1, 5);
-         dmtxImageSetChannel(img,  6, 5);
-         dmtxImageSetChannel(img, 11, 5);
-         break;
-      case DmtxPack32bppXRGB:
-      case DmtxPack32bppXBGR:
-         dmtxImageSetChannel(img,  8, 8);
-         dmtxImageSetChannel(img, 16, 8);
-         dmtxImageSetChannel(img, 24, 8);
-         break;
-      case DmtxPack32bppCMYK:
-         dmtxImageSetChannel(img,  0, 8);
-         dmtxImageSetChannel(img,  8, 8);
-         dmtxImageSetChannel(img, 16, 8);
-         dmtxImageSetChannel(img, 24, 8);
-         break;
-      default:
-         return NULL;
-   }
+    switch (pack)
+    {
+    case DmtxPackCustom:
+        break;
+    case DmtxPack1bppK:
+        dmtxImageSetChannel(img, 0, 1);
+        return NULL; /* unsupported packing order */
+                     /*       break; */
+    case DmtxPack8bppK:
+        dmtxImageSetChannel(img, 0, 8);
+        break;
+    case DmtxPack16bppRGB:
+    case DmtxPack16bppBGR:
+    case DmtxPack16bppYCbCr:
+        dmtxImageSetChannel(img, 0, 5);
+        dmtxImageSetChannel(img, 5, 5);
+        dmtxImageSetChannel(img, 10, 5);
+        break;
+    case DmtxPack24bppRGB:
+    case DmtxPack24bppBGR:
+    case DmtxPack24bppYCbCr:
+    case DmtxPack32bppRGBX:
+    case DmtxPack32bppBGRX:
+        dmtxImageSetChannel(img, 0, 8);
+        dmtxImageSetChannel(img, 8, 8);
+        dmtxImageSetChannel(img, 16, 8);
+        break;
+    case DmtxPack16bppRGBX:
+    case DmtxPack16bppBGRX:
+        dmtxImageSetChannel(img, 0, 5);
+        dmtxImageSetChannel(img, 5, 5);
+        dmtxImageSetChannel(img, 10, 5);
+        break;
+    case DmtxPack16bppXRGB:
+    case DmtxPack16bppXBGR:
+        dmtxImageSetChannel(img, 1, 5);
+        dmtxImageSetChannel(img, 6, 5);
+        dmtxImageSetChannel(img, 11, 5);
+        break;
+    case DmtxPack32bppXRGB:
+    case DmtxPack32bppXBGR:
+        dmtxImageSetChannel(img, 8, 8);
+        dmtxImageSetChannel(img, 16, 8);
+        dmtxImageSetChannel(img, 24, 8);
+        break;
+    case DmtxPack32bppCMYK:
+        dmtxImageSetChannel(img, 0, 8);
+        dmtxImageSetChannel(img, 8, 8);
+        dmtxImageSetChannel(img, 16, 8);
+        dmtxImageSetChannel(img, 24, 8);
+        break;
+    default:
+        return NULL;
+    }
 
-   return img;
+    return img;
 }
 
 /**
@@ -150,14 +151,14 @@ dmtxImageCreate(unsigned char *pxl, int width, int height, int pack)
 extern DmtxPassFail
 dmtxImageDestroy(DmtxImage **img)
 {
-   if(img == NULL || *img == NULL)
-      return DmtxFail;
+    if (img == NULL || *img == NULL)
+        return DmtxFail;
 
-   free(*img);
+    free(*img);
 
-   *img = NULL;
+    *img = NULL;
 
-   return DmtxPass;
+    return DmtxPass;
 }
 
 /**
@@ -167,18 +168,18 @@ dmtxImageDestroy(DmtxImage **img)
 extern DmtxPassFail
 dmtxImageSetChannel(DmtxImage *img, int channelStart, int bitsPerChannel)
 {
-   if(img->channelCount >= 4) /* IMAGE_MAX_CHANNEL */
-      return DmtxFail;
+    if (img->channelCount >= 4) /* IMAGE_MAX_CHANNEL */
+        return DmtxFail;
 
-   /* New channel extends beyond pixel data */
-/* if(channelStart + bitsPerChannel > img->bitsPerPixel)
-      return DmtxFail; */
+    /* New channel extends beyond pixel data */
+    /* if(channelStart + bitsPerChannel > img->bitsPerPixel)
+          return DmtxFail; */
 
-   img->bitsPerChannel[img->channelCount] = bitsPerChannel;
-   img->channelStart[img->channelCount] = channelStart;
-   (img->channelCount)++;
+    img->bitsPerChannel[img->channelCount] = bitsPerChannel;
+    img->channelStart[img->channelCount] = channelStart;
+    (img->channelCount)++;
 
-   return DmtxPass;
+    return DmtxPass;
 }
 
 /**
@@ -189,22 +190,23 @@ dmtxImageSetChannel(DmtxImage *img, int channelStart, int bitsPerChannel)
 extern DmtxPassFail
 dmtxImageSetProp(DmtxImage *img, int prop, int value)
 {
-   if(img == NULL)
-      return DmtxFail;
+    if (img == NULL)
+        return DmtxFail;
 
-   switch(prop) {
-      case DmtxPropRowPadBytes:
-         img->rowPadBytes = value;
-         img->rowSizeBytes = img->width * (img->bitsPerPixel/8) + img->rowPadBytes;
-         break;
-      case DmtxPropImageFlip:
-         img->imageFlip = value;
-         break;
-      default:
-         break;
-   }
+    switch (prop)
+    {
+    case DmtxPropRowPadBytes:
+        img->rowPadBytes = value;
+        img->rowSizeBytes = img->width * (img->bitsPerPixel / 8) + img->rowPadBytes;
+        break;
+    case DmtxPropImageFlip:
+        img->imageFlip = value;
+        break;
+    default:
+        break;
+    }
 
-   return DmtxPass;
+    return DmtxPass;
 }
 
 /**
@@ -215,33 +217,34 @@ dmtxImageSetProp(DmtxImage *img, int prop, int value)
 extern int
 dmtxImageGetProp(DmtxImage *img, int prop)
 {
-   if(img == NULL)
-      return DmtxUndefined;
+    if (img == NULL)
+        return DmtxUndefined;
 
-   switch(prop) {
-      case DmtxPropWidth:
-         return img->width;
-      case DmtxPropHeight:
-         return img->height;
-      case DmtxPropPixelPacking:
-         return img->pixelPacking;
-      case DmtxPropBitsPerPixel:
-         return img->bitsPerPixel;
-      case DmtxPropBytesPerPixel:
-         return img->bytesPerPixel;
-      case DmtxPropRowPadBytes:
-         return img->rowPadBytes;
-      case DmtxPropRowSizeBytes:
-         return img->rowSizeBytes;
-      case DmtxPropImageFlip:
-         return img->imageFlip;
-      case DmtxPropChannelCount:
-         return img->channelCount;
-      default:
-         break;
-   }
+    switch (prop)
+    {
+    case DmtxPropWidth:
+        return img->width;
+    case DmtxPropHeight:
+        return img->height;
+    case DmtxPropPixelPacking:
+        return img->pixelPacking;
+    case DmtxPropBitsPerPixel:
+        return img->bitsPerPixel;
+    case DmtxPropBytesPerPixel:
+        return img->bytesPerPixel;
+    case DmtxPropRowPadBytes:
+        return img->rowPadBytes;
+    case DmtxPropRowSizeBytes:
+        return img->rowSizeBytes;
+    case DmtxPropImageFlip:
+        return img->imageFlip;
+    case DmtxPropChannelCount:
+        return img->channelCount;
+    default:
+        break;
+    }
 
-   return DmtxUndefined;
+    return DmtxUndefined;
 }
 
 /**
@@ -254,16 +257,16 @@ dmtxImageGetProp(DmtxImage *img, int prop)
 extern int
 dmtxImageGetByteOffset(DmtxImage *img, int x, int y)
 {
-   assert(img != NULL);
-   assert(!(img->imageFlip & DmtxFlipX)); /* DmtxFlipX is not an option */
+    assert(img != NULL);
+    assert(!(img->imageFlip & DmtxFlipX)); /* DmtxFlipX is not an option */
 
-   if(dmtxImageContainsInt(img, 0, x, y) == DmtxFalse)
-      return DmtxUndefined;
+    if (dmtxImageContainsInt(img, 0, x, y) == DmtxFalse)
+        return DmtxUndefined;
 
-   if(img->imageFlip & DmtxFlipY)
-      return (y * img->rowSizeBytes + x * img->bytesPerPixel);
+    if (img->imageFlip & DmtxFlipY)
+        return (y * img->rowSizeBytes + x * img->bytesPerPixel);
 
-   return ((img->height - y - 1) * img->rowSizeBytes + x * img->bytesPerPixel);
+    return ((img->height - y - 1) * img->rowSizeBytes + x * img->bytesPerPixel);
 }
 
 /**
@@ -273,42 +276,43 @@ dmtxImageGetByteOffset(DmtxImage *img, int x, int y)
 extern DmtxPassFail
 dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
 {
-   int offset;
-/* unsigned char *pixelPtr;
-   int pixelValue;
-   int mask;
-   int bitShift; */
+    int offset;
+    /* unsigned char *pixelPtr;
+       int pixelValue;
+       int mask;
+       int bitShift; */
 
-   assert(img != NULL);
-   assert(channel < img->channelCount);
+    assert(img != NULL);
+    assert(channel < img->channelCount);
 
-   offset = dmtxImageGetByteOffset(img, x, y);
-   if(offset == DmtxUndefined)
-      return DmtxFail;
+    offset = dmtxImageGetByteOffset(img, x, y);
+    if (offset == DmtxUndefined)
+        return DmtxFail;
 
-   switch(img->bitsPerChannel[channel]) {
-      case 1:
-/*       assert(img->bitsPerPixel == 1);
-         mask = 0x01 << (7 - offset%8);
-         *value = (img->pxl[offset/8] & mask) ? 255 : 0; */
-         break;
-      case 5:
-         /* XXX might be expensive if we want to scale perfect 0-255 range */
-/*       assert(img->bitsPerPixel == 16);
-         pixelPtr = img->pxl + (offset * (img->bitsPerPixel/8));
-         pixelValue = (*pixelPtr << 8) | (*(pixelPtr+1));
-         bitShift = img->bitsPerPixel - 5 - img->channelStart[channel];
-         mask = 0x1f << bitShift;
-         *value = (((pixelValue & mask) >> bitShift) << 3); */
-         break;
-      case 8:
-         assert(img->channelStart[channel] % 8 == 0);
-         assert(img->bitsPerPixel % 8 == 0);
-         *value = img->pxl[offset + channel];
-         break;
-   }
+    switch (img->bitsPerChannel[channel])
+    {
+    case 1:
+        /*       assert(img->bitsPerPixel == 1);
+                 mask = 0x01 << (7 - offset%8);
+                 *value = (img->pxl[offset/8] & mask) ? 255 : 0; */
+        break;
+    case 5:
+        /* XXX might be expensive if we want to scale perfect 0-255 range */
+        /*       assert(img->bitsPerPixel == 16);
+                 pixelPtr = img->pxl + (offset * (img->bitsPerPixel/8));
+                 pixelValue = (*pixelPtr << 8) | (*(pixelPtr+1));
+                 bitShift = img->bitsPerPixel - 5 - img->channelStart[channel];
+                 mask = 0x1f << bitShift;
+                 *value = (((pixelValue & mask) >> bitShift) << 3); */
+        break;
+    case 8:
+        assert(img->channelStart[channel] % 8 == 0);
+        assert(img->bitsPerPixel % 8 == 0);
+        *value = img->pxl[offset + channel];
+        break;
+    }
 
-   return DmtxPass;
+    return DmtxPass;
 }
 
 /**
@@ -318,42 +322,43 @@ dmtxImageGetPixelValue(DmtxImage *img, int x, int y, int channel, int *value)
 extern DmtxPassFail
 dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value)
 {
-   int offset;
-/* unsigned char *pixelPtr; */
-/* int pixelValue; */
-/* int mask; */
-/* int bitShift; */
+    int offset;
+    /* unsigned char *pixelPtr; */
+    /* int pixelValue; */
+    /* int mask; */
+    /* int bitShift; */
 
-   assert(img != NULL);
-   assert(channel < img->channelCount);
+    assert(img != NULL);
+    assert(channel < img->channelCount);
 
-   offset = dmtxImageGetByteOffset(img, x, y);
-   if(offset == DmtxUndefined)
-      return DmtxFail;
+    offset = dmtxImageGetByteOffset(img, x, y);
+    if (offset == DmtxUndefined)
+        return DmtxFail;
 
-   switch(img->bitsPerChannel[channel]) {
-      case 1:
-/*       assert(img->bitsPerPixel == 1);
-         mask = 0x01 << (7 - offset%8);
-         *value = (img->pxl[offset/8] & mask) ? 255 : 0; */
-         break;
-      case 5:
-         /* XXX might be expensive if we want to scale perfect 0-255 range */
-/*       assert(img->bitsPerPixel == 16);
-         pixelPtr = img->pxl + (offset * (img->bitsPerPixel/8));
-         pixelValue = (*pixelPtr << 8) | (*(pixelPtr+1));
-         bitShift = img->bitsPerPixel - 5 - img->channelStart[channel];
-         mask = 0x1f << bitShift;
-         *value = (((pixelValue & mask) >> bitShift) << 3); */
-         break;
-      case 8:
-         assert(img->channelStart[channel] % 8 == 0);
-         assert(img->bitsPerPixel % 8 == 0);
-         img->pxl[offset + channel] = value;
-         break;
-   }
+    switch (img->bitsPerChannel[channel])
+    {
+    case 1:
+        /*       assert(img->bitsPerPixel == 1);
+                 mask = 0x01 << (7 - offset%8);
+                 *value = (img->pxl[offset/8] & mask) ? 255 : 0; */
+        break;
+    case 5:
+        /* XXX might be expensive if we want to scale perfect 0-255 range */
+        /*       assert(img->bitsPerPixel == 16);
+                 pixelPtr = img->pxl + (offset * (img->bitsPerPixel/8));
+                 pixelValue = (*pixelPtr << 8) | (*(pixelPtr+1));
+                 bitShift = img->bitsPerPixel - 5 - img->channelStart[channel];
+                 mask = 0x1f << bitShift;
+                 *value = (((pixelValue & mask) >> bitShift) << 3); */
+        break;
+    case 8:
+        assert(img->channelStart[channel] % 8 == 0);
+        assert(img->bitsPerPixel % 8 == 0);
+        img->pxl[offset + channel] = value;
+        break;
+    }
 
-   return DmtxPass;
+    return DmtxPass;
 }
 
 /**
@@ -367,13 +372,13 @@ dmtxImageSetPixelValue(DmtxImage *img, int x, int y, int channel, int value)
 extern DmtxBoolean
 dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 {
-   assert(img != NULL);
+    assert(img != NULL);
 
-   if(x - margin >= 0 && x + margin < img->width &&
-         y - margin >= 0 && y + margin < img->height)
-      return DmtxTrue;
+    if (x - margin >= 0 && x + margin < img->width &&
+        y - margin >= 0 && y + margin < img->height)
+        return DmtxTrue;
 
-   return DmtxFalse;
+    return DmtxFalse;
 }
 
 /**
@@ -386,12 +391,12 @@ dmtxImageContainsInt(DmtxImage *img, int margin, int x, int y)
 extern DmtxBoolean
 dmtxImageContainsFloat(DmtxImage *img, double x, double y)
 {
-   assert(img != NULL);
+    assert(img != NULL);
 
-   if(x >= 0.0 && x < (double)img->width && y >= 0.0 && y < (double)img->height)
-      return DmtxTrue;
+    if (x >= 0.0 && x < (double)img->width && y >= 0.0 && y < (double)img->height)
+        return DmtxTrue;
 
-   return DmtxFalse;
+    return DmtxFalse;
 }
 
 /**
@@ -401,32 +406,33 @@ dmtxImageContainsFloat(DmtxImage *img, double x, double y)
 static int
 GetBitsPerPixel(int pack)
 {
-   switch(pack) {
-      case DmtxPack1bppK:
-         return 1;
-      case DmtxPack8bppK:
-         return 8;
-      case DmtxPack16bppRGB:
-      case DmtxPack16bppRGBX:
-      case DmtxPack16bppXRGB:
-      case DmtxPack16bppBGR:
-      case DmtxPack16bppBGRX:
-      case DmtxPack16bppXBGR:
-      case DmtxPack16bppYCbCr:
-         return 16;
-      case DmtxPack24bppRGB:
-      case DmtxPack24bppBGR:
-      case DmtxPack24bppYCbCr:
-         return  24;
-      case DmtxPack32bppRGBX:
-      case DmtxPack32bppXRGB:
-      case DmtxPack32bppBGRX:
-      case DmtxPack32bppXBGR:
-      case DmtxPack32bppCMYK:
-         return  32;
-      default:
-         break;
-   }
+    switch (pack)
+    {
+    case DmtxPack1bppK:
+        return 1;
+    case DmtxPack8bppK:
+        return 8;
+    case DmtxPack16bppRGB:
+    case DmtxPack16bppRGBX:
+    case DmtxPack16bppXRGB:
+    case DmtxPack16bppBGR:
+    case DmtxPack16bppBGRX:
+    case DmtxPack16bppXBGR:
+    case DmtxPack16bppYCbCr:
+        return 16;
+    case DmtxPack24bppRGB:
+    case DmtxPack24bppBGR:
+    case DmtxPack24bppYCbCr:
+        return 24;
+    case DmtxPack32bppRGBX:
+    case DmtxPack32bppXRGB:
+    case DmtxPack32bppBGRX:
+    case DmtxPack32bppXBGR:
+    case DmtxPack32bppCMYK:
+        return 32;
+    default:
+        break;
+    }
 
-   return DmtxUndefined;
+    return DmtxUndefined;
 }
