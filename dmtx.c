@@ -90,3 +90,13 @@ dmtxVersion(void)
 {
     return DmtxVersion;
 }
+
+extern DmtxBoolean
+dmtxReaderProgramming(void)
+{
+#ifdef HAVE_READER_PROGRAMMING
+    return DmtxTrue;
+#else
+    return DmtxFalse;
+#endif
+}

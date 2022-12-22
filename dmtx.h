@@ -658,6 +658,7 @@ extern "C"
     extern void dmtxByteListPrint(DmtxByteList *list, char *prefix);
 
     extern char *dmtxVersion(void);
+    extern DmtxBoolean dmtxReaderProgramming(void);
 
 #ifdef __cplusplus
 }
