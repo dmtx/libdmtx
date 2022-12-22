@@ -37,7 +37,7 @@ extern "C"
 #define M_PI_2    1.57079632679489661923
 #endif
 
-#define DmtxVersion              "0.7.5"
+#define DmtxVersion              VERSION
 
 #define DmtxUndefined                 -1
 
