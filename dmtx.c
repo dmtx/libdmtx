@@ -92,7 +92,7 @@ dmtxVersion(void)
 }
 
 extern DmtxBoolean
-dmtxReaderProgramming(void)
+dmtxHasReaderProgramming(void)
 {
 #ifdef HAVE_READER_PROGRAMMING
     return DmtxTrue;
