@@ -15,27 +15,27 @@
  * \brief Data Matrix symbol attributes
  */
 
-
 /**
  * \brief  Retrieve symbol index from rows and columns
  * \param  rows
  * \param  cols
  * \return sizeIdx value
  */
-extern int 
+extern int
 getSizeIdxFromSymbolDimension(int rows, int cols)
 {
-  int symbolRows, symbolCols, i;
-  for (i=0; i<30; i++){
-    symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, i);
-    symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, i);
-    if (rows==symbolRows && cols==symbolCols){
-      return i;
+    int symbolRows, symbolCols, i;
+    for (i = 0; i < 30; i++)
+    {
+        symbolRows = dmtxGetSymbolAttribute(DmtxSymAttribSymbolRows, i);
+        symbolCols = dmtxGetSymbolAttribute(DmtxSymAttribSymbolCols, i);
+        if (rows == symbolRows && cols == symbolCols)
+        {
+            return i;
+        }
     }
-  }
-  return -1;
+    return -1;
 }
-
 
 /**
  * \brief  Retrieve property based on symbol size
@@ -100,42 +100,43 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
                                                                34,  31,  31,
                                                    3,  5,  7,   9,  12,  14 };
 
-   if(sizeIdx < 0 || sizeIdx >= DmtxSymbolSquareCount + DmtxSymbolRectCount)
-      return DmtxUndefined;
+    if (sizeIdx < 0 || sizeIdx >= DmtxSymbolSquareCount + DmtxSymbolRectCount)
+        return DmtxUndefined;
 
-   switch(attribute) {
-      case DmtxSymAttribSymbolRows:
-         return symbolRows[sizeIdx];
-      case DmtxSymAttribSymbolCols:
-         return symbolCols[sizeIdx];
-      case DmtxSymAttribDataRegionRows:
-         return dataRegionRows[sizeIdx];
-      case DmtxSymAttribDataRegionCols:
-         return dataRegionCols[sizeIdx];
-      case DmtxSymAttribHorizDataRegions:
-         return horizDataRegions[sizeIdx];
-      case DmtxSymAttribVertDataRegions:
-         return (sizeIdx < DmtxSymbolSquareCount) ? horizDataRegions[sizeIdx] : 1;
-      case DmtxSymAttribMappingMatrixRows:
-         return dataRegionRows[sizeIdx] *
+    switch (attribute)
+    {
+    case DmtxSymAttribSymbolRows:
+        return symbolRows[sizeIdx];
+    case DmtxSymAttribSymbolCols:
+        return symbolCols[sizeIdx];
+    case DmtxSymAttribDataRegionRows:
+        return dataRegionRows[sizeIdx];
+    case DmtxSymAttribDataRegionCols:
+        return dataRegionCols[sizeIdx];
+    case DmtxSymAttribHorizDataRegions:
+        return horizDataRegions[sizeIdx];
+    case DmtxSymAttribVertDataRegions:
+        return (sizeIdx < DmtxSymbolSquareCount) ? horizDataRegions[sizeIdx] : 1;
+    case DmtxSymAttribMappingMatrixRows:
+        return dataRegionRows[sizeIdx] *
                dmtxGetSymbolAttribute(DmtxSymAttribVertDataRegions, sizeIdx);
-      case DmtxSymAttribMappingMatrixCols:
-         return dataRegionCols[sizeIdx] * horizDataRegions[sizeIdx];
-      case DmtxSymAttribInterleavedBlocks:
-         return interleavedBlocks[sizeIdx];
-      case DmtxSymAttribBlockErrorWords:
-         return blockErrorWords[sizeIdx];
-      case DmtxSymAttribBlockMaxCorrectable:
-         return blockMaxCorrectable[sizeIdx];
-      case DmtxSymAttribSymbolDataWords:
-         return symbolDataWords[sizeIdx];
-      case DmtxSymAttribSymbolErrorWords:
-         return blockErrorWords[sizeIdx] * interleavedBlocks[sizeIdx];
-      case DmtxSymAttribSymbolMaxCorrectable:
-         return blockMaxCorrectable[sizeIdx] * interleavedBlocks[sizeIdx];
-   }
+    case DmtxSymAttribMappingMatrixCols:
+        return dataRegionCols[sizeIdx] * horizDataRegions[sizeIdx];
+    case DmtxSymAttribInterleavedBlocks:
+        return interleavedBlocks[sizeIdx];
+    case DmtxSymAttribBlockErrorWords:
+        return blockErrorWords[sizeIdx];
+    case DmtxSymAttribBlockMaxCorrectable:
+        return blockMaxCorrectable[sizeIdx];
+    case DmtxSymAttribSymbolDataWords:
+        return symbolDataWords[sizeIdx];
+    case DmtxSymAttribSymbolErrorWords:
+        return blockErrorWords[sizeIdx] * interleavedBlocks[sizeIdx];
+    case DmtxSymAttribSymbolMaxCorrectable:
+        return blockMaxCorrectable[sizeIdx] * interleavedBlocks[sizeIdx];
+    }
 
-   return DmtxUndefined;
+    return DmtxUndefined;
 }
 
 /**
@@ -147,19 +148,19 @@ dmtxGetSymbolAttribute(int attribute, int sizeIdx)
 extern int
 dmtxGetBlockDataSize(int sizeIdx, int blockIdx)
 {
-   int symbolDataWords;
-   int interleavedBlocks;
-   int count;
+    int symbolDataWords;
+    int interleavedBlocks;
+    int count;
 
-   symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
-   interleavedBlocks = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
+    symbolDataWords = dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx);
+    interleavedBlocks = dmtxGetSymbolAttribute(DmtxSymAttribInterleavedBlocks, sizeIdx);
 
-   if(symbolDataWords < 1 || interleavedBlocks < 1)
-      return DmtxUndefined;
+    if (symbolDataWords < 1 || interleavedBlocks < 1)
+        return DmtxUndefined;
 
-   count = (int)(symbolDataWords/interleavedBlocks);
+    count = (int)(symbolDataWords / interleavedBlocks);
 
-   return (sizeIdx == DmtxSymbol144x144 && blockIdx < 8) ? count + 1 : count;
+    return (sizeIdx == DmtxSymbol144x144 && blockIdx < 8) ? count + 1 : count;
 }
 
 /**
@@ -171,37 +172,42 @@ dmtxGetBlockDataSize(int sizeIdx, int blockIdx)
 static int
 FindSymbolSize(int dataWords, int sizeIdxRequest)
 {
-   int sizeIdx;
-   int idxBeg, idxEnd;
+    int sizeIdx;
+    int idxBeg, idxEnd;
 
-   if(dataWords <= 0)
-      return DmtxUndefined;
+    if (dataWords <= 0)
+        return DmtxUndefined;
 
-   if(sizeIdxRequest == DmtxSymbolSquareAuto || sizeIdxRequest == DmtxSymbolRectAuto) {
+    if (sizeIdxRequest == DmtxSymbolSquareAuto || sizeIdxRequest == DmtxSymbolRectAuto)
+    {
 
-      if(sizeIdxRequest == DmtxSymbolSquareAuto) {
-         idxBeg = 0;
-         idxEnd = DmtxSymbolSquareCount;
-      }
-      else {
-         idxBeg = DmtxSymbolSquareCount;
-         idxEnd = DmtxSymbolSquareCount + DmtxSymbolRectCount;
-      }
+        if (sizeIdxRequest == DmtxSymbolSquareAuto)
+        {
+            idxBeg = 0;
+            idxEnd = DmtxSymbolSquareCount;
+        }
+        else
+        {
+            idxBeg = DmtxSymbolSquareCount;
+            idxEnd = DmtxSymbolSquareCount + DmtxSymbolRectCount;
+        }
 
-      for(sizeIdx = idxBeg; sizeIdx < idxEnd; sizeIdx++) {
-         if(dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) >= dataWords)
-            break;
-      }
+        for (sizeIdx = idxBeg; sizeIdx < idxEnd; sizeIdx++)
+        {
+            if (dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx) >= dataWords)
+                break;
+        }
 
-      if(sizeIdx == idxEnd)
-         return DmtxUndefined;
-   }
-   else {
-      sizeIdx = sizeIdxRequest;
-   }
+        if (sizeIdx == idxEnd)
+            return DmtxUndefined;
+    }
+    else
+    {
+        sizeIdx = sizeIdxRequest;
+    }
 
-   if(dataWords > dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx))
-      return DmtxUndefined;
+    if (dataWords > dmtxGetSymbolAttribute(DmtxSymAttribSymbolDataWords, sizeIdx))
+        return DmtxUndefined;
 
-   return sizeIdx;
+    return sizeIdx;
 }

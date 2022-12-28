@@ -1,4 +1,4 @@
-AC_INIT([libdmtx], [0.7.7], [https://github.com/dmtx/libdmtx/issues], [libdmtx], [https://github.com/dmtx/libdmtx])
+AC_INIT([libdmtx], [1.0.0], [https://github.com/dmtx/libdmtx/issues], [libdmtx], [https://github.com/dmtx/libdmtx])
 AM_INIT_AUTOMAKE([-Wall -Werror])
 
 AC_CONFIG_MACRO_DIR([m4])
@@ -13,6 +13,13 @@ AC_CONFIG_FILES([
 AC_PROG_CC
 AC_PROG_LIBTOOL
 AM_PROG_CC_C_O
+
+
+AC_ARG_ENABLE([reader_programming], [AS_HELP_STRING([--disable-reader-programming], [Disable Reader Programming breaking feature.])], [], [enable_reader_programming=yes] )
+AS_IF([test "x$enable_reader_programming" != "xno"], [
+  AC_DEFINE([HAVE_READER_PROGRAMMING], [1], [Reader Programming breaking feature.])
+])
+
 
 AC_SEARCH_LIBS([sin], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))
 AC_SEARCH_LIBS([cos], [m] ,[], AC_MSG_ERROR([libdmtx requires libm]))

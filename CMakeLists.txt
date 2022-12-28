@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(DMTX VERSION 0.7.7 LANGUAGES C)
+project(DMTX VERSION 1.0.0 LANGUAGES C)
 
 # DMTX library
 option(DMTX_SHARED "Build DMTX as shared library" ${BUILD_SHARED_LIBS})

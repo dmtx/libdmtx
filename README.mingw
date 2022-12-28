@@ -57,6 +57,45 @@ Finally run:
 Now you should have working dmtx.dll in the folder .libs.
 
 
+3.1. Building and installing the core library from different folder
+-------------------------------------------------------------------
+
+Recent MSYS2 installation uses C:\msys64 root folder, To build libdmtx:
+
+1. install the MSYS2 packages:
+
+  $ pacman -S --needed base-devel mingw-w64-x86_64-toolchain autoconf automake make libtool
+
+Details on how to install and setup MSYS2 environment on Windows can be found `here <https://code.visualstudio.com/docs/languages/cpp>`_
+and `here <https://www.freecodecamp.org/news/how-to-install-c-and-cpp-compiler-on-windows>`_ .
+
+2. clone git repository
+3. open msys2 console and add msys' mingw64 bin folder to path environment variable
+
+  $ export PATH=$PATH:/c/msys64/mingw64/bin
+
+4. to create configure script, run
+  $ ./autogen.sh
+
+5. open the configure file and put as very first instruction the following one
+  LDFLAGS="-Wl,-no-undefined"
+
+6. from within the libdmtx folder, run
+
+  $ ./configure <your building options>
+  $ make
+
+Now, into .libs subfolder, you should find following files:
+
+  libdmtx.a libdmtx.la libdmtx.lai  libdmtx_la-dmtx.o
+
+Then finally run:
+
+  $ gcc -shared -o dmtx.dll libdmtx_la-dmtx.o -Wl,--out-implib,libdmtx.a
+
+Now you should have working dmtx.dll in the folder .libs.
+
+
 4. This Document
 -----------------------------------------------------------------
 

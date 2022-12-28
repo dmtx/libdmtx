@@ -17,6 +17,10 @@
 #ifndef __DMTXSTATIC_H__
 #define __DMTXSTATIC_H__
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #define DmtxAlmostZero          0.000001
 #define DmtxAlmostInfinity            -1
 
@@ -54,21 +58,23 @@
 #define DmtxChannelCannotUnlatch    0x01 << 1
 
 #undef min
-#define min(X,Y) (((X) < (Y)) ? (X) : (Y))
+#define min(X, Y) (((X) < (Y)) ? (X) : (Y))
 
 #undef max
-#define max(X,Y) (((X) > (Y)) ? (X) : (Y))
+#define max(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-typedef enum {
-   DmtxEncodeNormal,  /* Use normal scheme behavior (e.g., ASCII auto) */
-   DmtxEncodeCompact, /* Use only compact format within scheme */
-   DmtxEncodeFull     /* Use only fully expanded format within scheme */
+typedef enum
+{
+    DmtxEncodeNormal,  /* Use normal scheme behavior (e.g., ASCII auto) */
+    DmtxEncodeCompact, /* Use only compact format within scheme */
+    DmtxEncodeFull     /* Use only fully expanded format within scheme */
 } DmtxEncodeOption;
 
-typedef enum {
-   DmtxRangeGood,
-   DmtxRangeBad,
-   DmtxRangeEnd
+typedef enum
+{
+    DmtxRangeGood,
+    DmtxRangeBad,
+    DmtxRangeEnd
 } DmtxRange;
 
 typedef enum {
@@ -171,7 +177,11 @@ static unsigned char *DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, 
 
 /* dmtxencode.c */
 static void PrintPattern(DmtxEncode *encode);
+#ifdef HAVE_READER_PROGRAMMING
+static int EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1, DmtxBoolean bReaderProgramming);
+#else
 static int EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1);
+#endif
 
 /* dmtxplacemod.c */
 static int ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int sizeIdx, int moduleOnColor);
@@ -181,7 +191,7 @@ static void PatternShapeSpecial2(unsigned char *modules, int mappingRows, int ma
 static void PatternShapeSpecial3(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor);
 static void PatternShapeSpecial4(unsigned char *modules, int mappingRows, int mappingCols, unsigned char *codeword, int moduleOnColor);
 static void PlaceModule(unsigned char *modules, int mappingRows, int mappingCols, int row, int col,
-      unsigned char *codeword, int mask, int moduleOnColor);
+                        unsigned char *codeword, int mask, int moduleOnColor);
 
 /* dmtxreedsol.c */
 static DmtxPassFail RsEncode(DmtxMessage *message, int sizeIdx);
@@ -219,7 +229,12 @@ static DmtxByte StreamInputAdvanceNext(DmtxEncodeStream *stream);
 static void StreamInputAdvancePrev(DmtxEncodeStream *stream);
 
 /* dmtxencodescheme.c */
+#ifdef HAVE_READER_PROGRAMMING
+static int EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1, DmtxBoolean bReaderProgramming);
+#else
 static int EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1);
+#endif
+
 static void EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int subScheme, int sizeIdxRequest);
 static void EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatchType);
 static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
@@ -227,13 +242,13 @@ static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);
 /* dmtxencodeoptimize.c */
 static int EncodeOptimizeBest(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, int fnc1);
 static void StreamAdvanceFromBest(DmtxEncodeStream *streamNext,
-      DmtxEncodeStream *streamList, int targeteState, int sizeIdxRequest);
+                                  DmtxEncodeStream *streamList, int targeteState, int sizeIdxRequest);
 static void AdvanceAsciiCompact(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList,
-      int state, int inputNext, int sizeIdxRequest);
+                                int state, int inputNext, int sizeIdxRequest);
 static void AdvanceCTX(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList,
-      int state, int inputNext, int ctxValueCount, int sizeIdxRequest);
+                       int state, int inputNext, int ctxValueCount, int sizeIdxRequest);
 static void AdvanceEdifact(DmtxEncodeStream *streamNext, DmtxEncodeStream *streamList,
-      int state, int inputNext, int sizeIdxRequest);
+                           int state, int inputNext, int sizeIdxRequest);
 static int GetScheme(int state);
 static DmtxBoolean ValidStateSwitch(int fromState, int targetState);
 
@@ -309,30 +324,30 @@ static int rHvY[] =
 
 /*@ -charint @*/
 
-enum DmtxErrorMessage {
-   DmtxErrorUnknown,
-   DmtxErrorUnsupportedCharacter,
-   DmtxErrorNotOnByteBoundary,
-   DmtxErrorIllegalParameterValue,
-   DmtxErrorEmptyList,
-   DmtxErrorOutOfBounds,
-   DmtxErrorMessageTooLarge,
-   DmtxErrorCantCompactNonDigits,
-   DmtxErrorUnexpectedScheme,
-   DmtxErrorIncompleteValueList
+enum DmtxErrorMessage
+{
+    DmtxErrorUnknown,
+    DmtxErrorUnsupportedCharacter,
+    DmtxErrorNotOnByteBoundary,
+    DmtxErrorIllegalParameterValue,
+    DmtxErrorEmptyList,
+    DmtxErrorOutOfBounds,
+    DmtxErrorMessageTooLarge,
+    DmtxErrorCantCompactNonDigits,
+    DmtxErrorUnexpectedScheme,
+    DmtxErrorIncompleteValueList
 };
 
 static char *dmtxErrorMessage[] = {
-   "Unknown error",
-   "Unsupported character",
-   "Not on byte boundary",
-   "Illegal parameter value",
-   "Encountered empty list",
-   "Out of bounds",
-   "Message too large",
-   "Can't compact non-digits",
-   "Encountered unexpected scheme",
-   "Encountered incomplete value list"
-};
+    "Unknown error",
+    "Unsupported character",
+    "Not on byte boundary",
+    "Illegal parameter value",
+    "Encountered empty list",
+    "Out of bounds",
+    "Message too large",
+    "Can't compact non-digits",
+    "Encountered unexpected scheme",
+    "Encountered incomplete value list"};
 
 #endif
