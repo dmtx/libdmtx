@@ -63,25 +63,76 @@ dmtxRegionDestroy(DmtxRegion **reg)
 extern DmtxRegion *
 dmtxRegionFindNext(DmtxDecode *dec, DmtxTime *timeout)
 {
+   DmtxScanConstraint constraint;
+
+   // Functionally these two branches do the same thing even
+   // if timeout were null, but we use the latter form in order
+   // to preserve the most short-circuit performance if the
+   // caller doesn't specify a timeout.
+   if(timeout != NULL) {
+      constraint.maxTimeout = timeout;
+      constraint.maxIterations = 0;
+      return dmtxRegionFindNextDeterministic(dec, &constraint);
+   } else {
+      return dmtxRegionFindNextDeterministic(dec, NULL);
+   }
+}
+
+/**
+ * \brief  Find next barcode region
+ * \param  dec Pointer to DmtxDecode information struct
+ * \param  constraint Pointer to constraint (NULL if no constraints)
+ *         Constraint is an input/output structure.
+ *         Limits will be considered independently. Set to zero/null
+ *         to indicate no-constraint. Actual runtime and iterations,
+ *         as well as termination reason will be filled in upon return
+ *         if constraint is non-null.
+ *
+ * \return Detected region (if found)
+ */
+extern DmtxRegion *
+dmtxRegionFindNextDeterministic(DmtxDecode *dec, DmtxScanConstraint *constraint)
+{
    int locStatus;
+   int iterations = 0;
    DmtxPixelLoc loc;
    DmtxRegion   *reg;
 
    /* Continue until we find a region or run out of chances */
    for(;;) {
       locStatus = PopGridLocation(&(dec->grid), &loc);
-      if(locStatus == DmtxRangeEnd)
+      if(locStatus == DmtxRangeEnd) {
+         if(constraint != NULL)
+            constraint->stopCause = DmtxScanNotFound;
          break;
+      }
 
+      /* Iterations counts the number of calls to ScanPixel */
+      ++iterations;
       /* Scan location for presence of valid barcode region */
       reg = dmtxRegionScanPixel(dec, loc.X, loc.Y);
-      if(reg != NULL)
+      if(reg != NULL) {
+         if(constraint != NULL) {
+            constraint->iterations = iterations;
+            constraint->stopCause = DmtxScanSuccess;
+         }
          return reg;
+      }
+
+      /* Ran out of iterations? */
+      if(constraint != NULL && constraint->maxIterations != 0 && constraint->maxIterations <= iterations) {
+         constraint->stopCause = DmtxScanIterLimit;
+         break;
+      }
 
       /* Ran out of time? */
-      if(timeout != NULL && dmtxTimeExceeded(*timeout))
+      if(constraint != NULL && constraint->maxTimeout != NULL && dmtxTimeExceeded(*constraint->maxTimeout)) {
+         constraint->stopCause = DmtxScanTimeLimit;
          break;
+      }
    }
+   if(constraint)
+      constraint->iterations = iterations;
 
    return NULL;
 }

@@ -1,7 +1,7 @@
 Bugs in libdmtx
 -----------------------------------------------------------------
 
-1. libdtmx - Core Library
+1. libdmtx - Core Library
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 While regular encoder works fine, the optimizer feature (--best)
