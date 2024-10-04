@@ -68,6 +68,13 @@ extern "C" {
 #define DMTX_CHECK_BOUNDS(l,i) (assert((i) >= 0 && (i) < (l)->length && (l)->length <= (l)->capacity))
 
 typedef enum {
+   DmtxScanNotFound,  /* Scanning completed without finding a region. */
+   DmtxScanSuccess,   /* Scanning found a region */
+   DmtxScanTimeLimit, /* Scanning halted due to time limit */
+   DmtxScanIterLimit, /* Scanning halted due to iteration limit */
+} DmtxScanStatus;
+
+typedef enum {
    DmtxStatusEncoding, /* Encoding is currently underway */
    DmtxStatusComplete, /* Encoding is done and everything went well */
    DmtxStatusInvalid,  /* Something bad happened that sometimes happens */
@@ -440,6 +447,21 @@ typedef struct DmtxTime_struct {
 } DmtxTime;
 
 /**
+ * @struct DmtxScanConstraint
+ * @brief DmtxScanConstraint
+ * Constraint structure for dmtxRegionFindNextDeterministic
+ * Allows for interrupting execution after a specific number of iterations
+ * as well as time. Good for ensuring deterministic amounts of work are done
+ * in any given call.
+ **/
+typedef struct DmtxScanConstraint_struct {
+  DmtxTime        *maxTimeout;    /* Time limit, if any */
+  int              maxIterations; /* Iteration Limit */
+  int              iterations;    /* Actual number of iterations used */
+  DmtxScanStatus   stopCause;     /* Reason that scanning stopped */
+} DmtxScanConstraint;
+
+/**
  * @struct DmtxDecode
  * @brief DmtxDecode
  */
@@ -557,6 +579,7 @@ extern unsigned char *dmtxDecodeCreateDiagnostic(DmtxDecode *dec, /*@out@*/ int 
 extern DmtxRegion *dmtxRegionCreate(DmtxRegion *reg);
 extern DmtxPassFail dmtxRegionDestroy(DmtxRegion **reg);
 extern DmtxRegion *dmtxRegionFindNext(DmtxDecode *dec, DmtxTime *timeout);
+extern DmtxRegion *dmtxRegionFindNextDeterministic(DmtxDecode *dec, DmtxScanConstraint *constraint);
 extern DmtxRegion *dmtxRegionScanPixel(DmtxDecode *dec, int x, int y);
 extern DmtxPassFail dmtxRegionUpdateCorners(DmtxDecode *dec, DmtxRegion *reg, DmtxVector2 p00,
       DmtxVector2 p10, DmtxVector2 p11, DmtxVector2 p01);
