@@ -36,7 +36,7 @@ extern "C" {
 #define M_PI_2    1.57079632679489661923
 #endif
 
-#define DmtxVersion              "0.7.5"
+#define DmtxVersion              VERSION
 
 #define DmtxUndefined                 -1
 
@@ -560,7 +560,11 @@ extern DmtxEncode *dmtxEncodeCreate(void);
 extern DmtxPassFail dmtxEncodeDestroy(DmtxEncode **enc);
 extern DmtxPassFail dmtxEncodeSetProp(DmtxEncode *enc, int prop, int value);
 extern int dmtxEncodeGetProp(DmtxEncode *enc, int prop);
-extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s);
+#ifdef HAVE_READER_PROGRAMMING
+    extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s, DmtxBoolean bReaderProgramming);
+#else
+    extern DmtxPassFail dmtxEncodeDataMatrix(DmtxEncode *enc, int n, unsigned char *s);
+#endif
 extern DmtxPassFail dmtxEncodeDataMosaic(DmtxEncode *enc, int n, unsigned char *s);
 
 /* dmtxdecode.c */
@@ -651,6 +655,7 @@ extern DmtxByte dmtxByteListPop(DmtxByteList *list, DmtxPassFail *passFail);
 extern void dmtxByteListPrint(DmtxByteList *list, char *prefix);
 
 extern char *dmtxVersion(void);
+extern DmtxBoolean dmtxHasReaderProgramming(void);
 
 #ifdef __cplusplus
 }

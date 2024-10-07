@@ -84,13 +84,25 @@
  *
  *
  */
-static int
-EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1)
+#ifdef HAVE_READER_PROGRAMMING
+    static int
+    EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1, DmtxBoolean bReaderProgramming)
+#else
+    static int
+    EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1)
+#endif
 {
    DmtxEncodeStream stream;
 
    stream = StreamInit(input, output);
    stream.fnc1 = fnc1;
+
+    #ifdef HAVE_READER_PROGRAMMING
+        if (bReaderProgramming == DmtxTrue) {
+            /* change to have reader programming label */
+            AppendValueAscii(&stream, DmtxValueReaderProgramming);
+        }
+    #endif
 
    /* 1st FNC1 special case, encode before scheme switch */
    if (fnc1 != DmtxUndefined && (int)(input->b[0]) == fnc1)

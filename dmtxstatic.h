@@ -17,6 +17,10 @@
 #ifndef __DMTXSTATIC_H__
 #define __DMTXSTATIC_H__
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #define DmtxAlmostZero          0.000001
 #define DmtxAlmostInfinity            -1
 
@@ -171,7 +175,11 @@ static unsigned char *DecodeSchemeBase256(DmtxMessage *msg, unsigned char *ptr, 
 
 /* dmtxencode.c */
 static void PrintPattern(DmtxEncode *encode);
-static int EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1);
+#ifdef HAVE_READER_PROGRAMMING
+    static int EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1, DmtxBoolean bReaderProgramming);
+#else
+    static int EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1);
+#endif
 
 /* dmtxplacemod.c */
 static int ModulePlacementEcc200(unsigned char *modules, unsigned char *codewords, int sizeIdx, int moduleOnColor);
@@ -219,7 +227,12 @@ static DmtxByte StreamInputAdvanceNext(DmtxEncodeStream *stream);
 static void StreamInputAdvancePrev(DmtxEncodeStream *stream);
 
 /* dmtxencodescheme.c */
-static int EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1);
+#ifdef HAVE_READER_PROGRAMMING
+    static int EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1, DmtxBoolean bReaderProgramming);
+#else
+    static int EncodeSingleScheme(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1);
+#endif
+
 static void EncodeNextChunk(DmtxEncodeStream *stream, int scheme, int subScheme, int sizeIdxRequest);
 static void EncodeChangeScheme(DmtxEncodeStream *stream, DmtxScheme targetScheme, int unlatchType);
 static int GetRemainingSymbolCapacity(int outputLength, int sizeIdx);

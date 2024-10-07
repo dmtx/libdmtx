@@ -17,6 +17,10 @@
 #undef ISDIGIT
 #define ISDIGIT(n) (n > 47 && n < 58)
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 /**
  * \brief  Initialize encode struct with default values
  * \return Initialized DmtxEncode struct
@@ -161,10 +165,16 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
  * \param  inputSize
  * \param  inputString
  * \param  sizeIdxRequest
+ * \param  bReaderProgramming
  * \return DmtxPass | DmtxFail
  */
-extern DmtxPassFail
-dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
+#ifdef HAVE_READER_PROGRAMMING
+    extern DmtxPassFail
+    dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString, DmtxBoolean bReaderProgramming)
+#else
+    extern DmtxPassFail
+    dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
+#endif
 {
    int sizeIdx;
    int width, height, bitsPerPixel;
@@ -179,7 +189,11 @@ dmtxEncodeDataMatrix(DmtxEncode *enc, int inputSize, unsigned char *inputString)
    /* Future: EncodeDataCodewords(&stream) ... */
 
    /* Encode input string into data codewords */
-   sizeIdx = EncodeDataCodewords(&input, &output, enc->sizeIdxRequest, enc->scheme, enc->fnc1);
+   #ifdef HAVE_READER_PROGRAMMING
+        sizeIdx = EncodeDataCodewords(&input, &output, enc->sizeIdxRequest, enc->scheme, enc->fnc1, bReaderProgramming);
+   #else
+        sizeIdx = EncodeDataCodewords(&input, &output, enc->sizeIdxRequest, enc->scheme, enc->fnc1);
+   #endif
    if(sizeIdx == DmtxUndefined || output.length <= 0)
       return DmtxFail;
 
@@ -307,17 +321,29 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
       dmtxEncodeSetProp(encB, DmtxPropSizeRequest, sizeIdxAttempt);
 
       /* RED LAYER - Holds temporary copy */
-      dmtxEncodeDataMatrix(encR, inputSizeR, inputStringR);
+      #ifdef HAVE_READER_PROGRAMMING
+        dmtxEncodeDataMatrix(encR, inputSizeR, inputStringR, DmtxFalse);
+      #else
+        dmtxEncodeDataMatrix(encR, inputSizeR, inputStringR);
+      #endif
       if(encR->region.sizeIdx != sizeIdxAttempt)
          continue;
 
       /* GREEN LAYER - Holds temporary copy */
-      dmtxEncodeDataMatrix(encG, inputSizeG, inputStringG);
+      #ifdef HAVE_READER_PROGRAMMING
+        dmtxEncodeDataMatrix(encG, inputSizeG, inputStringG, DmtxFalse);
+      #else
+        dmtxEncodeDataMatrix(encG, inputSizeG, inputStringG);
+      #endif
       if(encG->region.sizeIdx != sizeIdxAttempt)
          continue;
 
       /* BLUE LAYER - Holds temporary copy */
-      dmtxEncodeDataMatrix(encB, inputSizeB, inputStringB);
+      #ifdef HAVE_READER_PROGRAMMING
+        dmtxEncodeDataMatrix(encB, inputSizeB, inputStringB, DmtxFalse);
+      #else
+        dmtxEncodeDataMatrix(encB, inputSizeB, inputStringB);
+      #endif
       if(encB->region.sizeIdx != sizeIdxAttempt)
          continue;
 
@@ -337,7 +363,11 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
 
    /* Perform the red portion of the final encode to set internals correctly */
    dmtxEncodeSetProp(enc, DmtxPropSizeRequest, sizeIdxAttempt);
-   dmtxEncodeDataMatrix(enc, inputSizeR, inputStringR);
+   #ifdef HAVE_READER_PROGRAMMING
+        dmtxEncodeDataMatrix(enc, inputSizeR, inputStringR, DmtxFalse);
+   #else
+       dmtxEncodeDataMatrix(enc, inputSizeR, inputStringR);
+   #endif
 
    /* Zero out the array and overwrite the bits in 3 passes */
    mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdxAttempt);
@@ -382,13 +412,19 @@ dmtxEncodeDataMosaic(DmtxEncode *enc, int inputSize, unsigned char *inputString)
  * \param  inputSize
  * \param  scheme
  * \param  sizeIdx
+ * \param  bReaderProgramming
  * \return Count of encoded data words
  *
  * Future: pass DmtxEncode to this function with an error reason field, which
  *         goes to EncodeSingle... too
  */
-static int
-EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1)
+#ifdef HAVE_READER_PROGRAMMING
+    static int
+    EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1, DmtxBoolean bReaderProgramming)
+#else
+    static int
+    EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxRequest, DmtxScheme scheme, int fnc1)
+#endif
 {
    int sizeIdx;
 
@@ -402,7 +438,11 @@ EncodeDataCodewords(DmtxByteList *input, DmtxByteList *output, int sizeIdxReques
          sizeIdx = DmtxUndefined; /* EncodeAutoFast(input, output, sizeIdxRequest, passFail); */
          break;
       default:
-         sizeIdx = EncodeSingleScheme(input, output, sizeIdxRequest, scheme, fnc1);
+         #ifdef HAVE_READER_PROGRAMMING
+            sizeIdx = EncodeSingleScheme(input, output, sizeIdxRequest, scheme, fnc1, bReaderProgramming);
+         #else
+            sizeIdx = EncodeSingleScheme(input, output, sizeIdxRequest, scheme, fnc1);
+         #endif
          break;
    }
 

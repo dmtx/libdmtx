@@ -24,12 +24,13 @@
 #include <errno.h>
 #include <assert.h>
 #include <math.h>
-#include "dmtx.h"
-#include "dmtxstatic.h"
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include "dmtx.h"
+#include "dmtxstatic.h"
 
 #ifndef CALLBACK_POINT_PLOT
 #define CALLBACK_POINT_PLOT(a,b,c,d)
@@ -88,4 +89,14 @@ extern char *
 dmtxVersion(void)
 {
    return DmtxVersion;
+}
+
+extern DmtxBoolean
+dmtxHasReaderProgramming(void)
+{
+#ifdef HAVE_READER_PROGRAMMING
+    return DmtxTrue;
+#else
+    return DmtxFalse;
+#endif
 }
