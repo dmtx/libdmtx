@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 enable_testing()
 
-link_directories(. .. ../..)
+link_directories(../build)
 
 add_executable(test_simple
   "simple_test/simple_test.c")
