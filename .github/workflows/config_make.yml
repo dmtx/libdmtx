@@ -78,15 +78,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - run: |
-        mkdir build
-        cd build
+    - name: Create build directory
+      run: mkdir build
     - name: Configure
+      working-directory: build
       run: cmake -DDMTX_SHARED=ON -DDMTX_STATIC=ON -DBUILD_TESTING=ON .
     - name: Build
+      working-directory: build
       run: cmake --build . --verbose
     - name: Run Simple Test
-      run: ./test/simple_test
+      working-directory: build/test
+      run: ./simple_test
 
 
   cmake_with_reader_prog:
@@ -100,12 +102,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - run: |
-        mkdir build
-        cd build
+    - name: Create build directory
+      run: mkdir build
     - name: Configure
+      working-directory: build
       run: cmake -DDMTX_READER_PROGRAMMING=ON -DDMTX_SHARED=ON -DDMTX_STATIC=ON -DBUILD_TESTING=ON .
     - name: Build
+      working-directory: build
       run: cmake --build . --verbose
     - name: Run Simple Test
-      run: ./test/simple_test
+      working-directory: build/test
+      run: ./simple_test
