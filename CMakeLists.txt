@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 project(DMTX VERSION 0.7.7 LANGUAGES C)
 
 # DMTX library
@@ -14,10 +14,19 @@ if (MSVC)
   set_target_properties(dmtx PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 else()
   set_target_properties(dmtx PROPERTIES
-                                VERSION ${PROJECT_VERSION}
-                                SOVERSION ${PROJECT_VERSION_MAJOR})
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+  )
   target_link_libraries(dmtx PUBLIC -lm)
 endif()
+
+option(DMTX_READER_PROGRAMMING "Enable reader programming feature (adds breaking changes to API)" OFF)
+
+if(DMTX_READER_PROGRAMMING)
+  add_compile_definitions(HAVE_READER_PROGRAMMING)
+endif()
+
+add_compile_definitions(VERSION="${PROJECT_VERSION}")
 
 set_target_properties(dmtx PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/dmtx.h")
 install(TARGETS dmtx LIBRARY ARCHIVE RUNTIME PUBLIC_HEADER)
@@ -29,3 +38,5 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
       add_subdirectory("test")
     endif()
 endif()
+
+# vim: ft=cmake ts=2 sw=2 sts=2 et
