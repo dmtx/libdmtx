@@ -11,7 +11,7 @@
 # Vadim A. Misbakh-Soloviov <dmtx@mva.name>
 # Mike Laughton <mike@dragonflylogic.com>
 
-name: config make
+name: Check that project builds and tests are passing
 
 on:
   push:
@@ -86,6 +86,9 @@ jobs:
     - name: Build
       working-directory: build
       run: cmake --build . --verbose
+    - name: Run Unit Test
+      working-directory: build/test
+      run: ./test_unit
     - name: Run Simple Test
       working-directory: build/test
       run: ./test_simple
@@ -110,6 +113,9 @@ jobs:
     - name: Build
       working-directory: build
       run: cmake --build . --verbose
+    - name: Run Unit Test
+      working-directory: build/test
+      run: ./test_unit
     - name: Run Simple Test
       working-directory: build/test
       run: ./test_simple
