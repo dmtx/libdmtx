@@ -82,7 +82,7 @@ jobs:
       run: mkdir build
     - name: Configure
       working-directory: build
-      run: cmake -DDMTX_SHARED=ON -DDMTX_STATIC=ON -DBUILD_TESTING=ON .
+      run: cmake -DDMTX_SHARED=ON -DDMTX_STATIC=ON -DBUILD_TESTING=ON ..
     - name: Build
       working-directory: build
       run: cmake --build . --verbose
@@ -106,7 +106,7 @@ jobs:
       run: mkdir build
     - name: Configure
       working-directory: build
-      run: cmake -DDMTX_READER_PROGRAMMING=ON -DDMTX_SHARED=ON -DDMTX_STATIC=ON -DBUILD_TESTING=ON .
+      run: cmake -DDMTX_READER_PROGRAMMING=ON -DDMTX_SHARED=ON -DDMTX_STATIC=ON -DBUILD_TESTING=ON ..
     - name: Build
       working-directory: build
       run: cmake --build . --verbose
