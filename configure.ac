@@ -1,4 +1,4 @@
-AC_INIT([libdmtx], [0.7.7], [https://github.com/dmtx/libdmtx/issues], [libdmtx], [https://github.com/dmtx/libdmtx])
+AC_INIT([libdmtx], [0.7.8], [https://github.com/dmtx/libdmtx/issues], [libdmtx], [https://github.com/dmtx/libdmtx])
 AM_INIT_AUTOMAKE([-Wall -Werror])
 
 AC_CONFIG_MACRO_DIR([m4])

@@ -23,8 +23,8 @@ on:
 
 
 jobs:
-  with_reader_prog:
-    name: Reader Programming
+  autotools_standard:
+    name: Checking autotools build (default)
 
     strategy:
       matrix:
@@ -34,20 +34,41 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Run autogen
+      run: ./autogen.sh
     - name: Run Configure
       run: ./configure --enable-static=yes --enable-shared=yes
     - name: Build
       run: make
-    - name: Build Tests
-      run: make check
-    - name: Run Test
+    - name: Build and run tests
       run: |
         make check
         cd test/simple_test
         ./simple_test
 
-  without_reader_prog:
-    name: No reader programming
+  autotools_with_reader_prog:
+    name: Checking autotools build (with 'Reader Programming' feature)
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run autogen
+      run: ./autogen.sh
+    - name: Run Configure
+      run: ./configure --enable-static=yes --enable-shared=yes --enable-reader-programming
+    - name: Build and run tests
+      run: |
+        make check
+        cd test/simple_test
+        ./simple_test
+
+  cmake_standard:
+    name: Checking CMake build (default)
 
     strategy:
       matrix:
@@ -58,13 +79,31 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Run Configure
-      run: ./configure --enable-static=yes --enable-shared=yes --disable-reader-programming
+      run: cmake -DDMTX_SHARED=ON -DDMTX_STATIC=ON -DBUILD_TESTING=ON .
     - name: Build
-      run: make
-    - name: Build Tests
-      run: make check
+      run: cmake --build . --verbose
     - name: Run Test
       run: |
-        make check
+        cd test/simple_test
+        ./simple_test
+
+
+  cmake_with_reader_prog:
+    name: Checking CMake build (with 'Reader Programming' feature)
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Run Configure
+      run: cmake -DDMTX_READER_PROGRAMMING=ON -DDMTX_SHARED=ON -DDMTX_STATIC=ON -DBUILD_TESTING=ON .
+    - name: Build
+      run: cmake --build . --verbose
+    - name: Run Test
+      run: |
         cd test/simple_test
         ./simple_test
