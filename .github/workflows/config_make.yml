@@ -12,7 +12,6 @@
 # Mike Laughton <mike@dragonflylogic.com>
 
 name: config make
-description: Build project with configure and make
 
 on:
   push:
