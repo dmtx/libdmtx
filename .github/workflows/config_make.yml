@@ -88,7 +88,7 @@ jobs:
       run: cmake --build . --verbose
     - name: Run Simple Test
       working-directory: build/test
-      run: ./simple_test
+      run: ./test_simple
 
 
   cmake_with_reader_prog:
@@ -112,4 +112,4 @@ jobs:
       run: cmake --build . --verbose
     - name: Run Simple Test
       working-directory: build/test
-      run: ./simple_test
+      run: ./test_simple
