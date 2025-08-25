@@ -19,18 +19,18 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
-#include "dmtx/dmtx.h"
+#include "../../dmtx.h"
 
 int main(int argc, char *argv[])
 {
-   size_t width, height, bytesPerPixel;
-   unsigned char str[] = "30Q324343430794<OQQ";
-   unsigned char *pxl;
-   DmtxEncode *enc;
-   DmtxImage *img;
-   DmtxDecode *dec;
-   DmtxRegion *reg;
-   DmtxMessage *msg;
+   size_t         width, height, bytesPerPixel;
+   unsigned char  str[] = "30Q324343430794<OQQ";
+   unsigned char  *pxl;
+   DmtxEncode     *enc;
+   DmtxImage      *img;
+   DmtxDecode     *dec;
+   DmtxRegion     *reg;
+   DmtxMessage    *msg;
 
    fprintf(stdout, "input:  \"%s\"\n", str);
 
@@ -71,8 +71,7 @@ int main(int argc, char *argv[])
    fprintf(stdout, "height: \"%zd\"\n", height);
    fprintf(stdout, "bpp:    \"%zd\"\n", bytesPerPixel);
 
-   for (int i = 0; i < width * height; i++)
-   {
+   for (int i = 0; i < width * height; i++){
       fprintf(stdout, "%d", (pxl[i * 3]) == 0);
       if (i % width == width - 1)
       {
@@ -90,8 +89,7 @@ int main(int argc, char *argv[])
    assert(dec != NULL);
 
    reg = dmtxRegionFindNext(dec, NULL);
-   if (reg != NULL)
-   {
+   if (reg != NULL){
       msg = dmtxDecodeMatrixRegion(dec, reg, DmtxUndefined);
 
       fprintf(stdout, "msg->arraySize :  \"%zd\"\n", msg->arraySize);
@@ -108,19 +106,16 @@ int main(int argc, char *argv[])
          }
       }
       fprintf(stdout, "\n\n");
-      for (int j = 0; j < msg->codeSize; j++)
-      {
+      for (int j = 0; j < msg->codeSize; j++){
          fprintf(stdout, " %c.", msg->code[j]);
       }
       fprintf(stdout, "\n\n");
-      for (int k = 0; k < msg->outputSize; k++)
-      {
+      for (int k = 0; k < msg->outputSize; k++){
          fprintf(stdout, " %c.", msg->output[k]);
       }
       fprintf(stdout, "\n\n");
 
-      if (msg != NULL)
-      {
+      if (msg != NULL){
          fputs("output: \"", stdout);
          fwrite(msg->output, sizeof(unsigned char), msg->outputIdx, stdout);
          fputs("\"\n", stdout);

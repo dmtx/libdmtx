@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "dmtx/dmtx.h"
+#include "../../dmtx.h"
 
 char *programName;
 
