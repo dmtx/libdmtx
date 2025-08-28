@@ -21,7 +21,8 @@
 #include <math.h>
 #include "../../dmtx.h"
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
    size_t         width, height, bytesPerPixel;
    unsigned char  str[] = "30Q324343430794<OQQ";
