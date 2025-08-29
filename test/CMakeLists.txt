@@ -5,9 +5,12 @@ enable_testing()
 link_directories(../build)
 
 if(WIN32)
+  # The folder where the files (so/a/dll) of the dmtx library are located
+  set(DMTX_LIB_DIR "${CMAKE_CURRENT_LIST_DIR}/../build/*dmtx.*") 
+  
   file(COPY ${CMAKE_CURRENT_LIST_DIR}/../dmtx.h DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-  file(GLOB LIBS "${CMAKE_CURRENT_LIST_DIR}/../build/*dmtx.*")
-  file(COPY ${LIBS} DESTINATION ${CMAKE_CURRENT_LIST_DIR}/build)
+  file(GLOB LIBS ${DMTX_LIB_DIR})
+  file(COPY ${LIBS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif(WIN32)
 
 add_executable(test_simple
