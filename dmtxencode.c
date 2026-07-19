@@ -207,6 +207,10 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
    enc->region.mappingRows = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixRows, sizeIdx);
    enc->region.mappingCols = dmtxGetSymbolAttribute(DmtxSymAttribMappingMatrixCols, sizeIdx);
 
+   /* Free any message left over from a previous call on this DmtxEncode
+      before allocating a new one, to avoid leaking it (see issue #40) */
+   dmtxMessageDestroy(&(enc->message));
+
    /* Allocate memory for message and array */
    enc->message = dmtxMessageCreate(sizeIdx, DmtxFormatMatrix);
    enc->message->padCount = 0; /* XXX this needs to be added back */
@@ -232,6 +236,14 @@ dmtxEncodeGetProp(DmtxEncode *enc, int prop)
       perror("pixel malloc error");
       return DmtxFail;
    }
+
+   /* Free any image left over from a previous call on this DmtxEncode
+      before allocating a new one, to avoid leaking it (see issue #40) */
+   if(enc->image != NULL && enc->image->pxl != NULL) {
+      free(enc->image->pxl);
+      enc->image->pxl = NULL;
+   }
+   dmtxImageDestroy(&(enc->image));
 
    enc->image = dmtxImageCreate(pxl, width, height, enc->pixelPacking);
    if(enc->image == NULL) {
